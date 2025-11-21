@@ -82,6 +82,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
@@ -91,7 +92,12 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import io.quarkus.security.identity.SecurityIdentity;
+import com.google.protobuf.DescriptorProtos;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import com.squareup.wire.schema.internal.parser.ProtoParser;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -106,6 +112,7 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.URI;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -966,6 +973,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             String artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, data.getArtifactType(), factory);
 
+            // Normalize Protobuf content to text format for storage and rule validation
+            ContentHandle normalizedContent = normalizeProtobufContent(content, artifactType);
+            TypedContent normalizedTypedContent = TypedContent.create(normalizedContent, contentType);
+
             final String owner = securityIdentity.getPrincipal().getName();
 
             // Create the artifact (with optional first version)
@@ -981,7 +992,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
                 firstVersion = data.getFirstVersion().getVersion();
-                firstVersionContent = ContentWrapperDto.builder().content(content).contentType(contentType)
+                firstVersionContent = ContentWrapperDto.builder().content(normalizedContent).contentType(contentType)
                         .references(referencesAsDtos).build();
                 firstVersionMetaData = EditableVersionMetaDataDto.builder()
                         .description(data.getFirstVersion().getDescription())
@@ -998,7 +1009,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 // Apply any configured rules unless it is a DRAFT version
                 if (!firstVersionIsDraft) {
                     rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
-                            artifactType, typedContent, RuleApplicationType.CREATE, references,
+                            artifactType, normalizedTypedContent, RuleApplicationType.CREATE, references,
                             resolvedReferences);
                 }
             }
@@ -1084,6 +1095,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String ct = data.getContent().getContentType();
         boolean isDraft = data.getIsDraft() != null && data.getIsDraft();
 
+        // Normalize Protobuf content to text format for storage and rule validation
+        ContentHandle normalizedContent = normalizeProtobufContent(content, artifactType);
+
         // Transform the given references into dtos
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(
                 data.getContent().getReferences());
@@ -1094,7 +1108,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
-            TypedContent typedContent = TypedContent.create(content, ct);
+            TypedContent typedContent = TypedContent.create(normalizedContent, ct);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
                     typedContent, RuleApplicationType.UPDATE, data.getContent().getReferences(),
                     resolvedReferences);
@@ -1104,7 +1118,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
                 .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
-        ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(ct).content(content)
+        ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(ct).content(normalizedContent)
                 .references(referencesAsDtos).build();
 
         ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(
@@ -1326,10 +1340,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     private CreateArtifactResponse handleIfExistsReturnOrUpdate(String groupId, String artifactId,
             CreateVersion theVersion, boolean canonical, Boolean dryRun) {
         try {
-            // Find the version
-            TypedContent content = TypedContent.create(
-                    ContentHandle.create(theVersion.getContent().getContent()),
-                    theVersion.getContent().getContentType());
+            String artifactType = lookupArtifactType(groupId, artifactId);
+            ContentHandle originalContent = ContentHandle.create(theVersion.getContent().getContent());
+
+            // Normalize Protobuf content before lookup to match stored format
+            ContentHandle normalizedContent = normalizeProtobufContent(originalContent, artifactType);
+
+            TypedContent content = TypedContent.create(normalizedContent, theVersion.getContent().getContentType());
             List<ArtifactReferenceDto> referenceDtos = toReferenceDtos(
                     theVersion.getContent().getReferences());
             ArtifactVersionMetaDataDto vmdDto = this.storage.getArtifactVersionMetaDataByContent(
@@ -1343,6 +1360,51 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             return CreateArtifactResponse.builder().artifact(amd).version(vmd).build();
         } catch (ArtifactNotFoundException nfe) {
+            // Hash lookup failed - for Protobuf, try canonical comparison fallback
+            // to handle migration from base64 to text format storage
+            try {
+                String artifactType = lookupArtifactType(groupId, artifactId);
+                if (ArtifactType.PROTOBUF.equals(artifactType)) {
+                    ContentHandle originalContent = ContentHandle.create(theVersion.getContent().getContent());
+                    ContentHandle normalizedContent = normalizeProtobufContent(originalContent, artifactType);
+
+                    // Only try fallback if normalization changed the content (base64 -> text or vice versa)
+                    if (!originalContent.content().equals(normalizedContent.content())) {
+                        final String normalizedSchema = normalizedContent.content();
+
+                        // Search all versions for canonical match
+                        ArtifactVersionMetaDataDto vmdDto = storage.getArtifactVersions(
+                                new GroupId(groupId).getRawGroupIdWithNull(), artifactId)
+                                .stream()
+                                .filter(version -> {
+                                    try {
+                                        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(
+                                                new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version);
+                                        // Parse both stored and new schemas to ProtoFileElement for canonical comparison
+                                        ProtoFileElement storedProto = ProtobufFile.toProtoFileElement(
+                                                storedVersion.getContent().content());
+                                        ProtoFileElement newProto = ProtobufFile.toProtoFileElement(normalizedSchema);
+                                        // Compare canonical text representations
+                                        return storedProto.toSchema().equals(newProto.toSchema());
+                                    } catch (Exception e) {
+                                        return false;
+                                    }
+                                })
+                                .findFirst()
+                                .map(version -> storage.getArtifactVersionMetaData(
+                                        new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version))
+                                .orElseThrow(() -> nfe);
+
+                        VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
+                        ArtifactMetaDataDto amdDto = this.storage.getArtifactMetaData(groupId, artifactId);
+                        ArtifactMetaData amd = V3ApiUtil.dtoToArtifactMetaData(amdDto);
+
+                        return CreateArtifactResponse.builder().artifact(amd).version(vmd).build();
+                    }
+                }
+            } catch (Exception e) {
+                // Fallback failed, proceed to update
+            }
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
         return updateArtifactInternal(groupId, artifactId, theVersion, dryRun);
@@ -1363,6 +1425,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         String artifactType = lookupArtifactType(groupId, artifactId);
 
+        // Normalize Protobuf content to text format for storage and rule validation
+        ContentHandle normalizedContent = normalizeProtobufContent(content, artifactType);
+
         final String owner = securityIdentity.getPrincipal().getName();
 
         // Transform the given references into dtos and set the contentId, this will also detect if any of the
@@ -1373,14 +1438,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (!isDraftVersion) {
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
-            final TypedContent typedContent = TypedContent.create(content, contentType);
+            final TypedContent typedContent = TypedContent.create(normalizedContent, contentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
                     typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
         }
 
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name(name)
                 .description(description).labels(labels).build();
-        ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(contentType).content(content)
+        ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(contentType).content(normalizedContent)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(groupId, artifactId, version,
                 artifactType, contentDto, metaData, branches, isDraftVersion, dryRun != null && dryRun, owner);
@@ -1391,6 +1456,40 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactMetaData amd = V3ApiUtil.dtoToArtifactMetaData(amdDto);
 
         return CreateArtifactResponse.builder().artifact(amd).version(vmd).build();
+    }
+
+    /**
+     * Normalizes Protobuf content to text format for storage.
+     * If the content is already in text format, returns it unchanged.
+     * If it's base64-encoded FileDescriptorProto, converts it to .proto text format.
+     *
+     * @param content The content to normalize
+     * @param artifactType The artifact type
+     * @return Normalized content handle
+     */
+    private ContentHandle normalizeProtobufContent(ContentHandle content, String artifactType) {
+        if (!ArtifactType.PROTOBUF.equals(artifactType) || content == null) {
+            return content;
+        }
+
+        try {
+            // Try parsing as text first
+            ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, content.content());
+            // If successful, content is already in text format
+            return content;
+        } catch (Exception e) {
+            // If text parsing fails, assume it's binary Base64 encoded FileDescriptorProto
+            try {
+                byte[] decodedBytes = Base64.getDecoder().decode(content.content());
+                DescriptorProtos.FileDescriptorProto descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+                ProtoFileElement protoFileElement = FileDescriptorUtils.fileDescriptorToProtoFile(descriptorProto);
+                String textSchema = protoFileElement.toSchema(); // Convert binary to text
+                return ContentHandle.create(textSchema); // Normalize to text for storage
+            } catch (Exception pe) {
+                // If both parsing methods fail, return original content and let validation handle it
+                return content;
+            }
+        }
     }
 
     private List<ArtifactReferenceDto> toReferenceDtos(List<ArtifactReference> references) {

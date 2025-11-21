@@ -34,6 +34,7 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
@@ -127,22 +128,22 @@ public abstract class AbstractResource {
                 contentType = ContentTypes.APPLICATION_PROTOBUF;
             }
 
-            // Prepare content for rule application. If Protobuf, ensure it's in text format.
-            TypedContent contentForRules = TypedContent.create(schemaContent, contentType);
+            // Normalize Protobuf content to text format for storage and rule application.
+            // This ensures schemas are always stored in .proto text format, regardless of whether
+            // they were submitted as text or base64-encoded binary (e.g., from .NET clients).
             if (artifactType.equals(ArtifactType.PROTOBUF)) {
                 try {
                     // Try parsing as text first
                     ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, schemaContent.content());
-                    // If successful, contentForRules is already correct (text format)
+                    // If successful, schemaContent is already in text format - no conversion needed
                 } catch (Exception e) {
-                    // If text parsing fails, assume it's binary Base64 encoded FileDescriptorSet
+                    // If text parsing fails, assume it's binary Base64 encoded FileDescriptorProto
                     try {
                         byte[] decodedBytes = Base64.getDecoder().decode(schemaContent.content());
                         DescriptorProtos.FileDescriptorProto descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
                         ProtoFileElement protoFileElement = FileDescriptorUtils.fileDescriptorToProtoFile(descriptorProto);
                         String textSchema = protoFileElement.toSchema(); // Convert binary to text
-                        ContentHandle textContentHandle = ContentHandle.create(textSchema);
-                        contentForRules = TypedContent.create(textContentHandle, ContentTypes.APPLICATION_PROTOBUF); // Use text for rules
+                        schemaContent = ContentHandle.create(textSchema); // Normalize to text for storage
                     } catch (Exception pe) {
                         // If binary parsing also fails, throw an exception
                         throw new UnprocessableEntityException(pe);
@@ -150,14 +151,16 @@ public abstract class AbstractResource {
                 }
             }
 
+            TypedContent contentForRules = TypedContent.create(schemaContent, contentType);
+
             if (!doesArtifactExist(artifactId, groupId)) {
-                // Apply rules using the potentially converted text content
+                // Apply rules using the normalized content
                 rulesService.applyRules(groupId, artifactId, artifactType, contentForRules,
                         RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
 
                 EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();
                 EditableVersionMetaDataDto firstVersionMetaData = EditableVersionMetaDataDto.builder().build();
-                // Store the ORIGINAL content (text or binary)
+                // Store the normalized content (for Protobuf, always text format)
                 ContentWrapperDto firstVersionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();
 
@@ -166,10 +169,10 @@ public abstract class AbstractResource {
                                 firstVersionContent, firstVersionMetaData, null, false, false, owner)
                         .getValue();
             } else {
-                // Apply rules using the potentially converted text content
+                // Apply rules using the normalized content
                 rulesService.applyRules(groupId, artifactId, artifactType, contentForRules,
                         RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
-                // Store the ORIGINAL content (text or binary)
+                // Store the normalized content (for Protobuf, always text format)
                 ContentWrapperDto versionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();
                 res = storage.createArtifactVersion(groupId, artifactId, null, artifactType, versionContent,
@@ -192,7 +195,32 @@ public abstract class AbstractResource {
             final String type = schemaType == null ? ArtifactType.AVRO : schemaType;
             final String contentType = type.equals(ArtifactType.PROTOBUF) ? ContentTypes.APPLICATION_PROTOBUF
                 : ContentTypes.APPLICATION_JSON;
-            TypedContent typedSchemaContent = TypedContent.create(ContentHandle.create(schema), contentType);
+
+            // Normalize Protobuf content before lookup to ensure content hash matches stored schemas
+            final String normalizedSchema;
+            if (type.equals(ArtifactType.PROTOBUF)) {
+                String tempSchema = schema;
+                try {
+                    // Try parsing as text first
+                    ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, schema);
+                    // If successful, schema is already in text format
+                } catch (Exception e) {
+                    // If text parsing fails, assume it's binary Base64 encoded FileDescriptorProto
+                    try {
+                        byte[] decodedBytes = Base64.getDecoder().decode(schema);
+                        DescriptorProtos.FileDescriptorProto descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+                        ProtoFileElement protoFileElement = FileDescriptorUtils.fileDescriptorToProtoFile(descriptorProto);
+                        tempSchema = protoFileElement.toSchema(); // Convert to text for lookup
+                    } catch (Exception pe) {
+                        // If both fail, keep original and let validation handle it
+                    }
+                }
+                normalizedSchema = tempSchema;
+            } else {
+                normalizedSchema = schema;
+            }
+
+            TypedContent typedSchemaContent = TypedContent.create(ContentHandle.create(normalizedSchema), contentType);
             final List<ArtifactReferenceDto> artifactReferences = parseReferences(schemaReferences, groupId);
             ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(type);
             ArtifactVersionMetaDataDto amd;
@@ -223,6 +251,27 @@ public abstract class AbstractResource {
                                             .dereference(typedArtifactVersion, artifactVersionReferences)
                                             .getContent().content());
                             return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
+                        }).findAny().map(
+                                version -> storage.getArtifactVersionMetaData(groupId, artifactId, version))
+                                .orElseThrow(() -> ex);
+                    } else if (type.equals(ArtifactType.PROTOBUF) && !schema.equals(normalizedSchema)) {
+                        // Fallback for Protobuf migration: if normalized lookup failed and we normalized the input,
+                        // try to find existing schemas by comparing canonical content.
+                        // This handles the case where existing schemas were stored in base64 format
+                        // but we're now looking up with normalized text format.
+                        amd = storage.getArtifactVersions(groupId, artifactId).stream().filter(version -> {
+                            StoredArtifactVersionDto artifactVersion = storage
+                                    .getArtifactVersionContent(groupId, artifactId, version);
+                            // Parse both stored and new schemas to ProtoFileElement for canonical comparison
+                            try {
+                                ProtoFileElement storedProto = ProtobufFile.toProtoFileElement(
+                                        artifactVersion.getContent().content());
+                                ProtoFileElement newProto = ProtobufFile.toProtoFileElement(normalizedSchema);
+                                // Compare canonical text representations
+                                return storedProto.toSchema().equals(newProto.toSchema());
+                            } catch (Exception e) {
+                                return false;
+                            }
                         }).findAny().map(
                                 version -> storage.getArtifactVersionMetaData(groupId, artifactId, version))
                                 .orElseThrow(() -> ex);

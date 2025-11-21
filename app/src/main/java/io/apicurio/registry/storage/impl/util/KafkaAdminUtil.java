@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration.TOPIC_PARTITIONS_CONFIG;
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlConfiguration.TOPIC_REPLICATION_FACTOR_CONFIG;
@@ -29,6 +30,7 @@ import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.MESSA
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.REQUEST_ID_HEADER;
 import static io.apicurio.registry.utils.CollectionsUtil.copy;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOn;
+import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 import static io.apicurio.registry.utils.kafka.KafkaUtil.toJavaFuture;
 import static java.lang.Math.max;
 import static java.lang.String.valueOf;
@@ -48,6 +50,26 @@ public class KafkaAdminUtil {
 
     @Inject
     KafkaSqlConfiguration configuration;
+
+    public void createTopicIfDoesNotExist(String topic, Map<String, String> properties) {
+        var showConfig = true;
+        try {
+            if (blockOnResult(createTopicIfDoesNotExistAsync(topic, properties))) {
+                log.info("Topic '{}' created.", topic);
+            } else {
+                log.info("Topic '{}' already exists.", topic);
+                showConfig = false;
+            }
+        } catch (Exception ex) {
+            log.error("Could not create topic '" + topic + "'.", ex);
+            throw ex;
+        } finally {
+            if (showConfig) {
+                log.debug("When created, topic '{}' should have the following configuration properties:\n{}", topic,
+                        properties.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("\n")));
+            }
+        }
+    }
 
     /**
      * NOTE: This is a bit slower than the previous implementation that created multiple topics concurrently.

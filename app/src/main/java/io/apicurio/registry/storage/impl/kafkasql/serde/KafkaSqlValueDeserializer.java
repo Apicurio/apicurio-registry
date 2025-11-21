@@ -9,7 +9,12 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.Optional;
+
+import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.MESSAGE_TYPE_HEADER;
+import static io.apicurio.registry.utils.StringUtil.toReadableString;
+import static java.lang.Math.min;
 
 /**
  * Kafka deserializer responsible for deserializing the value of a KSQL Kafka message.
@@ -19,6 +24,7 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlValueDeserializer.class);
 
     private static final ObjectMapper mapper = new ObjectMapper();
+
     static {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
@@ -47,7 +53,7 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
         try {
             String messageType = extractMessageType(headers);
             if (messageType == null) {
-                log.error("Message missing required message type header: mt");
+                log.error("Message missing required message type header: " + MESSAGE_TYPE_HEADER);
                 return null;
             }
 
@@ -55,10 +61,10 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
             if (msgClass == null) {
                 throw new Exception("Unknown KafkaSql message class for '" + messageType + "'");
             }
-            KafkaSqlMessage message = mapper.readValue(data, msgClass);
-            return message;
-        } catch (Exception e) {
-            log.error("Error deserializing a Kafka+SQL message (value).", e);
+            return mapper.readValue(data, msgClass);
+        } catch (Exception ex) {
+            log.error("Error deserializing a KafkaSQL message value: {}. First 32 bytes of the message value are: {}",
+                    ex.getMessage(), toReadableString(Arrays.copyOf(data, min(32, data.length))));
             return null;
         }
     }
@@ -67,9 +73,8 @@ public class KafkaSqlValueDeserializer implements Deserializer<KafkaSqlMessage> 
      * Extracts the UUID from the message. The UUID should be found in a message header.
      */
     private static String extractMessageType(Headers headers) {
-        return Optional.ofNullable(headers.headers("mt")).map(Iterable::iterator).map(it -> {
+        return Optional.ofNullable(headers.headers(MESSAGE_TYPE_HEADER)).map(Iterable::iterator).map(it -> {
             return it.hasNext() ? it.next() : null;
         }).map(Header::value).map(String::new).orElse(null);
     }
-
 }

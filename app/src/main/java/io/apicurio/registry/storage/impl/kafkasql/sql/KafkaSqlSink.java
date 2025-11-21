@@ -17,6 +17,8 @@ import org.slf4j.Logger;
 import java.util.Optional;
 import java.util.UUID;
 
+import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.REQUEST_ID_HEADER;
+
 @ApplicationScoped
 @Logged
 public class KafkaSqlSink {
@@ -69,7 +71,7 @@ public class KafkaSqlSink {
      * @param record
      */
     private UUID extractUuid(ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
-        return Optional.ofNullable(record.headers().headers("req")).map(Iterable::iterator).map(it -> {
+        return Optional.ofNullable(record.headers().headers(REQUEST_ID_HEADER)).map(Iterable::iterator).map(it -> {
             return it.hasNext() ? it.next() : null;
         }).map(Header::value).map(String::new).map(UUID::fromString).orElse(null);
     }

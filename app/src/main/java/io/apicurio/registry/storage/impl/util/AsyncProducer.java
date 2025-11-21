@@ -1,4 +1,4 @@
-package io.apicurio.registry.utils.kafka;
+package io.apicurio.registry.storage.impl.util;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;

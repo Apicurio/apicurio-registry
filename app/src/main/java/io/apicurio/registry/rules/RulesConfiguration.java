@@ -12,7 +12,7 @@ public class RulesConfiguration {
     @Produces
     @ApplicationScoped
     public RulesProperties rulesProperties(
-            @RegistryProperties(value = { "apicurio.rules.global" }) Properties properties) {
+            @RegistryProperties(prefixes = { "apicurio.rules.global" }) Properties properties) {
         return new RulesPropertiesImpl(properties);
     }
 

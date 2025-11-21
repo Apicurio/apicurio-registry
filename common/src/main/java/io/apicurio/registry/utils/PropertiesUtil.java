@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -27,52 +27,68 @@ public class PropertiesUtil {
      * @return filtered/stripped properties
      */
     public static Properties properties(InjectionPoint ip) {
+
         RegistryProperties cp = ip.getAnnotated().getAnnotation(RegistryProperties.class);
         if (cp == null) {
-            throw new IllegalArgumentException(ip.getMember() + " is not annotated with @RegistryProperties");
+            throw new IllegalArgumentException(ip.getMember() + " must be annotated with @RegistryProperties.");
         }
-        String[] prefixes = Stream.of(cp.value())
+
+        var prefixes = Stream.of(cp.prefixes())
                 .map(pfx -> pfx.isEmpty() || pfx.endsWith(".") ? pfx : pfx + ".").distinct()
-                .toArray(String[]::new);
-        if (prefixes.length == 0) {
+                .toList();
+
+        if (prefixes.isEmpty()) {
             throw new IllegalArgumentException("Annotation @RegistryProperties on " + ip.getMember()
-                    + " is missing non-empty 'value' attribute");
+                    + " must have a non-empty 'prefixes' attribute.");
         }
 
         Properties properties = new Properties();
         Config config = ConfigProviderResolver.instance().getConfig();
 
         if (debug && log.isDebugEnabled()) {
-            String dump = StreamSupport.stream(config.getPropertyNames().spliterator(), false).sorted()
+            String dump = StreamSupport.stream(config.getPropertyNames().spliterator(), false)
+                    .sorted()
                     .map(key -> key + "=" + config.getOptionalValue(key, String.class).orElse(""))
                     .collect(Collectors.joining("\n  ", "  ", "\n"));
             log.debug("Injecting config properties with prefixes {} into {} from the following...\n{}",
-                    Arrays.toString(prefixes), ip.getMember(), dump);
+                    prefixes, ip.getMember(), dump);
         }
 
-        // some security properties take empty value as config
-        Map<String, String> defaults = new HashMap<>();
-        if (cp != null) {
-            String[] empties = cp.empties();
-            for (String e : empties) {
-                int p = e.indexOf("=");
-                defaults.put(e.substring(0, p), e.substring(p + 1));
-            }
+        var defaults = new HashMap<String, String>();
+        for (String d : cp.defaults()) {
+            int p = d.indexOf("=");
+            defaults.put(d.substring(0, p), d.substring(p + 1));
         }
 
-        // collect properties with specified prefixes in order of prefixes (later prefix overrides earlier)
+        var excludedList = Arrays.asList(cp.excluded());
+        var excluded = new HashSet<>();
+        // When the property is passed as an env. variable, dashes are interpreted as dots,
+        // so we need to exclude both forms.
+        excluded.addAll(excludedList);
+        excluded.addAll(excludedList.stream().map(s -> s.replace('-', '.')).toList());
+
+        // Collect properties with specified prefixes in order of prefixes (later prefix overrides earlier)
         for (String prefix : prefixes) {
             for (String key : config.getPropertyNames()) {
                 if (key.startsWith(prefix)) {
-                    // property can exist with key, but no value ...
-                    Optional<String> value = config.getOptionalValue(key, String.class);
-                    if (value.isPresent()) {
-                        properties.put(key.substring(prefix.length()), value.get());
-                    } else if (defaults.size() > 0) {
-                        String sKey = key.substring(prefix.length());
-                        String defaultValue = defaults.get(sKey);
-                        if (defaultValue != null) {
-                            properties.put(sKey, defaultValue);
+                    var suffix = key.substring(prefix.length());
+                    if (!suffix.isEmpty()) {
+                        log.debug("Processing property '{}'", key);
+                        if (!excluded.contains(suffix)) {
+                            // Property can exist with a key but no value...
+                            Optional<String> value = config.getOptionalValue(key, String.class);
+                            if (value.isPresent()) {
+                                properties.put(suffix, value.get());
+                            } else {
+                                String defaultValue = defaults.get(suffix);
+                                if (defaultValue != null) {
+                                    properties.put(suffix, defaultValue);
+                                } else {
+                                    log.debug("Property '{}' has no value and no default, skipping.", key);
+                                }
+                            }
+                        } else {
+                            log.debug("Property '{}' is excluded, skipping.", key);
                         }
                     }
                 }

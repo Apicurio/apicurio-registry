@@ -100,6 +100,7 @@
     <module>utils/kafka</module>
     <module>utils/maven-plugin</module>
     <module>utils/protobuf-schema-utilities</module>
+    <module>integration-tests/protobuf-backward-compat/old-serializer</module>
     <module>utils/tests</module>
     <module>utils/raml-test-micro-service</module>
 
@@ -183,8 +184,7 @@
     <avro.version>1.12.1</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <protobuf4j.version>999-SNAPSHOT</protobuf4j.version>
-    <chicory.version>1.6.0</chicory.version>
-    <protobuf.version>3.25.5</protobuf.version>
+    <protobuf.version>4.33.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.63.1</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -194,7 +194,7 @@
     <picocli.version>4.6.3</picocli.version>
 
     <!-- Confluent API / client -->
-    <confluent.version>7.6.0</confluent.version>
+    <confluent.version>8.0.0</confluent.version>
 
     <!-- Default Quarkus configuration profile -->
     <quarkus.profile>dev</quarkus.profile>
@@ -236,7 +236,7 @@
     <pulsar-clients.version>3.3.9</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
-    <quickjs4j.version>0.0.12</quickjs4j.version>
+    <quickjs4j.version>0.0.13</quickjs4j.version>
     <quarkus-grpc-zero.version>0.0.4</quarkus-grpc-zero.version>
 
     <nats.version>2.24.0</nats.version>
@@ -616,23 +616,8 @@
       </dependency>
       <dependency>
         <groupId>io.roastedroot</groupId>
-        <artifactId>protobuf4j</artifactId>
+        <artifactId>protobuf4j-v4</artifactId>
         <version>${protobuf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.dylibso.chicory</groupId>
-        <artifactId>runtime</artifactId>
-        <version>${chicory.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.dylibso.chicory</groupId>
-        <artifactId>wasm</artifactId>
-        <version>${chicory.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.dylibso.chicory</groupId>
-        <artifactId>wasi</artifactId>
-        <version>${chicory.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>

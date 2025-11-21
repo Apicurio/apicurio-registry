@@ -200,6 +200,36 @@ public class FileDescriptorToProtoConverterRoundTripTest {
     }
 
     @Test
+    public void testCanonicalFormWithComments() throws Exception {
+        // Test that comments are stripped during canonicalization
+        String originalWithComments = "syntax = \"proto3\";\n" +
+                "package test;\n" +
+                "\n" +
+                "// User comment\n" +
+                "message TestMessage {\n" +
+                "  // Name field\n" +
+                "  string name = 1;\n" +
+                "  \n" +
+                "  int32 value = 2; // Value field\n" +
+                "}\n";
+
+        FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(
+                originalWithComments, "test.proto", java.util.Optional.of("test"),
+                Collections.emptyMap(), Collections.emptyMap());
+
+        String canonical = FileDescriptorToProtoConverter.convert(fd);
+
+        System.out.println("=== Original with comments ===");
+        System.out.println(originalWithComments);
+        System.out.println("=== Canonical form (should have no comments) ===");
+        System.out.println(canonical);
+
+        // Comments should be stripped
+        assertFalse(canonical.contains("//"), "Canonical form should not contain comments");
+        assertFalse(canonical.contains("User comment"), "Canonical form should not contain comments");
+    }
+
+    @Test
     public void testRoundTrip_ReservedFields() throws Exception {
         String originalProto = "syntax = \"proto3\";\n" +
                 "package test;\n" +

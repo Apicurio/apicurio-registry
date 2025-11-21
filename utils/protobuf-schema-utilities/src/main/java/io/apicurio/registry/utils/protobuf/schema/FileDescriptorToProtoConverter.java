@@ -14,8 +14,14 @@ public class FileDescriptorToProtoConverter {
         StringBuilder sb = new StringBuilder();
         DescriptorProtos.FileDescriptorProto proto = descriptor.toProto();
 
+        // Add wire-schema compatible header comment for backward compatibility
+        sb.append("// Proto schema formatted by Wire, do not edit.\n");
+        sb.append("// Source: \n\n");
+
         // Syntax
         String syntax = proto.getSyntax();
+        boolean isProto3 = syntax.isEmpty() || "proto3".equals(syntax);
+
         if (!syntax.isEmpty()) {
             sb.append("syntax = \"").append(syntax).append("\";\n");
         }
@@ -52,26 +58,24 @@ public class FileDescriptorToProtoConverter {
 
         // Messages
         for (DescriptorProtos.DescriptorProto messageType : proto.getMessageTypeList()) {
-            convertMessage(sb, messageType, 0);
-            sb.append("\n");
+            convertMessage(sb, messageType, 0, isProto3);
         }
 
         // Enums
         for (DescriptorProtos.EnumDescriptorProto enumType : proto.getEnumTypeList()) {
             convertEnum(sb, enumType, 0);
-            sb.append("\n");
         }
 
         // Services
         for (DescriptorProtos.ServiceDescriptorProto service : proto.getServiceList()) {
             convertService(sb, service);
-            sb.append("\n");
         }
 
+        // Return the string, wire-schema does NOT add trailing newline
         return sb.toString();
     }
 
-    private static void convertMessage(StringBuilder sb, DescriptorProtos.DescriptorProto message, int indent) {
+    private static void convertMessage(StringBuilder sb, DescriptorProtos.DescriptorProto message, int indent, boolean isProto3) {
         indent(sb, indent);
         sb.append("message ").append(message.getName()).append(" {\n");
 
@@ -100,20 +104,25 @@ public class FileDescriptorToProtoConverter {
         for (DescriptorProtos.DescriptorProto nestedType : message.getNestedTypeList()) {
             // Skip map entry messages
             if (!nestedType.getOptions().getMapEntry()) {
-                convertMessage(sb, nestedType, indent + 1);
+                convertMessage(sb, nestedType, indent + 1, isProto3);
             }
         }
 
         // Fields
-        for (DescriptorProtos.FieldDescriptorProto field : message.getFieldList()) {
-            convertField(sb, field, indent + 1);
+        for (int i = 0; i < message.getFieldCount(); i++) {
+            DescriptorProtos.FieldDescriptorProto field = message.getField(i);
+            convertField(sb, field, indent + 1, isProto3);
+            // Add blank line between fields for wire-schema compatibility
+            if (i < message.getFieldCount() - 1) {
+                sb.append("\n");
+            }
         }
 
         indent(sb, indent);
         sb.append("}\n");
     }
 
-    private static void convertField(StringBuilder sb, DescriptorProtos.FieldDescriptorProto field, int indent) {
+    private static void convertField(StringBuilder sb, DescriptorProtos.FieldDescriptorProto field, int indent, boolean isProto3) {
         indent(sb, indent);
 
         // Label (optional, required, repeated)
@@ -122,8 +131,13 @@ public class FileDescriptorToProtoConverter {
         } else if (field.getLabel() == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED) {
             sb.append("required ");
         } else if (field.getLabel() == DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL) {
-            // In proto3, optional is implicit; in proto2, it's explicit
-            sb.append("optional ");
+            // In proto3, fields are implicitly optional, so don't add the keyword
+            // In proto2, optional must be explicit
+            if (!isProto3) {
+                sb.append("optional ");
+            }
+            // Note: For proto3 explicit optional (proto3_optional feature), we would need to check
+            // field.getProto3Optional() == true, but we skip that for now to match wire-schema behavior
         }
 
         // Type
@@ -184,24 +198,40 @@ public class FileDescriptorToProtoConverter {
     }
 
     private static String getTypeName(DescriptorProtos.FieldDescriptorProto.Type type) {
-        return switch (type) {
-            case TYPE_DOUBLE -> "double";
-            case TYPE_FLOAT -> "float";
-            case TYPE_INT32 -> "int32";
-            case TYPE_INT64 -> "int64";
-            case TYPE_UINT32 -> "uint32";
-            case TYPE_UINT64 -> "uint64";
-            case TYPE_SINT32 -> "sint32";
-            case TYPE_SINT64 -> "sint64";
-            case TYPE_FIXED32 -> "fixed32";
-            case TYPE_FIXED64 -> "fixed64";
-            case TYPE_SFIXED32 -> "sfixed32";
-            case TYPE_SFIXED64 -> "sfixed64";
-            case TYPE_BOOL -> "bool";
-            case TYPE_STRING -> "string";
-            case TYPE_BYTES -> "bytes";
-            default -> "unknown";
-        };
+        switch (type) {
+            case TYPE_DOUBLE:
+                return "double";
+            case TYPE_FLOAT:
+                return "float";
+            case TYPE_INT32:
+                return "int32";
+            case TYPE_INT64:
+                return "int64";
+            case TYPE_UINT32:
+                return "uint32";
+            case TYPE_UINT64:
+                return "uint64";
+            case TYPE_SINT32:
+                return "sint32";
+            case TYPE_SINT64:
+                return "sint64";
+            case TYPE_FIXED32:
+                return "fixed32";
+            case TYPE_FIXED64:
+                return "fixed64";
+            case TYPE_SFIXED32:
+                return "sfixed32";
+            case TYPE_SFIXED64:
+                return "sfixed64";
+            case TYPE_BOOL:
+                return "bool";
+            case TYPE_STRING:
+                return "string";
+            case TYPE_BYTES:
+                return "bytes";
+            default:
+                return "unknown";
+        }
     }
 
     private static String stripLeadingDot(String typeName) {
@@ -226,6 +256,8 @@ public class FileDescriptorToProtoConverter {
     }
 
     private static void indent(StringBuilder sb, int level) {
-        sb.append("  ".repeat(Math.max(0, level)));
+        for (int i = 0; i < level; i++) {
+            sb.append("  ");
+        }
     }
 }

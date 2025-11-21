@@ -34,10 +34,22 @@ public class ProtobufContentValidator implements ContentValidator {
     @Override
     public void validate(ValidityLevel level, TypedContent content,
                          Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
-        if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
+        if (level == ValidityLevel.SYNTAX_ONLY) {
+            // For SYNTAX_ONLY, just validate syntax without resolving imports
+            // This matches the old wire-schema behavior
+            try {
+                ProtobufFile.validateSyntaxOnly(content.getContent().content());
+            }
+            catch (Exception e) {
+                throw new RuleViolationException("Syntax violation for Protobuf artifact.", RuleType.VALIDITY,
+                        level.name(), e);
+            }
+        }
+        else if (level == ValidityLevel.FULL) {
+            // For FULL validation, parse and compile with dependencies
             try {
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
-                    // Simple validation - just try to parse the proto file
+                    // Simple validation - parse the proto file
                     new ProtobufFile(content.getContent().content());
                 }
                 else {

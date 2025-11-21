@@ -127,7 +127,6 @@ public class ProtobufAutoRegistrationConsistencyTest extends AbstractResourceTes
         }
     }
 
-
     /**
      * Verify that our FileDescriptorToProtoConverter produces deterministic output.
      * This is critical for content hashing.

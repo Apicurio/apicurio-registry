@@ -102,6 +102,7 @@
     <module>utils/kafka</module>
     <module>utils/maven-plugin</module>
     <module>utils/protobuf-schema-utilities</module>
+    <module>integration-tests/protobuf-backward-compat/old-serializer</module>
     <module>utils/reflectgen</module>
     <module>utils/tests</module>
     <module>utils/raml-test-micro-service</module>
@@ -615,23 +616,8 @@
       </dependency>
       <dependency>
         <groupId>io.roastedroot</groupId>
-        <artifactId>protobuf4j</artifactId>
+        <artifactId>protobuf4j-v4</artifactId>
         <version>${protobuf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.dylibso.chicory</groupId>
-        <artifactId>runtime</artifactId>
-        <version>${chicory.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.dylibso.chicory</groupId>
-        <artifactId>wasm</artifactId>
-        <version>${chicory.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.dylibso.chicory</groupId>
-        <artifactId>wasi</artifactId>
-        <version>${chicory.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>

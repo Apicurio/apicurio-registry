@@ -132,8 +132,8 @@ public abstract class AbstractResource {
             TypedContent contentForRules = TypedContent.create(schemaContent, contentType);
             if (artifactType.equals(ArtifactType.PROTOBUF)) {
                 try {
-                    // Try parsing as text first using ProtobufFile
-                    new ProtobufFile(schemaContent.content());
+                    // Use syntax-only validation which doesn't require resolving imports
+                    ProtobufFile.validateSyntaxOnly(schemaContent.content());
                     // If successful, contentForRules is already correct (text format)
                 } catch (Exception e) {
                     // If text parsing fails, assume it's binary Base64 encoded FileDescriptorSet

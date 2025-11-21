@@ -8,7 +8,6 @@ import io.apicurio.registry.rest.client.v2.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.v2.models.IfExists;
 import io.apicurio.registry.rest.client.v2.models.VersionMetaData;
 import io.apicurio.registry.utils.IoUtil;
-import io.vertx.core.Vertx;
 
 import java.io.InputStream;
 import java.util.List;
@@ -23,15 +22,9 @@ import static io.apicurio.registry.rest.client.v2.models.ArtifactState.DISABLED;
 public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
 
     private final RegistryClient client;
-    private Vertx vertx;
 
     public RegistryClientFacadeImpl_v2(RegistryClient client) {
-        this(client, null);
-    }
-
-    public RegistryClientFacadeImpl_v2(RegistryClient client, Vertx vertx) {
         this.client = client;
-        this.vertx = vertx;
     }
 
     @Override
@@ -163,14 +156,6 @@ public class RegistryClientFacadeImpl_v2 implements RegistryClientFacade {
 
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersion(version).meta().get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getId(), vmd.getVersion());
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (vertx != null) {
-            vertx.close();
-            vertx = null;
-        }
     }
 
     private static List<io.apicurio.registry.rest.client.v2.models.ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {

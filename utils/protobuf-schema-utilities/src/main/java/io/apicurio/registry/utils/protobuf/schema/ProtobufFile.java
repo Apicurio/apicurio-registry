@@ -72,6 +72,47 @@ public class ProtobufFile {
     }
 
     /**
+     * Create ProtobufFile from a .proto schema string with dependencies.
+     */
+    public ProtobufFile(String data, Map<String, String> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies) throws IOException {
+        this.fileDescriptor = parseProtoStringWithDependencies(data, schemaDefs, dependencies);
+        this.fileDescriptorProto = fileDescriptor.toProto();
+        buildIndexes();
+    }
+
+    /**
+     * Validate protobuf syntax without resolving imports.
+     * This is a lightweight validation that checks if the content looks like valid protobuf syntax.
+     * Used by ContentAccepter to quickly determine if content is protobuf without needing dependencies.
+     */
+    public static void validateSyntaxOnly(String data) throws IOException {
+        if (data == null || data.trim().isEmpty()) {
+            throw new IOException("Empty protobuf content");
+        }
+
+        // Check for basic protobuf syntax markers
+        String normalized = data.toLowerCase();
+        if (!normalized.contains("syntax") && !normalized.contains("message") &&
+            !normalized.contains("enum") && !normalized.contains("service")) {
+            throw new IOException("Content does not appear to be a protobuf schema");
+        }
+
+        // Try to parse as binary if it's not text
+        if (!normalized.contains("syntax")) {
+            try {
+                byte[] decodedBytes = Base64.getDecoder().decode(data);
+                DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+                return; // Valid binary format
+            } catch (Exception e) {
+                throw new IOException("Invalid protobuf schema - not valid text or binary format", e);
+            }
+        }
+
+        // For text format, just check it has reasonable structure
+        // Don't try to compile it since that requires resolving imports
+    }
+
+    /**
      * Parse a .proto string to FileDescriptor.
      * Supports both text format and binary FileDescriptorProto format.
      */
@@ -83,6 +124,37 @@ public class ProtobufFile {
             return FileDescriptorUtils.protoFileToFileDescriptor(data, "default.proto", Optional.empty());
         } catch (Exception e) {
             lastException = new IOException("Failed to parse protobuf text", e);
+            // Continue to try base64 decoding
+        }
+
+        // Try to parse as binary FileDescriptorProto (base64 encoded)
+        try {
+            byte[] decodedBytes = Base64.getDecoder().decode(data);
+            DescriptorProtos.FileDescriptorProto descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+            return FileDescriptorUtils.protoFileToFileDescriptor(descriptorProto);
+        } catch (IllegalArgumentException e) {
+            // Not base64 encoded, throw the original parsing error
+            if (lastException != null) {
+                throw lastException;
+            }
+            throw new IOException("Failed to parse protobuf schema - not valid proto text or base64", e);
+        } catch (InvalidProtocolBufferException | Descriptors.DescriptorValidationException e) {
+            throw new IOException("Failed to parse protobuf descriptor", e);
+        }
+    }
+
+    /**
+     * Parse a .proto string to FileDescriptor with dependencies.
+     * Supports both text format and binary FileDescriptorProto format.
+     */
+    private static Descriptors.FileDescriptor parseProtoStringWithDependencies(String data, Map<String, String> schemaDefs, Map<String, Descriptors.FileDescriptor> dependencies) throws IOException {
+        IOException lastException = null;
+
+        // Try to parse as textual .proto file using protobuf4j
+        try {
+            return FileDescriptorUtils.protoFileToFileDescriptor(data, "default.proto", Optional.empty(), schemaDefs, dependencies);
+        } catch (Exception e) {
+            lastException = new IOException("Failed to parse protobuf text with dependencies", e);
             // Continue to try base64 decoding
         }
 

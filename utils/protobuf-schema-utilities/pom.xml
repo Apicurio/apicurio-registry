@@ -20,7 +20,7 @@
 
     <dependency>
       <groupId>io.roastedroot</groupId>
-      <artifactId>protobuf4j</artifactId>
+      <artifactId>protobuf4j-v4</artifactId>
       <version>999-SNAPSHOT</version>
     </dependency>
 
@@ -105,9 +105,6 @@
           </archive>
         </configuration>
       </plugin>
-      <!-- TODO: Use protobuf4j to compile custom proto types (metadata, decimal) -->
-      <!-- For now, commented out to get POC compiling. Custom types can be -->
-      <!-- compiled with protobuf4j and added to generated-sources -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>

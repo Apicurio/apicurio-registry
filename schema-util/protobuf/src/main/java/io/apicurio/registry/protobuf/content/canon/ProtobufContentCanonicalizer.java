@@ -6,15 +6,24 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * A Protobuf implementation of a content Canonicalizer.
+ *
+ * <p>This canonicalizer converts protobuf schemas to a normalized text format
+ * by compiling them to FileDescriptors and then converting back to .proto syntax.
+ * All important features are preserved including options, defaults, extensions, etc.</p>
  */
 public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
+
+    private static final Logger log = LoggerFactory.getLogger(ProtobufContentCanonicalizer.class);
 
     /**
      * @see io.apicurio.registry.content.canon.ContentCanonicalizer#canonicalize(TypedContent, Map)
@@ -37,8 +46,14 @@ public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
 
             return TypedContent.create(ContentHandle.create(canonicalForm),
                     ContentTypes.APPLICATION_PROTOBUF);
-        } catch (Throwable e) {
-            // If canonicalization fails, return original content
+        } catch (IOException e) {
+            // Expected errors during parsing/compilation - log and return original
+            log.warn("Failed to canonicalize protobuf schema, returning original content: {}", e.getMessage());
+            log.debug("Canonicalization error details", e);
+            return content;
+        } catch (Exception e) {
+            // Unexpected errors - log more seriously but still return original to avoid breaking flow
+            log.error("Unexpected error during protobuf canonicalization, returning original content", e);
             return content;
         }
     }

@@ -144,21 +144,6 @@ public class FileDescriptorUtilsTest {
                 Arguments.of(false, false, mainProtoFile, deps));
     }
 
-    // ==================================================================================
-    // DISABLED TESTS - Require AST support not yet available in protobuf4j
-    // ==================================================================================
-    // The following tests use FileDescriptorUtils.fileDescriptorToProtoFile() which
-    // converts Google FileDescriptor back to protobuf AST (text format).
-    // This method was removed during the wire-schema → protobuf4j migration because:
-    //   1. wire-schema provided AST types (ProtoFileElement, etc.)
-    //   2. protobuf4j currently does not expose parsed AST
-    //
-    // To re-enable these tests, one of the following is needed:
-    //   A. protobuf4j adds AST support (preferred)
-    //   B. Implement our own FileDescriptor → text converter
-    //   C. Rewrite tests to work without AST (validate via FileDescriptorProto)
-    // ==================================================================================
-
     @Test
     public void fileDescriptorToProtoFile_ParsesJsonNameOptionCorrectly() throws Exception {
         // Test that json_name options are correctly preserved in FileDescriptorProto
@@ -229,10 +214,6 @@ public class FileDescriptorUtilsTest {
         DescriptorProtos.FileDescriptorProto deserialized = DescriptorProtos.FileDescriptorProto.parseFrom(serialized);
         assertEquals(protoDescriptor, deserialized, "FileDescriptorProto with json_name should round-trip");
     }
-
-    // ==================================================================================
-    // ACTIVE TESTS - Use protobuf4j
-    // ==================================================================================
 
     @Test
     public void ParsesSchemasWithNoPackageNameSpecified() throws Exception {
@@ -365,10 +346,6 @@ public class FileDescriptorUtilsTest {
         }
         return Optional.empty();
     }
-
-    // ==================================================================================
-    // ProtobufFile Tests (Updated for Phase 3)
-    // ==================================================================================
 
     /**
      * Test for PR #6833: ProtobufFile should parse both text and base64-encoded schemas.

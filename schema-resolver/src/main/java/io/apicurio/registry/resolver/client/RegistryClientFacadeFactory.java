@@ -148,14 +148,14 @@ public class RegistryClientFacadeFactory {
     private static RegistryClientFacade create_v3(SchemaResolverConfig config, Vertx vertx) {
         RegistryClientOptions clientOptions = buildClientOptions(config, vertx);
         var client = RegistryClientFactory.create(clientOptions);
-        return new RegistryClientFacadeImpl(client, vertx);
+        return new RegistryClientFacadeImpl(client);
     }
 
     private static RegistryClientFacade create_v2(SchemaResolverConfig config, Vertx vertx) {
-        logger.warning("Using a deprecated version (2.x) of Apicurio Registry.  It is recommended to upgrade your Apicurio Registry.");
+        logger.warning("Using a deprecated version (2.x) of Apicurio Registry.  It is recommended to upgrade your Apicurio Registry to version 3.");
         RegistryClientOptions clientOptions = buildClientOptions(config, vertx);
         var client = RegistryV2ClientFactory.create(clientOptions);
-        return new RegistryClientFacadeImpl_v2(client, vertx);
+        return new RegistryClientFacadeImpl_v2(client);
     }
 
 }

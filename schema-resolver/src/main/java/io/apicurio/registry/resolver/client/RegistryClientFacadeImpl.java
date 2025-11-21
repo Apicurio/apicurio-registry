@@ -2,9 +2,18 @@ package io.apicurio.registry.resolver.client;
 
 import io.apicurio.registry.resolver.ArtifactTypeToContentType;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.*;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.HandleReferencesType;
+import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.SortOrder;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.rest.client.models.VersionSortBy;
 import io.apicurio.registry.utils.IoUtil;
-import io.vertx.core.Vertx;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -21,15 +30,9 @@ import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
 public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     private final RegistryClient client;
-    private Vertx vertx;
 
     public RegistryClientFacadeImpl(RegistryClient client) {
-        this(client, null);
-    }
-
-    public RegistryClientFacadeImpl(RegistryClient client, Vertx vertx) {
         this.client = client;
-        this.vertx = vertx;
     }
 
     @Override
@@ -169,14 +172,6 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
             ar.setVersion(ref.getVersion());
             return ar;
         }).toList();
-    }
-
-    @Override
-    public void close() throws Exception {
-        if (vertx != null) {
-            vertx.close();
-            vertx = null;
-        }
     }
 
 }

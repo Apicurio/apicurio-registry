@@ -16,7 +16,7 @@ import java.util.Set;
  * <em>Note:</em> This interface is considered internal and therefore can, but
  * probably SHOULD NOT, be implemented outside the apicurio-registry codebase.
  */
-public interface RegistryClientFacade extends AutoCloseable {
+public interface RegistryClientFacade {
 
     /*
      * Methods to get the content of a Schema by various identifiers.

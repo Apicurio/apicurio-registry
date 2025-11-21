@@ -232,11 +232,6 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      */
     @Override
     public void close() throws IOException {
-        try {
-            this.clientFacade.close();
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
     }
 
     protected void loadFromVersionCoordinates(RegistryVersionCoordinates version,

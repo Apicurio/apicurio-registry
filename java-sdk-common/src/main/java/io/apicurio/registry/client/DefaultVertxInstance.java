@@ -1,6 +1,7 @@
 package io.apicurio.registry.client;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 
 import java.util.logging.Logger;
 
@@ -30,7 +31,10 @@ public final class DefaultVertxInstance {
             logger.warning("Using default shared Vertx instance. For production use, " +
                     "it is recommended to manage your own Vertx instance and provide it " +
                     "via RegistryClientOptions.vertx() to ensure proper lifecycle management.");
-            INSTANCE = Vertx.vertx();
+
+            var options = new VertxOptions();
+            options.setUseDaemonThread(true);
+            INSTANCE = Vertx.vertx(options);
         }
     }
 

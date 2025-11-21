@@ -14,19 +14,14 @@ public class FileDescriptorToProtoConverter {
         StringBuilder sb = new StringBuilder();
         DescriptorProtos.FileDescriptorProto proto = descriptor.toProto();
 
-        // Add wire-schema compatible header comment for backward compatibility
-        sb.append("// Proto schema formatted by Wire, do not edit.\n");
-        sb.append("// Source: \n\n");
-
         // Syntax
         String syntax = proto.getSyntax();
         boolean isProto3 = syntax.isEmpty() || "proto3".equals(syntax);
 
         if (!syntax.isEmpty()) {
             sb.append("syntax = \"").append(syntax).append("\";\n");
+            sb.append("\n");
         }
-
-        sb.append("\n");
 
         // Package
         if (proto.hasPackage() && !proto.getPackage().isEmpty()) {
@@ -71,7 +66,6 @@ public class FileDescriptorToProtoConverter {
             convertService(sb, service);
         }
 
-        // Return the string, wire-schema does NOT add trailing newline
         return sb.toString();
     }
 
@@ -108,13 +102,39 @@ public class FileDescriptorToProtoConverter {
             }
         }
 
-        // Fields
-        for (int i = 0; i < message.getFieldCount(); i++) {
-            DescriptorProtos.FieldDescriptorProto field = message.getField(i);
+        // Group fields by oneof index for proper oneof rendering
+        // Fields with oneof_index set belong to a oneof, others are regular fields
+        java.util.Map<Integer, java.util.List<DescriptorProtos.FieldDescriptorProto>> oneofFields = new java.util.HashMap<>();
+        java.util.List<DescriptorProtos.FieldDescriptorProto> regularFields = new java.util.ArrayList<>();
+
+        for (DescriptorProtos.FieldDescriptorProto field : message.getFieldList()) {
+            if (field.hasOneofIndex()) {
+                oneofFields.computeIfAbsent(field.getOneofIndex(), k -> new java.util.ArrayList<>()).add(field);
+            } else {
+                regularFields.add(field);
+            }
+        }
+
+        // Render regular fields
+        for (DescriptorProtos.FieldDescriptorProto field : regularFields) {
             convertField(sb, field, indent + 1, isProto3);
-            // Add blank line between fields for wire-schema compatibility
-            if (i < message.getFieldCount() - 1) {
-                sb.append("\n");
+        }
+
+        // Render oneof fields
+        for (int oneofIndex = 0; oneofIndex < message.getOneofDeclCount(); oneofIndex++) {
+            DescriptorProtos.OneofDescriptorProto oneofDecl = message.getOneofDecl(oneofIndex);
+            java.util.List<DescriptorProtos.FieldDescriptorProto> fields = oneofFields.get(oneofIndex);
+
+            if (fields != null && !fields.isEmpty()) {
+                indent(sb, indent + 1);
+                sb.append("oneof ").append(oneofDecl.getName()).append(" {\n");
+
+                for (DescriptorProtos.FieldDescriptorProto field : fields) {
+                    convertFieldWithinOneof(sb, field, indent + 2, isProto3);
+                }
+
+                indent(sb, indent + 1);
+                sb.append("}\n");
             }
         }
 
@@ -140,6 +160,25 @@ public class FileDescriptorToProtoConverter {
             // field.getProto3Optional() == true, but we skip that for now to match wire-schema behavior
         }
 
+        appendFieldType(sb, field);
+        sb.append(" ").append(field.getName()).append(" = ").append(field.getNumber());
+        appendFieldOptions(sb, field);
+        sb.append(";\n");
+    }
+
+    /**
+     * Convert a field that appears within a oneof block.
+     * Fields within oneof should not have label keywords (optional/required/repeated).
+     */
+    private static void convertFieldWithinOneof(StringBuilder sb, DescriptorProtos.FieldDescriptorProto field, int indent, boolean isProto3) {
+        indent(sb, indent);
+        appendFieldType(sb, field);
+        sb.append(" ").append(field.getName()).append(" = ").append(field.getNumber());
+        appendFieldOptions(sb, field);
+        sb.append(";\n");
+    }
+
+    private static void appendFieldType(StringBuilder sb, DescriptorProtos.FieldDescriptorProto field) {
         // Type
         if (field.hasTypeName()) {
             // Message or enum type - remove leading dot
@@ -152,9 +191,9 @@ public class FileDescriptorToProtoConverter {
             // Primitive type
             sb.append(getTypeName(field.getType()));
         }
+    }
 
-        sb.append(" ").append(field.getName()).append(" = ").append(field.getNumber());
-
+    private static void appendFieldOptions(StringBuilder sb, DescriptorProtos.FieldDescriptorProto field) {
         // Options
         if (field.hasJsonName() && !field.getJsonName().isEmpty()) {
             String defaultJsonName = toJsonName(field.getName());
@@ -162,8 +201,6 @@ public class FileDescriptorToProtoConverter {
                 sb.append(" [json_name = \"").append(field.getJsonName()).append("\"]");
             }
         }
-
-        sb.append(";\n");
     }
 
     private static void convertEnum(StringBuilder sb, DescriptorProtos.EnumDescriptorProto enumType, int indent) {

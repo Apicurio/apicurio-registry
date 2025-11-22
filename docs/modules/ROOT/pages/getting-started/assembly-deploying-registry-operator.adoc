@@ -285,7 +285,7 @@ spec:
 . Click *Create* and wait for the {registry} deployment to be created.
 
 . If using {kafka-streams}, configure the Kafka topic that {registry} uses (named `kafkasql-journal` by default)
-with a compaction cleanup policy:
+with delete cleanup policy and infinite retention:
 +
 [source,yaml]
 ----
@@ -299,11 +299,13 @@ spec:
   partitions: 3
   replicas: 3
   config:
-    cleanup.policy: compact
+    cleanup.policy: delete
+    retention.ms: -1
+    retention.bytes: -1
 ----
 +
-WARNING: You must configure the Kafka topic used by {registry} with a compaction cleanup policy, otherwise data
-loss might occur.
+WARNING: You must configure the Kafka topic used by {registry} with `cleanup.policy: delete` and infinite retention
+(`retention.ms: -1` and `retention.bytes: -1`), otherwise data loss might occur.
 
 .Verification
 

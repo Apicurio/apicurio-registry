@@ -302,12 +302,14 @@ spec:
   partitions: 3
   replicas: 3
   config:
-    cleanup.policy: compact
+    cleanup.policy: delete
     min.insync.replicas: 2
-    retention.ms: 604800000  # 7 days
+    retention.ms: -1  # Infinite retention
+    retention.bytes: -1  # Infinite retention
 ----
 
-WARNING: The journal topic must use `cleanup.policy: compact` to prevent data loss.
+WARNING: The journal topic must use `cleanup.policy: delete` with infinite retention (`retention.ms: -1` and
+`retention.bytes: -1`) to prevent data loss.
 
 === Consumer behavior with multiple replicas
 
@@ -544,7 +546,9 @@ To restore, recreate the topic and import messages:
 kafka-topics --bootstrap-server registry-kafka-bootstrap:9092 \
   --create --topic kafkasql-journal \
   --partitions 3 --replication-factor 3 \
-  --config cleanup.policy=compact
+  --config cleanup.policy=delete \
+  --config retention.ms=-1 \
+  --config retention.bytes=-1
 
 # Import messages
 kafka-console-producer --bootstrap-server registry-kafka-bootstrap:9092 \

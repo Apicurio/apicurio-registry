@@ -229,7 +229,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.5</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.35</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.36</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.42</lombok.version>
@@ -242,7 +242,7 @@
     <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
     <quickjs4j.version>0.0.13</quickjs4j.version>
 
-    <nats.version>2.24.0</nats.version>
+    <nats.version>2.24.1</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
     <jgit.version>7.4.0.202509020913-r</jgit.version>

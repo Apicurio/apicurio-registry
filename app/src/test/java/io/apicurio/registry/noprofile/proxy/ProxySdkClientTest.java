@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import java.net.URL;
 
+import static io.apicurio.registry.utils.ConcurrentUtil.blockOn;
+
 /**
  * Tests the proxy configuration options in the Java SDK clients.
  */
@@ -38,7 +40,7 @@ public class ProxySdkClientTest extends AbstractResourceTestBase {
             port = 8081;
         }
         proxy = new SimpleTestProxy(PROXY_PORT, host, port);
-        proxy.start().get();
+        blockOn(proxy.start());
         proxy.resetRequestCount();
     }
 

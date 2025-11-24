@@ -50,6 +50,12 @@ public final class ConcurrentUtil {
         T get() throws InterruptedException, ExecutionException;
     }
 
+    public static <T> CompletableFuture<T> toJavaFuture(io.vertx.core.Future<T> vf) {
+        var cf = new CompletableFuture<T>();
+        vf.onComplete(cf::complete, cf::completeExceptionally);
+        return cf;
+    }
+
     private ConcurrentUtil() {
     }
 }

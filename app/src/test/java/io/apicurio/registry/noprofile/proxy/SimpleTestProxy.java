@@ -14,6 +14,9 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.apicurio.registry.utils.ConcurrentUtil.blockOn;
+import static io.apicurio.registry.utils.ConcurrentUtil.toJavaFuture;
+
 /**
  * Simple HTTP proxy server for testing proxy functionality.
  * This proxy forwards all requests to a destination server and tracks request counts.
@@ -40,32 +43,28 @@ public class SimpleTestProxy {
     }
 
     public CompletableFuture<Void> start() {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
         server = vertx.createHttpServer(new HttpServerOptions().setPort(port))
-                .requestHandler(this::proxyRequest)
-                .listen(result -> {
-                    if (result.succeeded()) {
+                .requestHandler(this::proxyRequest);
+
+        return toJavaFuture(server.listen())
+                .whenComplete((r, t) -> {
+                    if (t == null) {
                         logger.info("Test proxy server started on port {}", port);
                         logger.info("Proxying to {}:{}", destinationHost, destinationPort);
-                        future.complete(null);
                     } else {
-                        logger.error("Error starting proxy server", result.cause());
-                        future.completeExceptionally(result.cause());
+                        logger.error("Error starting proxy server", t);
                     }
-                });
-
-        return future;
+                }).thenApply(_ignored -> null);
     }
 
     public void stop() {
         if (server != null) {
-            server.close();
+            blockOn(toJavaFuture(server.close()));
         }
         if (client != null) {
-            client.close();
+            blockOn(toJavaFuture(client.close()));
         }
-        vertx.close();
+        blockOn(toJavaFuture(vertx.close()));
     }
 
     public int getRequestCount() {

@@ -82,34 +82,54 @@ public class ProtobufFile {
 
     /**
      * Validate protobuf syntax without resolving imports.
-     * This is a lightweight validation that checks if the content looks like valid protobuf syntax.
-     * Used by ContentAccepter to quickly determine if content is protobuf without needing dependencies.
+     * Uses protobuf4j for accurate syntax validation while gracefully handling missing dependencies.
+     * Used by ContentAccepter to determine if content is valid protobuf without needing dependencies.
      */
     public static void validateSyntaxOnly(String data) throws IOException {
         if (data == null || data.trim().isEmpty()) {
             throw new IOException("Empty protobuf content");
         }
 
-        // Check for basic protobuf syntax markers
-        String normalized = data.toLowerCase();
-        if (!normalized.contains("syntax") && !normalized.contains("message") &&
-            !normalized.contains("enum") && !normalized.contains("service")) {
-            throw new IOException("Content does not appear to be a protobuf schema");
-        }
+        try {
+            String trimmed = data.trim();
 
-        // Try to parse as binary if it's not text
-        if (!normalized.contains("syntax")) {
-            try {
-                byte[] decodedBytes = Base64.getDecoder().decode(data);
-                DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
-                return; // Valid binary format
-            } catch (Exception e) {
-                throw new IOException("Invalid protobuf schema - not valid text or binary format", e);
+            // Try binary format first (fastest path for FileDescriptorProto)
+            // Binary format won't start with common protobuf text keywords
+            if (!trimmed.startsWith("syntax") && !trimmed.startsWith("//") &&
+                !trimmed.startsWith("package") && !trimmed.startsWith("message") &&
+                !trimmed.startsWith("enum") && !trimmed.startsWith("service")) {
+                try {
+                    byte[] decodedBytes = Base64.getDecoder().decode(data);
+                    DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+                    return; // Valid binary format
+                } catch (Exception e) {
+                    // Not binary format, continue to text validation
+                }
             }
-        }
 
-        // For text format, just check it has reasonable structure
-        // Don't try to compile it since that requires resolving imports
+            // Use protobuf4j for accurate syntax validation
+            // This provides much better validation than keyword checking
+            try {
+                FileDescriptorUtils.protoFileToFileDescriptor(data, "schema.proto", Optional.empty());
+                // Successfully parsed - valid protobuf syntax
+            } catch (Exception e) {
+                // Check if error is due to missing imports (acceptable in ContentAccepter context)
+                // vs actual syntax errors (not acceptable)
+                String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                if (errorMsg.contains("import") || errorMsg.contains("not found") ||
+                    errorMsg.contains("dependency") || errorMsg.contains("required by")) {
+                    // Missing imports/dependencies - content is likely valid protobuf syntax,
+                    // just missing dependencies which is expected in ContentAccepter context
+                    return;
+                }
+                // Real syntax error - not valid protobuf
+                throw new IOException("Invalid protobuf syntax: " + e.getMessage(), e);
+            }
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Content does not appear to be a valid protobuf schema", e);
+        }
     }
 
     /**

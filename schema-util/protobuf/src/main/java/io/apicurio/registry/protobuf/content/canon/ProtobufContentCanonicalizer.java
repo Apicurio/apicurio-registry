@@ -6,6 +6,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
+import io.roastedroot.protobuf4j.Protobuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,12 +19,14 @@ import java.util.stream.Collectors;
  * A Protobuf implementation of a content Canonicalizer.
  *
  * <p>This canonicalizer converts protobuf schemas to a normalized text format
- * by compiling them to FileDescriptors and then converting back to .proto syntax.
- * All important features are preserved including options, defaults, extensions, etc.</p>
+ * using protobuf4j's schema normalization. The normalized form ensures consistent
+ * representation of semantically equivalent schemas.</p>
  */
 public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
 
     private static final Logger log = LoggerFactory.getLogger(ProtobufContentCanonicalizer.class);
+
+    private static final String SCHEMA_PROTO = "schema.proto";
 
     /**
      * @see io.apicurio.registry.content.canon.ContentCanonicalizer#canonicalize(TypedContent, Map)
@@ -31,18 +34,24 @@ public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
     @Override
     public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
+            // Handle empty or blank schemas - return original content
+            String schemaContent = content.getContent().content();
+            if (schemaContent == null || schemaContent.trim().isEmpty()) {
+                return content;
+            }
+
             // Build dependencies map from resolved references
             Map<String, String> dependencies = (resolvedReferences == null || resolvedReferences.isEmpty())
                 ? Collections.emptyMap()
                 : resolvedReferences.entrySet().stream()
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getContent().content()));
 
-            // Use protobuf4j to compile to FileDescriptor, then convert to canonical text format
+            // Use protobuf4j to compile to FileDescriptor
             Descriptors.FileDescriptor fileDescriptor = ProtobufSchemaUtils.parseAndCompile(
-                    "schema.proto", content.getContent().content(), dependencies);
+                    SCHEMA_PROTO, schemaContent, dependencies);
 
-            // Convert FileDescriptor to protobuf text format (canonical form)
-            String canonicalForm = ProtobufSchemaUtils.toProtoText(fileDescriptor);
+            // Use protobuf4j's normalization to get normalized proto text directly
+            String canonicalForm = Protobuf.normalizeSchemaToText(fileDescriptor);
 
             return TypedContent.create(ContentHandle.create(canonicalForm),
                     ContentTypes.APPLICATION_PROTOBUF);

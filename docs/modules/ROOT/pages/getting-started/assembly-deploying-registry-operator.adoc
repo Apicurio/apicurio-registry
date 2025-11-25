@@ -27,8 +27,7 @@ This chapter explains how to deploy and configure {registry} instances using the
 [id="operator-overview_{context}"]
 == Understanding {operator} deployment
 
-The {operator} uses the `ApicurioRegistry3` custom resource to deploy and manage {registry} instances on
-{kubernetes}. The custom resource allows you to declaratively configure all aspects of your {registry} deployment,
+The {operator} installs the `ApicurioRegistry3` custom resource defintion (CRD). You use the `ApicurioRegistry3`  CR  to deploy and manage {registry} instances on {kubernetes}. The custom resource allows you to declaratively configure all aspects of your {registry} deployment,
 including storage, authentication, networking, and component-specific settings.
 
 NOTE: Additional `ApicurioRegistry3` custom resource examples can be found in the https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/controller/src/test/resources/k8s/examples[{registry} upstream repository].
@@ -723,7 +722,7 @@ spec:
             key: custom.value
 ----
 
-IMPORTANT: *Order of evaluation:* The environment variables defined in the `env` field override any environment variables set by the operator. This allows you to both customize configuration while still benefiting from operator-managed settings, and workarounds in case of bugs. You should not use the custom PodTemplateSpec method described below to set environment variables.
+IMPORTANT: *Order of evaluation:* The environment variables defined in the `env` field override any environment variables set by the operator. This allows you to customize configuration and provide workarounds in case of bugs while still benefiting from operator-managed settings. You should not use the custom PodTemplateSpec method described below to set environment variables.
 
 === Using PodTemplateSpec for advanced customization
 
@@ -741,7 +740,7 @@ spec:
           custom-annotation: custom-value
       spec:
         containers:
-          - name: app
+          - name: apicurio-registry-app
             resources:
               requests:
                 memory: "512Mi"

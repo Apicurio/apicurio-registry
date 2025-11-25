@@ -23,31 +23,27 @@ import java.util.stream.Collectors;
 
 public class ProtobufSchemaLoader {
 
+    private static final String GOOGLE_PROTOBUF_PATH = "google/protobuf/";
     private static final String GOOGLE_API_PATH = "google/type/";
-    private static final String GOOGLE_WELLKNOWN_PATH = "google/protobuf/";
     private static final String METADATA_PATH = "metadata/";
     private static final String DECIMAL_PATH = "additionalTypes/";
+
+    // Google Protocol Buffer well-known types.
+    // These are normally handled by protobuf4j's ensureWellKnownTypes(), but that doesn't
+    // work correctly with ZeroFs virtual filesystem, so we load them explicitly here.
+    private final static Set<String> GOOGLE_PROTOBUF_PROTOS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "any.proto", "api.proto", "descriptor.proto", "duration.proto", "empty.proto",
+            "field_mask.proto", "source_context.proto", "struct.proto", "timestamp.proto",
+            "type.proto", "wrappers.proto")));
+
     // Adding pre-built support for commonly used Google API Protos,
     // https://github.com/googleapis/googleapis
-    // These files need to be manually loaded into the FileSystem
-    // as Square doesn't support them by default.
+    // These are NOT the same as google.protobuf well-known types.
     private final static Set<String> GOOGLE_API_PROTOS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "money.proto", "timeofday.proto", "date.proto", "calendar_period.proto", "color.proto",
             "dayofweek.proto", "latlng.proto", "fraction.proto", "month.proto",
             "phone_number.proto", "postal_address.proto", "localized_text.proto",
             "interval.proto", "expr.proto", "quaternion.proto")));
-    // Adding support for Protobuf well-known types under package google.protobuf
-    // https://developers.google.com/protocol-buffers/docs/reference/google.protobuf
-    // These files need to be manually loaded from the protobuf-java JAR into the temp directory
-    // for protobuf4j compilation. protobuf4j's ensureWellKnownTypes() handles this internally,
-    // but we need to make sure our resources include these files.
-    private final static Set<String> GOOGLE_WELLKNOWN_PROTOS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            // Core well-known types (most commonly used)
-            "timestamp.proto", "duration.proto", "any.proto", "empty.proto",
-            "wrappers.proto", "descriptor.proto",
-            // Additional well-known types
-            "api.proto", "field_mask.proto", "source_context.proto", "struct.proto",
-            "type.proto")));
 
     private final static String METADATA_PROTO = "metadata.proto";
     private final static String DECIMAL_PROTO = "decimal.proto";
@@ -86,8 +82,12 @@ public class ProtobufSchemaLoader {
     private static void writeWellKnownProtos(Path baseDir) throws IOException {
         final ClassLoader classLoader = ProtobufSchemaLoader.class.getClassLoader();
 
+        // Load Google Protobuf well-known types (google.protobuf.*)
+        // These are needed because protobuf4j's ensureWellKnownTypes() doesn't work with ZeroFs
+        loadProtoFiles(baseDir, classLoader, GOOGLE_PROTOBUF_PROTOS, GOOGLE_PROTOBUF_PATH);
+        // Load Google API protos (google.type.*)
         loadProtoFiles(baseDir, classLoader, GOOGLE_API_PROTOS, GOOGLE_API_PATH);
-        loadProtoFiles(baseDir, classLoader, GOOGLE_WELLKNOWN_PROTOS, GOOGLE_WELLKNOWN_PATH);
+        // Load custom Apicurio protos
         loadProtoFiles(baseDir, classLoader, Collections.singleton(METADATA_PROTO), METADATA_PATH);
         loadProtoFiles(baseDir, classLoader, Collections.singleton(DECIMAL_PROTO), DECIMAL_PATH);
     }
@@ -152,7 +152,8 @@ public class ProtobufSchemaLoader {
             // Step 5: Use protobuf4j to compile the proto files and build FileDescriptors
             // The new buildFileDescriptors() method handles both compilation and dependency resolution
             // Note: buildFileDescriptors expects file paths relative to workDir, not absolute paths
-            // We need to pass ALL files (main + dependencies + well-known types) for compilation
+            // NOTE: protobuf4j handles google.protobuf.* well-known types internally,
+            // so we only need to add our custom protos and google.type.* protos
             List<String> protoFiles = new ArrayList<>();
 
             // Collect all dependency paths to avoid duplicates
@@ -161,20 +162,15 @@ public class ProtobufSchemaLoader {
                 depPaths.add(proto.getExpectedImportPath());
             }
 
-            // Add all well-known proto files (Google Protobuf, Google API, metadata, decimal)
+            // Add Google API protos (google.type.*) - NOT handled by protobuf4j
             // Only add them if they're not already provided as explicit dependencies
-            for (String proto : GOOGLE_WELLKNOWN_PROTOS) {
-                String path = GOOGLE_WELLKNOWN_PATH + proto;
-                if (!depPaths.contains(path)) {
-                    protoFiles.add(path);
-                }
-            }
             for (String proto : GOOGLE_API_PROTOS) {
                 String path = GOOGLE_API_PATH + proto;
                 if (!depPaths.contains(path)) {
                     protoFiles.add(path);
                 }
             }
+            // Add custom Apicurio protos
             String metadataPath = METADATA_PATH + METADATA_PROTO;
             if (!depPaths.contains(metadataPath)) {
                 protoFiles.add(metadataPath);

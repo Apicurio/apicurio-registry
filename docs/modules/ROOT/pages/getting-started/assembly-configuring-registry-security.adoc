@@ -28,7 +28,7 @@ This section explains how to manually configure authentication and authorization
 ====
 Alternatively, for details on how to configure these settings automatically, 
 ifdef::apicurio-registry[]
-see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{registry} Operator documentation].
+see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{operator} documentation].
 endif::[]
 ifdef::rh-service-registry[]
 see xref:registry-security-keycloak[]. 

@@ -466,7 +466,7 @@ ifdef::apicurio-registry[]
 |https://hub.docker.com/r/apicurio/apicurio-registry
 |User Interface
 |https://hub.docker.com/r/apicurio/apicurio-registry-ui
-|{registry} Operator
+|{operator}
 |https://hub.docker.com/r/apicurio/apicurio-registry-operator
 |===
 
@@ -478,16 +478,16 @@ endif::[]
 
 ifdef::rh-service-registry[]
 
-.{registry} Operator and images
+.{operator} and images
 [%header,cols="3,3,2"]
 |===
 |Distribution
 |Location
 |Release category
-|{registry} Operator
+|{operator}
 |OpenShift web console under *Operators* → *OperatorHub*
 |General Availability
-|Container image for {registry} Operator
+|Container image for {operator}
 |link:{download-url-registry-container-catalog}[{org-name} Ecosystem Catalog]
 |General Availability
 |Container image for Apicurio Registry (Back End)

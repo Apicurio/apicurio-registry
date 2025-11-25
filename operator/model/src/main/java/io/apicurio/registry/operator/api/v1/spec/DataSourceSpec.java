@@ -61,7 +61,7 @@ public class DataSourceSpec {
     @JsonProperty("password")
     @JsonPropertyDescription("""
             Configure SQL data source password.
-                      
+
             References name of a Secret that contains the password. Key `password` is assumed by default.""")
     @JsonSetter(nulls = SKIP)
     private SecretKeyRef password;

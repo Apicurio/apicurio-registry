@@ -36,7 +36,7 @@ When you access the {registry} web console in your browser, some initial configu
 
 * URL for core {registry} server REST API v3
 
-Typically the {registry} operator will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
+Typically the {operator} will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
 
 .Procedure
 Configure the following environment variables to override the default URL:

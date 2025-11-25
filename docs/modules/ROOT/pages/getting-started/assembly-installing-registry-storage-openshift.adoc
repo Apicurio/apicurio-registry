@@ -63,8 +63,6 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 * link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
 * link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}]
 
-
-
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 

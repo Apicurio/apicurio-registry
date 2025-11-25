@@ -34,7 +34,7 @@ spec:
     podTemplateSpec:
       spec:
         containers:
-          - name: app
+          - name: apicurio-registry-app
             volumeMounts:
               - name: certs
                 mountPath: /deployments/certs

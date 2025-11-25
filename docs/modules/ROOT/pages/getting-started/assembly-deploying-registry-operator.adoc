@@ -4,13 +4,14 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Deploying {registry} using the Operator
 
 [role="_abstract"]
-This chapter explains how to deploy and configure {registry} instances using the {registry} Operator on
+This chapter explains how to deploy and configure {registry} instances using the {operator} on
 {kubernetes}:
 
 * xref:operator-overview_{context}[]
 * xref:deploying-registry-inmemory_{context}[]
 * xref:deploying-registry-postgresql_{context}[]
-* xref:deploying-registry-mysql_{context}[]
+// TODO: https://github.com/Apicurio/apicurio-registry/issues/6919
+//* xref:deploying-registry-mysql_{context}[]
 * xref:deploying-registry-kafkasql_{context}[]
 * xref:configuring-registry-authentication_{context}[]
 * xref:configuring-registry-ingress_{context}[]
@@ -24,18 +25,20 @@ This chapter explains how to deploy and configure {registry} instances using the
 //INCLUDES
 
 [id="operator-overview_{context}"]
-== Understanding {registry} Operator deployment
+== Understanding {operator} deployment
 
-The {registry} Operator uses the `ApicurioRegistry3` custom resource to deploy and manage {registry} instances on
+The {operator} uses the `ApicurioRegistry3` custom resource to deploy and manage {registry} instances on
 {kubernetes}. The custom resource allows you to declaratively configure all aspects of your {registry} deployment,
 including storage, authentication, networking, and component-specific settings.
+
+NOTE: Additional `ApicurioRegistry3` custom resource examples can be found in the https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/controller/src/test/resources/k8s/examples[{registry} upstream repository].
 
 === Custom resource structure
 
 The `ApicurioRegistry3` custom resource is organized into two main components:
 
-* `spec.app` - Configures the {registry} backend (REST API) component
-* `spec.ui` - Configures the {registry} web console component
+* `spec.app` - Configures the {registry-app}
+* `spec.ui` - Configures the {registry-ui}
 
 Each component can be independently configured with its own settings for replicas, ingress, environment variables,
 and pod specifications.
@@ -61,13 +64,13 @@ suitable for development and testing environments only.
 
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.
-* You must have already installed the {registry} Operator. See {installing-the-registry-openshift}.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
 
 .Procedure
 
 . In the {kubernetes} web console, log in using an account with cluster administrator privileges.
 
-. Change to the {kubernetes-namespace} in which the {registry} Operator is installed. For example, from the
+. Change to the {kubernetes-namespace} in which the {operator} is installed. For example, from the
 *Project* drop-down, select `my-project`.
 
 . Click *Installed Operators* > *{registry}* > *ApicurioRegistry3* > *Create ApicurioRegistry3*.
@@ -89,12 +92,11 @@ spec:
       host: registry-ui.example.com
 ----
 +
-NOTE: Replace the `host` values with appropriate hostnames for your environment. If you are using OpenShift
-Routes instead of Ingress, you can leave the `host` field empty and OpenShift will generate a default route.
+NOTE: Replace the `host` values with appropriate hostnames for your environment. Currently, {operator} only creates simple HTTP Ingresses. To enable TLS, you must create your own Ingress or Route resources with TLS configuration.
 
 . Click *Create* and wait for the {registry} deployment to be created.
 
-. Click *Networking* > *Routes* (or *Ingresses*) to access the route for the {registry} web console.
+. Click *Networking* > *Ingresses* (or *Routes*) to access the route for the {registry} web console.
 
 .Verification
 
@@ -108,7 +110,7 @@ for production environments.
 
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.
-* You must have already installed the {registry} Operator. See {installing-the-registry-openshift}.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have a PostgreSQL database available with a database created for {registry}.
 * You must have created a Kubernetes Secret containing the PostgreSQL database password.
 
@@ -170,9 +172,10 @@ the database.
 [role="_additional-resources"]
 .Additional resources
 
-* For information on PostgreSQL Operators available on OpenShift, see xref:installing-postgresql-operatorhub_{context}[]
+* For information on PostgreSQL Operators available on OpenShift, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#installing-postgresql-operatorhub_{context}[Installing a PostgreSQL database from the OpenShift OperatorHub]
 in {installing-the-registry-storage-openshift}.
 
+////
 [id="deploying-registry-mysql_{context}"]
 == Deploying {registry} with MySQL storage
 
@@ -181,7 +184,7 @@ for production environments.
 
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.
-* You must have already installed the {registry} Operator. See {installing-the-registry-openshift}.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have a MySQL database available with a database created for {registry}.
 * You must have created a Kubernetes Secret containing the MySQL database password.
 
@@ -240,6 +243,7 @@ uses the same SQL storage mechanism for both PostgreSQL and MySQL.
 * Access the {registry} web console and create a test artifact to verify that data is being persisted to
 the database.
 * Restart the {registry} pod and verify that the artifact still exists, confirming that data is persisted.
+////
 
 [id="deploying-registry-kafkasql_{context}"]
 == Deploying {registry} with KafkaSQL storage
@@ -250,7 +254,7 @@ when using persistent Kafka storage.
 
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.
-* You must have already installed the {registry} Operator. See {installing-the-registry-openshift}.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have a Kafka cluster available. For OpenShift, see {installing-the-registry-storage-openshift}.
 
 .Procedure
@@ -373,7 +377,7 @@ spec:
 [role="_additional-resources"]
 .Additional resources
 
-* For more information on Kafka storage configuration, see xref:setting-up-kafka-streams-storage_{context}[]
+* For more information on Kafka storage configuration, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#setting-up-kafka-streams-storage_{context}[Configuring {registry} with Kafka storage on OpenShift]
 in {installing-the-registry-storage-openshift}.
 
 [id="configuring-registry-authentication_{context}"]
@@ -390,8 +394,8 @@ an identity provider such as {keycloak}.
 .Procedure
 
 . Configure two clients in your identity provider:
-** Backend API client (e.g., `registry-client-api`) - Used by the {registry} REST API
-** UI client (e.g., `registry-client-ui`) - Used by the {registry} web console
+** Backend API client (e.g., `registry-client-api`) - Used by the {registry-app}.
+** UI client (e.g., `registry-client-ui`) - Used by the {registry-ui}.
 
 . Update your `ApicurioRegistry3` custom resource to enable authentication:
 +
@@ -522,7 +526,7 @@ NOTE: Set `tlsVerificationType` to `none` to disable TLS verification (not recom
 .Additional resources
 
 * For more information on {registry} security configuration, see
-{registry-name-full} security in xref:assembly-configuring-registry-security.adoc[].
+{registry-name-full} security in xref:getting-started/assembly-configuring-registry-security.adoc[].
 
 [id="configuring-registry-ingress_{context}"]
 == Configuring Ingress and networking
@@ -542,18 +546,16 @@ metadata:
 spec:
   app:
     ingress:
-      enabled: true
       host: registry-api.example.com
       ingressClassName: nginx
       annotations:
-        cert-manager.io/cluster-issuer: letsencrypt-prod
+        nginx.org/proxy-connect-timeout: "30s"
   ui:
     ingress:
-      enabled: true
       host: registry-ui.example.com
       ingressClassName: nginx
       annotations:
-        cert-manager.io/cluster-issuer: letsencrypt-prod
+        nginx.org/proxy-connect-timeout: "30s"
 ----
 
 === Disabling operator-managed Ingress
@@ -721,6 +723,8 @@ spec:
             key: custom.value
 ----
 
+IMPORTANT: *Order of evaluation:* The environment variables defined in the `env` field override any environment variables set by the operator. This allows you to both customize configuration while still benefiting from operator-managed settings, and workarounds in case of bugs. You should not use the custom PodTemplateSpec method described below to set environment variables.
+
 === Using PodTemplateSpec for advanced customization
 
 For advanced pod configuration, you can provide a custom PodTemplateSpec:
@@ -759,8 +763,14 @@ spec:
                   topologyKey: kubernetes.io/hostname
 ----
 
-NOTE: The operator extends the provided PodTemplateSpec with default values and applies additional configuration
-based on other fields in the `ApicurioRegistry3` CR.
+To customize the component container (for example, to set resource requests/limits), you must specify the container name as follows:
+
+* `apicurio-registry-app` for the {registry-app}.
+* `apicurio-registry-ui` for the {registry-ui}.
+
+However, you can also add additional containers to the pod if needed.
+
+IMPORTANT: *Order of evaluation:* The operator first extends the provided PodTemplateSpec with default values and then applies additional configuration based on other fields in the `ApicurioRegistry3` CR. Therefore, other configuration fields might override settings in the PodTemplateSpec.
 
 === Configuring TLS for the application
 
@@ -782,5 +792,5 @@ spec:
 [role="_additional-resources"]
 .Additional resources
 
-* For the complete configuration reference, see xref:assembly-operator-config-reference.adoc[].
+* For the complete configuration reference, see xref:getting-started/assembly-operator-config-reference.adoc[].
 * For more information on configuring {registry}, see {registry-overview}.

@@ -25,7 +25,7 @@ This chapter explains how to install {registry} on OpenShift Container Platform:
 // Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
 [role="_abstract"]
-You can install the {registry} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
+You can install the {operator} on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
 
 NOTE: You can install more than one replica of {registry} depending on your environment. The number of replicas depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
 
@@ -44,7 +44,7 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 .. Enter a project name, for example, `my-project`, and click *Create*.
 
 . In the left navigation menu, click *Operators* and then *OperatorHub*.
-. In the *Filter by keyword* text box, enter `registry` to find the *{registry} Operator*.
+. In the *Filter by keyword* text box, enter `registry` to find the *{operator}*.
 . Read the information about the Operator, and click *Install* to display the Operator subscription page.
 
 . Select your subscription settings, for example:

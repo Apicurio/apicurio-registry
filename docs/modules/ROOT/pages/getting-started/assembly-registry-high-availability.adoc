@@ -94,15 +94,17 @@ spec:
                 podAffinityTerm:
                   labelSelector:
                     matchLabels:
-                      app: apicurio-registry
-                      component: app
+                      app: example-registry
+                      app.kubernetes.io/component: app
+                      app.kubernetes.io/part-of: apicurio-registry
                   topologyKey: kubernetes.io/hostname
               - weight: 50
                 podAffinityTerm:
                   labelSelector:
                     matchLabels:
-                      app: apicurio-registry
-                      component: app
+                      app: example-registry
+                      app.kubernetes.io/component: app
+                      app.kubernetes.io/part-of: apicurio-registry
                   topologyKey: topology.kubernetes.io/zone
 ----
 
@@ -132,7 +134,7 @@ spec:
 === Configuring PodDisruptionBudget
 
 Ensure minimum availability during voluntary disruptions such as node drains or cluster upgrades. The operator
-creates a PodDisruptionBudget by default, but you can customize it:
+creates a PodDisruptionBudget with `maxUnavailable: 1` by default, but you can customize it by creating your own:
 
 [source,yaml]
 ----
@@ -140,17 +142,31 @@ spec:
   app:
     replicas: 3
     podDisruptionBudget:
-      enabled: true
+      enabled: false
 ----
 
-The operator automatically configures the PodDisruptionBudget to maintain at least `ceil((replicas - 1) / 2)`
-available replicas during disruptions.
+[source,yaml]
+----
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+    name: example-registry-app-poddisruptionbudget
+spec:
+    minAvailable: 1
+    selector:
+      matchLabels:
+        app: example-registry
+        app.kubernetes.io/component: app
+        app.kubernetes.io/part-of: apicurio-registry
+----
 
 [id="ha-sql-storage_{context}"]
 == Configuring SQL database storage for high availability
 
 When using PostgreSQL or MySQL storage, high availability depends on your database configuration. The database
 must be configured with replication and automatic failover.
+
+NOTE: MySQL storage is not yet supported by the operator and requires manual configuration using environment variables.
 
 === Database high availability options
 
@@ -286,9 +302,15 @@ Key configuration for HA:
 * *Replication factor: 3* - Each partition has 3 copies
 * *min.insync.replicas: 2* - Requires at least 2 replicas to acknowledge writes
 
-=== KafkaSQL journal topic configuration
+=== KafkaSQL topic configuration
 
-Configure the Kafka topic used by {registry} with appropriate replication:
+{registry} uses three Kafka topics for various purposes:
+
+* *Journal topic* - Stores all changes to the registry data. Named `kafkasql-journal` by default and is the most important topic for data durability.
+* *Snapshots topic* - Stores periodic snapshots of the registry state for faster startup, if the snapshotting feature is used. Its named `kafkasql-snapshots` by default and should be configured with similar replication settings as the journal topic.
+* *Events topic* - Stores events to support Kafka-based Registry eventing feature. Named `registry-events` by default, its configuration depends on your event processing needs. *Currently, {registry} sends messages to only 1 partition of this topic.*
+
+Configure the Kafka topics used by {registry} with appropriate replication:
 
 [source,yaml]
 ----
@@ -308,8 +330,19 @@ spec:
     retention.bytes: -1  # Infinite retention
 ----
 
-WARNING: The journal topic must use `cleanup.policy: delete` with infinite retention (`retention.ms: -1` and
-`retention.bytes: -1`) to prevent data loss.
+WARNING: The journal topic and the snapshots topic must use `cleanup.policy: delete` with infinite retention (`retention.ms: -1` and `retention.bytes: -1`) to prevent accidental data loss. As of the latest version, {registry} will check these settings on startup and refuse to start if they are not configured correctly.
+
+{registry} automatically creates the journal, snapshots, and events topics on startup by default,  if they do not exist. While this is not recommended in a high-availability production scenario, if you want the topics be created automatically, the following environment variables provide the equivalent configuration:
+
+[source,bash]
+----
+APICURIO_KAFKASQL_TOPIC_PARTITIONS=3
+APICURIO_KAFKASQL_TOPIC_REPLICATION_FACTOR=3
+APICURIO_KAFKASQL_TOPIC_MIN_INSYNC_REPLICAS=2
+APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_PARTITIONS=3
+APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_REPLICATION_FACTOR=3
+APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_MIN_INSYNC_REPLICAS=2
+----
 
 === Consumer behavior with multiple replicas
 
@@ -405,7 +438,11 @@ strategy ensures:
 
 === Updating {registry} version
 
-To update to a new {registry} version, update the image in your pod template:
+{registry} and {operator} are versioned together. To update {registry} to a new version, update {operator}, which will automatically update the application.
+
+For production environments, we strongly recommend using Operator Lifecycle Manager (OLM) with manual install plan confirmation enabled. This prevents automatic updates from occurring immediately when a new version becomes available, giving you time to review release notes and prepare for the update.
+
+If you need to update the application without updating {operator} (*not recommended* except as a workaround for critical issues), you can override the application image in your pod template:
 
 [source,yaml]
 ----
@@ -414,11 +451,9 @@ spec:
     podTemplateSpec:
       spec:
         containers:
-          - name: app
+          - name: apicurio-registry-app
             image: quay.io/apicurio/apicurio-registry:3.1.0
 ----
-
-Or let the operator manage the image version automatically (recommended).
 
 === Safe update practices
 
@@ -429,8 +464,7 @@ Follow these practices for safe updates:
 * *Maintain minimum replicas* - Keep at least 2 replicas to ensure availability during updates
 * *Review release notes* - Check for breaking changes or migration steps
 
-For patch releases (e.g., 3.1.0 to 3.1.1), rolling updates typically complete without issues. For major or
-minor version updates, review the migration guide.
+IMPORTANT: For patch releases (e.g., 3.1.0 to 3.1.1), rolling updates typically complete without issues. For major or minor version updates, always review the migration guide.
 
 [id="ha-backup-restore_{context}"]
 == Backup and restore procedures
@@ -501,7 +535,7 @@ For KafkaSQL storage, back up the Kafka journal topic and snapshots topic.
 
 ==== Backing up Kafka topics
 
-Use Kafka's MirrorMaker 2 or {kafka-streams} Mirror Maker for topic replication:
+Use Kafka's MirrorMaker 2 or {kafka-streams} Mirror Maker for topic replication (recommended):
 
 [source,yaml]
 ----
@@ -525,36 +559,7 @@ spec:
       groupsPattern: ".*"
 ----
 
-Alternatively, export topics using Kafka's console consumer:
-
-[source,bash]
-----
-kafka-console-consumer --bootstrap-server registry-kafka-bootstrap:9092 \
-  --topic kafkasql-journal \
-  --from-beginning \
-  --property print.key=true \
-  --property print.value=true > kafkasql-journal-backup.txt
-----
-
-==== Restoring KafkaSQL topics
-
-To restore, recreate the topic and import messages:
-
-[source,bash]
-----
-# Create topic with correct configuration
-kafka-topics --bootstrap-server registry-kafka-bootstrap:9092 \
-  --create --topic kafkasql-journal \
-  --partitions 3 --replication-factor 3 \
-  --config cleanup.policy=delete \
-  --config retention.ms=-1 \
-  --config retention.bytes=-1
-
-# Import messages
-kafka-console-producer --bootstrap-server registry-kafka-bootstrap:9092 \
-  --topic kafkasql-journal \
-  --property parse.key=true < kafkasql-journal-backup.txt
-----
+Alternatively, export and import topics using Kafka's console consumer or CLI tools like `kcat`/`kafkacat`. Since the topics might contain binary data, which might be affected by text file encoding, make sure they are exported correctly when using CLI tools. See our xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[] guide for more details.
 
 === Testing backup and restore
 
@@ -568,7 +573,7 @@ Regularly test your backup and restore procedures:
 [role="_additional-resources"]
 .Additional resources
 
-* For more information on {registry} configuration, see xref:assembly-deploying-registry-operator.adoc[].
+* For more information on {registry} configuration, see xref:getting-started/assembly-deploying-registry-operator.adoc[].
 * For Kafka HA configuration with {kafka-streams}, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
 * For health checks and metrics, see the
 link:/q/health[Health UI] and link:/q/metrics[Metrics endpoint] in your {registry} deployment.

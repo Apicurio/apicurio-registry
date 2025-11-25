@@ -1,7 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="operator-config-reference_{context}"]
-= {registry} Operator configuration reference
+= {operator} configuration reference
 
 [role="_abstract"]
 This chapter provides a complete reference for configuring {registry} instances using the `ApicurioRegistry3`
@@ -22,7 +22,7 @@ custom resource.
 The `ApicurioRegistry3` custom resource defines the desired state of a {registry} instance. The resource is
 organized into two main sections under `spec`:
 
-[source,yaml]
+[source,yaml,subs="attributes"]
 ----
 apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry3
@@ -30,15 +30,15 @@ metadata:
   name: example-registry
 spec:
   app:
-    # Configuration for the backend (REST API) component
+    # Configuration for the {registry-app}.
   ui:
-    # Configuration for the web console component
+    # Configuration for the {registry-ui}.
 ----
 
 [id="operator-app-spec-reference_{context}"]
-== Application (backend) configuration reference
+== {registry-app} configuration reference
 
-The `spec.app` section configures the {registry} backend component, which provides the REST API.
+The `spec.app` section configures the backend component, which provides the REST API.
 
 === Common component fields
 
@@ -63,7 +63,7 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 
 |`ingress`
 |Ingress configuration for the component
-|IngressSpec
+|<<IngressSpec>>
 |See xref:operator-ingress-reference_{context}[]
 
 |`podTemplateSpec`
@@ -100,22 +100,22 @@ The following fields are specific to `spec.app`:
 
 |`storage`
 |Storage configuration for the backend
-|StorageSpec
+|<<StorageSpec>>
 |See xref:operator-storage-reference_{context}[]
 
 |`features`
 |Feature flags for the backend
-|AppFeaturesSpec
+|<<AppFeaturesSpec>>
 |See below
 
 |`auth`
 |Authentication and authorization configuration
-|AuthSpec
+|<<AuthSpec>>
 |See xref:operator-auth-reference_{context}[]
 
 |`tls`
 |TLS configuration for the application
-|TLSSpec
+|<<TLSSpec>>
 |See below
 |===
 
@@ -165,12 +165,12 @@ Configure TLS certificates for the application:
 
 |`keystoreSecretRef`
 |Reference to a Secret containing the keystore (PKCS12 format). Default key: `keystore.p12`
-|SecretKeyRef
+|<<SecretKeyRef>>
 |None
 
 |`keystorePasswordSecretRef`
 |Reference to a Secret containing the keystore password. Default key: `password`
-|SecretKeyRef
+|<<SecretKeyRef>>
 |None
 |===
 
@@ -246,12 +246,12 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 
 |`sql`
 |SQL database configuration. Required when `type` is `postgresql`
-|SqlSpec
+|<<SqlSpec>>
 |None
 
 |`kafkasql`
 |KafkaSQL storage configuration. Required when `type` is `kafkasql`
-|KafkaSqlSpec
+|<<KafkaSqlSpec>>
 |None
 |===
 
@@ -269,7 +269,7 @@ Configure SQL database storage (PostgreSQL or MySQL):
 
 |`dataSource`
 |Data source configuration
-|DataSourceSpec
+|<<DataSourceSpec>>
 |===
 
 === DataSourceSpec
@@ -279,22 +279,22 @@ Configure SQL database storage (PostgreSQL or MySQL):
 |Field
 |Description
 |Type
-|Example
+|Default
 
 |`url`
-|JDBC connection URL
+|JDBC connection URL. Example: `jdbc:postgresql://postgresql.my-ns.svc:5432/registry`
 |String
-|`jdbc:postgresql://postgresql.my-ns.svc:5432/registry`
+|None
 
 |`username`
 |Database username
 |String
-|`registry_user`
+|None
 
 |`password`
 |Reference to a Secret containing the database password. Default key: `password`
-|SecretKeyRef
-|See below
+|<<SecretKeyRef>>
+|None
 |===
 
 Example for PostgreSQL:
@@ -313,6 +313,7 @@ spec:
             key: password
 ----
 
+////
 Example for MySQL:
 [source,yaml]
 ----
@@ -328,6 +329,7 @@ spec:
             name: mysql-credentials
             key: password
 ----
+////
 
 === KafkaSqlSpec
 
@@ -347,12 +349,12 @@ Configure KafkaSQL storage:
 
 |`tls`
 |TLS configuration for connecting to Kafka
-|KafkaSqlTLSSpec
+|<<KafkaSqlTLSSpec>>
 |None
 
 |`auth`
 |Authentication configuration for connecting to Kafka
-|KafkaSqlAuthSpec
+|<<KafkaSqlAuthSpec>>
 |None
 |===
 
@@ -380,12 +382,12 @@ Configure TLS for KafkaSQL storage:
 
 |`truststoreSecretRef`
 |Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
-|SecretKeyRef
+|<<SecretKeyRef>>
 |None
 
 |`truststorePasswordSecretRef`
 |Reference to a Secret containing the truststore password. Default key: `ca.password`
-|SecretKeyRef
+|<<SecretKeyRef>>
 |None
 |===
 
@@ -416,31 +418,31 @@ Configure SASL authentication for KafkaSQL storage:
 |Field
 |Description
 |Type
-|Example
+|Default
 
 |`mechanism`
-|SASL mechanism
+|SASL mechanism. Examples: `SCRAM-SHA-512`, `PLAIN`, `OAUTHBEARER`
 |String
-|`SCRAM-SHA-512`, `PLAIN`, `OAUTHBEARER`
+|None
 
 |`usernameSecretRef`
 |Reference to a Secret containing the username. Default key: `username`
-|SecretKeyRef
-|See below
+|<<SecretKeyRef>>
+|None
 
 |`passwordSecretRef`
 |Reference to a Secret containing the password. Default key: `password`
-|SecretKeyRef
-|See below
+|<<SecretKeyRef>>
+|None
 
 |`clientIdSecretRef`
 |Reference to a Secret containing the OAuth client ID (for OAUTHBEARER). Default key: `clientId`
-|SecretKeyRef
+|<<SecretKeyRef>>
 |None
 
 |`clientSecretSecretRef`
 |Reference to a Secret containing the OAuth client secret (for OAUTHBEARER). Default key: `clientSecret`
-|SecretKeyRef
+|<<SecretKeyRef>>
 |None
 
 |`tokenEndpointUri`
@@ -519,17 +521,17 @@ The `spec.app.auth` section configures OIDC authentication and role-based author
 
 |`authz`
 |Authorization configuration
-|AuthzSpec
+|<<AuthzSpec>>
 |See below
 
 |`basicAuth`
 |Client credentials basic authentication configuration
-|BasicAuthSpec
+|<<BasicAuthSpec>>
 |See below
 
 |`tls`
 |TLS configuration for OIDC connections
-|AuthTLSSpec
+|<<AuthTLSSpec>>
 |See below
 |===
 
@@ -581,12 +583,12 @@ Configure role-based authorization:
 
 |`roles`
 |Role configuration
-|AuthzRolesSpec
+|<<AuthzRolesSpec>>
 |See below
 
 |`adminOverride`
 |Admin override configuration
-|AdminOverrideSpec
+|<<AdminOverrideSpec>>
 |See below
 |===
 
@@ -764,12 +766,12 @@ Configure TLS for OIDC connections:
 
 |`truststoreSecretRef`
 |Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
-|SecretKeyRef
+|<<SecretKeyRef>>
 |None
 
 |`truststorePasswordSecretRef`
 |Reference to a Secret containing the truststore password. Default key: `ca.password`
-|SecretKeyRef
+|<<SecretKeyRef>>
 |None
 |===
 
@@ -830,19 +832,16 @@ Example:
 spec:
   app:
     ingress:
-      enabled: true
       host: registry-api.example.com
       ingressClassName: nginx
       annotations:
-        cert-manager.io/cluster-issuer: letsencrypt-prod
-        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.org/proxy-connect-timeout: "30s"
   ui:
     ingress:
-      enabled: true
       host: registry-ui.example.com
       ingressClassName: nginx
       annotations:
-        cert-manager.io/cluster-issuer: letsencrypt-prod
+        nginx.org/proxy-connect-timeout: "30s"
 ----
 
 === SecretKeyRef
@@ -875,11 +874,27 @@ password:
   key: db-password
 ----
 
+== For Developers
+
+Java model classes for the `ApicurioRegistry3` custom resource are available as a Maven artifact:
+
+[source,xml,subs="attributes+"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-operator-model</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+----
+
+and can be used with the link:https://github.com/fabric8io/kubernetes-client[Fabric8 Kubernetes Client library] to programmatically create and manage {operator} resources.
+
 [role="_additional-resources"]
 .Additional resources
 
-* For deployment examples, see xref:assembly-deploying-registry-operator.adoc[].
+* For deployment examples, see xref:getting-started/assembly-deploying-registry-operator.adoc[].
 * For Kubernetes PodTemplateSpec documentation, see
 https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplateSpec
 * For Kubernetes EnvVar documentation, see
 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core
+* You can also explore the link:https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/model/src/main/java/io/apicurio/registry/operator/api/v1[{operator} Java model source code in GitHub]

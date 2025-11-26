@@ -9,6 +9,10 @@ on:
         description: Branch to release from
         required: true
         default: main
+      notice:
+        type: boolean
+        description: I will notify jsenko if the operator release workflow fails!
+
 jobs:
   release:
     runs-on: ubuntu-22.04
@@ -17,6 +21,14 @@ jobs:
       MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
     if: github.repository_owner == 'Apicurio'
     steps:
+
+      - name: Check
+        run: |
+          if [ "${{ inputs.notice }}" != "true" ]; then
+            echo "Error: You must check the notice checkbox to proceed with the release!"
+            exit 1
+          fi
+
       - name: Calculate Next Version
         run: |
           RELEASE_VERSION="${{ github.event.inputs.release-version }}"

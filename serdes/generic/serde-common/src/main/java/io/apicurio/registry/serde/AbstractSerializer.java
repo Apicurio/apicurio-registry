@@ -14,6 +14,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static io.apicurio.registry.serde.BaseSerde.MAGIC_BYTE;
 
@@ -24,6 +27,35 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
      * Pre-sized to avoid array resizing for typical message sizes.
      */
     private static final int DEFAULT_BUFFER_SIZE = 1024;
+
+    /**
+     * Maximum number of entries in the fast-path cache.
+     * Prevents unbounded memory growth in long-running applications.
+     */
+    private static final int MAX_CACHE_SIZE = 1000;
+
+    /**
+     * Cache key combining topic and message class.
+     * Supports the same message class being registered under different schemas for different topics.
+     */
+    private record SchemaCacheKey(String topic, Class<?> messageClass) {}
+
+    /**
+     * Fast-path cache: maps (topic, message class) to resolved schema.
+     * This bypasses the full resolution flow (object creation + 4 cache lookups)
+     * after the first serialization of a message type per topic.
+     * Uses LRU eviction to prevent unbounded growth.
+     */
+    private final Map<SchemaCacheKey, SchemaLookupResult<T>> fastPathCache = createBoundedCache(MAX_CACHE_SIZE);
+
+    private static <K, V> Map<K, V> createBoundedCache(int maxSize) {
+        return Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+                return size() > maxSize;
+            }
+        });
+    }
 
     private final BaseSerde<T, U> baseSerde;
 
@@ -62,10 +94,17 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
             return null;
         }
         try {
-            SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
+            // Fast path: direct (topic, class) to schema lookup bypasses full resolution
+            SchemaCacheKey cacheKey = new SchemaCacheKey(topic, data.getClass());
+            SchemaLookupResult<T> schema = fastPathCache.get(cacheKey);
 
-            SchemaLookupResult<T> schema = baseSerde.getSchemaResolver()
-                    .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
+            if (schema == null) {
+                // Slow path: full resolution (only on first call per message type per topic)
+                SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
+                schema = baseSerde.getSchemaResolver()
+                        .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
+                fastPathCache.put(cacheKey, schema);
+            }
 
             // Pre-size buffer to avoid array resizing for typical messages
             ByteArrayOutputStream out = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);

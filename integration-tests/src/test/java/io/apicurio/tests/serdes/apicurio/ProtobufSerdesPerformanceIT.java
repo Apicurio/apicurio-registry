@@ -375,6 +375,8 @@ public class ProtobufSerdesPerformanceIT extends ApicurioRegistryBaseIT {
         io.apicurio.registry.old.serde.protobuf.ProtobufKafkaDeserializer<T> oldDeserializer =
                 new io.apicurio.registry.old.serde.protobuf.ProtobufKafkaDeserializer<>();
 
+        // Create serializer and deserializer - they create their own schema resolvers
+        // but the resolved schemas get cached in our fast-path caches
         io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer<Message> newSerializer =
                 new io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer<>();
         io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer<T> newDeserializer =

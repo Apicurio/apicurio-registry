@@ -121,12 +121,21 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
             InputStream is = new ByteBufferInputStream(slice);
 
+            // Fast path: if messageTypeName is a Java class name (contains '.'),
+            // we can skip Ref parsing and use invokeParseMethod directly.
+            // Note: Ref is still written to the stream for compatibility, so we must skip it.
+            if (messageTypeName != null && messageTypeName.contains(".")) {
+                if (readTypeRef) {
+                    skipDelimitedMessage(is);
+                }
+                return invokeParseMethod(is, messageTypeName);
+            }
+
             Descriptor descriptor = null;
 
             if (messageTypeName != null) {
                 descriptor = schema.getParsedSchema().getFileDescriptor()
                         .findMessageTypeByName(messageTypeName);
-
             }
 
             if (readIndexes) {
@@ -234,6 +243,51 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         String d1 = (!outer.isEmpty() || inner.length() != 0 ? "." : "");
         String d2 = (!outer.isEmpty() && inner.length() != 0 ? "$" : "");
         return p + d1 + outer + d2 + inner;
+    }
+
+    /**
+     * Skips a length-delimited protobuf message in the stream without parsing it.
+     * This is more efficient than parsing and discarding when we don't need the content.
+     */
+    private void skipDelimitedMessage(InputStream is) throws IOException {
+        // Read the varint length prefix
+        int length = readRawVarint32(is);
+        if (length > 0) {
+            // Skip that many bytes
+            long skipped = is.skip(length);
+            // If skip didn't work (some streams don't support it), read the bytes
+            while (skipped < length) {
+                int read = is.read();
+                if (read < 0) break;
+                skipped++;
+            }
+        }
+    }
+
+    /**
+     * Reads a varint32 from the input stream (same algorithm as protobuf uses).
+     */
+    private int readRawVarint32(InputStream is) throws IOException {
+        int result = 0;
+        int shift = 0;
+        while (shift < 32) {
+            int b = is.read();
+            if (b < 0) {
+                return result; // End of stream
+            }
+            result |= (b & 0x7F) << shift;
+            if ((b & 0x80) == 0) {
+                return result;
+            }
+            shift += 7;
+        }
+        // Discard remaining bytes for malformed varints
+        while (true) {
+            int b = is.read();
+            if (b < 0 || (b & 0x80) == 0) {
+                return result;
+            }
+        }
     }
 
 }

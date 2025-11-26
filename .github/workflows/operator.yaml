@@ -27,6 +27,7 @@ jobs:
       # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
       - name: Configure env. variables
         run: |
+          echo "REGISTRY_APP_IMAGE=ttl.sh/apicurio-registry-${{ github.sha }}:8h" >> $GITHUB_ENV
           echo "IMAGE=ttl.sh/apicurio-registry-3-operator-${{ github.sha }}:8h" >> $GITHUB_ENV
           echo "BUNDLE_IMAGE=ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h" >> $GITHUB_ENV
           echo "CATALOG_IMAGE=ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h" >> $GITHUB_ENV
@@ -41,6 +42,14 @@ jobs:
           distribution: temurin
           cache: maven
 
+      # We need to build the operand image as well as the operator, otherwise the tests would not reflect changes in the current PR.
+      - name: Build
+        run: mvn -B clean package -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip
+
+      - name: Build temporary operand image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
+
       - uses: apicurio/apicurio-github-actions/setup-minikube@v2
         with:
           # Do not use the "docker" driver, it is causing port-forwarding errors. I have no clue why :(
@@ -50,12 +59,6 @@ jobs:
           olm-enable: 'true'
           olm-v1-enable: 'true'
           start-args: '--alsologtostderr --v=2' # Debug
-
-      - name: Build only
-        if: github.event_name != 'push'
-        working-directory: operator
-        run: |
-          make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true build
 
       - name: Build and run local tests on Minikube
         # Speed up the PR check by running both local and remote tests on push to main,
@@ -96,6 +99,7 @@ jobs:
         run: |
           # We need to remove unset the variables to generate a clean install file.
           # See https://github.com/actions/runner/issues/1126
+          unset REGISTRY_APP_IMAGE
           unset IMAGE
           unset BUNDLE_IMAGE
           unset CATALOG_IMAGE

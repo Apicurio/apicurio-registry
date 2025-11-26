@@ -1266,8 +1266,10 @@
             <extensions>true</extensions>
             <configuration>
               <publishingServerId>central</publishingServerId>
-              <waitUntil>published</waitUntil>
               <autoPublish>true</autoPublish>
+              <waitUntil>published</waitUntil>
+              <waitMaxTime>36000</waitMaxTime><!-- 10 minutes -->
+              <waitPollingInterval>15</waitPollingInterval><!-- Increase to 15 seconds from the default 5. -->
             </configuration>
           </plugin>
           <plugin>

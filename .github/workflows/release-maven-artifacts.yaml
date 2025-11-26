@@ -22,8 +22,7 @@ jobs:
     runs-on: ubuntu-22.04
     env: 
       MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-    # TODO: Update timeouts after the next release:
-    # timeout-minutes: 130
+    timeout-minutes: 90 # Was ~44m for version 3.1.3, so just double it.
     steps:
       - name: Fetch Release Details
         if: github.event_name == 'workflow_dispatch'

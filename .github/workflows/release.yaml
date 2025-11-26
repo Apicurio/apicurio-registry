@@ -113,19 +113,34 @@ jobs:
 
           sed -i "s/^version.*/version \= \"${{ env.RELEASE_UI_VERSION }}\"/" python-sdk/pyproject.toml
 
-          cd ui
+          pushd ui
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
-          cd ui-app
+          popd
+
+          pushd ui/ui-app
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
           json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"${{ env.RELEASE_UI_VERSION }}\""
-          cd ../ui-docs
+          popd
+
+          pushd ui/ui-docs
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
-          cd ../ui-editors
+          popd
+
+          pushd ui/ui-editors
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
-          cd ../tests
+          popd
+
+          pushd ui/tests
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
-          cd ../../typescript-sdk
+          popd
+
+          pushd typescript-sdk
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd artifact-type-builtins
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          popd
 
       - name: Build Registry (All Variants)
         run: |
@@ -192,19 +207,34 @@ jobs:
 
           sed -i "s/^version.*/version \= \"${{ env.NEXT_VERSION }}\"/" python-sdk/pyproject.toml
 
-          cd ui
+          pushd ui
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
-          cd ui-app
+          popd
+
+          pushd ui/ui-app
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
           json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"${{ env.SNAPSHOT_UI_VERSION }}\""
-          cd ../ui-docs
+          popd
+
+          pushd ui/ui-docs
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
-          cd ../ui-editors
+          popd
+
+          pushd ui/ui-editors
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
-          cd ../tests
+          popd
+
+          pushd ui/tests
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
-          cd ../../typescript-sdk
+          popd
+
+          pushd typescript-sdk
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd artifact-type-builtins
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          popd
 
       - name: Commit Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |

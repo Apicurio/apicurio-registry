@@ -3,11 +3,17 @@ package io.apicurio.registry.utils.protobuf.schema;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.roastedroot.protobuf4j.Protobuf;
+import io.roastedroot.protobuf4j.ValidationResult;
+import io.roastedroot.zerofs.Configuration;
+import io.roastedroot.zerofs.ZeroFs;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 /**
@@ -107,23 +113,18 @@ public class ProtobufFile {
                 }
             }
 
-            // Use protobuf4j for accurate syntax validation
-            // This provides much better validation than keyword checking
-            try {
-                FileDescriptorUtils.protoFileToFileDescriptor(data, "schema.proto", Optional.empty());
-                // Successfully parsed - valid protobuf syntax
-            } catch (Exception e) {
-                // Check if error is due to missing imports (acceptable in ContentAccepter context)
-                // vs actual syntax errors (not acceptable)
-                String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-                if (errorMsg.contains("import") || errorMsg.contains("not found") ||
-                    errorMsg.contains("dependency") || errorMsg.contains("required by")) {
-                    // Missing imports/dependencies - content is likely valid protobuf syntax,
-                    // just missing dependencies which is expected in ContentAccepter context
-                    return;
+            // Use protobuf4j's validateSyntax which checks syntax without resolving imports
+            // This is the correct method for ContentAccepter since we don't have dependencies available
+            FileSystem fs = ZeroFs.newFileSystem(
+                    Configuration.unix().toBuilder().setAttributeViews("unix").build());
+            try (FileSystem ignored = fs) {
+                Path workDir = fs.getPath(".");
+                Files.write(workDir.resolve("schema.proto"), data.getBytes(StandardCharsets.UTF_8));
+
+                ValidationResult result = Protobuf.validateSyntax(workDir, "schema.proto");
+                if (!result.isValid()) {
+                    throw new IOException("Invalid protobuf syntax: " + result.getErrors());
                 }
-                // Real syntax error - not valid protobuf
-                throw new IOException("Invalid protobuf syntax: " + e.getMessage(), e);
             }
         } catch (IOException e) {
             throw e;

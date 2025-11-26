@@ -23,6 +23,24 @@ import java.util.stream.Collectors;
 
 public class ProtobufSchemaLoader {
 
+    // ==================== Performance Configuration ====================
+
+    /**
+     * Default buffer size for reading proto files (8KB).
+     * Matches typical proto file sizes while avoiding excessive allocation.
+     */
+    private static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
+
+    /**
+     * Tracks which virtual filesystems have had well-known types extracted.
+     * Uses FileSystem hashCode + path for uniqueness across different filesystems.
+     * This avoids repeated filesystem writes for the same working directory.
+     */
+    private static final java.util.Set<String> WELL_KNOWN_TYPES_EXTRACTED =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
+    // ==================== Proto File Paths ====================
+
     private static final String GOOGLE_PROTOBUF_PATH = "google/protobuf/";
     private static final String GOOGLE_API_PATH = "google/type/";
     private static final String METADATA_PATH = "metadata/";
@@ -50,6 +68,10 @@ public class ProtobufSchemaLoader {
 
     private static void loadProtoFiles(Path baseDir, ClassLoader classLoader,
             Set<String> protos, String protoPath) throws IOException {
+        // Create directory structure once for all protos in this path
+        Path protoDir = baseDir.resolve(protoPath);
+        Files.createDirectories(protoDir);
+
         for (String proto : protos) {
             // Loads the proto file resource files.
             final InputStream inputStream = classLoader.getResourceAsStream(protoPath + proto);
@@ -57,21 +79,18 @@ public class ProtobufSchemaLoader {
                 throw new IOException("Could not find proto resource: " + protoPath + proto);
             }
 
-            // Read input stream to string
+            // Read input stream to string with pre-sized buffer
             final String fileContents;
             try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
-                StringBuilder sb = new StringBuilder();
-                char[] buffer = new char[8192];
+                // Pre-size StringBuilder to avoid resizing (typical proto files are < 8KB)
+                StringBuilder sb = new StringBuilder(DEFAULT_BUFFER_SIZE);
+                char[] buffer = new char[DEFAULT_BUFFER_SIZE];
                 int read;
                 while ((read = reader.read(buffer)) != -1) {
                     sb.append(buffer, 0, read);
                 }
                 fileContents = sb.toString();
             }
-
-            // Create directory structure
-            Path protoDir = baseDir.resolve(protoPath);
-            Files.createDirectories(protoDir);
 
             // Write proto file
             Path protoFile = protoDir.resolve(proto);
@@ -80,6 +99,13 @@ public class ProtobufSchemaLoader {
     }
 
     private static void writeWellKnownProtos(Path baseDir) throws IOException {
+        // Fast path: Check in-memory cache first to avoid filesystem operations
+        // Use FileSystem hashCode + path for uniqueness across different filesystems
+        String workdirKey = baseDir.getFileSystem().hashCode() + ":" + baseDir.toString();
+        if (WELL_KNOWN_TYPES_EXTRACTED.contains(workdirKey)) {
+            return; // Already extracted to this directory
+        }
+
         final ClassLoader classLoader = ProtobufSchemaLoader.class.getClassLoader();
 
         // Load Google Protobuf well-known types (google.protobuf.*)
@@ -90,6 +116,9 @@ public class ProtobufSchemaLoader {
         // Load custom Apicurio protos
         loadProtoFiles(baseDir, classLoader, Collections.singleton(METADATA_PROTO), METADATA_PATH);
         loadProtoFiles(baseDir, classLoader, Collections.singleton(DECIMAL_PROTO), DECIMAL_PATH);
+
+        // Mark this directory as having well-known types extracted
+        WELL_KNOWN_TYPES_EXTRACTED.add(workdirKey);
     }
 
     /**
@@ -147,6 +176,11 @@ public class ProtobufSchemaLoader {
 
             // Main file uses original fileName to preserve FileDescriptor.getName()
             Path mainProtoPath = workDir.resolve(protoFileName);
+            // Create parent directory if needed (for paths like "mypackage/file.proto")
+            Path parentDir = mainProtoPath.getParent();
+            if (parentDir != null) {
+                Files.createDirectories(parentDir);
+            }
             Files.write(mainProtoPath, protoContent.getContent().getBytes(StandardCharsets.UTF_8));
 
             // Step 5: Use protobuf4j to compile the proto files and build FileDescriptors
@@ -154,10 +188,14 @@ public class ProtobufSchemaLoader {
             // Note: buildFileDescriptors expects file paths relative to workDir, not absolute paths
             // NOTE: protobuf4j handles google.protobuf.* well-known types internally,
             // so we only need to add our custom protos and google.type.* protos
-            List<String> protoFiles = new ArrayList<>();
+
+            // Pre-size collections for better performance:
+            // protoFiles = GOOGLE_API_PROTOS (15) + 2 custom protos + dependencies + 1 main file
+            int estimatedSize = GOOGLE_API_PROTOS.size() + 3 + allDependencies.size();
+            List<String> protoFiles = new ArrayList<>(estimatedSize);
 
             // Collect all dependency paths to avoid duplicates
-            Set<String> depPaths = new HashSet<>();
+            Set<String> depPaths = new HashSet<>(allDependencies.size());
             for (ProtoContent proto : allDependencies) {
                 depPaths.add(proto.getExpectedImportPath());
             }

@@ -19,6 +19,12 @@ import static io.apicurio.registry.serde.BaseSerde.MAGIC_BYTE;
 
 public abstract class AbstractSerializer<T, U> implements AutoCloseable {
 
+    /**
+     * Default initial buffer size for ByteArrayOutputStream.
+     * Pre-sized to avoid array resizing for typical message sizes.
+     */
+    private static final int DEFAULT_BUFFER_SIZE = 1024;
+
     private final BaseSerde<T, U> baseSerde;
 
     public AbstractSerializer() {
@@ -61,7 +67,8 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
             SchemaLookupResult<T> schema = baseSerde.getSchemaResolver()
                     .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            // Pre-size buffer to avoid array resizing for typical messages
+            ByteArrayOutputStream out = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
             out.write(MAGIC_BYTE);
             baseSerde.getIdHandler().writeId(schema.toArtifactReference(), out);
             this.serializeData(schema.getParsedSchema(), data, out);

@@ -41,6 +41,12 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     private final Map<String, Method> parseMethodsCache = new ConcurrentHashMap<>();
 
+    /**
+     * Cache for derived class names from Descriptor.
+     * The mapping from Descriptor to class name is deterministic and can be cached.
+     */
+    private final Map<String, String> derivedClassNameCache = new ConcurrentHashMap<>();
+
     public ProtobufDeserializer() {
         super();
     }
@@ -192,8 +198,17 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         }
     }
 
-    // TODO refactor
+    /**
+     * Derives the Java class name from a Protobuf Descriptor.
+     * Results are cached since the mapping is deterministic for a given Descriptor.
+     */
     public String deriveClassFromDescriptor(Descriptor des) {
+        // Use the descriptor's full name as cache key
+        String cacheKey = des.getFullName();
+        return derivedClassNameCache.computeIfAbsent(cacheKey, key -> computeClassName(des));
+    }
+
+    private String computeClassName(Descriptor des) {
         Descriptor descriptor = des;
         FileDescriptor fd = descriptor.getFile();
         DescriptorProtos.FileOptions o = fd.getOptions();

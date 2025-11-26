@@ -202,10 +202,9 @@ public class FileDescriptorUtils {
                             String relativePath = iter.next();
                             String content = allDepContents.get(relativePath);
                             try {
-                                // Extract basename for fileName parameter
-                                String baseName = relativePath.substring(relativePath.lastIndexOf('/') + 1);
                                 // Try to compile with currently valid dependencies
-                                ProtobufSchemaLoader.loadSchema(baseName, content, depMap);
+                                // Use the full relativePath to ensure correct file placement
+                                ProtobufSchemaLoader.loadSchema(relativePath, content, depMap);
                                 // Success - add to valid set and remove from remaining
                                 depMap.put(relativePath, content);
                                 iter.remove();
@@ -316,10 +315,9 @@ public class FileDescriptorUtils {
                         String fileName = iter.next();
                         String content = allDepContents.get(fileName);
                         try {
-                            // Extract basename for fileName parameter
-                            String baseName = fileName.substring(fileName.lastIndexOf('/') + 1);
                             // Try to compile with currently valid dependencies
-                            ProtobufSchemaLoader.loadSchema(baseName, content, depMap);
+                            // Use the full fileName to ensure correct file placement
+                            ProtobufSchemaLoader.loadSchema(fileName, content, depMap);
                             // Success - add to valid set and remove from remaining
                             depMap.put(fileName, content);
                             iter.remove();

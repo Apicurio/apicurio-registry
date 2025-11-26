@@ -19,8 +19,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ProtobufSchemaParser<U extends Message> implements SchemaParser<ProtobufSchema, U> {
+
+    /**
+     * Cache for parsed schemas by FileDescriptor full name.
+     * FileDescriptors are immutable at runtime for a given message class,
+     * so we can safely cache the extracted schema.
+     */
+    private final Map<String, ParsedSchema<ProtobufSchema>> schemaCache = new ConcurrentHashMap<>();
 
     /**
      * @see io.apicurio.registry.resolver.SchemaParser#artifactType()
@@ -48,6 +56,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             }
 
             // Use protobuf4j to parse and compile the schema
+            // NOTE: protobuf4j handles google.protobuf.* well-known types automatically
             FileDescriptor fileDescriptor = ProtobufSchemaUtils.parseAndCompile(
                 "schema.proto", schemaContent, dependencies);
 
@@ -76,8 +85,17 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     private void addReferencesToDependencies(List<ParsedSchema<ProtobufSchema>> schemaReferences,
             Map<String, String> dependencies) {
         schemaReferences.forEach(parsedSchema -> {
+            String referenceName = parsedSchema.referenceName();
+
+            // Skip well-known types - protobuf4j handles these internally
+            // This is important for backward compatibility with older serializers
+            // that may have stored well-known types as references
+            if (isWellKnownType(referenceName)) {
+                return; // Skip this reference
+            }
+
             String depContent = parsedSchema.getParsedSchema().toProtoText();
-            dependencies.put(parsedSchema.referenceName(), depContent);
+            dependencies.put(referenceName, depContent);
             if (parsedSchema.hasReferences()) {
                 addReferencesToDependencies(parsedSchema.getSchemaReferences(), dependencies);
             }
@@ -90,14 +108,20 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     @Override
     public ParsedSchema<ProtobufSchema> getSchemaFromData(Record<U> data) {
         FileDescriptor schemaFileDescriptor = data.payload().getDescriptorForType().getFile();
-        ProtobufSchema protobufSchema = new ProtobufSchema(schemaFileDescriptor);
 
-        // Use FileDescriptorProto text format as the raw schema
-        byte[] rawSchema = IoUtil.toBytes(protobufSchema.toProtoText());
+        // Use FileDescriptor's full name as cache key - this is unique per proto file
+        String cacheKey = schemaFileDescriptor.getFullName();
 
-        return new ParsedSchemaImpl<ProtobufSchema>().setParsedSchema(protobufSchema)
-                .setReferenceName(protobufSchema.getFileDescriptor().getName())
-                .setSchemaReferences(handleDependencies(schemaFileDescriptor)).setRawSchema(rawSchema);
+        return schemaCache.computeIfAbsent(cacheKey, key -> {
+            ProtobufSchema protobufSchema = new ProtobufSchema(schemaFileDescriptor);
+
+            // Use FileDescriptorProto text format as the raw schema
+            byte[] rawSchema = IoUtil.toBytes(protobufSchema.toProtoText());
+
+            return new ParsedSchemaImpl<ProtobufSchema>().setParsedSchema(protobufSchema)
+                    .setReferenceName(protobufSchema.getFileDescriptor().getName())
+                    .setSchemaReferences(handleDependencies(schemaFileDescriptor)).setRawSchema(rawSchema);
+        });
     }
 
     @Override
@@ -108,6 +132,13 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     private List<ParsedSchema<ProtobufSchema>> handleDependencies(FileDescriptor fileDescriptor) {
         List<ParsedSchema<ProtobufSchema>> schemaReferences = new ArrayList<>();
         fileDescriptor.getDependencies().forEach(referenceFileDescriptor -> {
+            String fileName = referenceFileDescriptor.getName();
+
+            // Skip well-known types - protobuf4j handles these internally
+            // This includes google/protobuf/*.proto and google/type/*.proto
+            if (isWellKnownType(fileName)) {
+                return; // Skip this dependency
+            }
 
             ProtobufSchema referenceProtobufSchema = new ProtobufSchema(referenceFileDescriptor);
 
@@ -122,5 +153,24 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
         });
 
         return schemaReferences;
+    }
+
+    /**
+     * Check if a proto file is a well-known type that protobuf4j handles internally.
+     * These types don't need to be stored as references in the registry.
+     *
+     * @param fileName The proto file name (e.g., "google/protobuf/timestamp.proto")
+     * @return true if this is a well-known type handled by protobuf4j
+     */
+    private boolean isWellKnownType(String fileName) {
+        // Google Protocol Buffer well-known types
+        if (fileName.startsWith("google/protobuf/")) {
+            return true;
+        }
+        // Google common types (from googleapis)
+        if (fileName.startsWith("google/type/")) {
+            return true;
+        }
+        return false;
     }
 }

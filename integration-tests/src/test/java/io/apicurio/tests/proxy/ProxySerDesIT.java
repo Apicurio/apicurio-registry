@@ -22,6 +22,8 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
+
 /**
  * Integration tests for proxy configuration with Apicurio Registry SerDes (Serializers/Deserializers).
  * Tests verify that serializers and deserializers can successfully connect through an HTTP proxy.
@@ -44,7 +46,7 @@ public class ProxySerDesIT extends ApicurioRegistryBaseIT {
 
         logger.info("Setting up proxy for SerDes tests to {}:{}", host, port);
         proxy = new TrackingProxy(host, port);
-        proxy.start().get();
+        blockOnResult(proxy.start());
         proxy.resetRequestCount();
     }
 

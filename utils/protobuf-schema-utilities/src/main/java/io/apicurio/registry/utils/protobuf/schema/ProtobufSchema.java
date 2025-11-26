@@ -108,6 +108,7 @@ public class ProtobufSchema {
      * Replaces: getProtoFileElement().toSchema()
      *
      * Returns the original .proto text if available, otherwise generates it from FileDescriptor.
+     * The generated text is cached for subsequent calls.
      *
      * @return Text representation of the schema in .proto format
      */
@@ -115,7 +116,8 @@ public class ProtobufSchema {
         if (originalProtoText != null) {
             return originalProtoText;
         }
-        // Generate .proto text from FileDescriptor
-        return ProtobufSchemaUtils.toProtoText(fileDescriptor);
+        // Generate .proto text from FileDescriptor and cache it
+        originalProtoText = ProtobufSchemaUtils.toProtoText(fileDescriptor);
+        return originalProtoText;
     }
 }

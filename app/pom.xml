@@ -133,10 +133,6 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-logging-json</artifactId>
-    </dependency>
 
     <!-- Persistence -->
     <dependency>
@@ -395,6 +391,49 @@
         <directory>src/test/resources-unfiltered</directory>
       </testResource>
     </testResources>
+
+    <pluginManagement>
+      <plugins>
+
+      <plugin>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-maven-plugin</artifactId>
+        <version>${project.version}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>1.7.1</version>
+      </plugin>
+
+      <plugin>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-codegen-maven-plugin</artifactId>
+        <version>${version.apicurio-codegen-plugin}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>${version.build.helper.maven.plugin}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>${proto-plugin.version}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro-maven-plugin</artifactId>
+        <version>${avro.version}</version>
+      </plugin>
+
+      </plugins>
+    </pluginManagement>
+
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -542,7 +581,6 @@
       <plugin>
         <groupId>kr.motd.maven</groupId>
         <artifactId>os-maven-plugin</artifactId>
-        <version>1.7.1</version>
         <executions>
           <execution>
             <goals>
@@ -555,7 +593,6 @@
       <plugin>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-codegen-maven-plugin</artifactId>
-        <version>${version.apicurio-codegen-plugin}</version>
         <executions>
           <execution>
             <id>generate-api-ccompat-v3</id>
@@ -576,7 +613,6 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>${version.build.helper.maven.plugin}</version>
         <executions>
           <execution>
             <id>addSource</id>
@@ -596,7 +632,6 @@
       <plugin>
         <groupId>org.xolstice.maven.plugins</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
-        <version>${proto-plugin.version}</version>
         <extensions>true</extensions>
         <executions>
           <execution>
@@ -616,7 +651,6 @@
       <plugin>
         <groupId>org.apache.avro</groupId>
         <artifactId>avro-maven-plugin</artifactId>
-        <version>${avro.version}</version>
         <executions>
           <execution>
             <goals>

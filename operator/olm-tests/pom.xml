@@ -21,14 +21,14 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-operator-controller</artifactId>
-      <scope>tests</scope>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-operator-controller</artifactId>
       <classifier>tests</classifier>
-      <scope>tests</scope>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

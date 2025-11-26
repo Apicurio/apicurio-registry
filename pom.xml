@@ -359,7 +359,6 @@
         <artifactId>apicurio-registry-maven-plugin</artifactId>
         <version>${project.version}</version>
         <type>maven-plugin</type>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>

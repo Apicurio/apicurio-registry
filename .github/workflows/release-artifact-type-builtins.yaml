@@ -92,6 +92,11 @@ jobs:
       - name: Check npm Version
         run: npm --version
 
+      - name: Hack - *REMOVE ME*
+        working-directory: registry/artifact-type-builtins
+        run: |
+          npm version "$RELEASE_VERSION" --allow-same-version
+
       - name: Build Artifact Type Builtins Package
         working-directory: registry/artifact-type-builtins
         run: |

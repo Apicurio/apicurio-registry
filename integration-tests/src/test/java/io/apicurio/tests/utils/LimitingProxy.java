@@ -13,6 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 
+import static io.apicurio.registry.utils.ConcurrentUtil.blockOn;
+import static io.apicurio.registry.utils.ConcurrentUtil.toJavaFuture;
+
 public abstract class LimitingProxy {
 
     private static final Object LOCK = new Object();
@@ -64,9 +67,9 @@ public abstract class LimitingProxy {
 
     public void stop() {
         if (server != null) {
-            server.close();
+            blockOn(toJavaFuture(server.close()));
         }
-        vertx.close();
+        blockOn(toJavaFuture(vertx.close()));
     }
 
     abstract protected boolean allowed();

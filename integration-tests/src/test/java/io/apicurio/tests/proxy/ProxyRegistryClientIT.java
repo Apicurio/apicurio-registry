@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 
+import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
+
 /**
  * Integration tests for proxy configuration with Registry SDK clients.
  * Tests verify that clients can successfully connect through an HTTP proxy.
@@ -43,7 +45,7 @@ public class ProxyRegistryClientIT extends ApicurioRegistryBaseIT {
 
         logger.info("Setting up proxy to {}:{}", host, port);
         proxy = new TrackingProxy(host, port);
-        proxy.start().get();
+        blockOnResult(proxy.start());
         proxy.resetRequestCount();
     }
 

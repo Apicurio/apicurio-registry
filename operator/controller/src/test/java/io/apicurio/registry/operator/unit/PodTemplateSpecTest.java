@@ -1,5 +1,6 @@
 package io.apicurio.registry.operator.unit;
 
+import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
@@ -7,7 +8,11 @@ import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.apicurio.registry.operator.status.StatusManager;
 import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
-import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.*;
+import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.AppNegativeTestCases;
+import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.AppPositiveTestCases;
+import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.TestCase;
+import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.UINegativeTestCases;
+import io.apicurio.registry.operator.unit.PodTemplateSpecArgumentProviders.UIPositiveTestCases;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -16,6 +21,8 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PodTemplateSpecTest {
@@ -98,7 +105,21 @@ public class PodTemplateSpecTest {
     }
 
     private static void preprocessTestCaseExpected(PodTemplateSpec expected) {
-        expected.getMetadata().getLabels().computeIfPresent("app.kubernetes.io/version",
-                (k, v) -> ConfigProvider.getConfig().getValue("registry.version", String.class));
+        // Set the version label if it's a placeholder.
+        expected.getMetadata().getLabels().computeIfPresent("app.kubernetes.io/version", (k, v) -> {
+            if ("PLACEHOLDER_VERSION".equals(v)) {
+                return ConfigProvider.getConfig().getValue("registry.version", String.class);
+            } else {
+                return v;
+            }
+        });
+        // Set the image if it's a placeholder (image can be configured, so we don't know its value in advance).
+        expected.getSpec().getContainers().forEach(container -> {
+            if (REGISTRY_APP_CONTAINER_NAME.equals(container.getName()) && "PLACEHOLDER_REGISTRY_APP_IMAGE".equals(container.getImage())) {
+                container.setImage(Configuration.getAppImage());
+            } else if (REGISTRY_UI_CONTAINER_NAME.equals(container.getName()) && "PLACEHOLDER_REGISTRY_UI_IMAGE".equals(container.getImage())) {
+                container.setImage(Configuration.getUIImage());
+            }
+        });
     }
 }

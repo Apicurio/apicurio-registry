@@ -92,8 +92,6 @@ public class KafkaSqlConfiguration {
         props.putIfAbsent(TopicConfig.RETENTION_MS_CONFIG, "-1");
         props.putIfAbsent(TopicConfig.RETENTION_BYTES_CONFIG, "-1");
 
-        tryToConfigureSecurity(props);
-
         return props;
     }
 
@@ -125,7 +123,6 @@ public class KafkaSqlConfiguration {
         props.putIfAbsent(TopicConfig.RETENTION_MS_CONFIG, "-1");
         props.putIfAbsent(TopicConfig.RETENTION_BYTES_CONFIG, "-1");
 
-        tryToConfigureSecurity(props);
         getTopicProperties().forEach(props::putIfAbsent);
         return props;
     }
@@ -168,7 +165,6 @@ public class KafkaSqlConfiguration {
         props.putIfAbsent(TopicConfig.RETENTION_MS_CONFIG, "-1");
         props.putIfAbsent(TopicConfig.RETENTION_BYTES_CONFIG, "-1");
 
-        tryToConfigureSecurity(props);
         getTopicProperties().forEach(props::putIfAbsent);
         return props;
     }
@@ -205,7 +201,7 @@ public class KafkaSqlConfiguration {
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
 
-        tryToConfigureSecurity(props);
+        tryToConfigureClientSecurity(props);
 
         return props;
     }
@@ -228,7 +224,7 @@ public class KafkaSqlConfiguration {
         props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, "10");
         props.putIfAbsent(ProducerConfig.PARTITIONER_CLASS_CONFIG, KafkaSqlPartitioner.class.getCanonicalName());
 
-        tryToConfigureSecurity(props);
+        tryToConfigureClientSecurity(props);
 
         return props;
     }
@@ -247,7 +243,7 @@ public class KafkaSqlConfiguration {
         props.putIfAbsent(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
         props.putIfAbsent(AdminClientConfig.CLIENT_ID_CONFIG, "apicurio-admin-" + UUID.randomUUID());
 
-        tryToConfigureSecurity(props);
+        tryToConfigureClientSecurity(props);
 
         return props;
     }
@@ -310,7 +306,7 @@ public class KafkaSqlConfiguration {
     @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl key password")
     Optional<String> keyPassword;
 
-    private void tryToConfigureSecurity(Map<String, String> props) {
+    private void tryToConfigureClientSecurity(Map<String, String> props) {
         protocol.ifPresent(s -> props.putIfAbsent("security.protocol", s));
 
         // Try to configure sasl for authentication

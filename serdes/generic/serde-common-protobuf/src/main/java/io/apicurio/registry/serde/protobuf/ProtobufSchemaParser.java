@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ProtobufSchemaParser<U extends Message> implements SchemaParser<ProtobufSchema, U> {
 
@@ -28,7 +27,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
      * FileDescriptors are immutable at runtime for a given message class,
      * so we can safely cache the extracted schema.
      */
-    private final Map<String, ParsedSchema<ProtobufSchema>> schemaCache = new ConcurrentHashMap<>();
+    //private final Map<String, ParsedSchema<ProtobufSchema>> schemaCache = new ConcurrentHashMap<>();
 
     /**
      * @see io.apicurio.registry.resolver.SchemaParser#artifactType()
@@ -110,9 +109,9 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
         FileDescriptor schemaFileDescriptor = data.payload().getDescriptorForType().getFile();
 
         // Use FileDescriptor's full name as cache key - this is unique per proto file
-        String cacheKey = schemaFileDescriptor.getFullName();
+        //String cacheKey = schemaFileDescriptor.getFullName();
 
-        return schemaCache.computeIfAbsent(cacheKey, key -> {
+        //return schemaCache.computeIfAbsent(cacheKey, key -> {
             ProtobufSchema protobufSchema = new ProtobufSchema(schemaFileDescriptor);
 
             // Use FileDescriptorProto text format as the raw schema
@@ -121,7 +120,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             return new ParsedSchemaImpl<ProtobufSchema>().setParsedSchema(protobufSchema)
                     .setReferenceName(protobufSchema.getFileDescriptor().getName())
                     .setSchemaReferences(handleDependencies(schemaFileDescriptor)).setRawSchema(rawSchema);
-        });
+        //});
     }
 
     @Override

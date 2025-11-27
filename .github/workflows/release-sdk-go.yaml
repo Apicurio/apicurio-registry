@@ -56,13 +56,38 @@ jobs:
 
       # Needs special tagging to use submodules: https://stackoverflow.com/a/64705638/7898052
       - name: Release Go SDK
+        working-directory: registry
         run: |
-          cd registry
           git tag "v$RELEASE_VERSION"
           git tag "go-sdk/v$RELEASE_VERSION"
           git push origin "v$RELEASE_VERSION"
           git push origin "go-sdk/v$RELEASE_VERSION"
-          GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry/go-sdk/v3@v$RELEASE_VERSION"
+          
+          # Retry up to 5 times with increasing sleep intervals.
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          SUCCESS=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
+            if GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry/go-sdk/v3@v$RELEASE_VERSION"; then
+              SUCCESS=true
+              echo "Successfully verified Go module."
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                SLEEP_TIME=$((RETRY_COUNT * 10))
+                echo "Failed. Retrying in $SLEEP_TIME seconds..."
+                sleep $SLEEP_TIME
+              fi
+            fi
+          done
+          
+          if [ "$SUCCESS" = false ]; then
+            echo "ERROR: Failed to verify Go module after $MAX_RETRIES attempts."
+            exit 1
+          fi
 
       - name: Slack Notification (Always)
         if: always()

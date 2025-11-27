@@ -1,7 +1,7 @@
 package io.apicurio.registry.types;
 
 import io.apicurio.registry.exception.RuntimeAssertionFailedException;
-import org.eclipse.sisu.PreDestroy;
+import jakarta.annotation.PreDestroy;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;

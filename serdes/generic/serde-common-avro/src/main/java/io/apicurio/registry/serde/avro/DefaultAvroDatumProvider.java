@@ -10,12 +10,25 @@ import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.specific.SpecificRecord;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
+
+    private static final int MAX_CACHE_SIZE = 1000;
+
     private Boolean useSpecificAvroReader;
-    private Map<String, Schema> schemas = new ConcurrentHashMap<>();
+    private Map<String, Schema> schemas = createBoundedCache(MAX_CACHE_SIZE);
+
+    private static <K, V> Map<K, V> createBoundedCache(int maxSize) {
+        return Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+                return size() > maxSize;
+            }
+        });
+    }
 
     public DefaultAvroDatumProvider() {
     }

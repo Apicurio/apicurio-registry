@@ -121,6 +121,27 @@
     </dependency>
     <dependency>
       <groupId>io.confluent</groupId>
+      <artifactId>kafka-protobuf-serializer</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-json-schema-serializer</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.validation</groupId>
+      <artifactId>validation-api</artifactId>
+      <version>2.0.1.Final</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.confluent</groupId>
       <artifactId>kafka-connect-avro-converter</artifactId>
       <scope>test</scope>
     </dependency>

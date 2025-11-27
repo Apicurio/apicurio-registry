@@ -17,12 +17,46 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ProtobufSchemaLoader {
+
+    /**
+     * Default buffer size for reading proto file contents.
+     */
+    private static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
+
+    /**
+     * Maximum number of entries in the well-known types cache.
+     * Prevents unbounded memory growth in long-running applications.
+     */
+    private static final int MAX_CACHE_SIZE = 1000;
+
+    /**
+     * Tracks which virtual filesystems have had well-known types extracted.
+     * Uses FileSystem hashCode + path for uniqueness across different filesystems.
+     * This avoids repeated filesystem writes for the same working directory.
+     * Uses LRU eviction to prevent unbounded growth.
+     */
+    private static final Set<String> WELL_KNOWN_TYPES_EXTRACTED = createBoundedSet(MAX_CACHE_SIZE);
+
+    /**
+     * Creates a thread-safe bounded LRU set.
+     * When the set exceeds maxSize, the least recently accessed entry is removed.
+     */
+    private static Set<String> createBoundedSet(int maxSize) {
+        return Collections.newSetFromMap(Collections.synchronizedMap(
+                new LinkedHashMap<String, Boolean>(maxSize, 0.75f, true) {
+                    @Override
+                    protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                        return size() > maxSize;
+                    }
+                }));
+    }
 
     private static final String GOOGLE_API_PATH = "google/type/";
     private static final String GOOGLE_WELLKNOWN_PATH = "google/protobuf/";

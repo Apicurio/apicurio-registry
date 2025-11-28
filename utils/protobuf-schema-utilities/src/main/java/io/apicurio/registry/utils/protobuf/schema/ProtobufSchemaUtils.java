@@ -5,9 +5,13 @@ import com.google.protobuf.Descriptors.FileDescriptor;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -150,6 +154,57 @@ public class ProtobufSchemaUtils {
             }
         }
         return Optional.empty();
+    }
+
+    // Pattern to match import statements: import "path/to/file.proto";
+    // Handles: import "file.proto"; import 'file.proto'; import public "file.proto"; import weak "file.proto";
+    private static final Pattern IMPORT_PATTERN = Pattern.compile(
+            "^\\s*import\\s+(?:public\\s+|weak\\s+)?[\"']([^\"']+)[\"']\\s*;",
+            Pattern.MULTILINE
+    );
+
+    /**
+     * Extract import statements from proto schema text WITHOUT compiling.
+     * This is useful for reference validation where we need to know what imports
+     * are declared without actually resolving them.
+     *
+     * @param schemaContent The proto schema content
+     * @return Set of import paths (e.g., "message2.proto", "google/protobuf/timestamp.proto")
+     */
+    public static Set<String> extractImports(String schemaContent) {
+        Set<String> imports = new HashSet<>();
+        if (schemaContent == null || schemaContent.isEmpty()) {
+            return imports;
+        }
+
+        Matcher matcher = IMPORT_PATTERN.matcher(schemaContent);
+        while (matcher.find()) {
+            imports.add(matcher.group(1));
+        }
+        return imports;
+    }
+
+    /**
+     * Extract non-well-known imports from proto schema text.
+     * Filters out google/protobuf/* and google/type/* imports.
+     *
+     * @param schemaContent The proto schema content
+     * @return Set of import paths excluding well-known types
+     */
+    public static Set<String> extractNonWellKnownImports(String schemaContent) {
+        return extractImports(schemaContent).stream()
+                .filter(imp -> !isWellKnownType(imp))
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Check if an import path is a well-known type.
+     */
+    private static boolean isWellKnownType(String importPath) {
+        return importPath.startsWith("google/protobuf/")
+                || importPath.startsWith("google/type/")
+                || importPath.startsWith("metadata/")
+                || importPath.startsWith("additionalTypes/");
     }
 
     /**

@@ -23,8 +23,8 @@ import static io.apicurio.registry.serde.BaseSerde.MAGIC_BYTE;
 public abstract class AbstractSerializer<T, U> implements AutoCloseable {
 
     /**
-     * Default buffer size for serialized output.
-     * Pre-sized to avoid array resizing for typical messages.
+     * Default initial buffer size for ByteArrayOutputStream.
+     * Pre-sized to avoid array resizing for typical message sizes.
      */
     private static final int DEFAULT_BUFFER_SIZE = 1024;
 

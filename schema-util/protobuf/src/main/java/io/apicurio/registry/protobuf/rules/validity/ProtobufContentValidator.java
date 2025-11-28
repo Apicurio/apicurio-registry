@@ -1,6 +1,5 @@
 package io.apicurio.registry.protobuf.rules.validity;
 
-import com.google.protobuf.Descriptors;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -79,14 +78,11 @@ public class ProtobufContentValidator implements ContentValidator {
             Set<String> mappedRefs = references.stream().map(ref -> ref.getName())
                     .collect(Collectors.toSet());
 
-            // Compile the proto to get FileDescriptor, then get dependencies from it
-            Descriptors.FileDescriptor fileDescriptor = ProtobufSchemaUtils.parseAndCompile(
-                    "schema.proto", content.getContent().content(), Map.of());
-
-            // Get all imports from FileDescriptor
-            Set<String> allImports = fileDescriptor.getDependencies().stream()
-                    .map(Descriptors.FileDescriptor::getName)
-                    .collect(Collectors.toSet());
+            // Extract imports from proto text WITHOUT compiling
+            // This avoids "File not found" errors when dependencies don't exist
+            // We only care about non-well-known imports for reference validation
+            Set<String> allImports = ProtobufSchemaUtils.extractNonWellKnownImports(
+                    content.getContent().content());
 
             Set<RuleViolation> violations = allImports.stream()
                     .filter(_import -> !mappedRefs.contains(_import))

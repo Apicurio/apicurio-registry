@@ -43,6 +43,16 @@ public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
                 return content;
             }
 
+            // Skip canonicalization for Google well-known types (google.protobuf.*)
+            // These are handled internally by protobuf4j's ensureWellKnownTypes() and
+            // trying to compile them would cause duplicate definition errors.
+            // This handles backward compatibility with old serializers (v3.1.2) that
+            // registered well-known types as separate artifacts.
+            if (isGoogleProtobufPackage(schemaContent)) {
+                log.debug("Skipping canonicalization for Google well-known type (google.protobuf.*)");
+                return content;
+            }
+
             // Build dependencies map from resolved references
             // Filter out well-known types as protobuf4j provides them internally via ensureWellKnownTypes()
             Map<String, String> dependencies = (resolvedReferences == null || resolvedReferences.isEmpty())
@@ -94,20 +104,12 @@ public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
     /**
      * Recursively adds a FileDescriptor and all its dependencies to the FileDescriptorSet builder.
      * Uses a set to track already-added files to avoid duplicates.
-     * Skips well-known types as protobuf4j provides them internally.
      */
     private void addFileDescriptorToSet(Descriptors.FileDescriptor fd,
             DescriptorProtos.FileDescriptorSet.Builder builder, Set<String> addedFiles) {
         String fileName = fd.getName();
         if (addedFiles.contains(fileName)) {
             return; // Already added
-        }
-
-        // Skip well-known types - protobuf4j provides these internally
-        // Including them would cause "already defined" errors from protoc
-        if (isWellKnownType(fileName)) {
-            addedFiles.add(fileName); // Mark as processed to avoid re-checking
-            return;
         }
 
         // Add dependencies first (recursively)
@@ -122,23 +124,25 @@ public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
 
     /**
      * Checks if the given file name is a well-known protobuf type.
-     * These are provided by protobuf4j/ProtobufSchemaLoader internally and should not be
-     * included in the FileDescriptorSet to avoid "already defined" errors from protoc.
-     *
-     * This includes:
-     * - google/protobuf/* - Core Protocol Buffer well-known types
-     * - google/type/* - Google API common types
-     * - metadata/* - Apicurio Registry metadata types
-     * - additionalTypes/* - Additional custom types
+     * These are provided by protobuf4j internally and should not be included in dependencies.
      */
     private boolean isWellKnownType(String fileName) {
-        if (fileName == null) {
-            return false;
-        }
-        return fileName.startsWith("google/protobuf/")
-                || fileName.startsWith("google/type/")
-                || fileName.startsWith("metadata/")
-                || fileName.startsWith("additionalTypes/");
+        return fileName != null && fileName.startsWith("google/protobuf/");
+    }
+
+    /**
+     * Checks if the schema content defines a Google well-known type (package google.protobuf).
+     * These types are provided internally by protobuf4j and cannot be compiled separately
+     * without causing duplicate definition errors.
+     *
+     * This handles backward compatibility with old serializers that registered well-known
+     * types as separate artifacts in the registry.
+     */
+    private boolean isGoogleProtobufPackage(String schemaContent) {
+        // Check for package google.protobuf declaration
+        // This regex matches "package google.protobuf;" with optional whitespace
+        return schemaContent != null &&
+                schemaContent.matches("(?s).*\\bpackage\\s+google\\.protobuf\\s*;.*");
     }
 
 }

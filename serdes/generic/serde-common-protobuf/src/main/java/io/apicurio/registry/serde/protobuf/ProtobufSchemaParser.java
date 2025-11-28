@@ -25,14 +25,6 @@ import java.util.Map;
 public class ProtobufSchemaParser<U extends Message> implements SchemaParser<ProtobufSchema, U> {
 
     /**
-     * Cache for parsed schemas by FileDescriptor full name.
-     * FileDescriptors are immutable at runtime for a given message class,
-     * so we can safely cache the extracted schema.
-     */
-
-    private final Map<String, ParsedSchema<ProtobufSchema>> schemaCache = new ConcurrentHashMap<>();
-
-    /**
      * Maximum number of entries in the schema cache.
      * Prevents unbounded memory growth in long-running applications.
      */

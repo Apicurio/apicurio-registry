@@ -24,9 +24,11 @@ import java.util.stream.Collectors;
 
 public class ProtobufSchemaLoader {
 
-    private static final String GOOGLE_API_PATH = "google/type/";
+    // ==================== Performance Configuration ====================
+
     /**
-     * Default buffer size for reading proto file contents.
+     * Default buffer size for reading proto files (8KB).
+     * Matches typical proto file sizes while avoiding excessive allocation.
      */
     private static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
 
@@ -58,16 +60,15 @@ public class ProtobufSchemaLoader {
                 }));
     }
 
+    // ==================== Proto File Paths ====================
+
+    private static final String GOOGLE_API_PATH = "google/type/";
     private static final String METADATA_PATH = "metadata/";
     private static final String DECIMAL_PATH = "additionalTypes/";
 
-    // Google Protocol Buffer well-known types.
-    // These are normally handled by protobuf4j's ensureWellKnownTypes(), but that doesn't
-    // work correctly with ZeroFs virtual filesystem, so we load them explicitly here.
-    private final static Set<String> GOOGLE_PROTOBUF_PROTOS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            "any.proto", "api.proto", "descriptor.proto", "duration.proto", "empty.proto",
-            "field_mask.proto", "source_context.proto", "struct.proto", "timestamp.proto",
-            "type.proto", "wrappers.proto")));
+    // NOTE: Google Protocol Buffer well-known types (google.protobuf.*)
+    // are handled internally by protobuf4j's ensureWellKnownTypes().
+    // Do NOT load them explicitly, as that would cause duplicate definition errors.
 
     // Adding pre-built support for commonly used Google API Protos,
     // https://github.com/googleapis/googleapis
@@ -123,10 +124,12 @@ public class ProtobufSchemaLoader {
 
         final ClassLoader classLoader = ProtobufSchemaLoader.class.getClassLoader();
 
-        // Load Google Protobuf well-known types (google.protobuf.*)
-        // These are needed because protobuf4j's ensureWellKnownTypes() doesn't work with ZeroFs
-        loadProtoFiles(baseDir, classLoader, GOOGLE_PROTOBUF_PROTOS, GOOGLE_PROTOBUF_PATH);
+        // NOTE: Do NOT load Google Protobuf well-known types (google.protobuf.*)
+        // protobuf4j handles these internally via ensureWellKnownTypes().
+        // Loading them here would cause duplicate definition errors.
+
         // Load Google API protos (google.type.*)
+        // These are NOT handled by protobuf4j's ensureWellKnownTypes()
         loadProtoFiles(baseDir, classLoader, GOOGLE_API_PROTOS, GOOGLE_API_PATH);
         // Load custom Apicurio protos
         loadProtoFiles(baseDir, classLoader, Collections.singleton(METADATA_PROTO), METADATA_PATH);
@@ -162,10 +165,14 @@ public class ProtobufSchemaLoader {
             writeWellKnownProtos(workDir);
 
             // Step 2: Convert all .proto files to ProtoContent instances
+            // Filter out google/protobuf/* well-known types - protobuf4j handles these internally
+            // via ensureWellKnownTypes(). Including them here would cause duplicate definitions.
             String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";
             ProtoContent protoContent = new ProtoContent(protoFileName, schemaDefinition);
-            List<ProtoContent> allDependencies = deps.entrySet().stream().map(entry ->
-                    new ProtoContent(entry.getKey(), entry.getValue())).collect(Collectors.toList());
+            List<ProtoContent> allDependencies = deps.entrySet().stream()
+                    .filter(entry -> !entry.getKey().startsWith("google/protobuf/"))
+                    .map(entry -> new ProtoContent(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
 
             // For the main file, we'll use the original fileName, not the package-based path
             // This ensures FileDescriptor.getName() returns the original name

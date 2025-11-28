@@ -1,8 +1,7 @@
 package io.apicurio.registry.serde.protobuf;
 
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
-import com.squareup.wire.schema.internal.parser.MessageElement;
-import com.squareup.wire.schema.internal.parser.TypeElement;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
@@ -110,18 +109,20 @@ public class MessageIndexesUtil {
 
         List<Integer> indexes = new ArrayList<>();
         String[] parts = name.split("\\.");
-        List<TypeElement> types = schema.getParsedSchema().getProtoFileElement().getTypes();
+
+        // Start with top-level messages from the FileDescriptor
+        List<Descriptors.Descriptor> messages = schema.getParsedSchema().getFileDescriptor().getMessageTypes();
+
         for (String part : parts) {
             int i = 0;
-            for (TypeElement type : types) {
-                if (type instanceof MessageElement) {
-                    if (type.getName().equals(part)) {
-                        indexes.add(i);
-                        types = type.getNestedTypes();
-                        break;
-                    }
-                    i++;
+            for (Descriptors.Descriptor message : messages) {
+                if (message.getName().equals(part)) {
+                    indexes.add(i);
+                    // Move to nested types for next iteration
+                    messages = message.getNestedTypes();
+                    break;
                 }
+                i++;
             }
         }
         return indexes;

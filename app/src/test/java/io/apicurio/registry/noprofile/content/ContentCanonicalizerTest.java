@@ -71,10 +71,17 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
 
         String before = "message SearchRequest {\r\n" + "  required string query = 1;\r\n"
                 + "  optional int32 page_number = 2;\r\n" + "  optional int32 result_per_page = 3;\r\n" + "}";
-        String expected = "// Proto schema formatted by Wire, do not edit.\n" + "// Source: \n" + "\n"
-                + "message SearchRequest {\n" + "  required string query = 1;\n" + "\n"
-                + "  optional int32 page_number = 2;\n" + "\n" + "  optional int32 result_per_page = 3;\n"
-                + "}\n";
+        // protobuf4j normalization output:
+        // - Adds syntax declaration (defaults to proto2 when not specified)
+        // - Keeps optional keyword explicit for proto2
+        // - Uses 2-space indentation
+        // - No trailing newline after closing brace
+        String expected = "syntax = \"proto2\";\n\n"
+                + "message SearchRequest {\n"
+                + "  required string query = 1;\n"
+                + "  optional int32 page_number = 2;\n"
+                + "  optional int32 result_per_page = 3;\n"
+                + "}";
 
         TypedContent content = toTypedContent(before, ContentTypes.APPLICATION_PROTOBUF);
         String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();

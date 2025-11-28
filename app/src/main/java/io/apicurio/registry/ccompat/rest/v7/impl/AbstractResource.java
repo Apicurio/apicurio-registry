@@ -24,6 +24,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.Descriptors;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -34,11 +35,11 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
-import com.squareup.wire.schema.internal.parser.ProtoParser;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.SchemaParseException;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -131,18 +132,18 @@ public abstract class AbstractResource {
             TypedContent contentForRules = TypedContent.create(schemaContent, contentType);
             if (artifactType.equals(ArtifactType.PROTOBUF)) {
                 try {
-                    // Try parsing as text first
-                    ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, schemaContent.content());
+                    // Use syntax-only validation which doesn't require resolving imports
+                    ProtobufFile.validateSyntaxOnly(schemaContent.content());
                     // If successful, contentForRules is already correct (text format)
                 } catch (Exception e) {
                     // If text parsing fails, assume it's binary Base64 encoded FileDescriptorSet
                     try {
                         byte[] decodedBytes = Base64.getDecoder().decode(schemaContent.content());
                         DescriptorProtos.FileDescriptorProto descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
-                        ProtoFileElement protoFileElement = FileDescriptorUtils.fileDescriptorToProtoFile(descriptorProto);
-                        String textSchema = protoFileElement.toSchema(); // Convert binary to text
+                        Descriptors.FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(descriptorProto);
+                        String textSchema = ProtobufSchemaUtils.toProtoText(fileDescriptor);
                         ContentHandle textContentHandle = ContentHandle.create(textSchema);
-                        contentForRules = TypedContent.create(textContentHandle, ContentTypes.APPLICATION_PROTOBUF); // Use text for rules
+                        contentForRules = TypedContent.create(textContentHandle, ContentTypes.APPLICATION_PROTOBUF);
                     } catch (Exception pe) {
                         // If binary parsing also fails, throw an exception
                         throw new UnprocessableEntityException(pe);

@@ -3,9 +3,8 @@ package io.apicurio.tests.serdes.apicurio;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Timestamp;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 import io.apicurio.tests.protobuf.Header;
 import io.apicurio.tests.protobuf.Point;
 import io.apicurio.tests.protobuf.ProtobufTestMessage;
@@ -47,9 +46,14 @@ public class ProtobufTestMessageFactory {
     }
 
     public InputStream generateArtificialSchemaStream() {
-        ProtoFileElement element = FileDescriptorUtils.fileDescriptorToProtoFile(
-                ProtobufTestMessage.newBuilder().build().getDescriptorForType().getFile().toProto());
-        return IoUtil.toStream(element.toSchema());
+        try {
+            Descriptors.FileDescriptor fileDescriptor = ProtobufTestMessage.newBuilder().build()
+                    .getDescriptorForType().getFile();
+            String schemaText = ProtobufSchemaUtils.toProtoText(fileDescriptor);
+            return IoUtil.toStream(schemaText);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate artificial schema", e);
+        }
     }
 
     public String generateArtificialSchemaString() {

@@ -1805,4 +1805,134 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         executorService.shutdown();
         assertTrue(executorService.awaitTermination(10, TimeUnit.SECONDS));
     }
+
+    /**
+     * Test for PR #6833 fix - verifies that Protobuf schemas submitted in base64 format
+     * (as .NET clients do) are properly normalized to text format for storage, and that
+     * submitting the same schema in both text and base64 formats doesn't create duplicates.
+     */
+    @Test
+    public void testProtobufBase64Normalization() throws Exception {
+        SchemaRegistryClient client = buildClient();
+        final String subject = generateArtifactId();
+
+        // Define a simple protobuf schema in text format
+        String protoSchemaText = """
+                syntax = "proto3";
+                package test.base64;
+
+                message TestRecord {
+                  string id = 1;
+                  string name = 2;
+                  int64 timestamp = 3;
+                }
+                """;
+
+        // Register schema using Confluent client (this sends text format)
+        io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema protobufSchema =
+                new io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema(protoSchemaText);
+        int id1 = client.register(subject, protobufSchema);
+
+        // Verify the schema was registered
+        Assertions.assertTrue(id1 > 0);
+
+        // Now simulate what a .NET client would do - convert to base64 FileDescriptorProto
+        var fileDescriptor = io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils.protoFileToFileDescriptor(
+                        protoSchemaText, "test.proto", java.util.Optional.of("test.base64"));
+        byte[] protoBytes = fileDescriptor.toProto().toByteArray();
+        String base64Schema = java.util.Base64.getEncoder().encodeToString(protoBytes);
+
+        // Try to register the same schema in base64 format
+        // Due to normalization, this should find the existing schema (not create a duplicate)
+        io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema base64ProtobufSchema =
+                new io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema(base64Schema);
+        int id2 = client.register(subject, base64ProtobufSchema);
+
+        // The key assertion: both registrations should return the same ID
+        // because the normalized content is identical
+        Assertions.assertEquals(id1, id2,
+                "Registering the same Protobuf schema in text and base64 format should return the same ID");
+
+        // Verify we only have one version
+        List<Integer> versions = client.getAllVersions(subject);
+        Assertions.assertEquals(1, versions.size(),
+                "Should have only one version since both registrations are of the same schema");
+
+        // Verify the stored content is in text format (normalized)
+        ParsedSchema retrievedSchema = client.getSchemaBySubjectAndId(subject, id1);
+        String retrievedContent = retrievedSchema.canonicalString();
+
+        // The retrieved content should be text format, not base64
+        Assertions.assertTrue(retrievedContent.contains("syntax") && retrievedContent.contains("proto3"),
+                "Stored schema should be in text format, not base64");
+    }
+
+    /**
+     * Test for PR #6833 fix - verifies that compatibility checking works correctly
+     * when schemas are stored in different formats (base64 vs text).
+     */
+    @Test
+    public void testProtobufCompatibilityWithMixedFormats() throws Exception {
+        SchemaRegistryClient client = buildClient();
+        final String subject = generateArtifactId();
+
+        // Initial schema version
+        String protoV1 = """
+                syntax = "proto3";
+                package test.compat;
+
+                message Person {
+                  string name = 1;
+                  int32 age = 2;
+                }
+                """;
+
+        // Compatible evolution - adds optional field
+        String protoV2 = """
+                syntax = "proto3";
+                package test.compat;
+
+                message Person {
+                  string name = 1;
+                  int32 age = 2;
+                  string email = 3;
+                }
+                """;
+
+        // Incompatible evolution - changes field type
+        String protoV3 = """
+                syntax = "proto3";
+                package test.compat;
+
+                message Person {
+                  string name = 1;
+                  string age = 2;
+                }
+                """;
+
+        // Register initial version
+        io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema schema1 =
+                new io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema(protoV1);
+        client.register(subject, schema1);
+
+        // Enable backward compatibility
+        client.updateCompatibility(subject, CompatibilityLevel.BACKWARD.name);
+
+        // Register compatible evolution - should succeed
+        io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema schema2 =
+                new io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema(protoV2);
+        int id2 = client.register(subject, schema2);
+        Assertions.assertTrue(id2 > 0, "Compatible schema evolution should succeed");
+
+        // Try to register incompatible evolution - should fail
+        io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema schema3 =
+                new io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema(protoV3);
+
+        RestClientException exception = Assertions.assertThrows(RestClientException.class, () -> {
+            client.register(subject, schema3);
+        });
+
+        Assertions.assertEquals(HTTP_CONFLICT, exception.getStatus(),
+                "Incompatible schema should be rejected with 409 Conflict");
+    }
 }

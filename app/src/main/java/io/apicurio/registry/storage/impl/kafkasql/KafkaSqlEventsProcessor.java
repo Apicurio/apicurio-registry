@@ -24,7 +24,8 @@ public class KafkaSqlEventsProcessor {
 
     public void processEvent(@Observes KafkaSqlOutboxEvent event) {
         OutboxEvent outboxEvent = event.getOutboxEvent();
-        // TODO: Are we only allowing a single partition?
+        // Explicitly send to partition 0 to guarantee total ordering of all events.
+        // See KafkaSqlConfiguration.getEventsTopicProperties() for details on this design decision.
         ProducerRecord<String, String> record = new ProducerRecord<>(configuration.getEventsTopic(), 0,
                 outboxEvent.getAggregateId(), outboxEvent.getPayload().toString(), Collections.emptyList());
         blockOnResult(eventsProducer.apply(record));

@@ -55,13 +55,15 @@ public class KafkaSqlSink {
                     result != null ? result.toString() : "");
             log.debug("Kafka message successfully processed. Notifying listeners of response.");
             coordinator.notifyResponse(requestId, result);
-        } catch (RegistryException e) {
-            log.debug("Registry exception detected: {}", e.getMessage());
+        } catch (RuntimeException e) {
+            // Pass RuntimeException (including RegistryException) directly without wrapping
+            // to preserve the original exception type for proper handling by exception mappers.
+            log.debug("Runtime exception detected: {}", e.getMessage());
             coordinator.notifyResponse(requestId, e);
         } catch (Throwable e) {
+            // Wrap checked exceptions and Errors in RegistryException
             log.debug("Unexpected exception detected: {}", e.getMessage());
-            coordinator.notifyResponse(requestId, new RegistryException(e)); // TODO: Any exception (no
-                                                                             // wrapping)
+            coordinator.notifyResponse(requestId, new RegistryException(e));
         }
     }
 

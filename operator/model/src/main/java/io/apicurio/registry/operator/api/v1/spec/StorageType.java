@@ -7,6 +7,8 @@ public enum StorageType {
 
     @JsonProperty("postgresql")
     POSTGRESQL("postgresql"),
+    @JsonProperty("mysql")
+    MYSQL("mysql"),
     @JsonProperty("kafkasql")
     KAFKASQL("kafkasql");
 

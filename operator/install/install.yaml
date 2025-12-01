@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.4
+    app.kubernetes.io/version: 3.1.5-SNAPSHOT
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -3488,12 +3488,14 @@ spec:
                           Configure type of storage that Apicurio Registry backend (app) will use:
 
                             * <empty> - in-memory storage.
-                            * `postgresql` - Postgresql storage type, must be further configured using the `app.storage.sql` field.
+                            * `postgresql` - PostgreSQL storage type, must be further configured using the `app.storage.sql` field.
+                            * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
                             * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
 
                           IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.
                         enum:
                         - kafkasql
+                        - mysql
                         - postgresql
                         type: string
                     type: object
@@ -6709,7 +6711,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.4
+    app.kubernetes.io/version: 3.1.5-SNAPSHOT
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -6721,7 +6723,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.4
+    app.kubernetes.io/version: 3.1.5-SNAPSHOT
   name: apicurio-registry-operator-clusterrole
 rules:
 - apiGroups:
@@ -6790,7 +6792,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.4
+    app.kubernetes.io/version: 3.1.5-SNAPSHOT
   name: apicurio-registry-operator-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -6810,8 +6812,8 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.4
-  name: apicurio-registry-operator-v3.1.4
+    app.kubernetes.io/version: 3.1.5-SNAPSHOT
+  name: apicurio-registry-operator-v3.1.5-snapshot
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -6822,7 +6824,7 @@ spec:
       app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.1.4
+      app.kubernetes.io/version: 3.1.5-SNAPSHOT
   template:
     metadata:
       labels:
@@ -6831,7 +6833,7 @@ spec:
         app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.1.4
+        app.kubernetes.io/version: 3.1.5-SNAPSHOT
     spec:
       containers:
       - env:

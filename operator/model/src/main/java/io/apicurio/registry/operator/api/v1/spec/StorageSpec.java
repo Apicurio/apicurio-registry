@@ -26,7 +26,9 @@ public class StorageSpec {
      * Configure the type of storage that Apicurio Registry backend (app) will use:
      * <ul>
      * <li><code>&lt;empty&gt;</code> - in-memory storage.</li>
-     * <li><code>postgresql</code> - Postgresql storage type, must be further configured using the
+     * <li><code>postgresql</code> - PostgreSQL storage type, must be further configured using the
+     * <code>app.storage.sql</code> field.</li>
+     * <li><code>mysql</code> - MySQL storage type, must be further configured using the
      * <code>app.storage.sql</code> field.</li>
      * <li><code>kafkasql</code> - KafkaSQL storage type, must be further configured using the
      * <code>app.storage.kafkasql</code> field.</li>
@@ -40,7 +42,8 @@ public class StorageSpec {
             Configure type of storage that Apicurio Registry backend (app) will use:
 
               * <empty> - in-memory storage.
-              * `postgresql` - Postgresql storage type, must be further configured using the `app.storage.sql` field.
+              * `postgresql` - PostgreSQL storage type, must be further configured using the `app.storage.sql` field.
+              * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
               * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
 
             IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.""")

@@ -313,14 +313,13 @@ spec:
             key: password
 ----
 
-////
 Example for MySQL:
 [source,yaml]
 ----
 spec:
   app:
     storage:
-      type: postgresql  # Use postgresql type for MySQL as well
+      type: mysql
       sql:
         dataSource:
           url: jdbc:mysql://mysql.my-project.svc:3306/registry
@@ -329,7 +328,6 @@ spec:
             name: mysql-credentials
             key: password
 ----
-////
 
 === KafkaSqlSpec
 

@@ -184,9 +184,9 @@
     <!-- Schema types -->
     <avro.version>1.12.1</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
-    <protobuf4j.version>999-SNAPSHOT</protobuf4j.version>
+    <protobuf4j.version>0.0.1</protobuf4j.version>
     <chicory.version>1.6.0</chicory.version>
-      <protobuf.version>4.33.1</protobuf.version>
+    <protobuf.version>4.33.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.63.1</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>

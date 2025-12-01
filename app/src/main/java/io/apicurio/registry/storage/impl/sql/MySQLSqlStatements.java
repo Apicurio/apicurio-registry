@@ -87,4 +87,22 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     public String restoreFromSnapshot() {
         throw new IllegalStateException("Restoring from snapshot is not supported for MySQL storage");
     }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
+     */
+    @Override
+    public String acquireInitLock() {
+        // Use MySQL GET_LOCK with 30 second timeout
+        // Returns 1 if lock acquired, 0 if timeout, NULL on error
+        return "SELECT GET_LOCK('apicurio_init_lock', 30)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#releaseInitLock()
+     */
+    @Override
+    public String releaseInitLock() {
+        return "SELECT RELEASE_LOCK('apicurio_init_lock')";
+    }
 }

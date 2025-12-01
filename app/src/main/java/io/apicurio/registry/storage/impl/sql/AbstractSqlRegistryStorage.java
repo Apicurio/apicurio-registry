@@ -275,16 +275,29 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         handles.withHandleNoException((handle) -> {
             if (initDB) {
-                if (!isDatabaseInitializedRaw(handle)) {
-                    log.info("Database not initialized.");
-                    initializeDatabaseRaw(handle);
-                } else {
-                    log.info("Database was already initialized, skipping.");
-                }
+                // Acquire database lock to prevent race conditions when multiple replicas
+                // attempt to initialize or upgrade the database simultaneously
+                log.info("Acquiring database initialization lock...");
+                handle.createQuery(this.sqlStatements.acquireInitLock()).mapTo(Integer.class).one();
+                log.info("Database initialization lock acquired.");
 
-                if (!isDatabaseCurrentRaw(handle)) {
-                    log.info("Old database version detected, upgrading.");
-                    upgradeDatabaseRaw(handle);
+                try {
+                    if (!isDatabaseInitializedRaw(handle)) {
+                        log.info("Database not initialized.");
+                        initializeDatabaseRaw(handle);
+                    } else {
+                        log.info("Database was already initialized, skipping.");
+                    }
+
+                    if (!isDatabaseCurrentRaw(handle)) {
+                        log.info("Old database version detected, upgrading.");
+                        upgradeDatabaseRaw(handle);
+                    }
+                } finally {
+                    // Always release the lock, even if initialization or upgrade fails
+                    log.info("Releasing database initialization lock...");
+                    handle.createQuery(this.sqlStatements.releaseInitLock()).mapTo(Integer.class).one();
+                    log.info("Database initialization lock released.");
                 }
             } else {
                 if (!isDatabaseInitializedRaw(handle)) {

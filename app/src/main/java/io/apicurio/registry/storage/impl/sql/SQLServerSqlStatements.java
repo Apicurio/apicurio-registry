@@ -144,4 +144,22 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String restoreFromSnapshot() {
         throw new IllegalStateException("Restoring from snapshot is not supported for Sqlserver storage");
     }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
+     */
+    @Override
+    public String acquireInitLock() {
+        // Use SQL Server application locks with 30 second timeout (30000 ms)
+        // Returns 0 or greater if lock acquired, negative value on error/timeout
+        return "EXEC sp_getapplock @Resource='apicurio_init_lock', @LockMode='Exclusive', @LockOwner='Session', @LockTimeout=30000";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#releaseInitLock()
+     */
+    @Override
+    public String releaseInitLock() {
+        return "EXEC sp_releaseapplock @Resource='apicurio_init_lock', @LockOwner='Session'";
+    }
 }

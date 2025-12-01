@@ -3,8 +3,8 @@ package io.apicurio.registry.utils.protobuf.schema;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
-import io.roastedroot.protobuf4j.Protobuf;
-import io.roastedroot.protobuf4j.ValidationResult;
+import io.roastedroot.protobuf4j.common.ValidationResult;
+import io.roastedroot.protobuf4j.v4.Protobuf;
 import io.roastedroot.zerofs.Configuration;
 import io.roastedroot.zerofs.ZeroFs;
 
@@ -121,9 +121,12 @@ public class ProtobufFile {
                 Path workDir = fs.getPath(".");
                 Files.write(workDir.resolve("schema.proto"), data.getBytes(StandardCharsets.UTF_8));
 
-                ValidationResult result = Protobuf.validateSyntax(workDir, "schema.proto");
-                if (!result.isValid()) {
-                    throw new IOException("Invalid protobuf syntax: " + result.getErrors());
+                // Use protobuf4j v4 builder pattern - create Protobuf instance with workdir
+                try (Protobuf protobuf = Protobuf.builder().withWorkdir(workDir).build()) {
+                    ValidationResult result = protobuf.validateSyntax("schema.proto");
+                    if (!result.isValid()) {
+                        throw new IOException("Invalid protobuf syntax: " + result.getErrors());
+                    }
                 }
             }
         } catch (IOException e) {

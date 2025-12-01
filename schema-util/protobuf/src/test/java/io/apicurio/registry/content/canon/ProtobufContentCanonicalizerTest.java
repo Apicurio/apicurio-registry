@@ -453,18 +453,23 @@ class ProtobufContentCanonicalizerTest {
 
     @Test
     void testCanonicalizationPreservesSemantics() {
-        // Two different but semantically equivalent schemas
+        // Two different but semantically equivalent schemas (both must be multi-line for protobuf4j parsing)
+        // Note: Both use standard format with blank line after syntax for consistent parsing
         String schema1 = """
             syntax = "proto3";
-            message Person { string name = 1; int32 age = 2; }
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+            }
             """;
 
         String schema2 = """
             syntax = "proto3";
 
             message Person {
-              string name = 1;
-              int32 age = 2;
+                string name = 1;
+                int32 age = 2;
             }
             """;
 

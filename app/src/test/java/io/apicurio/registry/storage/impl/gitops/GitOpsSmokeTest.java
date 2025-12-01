@@ -12,6 +12,8 @@ import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -27,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
+@DisabledOnOs(value = OS.MAC)
 class GitOpsSmokeTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

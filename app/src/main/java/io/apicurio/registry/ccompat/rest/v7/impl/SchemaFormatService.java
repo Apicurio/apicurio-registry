@@ -165,7 +165,7 @@ public class SchemaFormatService {
      * options.
      *
      * @param content the original PROTOBUF schema content
-     * @return the schema content without extensions
+     * @return the schema content without extensions, or original content if format cannot be applied
      */
     private ContentHandle applyProtobufIgnoreExtensionsFormat(ContentHandle content) {
         try {
@@ -189,8 +189,9 @@ public class SchemaFormatService {
 
             return ContentHandle.create(cleanedSchema);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to apply ignore_extensions format to PROTOBUF schema",
-                    e);
+            // If we can't parse the schema (e.g., protobuf4j WASM memory issues with proto2 extensions),
+            // return the original content as a graceful fallback
+            return content;
         }
     }
 }

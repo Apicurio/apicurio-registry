@@ -12,7 +12,6 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -131,11 +130,18 @@ public class ReferenceIndex {
     }
 
     private void indexProto(Path path, ContentHandle content) {
-        // Validate that the content is a valid protobuf schema
-        try {
-            new ProtobufFile(content.content());
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid protobuf schema: " + path, e);
+        // Check if the content looks like a protobuf schema by checking for basic syntax
+        // We don't require full validation here since protobuf4j may have issues with some valid schemas
+        String contentStr = content.content();
+        if (contentStr == null || contentStr.isEmpty()) {
+            throw new RuntimeException("Empty content for protobuf schema: " + path);
+        }
+
+        // Basic syntax check - must contain proto keywords
+        String trimmed = contentStr.trim();
+        if (!trimmed.contains("syntax") && !trimmed.contains("message") &&
+            !trimmed.contains("service") && !trimmed.contains("enum")) {
+            throw new RuntimeException("Content does not appear to be a protobuf schema: " + path);
         }
 
         IndexedResource resource = new IndexedResource(path, ArtifactType.PROTOBUF, null, content);

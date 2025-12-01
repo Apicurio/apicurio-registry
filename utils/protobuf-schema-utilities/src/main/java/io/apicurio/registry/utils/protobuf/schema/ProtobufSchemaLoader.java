@@ -1,7 +1,7 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
 import com.google.protobuf.Descriptors;
-import io.roastedroot.protobuf4j.Protobuf;
+import io.roastedroot.protobuf4j.v4.Protobuf;
 import io.roastedroot.zerofs.Configuration;
 import io.roastedroot.zerofs.ZeroFs;
 
@@ -16,10 +16,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ProtobufSchemaLoader {
@@ -31,34 +32,6 @@ public class ProtobufSchemaLoader {
      * Matches typical proto file sizes while avoiding excessive allocation.
      */
     private static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
-
-    /**
-     * Maximum number of entries in the well-known types cache.
-     * Prevents unbounded memory growth in long-running applications.
-     */
-    private static final int MAX_CACHE_SIZE = 1000;
-
-    /**
-     * Tracks which virtual filesystems have had well-known types extracted.
-     * Uses FileSystem hashCode + path for uniqueness across different filesystems.
-     * This avoids repeated filesystem writes for the same working directory.
-     * Uses LRU eviction to prevent unbounded growth.
-     */
-    private static final Set<String> WELL_KNOWN_TYPES_EXTRACTED = createBoundedSet(MAX_CACHE_SIZE);
-
-    /**
-     * Creates a thread-safe bounded LRU set.
-     * When the set exceeds maxSize, the least recently accessed entry is removed.
-     */
-    private static Set<String> createBoundedSet(int maxSize) {
-        return Collections.newSetFromMap(Collections.synchronizedMap(
-                new LinkedHashMap<String, Boolean>(maxSize, 0.75f, true) {
-                    @Override
-                    protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
-                        return size() > maxSize;
-                    }
-                }));
-    }
 
     // ==================== Proto File Paths ====================
 
@@ -81,6 +54,35 @@ public class ProtobufSchemaLoader {
 
     private final static String METADATA_PROTO = "metadata.proto";
     private final static String DECIMAL_PROTO = "decimal.proto";
+
+    // Package names used by bundled protos - if user schema uses these packages,
+    // we must skip loading the bundled protos to avoid duplicate definitions
+    private static final String METADATA_PACKAGE = "metadata";
+    private static final String DECIMAL_PACKAGE = "additionalTypes";
+
+    // Pattern to extract package name from proto schema
+    // Matches: package some.package.name;
+    private static final Pattern PACKAGE_PATTERN = Pattern.compile(
+            "^\\s*package\\s+([a-zA-Z_][a-zA-Z0-9_.]*?)\\s*;",
+            Pattern.MULTILINE
+    );
+
+    /**
+     * Extract the package name from a proto schema definition.
+     *
+     * @param schemaContent The proto schema content
+     * @return The package name, or null if not found
+     */
+    private static String extractPackageName(String schemaContent) {
+        if (schemaContent == null || schemaContent.isEmpty()) {
+            return null;
+        }
+        Matcher matcher = PACKAGE_PATTERN.matcher(schemaContent);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
 
     private static void loadProtoFiles(Path baseDir, ClassLoader classLoader,
             Set<String> protos, String protoPath) throws IOException {
@@ -114,14 +116,14 @@ public class ProtobufSchemaLoader {
         }
     }
 
-    private static void writeWellKnownProtos(Path baseDir) throws IOException {
-        // Fast path: Check in-memory cache first to avoid filesystem operations
-        // Use FileSystem hashCode + path for uniqueness across different filesystems
-        String workdirKey = baseDir.getFileSystem().hashCode() + ":" + baseDir.toString();
-        if (WELL_KNOWN_TYPES_EXTRACTED.contains(workdirKey)) {
-            return; // Already extracted to this directory
-        }
-
+    /**
+     * Write well-known proto files to the work directory.
+     *
+     * @param baseDir The base directory to write to
+     * @param skipPackages Set of package names to skip (to avoid conflicts with user schemas)
+     * @throws IOException if writing fails
+     */
+    private static void writeWellKnownProtos(Path baseDir, Set<String> skipPackages) throws IOException {
         final ClassLoader classLoader = ProtobufSchemaLoader.class.getClassLoader();
 
         // NOTE: Do NOT load Google Protobuf well-known types (google.protobuf.*)
@@ -131,12 +133,15 @@ public class ProtobufSchemaLoader {
         // Load Google API protos (google.type.*)
         // These are NOT handled by protobuf4j's ensureWellKnownTypes()
         loadProtoFiles(baseDir, classLoader, GOOGLE_API_PROTOS, GOOGLE_API_PATH);
-        // Load custom Apicurio protos
-        loadProtoFiles(baseDir, classLoader, Collections.singleton(METADATA_PROTO), METADATA_PATH);
-        loadProtoFiles(baseDir, classLoader, Collections.singleton(DECIMAL_PROTO), DECIMAL_PATH);
 
-        // Mark this directory as having well-known types extracted
-        WELL_KNOWN_TYPES_EXTRACTED.add(workdirKey);
+        // Load custom Apicurio protos, but skip if user schema uses the same package
+        // to avoid duplicate definition errors that crash the WASM protoc
+        if (!skipPackages.contains(METADATA_PACKAGE)) {
+            loadProtoFiles(baseDir, classLoader, Collections.singleton(METADATA_PROTO), METADATA_PATH);
+        }
+        if (!skipPackages.contains(DECIMAL_PACKAGE)) {
+            loadProtoFiles(baseDir, classLoader, Collections.singleton(DECIMAL_PROTO), DECIMAL_PATH);
+        }
     }
 
     /**
@@ -161,8 +166,28 @@ public class ProtobufSchemaLoader {
 
         try (FileSystem ignored = fs) {
             Path workDir = fs.getPath(".");
-            // Step 1: Write well-known protos to work directory
-            writeWellKnownProtos(workDir);
+
+            // Detect packages used by user schemas to avoid conflicts with bundled protos.
+            // If user schema uses the same package as our bundled protos (metadata, additionalTypes),
+            // we must skip loading those bundled protos to avoid duplicate definition errors
+            // that crash the WASM protoc.
+            Set<String> userPackages = new HashSet<>();
+            String mainPackage = extractPackageName(schemaDefinition);
+            if (mainPackage != null) {
+                userPackages.add(mainPackage);
+            }
+            // Also check dependency packages
+            if (deps != null) {
+                for (String depContent : deps.values()) {
+                    String depPackage = extractPackageName(depContent);
+                    if (depPackage != null) {
+                        userPackages.add(depPackage);
+                    }
+                }
+            }
+
+            // Step 1: Write well-known protos to work directory, skipping conflicting packages
+            writeWellKnownProtos(workDir, userPackages);
 
             // Step 2: Convert all .proto files to ProtoContent instances
             // Filter out google/protobuf/* well-known types - protobuf4j handles these internally
@@ -230,13 +255,14 @@ public class ProtobufSchemaLoader {
                     protoFiles.add(path);
                 }
             }
-            // Add custom Apicurio protos
+            // Add custom Apicurio protos, but skip if user schema uses the same package
+            // to avoid duplicate definition errors
             String metadataPath = METADATA_PATH + METADATA_PROTO;
-            if (!depPaths.contains(metadataPath)) {
+            if (!depPaths.contains(metadataPath) && !userPackages.contains(METADATA_PACKAGE)) {
                 protoFiles.add(metadataPath);
             }
             String decimalPath = DECIMAL_PATH + DECIMAL_PROTO;
-            if (!depPaths.contains(decimalPath)) {
+            if (!depPaths.contains(decimalPath) && !userPackages.contains(DECIMAL_PACKAGE)) {
                 protoFiles.add(decimalPath);
             }
 
@@ -248,7 +274,11 @@ public class ProtobufSchemaLoader {
             // Add main file last (using original fileName)
             protoFiles.add(protoFileName);
 
-            List<Descriptors.FileDescriptor> fileDescriptors = Protobuf.buildFileDescriptors(workDir, protoFiles);
+            // Use protobuf4j v4 builder pattern - create Protobuf instance with workdir
+            List<Descriptors.FileDescriptor> fileDescriptors;
+            try (Protobuf protobuf = Protobuf.builder().withWorkdir(workDir).build()) {
+                fileDescriptors = protobuf.buildFileDescriptors(protoFiles);
+            }
 
             // Step 6: Find the main FileDescriptor from the built descriptors
             Descriptors.FileDescriptor mainDescriptor = fileDescriptors.stream()

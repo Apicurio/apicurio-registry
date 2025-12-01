@@ -7,11 +7,15 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
-import io.roastedroot.protobuf4j.Protobuf;
+import io.roastedroot.protobuf4j.v4.Protobuf;
+import io.roastedroot.zerofs.Configuration;
+import io.roastedroot.zerofs.ZeroFs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -75,7 +79,16 @@ public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
             addFileDescriptorToSet(fileDescriptor, fdsBuilder, addedFiles);
 
             // Use protobuf4j's normalization with the complete FileDescriptorSet
-            Map<String, String> normalizedSchemas = Protobuf.normalizeSchemaToText(fdsBuilder.build());
+            // Create a virtual filesystem for protobuf4j (required for WASM-based normalization)
+            Map<String, String> normalizedSchemas;
+            FileSystem fs = ZeroFs.newFileSystem(
+                    Configuration.unix().toBuilder().setAttributeViews("unix").build());
+            try (FileSystem ignored = fs) {
+                Path workDir = fs.getPath(".");
+                try (Protobuf protobuf = Protobuf.builder().withWorkdir(workDir).build()) {
+                    normalizedSchemas = protobuf.normalizeSchemaToText(fdsBuilder.build());
+                }
+            }
 
             // Get the normalized form of our main schema
             String canonicalForm = normalizedSchemas.get(SCHEMA_PROTO);

@@ -10,7 +10,6 @@ import io.apicurio.datamodels.models.Document;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
-import io.apicurio.registry.types.ContentTypes;
 
 import java.io.IOException;
 import java.util.Map;

@@ -1,5 +1,6 @@
 import React, { FunctionComponent, memo } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
+import { ExclamationTriangleIcon } from "@patternfly/react-icons";
 import { ReferenceNodeData } from "@services/useReferenceGraph.ts";
 import "./ReferenceGraphNode.css";
 
@@ -11,8 +12,15 @@ export const ReferenceGraphNode: FunctionComponent<NodeProps> = memo(({ data, se
     const nodeData = data as ReferenceNodeData;
     const displayGroup = nodeData.groupId && nodeData.groupId !== "default" ? nodeData.groupId : null;
 
+    const classNames = [
+        "reference-graph-node",
+        nodeData.isRoot ? "root" : "",
+        nodeData.isCycleNode ? "cycle" : "",
+        selected ? "selected" : ""
+    ].filter(Boolean).join(" ");
+
     return (
-        <div className={`reference-graph-node ${nodeData.isRoot ? "root" : ""} ${selected ? "selected" : ""}`}>
+        <div className={classNames}>
             <Handle type="target" position={Position.Top} className="node-handle" />
 
             <div className="node-content">
@@ -37,6 +45,13 @@ export const ReferenceGraphNode: FunctionComponent<NodeProps> = memo(({ data, se
                         </span>
                     )}
                 </div>
+
+                {nodeData.isCycleNode && (
+                    <div className="cycle-indicator">
+                        <ExclamationTriangleIcon />
+                        <span>Circular reference</span>
+                    </div>
+                )}
             </div>
 
             <Handle type="source" position={Position.Bottom} className="node-handle" />

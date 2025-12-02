@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import "./ReferencesTabContent.css";
 import { EmptyState, EmptyStateBody, EmptyStateVariant, Title } from "@patternfly/react-core";
@@ -12,6 +12,7 @@ import { ReferenceGraphView } from "./ReferenceGraphView.tsx";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { LocalStorageService, useLocalStorageService } from "@services/useLocalStorageService.ts";
 import { Paging } from "@models/Paging.ts";
 import {
     ArtifactReference,
@@ -19,6 +20,8 @@ import {
     ReferenceTypeObject,
     VersionMetaData
 } from "@sdk/lib/generated-client/models";
+
+const REFERENCES_VIEW_MODE_KEY = "references.viewMode";
 
 /**
  * Properties
@@ -32,7 +35,20 @@ export type ReferencesTabContentProps = {
  */
 export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> = ({ version }: ReferencesTabContentProps) => {
     const [searchParams] = useSearchParams();
-    const initialViewMode: ViewMode = searchParams.get("view") === "graph" ? "graph" : "list";
+    const localStorage: LocalStorageService = useLocalStorageService();
+
+    // Determine initial view mode: URL param takes priority, then local storage, then default to list
+    const getInitialViewMode = (): ViewMode => {
+        const urlView = searchParams.get("view");
+        if (urlView === "graph") {
+            return "graph";
+        }
+        const storedView = localStorage.getConfigProperty(REFERENCES_VIEW_MODE_KEY, undefined) as string | undefined;
+        if (storedView === "graph" || storedView === "list") {
+            return storedView;
+        }
+        return "list";
+    };
 
     const [ isLoading, setLoading ] = useState<boolean>(true);
     const [ isError, setError ] = useState<boolean>(false);
@@ -52,10 +68,16 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         by: "name"
     });
     const [ referenceType, setReferenceType ] = useState<ReferenceType>(ReferenceTypeObject.OUTBOUND);
-    const [ viewMode, setViewMode ] = useState<ViewMode>(initialViewMode);
+    const [ viewMode, setViewMode ] = useState<ViewMode>(getInitialViewMode);
 
     const groups: GroupsService = useGroupsService();
     const logger: LoggerService = useLoggerService();
+
+    // Handler to persist view mode changes to local storage
+    const handleViewModeChange = useCallback((newMode: ViewMode) => {
+        setViewMode(newMode);
+        localStorage.setConfigProperty(REFERENCES_VIEW_MODE_KEY, newMode);
+    }, [localStorage]);
 
     // Whenever the artifact or the type of references to display changes, query for all its references.
     useEffect(() => {
@@ -140,7 +162,7 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         onSetPage={ onSetPage }
         onToggleReferenceType={ onToggleReferenceType }
         viewMode={ viewMode }
-        onViewModeChange={ setViewMode } />);
+        onViewModeChange={ handleViewModeChange } />);
 
     const emptyState = (<EmptyState variant={EmptyStateVariant.xs}>
         <Title headingLevel="h4" size="md">None found</Title>

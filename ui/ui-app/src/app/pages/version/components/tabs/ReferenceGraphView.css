@@ -99,3 +99,108 @@
 .legend-color.reference {
     background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
 }
+
+.legend-color.cycle {
+    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+    border-color: var(--pf-v5-global--danger-color--100, #c9190b);
+    border-width: 2px;
+}
+
+/* Wrapper and fullscreen styles */
+.reference-graph-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.reference-graph-wrapper.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+}
+
+.reference-graph-wrapper.fullscreen .reference-graph-container {
+    height: calc(100vh - 60px);
+    border: none;
+    border-radius: 0;
+}
+
+/* Graph controls toolbar */
+.graph-controls-toolbar {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+}
+
+.depth-label {
+    font-weight: 500;
+    color: var(--pf-v5-global--Color--100, #151515);
+}
+
+.depth-slider-item {
+    width: 200px;
+}
+
+.depth-hint {
+    margin-left: auto;
+}
+
+.hint-text {
+    font-size: 12px;
+    color: var(--pf-v5-global--Color--200, #6a6e73);
+    font-style: italic;
+}
+
+/* Action panel (top-right) */
+.graph-action-panel {
+    display: flex;
+    gap: 4px;
+    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    border-radius: 4px;
+    padding: 4px;
+}
+
+/* Warning panel (top-left) */
+.graph-warning-panel {
+    max-width: 300px;
+}
+
+/* Node details panel */
+.node-details-panel {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    border-radius: 4px;
+    padding: 12px;
+    min-width: 250px;
+    max-width: 320px;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.node-details-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    font-weight: 600;
+    color: var(--pf-v5-global--Color--100, #151515);
+}
+
+.node-details-header button {
+    margin-left: auto;
+}
+
+.cycle-warning {
+    color: var(--pf-v5-global--danger-color--100, #c9190b);
+    font-weight: 500;
+}

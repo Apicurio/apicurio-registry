@@ -100,3 +100,28 @@
     white-space: nowrap;
     flex: 1;
 }
+
+/* Cycle node styling */
+.reference-graph-node.cycle {
+    border-color: var(--pf-v5-global--danger-color--100, #c9190b);
+    border-width: 2px;
+    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+}
+
+.reference-graph-node.cycle:hover {
+    border-color: var(--pf-v5-global--danger-color--200, #a30000);
+}
+
+.cycle-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--pf-v5-global--danger-color--100, #c9190b);
+    margin-top: 4px;
+}
+
+.cycle-indicator svg {
+    width: 12px;
+    height: 12px;
+}

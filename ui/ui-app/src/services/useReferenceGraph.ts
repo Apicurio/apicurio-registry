@@ -15,6 +15,7 @@ export interface ReferenceNodeData extends Record<string, unknown> {
     isRoot: boolean;
     globalId?: number;
     depth: number;
+    isCycleNode?: boolean;
 }
 
 /**
@@ -26,6 +27,7 @@ export interface ReferenceGraphResult {
     isLoading: boolean;
     isError: boolean;
     errorMessage?: string;
+    hasCycles: boolean;
     refetch: () => void;
 }
 
@@ -104,6 +106,7 @@ export const useReferenceGraph = (
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isError, setIsError] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string | undefined>();
+    const [hasCycles, setHasCycles] = useState<boolean>(false);
     const [refetchTrigger, setRefetchTrigger] = useState<number>(0);
 
     const groups: GroupsService = useGroupsService();
@@ -123,6 +126,7 @@ export const useReferenceGraph = (
         const nodesMap = new Map<string, Node<ReferenceNodeData>>();
         const edgesMap = new Map<string, Edge>();
         const visited = new Set<string>();
+        let cyclesDetected = false;
 
         const fetchReferencesRecursively = async (
             currentGlobalId: number,
@@ -157,8 +161,13 @@ export const useReferenceGraph = (
                         }
                     }
 
-                    // Skip if already visited (cycle detection)
+                    // Cycle detection - if already visited, mark as cycle node
                     if (visited.has(nodeId)) {
+                        cyclesDetected = true;
+                        const existingNode = nodesMap.get(nodeId);
+                        if (existingNode) {
+                            existingNode.data.isCycleNode = true;
+                        }
                         continue;
                     }
                     visited.add(nodeId);
@@ -225,6 +234,7 @@ export const useReferenceGraph = (
                 // Update state
                 setNodes(Array.from(nodesMap.values()));
                 setEdges(Array.from(edgesMap.values()));
+                setHasCycles(cyclesDetected);
             } catch (error: any) {
                 logger.error("Error building reference graph:", error);
                 setIsError(true);
@@ -243,6 +253,7 @@ export const useReferenceGraph = (
         isLoading,
         isError,
         errorMessage,
+        hasCycles,
         refetch
     };
 };

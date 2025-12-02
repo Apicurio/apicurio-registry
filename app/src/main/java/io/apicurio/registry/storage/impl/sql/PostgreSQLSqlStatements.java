@@ -87,7 +87,8 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         // Use PostgreSQL advisory locks with a fixed key derived from "apicurio-init"
         // Key: 1886352239 (hash of "apicurio-init")
         // This is a session-level lock that blocks until acquired
-        return "SELECT pg_advisory_lock(1886352239)";
+        // Note: pg_advisory_lock() returns void, so we wrap it to return 1 for consistency
+        return "SELECT pg_advisory_lock(1886352239), 1";
     }
 
     /**
@@ -95,7 +96,8 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String releaseInitLock() {
-        return "SELECT pg_advisory_unlock(1886352239)";
+        // Note: pg_advisory_unlock() returns boolean, where true = successfully unlocked
+        return "SELECT CASE WHEN pg_advisory_unlock(1886352239) THEN 1 ELSE 0 END";
     }
 
 }

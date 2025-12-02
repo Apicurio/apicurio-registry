@@ -67,10 +67,10 @@ public class SqlCRUpdater {
         if (oldUrl.isPresent()) {
             log.warn("CR field `app.sql.dataSource.url` is DEPRECATED and should not be used.");
             if (newUrl.isEmpty() || oldUrl.equals(newUrl)) { // We need to handle a situation where the fields are partially migrated.
-                if (storageType.isEmpty() || StorageType.POSTGRESQL.equals(storageType.orElse(null))) {
+                if (storageType.isEmpty() || storageType.map(StorageType::isSqlStorageType).orElse(false)) {
 
                     log.info("Performing automatic CR update from `app.sql.dataSource.url` to `app.storage.sql.dataSource.url`.");
-                    primary.getSpec().getApp().withStorage().setType(StorageType.POSTGRESQL);
+                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(null));
                     primary.getSpec().getApp().getSql().getDataSource().setUrl(null);
                     primary.getSpec().getApp().getStorage().withSql().withDataSource().setUrl(oldUrl.get());
 
@@ -86,10 +86,10 @@ public class SqlCRUpdater {
         if (oldUsername.isPresent()) {
             log.warn("CR field `app.sql.dataSource.username` is DEPRECATED and should not be used.");
             if (newUsername.isEmpty() || oldUsername.equals(newUsername)) { // We need to handle a situation where the fields are partially migrated.
-                if (storageType.isEmpty() || StorageType.POSTGRESQL.equals(storageType.orElse(null))) {
+                if (storageType.isEmpty() || storageType.map(StorageType::isSqlStorageType).orElse(false)) {
 
                     log.info("Performing automatic CR update from `app.sql.dataSource.username` to `app.storage.sql.dataSource.username`.");
-                    primary.getSpec().withApp().withStorage().setType(StorageType.POSTGRESQL);
+                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(StorageType.POSTGRESQL));
                     primary.getSpec().getApp().getStorage().withSql().withDataSource().setUsername(oldUsername.get());
                     primary.getSpec().getApp().getSql().getDataSource().setUsername(null);
 
@@ -115,10 +115,10 @@ public class SqlCRUpdater {
                     .map(x -> x.getData().get(DEFAULT_SECRET_PASSWORD_FIELD));
 
             if (newPassword.isEmpty() || oldPassword.equals(newPasswordValue)) {
-                if (storageType.isEmpty() || StorageType.POSTGRESQL.equals(storageType.orElse(null))) {
+                if (storageType.isEmpty() || storageType.map(StorageType::isSqlStorageType).orElse(false)) {
 
                     log.info("Performing automatic CR update from `app.sql.dataSource.password` to `app.storage.sql.dataSource.password`.");
-                    primary.getSpec().withApp().withStorage().setType(StorageType.POSTGRESQL);
+                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(StorageType.POSTGRESQL));
                     if (newPasswordValue.isEmpty()) {
                         // Create the Secret
                         var secretName = primary.getMetadata().getName() + "-datasource-password-" + randomUUID().toString().substring(0, 7);
@@ -168,6 +168,6 @@ public class SqlCRUpdater {
     }
 
     private static void storageTypeWarn() {
-        log.warn("Automatic update cannot be performed, because the field `app.storage.type` is already set and is not '{}'.", StorageType.POSTGRESQL.getValue());
+        log.warn("Automatic update cannot be performed, because the field `app.storage.type` is already set and is not a SQL storage type (postgresql or mysql).");
     }
 }

@@ -10,14 +10,20 @@ import org.slf4j.LoggerFactory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+/**
+ * Integration test for PostgreSQL datasource configuration.
+ */
 @QuarkusTest
-public class SqlDataSourceITTest extends ITBase {
+public class PostgresqlDataSourceITTest extends ITBase {
 
-    private static final Logger log = LoggerFactory.getLogger(SqlDataSourceITTest.class);
+    private static final Logger log = LoggerFactory.getLogger(PostgresqlDataSourceITTest.class);
 
+    /**
+     * Tests PostgreSQL datasource configuration and deployment.
+     */
     @Test
-    void testSqlDatasource() {
-        client.load(SqlDataSourceITTest.class
+    void testPostgresqlDatasource() {
+        client.load(PostgresqlDataSourceITTest.class
                 .getResourceAsStream("/k8s/examples/postgresql/example-postgresql-database.yaml")).create();
         // await for postgres to be available
         await().ignoreExceptions().until(() -> (1 == client.apps().statefulSets().inNamespace(namespace)

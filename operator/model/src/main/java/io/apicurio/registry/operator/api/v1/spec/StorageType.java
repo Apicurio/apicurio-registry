@@ -22,4 +22,13 @@ public enum StorageType {
     public String getValue() {
         return value;
     }
+
+    /**
+     * Checks if this storage type is a SQL storage type (PostgreSQL or MySQL).
+     *
+     * @return true if this storage type is PostgreSQL or MySQL, false otherwise
+     */
+    public boolean isSql() {
+        return this == POSTGRESQL || this == MYSQL;
+    }
 }

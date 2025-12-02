@@ -12,6 +12,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.specific.SpecificRecord;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -83,6 +84,22 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
     @Override
     public SchemaParser<Schema, U> schemaParser() {
         return parser;
+    }
+
+    /**
+     * For Avro SpecificRecord, the schema is tied to the class, so we use the class as cache key.
+     * For GenericRecord/GenericContainer, caching by Schema is not safe because:
+     * 1. Schema.hashCode() is based only on type and props (name, namespace), not on fields
+     * 2. This causes hash collisions for evolved schemas with the same name but different fields
+     * 3. Schema evolution tests fail when the wrong cached result is returned
+     */
+    @Override
+    protected Object getSchemaCacheKey(U data) {
+        if (data instanceof SpecificRecord) {
+            return data.getClass();
+        }
+        // Don't cache GenericRecord - schema evolution scenarios require fresh resolution
+        return null;
     }
 
     /**

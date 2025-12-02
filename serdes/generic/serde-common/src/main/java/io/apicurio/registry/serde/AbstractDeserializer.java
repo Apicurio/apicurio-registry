@@ -14,10 +14,23 @@ import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.apicurio.registry.serde.BaseSerde.getByteBuffer;
 
 public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
+
+    /**
+     * Cache key that distinguishes between contentId and globalId to avoid collisions.
+     * contentId=5 and globalId=5 could refer to different schemas, so we need to differentiate.
+     */
+    private record SchemaCacheKey(boolean isContentId, long id) {}
+
+    /**
+     * Fast-path cache: maps schema ID (contentId or globalId) directly to resolved schema.
+     * This bypasses the full resolution flow after the first deserialization for a given schema.
+     */
+    private final ConcurrentHashMap<SchemaCacheKey, SchemaLookupResult<T>> fastPathCache = new ConcurrentHashMap<>();
 
     private FallbackArtifactProvider fallbackArtifactProvider;
     private final BaseSerde<T, U> baseSerde;
@@ -100,21 +113,60 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     }
 
     protected SchemaLookupResult<T> resolve(String topic, byte[] data, ArtifactReference artifactReference) {
+        // Fast path: check cache using contentId or globalId
+        SchemaCacheKey cacheKey = getCacheKey(artifactReference);
+        if (cacheKey != null) {
+            SchemaLookupResult<T> cached = fastPathCache.get(cacheKey);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
+        // Slow path: full resolution
         try {
-            return baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
+            SchemaLookupResult<T> result = baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(artifactReference);
+            // Cache the result if we have a valid cache key
+            if (cacheKey != null) {
+                fastPathCache.put(cacheKey, result);
+            }
+            return result;
         } catch (RuntimeException e) {
             if (getFallbackArtifactProvider() == null) {
                 throw e;
             } else {
                 try {
                     ArtifactReference fallbackReference = getFallbackArtifactProvider().get(topic, data);
-                    return baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference);
+                    SchemaLookupResult<T> result = baseSerde.getSchemaResolver().resolveSchemaByArtifactReference(fallbackReference);
+                    // Cache using fallback reference key
+                    SchemaCacheKey fallbackKey = getCacheKey(fallbackReference);
+                    if (fallbackKey != null) {
+                        fastPathCache.put(fallbackKey, result);
+                    }
+                    return result;
                 } catch (RuntimeException fe) {
                     fe.addSuppressed(e);
                     throw fe;
                 }
             }
         }
+    }
+
+    /**
+     * Gets the cache key from an artifact reference.
+     * Uses a composite key that distinguishes between contentId and globalId to avoid collisions.
+     * Returns null if the reference is null or has no usable identifiers.
+     */
+    private SchemaCacheKey getCacheKey(ArtifactReference reference) {
+        if (reference == null) {
+            return null;
+        }
+        if (reference.getContentId() != null) {
+            return new SchemaCacheKey(true, reference.getContentId());
+        }
+        if (reference.getGlobalId() != null) {
+            return new SchemaCacheKey(false, reference.getGlobalId());
+        }
+        return null;
     }
 
     public FallbackArtifactProvider getFallbackArtifactProvider() {

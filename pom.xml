@@ -1267,6 +1267,7 @@
       <id>integration-tests</id>
       <modules>
         <module>integration-tests</module>
+        <module>integration-tests/protobuf-backward-compat/old-serializer</module>
       </modules>
     </profile>
     <profile>

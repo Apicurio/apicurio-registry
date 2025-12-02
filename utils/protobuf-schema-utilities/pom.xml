@@ -21,7 +21,6 @@
     <dependency>
       <groupId>io.roastedroot</groupId>
       <artifactId>protobuf4j-v4</artifactId>
-      <version>999-SNAPSHOT</version>
     </dependency>
 
     <dependency>

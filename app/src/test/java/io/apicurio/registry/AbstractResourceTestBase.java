@@ -21,6 +21,7 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.ProblemDetailsWatcher;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -67,6 +69,13 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected RestService confluentClient;
 
     protected Vertx vertx;
+
+    /**
+     * Test watcher that prints detailed information about ProblemDetails and RuleViolationProblemDetails
+     * exceptions using reflection to handle JUnit classloading issues.
+     */
+    @RegisterExtension
+    protected ProblemDetailsWatcher problemDetailsWatcher = new ProblemDetailsWatcher();
 
     @BeforeAll
     protected void beforeAll() throws Exception {

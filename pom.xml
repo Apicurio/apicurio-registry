@@ -178,7 +178,7 @@
     -->
 
     <!-- Jandex -->
-    <jandex.version>3.5.2</jandex.version>
+    <jandex.version>3.5.3</jandex.version>
 
     <!-- Schema types -->
     <avro.version>1.12.1</avro.version>

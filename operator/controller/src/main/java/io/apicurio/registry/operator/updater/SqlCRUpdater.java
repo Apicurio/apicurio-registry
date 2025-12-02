@@ -67,10 +67,10 @@ public class SqlCRUpdater {
         if (oldUrl.isPresent()) {
             log.warn("CR field `app.sql.dataSource.url` is DEPRECATED and should not be used.");
             if (newUrl.isEmpty() || oldUrl.equals(newUrl)) { // We need to handle a situation where the fields are partially migrated.
-                if (storageType.isEmpty() || storageType.orElse(null).isSql()) {
+                if (storageType.isEmpty() || storageType.orElse(StorageType.POSTGRESQL).isSql()) {
 
                     log.info("Performing automatic CR update from `app.sql.dataSource.url` to `app.storage.sql.dataSource.url`.");
-                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(StorageType.POSTGRESQL));
+                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(null));
                     primary.getSpec().getApp().getSql().getDataSource().setUrl(null);
                     primary.getSpec().getApp().getStorage().withSql().withDataSource().setUrl(oldUrl.get());
 
@@ -86,10 +86,10 @@ public class SqlCRUpdater {
         if (oldUsername.isPresent()) {
             log.warn("CR field `app.sql.dataSource.username` is DEPRECATED and should not be used.");
             if (newUsername.isEmpty() || oldUsername.equals(newUsername)) { // We need to handle a situation where the fields are partially migrated.
-                if (storageType.isEmpty() || storageType.orElse(null).isSql()) {
+                if (storageType.isEmpty() || storageType.orElse(StorageType.POSTGRESQL).isSql()) {
 
                     log.info("Performing automatic CR update from `app.sql.dataSource.username` to `app.storage.sql.dataSource.username`.");
-                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(StorageType.POSTGRESQL));
+                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(null));
                     primary.getSpec().getApp().getStorage().withSql().withDataSource().setUsername(oldUsername.get());
                     primary.getSpec().getApp().getSql().getDataSource().setUsername(null);
 

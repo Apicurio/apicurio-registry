@@ -49,8 +49,10 @@ public class KafkaSqlCoordinator {
             Object rval = returnValues.remove(uuid);
             if (rval == NULL) {
                 return null;
-            } else if (rval instanceof RegistryException) {
-                throw (RegistryException) rval; // TODO: Any exception
+            } else if (rval instanceof RuntimeException) {
+                // Rethrow any RuntimeException to preserve the original exception type
+                // for proper handling by exception mappers.
+                throw (RuntimeException) rval;
             }
             return rval;
         } catch (InterruptedException e) {

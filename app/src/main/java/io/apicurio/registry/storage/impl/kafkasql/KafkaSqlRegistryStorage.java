@@ -47,6 +47,7 @@ import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
@@ -83,6 +84,7 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @PersistenceTimeoutReadinessApply
 @StorageMetricsApply
 @Logged
+@LookupIfProperty(name = "storage.type", stringValue = "kafkasql")
 public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBase implements RegistryStorage {
 
     @Inject
@@ -137,6 +139,9 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     // The snapshot id used to determine if this replica must process a snapshot message
     private volatile String lastTriggeredSnapshot = null;
 
+    // Reference to the consumer thread for health checks
+    private volatile Thread consumerThread = null;
+
     @Override
     public String storageName() {
         return "kafkasql";
@@ -180,8 +185,9 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
 
     @Override
     public boolean isAlive() {
-        // TODO: Include readiness of Kafka consumers and producers? What happens if Kafka stops responding?
-        return bootstrapped && !stopped;
+        // Check that we've bootstrapped, haven't been stopped, and the consumer thread is still running.
+        // If the consumer thread dies (e.g., due to Kafka connectivity issues), the storage is no longer alive.
+        return bootstrapped && !stopped && consumerThread != null && consumerThread.isAlive();
     }
 
     @PreDestroy
@@ -192,22 +198,30 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
-     * Consume the snapshots topic, looking for the most recent snapshots in the topic. Once found, it
-     * restores the internal h2 database using the snapshot's content. WARNING: This has the limitation of
-     * processing the first 500 snapshots, which should be enough for most deployments.
-     * TODO: ^ This is a serious limitation that should at least raise an error.
+     * Consume the snapshots topic, looking for the most recent snapshot in the topic. Once found, it
+     * restores the internal database using the snapshot's content. Polls in a loop until all messages
+     * are consumed from the topic.
      */
     private String consumeSnapshotsTopic(KafkaConsumer<String, String> snapshotsConsumer) {
         // Subscribe to the snapshots topic
         Collection<String> topics = Collections.singleton(configuration.getSnapshotsTopic());
         snapshotsConsumer.subscribe(topics);
-        // TODO: We have to poll in a loop, no? We don't know how many records we get...
-        ConsumerRecords<String, String> records = snapshotsConsumer.poll(configuration.getPollTimeout());
+
         List<ConsumerRecord<String, String>> snapshots = new ArrayList<>();
         String snapshotRecordKey = null;
-        if (records != null && !records.isEmpty()) {
-            // collect all snapshots into a list
-            records.forEach(snapshots::add);
+
+        // Poll in a loop until we get an empty result, indicating we've reached the end of the topic
+        ConsumerRecords<String, String> records;
+        do {
+            records = snapshotsConsumer.poll(configuration.getPollTimeout());
+            if (records != null && !records.isEmpty()) {
+                records.forEach(snapshots::add);
+                log.debug("Polled {} snapshot records, total collected: {}", records.count(), snapshots.size());
+            }
+        } while (records != null && !records.isEmpty());
+
+        if (!snapshots.isEmpty()) {
+            log.info("Found {} total snapshots in the snapshots topic.", snapshots.size());
 
             // sort snapshots by timestamp
             snapshots.sort(Comparator.comparingLong(ConsumerRecord::timestamp));
@@ -310,6 +324,7 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         Thread thread = new Thread(runner);
         thread.setDaemon(true);
         thread.setName("KSQL Kafka Consumer Thread");
+        consumerThread = thread;
         thread.start();
     }
 
@@ -357,8 +372,11 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             return;
         }
 
-        // TODO instead of processing the journal record directly on the consumer thread, instead queue them
-        // and have *another* thread process the queue
+        // Note: We process journal records directly on the consumer thread. Since all messages in KafkaSQL
+        // are in a single partition, ordering is guaranteed and processing must be sequential. Introducing
+        // a separate processing thread with a queue would add complexity without significant benefit, as
+        // we'd still need to ensure sequential processing for correctness. The coordinator mechanism already
+        // handles response synchronization for write operations.
         kafkaSqlSink.processMessage(record);
     }
 
@@ -714,21 +732,10 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             throws RegistryStorageException {
         DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId,
                 preserveContentId);
-        dataImporter.importData(entities, () -> {
-            // TODO Re-visit this, since Apicurio Registry 3 all messages live in the same partition, so there
-            // should be no need to wait.
-            // Because importing just pushes a bunch of Kafka messages, we may need to
-            // wait for a few seconds before we send the reset messages. Due to partitioning,
-            // we can't guarantee ordering of these next two messages, and we NEED them to
-            // be consumed after all the import messages.
-            // TODO We can wait until the last message is read (a specific one),
-            // or create a new message type for this purpose (a sync message).
-            try {
-                Thread.sleep(2000);
-            } catch (Exception e) {
-                // Noop
-            }
-        });
+        // All messages use the same partition key (__GLOBAL_PARTITION__), so Kafka guarantees
+        // ordering within the partition. Reset messages sent after import messages will be
+        // consumed in the correct order without needing any sleep/wait mechanism.
+        dataImporter.importData(entities, () -> {});
     }
 
     /**
@@ -739,21 +746,10 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
             throws RegistryStorageException {
         DataImporter dataImporter = new SqlDataUpgrader(log, utils, this, preserveGlobalId,
                 preserveContentId);
-        dataImporter.importData(entities, () -> {
-            // TODO Re-visit this, since Apicurio Registry 3 all messages live in the same partition, so there
-            // should be no need to wait.
-            // Because importing just pushes a bunch of Kafka messages, we may need to
-            // wait for a few seconds before we send the reset messages. Due to partitioning,
-            // we can't guarantee ordering of these next two messages, and we NEED them to
-            // be consumed after all the import messages.
-            // TODO We can wait until the last message is read (a specific one),
-            // or create a new message type for this purpose (a sync message).
-            try {
-                Thread.sleep(2000);
-            } catch (Exception e) {
-                // Noop
-            }
-        });
+        // All messages use the same partition key (__GLOBAL_PARTITION__), so Kafka guarantees
+        // ordering within the partition. Reset messages sent after import messages will be
+        // consumed in the correct order without needing any sleep/wait mechanism.
+        dataImporter.importData(entities, () -> {});
     }
 
     /**

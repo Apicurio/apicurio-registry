@@ -159,7 +159,11 @@ public class KafkaSqlConfiguration {
         // So we convert them as soon as possible.
         var props = toMap(eventsTopicProperties);
 
-        // TODO: Check if the events topic can support multiple partitions. Currently all events are explicitly sent to partition 0.
+        // Events topic is configured with a single partition to guarantee total ordering of all events.
+        // This ensures consumers see events in the exact order they occurred. If per-aggregate ordering
+        // is sufficient (rather than global ordering), multiple partitions could be supported by removing
+        // the explicit partition assignment in KafkaSqlEventsProcessor and using the aggregateId as the
+        // partition key. This would enable better scalability while maintaining ordering per aggregate.
         props.put(TOPIC_PARTITIONS_CONFIG, "1");
         props.putIfAbsent(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE);
         props.putIfAbsent(TopicConfig.RETENTION_MS_CONFIG, "-1");

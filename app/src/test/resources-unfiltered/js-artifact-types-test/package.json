@@ -18,6 +18,6 @@
   "dependencies": {
     "clean": "4.0.2",
     "run": "1.5.0",
-    "yaml": "2.8.1"
+    "yaml": "2.8.2"
   }
 }

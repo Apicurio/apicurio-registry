@@ -8,15 +8,19 @@ import {
     Pagination,
     Switch,
     TextInput,
+    ToggleGroup,
+    ToggleGroupItem,
     Toolbar,
     ToolbarContent,
     ToolbarItem
 } from "@patternfly/react-core";
-import { SearchIcon } from "@patternfly/react-icons";
+import { ListIcon, SearchIcon, TopologyIcon } from "@patternfly/react-icons";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
 import { ObjectSelect } from "@apicurio/common-ui-components";
 import { Paging } from "@models/Paging.ts";
 import { ArtifactReference, ReferenceType, ReferenceTypeObject } from "@sdk/lib/generated-client/models";
+
+export type ViewMode = "list" | "graph";
 
 export interface ReferencesToolbarFilterCriteria {
     filterSelection: string;
@@ -36,6 +40,8 @@ export type ReferencesToolbarProps = {
     onPerPageSelect: OnPerPageSelect;
     onSetPage: OnSetPage;
     onToggleReferenceType: () => void;
+    viewMode: ViewMode;
+    onViewModeChange: (mode: ViewMode) => void;
 };
 
 type FilterType = {
@@ -103,6 +109,26 @@ export const ReferencesToolbar: FunctionComponent<ReferencesToolbarProps> = (pro
                         isChecked={ props.referenceType === ReferenceTypeObject.INBOUND }
                         onChange={ props.onToggleReferenceType }
                     />
+                </ToolbarItem>
+                <ToolbarItem className="view-mode-toggle-item">
+                    <ToggleGroup aria-label="View mode toggle">
+                        <ToggleGroupItem
+                            icon={<ListIcon />}
+                            text="List"
+                            aria-label="List view"
+                            buttonId="view-mode-list"
+                            isSelected={props.viewMode === "list"}
+                            onChange={() => props.onViewModeChange("list")}
+                        />
+                        <ToggleGroupItem
+                            icon={<TopologyIcon />}
+                            text="Graph"
+                            aria-label="Graph view"
+                            buttonId="view-mode-graph"
+                            isSelected={props.viewMode === "graph"}
+                            onChange={() => props.onViewModeChange("graph")}
+                        />
+                    </ToggleGroup>
                 </ToolbarItem>
                 <ToolbarItem className="paging-item" align={{ default: "alignRight" }}>
                     <Pagination

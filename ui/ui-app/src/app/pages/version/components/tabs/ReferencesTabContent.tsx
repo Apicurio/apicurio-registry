@@ -1,11 +1,14 @@
 import { FunctionComponent, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./ReferencesTabContent.css";
 import { EmptyState, EmptyStateBody, EmptyStateVariant, Title } from "@patternfly/react-core";
 import { ReferenceList, ReferencesSort } from "./ReferenceList.tsx";
 import {
     ReferencesToolbar,
-    ReferencesToolbarFilterCriteria
+    ReferencesToolbarFilterCriteria,
+    ViewMode
 } from "@app/pages/version/components/tabs/ReferencesToolbar.tsx";
+import { ReferenceGraphView } from "./ReferenceGraphView.tsx";
 import { ListWithToolbar } from "@apicurio/common-ui-components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
@@ -28,6 +31,9 @@ export type ReferencesTabContentProps = {
  * The UI of the "References" tab in the artifact version details page.
  */
 export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> = ({ version }: ReferencesTabContentProps) => {
+    const [searchParams] = useSearchParams();
+    const initialViewMode: ViewMode = searchParams.get("view") === "graph" ? "graph" : "list";
+
     const [ isLoading, setLoading ] = useState<boolean>(true);
     const [ isError, setError ] = useState<boolean>(false);
     const [ allReferences, setAllReferences ] = useState<ArtifactReference[]>([]);
@@ -46,6 +52,7 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         by: "name"
     });
     const [ referenceType, setReferenceType ] = useState<ReferenceType>(ReferenceTypeObject.OUTBOUND);
+    const [ viewMode, setViewMode ] = useState<ViewMode>(initialViewMode);
 
     const groups: GroupsService = useGroupsService();
     const logger: LoggerService = useLoggerService();
@@ -131,7 +138,9 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         paging={ paging }
         onPerPageSelect={ onPerPageSelect }
         onSetPage={ onSetPage }
-        onToggleReferenceType={ onToggleReferenceType } />);
+        onToggleReferenceType={ onToggleReferenceType }
+        viewMode={ viewMode }
+        onViewModeChange={ setViewMode } />);
 
     const emptyState = (<EmptyState variant={EmptyStateVariant.xs}>
         <Title headingLevel="h4" size="md">None found</Title>
@@ -141,16 +150,25 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
     return (
         <div className="references-tab-content">
             <div className="refs-toolbar-and-table">
-                <ListWithToolbar toolbar={ toolbar }
-                    emptyState={ emptyState }
-                    filteredEmptyState={ emptyState }
-                    isLoading={ isLoading }
-                    isError={ isError }
-                    isFiltered={  true }
-                    isEmpty={ references.length === 0 }
-                >
-                    <ReferenceList references={ references } sort={ sort } onSort={ setSort } />
-                </ListWithToolbar>
+                {viewMode === "list" ? (
+                    <ListWithToolbar toolbar={ toolbar }
+                        emptyState={ emptyState }
+                        filteredEmptyState={ emptyState }
+                        isLoading={ isLoading }
+                        isError={ isError }
+                        isFiltered={  true }
+                        isEmpty={ references.length === 0 }
+                    >
+                        <ReferenceList references={ references } sort={ sort } onSort={ setSort } />
+                    </ListWithToolbar>
+                ) : (
+                    <div className="refs-graph-container">
+                        <div className="refs-graph-toolbar">
+                            { toolbar }
+                        </div>
+                        <ReferenceGraphView version={ version } referenceType={ referenceType } />
+                    </div>
+                )}
             </div>
         </div>
     );

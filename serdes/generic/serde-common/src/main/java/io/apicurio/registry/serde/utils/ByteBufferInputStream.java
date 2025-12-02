@@ -88,22 +88,4 @@ public final class ByteBufferInputStream extends InputStream {
     public int available() throws IOException {
         return buffer.remaining();
     }
-
-    /**
-     * Skips over and discards n bytes of data from this input stream.
-     * This implementation is O(1) as it simply advances the buffer position.
-     *
-     * @param n the number of bytes to be skipped
-     * @return the actual number of bytes skipped
-     */
-    @Override
-    public long skip(long n) {
-        if (n <= 0) {
-            return 0;
-        }
-        int remaining = buffer.remaining();
-        int toSkip = (int) Math.min(n, remaining);
-        buffer.position(buffer.position() + toSkip);
-        return toSkip;
-    }
 }

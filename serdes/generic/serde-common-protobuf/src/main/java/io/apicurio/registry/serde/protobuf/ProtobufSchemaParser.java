@@ -16,40 +16,11 @@ import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ProtobufSchemaParser<U extends Message> implements SchemaParser<ProtobufSchema, U> {
-
-    /**
-     * Maximum number of entries in the schema cache.
-     * Prevents unbounded memory growth in long-running applications.
-     */
-    private static final int MAX_CACHE_SIZE = 1000;
-
-    /**
-     * Cache for parsed schemas by FileDescriptor full name.
-     * FileDescriptors are immutable at runtime for a given message class,
-     * so we can safely cache the extracted schema.
-     * Uses LRU eviction to prevent unbounded growth.
-     */
-    private final Map<String, ParsedSchema<ProtobufSchema>> schemaCache = createBoundedCache(MAX_CACHE_SIZE);
-
-    /**
-     * Creates a thread-safe bounded LRU cache.
-     * When the cache exceeds maxSize, the least recently accessed entry is removed.
-     */
-    private static <K, V> Map<K, V> createBoundedCache(int maxSize) {
-        return Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-                return size() > maxSize;
-            }
-        });
-    }
 
     /**
      * @see io.apicurio.registry.resolver.SchemaParser#artifactType()
@@ -129,20 +100,14 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     @Override
     public ParsedSchema<ProtobufSchema> getSchemaFromData(Record<U> data) {
         FileDescriptor schemaFileDescriptor = data.payload().getDescriptorForType().getFile();
+        ProtobufSchema protobufSchema = new ProtobufSchema(schemaFileDescriptor);
 
-        // Use FileDescriptor's full name as cache key - this is unique per proto file
-        String cacheKey = schemaFileDescriptor.getFullName();
+        // Use FileDescriptorProto text format as the raw schema
+        byte[] rawSchema = IoUtil.toBytes(protobufSchema.toProtoText());
 
-        return schemaCache.computeIfAbsent(cacheKey, key -> {
-            ProtobufSchema protobufSchema = new ProtobufSchema(schemaFileDescriptor);
-
-            // Use FileDescriptorProto text format as the raw schema
-            byte[] rawSchema = IoUtil.toBytes(protobufSchema.toProtoText());
-
-            return new ParsedSchemaImpl<ProtobufSchema>().setParsedSchema(protobufSchema)
-                    .setReferenceName(protobufSchema.getFileDescriptor().getName())
-                    .setSchemaReferences(handleDependencies(schemaFileDescriptor)).setRawSchema(rawSchema);
-        });
+        return new ParsedSchemaImpl<ProtobufSchema>().setParsedSchema(protobufSchema)
+                .setReferenceName(protobufSchema.getFileDescriptor().getName())
+                .setSchemaReferences(handleDependencies(schemaFileDescriptor)).setRawSchema(rawSchema);
     }
 
     @Override

@@ -16,58 +16,15 @@ import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ProtobufSerializer<U extends Message> extends AbstractSerializer<ProtobufSchema, U> {
-
-    /**
-     * Maximum number of entries in each cache.
-     * Prevents unbounded memory growth in long-running applications.
-     */
-    private static final int MAX_CACHE_SIZE = 1000;
 
     private Boolean validationEnabled;
     private ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     private boolean writeRef = true;
     private boolean writeIndexes = false;
-
-    /**
-     * Cache for Ref objects per message type name.
-     * Ref objects are immutable and can be safely reused.
-     * Uses LRU eviction to prevent unbounded growth.
-     */
-    private final Map<String, Ref> refCache = createBoundedCache(MAX_CACHE_SIZE);
-
-    /**
-     * Cache for validation results. Key is composed of schema contentHash + message type name.
-     * If validation passed once for a schema+message type combination, it will always pass.
-     * Uses LRU eviction to prevent unbounded growth.
-     */
-    private final Map<String, Boolean> validationCache = createBoundedCache(MAX_CACHE_SIZE);
-
-    /**
-     * Cache for message indexes per message type full name.
-     * The indexes are computed based on the message type path in the schema and don't change.
-     * Uses LRU eviction to prevent unbounded growth.
-     */
-    private final Map<String, List<Integer>> indexCache = createBoundedCache(MAX_CACHE_SIZE);
-
-    /**
-     * Creates a thread-safe bounded LRU cache.
-     * When the cache exceeds maxSize, the least recently accessed entry is removed.
-     */
-    private static <K, V> Map<K, V> createBoundedCache(int maxSize) {
-        return Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-                return size() > maxSize;
-            }
-        });
-    }
 
     public ProtobufSerializer() {
         super();
@@ -121,35 +78,23 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
     @Override
     public void serializeData(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out)
             throws IOException {
-        String messageTypeName = data.getDescriptorForType().getName();
-
         if (validationEnabled) {
-            // Create a cache key from schema identity and message type
-            String validationKey = getValidationCacheKey(schema, messageTypeName);
 
-            // Check if we've already validated this combination
-            Boolean cachedResult = validationCache.get(validationKey);
-            if (cachedResult == null) {
-                // Perform validation
-                if (schema.getParsedSchema() != null && schema.getParsedSchema().getFileDescriptor()
-                        .findMessageTypeByName(messageTypeName) == null) {
-                    throw new IllegalStateException("Missing message type "
-                            + messageTypeName + " in the protobuf schema");
-                }
-
-                List<ProtobufDifference> diffs = validate(schema, data);
-                if (!diffs.isEmpty()) {
-                    throw new IllegalStateException(
-                            "The data to send is not compatible with the schema. " + diffs);
-                }
-
-                // Cache successful validation
-                validationCache.put(validationKey, Boolean.TRUE);
+            if (schema.getParsedSchema() != null && schema.getParsedSchema().getFileDescriptor()
+                    .findMessageTypeByName(data.getDescriptorForType().getName()) == null) {
+                throw new IllegalStateException("Missing message type "
+                        + data.getDescriptorForType().getName() + " in the protobuf schema");
             }
-        }
 
+            List<ProtobufDifference> diffs = validate(schema, data);
+            if (!diffs.isEmpty()) {
+                throw new IllegalStateException(
+                        "The data to send is not compatible with the schema. " + diffs);
+            }
+
+        }
         if (writeRef) {
-            writeRef(messageTypeName, out);
+            writeRef(data, out);
         }
         if (writeIndexes) {
             writeIndexes(schema, data, out);
@@ -158,25 +103,13 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         data.writeTo(out);
     }
 
-    private void writeRef(String messageTypeName, OutputStream out) throws IOException {
-        // Use cached Ref object - Ref is immutable so safe to reuse
-        Ref ref = refCache.computeIfAbsent(messageTypeName,
-                name -> Ref.newBuilder().setName(name).build());
+    private static <U extends Message> void writeRef(U data, OutputStream out) throws IOException {
+        Ref ref = Ref.newBuilder().setName(data.getDescriptorForType().getName()).build();
         ref.writeDelimitedTo(out);
     }
 
-    private String getValidationCacheKey(ParsedSchema<ProtobufSchema> schema, String messageTypeName) {
-        // Use the schema's file descriptor name + message type as the cache key
-        // This is stable for a given schema version
-        String schemaId = schema.getParsedSchema().getFileDescriptor().getFullName();
-        return schemaId + ":" + messageTypeName;
-    }
-
-    private <U extends Message> void writeIndexes(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out) throws IOException {
-        String fullName = data.getDescriptorForType().getFullName();
-        // Use cached indexes - they don't change for a given message type
-        List<Integer> indexes = indexCache.computeIfAbsent(fullName,
-                name -> MessageIndexesUtil.getMessageIndexes(schema, data));
+    private static <U extends Message> void writeIndexes(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out) throws IOException {
+        List<Integer> indexes = MessageIndexesUtil.getMessageIndexes(schema, data);
         MessageIndexesUtil.writeTo(indexes, out);
     }
 

@@ -152,7 +152,8 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public String acquireInitLock() {
         // Use SQL Server application locks with 30 second timeout (30000 ms)
         // Returns 0 or greater if lock acquired, negative value on error/timeout
-        return "EXEC sp_getapplock @Resource='apicurio_init_lock', @LockMode='Exclusive', @LockOwner='Session', @LockTimeout=30000";
+        // Wrap in DECLARE/SELECT to return result set instead of return code
+        return "DECLARE @result INT; EXEC @result = sp_getapplock @Resource='apicurio_init_lock', @LockMode='Exclusive', @LockOwner='Session', @LockTimeout=30000; SELECT @result";
     }
 
     /**
@@ -160,6 +161,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
      */
     @Override
     public String releaseInitLock() {
-        return "EXEC sp_releaseapplock @Resource='apicurio_init_lock', @LockOwner='Session'";
+        // Wrap in DECLARE/SELECT to return result set instead of return code
+        return "DECLARE @result INT; EXEC @result = sp_releaseapplock @Resource='apicurio_init_lock', @LockOwner='Session'; SELECT @result";
     }
 }

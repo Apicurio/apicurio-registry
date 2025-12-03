@@ -174,7 +174,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
     // Loading state
     if (isLoading) {
         return (
-            <div className="reference-graph-loading">
+            <div className="reference-graph-loading" data-testid="graph-loading">
                 <Spinner size="lg" />
                 <span>Loading reference graph...</span>
             </div>
@@ -184,7 +184,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
     // Error state
     if (isError) {
         return (
-            <Alert variant="danger" title="Error loading reference graph" isInline>
+            <Alert variant="danger" title="Error loading reference graph" isInline data-testid="graph-error">
                 {errorMessage || "An unexpected error occurred while loading the reference graph."}
             </Alert>
         );
@@ -193,7 +193,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
     // Empty state - no references
     if (nodes.length <= 1) {
         return (
-            <EmptyState variant={EmptyStateVariant.xs}>
+            <EmptyState variant={EmptyStateVariant.xs} data-testid="graph-empty-state">
                 <Title headingLevel="h4" size="md">No references found</Title>
                 <EmptyStateBody>
                     This artifact version has no {referenceType === "OUTBOUND" ? "outbound" : "inbound"} references.
@@ -229,14 +229,14 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
                 <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
 
                 {/* Top right panel with export and fullscreen buttons */}
-                <Panel position="top-right" className="graph-action-panel">
+                <Panel position="top-right" className="graph-action-panel" data-testid="graph-action-panel">
                     <Tooltip content="Export as PNG">
-                        <Button variant="plain" onClick={exportAsPng} aria-label="Export as PNG">
+                        <Button variant="plain" onClick={exportAsPng} aria-label="Export as PNG" data-testid="graph-export-btn">
                             <DownloadIcon />
                         </Button>
                     </Tooltip>
                     <Tooltip content={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
-                        <Button variant="plain" onClick={onToggleFullscreen} aria-label="Toggle fullscreen">
+                        <Button variant="plain" onClick={onToggleFullscreen} aria-label="Toggle fullscreen" data-testid="graph-fullscreen-btn">
                             {isFullscreen ? <CompressIcon /> : <ExpandIcon />}
                         </Button>
                     </Tooltip>
@@ -244,7 +244,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
 
                 {/* Cycle warning */}
                 {hasCycles && (
-                    <Panel position="top-left" className="graph-warning-panel">
+                    <Panel position="top-left" className="graph-warning-panel" data-testid="graph-cycle-warning">
                         <Alert variant="warning" isInline isPlain title="Circular references detected">
                             Some artifacts have circular dependencies (shown with red border).
                         </Alert>
@@ -254,7 +254,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
 
             {/* Node details panel */}
             {selectedNode && (
-                <div className="node-details-panel">
+                <div className="node-details-panel" data-testid="node-details-panel">
                     <div className="node-details-header">
                         <InfoCircleIcon />
                         <span>Node Details</span>
@@ -312,7 +312,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
             )}
 
             {/* Legend */}
-            <div className="graph-legend">
+            <div className="graph-legend" data-testid="graph-legend">
                 <div className="legend-item">
                     <span className="legend-color root"></span>
                     <span>Current artifact</span>
@@ -375,9 +375,9 @@ export const ReferenceGraphView: FunctionComponent<ReferenceGraphViewProps> = ({
     }, []);
 
     return (
-        <div className={`reference-graph-wrapper ${isFullscreen ? "fullscreen" : ""}`} ref={containerRef}>
+        <div className={`reference-graph-wrapper ${isFullscreen ? "fullscreen" : ""}`} ref={containerRef} data-testid="reference-graph-wrapper">
             {/* Graph controls toolbar */}
-            <Toolbar className="graph-controls-toolbar">
+            <Toolbar className="graph-controls-toolbar" data-testid="graph-controls-toolbar">
                 <ToolbarContent>
                     <ToolbarItem>
                         <span className="depth-label">Depth:</span>
@@ -390,6 +390,7 @@ export const ReferenceGraphView: FunctionComponent<ReferenceGraphViewProps> = ({
                             max={5}
                             showTicks
                             showBoundaries={false}
+                            data-testid="graph-depth-slider"
                             customSteps={[
                                 { value: 1, label: "1" },
                                 { value: 2, label: "2" },
@@ -408,7 +409,7 @@ export const ReferenceGraphView: FunctionComponent<ReferenceGraphViewProps> = ({
             </Toolbar>
 
             {/* Graph container */}
-            <div className="reference-graph-container">
+            <div className="reference-graph-container" data-testid="reference-graph-container">
                 <ReactFlowProvider>
                     <ReferenceGraphInner
                         version={version}

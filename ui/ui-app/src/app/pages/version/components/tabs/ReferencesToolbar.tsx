@@ -108,15 +108,17 @@ export const ReferencesToolbar: FunctionComponent<ReferencesToolbarProps> = (pro
                         labelOff="View artifacts that reference this artifact"
                         isChecked={ props.referenceType === ReferenceTypeObject.INBOUND }
                         onChange={ props.onToggleReferenceType }
+                        data-testid="reference-type-toggle"
                     />
                 </ToolbarItem>
                 <ToolbarItem className="view-mode-toggle-item">
-                    <ToggleGroup aria-label="View mode toggle">
+                    <ToggleGroup aria-label="View mode toggle" data-testid="view-mode-toggle">
                         <ToggleGroupItem
                             icon={<ListIcon />}
                             text="List"
                             aria-label="List view"
                             buttonId="view-mode-list"
+                            data-testid="view-mode-list"
                             isSelected={props.viewMode === "list"}
                             onChange={() => props.onViewModeChange("list")}
                         />
@@ -125,6 +127,7 @@ export const ReferencesToolbar: FunctionComponent<ReferencesToolbarProps> = (pro
                             text="Graph"
                             aria-label="Graph view"
                             buttonId="view-mode-graph"
+                            data-testid="view-mode-graph"
                             isSelected={props.viewMode === "graph"}
                             onChange={() => props.onViewModeChange("graph")}
                         />

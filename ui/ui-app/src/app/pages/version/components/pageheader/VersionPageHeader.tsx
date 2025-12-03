@@ -111,7 +111,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                             data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
                         <IfFeature feature="readOnly" isNot={true}>
                             <IfFeature feature="draftMutability" is={true}>
-                                <If condition={props.version?.state === "DRAFT"}>
+                                <If condition={props.version?.state === "DRAFT" && user.isUserDeveloper(props.artifact?.owner)}>
                                     <Button id="edit-version-button" variant="primary" icon={<PencilAltIcon />}
                                         data-testid="header-btn-edit" onClick={props.onEdit}>Edit draft</Button>
                                 </If>

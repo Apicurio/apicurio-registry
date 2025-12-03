@@ -36,7 +36,7 @@ public class DynamicLogConfigurationService {
     RegistryStorage storage;
 
     @Dynamic(label = "Log level", description = "Set the log level for Apicurio Registry. Valid values: TRACE, DEBUG, INFO, WARN, ERROR, OFF, ALL")
-    @ConfigProperty(name = "apicurio.log.level", defaultValue = "WARN")
+    @ConfigProperty(name = "apicurio.log.level", defaultValue = "INFO")
     @Info(category = CATEGORY_LOG, description = "Dynamic log level for Apicurio Registry", availableSince = "3.1.0")
     Supplier<String> logLevel;
 

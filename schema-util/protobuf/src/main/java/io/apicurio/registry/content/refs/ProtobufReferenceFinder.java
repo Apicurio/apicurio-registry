@@ -1,13 +1,8 @@
 package io.apicurio.registry.content.refs;
 
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -16,26 +11,17 @@ import java.util.stream.Collectors;
  */
 public class ProtobufReferenceFinder implements ReferenceFinder {
 
-    private static final Logger log = LoggerFactory.getLogger(ProtobufReferenceFinder.class);
-
     /**
      * @see io.apicurio.registry.content.refs.ReferenceFinder#findExternalReferences(TypedContent)
      */
     @Override
     public Set<ExternalReference> findExternalReferences(TypedContent content) {
-        try {
-            ProtoFileElement protoFileElement = ProtobufFile
-                    .toProtoFileElement(content.getContent().content());
-            Set<String> allImports = new HashSet<>();
-            allImports.addAll(protoFileElement.getImports());
-            allImports.addAll(protoFileElement.getPublicImports());
-            return allImports.stream()
-                    .filter(imprt -> !imprt.startsWith("google/protobuf/"))
-                    .map(imprt -> new ExternalReference(imprt)).collect(Collectors.toSet());
-        } catch (Exception e) {
-            log.error("Error finding external references in a Protobuf file.", e);
-            return Collections.emptySet();
-        }
+        // Extract imports from the proto content without compiling
+        // This allows finding references even when the imported files are not available
+        return ProtobufSchemaUtils.extractNonWellKnownImports(content.getContent().content())
+                .stream()
+                .map(ExternalReference::new)
+                .collect(Collectors.toSet());
     }
 
 }

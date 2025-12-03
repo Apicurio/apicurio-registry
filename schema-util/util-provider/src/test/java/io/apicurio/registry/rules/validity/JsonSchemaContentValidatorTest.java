@@ -1,11 +1,14 @@
 package io.apicurio.registry.rules.validity;
 
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleViolationException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Tests the JSON Schema content validator.
@@ -56,5 +59,65 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
         validator.validate(ValidityLevel.FULL, citizen,
                 Collections.singletonMap("https://example.com/city.json", city));
+    }
+
+    @Test
+    public void testValidateReferences() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("jsonschema-valid-with-refs.json");
+        JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
+
+        // Properly map both required references - success.
+        {
+            List<ArtifactReference> references = new ArrayList<>();
+            references.add(ArtifactReference.builder()
+                    .groupId("default")
+                    .artifactId("Category")
+                    .version("1.0")
+                    .name("example.com/schemas/Category")
+                    .build());
+            references.add(ArtifactReference.builder()
+                    .groupId("default")
+                    .artifactId("Customer")
+                    .version("1.1")
+                    .name("example.com/schemas/Customer")
+                    .build());
+            validator.validateReferences(content, references);
+        }
+
+        // Don't map either of the required references - failure.
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            List<ArtifactReference> references = new ArrayList<>();
+            validator.validateReferences(content, references);
+        });
+
+        // Only map one of the two required refs - failure.
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            List<ArtifactReference> references = new ArrayList<>();
+            references.add(ArtifactReference.builder()
+                    .groupId("default")
+                    .artifactId("Category")
+                    .version("1.0")
+                    .name("example.com/schemas/Category")
+                    .build());
+            validator.validateReferences(content, references);
+        });
+
+        // Only map one of the two required refs - failure.
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            List<ArtifactReference> references = new ArrayList<>();
+            references.add(ArtifactReference.builder()
+                    .groupId("default")
+                    .artifactId("Category")
+                    .version("1.0")
+                    .name("example.com/schemas/Category")
+                    .build());
+            references.add(ArtifactReference.builder()
+                    .groupId("default")
+                    .artifactId("WrongSchema")
+                    .version("2.3")
+                    .name("example.com/schemas/WrongSchema")
+                    .build());
+            validator.validateReferences(content, references);
+        });
     }
 }

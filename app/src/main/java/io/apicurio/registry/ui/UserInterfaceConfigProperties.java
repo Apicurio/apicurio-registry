@@ -4,6 +4,8 @@ import io.apicurio.common.apps.config.Info;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.util.Optional;
+
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_UI;
 
 @Singleton
@@ -24,9 +26,9 @@ public class UserInterfaceConfigProperties {
 
     @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
     public String authOidcUrl;
-    @ConfigProperty(name = "apicurio.ui.auth.oidc.redirect-uri", defaultValue = "/")
+    @ConfigProperty(name = "apicurio.ui.auth.oidc.redirect-uri")
     @Info(category = CATEGORY_UI, description = "The OIDC redirectUri", availableSince = "3.0.0")
-    public String authOidcRedirectUri;
+    public Optional<String> authOidcRedirectUri;
     @ConfigProperty(name = "apicurio.ui.auth.oidc.client-id", defaultValue = "apicurio-registry-ui")
     @Info(category = CATEGORY_UI, description = "The OIDC clientId", availableSince = "3.0.0")
     public String authOidcClientId;

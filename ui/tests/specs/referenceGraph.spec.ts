@@ -54,13 +54,13 @@ test.describe("Reference Graph Feature", () => {
         await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/TestArtifact`);
         await page.getByTestId("header-btn-delete").click();
         await page.getByTestId("modal-btn-delete").click();
-        await expect(page).toHaveURL(new RegExp(`.+/explore`));
+        await expect(page).toHaveURL(new RegExp(".+/explore"));
 
         // Delete test group
         await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}`);
         await page.getByTestId("header-btn-delete").click();
         await page.getByTestId("modal-btn-delete").click();
-        await expect(page).toHaveURL(new RegExp(`.+/explore`));
+        await expect(page).toHaveURL(new RegExp(".+/explore"));
 
         await page.close();
     });

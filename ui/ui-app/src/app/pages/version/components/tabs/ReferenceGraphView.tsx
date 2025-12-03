@@ -39,7 +39,7 @@ import {
 } from "@patternfly/react-icons";
 import { useNavigate } from "react-router-dom";
 import { ReferenceType, VersionMetaData } from "@sdk/lib/generated-client/models";
-import { ReferenceNodeData, useReferenceGraph } from "@services/useReferenceGraph.ts";
+import { ReferenceNodeData, useReferenceGraph, ArtifactCoordinates } from "@services/useReferenceGraph.ts";
 import { ReferenceGraphNode } from "./ReferenceGraphNode.tsx";
 import "./ReferenceGraphView.css";
 
@@ -79,9 +79,16 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
     const navigate = useNavigate();
     const reactFlowInstance = useRef<unknown>(null);
 
-    // Fetch and build the graph
+    // Build artifact coordinates from version metadata
+    const coordinates: ArtifactCoordinates | undefined = version ? {
+        groupId: version.groupId || null,
+        artifactId: version.artifactId || "",
+        version: version.version || ""
+    } : undefined;
+
+    // Fetch and build the graph using the new backend endpoint
     const { nodes: initialNodes, edges: initialEdges, isLoading, isError, errorMessage, hasCycles } = useReferenceGraph(
-        version?.globalId ?? undefined,
+        coordinates,
         { referenceType, maxDepth }
     );
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Node, Edge } from "@xyflow/react";
-import { ArtifactReference, ReferenceType, ReferenceTypeObject } from "@sdk/lib/generated-client/models";
+import { ReferenceType, ReferenceTypeObject, ReferenceGraphDirectionObject } from "@sdk/lib/generated-client/models";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 
@@ -16,6 +16,7 @@ export interface ReferenceNodeData extends Record<string, unknown> {
     globalId?: number;
     depth: number;
     isCycleNode?: boolean;
+    artifactType?: string | null;
 }
 
 /**
@@ -39,22 +40,21 @@ export interface ReferenceGraphOptions {
     referenceType?: ReferenceType;
 }
 
+/**
+ * Artifact coordinates for graph fetching
+ */
+export interface ArtifactCoordinates {
+    groupId: string | null;
+    artifactId: string;
+    version: string;
+}
+
 const DEFAULT_MAX_DEPTH = 3;
 
-/**
- * Creates a unique node ID from artifact coordinates
- */
-const createNodeId = (groupId: string | null | undefined, artifactId: string, version: string): string => {
-    const g = groupId || "default";
-    return `${g}/${artifactId}/${version}`;
-};
-
-/**
- * Creates a unique edge ID
- */
-const createEdgeId = (sourceId: string, targetId: string): string => {
-    return `${sourceId}->${targetId}`;
-};
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 80;
+const HORIZONTAL_SPACING = 80;
+const VERTICAL_SPACING = 100;
 
 /**
  * Calculates node positions using a hierarchical layout
@@ -62,11 +62,6 @@ const createEdgeId = (sourceId: string, targetId: string): string => {
 const calculateLayout = (
     nodes: Map<string, Node<ReferenceNodeData>>
 ): void => {
-    const NODE_WIDTH = 200;
-    const NODE_HEIGHT = 80;
-    const HORIZONTAL_SPACING = 80;
-    const VERTICAL_SPACING = 100;
-
     // Group nodes by depth
     const nodesByDepth = new Map<number, Node<ReferenceNodeData>[]>();
     nodes.forEach((node) => {
@@ -93,10 +88,10 @@ const calculateLayout = (
 };
 
 /**
- * Hook for building a reference graph for an artifact
+ * Hook for building a reference graph for an artifact using the new backend endpoint
  */
 export const useReferenceGraph = (
-    globalId: number | undefined,
+    coordinates: ArtifactCoordinates | undefined,
     options: ReferenceGraphOptions = {}
 ): ReferenceGraphResult => {
     const { maxDepth = DEFAULT_MAX_DEPTH, referenceType = ReferenceTypeObject.OUTBOUND } = options;
@@ -117,88 +112,11 @@ export const useReferenceGraph = (
     }, []);
 
     useEffect(() => {
-        if (!globalId) {
+        if (!coordinates || !coordinates.artifactId || !coordinates.version) {
             setNodes([]);
             setEdges([]);
             return;
         }
-
-        const nodesMap = new Map<string, Node<ReferenceNodeData>>();
-        const edgesMap = new Map<string, Edge>();
-        const visited = new Set<string>();
-        let cyclesDetected = false;
-
-        const fetchReferencesRecursively = async (
-            currentGlobalId: number,
-            parentNodeId: string | null,
-            referenceName: string | null,
-            depth: number
-        ): Promise<void> => {
-            if (depth > maxDepth) {
-                return;
-            }
-
-            try {
-                const refs: ArtifactReference[] = await groups.getArtifactReferences(currentGlobalId, referenceType);
-
-                for (const ref of refs) {
-                    const nodeId = createNodeId(ref.groupId, ref.artifactId!, ref.version!);
-
-                    // Add edge from parent to this node (or from this node to parent for inbound)
-                    if (parentNodeId) {
-                        const edgeId = referenceType === ReferenceTypeObject.OUTBOUND
-                            ? createEdgeId(parentNodeId, nodeId)
-                            : createEdgeId(nodeId, parentNodeId);
-
-                        if (!edgesMap.has(edgeId)) {
-                            edgesMap.set(edgeId, {
-                                id: edgeId,
-                                source: referenceType === ReferenceTypeObject.OUTBOUND ? parentNodeId : nodeId,
-                                target: referenceType === ReferenceTypeObject.OUTBOUND ? nodeId : parentNodeId,
-                                animated: false,
-                                style: { stroke: "#6a6e73" }
-                            });
-                        }
-                    }
-
-                    // Cycle detection - if already visited, mark as cycle node
-                    if (visited.has(nodeId)) {
-                        cyclesDetected = true;
-                        const existingNode = nodesMap.get(nodeId);
-                        if (existingNode) {
-                            existingNode.data.isCycleNode = true;
-                        }
-                        continue;
-                    }
-                    visited.add(nodeId);
-
-                    // Add node
-                    if (!nodesMap.has(nodeId)) {
-                        nodesMap.set(nodeId, {
-                            id: nodeId,
-                            type: "referenceNode",
-                            position: { x: 0, y: 0 }, // Will be calculated later
-                            data: {
-                                groupId: ref.groupId || "default",
-                                artifactId: ref.artifactId!,
-                                version: ref.version!,
-                                name: ref.name || ref.artifactId!,
-                                isRoot: false,
-                                globalId: undefined, // We don't have globalId for referenced artifacts
-                                depth: depth
-                            }
-                        });
-                    }
-
-                    // Note: We can't recursively fetch here because we don't have the globalId
-                    // of the referenced artifacts. This would require an additional API call
-                    // to get the version metadata first. For MVP, we only show direct references.
-                }
-            } catch (error) {
-                logger.error(`Error fetching references for globalId ${currentGlobalId}:`, error);
-                throw error;
-            }
-        };
 
         const buildGraph = async (): Promise<void> => {
             setIsLoading(true);
@@ -206,46 +124,114 @@ export const useReferenceGraph = (
             setErrorMessage(undefined);
 
             try {
-                // Create root node (we need to fetch its metadata to get artifact info)
-                // For now, we'll create a placeholder that will be updated
-                const rootNodeId = `root-${globalId}`;
-                nodesMap.set(rootNodeId, {
-                    id: rootNodeId,
-                    type: "referenceNode",
-                    position: { x: 0, y: 0 },
-                    data: {
-                        groupId: "",
-                        artifactId: "",
-                        version: "",
-                        name: "Current Artifact",
-                        isRoot: true,
-                        globalId: globalId,
-                        depth: 0
-                    }
-                });
-                visited.add(rootNodeId);
+                // Map ReferenceType to ReferenceGraphDirection
+                const direction = referenceType === ReferenceTypeObject.INBOUND
+                    ? ReferenceGraphDirectionObject.INBOUND
+                    : ReferenceGraphDirectionObject.OUTBOUND;
 
-                // Fetch direct references
-                await fetchReferencesRecursively(globalId, rootNodeId, null, 1);
+                // Fetch the graph from the backend
+                const graph = await groups.getArtifactVersionReferencesGraph(
+                    coordinates.groupId,
+                    coordinates.artifactId,
+                    coordinates.version,
+                    direction,
+                    maxDepth
+                );
+
+                // Convert backend response to React Flow nodes and edges
+                const nodesMap = new Map<string, Node<ReferenceNodeData>>();
+                const edgesList: Edge[] = [];
+
+                // Calculate depth for each node based on edges
+                const nodeDepths = new Map<string, number>();
+                const rootId = graph.root?.id;
+                if (rootId) {
+                    nodeDepths.set(rootId, 0);
+                }
+
+                // BFS to calculate depths
+                if (graph.edges && graph.edges.length > 0) {
+                    const queue = [rootId];
+                    while (queue.length > 0) {
+                        const currentId = queue.shift();
+                        if (!currentId) continue;
+                        const currentDepth = nodeDepths.get(currentId) || 0;
+
+                        for (const edge of graph.edges) {
+                            const sourceId = referenceType === ReferenceTypeObject.OUTBOUND
+                                ? edge.sourceNodeId
+                                : edge.targetNodeId;
+                            const targetId = referenceType === ReferenceTypeObject.OUTBOUND
+                                ? edge.targetNodeId
+                                : edge.sourceNodeId;
+
+                            if (sourceId === currentId && targetId && !nodeDepths.has(targetId)) {
+                                nodeDepths.set(targetId, currentDepth + 1);
+                                queue.push(targetId);
+                            }
+                        }
+                    }
+                }
+
+                // Process nodes
+                if (graph.nodes) {
+                    for (const node of graph.nodes) {
+                        if (!node.id) continue;
+
+                        const depth = nodeDepths.get(node.id) || 0;
+                        nodesMap.set(node.id, {
+                            id: node.id,
+                            type: "referenceNode",
+                            position: { x: 0, y: 0 },
+                            data: {
+                                groupId: node.groupId || "default",
+                                artifactId: node.artifactId || "",
+                                version: node.version || "",
+                                name: node.name || node.artifactId || "",
+                                isRoot: node.isRoot || false,
+                                isCycleNode: node.isCycleNode || false,
+                                artifactType: node.artifactType,
+                                depth: depth
+                            }
+                        });
+                    }
+                }
+
+                // Process edges
+                if (graph.edges) {
+                    for (const edge of graph.edges) {
+                        if (!edge.sourceNodeId || !edge.targetNodeId) continue;
+
+                        const edgeId = `${edge.sourceNodeId}->${edge.targetNodeId}`;
+                        edgesList.push({
+                            id: edgeId,
+                            source: edge.sourceNodeId,
+                            target: edge.targetNodeId,
+                            animated: false,
+                            style: { stroke: "#6a6e73" },
+                            label: edge.name
+                        });
+                    }
+                }
 
                 // Calculate layout
                 calculateLayout(nodesMap);
 
                 // Update state
                 setNodes(Array.from(nodesMap.values()));
-                setEdges(Array.from(edgesMap.values()));
-                setHasCycles(cyclesDetected);
-            } catch (error: any) {
-                logger.error("Error building reference graph:", error);
+                setEdges(edgesList);
+                setHasCycles(graph.metadata?.hasCycles || false);
+            } catch (error: unknown) {
+                logger.error("Error fetching reference graph:", error);
                 setIsError(true);
-                setErrorMessage(error?.message || "Failed to load reference graph");
+                setErrorMessage(error instanceof Error ? error.message : "Failed to load reference graph");
             } finally {
                 setIsLoading(false);
             }
         };
 
         buildGraph();
-    }, [globalId, maxDepth, referenceType, refetchTrigger]);
+    }, [coordinates?.groupId, coordinates?.artifactId, coordinates?.version, maxDepth, referenceType, refetchTrigger]);
 
     return {
         nodes,
@@ -254,6 +240,37 @@ export const useReferenceGraph = (
         isError,
         errorMessage,
         hasCycles,
+        refetch
+    };
+};
+
+/**
+ * Legacy hook that uses globalId (for backwards compatibility)
+ * @deprecated Use useReferenceGraph with ArtifactCoordinates instead
+ */
+export const useReferenceGraphByGlobalId = (
+    globalId: number | undefined,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _options: ReferenceGraphOptions = {}
+): ReferenceGraphResult => {
+    // This is a fallback that doesn't use the new endpoint
+    // Components should migrate to using coordinates instead
+    const [nodes] = useState<Node<ReferenceNodeData>[]>([]);
+    const [edges] = useState<Edge[]>([]);
+    const [isLoading] = useState<boolean>(false);
+    const [isError] = useState<boolean>(false);
+
+    const refetch = useCallback(() => {
+        // No-op for legacy
+    }, []);
+
+    return {
+        nodes,
+        edges,
+        isLoading,
+        isError,
+        errorMessage: globalId ? "Please use artifact coordinates instead of globalId" : undefined,
+        hasCycles: false,
         refetch
     };
 };

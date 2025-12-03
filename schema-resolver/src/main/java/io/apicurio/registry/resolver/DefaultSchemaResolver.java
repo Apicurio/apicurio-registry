@@ -265,13 +265,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                                 rawSchemaString) + "&" + artifactReference);
             }
 
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            loadFromVersionCoordinates(versions.get(0), result);
-
-            result.parsedSchema(parsedSchema);
-
-            return result.build();
+            return loadFromVersionCoordinates(versions.get(0), parsedSchema);
         });
     }
 
@@ -304,13 +298,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
                     version, autoCreate, canonicalize, rawSchemaString, clientReferences);
 
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            loadFromVersionCoordinates(versionCoordinates, result);
-
-            result.parsedSchema(parsedSchema);
-
-            return result.build();
+            return loadFromVersionCoordinates(versionCoordinates, parsedSchema);
         });
     }
 
@@ -343,12 +331,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         // TODO if getArtifactVersion returns the artifact version and globalid in the headers we can reduce
         // this to only one http call
 
-        SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
         // Get the version metadata (globalId, contentId, etc)
         RegistryVersionCoordinates versionCoordinates = this.clientFacade.getVersionCoordinatesByGAV(groupId, artifactId, version);
-
-        loadFromVersionCoordinates(versionCoordinates, result);
 
         // Get the schema string (either dereferenced or not based on config)
         String schemaString = this.clientFacade.getSchemaByGlobalId(versionCoordinates.getGlobalId(), resolveDereferenced);
@@ -363,8 +347,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         byte[] schema = schemaString.getBytes(StandardCharsets.UTF_8);
         S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
-        result.parsedSchema(new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema));
-
-        return result.build();
+        ParsedSchemaImpl<S> parsedSchema = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
+        return loadFromVersionCoordinates(versionCoordinates, parsedSchema);
     }
 }

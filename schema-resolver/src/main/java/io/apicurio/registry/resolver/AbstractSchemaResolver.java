@@ -234,12 +234,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     public void close() throws IOException {
     }
 
-    protected void loadFromVersionCoordinates(RegistryVersionCoordinates version,
-                                              SchemaLookupResult.SchemaLookupResultBuilder<S> resultBuilder) {
-        resultBuilder.globalId(version.getGlobalId());
-        resultBuilder.contentId(version.getContentId());
-        resultBuilder.groupId(version.getGroupId());
-        resultBuilder.artifactId(version.getArtifactId());
-        resultBuilder.version(String.valueOf(version.getVersion()));
+    protected SchemaLookupResult<S> loadFromVersionCoordinates(RegistryVersionCoordinates version, ParsedSchema<S> parsedSchema) {
+        return SchemaLookupResult.<S>builder()
+                .globalId(version.getGlobalId())
+                .contentId(version.getContentId())
+                .groupId(version.getGroupId())
+                .artifactId(version.getArtifactId())
+                .version(String.valueOf(version.getVersion()))
+                .parsedSchema(parsedSchema)
+                .build();
     }
 }

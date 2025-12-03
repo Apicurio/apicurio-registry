@@ -34,6 +34,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
     private static final String PROTO_SCHEMA_EXTENSION = ".proto";
     private static final String AVSC_SCHEMA_EXTENSION = ".avsc";
     private static final String JSON_SCHEMA_EXTENSION = ".json";
+    private static final String YAML_SCHEMA_EXTENSION = ".yaml";
 
     RegisterRegistryMojo registerMojo;
     DownloadRegistryMojo downloadMojo;
@@ -146,6 +147,50 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
 
         // Assertions
         validateStructure(groupId, artifactId, 3, 4, schemaFiles);
+    }
+
+    /**
+     * Test that autoRefs works correctly with OpenAPI YAML files.
+     * This test addresses issue #6954 - verifies that YAML OpenAPI files
+     * are properly parsed and indexed alongside JSON files.
+     */
+    @Test
+    public void autoRegisterOpenApiYamlWithReferences() throws Exception {
+        // Preparation
+        String groupId = "autoRegisterOpenApiYamlWithReferences";
+        String artifactId = "petstore-api";
+
+        File petstoreApiFile = new File(getClass().getResource("openapi-yaml/petstore-api.yaml").getFile());
+
+        Set<String> yamlFiles = Arrays.stream(Objects.requireNonNull(
+                petstoreApiFile.getParentFile().listFiles((dir, name) -> name.endsWith(YAML_SCHEMA_EXTENSION))))
+                .map(file -> {
+                    FileInputStream fis = null;
+                    try {
+                        fis = new FileInputStream(file);
+                    } catch (FileNotFoundException e) {
+                    }
+                    return IoUtil.toString(fis);
+                }).collect(Collectors.toSet());
+
+        RegisterArtifact petstoreApi = new RegisterArtifact();
+        petstoreApi.setGroupId(groupId);
+        petstoreApi.setArtifactId(artifactId);
+        petstoreApi.setArtifactType(ArtifactType.OPENAPI);
+        petstoreApi.setFile(petstoreApiFile);
+        petstoreApi.setAutoRefs(true);
+        petstoreApi.setIfExists(IfArtifactExists.FAIL);
+
+        registerMojo.setArtifacts(Collections.singletonList(petstoreApi));
+
+        // Execution
+        registerMojo.execute();
+
+        // Assertions
+        // petstore-api.yaml references: Pet.yaml (1 direct reference)
+        // Pet.yaml references: Owner.yaml (1 nested reference)
+        // Total artifacts: petstore-api.yaml, Pet.yaml, Owner.yaml = 3
+        validateStructure(groupId, artifactId, 1, 3, yamlFiles);
     }
 
     /**

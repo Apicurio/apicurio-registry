@@ -10,8 +10,7 @@ This chapter explains how to deploy and configure {registry} instances using the
 * xref:operator-overview_{context}[]
 * xref:deploying-registry-inmemory_{context}[]
 * xref:deploying-registry-postgresql_{context}[]
-// TODO: https://github.com/Apicurio/apicurio-registry/issues/6919
-//* xref:deploying-registry-mysql_{context}[]
+* xref:deploying-registry-mysql_{context}[]
 * xref:deploying-registry-kafkasql_{context}[]
 * xref:configuring-registry-authentication_{context}[]
 * xref:configuring-registry-ingress_{context}[]
@@ -174,7 +173,6 @@ the database.
 * For information on PostgreSQL Operators available on OpenShift, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#installing-postgresql-operatorhub_{context}[Installing a PostgreSQL database from the OpenShift OperatorHub]
 in {installing-the-registry-storage-openshift}.
 
-////
 [id="deploying-registry-mysql_{context}"]
 == Deploying {registry} with MySQL storage
 
@@ -216,7 +214,7 @@ metadata:
 spec:
   app:
     storage:
-      type: postgresql
+      type: mysql
       sql:
         dataSource:
           url: jdbc:mysql://mysql.my-project.svc:3306/registry
@@ -232,8 +230,7 @@ spec:
 ----
 +
 NOTE: Update the `url` to match your MySQL service name, namespace, port, and database name. Update the
-`username` to match your database user. The storage `type` should still be set to `postgresql` as {registry}
-uses the same SQL storage mechanism for both PostgreSQL and MySQL.
+`username` to match your database user.
 
 . Click *Create* and wait for the {registry} deployment to be created.
 
@@ -242,7 +239,6 @@ uses the same SQL storage mechanism for both PostgreSQL and MySQL.
 * Access the {registry} web console and create a test artifact to verify that data is being persisted to
 the database.
 * Restart the {registry} pod and verify that the artifact still exists, confirming that data is persisted.
-////
 
 [id="deploying-registry-kafkasql_{context}"]
 == Deploying {registry} with KafkaSQL storage

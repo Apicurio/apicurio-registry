@@ -10,7 +10,7 @@ import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
-import io.apicurio.registry.operator.feat.PostgresSql;
+import io.apicurio.registry.operator.feat.SqlStorage;
 import io.apicurio.registry.operator.feat.TLS;
 import io.apicurio.registry.operator.feat.security.Auth;
 import io.apicurio.registry.operator.status.ReadyConditionManager;
@@ -110,11 +110,11 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         // Configure the TLS env vars
         TLS.configureTLS(primary, deployment, REGISTRY_APP_CONTAINER_NAME, envVars);
 
-        // Configure the storage (Postgresql or KafkaSql).
+        // Configure the storage (PostgreSQL, MySQL, or KafkaSQL).
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
                 .map(StorageSpec::getType).ifPresent(storageType -> {
                     switch (storageType) {
-                        case POSTGRESQL -> PostgresSql.configureDatasource(primary, envVars);
+                        case POSTGRESQL, MYSQL -> SqlStorage.configureDatasource(primary, envVars);
                         case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, deployment, envVars);
                     }
                 });

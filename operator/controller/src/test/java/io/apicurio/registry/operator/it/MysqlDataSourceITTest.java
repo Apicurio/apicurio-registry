@@ -10,21 +10,24 @@ import org.slf4j.LoggerFactory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+/**
+ * Integration test for MySQL datasource configuration.
+ */
 @QuarkusTest
-public class SqlDataSourceITTest extends ITBase {
+public class MysqlDataSourceITTest extends ITBase {
 
-    private static final Logger log = LoggerFactory.getLogger(SqlDataSourceITTest.class);
+    private static final Logger log = LoggerFactory.getLogger(MysqlDataSourceITTest.class);
 
     @Test
-    void testSqlDatasource() {
-        client.load(SqlDataSourceITTest.class
-                .getResourceAsStream("/k8s/examples/postgresql/example-postgresql-database.yaml")).create();
-        // await for postgres to be available
+    void testMysqlDatasource() {
+        client.load(MysqlDataSourceITTest.class
+                .getResourceAsStream("/k8s/examples/mysql/example-mysql-database.yaml")).create();
+        // await for MySQL to be available
         await().ignoreExceptions().until(() -> (1 == client.apps().statefulSets().inNamespace(namespace)
-                .withName("example-postgresql-database").get().getStatus().getReadyReplicas()));
+                .withName("example-mysql-database").get().getStatus().getReadyReplicas()));
 
         var registry = ResourceFactory.deserialize(
-                "/k8s/examples/postgresql/example-postgresql.apicurioregistry3.yaml",
+                "/k8s/examples/mysql/example-mysql.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
 
@@ -39,7 +42,7 @@ public class SqlDataSourceITTest extends ITBase {
                     .filter(podN -> podN.startsWith(registry.getMetadata().getName() + "-app-deployment"))
                     .findFirst().get();
             assertThat(client.pods().inNamespace(namespace).withName(podName).getLog())
-                    .contains("Database type: postgresql");
+                    .contains("Database type: mysql");
             return true;
         });
     }

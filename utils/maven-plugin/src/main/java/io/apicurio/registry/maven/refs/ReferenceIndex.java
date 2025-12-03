@@ -2,14 +2,19 @@ package io.apicurio.registry.maven.refs;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.datamodels.Library;
 import io.apicurio.datamodels.models.Document;
 import io.apicurio.datamodels.util.ModelTypeUtil;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
@@ -77,13 +82,22 @@ public class ReferenceIndex {
 
     /**
      * Index the given content. Indexing will parse the content and figure out its resource name and type.
-     * 
+     *
      * @param path
      * @param content
      */
     public void index(Path path, ContentHandle content) {
         try {
-            JsonNode tree = mapper.readTree(content.content());
+            // Determine content type based on file extension
+            String contentType = ContentTypes.APPLICATION_JSON;
+            String fileName = path.getFileName().toString().toLowerCase();
+            if (fileName.endsWith(".yaml") || fileName.endsWith(".yml")) {
+                contentType = ContentTypes.APPLICATION_YAML;
+            }
+
+            // Parse JSON or YAML content
+            TypedContent typedContent = TypedContent.create(content, contentType);
+            JsonNode tree = ContentTypeUtil.parseJsonOrYaml(typedContent);
 
             // OpenAPI
             if (tree.has("openapi") || tree.has("swagger") || tree.has("asyncapi")) {
@@ -96,7 +110,7 @@ public class ReferenceIndex {
             // Avro
             indexAvro(path, content, tree);
         } catch (Exception e) {
-            // Must not be JSON...
+            // Must not be JSON or YAML...
         }
 
         try {
@@ -133,18 +147,33 @@ public class ReferenceIndex {
     }
 
     private void indexDataModels(Path path, ContentHandle content) {
-        Document doc = Library.readDocumentFromJSONString(content.content());
-        if (doc == null) {
-            throw new UnsupportedOperationException("Content is not OpenAPI or AsyncAPI.");
-        }
+        try {
+            // Determine content type based on file extension
+            String contentType = ContentTypes.APPLICATION_JSON;
+            String fileName = path.getFileName().toString().toLowerCase();
+            if (fileName.endsWith(".yaml") || fileName.endsWith(".yml")) {
+                contentType = ContentTypes.APPLICATION_YAML;
+            }
 
-        String type = ArtifactType.OPENAPI;
-        if (ModelTypeUtil.isAsyncApiModel(doc)) {
-            type = ArtifactType.ASYNCAPI;
-        }
+            // Parse JSON or YAML content
+            TypedContent typedContent = TypedContent.create(content, contentType);
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(typedContent);
+            Document doc = Library.readDocument((ObjectNode) node);
 
-        IndexedResource resource = new IndexedResource(path, type, null, content);
-        this.index.add(resource);
+            if (doc == null) {
+                throw new UnsupportedOperationException("Content is not OpenAPI or AsyncAPI.");
+            }
+
+            String type = ArtifactType.OPENAPI;
+            if (ModelTypeUtil.isAsyncApiModel(doc)) {
+                type = ArtifactType.ASYNCAPI;
+            }
+
+            IndexedResource resource = new IndexedResource(path, type, null, content);
+            this.index.add(resource);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to parse OpenAPI/AsyncAPI document", e);
+        }
     }
 
 }

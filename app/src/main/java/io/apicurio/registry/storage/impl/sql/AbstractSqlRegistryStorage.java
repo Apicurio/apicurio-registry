@@ -97,6 +97,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.CommentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.DatabaseLockMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
@@ -278,7 +279,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // Acquire database lock to prevent race conditions when multiple replicas
                 // attempt to initialize or upgrade the database simultaneously
                 log.info("Acquiring database initialization lock...");
-                handle.createQuery(this.sqlStatements.acquireInitLock()).mapTo(Integer.class).one();
+                handle.createQuery(this.sqlStatements.acquireInitLock()).map(DatabaseLockMapper.instance).one();
                 log.info("Database initialization lock acquired.");
 
                 try {
@@ -296,7 +297,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 } finally {
                     // Always release the lock, even if initialization or upgrade fails
                     log.info("Releasing database initialization lock...");
-                    handle.createQuery(this.sqlStatements.releaseInitLock()).mapTo(Integer.class).one();
+                    handle.createQuery(this.sqlStatements.releaseInitLock()).map(DatabaseLockMapper.instance).one();
                     log.info("Database initialization lock released.");
                 }
             } else {

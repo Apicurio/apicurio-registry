@@ -4,9 +4,11 @@ import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.Current;
+import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -39,6 +41,24 @@ public class DynamicLogConfigurationService {
     Supplier<String> logLevel;
 
     private String currentAppliedLevel = null;
+
+    /**
+     * Applies the initial log level configuration at application startup.
+     * This ensures that the configured log level is applied early enough to capture
+     * initialization and startup log messages.
+     *
+     * @param event the startup event
+     */
+    void onStartup(@Observes StartupEvent event) {
+        try {
+            String targetLevel = logLevel.get();
+            applyLogLevel(targetLevel);
+            currentAppliedLevel = targetLevel;
+            log.info("Applied initial log level configuration at startup: {} = {}", APICURIO_LOGGER_NAME, targetLevel);
+        } catch (Exception ex) {
+            log.error("Exception thrown when applying initial log level configuration", ex);
+        }
+    }
 
     /**
      * Scheduled job that checks for dynamic log level configuration changes

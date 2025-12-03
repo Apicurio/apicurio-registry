@@ -78,18 +78,18 @@ public class DynamicConfigSource implements ConfigSource {
                 if (storage.get().isReady()) { // TODO Merge the ifs after removing logging
                     DynamicConfigPropertyDto dto = storage.get().getConfigProperty(pname);
                     if (dto != null) {
-                        log.debug("Got dynamic configuration value {} for {} in thread {}", dto.getValue(),
+                        log.trace("Got dynamic configuration value {} for {} in thread {}", dto.getValue(),
                                 pname, Thread.currentThread().getName());
                         return dto.getValue();
                     } else {
-                        log.debug(LOG_PREFIX + "Storage returned null.", pname,
+                        log.trace(LOG_PREFIX + "Storage returned null.", pname,
                                 Thread.currentThread().getName());
                     }
                 } else {
                     log.debug(LOG_PREFIX + "Storage is not ready.", pname, Thread.currentThread().getName());
                 }
             } else {
-                log.debug(LOG_PREFIX + "Storage is not present.", pname, Thread.currentThread().getName());
+                log.warn(LOG_PREFIX + "Storage is not present.", pname, Thread.currentThread().getName());
             }
         }
         return null;

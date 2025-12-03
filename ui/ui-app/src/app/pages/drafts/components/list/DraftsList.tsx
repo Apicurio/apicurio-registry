@@ -14,6 +14,7 @@ import { FromNow, If, ObjectDropdown } from "@apicurio/common-ui-components";
 import { DraftId } from "@app/pages/drafts/components/list/DraftId.tsx";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { DraftTypeIcon } from "@app/pages/drafts/components/DraftTypeIcon.tsx";
+import { UserService, useUserService } from "@services/useUserService.ts";
 
 export type DraftsListProps = {
     drafts: Draft[];
@@ -28,9 +29,16 @@ export type DraftsListProps = {
 export const DraftsList: FunctionComponent<DraftsListProps> = (props: DraftsListProps) => {
 
     const config: ConfigService = useConfigService();
+    const user: UserService = useUserService();
 
     const isDeleteEnabled = (): boolean => {
         return config.featureDeleteVersion() || false;
+    };
+
+    const isEditEnabled = (draft: Draft): boolean => {
+        return !config.featureReadOnly() &&
+            config.featureDraftMutability() &&
+            user.isUserDeveloper(draft.createdBy);
     };
 
     return (
@@ -102,15 +110,18 @@ export const DraftsList: FunctionComponent<DraftsListProps> = (props: DraftsList
                                         id: "edit-draft",
                                         label: "Edit draft",
                                         testId: "edit-draft-" + idx,
+                                        isVisible: () => isEditEnabled(draft),
                                         action: () => props.onEdit(draft)
                                     },
                                     {
-                                        divider: true
+                                        divider: true,
+                                        isVisible: () => isEditEnabled(draft)
                                     },
                                     {
                                         id: "finalize-draft",
                                         label: "Finalize draft",
                                         testId: "finalize-draft-" + idx,
+                                        isVisible: () => isEditEnabled(draft),
                                         action: () => props.onFinalize(draft)
                                     },
                                     {
@@ -123,6 +134,7 @@ export const DraftsList: FunctionComponent<DraftsListProps> = (props: DraftsList
                                         id: "create-new-draft",
                                         label: "Create draft from...",
                                         testId: "create-new-draft-" + idx,
+                                        isVisible: () => isEditEnabled(draft),
                                         action: () => props.onCreateDraftFrom(draft)
                                     },
                                     {

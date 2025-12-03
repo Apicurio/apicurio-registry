@@ -6,6 +6,8 @@ import { SearchVersionName } from "@app/pages";
 import { SearchedVersion } from "@sdk/lib/generated-client/models";
 import { shash } from "@utils/string.utils.ts";
 import { ObjectDropdown } from "@apicurio/common-ui-components";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { UserService, useUserService } from "@services/useUserService.ts";
 
 /**
  * Properties
@@ -22,6 +24,8 @@ export type SearchVersionListProps = {
  * Models the list of versions.
  */
 export const SearchVersionList: FunctionComponent<SearchVersionListProps> = (props: SearchVersionListProps) => {
+    const config: ConfigService = useConfigService();
+    const user: UserService = useUserService();
 
     const description = (version: SearchedVersion): string => {
         if (version.description) {
@@ -81,7 +85,10 @@ export const SearchVersionList: FunctionComponent<SearchVersionListProps> = (pro
                                         id: "edit-version",
                                         label: "Edit draft",
                                         testId: "edit-version-" + idx,
-                                        isVisible: () => version.state === "DRAFT",
+                                        isVisible: () => !config.featureReadOnly() &&
+                                            config.featureDraftMutability() &&
+                                            version.state === "DRAFT" &&
+                                            user.isUserDeveloper(version.owner),
                                         action: () => props.onEdit(version)
                                     },
                                 ]}

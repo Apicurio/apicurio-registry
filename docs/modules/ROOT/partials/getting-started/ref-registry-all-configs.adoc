@@ -498,7 +498,7 @@ The following {registry} configuration options are available for each component 
 |Description
 |`apicurio.log.level`
 |`string [dynamic]`
-|`WARN`
+|`INFO`
 |`3.1.0`
 |Dynamic log level for Apicurio Registry
 |===

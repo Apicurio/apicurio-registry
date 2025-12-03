@@ -15,6 +15,7 @@ import io.apicurio.registry.serde.config.SerdeConfig;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Map;
 
 /**
  * An implementation of the Kafka Serializer for JSON Schema use-cases. This serializer assumes that the
@@ -74,6 +75,19 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
     @Override
     public SchemaParser<JsonSchema, T> schemaParser() {
         return parser;
+    }
+
+    /**
+     * For JSON Schema, caching by class is safe for POJOs/Beans where the schema
+     * is derived from the class structure. Exclude dynamic types like Map and JsonNode
+     * where the schema could potentially vary per instance.
+     */
+    @Override
+    protected Object getSchemaCacheKey(T data) {
+        if (data instanceof Map || data instanceof JsonNode) {
+            return null;
+        }
+        return data.getClass();
     }
 
     public boolean isValidationEnabled() {

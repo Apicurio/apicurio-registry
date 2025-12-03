@@ -666,4 +666,22 @@ public interface SqlStatements {
 
     String selectTableTemplate(String columns, String tableName, String alias, String whereClause,
             String orderBy);
+
+    // ========== Database Initialization Locks ==========
+
+    /**
+     * Acquires a database-level lock for initialization and upgrade operations.
+     * This lock prevents race conditions when multiple application instances
+     * attempt to initialize or upgrade the database simultaneously.
+     *
+     * @return SQL statement to acquire the initialization lock
+     */
+    public String acquireInitLock();
+
+    /**
+     * Releases the database initialization lock acquired by acquireInitLock().
+     *
+     * @return SQL statement to release the initialization lock
+     */
+    public String releaseInitLock();
 }

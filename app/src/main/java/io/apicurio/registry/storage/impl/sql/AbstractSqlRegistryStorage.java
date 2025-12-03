@@ -97,6 +97,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.CommentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.DatabaseLockMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
@@ -275,16 +276,29 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         handles.withHandleNoException((handle) -> {
             if (initDB) {
-                if (!isDatabaseInitializedRaw(handle)) {
-                    log.info("Database not initialized.");
-                    initializeDatabaseRaw(handle);
-                } else {
-                    log.info("Database was already initialized, skipping.");
-                }
+                // Acquire database lock to prevent race conditions when multiple replicas
+                // attempt to initialize or upgrade the database simultaneously
+                log.info("Acquiring database initialization lock...");
+                handle.createQuery(this.sqlStatements.acquireInitLock()).map(DatabaseLockMapper.instance).one();
+                log.info("Database initialization lock acquired.");
 
-                if (!isDatabaseCurrentRaw(handle)) {
-                    log.info("Old database version detected, upgrading.");
-                    upgradeDatabaseRaw(handle);
+                try {
+                    if (!isDatabaseInitializedRaw(handle)) {
+                        log.info("Database not initialized.");
+                        initializeDatabaseRaw(handle);
+                    } else {
+                        log.info("Database was already initialized, skipping.");
+                    }
+
+                    if (!isDatabaseCurrentRaw(handle)) {
+                        log.info("Old database version detected, upgrading.");
+                        upgradeDatabaseRaw(handle);
+                    }
+                } finally {
+                    // Always release the lock, even if initialization or upgrade fails
+                    log.info("Releasing database initialization lock...");
+                    handle.createQuery(this.sqlStatements.releaseInitLock()).map(DatabaseLockMapper.instance).one();
+                    log.info("Database initialization lock released.");
                 }
             } else {
                 if (!isDatabaseInitializedRaw(handle)) {

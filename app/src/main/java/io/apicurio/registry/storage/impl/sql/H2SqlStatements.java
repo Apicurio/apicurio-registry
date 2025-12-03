@@ -85,4 +85,24 @@ public class H2SqlStatements extends CommonSqlStatements {
     public String restoreFromSnapshot() {
         return "RUNSCRIPT FROM ?";
     }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
+     */
+    @Override
+    public String acquireInitLock() {
+        // H2 is only used in single-instance mode, so no distributed locking needed
+        // Return a no-op query that always succeeds
+        return "SELECT 1";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#releaseInitLock()
+     */
+    @Override
+    public String releaseInitLock() {
+        // H2 is only used in single-instance mode, so no distributed locking needed
+        // Return a no-op query that always succeeds
+        return "SELECT 1";
+    }
 }

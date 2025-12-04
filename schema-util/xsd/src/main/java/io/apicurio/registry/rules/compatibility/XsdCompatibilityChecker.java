@@ -2,7 +2,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
-import io.apicurio.registry.util.DocumentBuilderAccessor;
+import io.apicurio.registry.util.xml.DocumentBuilderAccessor;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;

@@ -69,7 +69,7 @@ jobs:
           fi
 
       - name: Build and Test Application
-        run: ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+        run: ./mvnw clean package -T 1C --no-transfer-progress -Pprod -DskipTests=false -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Login to DockerHub Registry
         if: github.event_name == 'push'
@@ -234,7 +234,7 @@ jobs:
         env:
           SKIP_TESTS: "true"
         run: |
-          ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
+          ./mvnw package -T 1C --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 
       - name: Build Temporary image for testing
         run: |
@@ -344,7 +344,7 @@ jobs:
         run: make lint-check
 
       - name: Build Registry
-        run: mvn clean package -am -Dskip.npm -DskipTests=true --no-transfer-progress
+        run: mvn clean package -T 1C -am -Dskip.npm -DskipTests=true --no-transfer-progress
 
       - name: Run the tests
         working-directory: python-sdk
@@ -389,7 +389,7 @@ jobs:
           go-version: '1.23'
 
       - name: Build Registry
-        run: mvn clean package -am -Dskip.npm -DskipTests=true --no-transfer-progress
+        run: mvn clean package -T 1C -am -Dskip.npm -DskipTests=true --no-transfer-progress
 
       - name: Run the tests
         working-directory: go-sdk

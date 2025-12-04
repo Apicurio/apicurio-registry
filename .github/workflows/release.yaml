@@ -142,10 +142,10 @@ jobs:
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
           popd
 
-      - name: Build Registry (All Variants)
+      - name: Build Registry
         run: |
           cd registry
-          ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw -T 1C clean package --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Registry UI
         working-directory: registry/ui

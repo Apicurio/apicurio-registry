@@ -62,7 +62,7 @@ jobs:
       - name: Maven Install
         run: |
           cd registry
-          mvn install -Pprod -DskipTests
+          mvn -T 1C install -Pprod -DskipTests
 
       - name: Generate Maven SBOMs
         run: |

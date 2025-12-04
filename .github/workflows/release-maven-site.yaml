@@ -54,7 +54,7 @@ jobs:
       - name: Generate Maven Site
         run: |
           cd registry
-          mvn clean install -DskipTests
+          mvn -T 1C clean install -DskipTests
           cd utils/maven-plugin
           mvn site
 

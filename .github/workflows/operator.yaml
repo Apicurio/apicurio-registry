@@ -44,7 +44,7 @@ jobs:
 
       # We need to build the operand image as well as the operator, otherwise the tests would not reflect changes in the current PR.
       - name: Build
-        run: mvn -B clean package -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip
+        run: mvn -T 1C -B clean package -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip
 
       - name: Build temporary operand image
         run: |

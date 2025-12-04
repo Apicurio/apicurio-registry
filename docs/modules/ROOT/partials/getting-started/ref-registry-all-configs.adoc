@@ -1005,8 +1005,8 @@ The following {registry} configuration options are available for each component 
 |`3.0.0`
 |The OIDC logout URL
 |`apicurio.ui.auth.oidc.redirect-uri`
-|`string`
-|`/`
+|`optional<string>`
+|
 |`3.0.0`
 |The OIDC redirectUri
 |`apicurio.ui.auth.oidc.scope`

@@ -1,6 +1,6 @@
 package io.apicurio.registry.auth;
 
-import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.headers.Headers;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;

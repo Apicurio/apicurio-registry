@@ -3,8 +3,8 @@ package io.apicurio.registry.rules.validity;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.util.DocumentBuilderAccessor;
-import io.apicurio.registry.util.WSDLReaderAccessor;
+import io.apicurio.registry.util.xml.DocumentBuilderAccessor;
+import io.apicurio.registry.util.wsdl.WSDLReaderAccessor;
 import org.w3c.dom.Document;
 
 import java.io.InputStream;

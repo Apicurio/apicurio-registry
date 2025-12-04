@@ -15,6 +15,8 @@
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
     <groups/>
+    <!-- Exclude slow tests by default -->
+    <excludedTestGroups>slow</excludedTestGroups>
   </properties>
 
   <dependencies>
@@ -471,6 +473,11 @@
           <skipExec>${skipTests}</skipExec>
           <skipTests>${skipAppTests}</skipTests>
           <groups>${groups}</groups>
+          <!-- Exclude slow tests by default (run with -Pslow-tests) -->
+          <excludedGroups>${excludedTestGroups}</excludedGroups>
+          <!-- Parallel execution configuration -->
+          <forkCount>2C</forkCount>
+          <reuseForks>true</reuseForks>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <org.jboss.logging.provider>jboss</org.jboss.logging.provider>
@@ -735,6 +742,23 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+
+    <!-- Profile to run only slow tests -->
+    <profile>
+      <id>slow-tests</id>
+      <properties>
+        <excludedTestGroups/>
+        <groups>slow</groups>
+      </properties>
+    </profile>
+
+    <!-- Profile to run all tests including slow ones -->
+    <profile>
+      <id>all-tests</id>
+      <properties>
+        <excludedTestGroups/>
+      </properties>
     </profile>
 
   </profiles>

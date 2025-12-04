@@ -3,7 +3,7 @@ package io.apicurio.registry.noprofile.ccompat.rest.v7;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.model.GroupId;
-import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.headers.Headers;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.support.HealthUtils;

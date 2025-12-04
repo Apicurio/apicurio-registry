@@ -1,7 +1,7 @@
 package io.apicurio.registry.content;
 
 import io.apicurio.registry.content.util.ContentTypeUtil;
-import io.apicurio.registry.util.DocumentBuilderAccessor;
+import io.apicurio.registry.util.xml.DocumentBuilderAccessor;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 

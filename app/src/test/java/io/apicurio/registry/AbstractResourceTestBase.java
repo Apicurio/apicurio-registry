@@ -15,7 +15,7 @@ import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.rest.v3.V3ApiUtil;
+import io.apicurio.registry.rest.v3.impl.V3ApiUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;

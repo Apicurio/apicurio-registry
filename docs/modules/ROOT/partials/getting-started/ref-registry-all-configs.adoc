@@ -806,6 +806,31 @@ The following {registry} configuration options are available for each component 
 |
 |
 |Kafka sql storage ssl truststore type
+|`apicurio.kafkasql.security.ssl.truststore.password`
+|`optional<string>`
+|
+|`3.1.0`
+|Kafka sql storage ssl truststore password
+|`apicurio.kafkasql.security.ssl.keystore.location`
+|`optional<string>`
+|
+|`3.1.0`
+|Kafka sql storage ssl keystore location
+|`apicurio.kafkasql.security.ssl.keystore.type`
+|`optional<string>`
+|
+|`3.1.0`
+|Kafka sql storage ssl keystore type
+|`apicurio.kafkasql.security.ssl.keystore.password`
+|`optional<string>`
+|
+|`3.1.0`
+|Kafka sql storage ssl keystore password
+|`apicurio.kafkasql.security.ssl.key.password`
+|`optional<string>`
+|
+|`3.1.0`
+|Kafka sql storage ssl key password
 |`apicurio.kafkasql.snapshot.every.seconds`
 |`string`
 |`86400s`
@@ -825,27 +850,27 @@ The following {registry} configuration options are available for each component 
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl key password
+|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.key.password instead. This property will be removed in a future version.
 |`apicurio.kafkasql.ssl.keystore.location`
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl keystore location
+|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.keystore.location instead. This property will be removed in a future version.
 |`apicurio.kafkasql.ssl.keystore.password`
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl keystore password
+|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.keystore.password instead. This property will be removed in a future version.
 |`apicurio.kafkasql.ssl.keystore.type`
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl keystore type
+|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.keystore.type instead. This property will be removed in a future version.
 |`apicurio.kafkasql.ssl.truststore.password`
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl truststore password
+|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.truststore.password instead. This property will be removed in a future version.
 |`apicurio.kafkasql.topic`
 |`string`
 |`kafkasql-journal`

@@ -1,7 +1,7 @@
 package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.refs.ExternalReference;
-import io.apicurio.registry.rules.RuleViolation;
+import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.types.webhooks.beans.ArtifactReference;

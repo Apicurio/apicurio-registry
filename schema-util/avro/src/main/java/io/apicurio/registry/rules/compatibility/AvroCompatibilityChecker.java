@@ -1,7 +1,7 @@
 package io.apicurio.registry.rules.compatibility;
 
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.rules.UnprocessableSchemaException;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaCompatibility;
 import org.apache.avro.SchemaCompatibility.Incompatibility;

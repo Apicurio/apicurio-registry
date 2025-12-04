@@ -24,7 +24,7 @@ import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;

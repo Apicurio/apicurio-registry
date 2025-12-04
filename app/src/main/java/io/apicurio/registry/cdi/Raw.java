@@ -1,4 +1,4 @@
-package io.apicurio.registry.types;
+package io.apicurio.registry.cdi;
 
 import jakarta.inject.Qualifier;
 

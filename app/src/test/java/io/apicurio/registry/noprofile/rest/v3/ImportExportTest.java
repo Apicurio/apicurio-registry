@@ -25,7 +25,7 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;

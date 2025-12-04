@@ -1,6 +1,6 @@
 package io.apicurio.registry.rules.compatibility;
 
-import io.apicurio.registry.rules.RuleViolation;
+import io.apicurio.registry.rules.violation.RuleViolation;
 
 /**
  * Represents a single compatibility difference. These are generated when doing compatibility checking between

@@ -1,4 +1,4 @@
-package io.apicurio.registry.rules;
+package io.apicurio.registry.rules.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.erosb.jsonsKema.Schema;

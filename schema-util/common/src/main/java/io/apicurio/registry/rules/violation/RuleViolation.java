@@ -1,4 +1,4 @@
-package io.apicurio.registry.rules;
+package io.apicurio.registry.rules.violation;
 
 import java.util.Objects;
 
@@ -15,7 +15,7 @@ public class RuleViolation {
 
     /**
      * Constructor.
-     * 
+     *
      * @param description
      * @param context
      */

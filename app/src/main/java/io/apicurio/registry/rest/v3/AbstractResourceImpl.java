@@ -8,7 +8,7 @@ import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;

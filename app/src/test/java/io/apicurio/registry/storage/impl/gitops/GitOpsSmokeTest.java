@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.util.GitopsTestProfile;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.RuleType;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;

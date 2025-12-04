@@ -1,7 +1,7 @@
 package io.apicurio.registry.rest.v3.shared;
 
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.utils.impexp.v3.EntityWriter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

@@ -38,7 +38,7 @@ import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.IoUtil;

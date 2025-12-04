@@ -1,4 +1,4 @@
-package io.apicurio.registry.serde.headers;
+package io.apicurio.registry.serde.kafka.headers;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.serde.config.IdOption;
@@ -21,7 +21,7 @@ public class DefaultHeadersHandler implements HeadersHandler {
     private IdOption idOption;
 
     /**
-     * @see io.apicurio.registry.serde.headers.HeadersHandler#configure(java.util.Map, boolean)
+     * @see io.apicurio.registry.serde.kafka.headers.HeadersHandler#configure(java.util.Map, boolean)
      */
     @Override
     public void configure(Map<String, Object> configs, boolean isKey) {
@@ -47,8 +47,8 @@ public class DefaultHeadersHandler implements HeadersHandler {
     }
 
     /**
-     * @see io.apicurio.registry.serde.headers.HeadersHandler#writeHeaders(org.apache.kafka.common.header.Headers,
-     *      io.apicurio.registry.resolver.SchemaLookupResult)
+     * @see io.apicurio.registry.serde.kafka.headers.HeadersHandler#writeHeaders(org.apache.kafka.common.header.Headers,
+     *      io.apicurio.registry.resolver.strategy.ArtifactReference)
      */
     @Override
     public void writeHeaders(Headers headers, ArtifactReference reference) {
@@ -80,7 +80,7 @@ public class DefaultHeadersHandler implements HeadersHandler {
     }
 
     /**
-     * @see io.apicurio.registry.serde.headers.HeadersHandler#readHeaders(org.apache.kafka.common.header.Headers)
+     * @see io.apicurio.registry.serde.kafka.headers.HeadersHandler#readHeaders(org.apache.kafka.common.header.Headers)
      */
     @Override
     public ArtifactReference readHeaders(Headers headers) {

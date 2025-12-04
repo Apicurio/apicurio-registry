@@ -1,14 +1,16 @@
-package io.apicurio.registry.serde;
+package io.apicurio.registry.serde.kafka;
 
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
+import io.apicurio.registry.serde.AbstractSerializer;
+import io.apicurio.registry.serde.Default4ByteIdHandler;
 import io.apicurio.registry.serde.config.SerdeConfig;
-import io.apicurio.registry.serde.data.KafkaSerdeMetadata;
 import io.apicurio.registry.serde.data.SerdeRecord;
-import io.apicurio.registry.serde.headers.HeadersHandler;
+import io.apicurio.registry.serde.kafka.config.BaseKafkaSerDeConfig;
+import io.apicurio.registry.serde.kafka.data.KafkaSerdeMetadata;
+import io.apicurio.registry.serde.kafka.headers.HeadersHandler;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 

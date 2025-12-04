@@ -1,6 +1,6 @@
-package io.apicurio.registry.serde.headers;
+package io.apicurio.registry.serde.kafka.headers;
 
-import io.apicurio.registry.serde.config.KafkaSerdeConfig;
+import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;

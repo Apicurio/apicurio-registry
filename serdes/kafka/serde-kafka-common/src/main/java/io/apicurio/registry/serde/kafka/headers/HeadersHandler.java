@@ -1,4 +1,4 @@
-package io.apicurio.registry.serde.headers;
+package io.apicurio.registry.serde.kafka.headers;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import org.apache.kafka.common.header.Headers;
@@ -19,7 +19,7 @@ public interface HeadersHandler {
     /**
      * Reads the kafka message headers and returns an ArtifactReference that can contain or not information to
      * identify an Artifact in the registry.
-     * 
+     *
      * @param headers
      * @return ArtifactReference
      */

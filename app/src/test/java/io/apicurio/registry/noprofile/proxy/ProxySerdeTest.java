@@ -2,8 +2,8 @@ package io.apicurio.registry.noprofile.proxy;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
-import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;

@@ -1,12 +1,12 @@
-package io.apicurio.registry.serde.headers;
+package io.apicurio.registry.serde.kafka.headers;
 
 import io.apicurio.registry.serde.config.SerdeConfig;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.apicurio.registry.serde.config.KafkaSerdeConfig.*;
-import static io.apicurio.registry.serde.headers.KafkaSerdeHeaders.*;
+import static io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig.*;
+import static io.apicurio.registry.serde.kafka.headers.KafkaSerdeHeaders.*;
 import static java.util.Map.entry;
 
 public class DefaultHeadersHandlerConfig extends SerdeConfig {

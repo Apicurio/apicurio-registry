@@ -1,6 +1,13 @@
 == Apicurio Registry Operator Documentation
 
+[IMPORTANT]
+.Important Notice
+====
+This documentation was taken from the legacy Apicurio Registry Operator repository (v1 and v2) and has not been updated for version 3. We're working on including the v3 operator documentation in the main Apicurio Registry documentation, and will remove this module once that is complete.
+====
+
 The Apicurio Registry Operator documentation is created using https://asciidoc.org/[AsciiDoc] and https://antora.org/[Antora] site generator.
+
 
 You can perform a local build of the documentation for test purposes using the `antora` tool (https://antora.org/):
 

@@ -1,8 +1,8 @@
-package io.apicurio.registry.serde.config;
+package io.apicurio.registry.serde.kafka.config;
 
-import io.apicurio.registry.serde.headers.DefaultHeadersHandler;
-import io.apicurio.registry.serde.headers.HeadersHandler;
-import io.apicurio.registry.serde.headers.KafkaSerdeHeaders;
+import io.apicurio.registry.serde.kafka.headers.DefaultHeadersHandler;
+import io.apicurio.registry.serde.kafka.headers.HeadersHandler;
+import io.apicurio.registry.serde.kafka.headers.KafkaSerdeHeaders;
 
 public class KafkaSerdeConfig {
 

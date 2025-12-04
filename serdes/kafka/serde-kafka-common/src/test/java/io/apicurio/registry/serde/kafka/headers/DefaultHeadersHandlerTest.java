@@ -1,7 +1,7 @@
-package io.apicurio.registry.serde.headers;
+package io.apicurio.registry.serde.kafka.headers;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.serde.config.KafkaSerdeConfig;
+import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;

@@ -1,17 +1,18 @@
-package io.apicurio.registry.serde;
+package io.apicurio.registry.serde.kafka;
 
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.serde.config.BaseKafkaSerDeConfig;
+import io.apicurio.registry.serde.AbstractDeserializer;
+import io.apicurio.registry.serde.BaseSerde;
+import io.apicurio.registry.serde.Default4ByteIdHandler;
 import io.apicurio.registry.serde.config.SerdeConfig;
-import io.apicurio.registry.serde.headers.HeadersHandler;
+import io.apicurio.registry.serde.kafka.config.BaseKafkaSerDeConfig;
+import io.apicurio.registry.serde.kafka.headers.HeadersHandler;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Map;
-
-import static io.apicurio.registry.serde.BaseSerde.MAGIC_BYTE;
 
 public class KafkaDeserializer<T, U> implements Deserializer<U> {
 
@@ -46,7 +47,7 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
                 return delegatedDeserializer.readData(topic, data, artifactReference);
             }
         }
-        if (data[0] == MAGIC_BYTE) {
+        if (data[0] == BaseSerde.MAGIC_BYTE) {
             return deserialize(topic, data);
         } else if (headers == null) {
             throw new IllegalStateException("Headers cannot be null");

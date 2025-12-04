@@ -3,7 +3,7 @@ package io.apicurio.registry.serde.avro;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.KafkaDeserializer;
+import io.apicurio.registry.serde.kafka.KafkaDeserializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.header.Headers;
 

@@ -1,4 +1,4 @@
-package io.apicurio.registry.serde.headers;
+package io.apicurio.registry.serde.kafka.headers;
 
 /**
  * Contains all of the header names used when serde classes are configured to pass information via headers

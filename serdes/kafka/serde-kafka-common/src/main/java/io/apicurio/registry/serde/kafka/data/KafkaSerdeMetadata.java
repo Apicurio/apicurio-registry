@@ -1,6 +1,7 @@
-package io.apicurio.registry.serde.data;
+package io.apicurio.registry.serde.kafka.data;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.serde.data.SerdeMetadata;
 import org.apache.kafka.common.header.Headers;
 
 /**

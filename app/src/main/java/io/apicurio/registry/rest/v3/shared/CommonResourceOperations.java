@@ -4,7 +4,7 @@ import io.apicurio.registry.rest.v3.V3ApiUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 

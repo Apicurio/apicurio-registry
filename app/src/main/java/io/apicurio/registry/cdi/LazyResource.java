@@ -1,6 +1,7 @@
-package io.apicurio.registry.types;
+package io.apicurio.registry.cdi;
 
 import io.apicurio.registry.exception.RuntimeAssertionFailedException;
+import io.apicurio.registry.types.RegistryException;
 import jakarta.annotation.PreDestroy;
 
 import java.util.function.Consumer;

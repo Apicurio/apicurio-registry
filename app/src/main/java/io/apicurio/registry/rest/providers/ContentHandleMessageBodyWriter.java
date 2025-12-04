@@ -1,5 +1,6 @@
-package io.apicurio.registry.content;
+package io.apicurio.registry.rest.providers;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.utils.IoUtil;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.WebApplicationException;

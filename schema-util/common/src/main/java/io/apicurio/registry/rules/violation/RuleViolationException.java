@@ -1,4 +1,4 @@
-package io.apicurio.registry.rules;
+package io.apicurio.registry.rules.violation;
 
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.RuleType;

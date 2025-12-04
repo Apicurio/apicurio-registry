@@ -1,7 +1,7 @@
 package io.apicurio.registry.rules.validity;
 
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.SchemaFactoryAccessor;
 

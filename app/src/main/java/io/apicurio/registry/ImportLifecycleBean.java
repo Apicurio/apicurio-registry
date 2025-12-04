@@ -7,7 +7,7 @@ import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;

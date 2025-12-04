@@ -14,7 +14,7 @@ import com.github.erosb.jsonsKema.JsonParser;
 import com.github.erosb.jsonsKema.SchemaLoaderConfig;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.exception.UnreachableCodeException;
-import io.apicurio.registry.rules.ParsedJsonSchema;
+import io.apicurio.registry.rules.json.ParsedJsonSchema;
 import io.apicurio.registry.rules.validity.JsonSchemaVersion;
 import io.apicurio.registry.types.RegistryException;
 import org.everit.json.schema.loader.SchemaLoader;

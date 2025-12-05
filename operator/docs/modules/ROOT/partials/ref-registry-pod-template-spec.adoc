@@ -43,7 +43,7 @@ The following table contains a list of subfields that are not accepted by the {o
 
 | `spec.containers[*]`
 | warning
-| To configure the {registry} container, `name: registry` must be used
+| To configure the {registry} container, `name: registry` must be used. If a container is not specified with the correct name, the operator will automatically create one and log a warning message. See `io.apicurio.registry.operator.api.v1.ContainerNames` for valid container names.
 
 | `spec.containers[name = "registry"].env`
 | alternative exists

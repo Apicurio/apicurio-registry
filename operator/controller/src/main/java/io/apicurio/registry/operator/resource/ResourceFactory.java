@@ -17,6 +17,8 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -34,6 +36,8 @@ import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
 
 public class ResourceFactory {
+
+    private static final Logger log = LoggerFactory.getLogger(ResourceFactory.class);
 
     public static final ResourceFactory INSTANCE = new ResourceFactory();
 
@@ -163,6 +167,11 @@ public class ResourceFactory {
         }
         var c = getContainerFromPodTemplateSpec(target, containerName);
         if (c == null) {
+            log.warn("Container with name '{}' not found in PodTemplateSpec for component '{}'. "
+                    + "The operator will automatically create it. For better control, specify the container "
+                    + "explicitly with name '{}' in your PodTemplateSpec. "
+                    + "See io.apicurio.registry.operator.api.v1.ContainerNames for valid container names.",
+                    containerName, componentFieldName, containerName);
             if (target.getSpec() == null) {
                 target.setSpec(new PodSpec());
             }

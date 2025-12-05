@@ -50,7 +50,18 @@ jobs:
     uses: ./.github/workflows/verify-build.yaml
 
   # ============================================================================
-  # PHASE 3: Integration Tests (matrix-based parallel execution)
+  # PHASE 3: Unit Tests (parallel with integration tests)
+  # ============================================================================
+  unit-tests:
+    name: Unit Tests
+    needs: build
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    uses: ./.github/workflows/verify-unit-tests.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  # ============================================================================
+  # PHASE 4: Integration Tests (matrix-based parallel execution)
   # ============================================================================
   integration-tests:
     name: Integration Tests
@@ -61,7 +72,7 @@ jobs:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
-  # PHASE 4: Additional Tests (parallel)
+  # PHASE 5: Additional Tests (parallel)
   # ============================================================================
   extras:
     name: Extra Tests
@@ -72,7 +83,7 @@ jobs:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
-  # PHASE 5: SDK Verification (parallel)
+  # PHASE 6: SDK Verification (parallel)
   # ============================================================================
   sdk:
     name: SDK Verification
@@ -83,7 +94,7 @@ jobs:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
-  # PHASE 6: Native Build (reuses build artifacts)
+  # PHASE 7: Native Build (reuses build artifacts)
   # ============================================================================
   native:
     name: Native Build
@@ -94,11 +105,11 @@ jobs:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
-  # PHASE 7: Publish Images (only on push to main)
+  # PHASE 8: Publish Images (only on push to main)
   # ============================================================================
   publish:
     name: Publish Images
-    needs: [build, integration-tests, extras]
+    needs: [build, unit-tests, integration-tests, extras]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
     uses: ./.github/workflows/verify-publish.yaml
     with:
@@ -110,23 +121,23 @@ jobs:
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
 
   # ============================================================================
-  # PHASE 8: Notifications (using reusable workflow)
+  # PHASE 9: Notifications (using reusable workflow)
   # ============================================================================
   notify-slack:
     name: Slack Notification
-    needs: [integration-tests, publish]
+    needs: [unit-tests, integration-tests, publish]
     if: github.event_name == 'push' && always()
     uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'verification'
-      job-status: ${{ (needs.integration-tests.result == 'failure' || needs.publish.result == 'failure') && 'failure' || 'success' }}
+      job-status: ${{ (needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.publish.result == 'failure') && 'failure' || 'success' }}
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
 
   # ============================================================================
-  # PHASE 9: Trigger Downstream (only on push to main)
+  # PHASE 10: Trigger Downstream (only on push to main)
   # ============================================================================
   trigger-3scale-deploy:
     name: Trigger 3scale Deploy

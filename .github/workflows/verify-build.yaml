@@ -16,7 +16,7 @@ on:
 
 jobs:
   build-java:
-    name: Build Java Application
+    name: Build Java Application (no tests)
     runs-on: ubuntu-22.04
     outputs:
       image-tag: ${{ github.sha }}
@@ -31,10 +31,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build and Test Application
+      - name: Build Application (skip tests for speed)
         run: |
-          ./mvnw clean package -T 0.5C --no-transfer-progress \
-            -Pprod -DskipTests=false -DskipCommitIdPlugin=false \
+          ./mvnw clean package -T 1C --no-transfer-progress \
+            -Pprod -DskipTests=true -DskipCommitIdPlugin=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 

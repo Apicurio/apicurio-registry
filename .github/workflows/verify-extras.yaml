@@ -196,6 +196,13 @@ jobs:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .
 
+      - name: Restore executable permissions
+        run: |
+          # GitHub Actions artifact upload/download doesn't preserve executable permissions
+          # Restore execute permission on protoc binaries
+          find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
+          find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'

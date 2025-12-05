@@ -5,8 +5,8 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.KafkaSerializer;
-import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
+import io.apicurio.registry.serde.kafka.KafkaSerializer;
+import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
 import org.apache.kafka.common.header.Headers;
 
 import java.io.IOException;

@@ -1,8 +1,8 @@
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.rules.compatibility.CompatibilityRuleExecutor;
-import io.apicurio.registry.rules.integrity.IntegrityRuleExecutor;
-import io.apicurio.registry.rules.validity.ValidityRuleExecutor;
+import io.apicurio.registry.rules.app.compatibility.CompatibilityRuleExecutor;
+import io.apicurio.registry.rules.app.integrity.IntegrityRuleExecutor;
+import io.apicurio.registry.rules.app.validity.ValidityRuleExecutor;
 import io.apicurio.registry.types.RuleType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

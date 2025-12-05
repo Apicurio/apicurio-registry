@@ -1,6 +1,6 @@
 package io.apicurio.registry.serde.protobuf;
 
-import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
+import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;

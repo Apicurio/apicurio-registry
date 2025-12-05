@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.rest.headers.Headers;
 import io.apicurio.registry.types.VersionState;
 import jakarta.ws.rs.core.Response;
 

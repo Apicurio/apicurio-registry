@@ -6,7 +6,7 @@ import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlValueDeserialize
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlValueSerializer;
 import io.apicurio.registry.storage.impl.util.AsyncProducer;
 import io.apicurio.registry.storage.impl.util.ProducerActions;
-import io.apicurio.registry.types.LazyResource;
+import io.apicurio.registry.cdi.LazyResource;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;

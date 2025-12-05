@@ -1,5 +1,6 @@
 package io.apicurio.registry.client;
 
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Test;

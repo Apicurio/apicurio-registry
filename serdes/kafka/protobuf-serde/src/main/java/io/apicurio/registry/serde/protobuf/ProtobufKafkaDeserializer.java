@@ -4,7 +4,7 @@ import com.google.protobuf.Message;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.KafkaDeserializer;
+import io.apicurio.registry.serde.kafka.KafkaDeserializer;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import org.apache.kafka.common.header.Headers;
 

@@ -1,0 +1,312 @@
+name: Release Artifacts (Maven, SBOMs, Site, NPM Builtins)
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag name'
+        required: true
+      artifacts:
+        description: 'Artifacts to release (comma-separated: maven,sboms,site,builtins,all)'
+        required: true
+        default: 'all'
+  release:
+    types: [released, prereleased]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RELEASE_VERSION: ${{ github.event.release.name }}
+  BRANCH: ${{ github.event.release.target_commitish }}
+
+jobs:
+  # Prepare release details
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-22.04
+    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
+    outputs:
+      release-version: ${{ steps.version.outputs.version }}
+      release-maven: ${{ steps.artifacts.outputs.maven }}
+      release-sboms: ${{ steps.artifacts.outputs.sboms }}
+      release-site: ${{ steps.artifacts.outputs.site }}
+      release-builtins: ${{ steps.artifacts.outputs.builtins }}
+    steps:
+      - name: Fetch Release Details
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          touch release.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${{ github.event.inputs.tag }} > release.json
+          echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+
+      - name: Set version output
+        id: version
+        run: echo "version=${{ env.RELEASE_VERSION }}" >> $GITHUB_OUTPUT
+
+      - name: Determine artifacts to release
+        id: artifacts
+        run: |
+          ARTIFACTS="${{ github.event.inputs.artifacts || 'all' }}"
+          if [[ "$ARTIFACTS" == "all" ]] || [[ "$ARTIFACTS" == *"maven"* ]]; then
+            echo "maven=true" >> $GITHUB_OUTPUT
+          else
+            echo "maven=false" >> $GITHUB_OUTPUT
+          fi
+          if [[ "$ARTIFACTS" == "all" ]] || [[ "$ARTIFACTS" == *"sboms"* ]]; then
+            echo "sboms=true" >> $GITHUB_OUTPUT
+          else
+            echo "sboms=false" >> $GITHUB_OUTPUT
+          fi
+          if [[ "$ARTIFACTS" == "all" ]] || [[ "$ARTIFACTS" == *"site"* ]]; then
+            echo "site=true" >> $GITHUB_OUTPUT
+          else
+            echo "site=false" >> $GITHUB_OUTPUT
+          fi
+          if [[ "$ARTIFACTS" == "all" ]] || [[ "$ARTIFACTS" == *"builtins"* ]]; then
+            echo "builtins=true" >> $GITHUB_OUTPUT
+          else
+            echo "builtins=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Maven Central Release
+  release-maven:
+    name: Release Maven Artifacts
+    runs-on: ubuntu-22.04
+    needs: prepare
+    if: needs.prepare.outputs.release-maven == 'true'
+    timeout-minutes: 90
+    env:
+      MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+    steps:
+      - name: Download Source Code
+        run: |
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
+
+      - name: Verify Project Version
+        run: |
+          cd registry
+          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
+            echo "ERROR: Project Version '${PROJECT_VERSION}' does not match"
+            exit 1
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up settings.xml
+        run: |
+          mkdir -p /home/runner/.m2
+          chmod 755 /home/runner/.m2
+          echo "<settings><servers><server><id>central</id><username>${{ secrets.CENTRAL_USERNAME }}</username><password>${{ secrets.CENTRAL_TOKEN }}</password></server></servers><profiles><profile><id>central</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
+
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Maven Deploy
+        working-directory: registry
+        run: mvn -B --settings /home/runner/.m2/settings.xml deploy -Pprod -Prelease -DskipTests
+
+  # SBOMs Generation
+  release-sboms:
+    name: Release SBOMs
+    runs-on: ubuntu-22.04
+    needs: prepare
+    if: needs.prepare.outputs.release-sboms == 'true'
+    timeout-minutes: 30
+    steps:
+      - name: Download Source Code
+        run: |
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
+
+      - name: Checkout SBOMs Repo
+        run: |
+          git clone --branch main --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-sboms.git sboms
+          cd sboms
+          echo "SBOM_OUTPUT_DIR=$(pwd)/apicurio-registry/${{ needs.prepare.outputs.release-version }}" >> $GITHUB_ENV
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'registry/ui/**/package-lock.json'
+
+      - name: Maven Install
+        run: |
+          cd registry
+          mvn install -Pprod -DskipTests
+
+      - name: Generate Maven SBOMs
+        run: |
+          mkdir -p $SBOM_OUTPUT_DIR
+          cd registry
+          mvn -f app/pom.xml dependency:tree -DoutputType=dot -Dscope=runtime -DoutputFile=$SBOM_OUTPUT_DIR/apicurio-registry-app-${{ needs.prepare.outputs.release-version }}.runtime.sbom.dot
+
+      - name: Generate npm SBOMs
+        run: |
+          cd registry/ui
+          npm install
+          for dir in ui-app ui-docs ui-editors; do
+            cd $dir
+            npm list -prod -depth 10 --json > $SBOM_OUTPUT_DIR/apicurio-registry-$dir-${{ needs.prepare.outputs.release-version }}.sbom.npm
+            cd ..
+          done
+
+      - name: Commit SBOMs to Repo
+        run: |
+          cd sboms
+          git add .
+          git commit -m "Generated SBOMs for release ${{ needs.prepare.outputs.release-version }}"
+          git push origin main
+
+  # Maven Site Generation
+  release-site:
+    name: Release Maven Site
+    runs-on: ubuntu-22.04
+    needs: prepare
+    if: needs.prepare.outputs.release-site == 'true'
+    timeout-minutes: 30
+    steps:
+      - name: Download Source Code
+        run: |
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
+
+      - name: Verify Project Version
+        run: |
+          cd registry
+          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
+            echo "ERROR: Project Version '${PROJECT_VERSION}' does not match"
+            exit 1
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Generate Maven Site
+        run: |
+          cd registry
+          mvn clean install -DskipTests
+          cd utils/maven-plugin
+          mvn site
+
+      - name: Apicurio Website Checkout
+        run: |
+          mkdir website
+          cd website
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio.github.io.git"
+          git fetch
+          git checkout main
+          git branch --set-upstream-to=origin/main
+          git pull
+
+      - name: Copy Maven Site to Website
+        run: |
+          mkdir -p website/registry/maven-plugin/${{ needs.prepare.outputs.release-version }}
+          cp -rf registry/utils/maven-plugin/target/site/* website/registry/maven-plugin/${{ needs.prepare.outputs.release-version }}
+
+      - name: Commit Maven Site to Website
+        run: |
+          cd website
+          git add .
+          git commit -m "Automated Publishing of Maven Site for release ${{ needs.prepare.outputs.release-version }}"
+          git pull origin main
+          git push
+
+  # Artifact Type Builtins (NPM)
+  release-builtins:
+    name: Release Artifact Type Builtins
+    runs-on: ubuntu-22.04
+    needs: prepare
+    if: needs.prepare.outputs.release-builtins == 'true'
+    timeout-minutes: 20
+    steps:
+      - name: Download Source Code
+        run: |
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
+
+      - name: Verify Project Version
+        run: |
+          cd registry
+          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
+            echo "ERROR: Project Version '${PROJECT_VERSION}' does not match"
+            exit 1
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        working-directory: registry
+        run: mvn clean install -pl app -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+
+      - name: Verify Generated Files Exist
+        working-directory: registry
+        run: |
+          if [ ! -f app/target/classes/META-INF/quickjs4j/ArtifactTypeScriptProvider_Builtins.d.ts ]; then
+            echo "ERROR: Generated TypeScript definitions not found"
+            exit 1
+          fi
+          if [ ! -f app/target/classes/META-INF/quickjs4j/ArtifactTypeScriptProvider_Builtins.mjs ]; then
+            echo "ERROR: Generated JavaScript module not found"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Build and Publish Artifact Type Builtins Package
+        working-directory: registry/artifact-type-builtins
+        run: |
+          npm install
+          npm run build
+          npm publish --access public
+
+  # Consolidated Slack Notification (using reusable workflow)
+  notify-slack:
+    name: Slack Notification
+    needs: [prepare, release-maven, release-sboms, release-site, release-builtins]
+    if: always()
+    uses: ./.github/workflows/reusable/reusable-notify-slack.yaml
+    with:
+      workflow-name: ${{ github.workflow }}
+      job-name: 'artifact-releases'
+      job-status: ${{ (needs.release-maven.result == 'failure' || needs.release-sboms.result == 'failure' || needs.release-site.result == 'failure' || needs.release-builtins.result == 'failure') && 'failure' || 'success' }}
+    secrets:
+      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

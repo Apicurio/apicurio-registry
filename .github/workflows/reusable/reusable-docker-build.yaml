@@ -25,6 +25,11 @@ on:
         required: false
         type: string
         default: 'latest-snapshot'
+      additional-tags:
+        description: 'Additional tags (comma-separated, e.g., "latest,1.0.0")'
+        required: false
+        type: string
+        default: ''
       push-to-dockerhub:
         description: 'Push to DockerHub'
         required: false
@@ -35,6 +40,31 @@ on:
         required: false
         type: boolean
         default: true
+      download-artifact:
+        description: 'Name of artifact to download before build (optional)'
+        required: false
+        type: string
+        default: ''
+      artifact-path:
+        description: 'Path to extract artifact to (default: current directory)'
+        required: false
+        type: string
+        default: '.'
+      java-version:
+        description: 'Java version for Maven build (if maven-build is true)'
+        required: false
+        type: string
+        default: '17'
+      maven-build:
+        description: 'Run Maven build before Docker build'
+        required: false
+        type: boolean
+        default: false
+      maven-args:
+        description: 'Maven arguments for build'
+        required: false
+        type: string
+        default: 'clean package -Pprod -DskipTests --no-transfer-progress'
     secrets:
       DOCKERHUB_USERNAME:
         required: false
@@ -52,6 +82,25 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        if: inputs.download-artifact != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.download-artifact }}
+          path: ${{ inputs.artifact-path }}
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        if: inputs.maven-build
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Maven Build
+        if: inputs.maven-build
+        run: ./mvnw ${{ inputs.maven-args }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -71,6 +120,8 @@ jobs:
         id: tags
         run: |
           TAGS=""
+
+          # Add primary tag
           if [ "${{ inputs.push-to-dockerhub }}" == "true" ]; then
             TAGS="docker.io/${{ inputs.image-name }}:${{ inputs.tag }}"
           fi
@@ -81,6 +132,21 @@ jobs:
               TAGS="quay.io/${{ inputs.image-name }}:${{ inputs.tag }}"
             fi
           fi
+
+          # Add additional tags
+          if [ -n "${{ inputs.additional-tags }}" ]; then
+            IFS=',' read -ra EXTRA_TAGS <<< "${{ inputs.additional-tags }}"
+            for extra_tag in "${EXTRA_TAGS[@]}"; do
+              extra_tag=$(echo "$extra_tag" | xargs)  # trim whitespace
+              if [ "${{ inputs.push-to-dockerhub }}" == "true" ]; then
+                TAGS="$TAGS,docker.io/${{ inputs.image-name }}:$extra_tag"
+              fi
+              if [ "${{ inputs.push-to-quay }}" == "true" ]; then
+                TAGS="$TAGS,quay.io/${{ inputs.image-name }}:$extra_tag"
+              fi
+            done
+          fi
+
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and Push Multi-arch Image

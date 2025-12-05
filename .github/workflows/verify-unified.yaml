@@ -1,0 +1,694 @@
+name: Unified Verification Workflow
+on:
+  push:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+    branches: [main]
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # PHASE 1: Fast Checks (fail early)
+  # ============================================================================
+  lint-and-validate:
+    name: Lint and Validate
+    runs-on: ubuntu-22.04
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run linter
+        run: ./scripts/validate-files.sh
+
+      - name: Verify docs generation
+        run: |
+          if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
+            echo "Docs needs to be regenerated. Run 'mvn clean install -pl docs -am -DskipTests' and commit the resulting files in the 'docs' folder."
+            git --no-pager diff docs
+            exit 1
+          fi
+
+  # ============================================================================
+  # PHASE 2: Build (parallel Java + UI builds)
+  # ============================================================================
+  build-java:
+    name: Build Java Application
+    runs-on: ubuntu-22.04
+    needs: lint-and-validate
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    outputs:
+      image-tag: ${{ github.sha }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build and Test Application
+        run: |
+          ./mvnw clean package -T 1C --no-transfer-progress \
+            -Pprod -DskipTests=false -DskipCommitIdPlugin=false \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Build Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }} \
+            ./distro/docker/target/docker
+
+      - name: Save Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@v2
+        with:
+          image-name: apicurio/apicurio-registry
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+
+      - name: Upload Build Artifacts for Native Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: |
+            app/target/
+            distro/docker/target/
+          retention-days: 1
+
+  build-ui:
+    name: Build UI Application
+    runs-on: ubuntu-22.04
+    needs: lint-and-validate
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'ui/**/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Lint
+        working-directory: ui
+        run: npm run lint
+
+      - name: Build
+        working-directory: ui
+        run: npm run build
+
+      - name: Package
+        working-directory: ui
+        run: npm run package
+
+      - name: Install Test Dependencies
+        working-directory: ui/tests
+        run: npm install
+
+      - name: Lint Tests
+        working-directory: ui/tests
+        run: npm run lint
+
+      - name: Build UI Docker Image
+        working-directory: ui
+        run: |
+          docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
+
+      - name: Save UI Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@v2
+        with:
+          image-name: apicurio/apicurio-registry-ui
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'
+
+  # ============================================================================
+  # PHASE 3: Integration Tests (matrix-based parallel execution)
+  # ============================================================================
+  integration-tests:
+    name: Integration Tests (${{ matrix.storage }}-${{ matrix.profile }})
+    runs-on: ubuntu-22.04
+    needs: build-java
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    strategy:
+      fail-fast: false
+      matrix:
+        storage: [h2, postgresql, kafkasql]
+        profile: [ci, auth, migration]
+        include:
+          - storage: h2
+            profile: debezium-all
+          - storage: kafkasql
+            profile: kafkasql-snapshotting
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          minikube: 'true'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
+
+      - name: Set storage-specific variables
+        id: storage-vars
+        run: |
+          case "${{ matrix.storage }}" in
+            h2)
+              echo "remote-profile=remote-mem" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-in-memory-image" >> $GITHUB_OUTPUT
+              ;;
+            postgresql)
+              echo "remote-profile=remote-sql" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-sql-image" >> $GITHUB_OUTPUT
+              ;;
+            kafkasql)
+              echo "remote-profile=remote-kafka" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-kafkasql-image" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Run Integration Tests
+        run: |
+          ./mvnw verify -am --no-transfer-progress \
+            -Pintegration-tests \
+            -P${{ matrix.profile }} \
+            -P${{ steps.storage-vars.outputs.remote-profile }} \
+            -D${{ steps.storage-vars.outputs.image-prop }}=apicurio/apicurio-registry:${{ github.sha }} \
+            -pl integration-tests \
+            -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: sh ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-logs-${{ matrix.storage }}-${{ matrix.profile }}
+          path: artifacts
+
+  # ============================================================================
+  # PHASE 4: Additional Tests (parallel)
+  # ============================================================================
+  extra-tests:
+    name: Extra Tests
+    runs-on: ubuntu-22.04
+    needs: build-java
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: apicurio-registry-${{ github.sha }}.tar
+          image-file: /tmp/apicurio-registry-${{ github.sha }}.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ github.sha }}
+
+      - name: Run Extra Tests
+        run: |
+          ./mvnw verify --no-transfer-progress -pl utils/extra-tests -am \
+            -DskipUTs -Pextra-tests \
+            -Dregistry3-image=apicurio/apicurio-registry:${{ github.sha }} \
+            -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: sh ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-logs-extra
+          path: artifacts
+
+  integration-tests-ui:
+    name: Integration Tests UI
+    runs-on: ubuntu-22.04
+    needs: [build-java, build-ui]
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'ui/tests/package-lock.json'
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry-ui'
+          tag: '${{ github.sha }}'
+
+      - name: Run UI tests
+        run: |
+          echo "Starting Registry App (In Memory)"
+          docker run -it -p 8080:8080 \
+              -e apicurio.rest.deletion.artifact.enabled=true \
+              -e apicurio.rest.deletion.group.enabled=true \
+              -d apicurio/apicurio-registry:${{ github.sha }}
+          echo "Starting Registry UI"
+          docker run -it -p 8888:8080 -d apicurio/apicurio-registry-ui:${{ github.sha }}
+
+          cd ui/tests
+          npm install
+          npx playwright install --with-deps
+
+          echo "App System Info:"
+          curl -s http://localhost:8080/apis/registry/v3/system/info || true
+          echo ""
+          echo "Running Playwright tests!"
+          npm run test
+
+      - name: Upload Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: ui/tests/playwright-report/
+          retention-days: 30
+
+  integration-tests-legacy-v2:
+    name: Integration Tests Legacy V2
+    runs-on: ubuntu-22.04
+    needs: build-java
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Registry 2.6
+        uses: actions/checkout@v4
+        with:
+          ref: 2.6.x
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
+
+      - name: Run Legacy Integration Tests (Core API v2)
+        run: |
+          echo "Starting Registry App (In Memory)"
+          docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d apicurio/apicurio-registry:${{ github.sha }}
+          ./mvnw -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
+          cd integration-tests
+          ../mvnw verify -Pregression -Dmaven.javadoc.skip=true -Dquarkus.http.test-host=localhost -Dquarkus.http.test-port=8181
+
+      - name: Collect logs
+        if: failure()
+        run: sh ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-logs-legacy-v2
+          path: artifacts
+
+  integration-tests-typescript-sdk:
+    name: Integration Tests Typescript SDK
+    runs-on: ubuntu-22.04
+    needs: build-java
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
+
+      - name: Run SDK tests
+        run: |
+          echo "Starting Registry App (In Memory)"
+          docker run -it -p 8080:8080 -e apicurio.rest.deletion.artifact.enabled=true -d apicurio/apicurio-registry:${{ github.sha }}
+
+          cd typescript-sdk
+          npm install
+          npm run generate-sources
+          npm run test
+
+  build-examples:
+    name: Build and Run Application examples
+    runs-on: ubuntu-22.04
+    needs: build-java
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: .
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
+
+      - name: Run Apicurio Registry application
+        run: |
+          docker run -d -p 8080:8080 -it apicurio/apicurio-registry:${{ github.sha }}
+
+      - name: Build Apicurio Registry with Examples
+        run: |
+          mvn install -DskipTests -Pexamples --no-transfer-progress
+
+  # ============================================================================
+  # PHASE 5: SDK Verification (parallel)
+  # ============================================================================
+  verify-python-sdk:
+    name: Verify Python SDK
+    runs-on: ubuntu-22.04
+    needs: build-java
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
+
+      - name: Install the package
+        working-directory: python-sdk
+        run: make install
+
+      - name: Check linting
+        working-directory: python-sdk
+        run: make lint-check
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
+
+      - name: Run the tests
+        working-directory: python-sdk
+        run: |
+          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ github.sha }}
+          sleep 5
+          make test
+
+  verify-go-sdk:
+    name: Verify Go SDK
+    runs-on: ubuntu-22.04
+    needs: build-java
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Go - Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ github.sha }}'
+
+      - name: Run the tests
+        working-directory: go-sdk
+        run: |
+          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ github.sha }}
+          sleep 5
+          make test
+
+  # ============================================================================
+  # PHASE 6: Native Build (reuses build artifacts from build-java)
+  # ============================================================================
+  build-native-images:
+    name: Build and Test Native images
+    runs-on: ubuntu-22.04
+    needs: build-java
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: .
+
+      - name: Workaround jackson-coreutils
+        run: |
+          rm -rf ~/.m2/repository/com/github/java-json-tools
+          mkdir -p /tmp/coreutils-workaround
+          ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
+
+      - name: Build Native executables
+        env:
+          SKIP_TESTS: "true"
+        run: |
+          ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
+
+      - name: Build Temporary image for testing
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.native -t apicurio/apicurio-registry-native:${{ github.sha }} app/
+
+      - uses: apicurio/apicurio-github-actions/save-docker-image@v2
+        with:
+          image-name: apicurio/apicurio-registry-native
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-native-${{ github.sha }}.tar'
+          upload: 'false'
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+        with:
+          image-file: '/tmp/apicurio-registry-native-${{ github.sha }}.tar'
+          image-name: 'apicurio/apicurio-registry-native'
+          tag: '${{ github.sha }}'
+          download: 'false'
+          minikube: 'true'
+
+      - name: Run Integration Tests - Native
+        run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=apicurio/apicurio-registry-native:${{ github.sha }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - Native - Auth
+        run: ./mvnw verify -am -Pauth --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=apicurio/apicurio-registry-native:${{ github.sha }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-logs-native
+          path: artifacts
+
+  # ============================================================================
+  # PHASE 7: Publish Images (only on push to main, using reusable workflows)
+  # ============================================================================
+  publish-app-image:
+    name: Publish App Docker Image
+    needs: [build-java, build-ui, integration-tests]
+    if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
+    uses: ./.github/workflows/reusable/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry'
+      dockerfile: './distro/docker/target/docker/Dockerfile.jvm'
+      context: './distro/docker/target/docker'
+      tag: 'latest-snapshot'
+      maven-build: true
+      maven-args: 'clean package -T1C -Pprod -DskipTests --no-transfer-progress -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5'
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  publish-mcp-image:
+    name: Publish MCP Server Docker Image
+    needs: [build-java, integration-tests]
+    if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
+    uses: ./.github/workflows/reusable/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry-mcp-server'
+      dockerfile: './mcp/target/docker/Dockerfile.jvm'
+      context: './mcp/target/docker'
+      tag: 'latest-snapshot'
+      push-to-dockerhub: false
+      maven-build: true
+      maven-args: 'clean package -T 1C -Pprod -DskipTests --no-transfer-progress -pl mcp -am'
+    secrets:
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  publish-ui-image:
+    name: Publish UI Docker Image
+    needs: [build-ui, integration-tests-ui]
+    if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
+    uses: ./.github/workflows/reusable/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry-ui'
+      dockerfile: './ui/Dockerfile'
+      context: './ui'
+      tag: 'latest-snapshot'
+      maven-build: false
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  publish-native-image:
+    name: Publish Native Docker Image
+    needs: build-native-images
+    if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
+    uses: ./.github/workflows/reusable/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry-native'
+      dockerfile: './distro/docker/target/docker/Dockerfile.native'
+      context: './app'
+      tag: 'latest-snapshot'
+      platforms: 'linux/amd64'
+      maven-build: true
+      maven-args: 'package -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests --no-transfer-progress'
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  # ============================================================================
+  # PHASE 8: Notifications (using reusable workflow)
+  # ============================================================================
+  notify-slack:
+    name: Slack Notification
+    needs: [integration-tests, publish-app-image, publish-ui-image, publish-mcp-image]
+    if: github.event_name == 'push' && always()
+    uses: ./.github/workflows/reusable/reusable-notify-slack.yaml
+    with:
+      workflow-name: ${{ github.workflow }}
+      job-name: 'verification'
+      job-status: ${{ (needs.integration-tests.result == 'failure' || needs.publish-app-image.result == 'failure' || needs.publish-ui-image.result == 'failure' || needs.publish-mcp-image.result == 'failure') && 'failure' || 'success' }}
+    secrets:
+      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
+
+  # ============================================================================
+  # PHASE 9: Trigger Downstream (only on push to main)
+  # ============================================================================
+  trigger-3scale-deploy:
+    name: Trigger 3scale Deploy
+    needs: [publish-app-image, publish-ui-image]
+    if: github.event_name == 'push'
+    uses: apicurio/apicurio-3scale-gitops/.github/workflows/deploy_latest_registry.yml@main
+    secrets: inherit

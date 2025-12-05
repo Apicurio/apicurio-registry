@@ -42,22 +42,12 @@ jobs:
       - name: View Disk Usage
         run: df -h
 
-        # Open-Source Machine emulator that allows you to emulate multiple CPU architectures on your machine
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-        
-        # Docker CLI plugin for extended build capabilities with BuildKit
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Inspect builder
-        run: |
-          echo "Name:      ${{ steps.buildx.outputs.name }}"
-          echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
-          echo "Status:    ${{ steps.buildx.outputs.status }}"
-          echo "Flags:     ${{ steps.buildx.outputs.flags }}"
-          echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+        uses: docker/setup-buildx-action@v3
 
       - name: Fetch Release Details
         if: github.event_name == 'workflow_dispatch'
@@ -88,20 +78,20 @@ jobs:
           fi
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Build Registry
         run: |
           cd registry
-          ./mvnw clean package -T 1C -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw clean package -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Registry UI
         working-directory: registry/ui
@@ -162,7 +152,7 @@ jobs:
           SKIP_TESTS: "true"
         run: |
           cd registry
-          ./mvnw package -T 1C --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
+          ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 
       - name: Build and Push Native image for testing
         run: |
@@ -176,20 +166,16 @@ jobs:
               -t quay.io/apicurio/apicurio-registry-native:$RELEASE_VERSION \
             app/
 
-      - name: Slack Notification (Always)
-        if: always()
-        run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-
-      - name: Slack Notification (Error)
-        if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
+  # Slack notification using reusable workflow
+  notify-slack:
+    name: Slack Notification
+    needs: release-images
+    if: always()
+    uses: ./.github/workflows/reusable/reusable-notify-slack.yaml
+    with:
+      workflow-name: ${{ github.workflow }}
+      job-name: 'release-images'
+      job-status: ${{ needs.release-images.result }}
+    secrets:
+      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

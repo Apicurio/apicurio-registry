@@ -13,6 +13,8 @@ import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Map;
@@ -25,6 +27,8 @@ import static io.apicurio.registry.utils.CollectionsUtil.toMap;
 
 @ApplicationScoped
 public class KafkaSqlConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaSqlConfiguration.class);
 
     /**
      * Configure number of partitions for Kafka topics created by Apicurio Registry.
@@ -290,25 +294,65 @@ public class KafkaSqlConfiguration {
     @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl truststore type")
     Optional<String> trustStoreType;
 
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.truststore.password")
+    @ConfigProperty(name = "apicurio.kafkasql.security.ssl.truststore.password")
     @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl truststore password")
     Optional<String> trustStorePassword;
 
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.location")
+    /**
+     * @deprecated Use apicurio.kafkasql.security.ssl.truststore.password instead. This property will be removed in a future version.
+     */
+    @Deprecated(since = "3.1.0", forRemoval = true)
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.truststore.password")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl truststore password (deprecated, use apicurio.kafkasql.security.ssl.truststore.password)")
+    Optional<String> trustStorePasswordDeprecated;
+
+    @ConfigProperty(name = "apicurio.kafkasql.security.ssl.keystore.location")
     @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore location")
     Optional<String> keyStoreLocation;
 
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.type")
+    /**
+     * @deprecated Use apicurio.kafkasql.security.ssl.keystore.location instead. This property will be removed in a future version.
+     */
+    @Deprecated(since = "3.1.0", forRemoval = true)
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.location")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore location (deprecated, use apicurio.kafkasql.security.ssl.keystore.location)")
+    Optional<String> keyStoreLocationDeprecated;
+
+    @ConfigProperty(name = "apicurio.kafkasql.security.ssl.keystore.type")
     @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore type")
     Optional<String> keyStoreType;
 
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.password")
+    /**
+     * @deprecated Use apicurio.kafkasql.security.ssl.keystore.type instead. This property will be removed in a future version.
+     */
+    @Deprecated(since = "3.1.0", forRemoval = true)
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.type")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore type (deprecated, use apicurio.kafkasql.security.ssl.keystore.type)")
+    Optional<String> keyStoreTypeDeprecated;
+
+    @ConfigProperty(name = "apicurio.kafkasql.security.ssl.keystore.password")
     @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore password")
     Optional<String> keyStorePassword;
 
-    @ConfigProperty(name = "apicurio.kafkasql.ssl.key.password")
+    /**
+     * @deprecated Use apicurio.kafkasql.security.ssl.keystore.password instead. This property will be removed in a future version.
+     */
+    @Deprecated(since = "3.1.0", forRemoval = true)
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.keystore.password")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl keystore password (deprecated, use apicurio.kafkasql.security.ssl.keystore.password)")
+    Optional<String> keyStorePasswordDeprecated;
+
+    @ConfigProperty(name = "apicurio.kafkasql.security.ssl.key.password")
     @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl key password")
     Optional<String> keyPassword;
+
+    /**
+     * @deprecated Use apicurio.kafkasql.security.ssl.key.password instead. This property will be removed in a future version.
+     */
+    @Deprecated(since = "3.1.0", forRemoval = true)
+    @ConfigProperty(name = "apicurio.kafkasql.ssl.key.password")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage ssl key password (deprecated, use apicurio.kafkasql.security.ssl.key.password)")
+    Optional<String> keyPasswordDeprecated;
 
     private void tryToConfigureClientSecurity(Map<String, String> props) {
         protocol.ifPresent(s -> props.putIfAbsent("security.protocol", s));
@@ -324,18 +368,62 @@ public class KafkaSqlConfiguration {
             props.putIfAbsent(SaslConfigs.SASL_MECHANISM, saslMechanism);
             props.putIfAbsent(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandler);
         }
+
         // Try to configure the trustStore, if specified
-        if (trustStoreLocation.isPresent() && trustStorePassword.isPresent() && trustStoreType.isPresent()) {
+        // Use new property names, falling back to deprecated ones if new ones are not set
+        Optional<String> effectiveTrustStorePassword = trustStorePassword.or(() -> {
+            if (trustStorePasswordDeprecated.isPresent()) {
+                log.warn("Configuration property 'apicurio.kafkasql.ssl.truststore.password' is deprecated and will be removed in a future version. "
+                        + "Please migrate to 'apicurio.kafkasql.security.ssl.truststore.password'");
+            }
+            return trustStorePasswordDeprecated;
+        });
+
+        if (trustStoreLocation.isPresent() && effectiveTrustStorePassword.isPresent() && trustStoreType.isPresent()) {
             props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, trustStoreType.get());
             props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStoreLocation.get());
-            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, trustStorePassword.get());
+            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, effectiveTrustStorePassword.get());
         }
+
         // Finally, try to configure the keystore, if specified
-        if (keyStoreLocation.isPresent() && keyStorePassword.isPresent() && keyStoreType.isPresent()) {
-            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, keyStoreType.get());
-            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStoreLocation.get());
-            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword.get());
-            keyPassword.ifPresent(s -> props.putIfAbsent(SslConfigs.SSL_KEY_PASSWORD_CONFIG, s));
+        // Use new property names, falling back to deprecated ones if new ones are not set
+        Optional<String> effectiveKeyStoreLocation = keyStoreLocation.or(() -> {
+            if (keyStoreLocationDeprecated.isPresent()) {
+                log.warn("Configuration property 'apicurio.kafkasql.ssl.keystore.location' is deprecated and will be removed in a future version. "
+                        + "Please migrate to 'apicurio.kafkasql.security.ssl.keystore.location'");
+            }
+            return keyStoreLocationDeprecated;
+        });
+
+        Optional<String> effectiveKeyStoreType = keyStoreType.or(() -> {
+            if (keyStoreTypeDeprecated.isPresent()) {
+                log.warn("Configuration property 'apicurio.kafkasql.ssl.keystore.type' is deprecated and will be removed in a future version. "
+                        + "Please migrate to 'apicurio.kafkasql.security.ssl.keystore.type'");
+            }
+            return keyStoreTypeDeprecated;
+        });
+
+        Optional<String> effectiveKeyStorePassword = keyStorePassword.or(() -> {
+            if (keyStorePasswordDeprecated.isPresent()) {
+                log.warn("Configuration property 'apicurio.kafkasql.ssl.keystore.password' is deprecated and will be removed in a future version. "
+                        + "Please migrate to 'apicurio.kafkasql.security.ssl.keystore.password'");
+            }
+            return keyStorePasswordDeprecated;
+        });
+
+        Optional<String> effectiveKeyPassword = keyPassword.or(() -> {
+            if (keyPasswordDeprecated.isPresent()) {
+                log.warn("Configuration property 'apicurio.kafkasql.ssl.key.password' is deprecated and will be removed in a future version. "
+                        + "Please migrate to 'apicurio.kafkasql.security.ssl.key.password'");
+            }
+            return keyPasswordDeprecated;
+        });
+
+        if (effectiveKeyStoreLocation.isPresent() && effectiveKeyStorePassword.isPresent() && effectiveKeyStoreType.isPresent()) {
+            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, effectiveKeyStoreType.get());
+            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, effectiveKeyStoreLocation.get());
+            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, effectiveKeyStorePassword.get());
+            effectiveKeyPassword.ifPresent(s -> props.putIfAbsent(SslConfigs.SSL_KEY_PASSWORD_CONFIG, s));
         }
     }
 }

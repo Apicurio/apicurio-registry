@@ -302,7 +302,7 @@ jobs:
     name: Slack Notification
     needs: [prepare, release-maven, release-sboms, release-site, release-builtins]
     if: always()
-    uses: ./.github/workflows/reusable/reusable-notify-slack.yaml
+    uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'artifact-releases'

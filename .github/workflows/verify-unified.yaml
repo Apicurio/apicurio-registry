@@ -600,7 +600,7 @@ jobs:
     name: Publish App Docker Image
     needs: [build-java, build-ui, integration-tests]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
-    uses: ./.github/workflows/reusable/reusable-docker-build.yaml
+    uses: ./.github/workflows/reusable-docker-build.yaml
     with:
       image-name: 'apicurio/apicurio-registry'
       dockerfile: './distro/docker/target/docker/Dockerfile.jvm'
@@ -618,7 +618,7 @@ jobs:
     name: Publish MCP Server Docker Image
     needs: [build-java, integration-tests]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
-    uses: ./.github/workflows/reusable/reusable-docker-build.yaml
+    uses: ./.github/workflows/reusable-docker-build.yaml
     with:
       image-name: 'apicurio/apicurio-registry-mcp-server'
       dockerfile: './mcp/target/docker/Dockerfile.jvm'
@@ -635,7 +635,7 @@ jobs:
     name: Publish UI Docker Image
     needs: [build-ui, integration-tests-ui]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
-    uses: ./.github/workflows/reusable/reusable-docker-build.yaml
+    uses: ./.github/workflows/reusable-docker-build.yaml
     with:
       image-name: 'apicurio/apicurio-registry-ui'
       dockerfile: './ui/Dockerfile'
@@ -652,7 +652,7 @@ jobs:
     name: Publish Native Docker Image
     needs: build-native-images
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
-    uses: ./.github/workflows/reusable/reusable-docker-build.yaml
+    uses: ./.github/workflows/reusable-docker-build.yaml
     with:
       image-name: 'apicurio/apicurio-registry-native'
       dockerfile: './distro/docker/target/docker/Dockerfile.native'
@@ -674,7 +674,7 @@ jobs:
     name: Slack Notification
     needs: [integration-tests, publish-app-image, publish-ui-image, publish-mcp-image]
     if: github.event_name == 'push' && always()
-    uses: ./.github/workflows/reusable/reusable-notify-slack.yaml
+    uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'verification'

@@ -218,7 +218,7 @@ jobs:
     name: Slack Notification
     needs: [prepare, release-python-sdk, release-go-sdk, release-typescript-sdk]
     if: always()
-    uses: ./.github/workflows/reusable/reusable-notify-slack.yaml
+    uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'sdk-releases'

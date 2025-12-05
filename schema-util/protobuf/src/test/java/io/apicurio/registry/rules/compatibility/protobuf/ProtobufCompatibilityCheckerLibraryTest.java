@@ -1,6 +1,7 @@
 package io.apicurio.registry.rules.compatibility.protobuf;
 
 import io.apicurio.registry.protobuf.ProtobufDifference;
+import io.apicurio.registry.protobuf.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import org.junit.jupiter.api.Test;
 

@@ -1,5 +1,6 @@
 package io.apicurio.registry.rules.validity;
 
+import io.apicurio.registry.asyncapi.rules.validity.AsyncApiContentValidator;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import org.junit.jupiter.api.Assertions;

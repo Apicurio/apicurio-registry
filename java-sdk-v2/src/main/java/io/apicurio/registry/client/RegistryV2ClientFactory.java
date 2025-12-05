@@ -1,6 +1,9 @@
 package io.apicurio.registry.client;
 
 import com.microsoft.kiota.RequestAdapter;
+import io.apicurio.registry.client.common.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientRequestAdapterFactory;
+import io.apicurio.registry.client.common.Version;
 import io.apicurio.registry.rest.client.v2.RegistryClient;
 
 /**

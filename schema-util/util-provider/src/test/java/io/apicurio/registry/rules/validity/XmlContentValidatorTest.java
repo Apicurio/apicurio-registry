@@ -2,6 +2,7 @@ package io.apicurio.registry.rules.validity;
 
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.xsd.rules.validity.XsdContentValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

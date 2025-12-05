@@ -1,20 +1,20 @@
 package io.apicurio.registry.types.provider;
 
-import io.apicurio.registry.content.AvroContentAccepter;
+import io.apicurio.registry.avro.content.AvroContentAccepter;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.content.canon.EnhancedAvroContentCanonicalizer;
-import io.apicurio.registry.content.dereference.AvroDereferencer;
+import io.apicurio.registry.avro.content.canon.EnhancedAvroContentCanonicalizer;
+import io.apicurio.registry.avro.content.dereference.AvroDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
-import io.apicurio.registry.content.extract.AvroContentExtractor;
+import io.apicurio.registry.avro.content.extract.AvroContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.refs.AvroReferenceArtifactIdentifierExtractor;
-import io.apicurio.registry.content.refs.AvroReferenceFinder;
+import io.apicurio.registry.avro.content.refs.AvroReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
-import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
+import io.apicurio.registry.avro.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
-import io.apicurio.registry.rules.validity.AvroContentValidator;
+import io.apicurio.registry.avro.rules.validity.AvroContentValidator;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;

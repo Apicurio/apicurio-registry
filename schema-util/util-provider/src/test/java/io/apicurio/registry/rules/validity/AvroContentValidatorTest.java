@@ -1,5 +1,6 @@
 package io.apicurio.registry.rules.validity;
 
+import io.apicurio.registry.avro.rules.validity.AvroContentValidator;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolationException;

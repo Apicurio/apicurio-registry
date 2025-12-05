@@ -1,21 +1,21 @@
 package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.ContentAccepter;
-import io.apicurio.registry.content.OpenApiContentAccepter;
+import io.apicurio.registry.openapi.content.OpenApiContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.content.canon.OpenApiContentCanonicalizer;
+import io.apicurio.registry.openapi.content.canon.OpenApiContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
-import io.apicurio.registry.content.dereference.OpenApiDereferencer;
+import io.apicurio.registry.openapi.content.dereference.OpenApiDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.content.extract.OpenApiContentExtractor;
+import io.apicurio.registry.openapi.content.extract.OpenApiContentExtractor;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
-import io.apicurio.registry.content.refs.OpenApiReferenceFinder;
+import io.apicurio.registry.openapi.content.refs.OpenApiReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.OpenApiCompatibilityChecker;
+import io.apicurio.registry.openapi.rules.compatibility.OpenApiCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
-import io.apicurio.registry.rules.validity.OpenApiContentValidator;
+import io.apicurio.registry.openapi.rules.validity.OpenApiContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 

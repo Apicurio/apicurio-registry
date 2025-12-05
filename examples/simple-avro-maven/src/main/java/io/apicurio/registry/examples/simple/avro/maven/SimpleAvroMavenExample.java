@@ -18,7 +18,7 @@ package io.apicurio.registry.examples.simple.avro.maven;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;

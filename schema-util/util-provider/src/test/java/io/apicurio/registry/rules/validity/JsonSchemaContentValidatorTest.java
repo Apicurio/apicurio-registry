@@ -1,6 +1,7 @@
 package io.apicurio.registry.rules.validity;
 
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.json.rules.validity.JsonSchemaContentValidator;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import org.junit.jupiter.api.Assertions;

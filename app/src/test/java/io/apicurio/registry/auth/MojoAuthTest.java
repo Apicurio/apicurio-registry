@@ -1,7 +1,7 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.maven.RegisterRegistryMojo;
 import io.apicurio.registry.noprofile.maven.RegistryMojoTestBase;
 import io.apicurio.registry.rest.client.RegistryClient;

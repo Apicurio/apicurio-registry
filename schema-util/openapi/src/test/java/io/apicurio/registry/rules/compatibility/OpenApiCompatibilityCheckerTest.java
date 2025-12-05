@@ -2,6 +2,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.openapi.rules.compatibility.OpenApiCompatibilityChecker;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

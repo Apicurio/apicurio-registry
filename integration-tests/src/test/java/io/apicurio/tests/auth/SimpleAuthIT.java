@@ -1,7 +1,7 @@
 package io.apicurio.tests.auth;
 
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
+import static io.apicurio.registry.client.common.auth.VertXAuthFactory.buildOIDCWebClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;

@@ -1,7 +1,7 @@
 package io.apicurio.registry.resolver.client;
 
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.client.RegistryV2ClientFactory;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.vertx.core.Vertx;

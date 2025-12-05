@@ -2,7 +2,7 @@ package io.apicurio.registry.tls;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;

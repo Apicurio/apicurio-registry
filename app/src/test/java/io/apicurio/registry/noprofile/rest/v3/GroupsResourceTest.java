@@ -14,7 +14,7 @@ import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;

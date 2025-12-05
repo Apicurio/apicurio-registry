@@ -1,0 +1,99 @@
+name: Reusable Maven Build
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        description: 'Java version to use'
+        required: false
+        type: string
+        default: '17'
+      skip-tests:
+        description: 'Skip running tests'
+        required: false
+        type: boolean
+        default: false
+      profiles:
+        description: 'Maven profiles to activate (comma-separated)'
+        required: false
+        type: string
+        default: 'prod'
+      modules:
+        description: 'Specific modules to build (for -pl flag)'
+        required: false
+        type: string
+        default: ''
+      extra-args:
+        description: 'Extra Maven arguments'
+        required: false
+        type: string
+        default: ''
+      parallel-threads:
+        description: 'Thread count for parallel build (e.g., 1C for 1 per core)'
+        required: false
+        type: string
+        default: '1C'
+      upload-artifacts:
+        description: 'Upload build artifacts'
+        required: false
+        type: boolean
+        default: false
+      artifact-name:
+        description: 'Name for uploaded artifact'
+        required: false
+        type: string
+        default: 'build-artifacts'
+      artifact-path:
+        description: 'Path to artifacts to upload'
+        required: false
+        type: string
+        default: '**/target/*.jar'
+    outputs:
+      build-sha:
+        description: 'SHA of the build'
+        value: ${{ jobs.build.outputs.build-sha }}
+
+jobs:
+  build:
+    name: Maven Build
+    runs-on: ubuntu-22.04
+    outputs:
+      build-sha: ${{ github.sha }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: |
+          MAVEN_ARGS="clean package -T ${{ inputs.parallel-threads }} --no-transfer-progress"
+          MAVEN_ARGS="$MAVEN_ARGS -P${{ inputs.profiles }}"
+          MAVEN_ARGS="$MAVEN_ARGS -DskipTests=${{ inputs.skip-tests }}"
+          MAVEN_ARGS="$MAVEN_ARGS -DskipCommitIdPlugin=false"
+          MAVEN_ARGS="$MAVEN_ARGS -Dmaven.wagon.httpconnectionManager.maxTotal=30"
+          MAVEN_ARGS="$MAVEN_ARGS -Dmaven.wagon.http.retryHandler.count=5"
+
+          if [ -n "${{ inputs.modules }}" ]; then
+            MAVEN_ARGS="$MAVEN_ARGS -pl ${{ inputs.modules }} -am"
+          fi
+
+          if [ -n "${{ inputs.extra-args }}" ]; then
+            MAVEN_ARGS="$MAVEN_ARGS ${{ inputs.extra-args }}"
+          fi
+
+          echo "Running: ./mvnw $MAVEN_ARGS"
+          ./mvnw $MAVEN_ARGS
+
+      - name: Upload Build Artifacts
+        if: inputs.upload-artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.artifact-path }}
+          retention-days: 1

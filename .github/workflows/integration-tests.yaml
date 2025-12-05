@@ -31,24 +31,23 @@ jobs:
         run: echo ${{github.actor}}
 
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
 
-      # Open-Source Machine emulator that allows you to emulate multiple CPU architectures on your machine
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v3
 
       - name: Get maven wrapper
         run: mvn -N io.takari:maven:wrapper -Dmaven=3.8.2
 
       - name: Build Application
-        run: ./mvnw clean package  -am --no-transfer-progress -Pprod -DskipTests=true -T 1C -Dmaven.javadoc.skip=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+        run: ./mvnw clean package -am --no-transfer-progress -Pprod -DskipTests=true -T 1C -Dmaven.javadoc.skip=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build temporary Application image
         run: |
@@ -70,10 +69,10 @@ jobs:
         run: echo ${{github.actor}}
 
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
@@ -107,16 +106,29 @@ jobs:
           output-path: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
           artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'
 
-  integration-tests-h2:
-    name: Integration Tests H2
+  # Matrix-based integration tests - runs all storage/profile combinations in parallel
+  integration-tests:
+    name: Integration Tests (${{ matrix.storage }}-${{ matrix.profile }})
     runs-on: ubuntu-22.04
     needs: prepare-integration-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        storage: [h2, postgresql, kafkasql]
+        profile: [ci, auth, migration]
+        include:
+          # Debezium tests only for H2
+          - storage: h2
+            profile: debezium-all
+          # KafkaSQL snapshotting tests
+          - storage: kafkasql
+            profile: kafkasql-snapshotting
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -132,62 +144,33 @@ jobs:
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ github.sha }}'
 
-      - name: Run Integration Tests - H2
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+      - name: Set storage-specific variables
+        id: storage-vars
+        run: |
+          case "${{ matrix.storage }}" in
+            h2)
+              echo "remote-profile=remote-mem" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-in-memory-image" >> $GITHUB_OUTPUT
+              ;;
+            postgresql)
+              echo "remote-profile=remote-sql" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-sql-image" >> $GITHUB_OUTPUT
+              ;;
+            kafkasql)
+              echo "remote-profile=remote-kafka" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-kafkasql-image" >> $GITHUB_OUTPUT
+              ;;
+          esac
 
-      - name: Run Integration Tests - auth - H2
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Run Integration Tests - migration - H2
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Run Integration Tests - Debezium (All - Optimized)
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pdebezium-all -Dregistry-in-memory-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-h2
-          path: artifacts
-
-  integration-tests-postgresql:
-    name: Integration Tests Postgresql
-    runs-on: ubuntu-22.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
-
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
-        with:
-          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
-          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
-          minikube: 'true'
-          image-name: 'apicurio/apicurio-registry'
-          tag: '${{ github.sha }}'
-
-      - name: Run Integration Tests - Postgresql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-sql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Run Integration Tests - auth - Postgresql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-sql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Run Integration Tests - migration - Postgresql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-sql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-sql -pl integration-tests -Dmaven.javadoc.skip=true
+      - name: Run Integration Tests - ${{ matrix.storage }} - ${{ matrix.profile }}
+        run: |
+          ./mvnw verify -am --no-transfer-progress \
+            -Pintegration-tests \
+            -P${{ matrix.profile }} \
+            -P${{ steps.storage-vars.outputs.remote-profile }} \
+            -D${{ steps.storage-vars.outputs.image-prop }}=apicurio/apicurio-registry:${{ github.sha }} \
+            -pl integration-tests \
+            -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
@@ -195,58 +178,9 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@v4.0.0
+        uses: actions/upload-artifact@v4
         with:
-          name: tests-logs-postgresql
-          path: artifacts
-
-
-  integration-tests-kafkasql:
-    name: Integration Tests KafkaSql
-    runs-on: ubuntu-22.04
-    needs: prepare-integration-tests
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
-
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
-        with:
-          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
-          image-file: '/tmp/apicurio-registry-${{ github.sha }}.tar'
-          minikube: 'true'
-          image-name: 'apicurio/apicurio-registry'
-          tag: '${{ github.sha }}'
-
-      - name: Run Integration Tests - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pci -Dregistry-kafkasql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Run Integration Tests - auth - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pauth -Dregistry-kafkasql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Run Integration Tests - migration - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pmigration -Dregistry-kafkasql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Run Integration Tests - snapshotting - Kafkasql
-        run: ./mvnw verify -am --no-transfer-progress -Pintegration-tests -Pkafkasql-snapshotting -Dregistry-kafkasql-image=apicurio/apicurio-registry:${{ github.sha }}  -Premote-kafka -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: tests-logs-kafkasql
+          name: tests-logs-${{ matrix.storage }}-${{ matrix.profile }}
           path: artifacts
 
   extra-tests:
@@ -254,12 +188,11 @@ jobs:
     runs-on: ubuntu-22.04
     needs: prepare-integration-tests
     steps:
-
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: temurin
@@ -282,9 +215,9 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@v4.0.0
+        uses: actions/upload-artifact@v4
         with:
-          name: tests-logs-kafkasql
+          name: tests-logs-extra
           path: artifacts
 
   integration-tests-ui:
@@ -293,10 +226,10 @@ jobs:
     needs: [ prepare-ui-tests, prepare-integration-tests ]
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
@@ -359,7 +292,7 @@ jobs:
           npm run test
 
       - name: Upload Test Report
-        uses: actions/upload-artifact@v4.0.0
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report
@@ -377,7 +310,7 @@ jobs:
           ref: 2.6.x
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -404,7 +337,7 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@v4.0.0
+        uses: actions/upload-artifact@v4
         with:
           name: tests-logs-legacy-v2
           path: artifacts
@@ -415,7 +348,7 @@ jobs:
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
@@ -440,10 +373,10 @@ jobs:
     needs: prepare-integration-tests
     steps:
       - name: Checkout Code with Ref '${{ github.ref }}'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'

@@ -1,0 +1,93 @@
+name: Reusable Docker Build and Push
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: 'Docker image name (without registry prefix)'
+        required: true
+        type: string
+      dockerfile:
+        description: 'Path to Dockerfile'
+        required: true
+        type: string
+      context:
+        description: 'Docker build context path'
+        required: true
+        type: string
+      platforms:
+        description: 'Target platforms for multi-arch build'
+        required: false
+        type: string
+        default: 'linux/amd64,linux/arm64,linux/s390x,linux/ppc64le'
+      tag:
+        description: 'Image tag'
+        required: false
+        type: string
+        default: 'latest-snapshot'
+      push-to-dockerhub:
+        description: 'Push to DockerHub'
+        required: false
+        type: boolean
+        default: true
+      push-to-quay:
+        description: 'Push to Quay.io'
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_PASSWORD:
+        required: false
+      QUAY_USERNAME:
+        required: false
+      QUAY_PASSWORD:
+        required: false
+
+jobs:
+  docker-build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub Registry
+        if: inputs.push-to-dockerhub
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      - name: Login to Quay.io Registry
+        if: inputs.push-to-quay
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+
+      - name: Build tags list
+        id: tags
+        run: |
+          TAGS=""
+          if [ "${{ inputs.push-to-dockerhub }}" == "true" ]; then
+            TAGS="docker.io/${{ inputs.image-name }}:${{ inputs.tag }}"
+          fi
+          if [ "${{ inputs.push-to-quay }}" == "true" ]; then
+            if [ -n "$TAGS" ]; then
+              TAGS="$TAGS,quay.io/${{ inputs.image-name }}:${{ inputs.tag }}"
+            else
+              TAGS="quay.io/${{ inputs.image-name }}:${{ inputs.tag }}"
+            fi
+          fi
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Multi-arch Image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          file: ${{ inputs.dockerfile }}
+          context: ${{ inputs.context }}
+          platforms: ${{ inputs.platforms }}
+          tags: ${{ steps.tags.outputs.tags }}

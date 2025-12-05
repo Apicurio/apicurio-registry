@@ -32,7 +32,7 @@ on:
         description: 'Thread count for parallel build (e.g., 1C for 1 per core)'
         required: false
         type: string
-        default: '0.5C'
+        default: '1.0C'
       upload-artifacts:
         description: 'Upload build artifacts'
         required: false

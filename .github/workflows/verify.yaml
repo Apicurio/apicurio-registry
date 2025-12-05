@@ -1,0 +1,136 @@
+name: Verify
+on:
+  push:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+    branches: [main]
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README*'
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # PHASE 1: Fast Checks (fail early)
+  # ============================================================================
+  lint-and-validate:
+    name: Lint and Validate
+    runs-on: ubuntu-22.04
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run linter
+        run: ./scripts/validate-files.sh
+
+      - name: Verify docs generation
+        run: |
+          if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
+            echo "Docs needs to be regenerated. Run 'mvn clean install -pl docs -am -DskipTests' and commit the resulting files in the 'docs' folder."
+            git --no-pager diff docs
+            exit 1
+          fi
+
+  # ============================================================================
+  # PHASE 2: Build (parallel Java + UI builds)
+  # ============================================================================
+  build:
+    name: Build
+    needs: lint-and-validate
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    uses: ./.github/workflows/verify-build.yaml
+
+  # ============================================================================
+  # PHASE 3: Integration Tests (matrix-based parallel execution)
+  # ============================================================================
+  integration-tests:
+    name: Integration Tests
+    needs: build
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    uses: ./.github/workflows/verify-integration-tests.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  # ============================================================================
+  # PHASE 4: Additional Tests (parallel)
+  # ============================================================================
+  extras:
+    name: Extra Tests
+    needs: build
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    uses: ./.github/workflows/verify-extras.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  # ============================================================================
+  # PHASE 5: SDK Verification (parallel)
+  # ============================================================================
+  sdk:
+    name: SDK Verification
+    needs: build
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    uses: ./.github/workflows/verify-sdk.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  # ============================================================================
+  # PHASE 6: Native Build (reuses build artifacts)
+  # ============================================================================
+  native:
+    name: Native Build
+    needs: build
+    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    uses: ./.github/workflows/verify-native.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  # ============================================================================
+  # PHASE 7: Publish Images (only on push to main)
+  # ============================================================================
+  publish:
+    name: Publish Images
+    needs: [build, integration-tests, extras]
+    if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
+    uses: ./.github/workflows/verify-publish.yaml
+    with:
+      image-tag: ${{ github.sha }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  # ============================================================================
+  # PHASE 8: Notifications (using reusable workflow)
+  # ============================================================================
+  notify-slack:
+    name: Slack Notification
+    needs: [integration-tests, publish]
+    if: github.event_name == 'push' && always()
+    uses: ./.github/workflows/reusable-notify-slack.yaml
+    with:
+      workflow-name: ${{ github.workflow }}
+      job-name: 'verification'
+      job-status: ${{ (needs.integration-tests.result == 'failure' || needs.publish.result == 'failure') && 'failure' || 'success' }}
+    secrets:
+      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
+
+  # ============================================================================
+  # PHASE 9: Trigger Downstream (only on push to main)
+  # ============================================================================
+  trigger-3scale-deploy:
+    name: Trigger 3scale Deploy
+    needs: publish
+    if: github.event_name == 'push'
+    uses: apicurio/apicurio-3scale-gitops/.github/workflows/deploy_latest_registry.yml@main
+    secrets: inherit

@@ -1,0 +1,113 @@
+name: Build Jobs
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '17'
+      node-version:
+        type: string
+        default: '20'
+    outputs:
+      image-tag:
+        description: 'Docker image tag (commit SHA)'
+        value: ${{ jobs.build-java.outputs.image-tag }}
+
+jobs:
+  build-java:
+    name: Build Java Application
+    runs-on: ubuntu-22.04
+    outputs:
+      image-tag: ${{ github.sha }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build and Test Application
+        run: |
+          ./mvnw clean package -T 0.5C --no-transfer-progress \
+            -Pprod -DskipTests=false -DskipCommitIdPlugin=false \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Build Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }} \
+            ./distro/docker/target/docker
+
+      - name: Save Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@v2
+        with:
+          image-name: apicurio/apicurio-registry
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+
+      - name: Upload Build Artifacts for Native Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: |
+            app/target/
+            distro/docker/target/
+          retention-days: 1
+
+  build-ui:
+    name: Build UI Application
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+          cache-dependency-path: 'ui/**/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Lint
+        working-directory: ui
+        run: npm run lint
+
+      - name: Build
+        working-directory: ui
+        run: npm run build
+
+      - name: Package
+        working-directory: ui
+        run: npm run package
+
+      - name: Install Test Dependencies
+        working-directory: ui/tests
+        run: npm install
+
+      - name: Lint Tests
+        working-directory: ui/tests
+        run: npm run lint
+
+      - name: Build UI Docker Image
+        working-directory: ui
+        run: |
+          docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
+
+      - name: Save UI Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@v2
+        with:
+          image-name: apicurio/apicurio-registry-ui
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'

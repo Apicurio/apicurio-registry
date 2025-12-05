@@ -1,0 +1,89 @@
+name: SDK Verification
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '17'
+      image-tag:
+        type: string
+        required: true
+        description: 'Docker image tag to test'
+
+jobs:
+  verify-python-sdk:
+    name: Verify Python SDK
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
+
+      - name: Install the package
+        working-directory: python-sdk
+        run: make install
+
+      - name: Check linting
+        working-directory: python-sdk
+        run: make lint-check
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ inputs.image-tag }}'
+
+      - name: Run the tests
+        working-directory: python-sdk
+        run: |
+          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
+          sleep 5
+          make test
+
+  verify-go-sdk:
+    name: Verify Go SDK
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Go - Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ inputs.image-tag }}'
+
+      - name: Run the tests
+        working-directory: go-sdk
+        run: |
+          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
+          sleep 5
+          make test

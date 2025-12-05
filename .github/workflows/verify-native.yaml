@@ -1,0 +1,83 @@
+name: Native Build
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '17'
+      image-tag:
+        type: string
+        required: true
+        description: 'Docker image tag (commit SHA)'
+
+jobs:
+  build-native-images:
+    name: Build and Test Native images
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ inputs.image-tag }}
+          path: .
+
+      - name: Workaround jackson-coreutils
+        run: |
+          rm -rf ~/.m2/repository/com/github/java-json-tools
+          mkdir -p /tmp/coreutils-workaround
+          ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
+
+      - name: Build Native executables
+        env:
+          SKIP_TESTS: "true"
+        run: |
+          ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
+
+      - name: Build Temporary image for testing
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.native -t apicurio/apicurio-registry-native:${{ inputs.image-tag }} app/
+
+      - uses: apicurio/apicurio-github-actions/save-docker-image@v2
+        with:
+          image-name: apicurio/apicurio-registry-native
+          tag: '${{ inputs.image-tag }}'
+          output-path: '/tmp/apicurio-registry-native-${{ inputs.image-tag }}.tar'
+          upload: 'false'
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+        with:
+          image-file: '/tmp/apicurio-registry-native-${{ inputs.image-tag }}.tar'
+          image-name: 'apicurio/apicurio-registry-native'
+          tag: '${{ inputs.image-tag }}'
+          download: 'false'
+          minikube: 'true'
+
+      - name: Run Integration Tests - Native
+        run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=apicurio/apicurio-registry-native:${{ inputs.image-tag }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Run Integration Tests - Native - Auth
+        run: ./mvnw verify -am -Pauth --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=apicurio/apicurio-registry-native:${{ inputs.image-tag }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-logs-native
+          path: artifacts

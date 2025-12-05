@@ -1,0 +1,82 @@
+name: Publish Images
+
+on:
+  workflow_call:
+    inputs:
+      image-tag:
+        type: string
+        required: true
+        description: 'Docker image tag (commit SHA)'
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_PASSWORD:
+        required: true
+      QUAY_USERNAME:
+        required: true
+      QUAY_PASSWORD:
+        required: true
+
+jobs:
+  publish-app-image:
+    name: Publish App Docker Image
+    uses: ./.github/workflows/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry'
+      dockerfile: './distro/docker/target/docker/Dockerfile.jvm'
+      context: './distro/docker/target/docker'
+      tag: 'latest-snapshot'
+      maven-build: true
+      maven-args: 'clean package -T 0.5C -Pprod -DskipTests --no-transfer-progress -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5'
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  publish-mcp-image:
+    name: Publish MCP Server Docker Image
+    uses: ./.github/workflows/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry-mcp-server'
+      dockerfile: './mcp/target/docker/Dockerfile.jvm'
+      context: './mcp/target/docker'
+      tag: 'latest-snapshot'
+      push-to-dockerhub: false
+      maven-build: true
+      maven-args: 'clean package -T 0.5C -Pprod -DskipTests --no-transfer-progress -pl mcp -am'
+    secrets:
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  publish-ui-image:
+    name: Publish UI Docker Image
+    uses: ./.github/workflows/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry-ui'
+      dockerfile: './ui/Dockerfile'
+      context: './ui'
+      tag: 'latest-snapshot'
+      maven-build: false
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  publish-native-image:
+    name: Publish Native Docker Image
+    uses: ./.github/workflows/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry-native'
+      dockerfile: './distro/docker/target/docker/Dockerfile.native'
+      context: './app'
+      tag: 'latest-snapshot'
+      platforms: 'linux/amd64'
+      maven-build: true
+      maven-args: 'package -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests --no-transfer-progress'
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}

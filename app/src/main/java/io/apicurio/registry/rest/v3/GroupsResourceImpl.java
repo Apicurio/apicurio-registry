@@ -51,6 +51,11 @@ import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.apicurio.registry.rest.v3.beans.VersionSortBy;
 import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
+import io.apicurio.registry.rest.v3.beans.ReferenceGraph;
+import io.apicurio.registry.rest.v3.beans.ReferenceGraphEdge;
+import io.apicurio.registry.rest.v3.beans.ReferenceGraphMetadata;
+import io.apicurio.registry.rest.v3.beans.ReferenceGraphNode;
+import io.apicurio.registry.types.ReferenceGraphDirection;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
@@ -178,6 +183,322 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                             gav.getRawVersionId())
                     .stream().map(V3ApiUtil::referenceDtoToReference).collect(toList());
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferencesGraph(java.lang.String,
+     *      java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceGraphDirection,
+     *      java.math.BigInteger)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public ReferenceGraph getArtifactVersionReferencesGraph(String groupId, String artifactId,
+            String versionExpression, ReferenceGraphDirection direction, BigInteger depth) {
+
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("versionExpression", versionExpression);
+
+        // Check if the artifact exists first to provide the correct exception type
+        if (!storage.isArtifactExists(new GroupId(groupId).getRawGroupIdWithNull(), artifactId)) {
+            throw new ArtifactNotFoundException(groupId, artifactId);
+        }
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        // Default direction to OUTBOUND if not specified
+        if (direction == null) {
+            direction = ReferenceGraphDirection.OUTBOUND;
+        }
+
+        // Default depth to 3 if not specified
+        int maxDepth = (depth != null) ? depth.intValue() : 3;
+        if (maxDepth == 0) {
+            maxDepth = Integer.MAX_VALUE; // 0 means unlimited
+        }
+
+        // Get the root artifact metadata
+        ArtifactVersionMetaDataDto rootMetadata = storage.getArtifactVersionMetaData(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        // Build the graph
+        return buildReferenceGraph(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                gav.getRawVersionId(), rootMetadata, direction, maxDepth);
+    }
+
+    /**
+     * Builds a reference graph starting from the given artifact version.
+     */
+    private ReferenceGraph buildReferenceGraph(String groupId, String artifactId, String version,
+            ArtifactVersionMetaDataDto rootMetadata, ReferenceGraphDirection direction, int maxDepth) {
+
+        // Track visited nodes (version-level) to avoid processing the same node twice
+        Set<String> visited = new HashSet<>();
+        // Track current path of artifacts for cycle detection (artifact-level)
+        // A cycle exists only if we encounter the same artifact in the current traversal path
+        Set<String> currentPath = new HashSet<>();
+        Set<String> cycleNodes = new HashSet<>();
+
+        // Create the root node
+        String rootNodeId = createNodeId(groupId, artifactId, version);
+        String rootArtifactKey = createArtifactKey(groupId, artifactId);
+        ReferenceGraphNode rootNode = ReferenceGraphNode.builder()
+                .id(rootNodeId)
+                .groupId(groupId != null ? groupId : "default")
+                .artifactId(artifactId)
+                .version(version)
+                .artifactType(rootMetadata.getArtifactType())
+                .name(rootMetadata.getName())
+                .isRoot(true)
+                .isCycleNode(false)
+                .build();
+
+        // Collect all nodes and edges
+        List<ReferenceGraphNode> nodes = new java.util.ArrayList<>();
+        List<ReferenceGraphEdge> edges = new java.util.ArrayList<>();
+        nodes.add(rootNode);
+        visited.add(rootNodeId);
+        currentPath.add(rootArtifactKey);
+
+        // Track the actual max depth reached
+        int[] actualMaxDepth = {0};
+
+        // Traverse the graph
+        if (direction == ReferenceGraphDirection.OUTBOUND || direction == ReferenceGraphDirection.BOTH) {
+            traverseOutboundReferences(groupId, artifactId, version, rootNodeId, nodes, edges,
+                    visited, currentPath, cycleNodes, 1, maxDepth, actualMaxDepth);
+        }
+        if (direction == ReferenceGraphDirection.INBOUND || direction == ReferenceGraphDirection.BOTH) {
+            traverseInboundReferences(groupId, artifactId, version, rootNodeId, nodes, edges,
+                    visited, currentPath, cycleNodes, 1, maxDepth, actualMaxDepth);
+        }
+
+        // Mark cycle nodes
+        for (ReferenceGraphNode node : nodes) {
+            if (cycleNodes.contains(node.getId())) {
+                node.setIsCycleNode(true);
+            }
+        }
+
+        // Build metadata
+        ReferenceGraphMetadata metadata = ReferenceGraphMetadata.builder()
+                .totalNodes(nodes.size())
+                .totalEdges(edges.size())
+                .maxDepth(actualMaxDepth[0])
+                .hasCycles(!cycleNodes.isEmpty())
+                .build();
+
+        return ReferenceGraph.builder()
+                .root(rootNode)
+                .nodes(nodes)
+                .edges(edges)
+                .metadata(metadata)
+                .build();
+    }
+
+    /**
+     * Traverses outbound references (artifacts that this version references).
+     */
+    private void traverseOutboundReferences(String groupId, String artifactId, String version,
+            String sourceNodeId, List<ReferenceGraphNode> nodes, List<ReferenceGraphEdge> edges,
+            Set<String> visited, Set<String> currentPath, Set<String> cycleNodes,
+            int currentDepth, int maxDepth, int[] actualMaxDepth) {
+
+        if (currentDepth > maxDepth) {
+            return;
+        }
+
+        try {
+            StoredArtifactVersionDto content = storage.getArtifactVersionContent(groupId, artifactId, version);
+            List<ArtifactReferenceDto> references = content.getReferences();
+
+            if (references == null || references.isEmpty()) {
+                return;
+            }
+
+            actualMaxDepth[0] = Math.max(actualMaxDepth[0], currentDepth);
+
+            for (ArtifactReferenceDto ref : references) {
+                String refGroupId = ref.getGroupId();
+                String refArtifactId = ref.getArtifactId();
+                String refVersion = ref.getVersion();
+                String targetNodeId = createNodeId(refGroupId, refArtifactId, refVersion);
+                String targetArtifactKey = createArtifactKey(refGroupId, refArtifactId);
+
+                // Add edge
+                ReferenceGraphEdge edge = ReferenceGraphEdge.builder()
+                        .sourceNodeId(sourceNodeId)
+                        .targetNodeId(targetNodeId)
+                        .name(ref.getName())
+                        .build();
+                edges.add(edge);
+
+                // Check for cycle: same artifact appears in current path (not just visited globally)
+                boolean isArtifactCycle = currentPath.contains(targetArtifactKey);
+                if (isArtifactCycle) {
+                    cycleNodes.add(targetNodeId);
+                    cycleNodes.add(sourceNodeId);
+                }
+
+                // Skip processing if this exact version was already visited (avoid duplicate nodes)
+                if (visited.contains(targetNodeId)) {
+                    continue;
+                }
+
+                // Add node
+                visited.add(targetNodeId);
+                try {
+                    ArtifactVersionMetaDataDto refMetadata = storage.getArtifactVersionMetaData(
+                            refGroupId, refArtifactId, refVersion);
+
+                    ReferenceGraphNode node = ReferenceGraphNode.builder()
+                            .id(targetNodeId)
+                            .groupId(refGroupId != null ? refGroupId : "default")
+                            .artifactId(refArtifactId)
+                            .version(refVersion)
+                            .artifactType(refMetadata.getArtifactType())
+                            .name(refMetadata.getName())
+                            .isRoot(false)
+                            .isCycleNode(isArtifactCycle)
+                            .build();
+                    nodes.add(node);
+
+                    // Recursively traverse (but don't continue if this is a cycle node)
+                    if (!isArtifactCycle) {
+                        // Add to current path before recursing, remove after (backtracking)
+                        currentPath.add(targetArtifactKey);
+                        traverseOutboundReferences(refGroupId, refArtifactId, refVersion, targetNodeId,
+                                nodes, edges, visited, currentPath, cycleNodes,
+                                currentDepth + 1, maxDepth, actualMaxDepth);
+                        currentPath.remove(targetArtifactKey);
+                    }
+                } catch (Exception e) {
+                    // Reference might not exist, add a placeholder node
+                    ReferenceGraphNode node = ReferenceGraphNode.builder()
+                            .id(targetNodeId)
+                            .groupId(refGroupId != null ? refGroupId : "default")
+                            .artifactId(refArtifactId)
+                            .version(refVersion)
+                            .isRoot(false)
+                            .isCycleNode(isArtifactCycle)
+                            .build();
+                    nodes.add(node);
+                }
+            }
+        } catch (Exception e) {
+            // Artifact content might not be accessible
+        }
+    }
+
+    /**
+     * Traverses inbound references (artifacts that reference this version).
+     */
+    private void traverseInboundReferences(String groupId, String artifactId, String version,
+            String targetNodeId, List<ReferenceGraphNode> nodes, List<ReferenceGraphEdge> edges,
+            Set<String> visited, Set<String> currentPath, Set<String> cycleNodes,
+            int currentDepth, int maxDepth, int[] actualMaxDepth) {
+
+        if (currentDepth > maxDepth) {
+            return;
+        }
+
+        try {
+            List<ArtifactReferenceDto> inboundRefs = storage.getInboundArtifactReferences(groupId, artifactId, version);
+
+            if (inboundRefs == null || inboundRefs.isEmpty()) {
+                return;
+            }
+
+            actualMaxDepth[0] = Math.max(actualMaxDepth[0], currentDepth);
+
+            for (ArtifactReferenceDto ref : inboundRefs) {
+                String refGroupId = ref.getGroupId();
+                String refArtifactId = ref.getArtifactId();
+                String refVersion = ref.getVersion();
+                String sourceNodeId = createNodeId(refGroupId, refArtifactId, refVersion);
+                String sourceArtifactKey = createArtifactKey(refGroupId, refArtifactId);
+
+                // Add edge (inbound: source references target)
+                ReferenceGraphEdge edge = ReferenceGraphEdge.builder()
+                        .sourceNodeId(sourceNodeId)
+                        .targetNodeId(targetNodeId)
+                        .name(ref.getName())
+                        .build();
+                edges.add(edge);
+
+                // Check for cycle: same artifact appears in current path (not just visited globally)
+                boolean isArtifactCycle = currentPath.contains(sourceArtifactKey);
+                if (isArtifactCycle) {
+                    cycleNodes.add(sourceNodeId);
+                    cycleNodes.add(targetNodeId);
+                }
+
+                // Skip processing if this exact version was already visited (avoid duplicate nodes)
+                if (visited.contains(sourceNodeId)) {
+                    continue;
+                }
+
+                // Add node
+                visited.add(sourceNodeId);
+                try {
+                    ArtifactVersionMetaDataDto refMetadata = storage.getArtifactVersionMetaData(
+                            refGroupId, refArtifactId, refVersion);
+
+                    ReferenceGraphNode node = ReferenceGraphNode.builder()
+                            .id(sourceNodeId)
+                            .groupId(refGroupId != null ? refGroupId : "default")
+                            .artifactId(refArtifactId)
+                            .version(refVersion)
+                            .artifactType(refMetadata.getArtifactType())
+                            .name(refMetadata.getName())
+                            .isRoot(false)
+                            .isCycleNode(isArtifactCycle)
+                            .build();
+                    nodes.add(node);
+
+                    // Recursively traverse (but don't continue if this is a cycle node)
+                    if (!isArtifactCycle) {
+                        // Add to current path before recursing, remove after (backtracking)
+                        currentPath.add(sourceArtifactKey);
+                        traverseInboundReferences(refGroupId, refArtifactId, refVersion, sourceNodeId,
+                                nodes, edges, visited, currentPath, cycleNodes,
+                                currentDepth + 1, maxDepth, actualMaxDepth);
+                        currentPath.remove(sourceArtifactKey);
+                    }
+                } catch (Exception e) {
+                    // Reference might not exist, add a placeholder node
+                    ReferenceGraphNode node = ReferenceGraphNode.builder()
+                            .id(sourceNodeId)
+                            .groupId(refGroupId != null ? refGroupId : "default")
+                            .artifactId(refArtifactId)
+                            .version(refVersion)
+                            .isRoot(false)
+                            .isCycleNode(isArtifactCycle)
+                            .build();
+                    nodes.add(node);
+                }
+            }
+        } catch (Exception e) {
+            // Inbound references might not be accessible
+        }
+    }
+
+    /**
+     * Creates a unique node ID from group, artifact, and version.
+     */
+    private String createNodeId(String groupId, String artifactId, String version) {
+        String group = (groupId != null) ? groupId : "default";
+        return group + ":" + artifactId + ":" + version;
+    }
+
+    /**
+     * Creates a unique artifact key from group and artifact (without version).
+     * Used for detecting circular references at the artifact level.
+     */
+    private String createArtifactKey(String groupId, String artifactId) {
+        String group = (groupId != null) ? groupId : "default";
+        return group + ":" + artifactId;
     }
 
     /**

@@ -7,6 +7,7 @@ export * from "./useDraftsService";
 export * from "./useGroupsService";
 export * from "./useLocalStorageService";
 export * from "./useLoggerService";
+export * from "./useReferenceGraph";
 export * from "./useSystemService";
 export * from "./useUrlService";
 export * from "./useUserService";

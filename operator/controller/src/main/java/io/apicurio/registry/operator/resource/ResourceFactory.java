@@ -25,12 +25,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import static io.apicurio.registry.operator.Constants.*;
+import static io.apicurio.registry.operator.Constants.DEFAULT_LIVENESS_PROBE;
+import static io.apicurio.registry.operator.Constants.DEFAULT_READINESS_PROBE;
+import static io.apicurio.registry.operator.Constants.DEFAULT_REPLICAS;
+import static io.apicurio.registry.operator.Constants.TLS_DEFAULT_LIVENESS_PROBE;
+import static io.apicurio.registry.operator.Constants.TLS_DEFAULT_READINESS_PROBE;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.Labels.getSelectorLabels;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromPodTemplateSpec;
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainersFromPTS;
 import static io.apicurio.registry.operator.utils.Mapper.YAML_MAPPER;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
@@ -140,8 +146,7 @@ public class ResourceFactory {
         r.getSpec().setSelector(new LabelSelector());
         if (pts != null) {
             r.getSpec().setTemplate(pts);
-        }
-        else {
+        } else {
             r.getSpec().setTemplate(new PodTemplateSpec());
         }
         return r;
@@ -162,16 +167,36 @@ public class ResourceFactory {
             Map<String, Quantity> requests,
             Map<String, Quantity> limits
     ) {
+        // Validate that the containers do not have an empty name
+        getContainersFromPTS(target)
+                .filter(container -> isBlank(container.getName()))
+                .findAny()
+                .ifPresent(container -> {
+                    StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
+                            .recordError("""
+                                            Field `spec.%s.podTemplateSpec.spec.containers` has a container without a name. \
+                                            If you meant to modify a container for the Registry %s component, use name '%s', \
+                                            otherwise specify a name for your custom container.""",
+                                    componentFieldName, componentFieldName, containerName);
+                });
+
         if (target.getMetadata() == null) {
             target.setMetadata(new ObjectMeta());
         }
         var c = getContainerFromPodTemplateSpec(target, containerName);
         if (c == null) {
-            log.warn("Container with name '{}' not found in PodTemplateSpec for component '{}'. "
-                    + "The operator will automatically create it. For better control, specify the container "
-                    + "explicitly with name '{}' in your PodTemplateSpec. "
-                    + "See io.apicurio.registry.operator.api.v1.ContainerNames for valid container names.",
-                    containerName, componentFieldName, containerName);
+            getContainersFromPTS(target)
+                    .filter(container -> !containerName.equals(container.getName()))
+                    // TODO: The next line will reduce the number of false positives, but maybe it would be worth it?
+                    .filter(container -> Stream.of("registry", "app", "ui", "apicurio").anyMatch(n -> container.getName().contains(n)))
+                    .findAny()
+                    .ifPresent(container -> {
+                        log.warn("""
+                                        Container for component {} not found in `spec.{}.podTemplateSpec.spec.containers`, but instead found '{}'. \
+                                        If you meant to modify a container for the Registry {} component, use name '{}', otherwise ignore this message.""",
+                                componentFieldName, componentFieldName, container.getName(),
+                                componentFieldName, containerName);
+                    });
             if (target.getSpec() == null) {
                 target.setSpec(new PodSpec());
             }
@@ -296,8 +321,7 @@ public class ResourceFactory {
     public static <T> T deserialize(String path, Class<T> klass) {
         try {
             return YAML_MAPPER.readValue(load(path), klass);
-        }
-        catch (JsonProcessingException ex) {
+        } catch (JsonProcessingException ex) {
             throw new OperatorException("Could not deserialize resource: " + path, ex);
         }
     }
@@ -305,8 +329,7 @@ public class ResourceFactory {
     public static <T> T deserialize(String path, Class<T> klass, ClassLoader classLoader) {
         try {
             return YAML_MAPPER.readValue(load(path, classLoader), klass);
-        }
-        catch (JsonProcessingException ex) {
+        } catch (JsonProcessingException ex) {
             throw new OperatorException("Could not deserialize resource: " + path, ex);
         }
     }
@@ -318,8 +341,7 @@ public class ResourceFactory {
     public static String load(String path, ClassLoader classLoader) {
         try (var stream = classLoader.getResourceAsStream(path)) {
             return new String(stream.readAllBytes(), Charset.defaultCharset());
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             throw new OperatorException("Could not read resource: " + path, ex);
         }
     }

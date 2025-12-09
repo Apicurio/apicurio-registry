@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
@@ -161,6 +162,14 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                 "Container %s not found in Deployment %s".formatted(name, ResourceID.fromResource(d)));
     }
 
+    public static Stream<Container> getContainersFromPTS(PodTemplateSpec pts) {
+        requireNonNull(pts);
+        if (pts.getSpec() != null && pts.getSpec().getContainers() != null) {
+            return pts.getSpec().getContainers().stream();
+        }
+        return Stream.empty();
+    }
+
     /**
      * Get container with a given name from the given PTS.
      *
@@ -169,14 +178,6 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     public static Container getContainerFromPodTemplateSpec(PodTemplateSpec pts, String name) {
         requireNonNull(pts);
         requireNonNull(name);
-        if (pts.getSpec() != null && pts.getSpec().getContainers() != null) {
-            for (var c : pts.getSpec().getContainers()) {
-                if (name.equals(c.getName())) {
-                    return c;
-                }
-            }
-        }
-        return null;
+        return getContainersFromPTS(pts).filter(c -> name.equals(c.getName())).findFirst().orElse(null);
     }
-
 }

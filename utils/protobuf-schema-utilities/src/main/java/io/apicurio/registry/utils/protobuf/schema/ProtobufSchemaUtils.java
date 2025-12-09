@@ -1,9 +1,15 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
+import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.FileDescriptor;
+import io.roastedroot.protobuf4j.v4.Protobuf;
+import io.roastedroot.zerofs.Configuration;
+import io.roastedroot.zerofs.ZeroFs;
 
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -124,18 +130,59 @@ public class ProtobufSchemaUtils {
     }
 
     /**
-     * Convert FileDescriptor to .proto text format.
+     * Convert FileDescriptor to .proto text format using protobuf4j's normalization.
      *
      * This replaces: ProtoFileElement.toSchema()
      *
-     * Generates .proto source text from a FileDescriptor by reconstructing the syntax.
-     * This is a simplified implementation that covers common use cases.
+     * Uses protobuf4j's normalizeSchemaToText() which runs the actual protoc compiler
+     * via WASM to produce canonical .proto text output.
      *
      * @param descriptor The FileDescriptor to convert
-     * @return .proto text representation
+     * @return .proto text representation (normalized/canonical form)
      */
     public static String toProtoText(FileDescriptor descriptor) {
-        return FileDescriptorToProtoConverter.convert(descriptor);
+        // Build a FileDescriptorSet containing this descriptor and all its dependencies
+        DescriptorProtos.FileDescriptorSet.Builder fdsBuilder = DescriptorProtos.FileDescriptorSet.newBuilder();
+        Set<String> addedFiles = new HashSet<>();
+        addFileDescriptorToSet(descriptor, fdsBuilder, addedFiles);
+
+        // Use protobuf4j's normalization with a virtual filesystem
+        FileSystem fs = ZeroFs.newFileSystem(
+                Configuration.unix().toBuilder().setAttributeViews("unix").build());
+        try (FileSystem ignored = fs) {
+            Path workDir = fs.getPath(".");
+            try (Protobuf protobuf = Protobuf.builder().withWorkdir(workDir).build()) {
+                Map<String, String> normalizedSchemas = protobuf.normalizeSchemaToText(fdsBuilder.build());
+                String result = normalizedSchemas.get(descriptor.getName());
+                if (result == null) {
+                    throw new RuntimeException("Normalized schema not found for: " + descriptor.getName());
+                }
+                return result;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to convert FileDescriptor to proto text", e);
+        }
+    }
+
+    /**
+     * Recursively adds a FileDescriptor and all its dependencies to the FileDescriptorSet builder.
+     * Uses a set to track already-added files to avoid duplicates.
+     */
+    private static void addFileDescriptorToSet(FileDescriptor fd,
+            DescriptorProtos.FileDescriptorSet.Builder builder, Set<String> addedFiles) {
+        String fileName = fd.getName();
+        if (addedFiles.contains(fileName)) {
+            return; // Already added
+        }
+
+        // Add dependencies first (recursively)
+        for (FileDescriptor dep : fd.getDependencies()) {
+            addFileDescriptorToSet(dep, builder, addedFiles);
+        }
+
+        // Add this file's proto
+        builder.addFile(fd.toProto());
+        addedFiles.add(fileName);
     }
 
     /**

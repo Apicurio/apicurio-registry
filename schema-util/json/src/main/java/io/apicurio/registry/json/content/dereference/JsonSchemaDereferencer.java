@@ -56,10 +56,17 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
 
         try {
             JsonNode contentNode = objectMapper.readTree(content.getContent().content());
-            id = contentNode.get(idKey).asText();
-            schema = contentNode.get(schemaKey).asText();
+            JsonNode idNode = contentNode.path(idKey);
+            JsonNode schemaNode = contentNode.path(schemaKey);
+
+            if (!idNode.isMissingNode() && !idNode.isNull()) {
+                id = idNode.asText();
+            }
+            if (!schemaNode.isMissingNode() && !schemaNode.isNull()) {
+                schema = schemaNode.asText();
+            }
         } catch (JsonProcessingException e) {
-            log.warn("No schema or id provided for schema");
+            log.warn("Failed to parse JSON Schema content: {}", e.getMessage());
         }
 
         JsonSchemaOptions jsonSchemaOptions = new JsonSchemaOptions().setBaseUri("http://localhost");
@@ -85,7 +92,7 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
     }
 
     private void resolveReferences(Map<String, TypedContent> resolvedReferences,
-            Map<String, JsonSchema> lookups) {
+                                   Map<String, JsonSchema> lookups) {
         resolvedReferences.forEach((referenceName, schema) -> {
             JsonPointerExternalReference externalRef = new JsonPointerExternalReference(referenceName);
             // Note: when adding to 'lookups', strip away the "component" part of the reference, because the
@@ -100,7 +107,7 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
 
     /**
      * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.TypedContent,
-     *      java.util.Map)
+     * java.util.Map)
      */
     @Override
     public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {

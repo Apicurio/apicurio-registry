@@ -34,7 +34,7 @@ public class JsonSchemaReferenceFinder implements ReferenceFinder {
             return externalTypes.stream().map(type -> new JsonPointerExternalReference(type))
                     .filter(ref -> ref.getResource() != null).collect(Collectors.toSet());
         } catch (Exception e) {
-            log.error("Error finding external references in an Avro file.", e);
+            log.error("Error finding external references in a JSON Schema file.", e);
             return Collections.emptySet();
         }
     }

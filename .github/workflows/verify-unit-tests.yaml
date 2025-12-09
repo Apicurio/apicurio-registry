@@ -41,7 +41,7 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          ./mvnw test -T 1C --no-transfer-progress \
+          ./mvnw verify --no-transfer-progress \
             -Pprod -DskipCommitIdPlugin=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5

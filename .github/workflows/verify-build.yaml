@@ -33,7 +33,7 @@ jobs:
 
       - name: Build Application (skip tests for speed)
         run: |
-          ./mvnw clean package -T 1C --no-transfer-progress \
+          ./mvnw clean package --no-transfer-progress \
             -Pprod -DskipTests=true -DskipCommitIdPlugin=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5

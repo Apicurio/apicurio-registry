@@ -9,6 +9,10 @@ import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.validity.ContentValidator;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.types.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -26,6 +30,10 @@ public class IntegrityRuleExecutor implements RuleExecutor {
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     /**
      * @see io.apicurio.registry.rules.RuleExecutor#execute(io.apicurio.registry.rules.RuleContext)
@@ -49,6 +57,12 @@ public class IntegrityRuleExecutor implements RuleExecutor {
         // Make sure that there are no duplicate mappings
         if (levels.contains(IntegrityLevel.FULL) || levels.contains(IntegrityLevel.NO_DUPLICATES)) {
             checkForDuplicateReferences(context);
+        }
+
+        // Make sure that the references do not create a circular dependency
+        if (levels.contains(IntegrityLevel.FULL)
+                || levels.contains(IntegrityLevel.NO_CIRCULAR_REFERENCES)) {
+            checkForCircularReferences(context);
         }
     }
 
@@ -104,6 +118,104 @@ public class IntegrityRuleExecutor implements RuleExecutor {
                         RuleType.INTEGRITY, IntegrityLevel.NO_DUPLICATES.name(), causes);
             }
         }
+    }
+
+    /**
+     * Checks if adding the references to the current artifact would create a circular dependency. A circular
+     * dependency occurs when an artifact A references artifact B (directly or transitively), and artifact B
+     * references artifact A (directly or transitively).
+     */
+    private void checkForCircularReferences(RuleContext context) throws RuleViolationException {
+        List<ArtifactReference> references = context.getReferences();
+        if (references == null || references.isEmpty()) {
+            return;
+        }
+
+        String targetGroupId = context.getGroupId();
+        String targetArtifactId = context.getArtifactId();
+        String targetArtifactKey = createArtifactKey(targetGroupId, targetArtifactId);
+
+        Set<RuleViolation> causes = new HashSet<>();
+
+        for (ArtifactReference ref : references) {
+            // Track the path for cycle detection
+            Set<String> visited = new HashSet<>();
+            visited.add(targetArtifactKey);
+
+            // Check if following this reference eventually leads back to the target artifact
+            List<String> cyclePath = findCyclePath(ref.getGroupId(), ref.getArtifactId(), ref.getVersion(),
+                    targetArtifactKey, visited);
+
+            if (cyclePath != null) {
+                RuleViolation violation = new RuleViolation();
+                violation.setContext(ref.getName());
+                violation.setDescription(String.format(
+                        "Circular reference detected: %s/%s -> %s/%s @ %s creates a cycle. Path: %s",
+                        targetGroupId != null ? targetGroupId : "default", targetArtifactId,
+                        ref.getGroupId() != null ? ref.getGroupId() : "default", ref.getArtifactId(),
+                        ref.getVersion(), String.join(" -> ", cyclePath)));
+                causes.add(violation);
+            }
+        }
+
+        if (!causes.isEmpty()) {
+            throw new RuleViolationException("Circular artifact reference(s) detected.", RuleType.INTEGRITY,
+                    IntegrityLevel.NO_CIRCULAR_REFERENCES.name(), causes);
+        }
+    }
+
+    /**
+     * Recursively follows references from the given artifact version to detect if it eventually references
+     * the target artifact.
+     *
+     * @return the cycle path if a cycle is found, null otherwise
+     */
+    private List<String> findCyclePath(String groupId, String artifactId, String version,
+            String targetArtifactKey, Set<String> visited) {
+        String currentArtifactKey = createArtifactKey(groupId, artifactId);
+
+        // If we've reached the target, we've found a cycle
+        if (currentArtifactKey.equals(targetArtifactKey)) {
+            List<String> path = new java.util.ArrayList<>();
+            path.add(formatArtifactRef(groupId, artifactId, version));
+            return path;
+        }
+
+        // If we've already visited this artifact (but it's not the target), skip to avoid infinite loops
+        if (visited.contains(currentArtifactKey)) {
+            return null;
+        }
+
+        visited.add(currentArtifactKey);
+
+        try {
+            StoredArtifactVersionDto content = storage.getArtifactVersionContent(groupId, artifactId,
+                    version);
+            List<ArtifactReferenceDto> refs = content.getReferences();
+
+            if (refs != null) {
+                for (ArtifactReferenceDto ref : refs) {
+                    List<String> cyclePath = findCyclePath(ref.getGroupId(), ref.getArtifactId(),
+                            ref.getVersion(), targetArtifactKey, visited);
+                    if (cyclePath != null) {
+                        cyclePath.add(0, formatArtifactRef(groupId, artifactId, version));
+                        return cyclePath;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Artifact/version doesn't exist yet or is inaccessible, no cycle possible through this path
+        }
+
+        return null;
+    }
+
+    private String createArtifactKey(String groupId, String artifactId) {
+        return (groupId != null ? groupId : "default") + "/" + artifactId;
+    }
+
+    private String formatArtifactRef(String groupId, String artifactId, String version) {
+        return (groupId != null ? groupId : "default") + "/" + artifactId + "@" + version;
     }
 
     /**

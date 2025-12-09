@@ -2,10 +2,13 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.ReferenceGraph;
 import io.apicurio.registry.rest.client.models.ReferenceGraphDirection;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -350,5 +353,222 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .byVersionExpression("1.0").references().graph().get();
         }, errorCodeExtractor);
+    }
+
+    /**
+     * Test that circular references are blocked when the NO_CIRCULAR_REFERENCES integrity rule is enabled.
+     */
+    @Test
+    void testCircularReferencePreventionWithIntegrityRule() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.NO_CIRCULAR_REFERENCES.name());
+        registryClient.admin().rules().post(createRule);
+
+        try {
+            // Create artifact A first (no references initially)
+            String artifactA = TestUtils.generateArtifactId();
+            String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
+            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+                    ContentTypes.APPLICATION_JSON, null, null);
+            String versionA = responseA.getVersion().getVersion();
+
+            // Create artifact B with reference to A
+            String artifactB = TestUtils.generateArtifactId();
+            String contentB = String.format(AVRO_SCHEMA_TEMPLATE, "RecordB");
+            List<ArtifactReference> refsB = new ArrayList<>();
+            ArtifactReference refA = new ArtifactReference();
+            refA.setGroupId(groupId);
+            refA.setArtifactId(artifactA);
+            refA.setVersion(versionA);
+            refA.setName("a.avsc");
+            refsB.add(refA);
+
+            CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB,
+                    ContentTypes.APPLICATION_JSON, null, createArtifact -> {
+                        createArtifact.getFirstVersion().getContent().setReferences(refsB);
+                    });
+            String versionB = responseB.getVersion().getVersion();
+
+            // Try to create a new version of A with reference back to B (creating a cycle)
+            // This should fail because of the NO_CIRCULAR_REFERENCES rule
+            String contentA2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2");
+            List<ArtifactReference> refsA2 = new ArrayList<>();
+            ArtifactReference refB = new ArtifactReference();
+            refB.setGroupId(groupId);
+            refB.setArtifactId(artifactB);
+            refB.setVersion(versionB);
+            refB.setName("b.avsc");
+            refsA2.add(refB);
+
+            CreateVersion createVersion = new CreateVersion();
+            VersionContent versionContent = new VersionContent();
+            versionContent.setContent(contentA2);
+            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+            versionContent.setReferences(refsA2);
+            createVersion.setContent(versionContent);
+
+            // This should fail with RuleViolationException due to circular reference
+            assertClientError("RuleViolationException", 409, () -> {
+                registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
+                        .post(createVersion);
+            }, errorCodeExtractor);
+
+            LOGGER.info("Circular reference was correctly blocked by the integrity rule");
+        } finally {
+            // Clean up the global rule
+            try {
+                registryClient.admin().rules().byRuleType(RuleType.INTEGRITY.name()).delete();
+            } catch (Exception e) {
+                // Ignore cleanup errors
+            }
+        }
+    }
+
+    /**
+     * Test that direct self-reference is blocked when the NO_CIRCULAR_REFERENCES integrity rule is enabled.
+     */
+    @Test
+    void testDirectSelfReferencePreventionWithIntegrityRule() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.NO_CIRCULAR_REFERENCES.name());
+        registryClient.admin().rules().post(createRule);
+
+        try {
+            // Create artifact A first (no references initially)
+            String artifactA = TestUtils.generateArtifactId();
+            String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
+            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+                    ContentTypes.APPLICATION_JSON, null, null);
+            String versionA = responseA.getVersion().getVersion();
+
+            // Try to create a new version of A that references itself (direct self-reference)
+            String contentA2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2");
+            List<ArtifactReference> selfRef = new ArrayList<>();
+            ArtifactReference refA = new ArtifactReference();
+            refA.setGroupId(groupId);
+            refA.setArtifactId(artifactA);
+            refA.setVersion(versionA);
+            refA.setName("self.avsc");
+            selfRef.add(refA);
+
+            CreateVersion createVersion = new CreateVersion();
+            VersionContent versionContent = new VersionContent();
+            versionContent.setContent(contentA2);
+            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+            versionContent.setReferences(selfRef);
+            createVersion.setContent(versionContent);
+
+            // This should fail with RuleViolationException due to self-reference
+            assertClientError("RuleViolationException", 409, () -> {
+                registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
+                        .post(createVersion);
+            }, errorCodeExtractor);
+
+            LOGGER.info("Direct self-reference was correctly blocked by the integrity rule");
+        } finally {
+            // Clean up the global rule
+            try {
+                registryClient.admin().rules().byRuleType(RuleType.INTEGRITY.name()).delete();
+            } catch (Exception e) {
+                // Ignore cleanup errors
+            }
+        }
+    }
+
+    /**
+     * Test that transitive circular references are blocked (A -> B -> C -> A).
+     */
+    @Test
+    void testTransitiveCircularReferencePreventionWithIntegrityRule() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.NO_CIRCULAR_REFERENCES.name());
+        registryClient.admin().rules().post(createRule);
+
+        try {
+            // Create artifact C first (no references)
+            String artifactC = TestUtils.generateArtifactId();
+            String contentC = String.format(AVRO_SCHEMA_TEMPLATE, "RecordC");
+            CreateArtifactResponse responseC = createArtifact(groupId, artifactC, ArtifactType.AVRO, contentC,
+                    ContentTypes.APPLICATION_JSON, null, null);
+            String versionC = responseC.getVersion().getVersion();
+
+            // Create artifact B referencing C
+            String artifactB = TestUtils.generateArtifactId();
+            String contentB = String.format(AVRO_SCHEMA_TEMPLATE, "RecordB");
+            List<ArtifactReference> refsB = new ArrayList<>();
+            ArtifactReference refC = new ArtifactReference();
+            refC.setGroupId(groupId);
+            refC.setArtifactId(artifactC);
+            refC.setVersion(versionC);
+            refC.setName("c.avsc");
+            refsB.add(refC);
+
+            CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB,
+                    ContentTypes.APPLICATION_JSON, null, createArtifact -> {
+                        createArtifact.getFirstVersion().getContent().setReferences(refsB);
+                    });
+            String versionB = responseB.getVersion().getVersion();
+
+            // Create artifact A referencing B
+            String artifactA = TestUtils.generateArtifactId();
+            String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
+            List<ArtifactReference> refsA = new ArrayList<>();
+            ArtifactReference refB = new ArtifactReference();
+            refB.setGroupId(groupId);
+            refB.setArtifactId(artifactB);
+            refB.setVersion(versionB);
+            refB.setName("b.avsc");
+            refsA.add(refB);
+
+            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+                    ContentTypes.APPLICATION_JSON, null, createArtifact -> {
+                        createArtifact.getFirstVersion().getContent().setReferences(refsA);
+                    });
+            String versionA = responseA.getVersion().getVersion();
+
+            // Try to update C to reference A, creating a transitive cycle: A -> B -> C -> A
+            String contentC2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordCv2");
+            List<ArtifactReference> refsC2 = new ArrayList<>();
+            ArtifactReference refA = new ArtifactReference();
+            refA.setGroupId(groupId);
+            refA.setArtifactId(artifactA);
+            refA.setVersion(versionA);
+            refA.setName("a.avsc");
+            refsC2.add(refA);
+
+            CreateVersion createVersion = new CreateVersion();
+            VersionContent versionContent = new VersionContent();
+            versionContent.setContent(contentC2);
+            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+            versionContent.setReferences(refsC2);
+            createVersion.setContent(versionContent);
+
+            // This should fail with RuleViolationException due to transitive circular reference
+            assertClientError("RuleViolationException", 409, () -> {
+                registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactC).versions()
+                        .post(createVersion);
+            }, errorCodeExtractor);
+
+            LOGGER.info("Transitive circular reference was correctly blocked by the integrity rule");
+        } finally {
+            // Clean up the global rule
+            try {
+                registryClient.admin().rules().byRuleType(RuleType.INTEGRITY.name()).delete();
+            } catch (Exception e) {
+                // Ignore cleanup errors
+            }
+        }
     }
 }

@@ -12,7 +12,6 @@ import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.support.TestCmmn;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorToProtoConverter;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.kafka.common.serialization.Serializer;
@@ -38,7 +37,7 @@ public class ProtobufAutoRegistrationConsistencyTest extends AbstractResourceTes
      * This ensures that:
      * 1. A producer with auto-registration enabled won't create a duplicate schema
      * 2. Content-based deduplication works correctly
-     * 3. The FileDescriptorToProtoConverter generates canonical .proto text
+     * 3. The protobuf4j normalization generates canonical .proto text
      */
     @Test
     public void testAutoRegistrationProducesSameContentHashAsManualUpload() throws Exception {
@@ -128,11 +127,11 @@ public class ProtobufAutoRegistrationConsistencyTest extends AbstractResourceTes
     }
 
     /**
-     * Verify that our FileDescriptorToProtoConverter produces deterministic output.
+     * Verify that protobuf4j's toProtoText produces deterministic output.
      * This is critical for content hashing.
      */
     @Test
-    public void testFileDescriptorToProtoConverterIsDeterministic() throws Exception {
+    public void testToProtoTextIsDeterministic() throws Exception {
         String protoText = "syntax = \"proto3\";\n" +
                 "package test;\n" +
                 "\n" +
@@ -149,9 +148,9 @@ public class ProtobufAutoRegistrationConsistencyTest extends AbstractResourceTes
                 "test.proto", protoText, Collections.emptyMap());
 
         // Convert to .proto text multiple times
-        String output1 = FileDescriptorToProtoConverter.convert(fd1);
-        String output2 = FileDescriptorToProtoConverter.convert(fd2);
-        String output3 = FileDescriptorToProtoConverter.convert(fd1); // Same FD again
+        String output1 = ProtobufSchemaUtils.toProtoText(fd1);
+        String output2 = ProtobufSchemaUtils.toProtoText(fd2);
+        String output3 = ProtobufSchemaUtils.toProtoText(fd1); // Same FD again
 
         // All outputs must be identical
         assertEquals(output1, output2, "Same schema should produce identical output");
@@ -161,7 +160,7 @@ public class ProtobufAutoRegistrationConsistencyTest extends AbstractResourceTes
         Descriptors.FileDescriptor fd3 = ProtobufSchemaUtils.parseAndCompile(
                 "test.proto", output1, Collections.emptyMap());
 
-        String output4 = FileDescriptorToProtoConverter.convert(fd3);
+        String output4 = ProtobufSchemaUtils.toProtoText(fd3);
         assertEquals(output1, output4, "Round-trip should produce identical output");
     }
 }

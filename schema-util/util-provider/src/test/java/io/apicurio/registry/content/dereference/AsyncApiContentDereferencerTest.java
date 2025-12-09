@@ -1,7 +1,8 @@
 package io.apicurio.registry.content.dereference;
 
+import io.apicurio.registry.asyncapi.content.dereference.AsyncApiDereferencer;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.content.refs.AsyncApiReferenceFinder;
+import io.apicurio.registry.asyncapi.content.refs.AsyncApiReferenceFinder;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;

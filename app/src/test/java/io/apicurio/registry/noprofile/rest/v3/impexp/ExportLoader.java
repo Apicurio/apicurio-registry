@@ -1,7 +1,7 @@
 package io.apicurio.registry.noprofile.rest.v3.impexp;
 
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rbac.AdminResourceTest;
 import io.apicurio.registry.rest.client.RegistryClient;

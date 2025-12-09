@@ -1,5 +1,6 @@
 package io.apicurio.registry.content.canon;
 
+import io.apicurio.registry.avro.content.canon.EnhancedAvroContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;

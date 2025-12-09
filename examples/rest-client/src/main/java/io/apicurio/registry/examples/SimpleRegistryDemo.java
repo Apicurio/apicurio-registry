@@ -1,8 +1,8 @@
 package io.apicurio.registry.examples;
 
-import io.apicurio.registry.client.DefaultVertxInstance;
+import io.apicurio.registry.client.common.DefaultVertxInstance;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.examples.util.RegistryDemoUtil;
 import io.apicurio.registry.rest.client.RegistryClient;
 

@@ -1,6 +1,6 @@
 package io.apicurio.registry.rules.compatibility.avro;
 
-import io.apicurio.registry.rules.compatibility.AvroCompatibilityChecker;
+import io.apicurio.registry.avro.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor;
 import org.junit.jupiter.api.Test;
 

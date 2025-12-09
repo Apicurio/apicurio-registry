@@ -18,7 +18,7 @@ package io.apicurio.registry.examples.simple.protobuf;
 
 import com.google.protobuf.DynamicMessage;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.examples.AddressBookProtos;
 import io.apicurio.registry.examples.AddressBookProtos.AddressBook;
 import io.apicurio.registry.examples.AddressBookProtos.Person;

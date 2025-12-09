@@ -3,7 +3,7 @@ package io.apicurio.registry.services;
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;

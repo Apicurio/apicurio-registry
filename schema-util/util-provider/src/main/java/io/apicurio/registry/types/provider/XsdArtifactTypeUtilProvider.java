@@ -1,21 +1,21 @@
 package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.ContentAccepter;
-import io.apicurio.registry.content.XsdContentAccepter;
+import io.apicurio.registry.xsd.content.XsdContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
+import io.apicurio.registry.xml.content.canon.XmlContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.NoopContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
-import io.apicurio.registry.content.extract.WsdlOrXsdContentExtractor;
+import io.apicurio.registry.wsdl.content.extract.WsdlOrXsdContentExtractor;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.XsdCompatibilityChecker;
+import io.apicurio.registry.xsd.rules.compatibility.XsdCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
-import io.apicurio.registry.rules.validity.XsdContentValidator;
+import io.apicurio.registry.xsd.rules.validity.XsdContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 

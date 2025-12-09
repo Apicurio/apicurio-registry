@@ -1,6 +1,8 @@
 package io.apicurio.registry.content.refs;
 
+import io.apicurio.registry.asyncapi.content.refs.AsyncApiReferenceFinder;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.openapi.content.refs.OpenApiReferenceFinder;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -11,7 +13,7 @@ public class OpenApiReferenceFinderTest extends ArtifactUtilProviderTestBase {
 
     /**
      * Test method for
-     * {@link io.apicurio.registry.content.refs.AsyncApiReferenceFinder#findExternalReferences(io.apicurio.registry.content.ContentHandle)}.
+     * {@link AsyncApiReferenceFinder#findExternalReferences(io.apicurio.registry.content.ContentHandle)}.
      */
     @Test
     public void testFindExternalReferences() {

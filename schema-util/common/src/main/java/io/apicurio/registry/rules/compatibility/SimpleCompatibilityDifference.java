@@ -1,6 +1,6 @@
 package io.apicurio.registry.rules.compatibility;
 
-import io.apicurio.registry.rules.RuleViolation;
+import io.apicurio.registry.rules.violation.RuleViolation;
 
 import java.util.Objects;
 

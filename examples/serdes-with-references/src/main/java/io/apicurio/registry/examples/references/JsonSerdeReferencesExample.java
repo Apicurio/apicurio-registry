@@ -1,7 +1,7 @@
 package io.apicurio.registry.examples.references;
 
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.examples.references.model.Citizen;
 import io.apicurio.registry.examples.references.model.City;
 import io.apicurio.registry.rest.client.RegistryClient;

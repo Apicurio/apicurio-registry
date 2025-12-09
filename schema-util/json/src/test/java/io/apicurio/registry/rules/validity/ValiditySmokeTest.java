@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.MAPPER;
 import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.readResource;
-import static io.apicurio.registry.rules.compatibility.jsonschema.JsonUtil.readSchema;
+import static io.apicurio.registry.json.rules.compatibility.jsonschema.JsonUtil.readSchema;
 
 public class ValiditySmokeTest {
 

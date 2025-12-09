@@ -1,8 +1,8 @@
 package io.apicurio.registry.rules.compatibility.jsonschema;
 
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffContext;
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffUtil;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffContext;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffUtil;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;

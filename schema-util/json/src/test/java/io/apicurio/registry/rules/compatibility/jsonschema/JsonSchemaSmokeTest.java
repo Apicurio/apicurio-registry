@@ -1,7 +1,7 @@
 package io.apicurio.registry.rules.compatibility.jsonschema;
 
 import io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor;
-import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityChecker;
+import io.apicurio.registry.json.rules.compatibility.JsonSchemaCompatibilityChecker;
 import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.readResource;

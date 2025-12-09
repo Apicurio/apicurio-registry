@@ -2,8 +2,8 @@ package io.apicurio.registry.noprofile;
 
 import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.support.Person;

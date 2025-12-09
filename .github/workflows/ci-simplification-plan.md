@@ -475,50 +475,59 @@ Currently there are **11 release-related workflows**. Consolidate into:
 
 | Phase | Status | Details |
 |-------|--------|---------|
-| Phase 1: Reusable Workflows | Done | Created `reusable-build.yaml`, `reusable-docker-build.yaml`, `reusable-notify-slack.yaml` |
-| Phase 2: Unified Verification | Done | Created `verify-unified.yaml`, deleted `verify.yaml`, `integration-tests.yaml`, `build-only.yaml` |
+| Phase 1: Reusable Workflows | Done | Created `reusable-build.yaml`, `reusable-docker-build.yaml`, `reusable-notify-slack.yaml` (at top level, not in subdirectory) |
+| Phase 2: Unified Verification | Done | Created modular `verify.yaml` that orchestrates `verify-*.yaml` sub-workflows; deleted old `integration-tests.yaml`, `build-only.yaml` |
 | Phase 3: Matrix Tests | Done | Integration tests now use matrix strategy with 11 parallel jobs |
 | Phase 4: Action Updates | Done | All workflows updated to v4/v5 actions |
-| Phase 5: Release Consolidation | Done | Created `release-sdks.yaml`, `release-artifacts.yaml`, deleted 7 individual release workflows |
+| Phase 5: Release Consolidation | Done | Created `release-sdks.yaml`, `release-artifacts.yaml`, deleted individual SDK release workflows and redundant workflows |
 
-### Files Changed
+### Current Workflow Files (28 total)
 
-**New Files:**
-- `.github/workflows/reusable/reusable-build.yaml`
-- `.github/workflows/reusable/reusable-docker-build.yaml`
-- `.github/workflows/reusable/reusable-notify-slack.yaml`
-- `.github/workflows/verify-unified.yaml`
-- `.github/workflows/release-sdks.yaml`
-- `.github/workflows/release-artifacts.yaml`
+**Core Verification (orchestrated by `verify.yaml`):**
+- `verify.yaml` - Main orchestrator workflow
+- `verify-build.yaml` - Java and UI build
+- `verify-unit-tests.yaml` - Unit tests
+- `verify-integration-tests.yaml` - Matrix-based integration tests
+- `verify-extras.yaml` - Additional tests (UI, legacy v2, TypeScript SDK, examples)
+- `verify-sdk.yaml` - Python and Go SDK verification
+- `verify-native.yaml` - Native image builds
+- `verify-publish.yaml` - Docker image publishing (main branch only)
 
-**Deleted Files:**
-- `.github/workflows/verify.yaml`
-- `.github/workflows/integration-tests.yaml`
-- `.github/workflows/build-only.yaml`
-- `.github/workflows/release-sdk-python.yaml`
-- `.github/workflows/release-sdk-go.yaml`
-- `.github/workflows/release-sdk-typescript.yaml`
-- `.github/workflows/release-maven-artifacts.yaml`
-- `.github/workflows/release-sboms.yaml`
-- `.github/workflows/release-maven-site.yaml`
-- `.github/workflows/release-artifact-type-builtins.yaml`
-- `.github/workflows/qodana.yaml`
+**Reusable Workflows:**
+- `reusable-build.yaml` - Configurable Maven build
+- `reusable-docker-build.yaml` - Multi-arch Docker build and push
+- `reusable-notify-slack.yaml` - Slack notifications
 
+**Releases:**
+- `release.yaml` - Main release orchestrator
+- `release-images.yaml` - Docker image releases
+- `release-artifacts.yaml` - Maven artifacts, SBOMs, site
+- `release-sdks.yaml` - Python, Go, TypeScript SDKs
+- `release-operator.yaml` - Kubernetes operator
+- `release-milestones.yaml` - GitHub milestones
+- `release-release-notes.yaml` - Release notes generation
 
-**Updated Files (Action Versions):**
-- `.github/workflows/release.yaml`
-- `.github/workflows/release-images.yaml`
-- `.github/workflows/maven-snapshot-release.yaml`
-- `.github/workflows/tool-exportV1-release.yaml`
-- `.github/workflows/update-openapi.yaml`
-- `.github/workflows/validate-openapi.yaml`
-- `.github/workflows/validate-docs.yaml`
+**Automation:**
+- `dependabot-autoapprove.yaml` - Auto-approve dependabot PRs
+- `dependabot-automerge.yaml` - Auto-merge dependabot PRs
 
-### Workflow Count
+**Validation:**
+- `validate-docs.yaml` - Documentation validation
+- `validate-openapi.yaml` - OpenAPI spec validation
 
-| Before | After | Reduction |
-|--------|-------|-----------|
-| 27 workflows | 17 workflows | 37% |
+**Publishing:**
+- `publish-docs.yaml` - Publish documentation
+- `update-website.yaml` - Update project website
+- `update-openapi.yaml` - Update OpenAPI specs
+
+**Scanning:**
+- `image-scan.yaml` - Container image security scanning
+
+**Snapshot:**
+- `maven-snapshot-release.yaml` - Maven snapshot releases
+
+**Other:**
+- `operator.yaml` - Operator verification
 
 ### Integration Test Execution
 
@@ -529,13 +538,27 @@ Currently there are **11 release-related workflows**. Consolidate into:
 | PostgreSQL: ci → auth → migration (sequential) | fail-fast: false for better debugging |
 | KafkaSQL: ci → auth → migration → snapshotting (sequential) | Individual failure visibility |
 
+**Current Matrix Configuration (from `verify-integration-tests.yaml`):**
+```yaml
+strategy:
+  fail-fast: false
+  matrix:
+    storage: [h2, postgresql, kafkasql]
+    profile: [ci, auth, migration]
+    include:
+      - storage: h2
+        profile: debezium-all
+      - storage: kafkasql
+        profile: kafkasql-snapshotting
+```
+
 ### Reusable Workflow Integration
 
-The reusable workflows are now actively integrated into the CI/CD pipeline:
+The reusable workflows are at the top level of `.github/workflows/` (not in a subdirectory):
 
 #### `reusable-notify-slack.yaml`
 Used by the following workflows:
-- `verify-unified.yaml` - Notification after verification completes
+- `verify.yaml` - Notification after verification completes
 - `release-images.yaml` - Notification after image release
 - `release-artifacts.yaml` - Notification after artifact releases
 - `release-sdks.yaml` - Notification after SDK releases
@@ -543,7 +566,7 @@ Used by the following workflows:
 
 #### `reusable-docker-build.yaml`
 Enhanced with optional Maven build and artifact download capabilities. Used by:
-- `verify-unified.yaml` - Publishing app, UI, MCP server, and native images
+- `verify-publish.yaml` - Publishing app, UI, MCP server, and native images
 
 Supported features:
 - Multi-arch builds (linux/amd64, arm64, s390x, ppc64le)
@@ -553,28 +576,40 @@ Supported features:
 - Selective registry push (DockerHub and/or Quay.io)
 
 #### `reusable-build.yaml`
-Available for use in simpler build scenarios. The main `build-java` job in `verify-unified.yaml` remains inline due to specific requirements (Docker image creation and artifact saving for integration tests).
+Configurable Maven build workflow with options for:
+- Java version selection
+- Test skipping
+- Maven profiles
+- Module selection
+- Parallel thread configuration
+- Artifact upload
 
 ### Workflow Architecture
 
 ```
-verify-unified.yaml
-├── lint-and-validate (inline)
-├── build-java (inline - builds & saves Docker image artifact)
-├── build-ui (inline)
-├── integration-tests (matrix - 11 parallel jobs)
-├── extra-tests (inline)
-├── integration-tests-ui (inline)
-├── integration-tests-legacy-v2 (inline)
-├── integration-tests-typescript-sdk (inline)
-├── build-examples (inline)
-├── verify-python-sdk (inline)
-├── verify-go-sdk (inline)
-├── build-native-images (inline)
-├── publish-app-image → reusable-docker-build.yaml
-├── publish-mcp-image → reusable-docker-build.yaml
-├── publish-ui-image → reusable-docker-build.yaml
-├── publish-native-image → reusable-docker-build.yaml
-├── notify-slack → reusable-notify-slack.yaml
-└── trigger-3scale-deploy (external workflow)
+verify.yaml (main orchestrator)
+├── PHASE 1: lint-and-validate (inline)
+├── PHASE 2: build → verify-build.yaml
+│   ├── build-java (Java build, creates Docker image artifact)
+│   └── build-ui (UI build)
+├── PHASE 3: unit-tests → verify-unit-tests.yaml
+├── PHASE 4: integration-tests → verify-integration-tests.yaml
+│   └── Matrix: 11 parallel jobs (3 storages × 3 profiles + 2 extras)
+├── PHASE 5: extras → verify-extras.yaml
+│   ├── integration-tests-ui
+│   ├── integration-tests-legacy-v2
+│   ├── integration-tests-typescript-sdk
+│   └── build-examples
+├── PHASE 6: sdk → verify-sdk.yaml
+│   ├── verify-python-sdk
+│   └── verify-go-sdk
+├── PHASE 7: native → verify-native.yaml
+│   └── build-native-images
+├── PHASE 8: publish → verify-publish.yaml (main branch only)
+│   ├── publish-app-image → reusable-docker-build.yaml
+│   ├── publish-mcp-image → reusable-docker-build.yaml
+│   ├── publish-ui-image → reusable-docker-build.yaml
+│   └── publish-native-image → reusable-docker-build.yaml
+├── PHASE 9: notify-slack → reusable-notify-slack.yaml
+└── PHASE 10: trigger-3scale-deploy (external workflow)
 ```

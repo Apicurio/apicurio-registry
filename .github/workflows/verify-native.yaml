@@ -12,8 +12,11 @@ on:
         description: 'Docker image tag (commit SHA)'
 
 jobs:
-  build-native-images:
-    name: Build and Test Native images
+  # ============================================================================
+  # Build native executable and save as artifact
+  # ============================================================================
+  build-native:
+    name: Build Native Image
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Code
@@ -55,28 +58,48 @@ jobs:
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.native -t apicurio/apicurio-registry-native:${{ inputs.image-tag }} app/
 
-      - uses: apicurio/apicurio-github-actions/save-docker-image@v2
+      - name: Save Native Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@v2
         with:
           image-name: apicurio/apicurio-registry-native
           tag: '${{ inputs.image-tag }}'
           output-path: '/tmp/apicurio-registry-native-${{ inputs.image-tag }}.tar'
-          upload: 'false'
+          artifact-name: 'apicurio-registry-native-${{ inputs.image-tag }}.tar'
+
+  # ============================================================================
+  # Run native integration tests in parallel (ci and auth profiles)
+  # ============================================================================
+  test-native:
+    name: Test Native (${{ matrix.profile }})
+    needs: build-native
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [ci, auth]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
 
       - uses: apicurio/apicurio-github-actions/setup-minikube@v2
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2.0.1
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
         with:
+          artifact-name: 'apicurio-registry-native-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-native-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry-native'
           tag: '${{ inputs.image-tag }}'
-          download: 'false'
           minikube: 'true'
 
-      - name: Run Integration Tests - Native
-        run: ./mvnw verify -am -Pci --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=apicurio/apicurio-registry-native:${{ inputs.image-tag }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
-
-      - name: Run Integration Tests - Native - Auth
-        run: ./mvnw verify -am -Pauth --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=apicurio/apicurio-registry-native:${{ inputs.image-tag }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+      - name: Run Integration Tests - Native - ${{ matrix.profile }}
+        run: ./mvnw verify -am -P${{ matrix.profile }} --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=apicurio/apicurio-registry-native:${{ inputs.image-tag }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
 
       - name: Collect logs
         if: failure()
@@ -86,5 +109,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: tests-logs-native
+          name: tests-logs-native-${{ matrix.profile }}
           path: artifacts

@@ -10,6 +10,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.awaitility.core.ConditionTimeoutException;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIf;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
+import static io.apicurio.registry.operator.Tags.SMOKE;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
@@ -28,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@Tag(SMOKE)
 public class SmokeITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(SmokeITTest.class);

@@ -1219,6 +1219,88 @@
         }
       ]
     },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/references/graph": {
+      "summary": "Get a graph representation of artifact references.",
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceGraph"
+                }
+              }
+            },
+            "description": "A graph representation of all artifact references."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getArtifactVersionReferencesGraph",
+        "summary": "Get artifact version references as a graph",
+        "description": "Retrieves a graph representation of all references for a single version of an artifact. The graph includes nodes representing artifacts, edges representing references between them, and metadata about the graph structure including cycle detection.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "description": "An expression resolvable to a specific version ID within the given group and artifact.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "direction",
+          "description": "The direction of references to include in the graph. Can be OUTBOUND (artifacts this version references), INBOUND (artifacts that reference this version), or BOTH. Defaults to OUTBOUND.",
+          "schema": {
+            "$ref": "#/components/schemas/ReferenceGraphDirection"
+          },
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "depth",
+          "description": "The maximum depth of the reference graph to traverse. Can be 1, 2, 3, or 0 for unlimited. Defaults to 3.",
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 3
+          },
+          "in": "query",
+          "required": false
+        }
+      ]
+    },
     "/admin/config/properties": {
       "summary": "Manage configuration properties.",
       "get": {
@@ -5271,6 +5353,202 @@
         },
         "example": {
           "state": "ENABLED"
+        }
+      },
+      "ReferenceGraphDirection": {
+        "description": "The direction of references to include in the graph.",
+        "enum": [
+          "OUTBOUND",
+          "INBOUND",
+          "BOTH"
+        ],
+        "type": "string",
+        "example": "\"OUTBOUND\"",
+        "x-codegen-package": "io.apicurio.registry.types"
+      },
+      "ReferenceGraphNode": {
+        "title": "Root Type for ReferenceGraphNode",
+        "description": "A node in the reference graph representing an artifact version.",
+        "required": [
+          "id",
+          "groupId",
+          "artifactId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "A unique identifier for this node within the graph.",
+            "type": "string"
+          },
+          "groupId": {
+            "description": "The group ID of the artifact.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of the artifact.",
+            "type": "string"
+          },
+          "artifactType": {
+            "description": "The type of the artifact.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the artifact version.",
+            "type": "string"
+          },
+          "isRoot": {
+            "description": "Whether this node is the root node of the graph.",
+            "type": "boolean"
+          },
+          "isCycleNode": {
+            "description": "Whether this node is part of a circular reference.",
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "id": "node-1",
+          "groupId": "mygroup",
+          "artifactId": "my-artifact",
+          "version": "1.0",
+          "artifactType": "PROTOBUF",
+          "name": "My Artifact",
+          "isRoot": false,
+          "isCycleNode": false
+        }
+      },
+      "ReferenceGraphEdge": {
+        "title": "Root Type for ReferenceGraphEdge",
+        "description": "An edge in the reference graph representing a reference from one artifact to another.",
+        "required": [
+          "sourceNodeId",
+          "targetNodeId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceNodeId": {
+            "description": "The ID of the source node (the artifact that has the reference).",
+            "type": "string"
+          },
+          "targetNodeId": {
+            "description": "The ID of the target node (the artifact being referenced).",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the reference as defined in the source artifact.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "sourceNodeId": "node-1",
+          "targetNodeId": "node-2",
+          "name": "sample.proto"
+        }
+      },
+      "ReferenceGraphMetadata": {
+        "title": "Root Type for ReferenceGraphMetadata",
+        "description": "Metadata about the reference graph.",
+        "type": "object",
+        "properties": {
+          "totalNodes": {
+            "description": "The total number of nodes in the graph.",
+            "type": "integer"
+          },
+          "totalEdges": {
+            "description": "The total number of edges in the graph.",
+            "type": "integer"
+          },
+          "maxDepth": {
+            "description": "The maximum depth reached in the graph.",
+            "type": "integer"
+          },
+          "hasCycles": {
+            "description": "Whether the graph contains circular references.",
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "totalNodes": 5,
+          "totalEdges": 4,
+          "maxDepth": 3,
+          "hasCycles": false
+        }
+      },
+      "ReferenceGraph": {
+        "title": "Root Type for ReferenceGraph",
+        "description": "A graph representation of artifact references.",
+        "required": [
+          "root",
+          "nodes",
+          "edges",
+          "metadata"
+        ],
+        "type": "object",
+        "properties": {
+          "root": {
+            "description": "The root node of the graph (the artifact for which references were requested).",
+            "$ref": "#/components/schemas/ReferenceGraphNode"
+          },
+          "nodes": {
+            "description": "All nodes in the graph, including the root.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReferenceGraphNode"
+            }
+          },
+          "edges": {
+            "description": "All edges (references) in the graph.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReferenceGraphEdge"
+            }
+          },
+          "metadata": {
+            "description": "Metadata about the graph structure.",
+            "$ref": "#/components/schemas/ReferenceGraphMetadata"
+          }
+        },
+        "example": {
+          "root": {
+            "id": "root",
+            "groupId": "mygroup",
+            "artifactId": "my-artifact",
+            "version": "1.0",
+            "isRoot": true
+          },
+          "nodes": [
+            {
+              "id": "root",
+              "groupId": "mygroup",
+              "artifactId": "my-artifact",
+              "version": "1.0",
+              "isRoot": true
+            },
+            {
+              "id": "node-1",
+              "groupId": "mygroup",
+              "artifactId": "referenced-artifact",
+              "version": "2.0",
+              "isRoot": false
+            }
+          ],
+          "edges": [
+            {
+              "sourceNodeId": "root",
+              "targetNodeId": "node-1",
+              "name": "common.proto"
+            }
+          ],
+          "metadata": {
+            "totalNodes": 2,
+            "totalEdges": 1,
+            "maxDepth": 1,
+            "hasCycles": false
+          }
         }
       }
     },

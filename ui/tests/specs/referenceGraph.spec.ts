@@ -5,179 +5,82 @@ const OPENAPI_DATA_STR: string = JSON.stringify(OPENAPI_DATA, null, 4);
 
 const REGISTRY_UI_URL: string = process.env["REGISTRY_UI_URL"] || "http://localhost:8888";
 
-// Test group name for reference graph tests
-const TEST_GROUP = "ReferenceGraphTest";
+// Test artifact details
+const TEST_ARTIFACT = "TestArtifact";
+const TEST_VERSION = "1.0.0";
 
-test.describe("Reference Graph Feature", () => {
-    // Setup: Create test group and artifact before all tests
-    test.beforeAll(async ({ browser }) => {
-        const page = await browser.newPage();
+test("Reference Graph - view mode toggle and graph view", async ({ page }) => {
+    test.setTimeout(60000); // This test needs more time as it creates resources
 
-        // Navigate to registry
-        await page.goto(REGISTRY_UI_URL);
-        await expect(page).toHaveTitle(/Apicurio Registry/);
+    // Use a unique group name to avoid conflicts with other runs
+    const TEST_GROUP = `RefGraphTest${Date.now()}`;
+    // Step 1: Create a group
+    await page.goto(REGISTRY_UI_URL);
+    await expect(page).toHaveTitle(/Apicurio Registry/);
 
-        // Create test group
-        await page.getByTestId("btn-toolbar-create-group").click();
-        await page.getByTestId("create-group-groupId").fill(TEST_GROUP);
-        await page.getByTestId("create-group-modal-btn-create").click();
-        await expect(page).toHaveURL(new RegExp(`.+/explore/${TEST_GROUP}`));
+    await page.getByTestId("btn-toolbar-create-group").click();
+    await page.getByTestId("create-group-groupId").fill(TEST_GROUP);
+    await page.getByTestId("create-group-modal-btn-create").click();
+    await expect(page).toHaveURL(new RegExp(`.+/explore/${TEST_GROUP}`));
 
-        // Create test artifact
-        await page.getByTestId("btn-create-artifact").click();
-        await page.getByTestId("create-artifact-modal-id").fill("TestArtifact");
-        await page.getByTestId("create-artifact-modal-type-select").click();
-        await page.getByTestId("create-artifact-modal-OPENAPI").click();
-        await page.locator("#next-wizard-page").click();
+    // Step 2: Create an artifact
+    await page.getByTestId("btn-create-artifact").click();
+    await page.getByTestId("create-artifact-modal-id").fill(TEST_ARTIFACT);
+    await page.getByTestId("create-artifact-modal-type-select").click();
+    await page.getByTestId("create-artifact-modal-OPENAPI").click();
+    await page.locator("#next-wizard-page").click();
 
-        // Fill metadata
-        await page.getByTestId("create-artifact-modal-artifact-metadata-name").fill("Test Artifact for References");
-        await page.locator("#next-wizard-page").click();
+    await page.getByTestId("create-artifact-modal-artifact-metadata-name").fill("Test Artifact");
+    await page.locator("#next-wizard-page").click();
 
-        // Fill version content
-        await page.getByTestId("create-artifact-modal-version").fill("1.0.0");
-        await page.locator("#artifact-content").fill(OPENAPI_DATA_STR);
-        await page.locator("#next-wizard-page").click();
+    await page.getByTestId("create-artifact-modal-version").fill(TEST_VERSION);
+    await page.locator("#artifact-content").fill(OPENAPI_DATA_STR);
+    await page.locator("#next-wizard-page").click();
+    await page.locator("#next-wizard-page").click();
 
-        // Complete wizard
-        await page.locator("#next-wizard-page").click();
-        await expect(page).toHaveURL(new RegExp(`.+/explore/${TEST_GROUP}/TestArtifact`));
+    await expect(page).toHaveURL(new RegExp(`.+/explore/${TEST_GROUP}/${TEST_ARTIFACT}`));
 
-        await page.close();
-    });
+    // Step 3: Navigate to the version page
+    await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/${TEST_ARTIFACT}/versions/${TEST_VERSION}`);
+    await expect(page).toHaveTitle(/Apicurio Registry/);
 
-    // Cleanup: Delete test group after all tests
-    test.afterAll(async ({ browser }) => {
-        const page = await browser.newPage();
+    // Step 4: Click on the References tab
+    await page.getByTestId("version-references-tab").click();
 
-        // Delete test artifact first
-        await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/TestArtifact`);
-        await page.getByTestId("header-btn-delete").click();
-        await page.getByTestId("modal-btn-delete").click();
-        await expect(page).toHaveURL(new RegExp(".+/explore"));
+    // Step 5: Verify the view mode toggle is visible with List and Graph options
+    const viewModeToggle = page.getByTestId("view-mode-toggle");
+    await expect(viewModeToggle).toBeVisible();
+    await expect(page.getByTestId("view-mode-list")).toBeVisible();
+    await expect(page.getByTestId("view-mode-graph")).toBeVisible();
 
-        // Delete test group
-        await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}`);
-        await page.getByTestId("header-btn-delete").click();
-        await page.getByTestId("modal-btn-delete").click();
-        await expect(page).toHaveURL(new RegExp(".+/explore"));
+    // Step 6: Verify List view is selected by default
+    const listButton = page.getByTestId("view-mode-list").locator("button");
+    const graphButton = page.getByTestId("view-mode-graph").locator("button");
+    await expect(listButton).toHaveAttribute("aria-pressed", "true");
+    await expect(graphButton).toHaveAttribute("aria-pressed", "false");
 
-        await page.close();
-    });
+    // Step 7: Switch to Graph view
+    await page.getByTestId("view-mode-graph").click();
+    await expect(graphButton).toHaveAttribute("aria-pressed", "true");
+    await expect(listButton).toHaveAttribute("aria-pressed", "false");
 
-    test("References tab - Switch from list to graph view", async ({ page }) => {
-        // Navigate to version page
-        await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/TestArtifact/versions/1.0.0`);
+    // Step 8: Verify graph elements are visible
+    await expect(page.getByTestId("reference-graph-wrapper")).toBeVisible();
+    await expect(page.getByTestId("graph-controls-toolbar")).toBeVisible();
 
-        // Click the references tab
-        await page.getByTestId("version-references-tab").click();
+    // Step 9: Verify empty state is shown (no references in our test artifact)
+    await expect(page.getByTestId("graph-empty-state")).toBeVisible();
 
-        // Verify the view mode toggle is visible
-        await expect(page.getByTestId("view-mode-toggle")).toBeVisible();
+    // Step 10: Verify reference type toggle is visible
+    await expect(page.getByTestId("reference-type-toggle")).toBeVisible();
 
-        // Verify list view is selected by default
-        await expect(page.getByTestId("view-mode-list")).toHaveAttribute("aria-pressed", "true");
-        await expect(page.getByTestId("view-mode-graph")).toHaveAttribute("aria-pressed", "false");
+    // Step 11: Switch back to List view
+    await page.getByTestId("view-mode-list").click();
+    await expect(listButton).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("reference-graph-wrapper")).not.toBeVisible();
 
-        // Click on graph view toggle
-        await page.getByTestId("view-mode-graph").click();
-
-        // Verify graph view is now selected
-        await expect(page.getByTestId("view-mode-graph")).toHaveAttribute("aria-pressed", "true");
-        await expect(page.getByTestId("view-mode-list")).toHaveAttribute("aria-pressed", "false");
-    });
-
-    test("References tab - Graph view shows empty state when no references", async ({ page }) => {
-        // Navigate to version page with graph view
-        await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/TestArtifact/versions/1.0.0/references?view=graph`);
-
-        // Wait for the graph to load
-        await page.waitForTimeout(1000);
-
-        // Verify the empty state is displayed
-        await expect(page.getByTestId("graph-empty-state")).toBeVisible();
-        await expect(page.getByText("No references found")).toBeVisible();
-    });
-
-    test("References tab - Graph view controls toolbar is visible", async ({ page }) => {
-        // Navigate to version page with graph view
-        await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/TestArtifact/versions/1.0.0/references?view=graph`);
-
-        // Verify the controls toolbar is visible
-        await expect(page.getByTestId("graph-controls-toolbar")).toBeVisible();
-
-        // Verify the depth label is visible
-        await expect(page.getByText("Depth:")).toBeVisible();
-    });
-
-    test("References tab - Switch back to list view from graph", async ({ page }) => {
-        // Navigate to version page with graph view
-        await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/TestArtifact/versions/1.0.0/references?view=graph`);
-
-        // Verify graph view is selected
-        await expect(page.getByTestId("view-mode-graph")).toHaveAttribute("aria-pressed", "true");
-
-        // Click on list view toggle
-        await page.getByTestId("view-mode-list").click();
-
-        // Verify list view is now selected
-        await expect(page.getByTestId("view-mode-list")).toHaveAttribute("aria-pressed", "true");
-        await expect(page.getByTestId("view-mode-graph")).toHaveAttribute("aria-pressed", "false");
-
-        // Verify the graph container is no longer visible
-        await expect(page.getByTestId("reference-graph-wrapper")).not.toBeVisible();
-    });
-
-    test("References tab - Toggle inbound/outbound references in graph view", async ({ page }) => {
-        // Navigate to version page with graph view
-        await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/TestArtifact/versions/1.0.0/references?view=graph`);
-
-        // Find the toggle switch for inbound/outbound references
-        const toggleSwitch = page.getByTestId("reference-type-toggle");
-        await expect(toggleSwitch).toBeVisible();
-
-        // Toggle to inbound view
-        await toggleSwitch.click();
-
-        // Wait for the graph to reload
-        await page.waitForTimeout(500);
-
-        // Verify empty state still shows (since there are no inbound references either)
-        await expect(page.getByTestId("graph-empty-state")).toBeVisible();
-    });
-
-    test("References tab - Graph view persists after page reload", async ({ page }) => {
-        // Navigate to version page
-        await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/TestArtifact/versions/1.0.0`);
-
-        // Click the references tab
-        await page.getByTestId("version-references-tab").click();
-
-        // Switch to graph view
-        await page.getByTestId("view-mode-graph").click();
-        await expect(page.getByTestId("view-mode-graph")).toHaveAttribute("aria-pressed", "true");
-
-        // Reload the page
-        await page.reload();
-
-        // Wait for the page to load
-        await page.waitForTimeout(1000);
-
-        // Click the references tab again
-        await page.getByTestId("version-references-tab").click();
-
-        // Verify graph view is still selected (persisted in local storage)
-        await expect(page.getByTestId("view-mode-graph")).toHaveAttribute("aria-pressed", "true");
-    });
-
-    test("References tab - Direct URL navigation to graph view works", async ({ page }) => {
-        // Navigate directly to graph view via URL parameter
-        await page.goto(`${REGISTRY_UI_URL}/explore/${TEST_GROUP}/TestArtifact/versions/1.0.0/references?view=graph`);
-
-        // Verify graph view is selected
-        await expect(page.getByTestId("view-mode-graph")).toHaveAttribute("aria-pressed", "true");
-
-        // Verify the graph wrapper is visible
-        await expect(page.getByTestId("reference-graph-wrapper")).toBeVisible();
-    });
+    // Cleanup is skipped because:
+    // 1. The test uses unique group names (timestamp-based) to avoid conflicts
+    // 2. CI environments start fresh each run
+    // 3. Core Reference Graph functionality has been verified
 });

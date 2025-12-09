@@ -8,3 +8,19 @@
 .references-tab-content > div {
     background-color: white;
 }
+
+.refs-graph-container {
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    padding: 16px;
+    border-radius: 4px;
+}
+
+.refs-graph-toolbar {
+    margin-bottom: 16px;
+}
+
+.refs-graph-toolbar .references-toolbar {
+    padding: 0;
+}

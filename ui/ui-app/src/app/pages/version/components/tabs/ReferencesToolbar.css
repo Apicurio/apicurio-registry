@@ -15,3 +15,12 @@
 #references-toolbar-1 .tbi-filter-type {
     margin-right: 0;
 }
+
+.references-toolbar .view-mode-toggle-item {
+    margin-left: 16px;
+}
+
+.references-toolbar .view-mode-toggle-item .pf-v5-c-toggle-group__button {
+    padding-left: 12px;
+    padding-right: 12px;
+}

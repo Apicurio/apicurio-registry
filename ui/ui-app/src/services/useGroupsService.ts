@@ -18,6 +18,8 @@ import {
     EditableGroupMetaData,
     EditableVersionMetaData,
     GroupMetaData, NewComment, ReferenceType, ReferenceTypeObject, ReplaceBranchVersions,
+    ReferenceGraph,
+    ReferenceGraphDirection,
     Rule,
     RuleType,
     SortOrder,
@@ -166,6 +168,30 @@ const getArtifactReferences = async (config: ConfigService, auth: AuthService, g
     return getRegistryClient(config, auth).ids.globalIds.byGlobalId(globalId).references.get({
         queryParameters: queryParams
     }).then(v => v!);
+};
+
+const getArtifactVersionReferencesGraph = async (
+    config: ConfigService,
+    auth: AuthService,
+    groupId: string | null,
+    artifactId: string,
+    version: string,
+    direction?: ReferenceGraphDirection,
+    depth?: number
+): Promise<ReferenceGraph> => {
+    groupId = normalizeGroupId(groupId);
+    const versionExpression: string = (version === "latest") ? "branch=latest" : version;
+    const queryParams: any = {};
+    if (direction) {
+        queryParams.direction = direction;
+    }
+    if (depth !== undefined) {
+        queryParams.depth = depth;
+    }
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId)
+        .versions.byVersionExpression(versionExpression).references.graph.get({
+            queryParameters: queryParams
+        }).then(v => v!);
 };
 
 const getLatestArtifact = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<string> => {
@@ -397,6 +423,7 @@ export interface GroupsService {
     createArtifact(groupId: string|null, data: CreateArtifact): Promise<CreateArtifactResponse>;
     getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData>;
     getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]>;
+    getArtifactVersionReferencesGraph(groupId: string|null, artifactId: string, version: string, direction?: ReferenceGraphDirection, depth?: number): Promise<ReferenceGraph>;
     getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]>;
     getLatestArtifact(groupId: string|null, artifactId: string): Promise<string>;
     updateArtifactMetaData(groupId: string|null, artifactId: string, metaData: EditableArtifactMetaData): Promise<void>;
@@ -479,6 +506,9 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         },
         getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]> {
             return getArtifactReferences(config, auth, globalId, refType);
+        },
+        getArtifactVersionReferencesGraph(groupId: string|null, artifactId: string, version: string, direction?: ReferenceGraphDirection, depth?: number): Promise<ReferenceGraph> {
+            return getArtifactVersionReferencesGraph(config, auth, groupId, artifactId, version, direction, depth);
         },
         getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]> {
             return getArtifactRules(config, auth, groupId, artifactId);

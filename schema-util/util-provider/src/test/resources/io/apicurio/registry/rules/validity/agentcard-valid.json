@@ -1,0 +1,31 @@
+{
+  "name": "TestAgent",
+  "description": "A test AI agent for unit testing",
+  "version": "1.0.0",
+  "url": "https://example.com/agents/test-agent",
+  "provider": {
+    "organization": "Apicurio",
+    "url": "https://www.apicur.io"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "schema-validation",
+      "name": "Schema Validation",
+      "description": "Validates schemas against various formats"
+    },
+    {
+      "id": "schema-search",
+      "name": "Schema Search",
+      "description": "Searches for schemas in the registry"
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "authentication": {
+    "schemes": ["bearer"]
+  }
+}

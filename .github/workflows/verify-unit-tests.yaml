@@ -1,0 +1,47 @@
+name: Unit Tests
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '17'
+      image-tag:
+        type: string
+        required: true
+        description: 'Build artifact identifier (commit SHA)'
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ inputs.image-tag }}
+          path: .
+
+      - name: Restore executable permissions
+        run: |
+          # GitHub Actions artifact upload/download doesn't preserve executable permissions
+          # Restore execute permission on protoc binaries
+          find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
+          find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
+
+      - name: Run Unit Tests
+        run: |
+          ./mvnw verify --no-transfer-progress \
+            -Pprod -DskipCommitIdPlugin=false \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5

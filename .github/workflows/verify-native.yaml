@@ -1,0 +1,113 @@
+name: Native Build
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '17'
+      image-tag:
+        type: string
+        required: true
+        description: 'Docker image tag (commit SHA)'
+
+jobs:
+  # ============================================================================
+  # Build native executable and save as artifact
+  # ============================================================================
+  build-native:
+    name: Build Native Image
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ inputs.image-tag }}
+          path: .
+
+      - name: Restore executable permissions
+        run: |
+          # GitHub Actions artifact upload/download doesn't preserve executable permissions
+          # Restore execute permission on protoc binaries
+          find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
+          find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
+
+      - name: Workaround jackson-coreutils
+        run: |
+          rm -rf ~/.m2/repository/com/github/java-json-tools
+          mkdir -p /tmp/coreutils-workaround
+          ( cd /tmp/coreutils-workaround && mvn dependency:get -DremoteRepositories=https://repo1.maven.org/maven2 -Dartifact=com.github.java-json-tools:jackson-coreutils:2.0 )
+
+      - name: Build Native executables
+        env:
+          SKIP_TESTS: "true"
+        run: |
+          ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
+
+      - name: Build Temporary image for testing
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.native -t apicurio/apicurio-registry-native:${{ inputs.image-tag }} app/
+
+      - name: Save Native Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@v2
+        with:
+          image-name: apicurio/apicurio-registry-native
+          tag: '${{ inputs.image-tag }}'
+          output-path: '/tmp/apicurio-registry-native-${{ inputs.image-tag }}.tar'
+          artifact-name: 'apicurio-registry-native-${{ inputs.image-tag }}.tar'
+
+  # ============================================================================
+  # Run native integration tests in parallel (ci and auth profiles)
+  # ============================================================================
+  test-native:
+    name: Test Native (${{ matrix.profile }})
+    needs: build-native
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [ci, auth]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-native-${{ inputs.image-tag }}.tar'
+          image-file: '/tmp/apicurio-registry-native-${{ inputs.image-tag }}.tar'
+          image-name: 'apicurio/apicurio-registry-native'
+          tag: '${{ inputs.image-tag }}'
+          minikube: 'true'
+
+      - name: Run Integration Tests - Native - ${{ matrix.profile }}
+        run: ./mvnw verify -am -P${{ matrix.profile }} --no-transfer-progress -Pintegration-tests -Dregistry-in-memory-image=apicurio/apicurio-registry-native:${{ inputs.image-tag }} -Premote-mem -pl integration-tests -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-logs-native-${{ matrix.profile }}
+          path: artifacts

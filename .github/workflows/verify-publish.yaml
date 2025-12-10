@@ -57,7 +57,8 @@ jobs:
       dockerfile: './ui/Dockerfile'
       context: './ui'
       tag: 'latest-snapshot'
-      maven-build: false
+      npm-build: true
+      npm-build-dir: 'ui'
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}

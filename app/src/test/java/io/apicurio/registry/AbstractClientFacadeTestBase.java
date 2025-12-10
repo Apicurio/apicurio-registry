@@ -8,7 +8,7 @@ import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl_v2;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.utils.tests.TestUtils;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.provider.Arguments;
 
@@ -27,7 +27,7 @@ public abstract class AbstractClientFacadeTestBase extends AbstractResourceTestB
     public io.apicurio.registry.rest.client.v2.RegistryClient isolatedClientV2;
     public RegistryClient isolatedClientV3;
 
-    @BeforeEach
+    @BeforeAll
     public void createIsolatedClients() {
         isolatedClientV2 = RegistryV2ClientFactory.create(RegistryClientOptions.create()
                 .registryUrl(TestUtils.getRegistryV2ApiUrl(testPort))

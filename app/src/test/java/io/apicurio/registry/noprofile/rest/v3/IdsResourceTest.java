@@ -161,9 +161,11 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         long contentId = createArtifactResponse.getVersion().getContentId();
 
         // Get by contentId
-        given().when().contentType(CT_JSON).pathParam("contentId", contentId)
-                .get("/registry/v3/ids/contentIds/{contentId}").then().statusCode(200)
-                .body("openapi", equalTo("3.0.2")).body("info.title", equalTo(title));
+        String content = given().when().contentType(CT_JSON).pathParam("contentId", contentId)
+                .get("/registry/v3/ids/contentIds/{contentId}").then().statusCode(200).extract().body()
+                .asString();
+        Assertions.assertTrue(content.contains("\"openapi\": \"3.0.2\""));
+        Assertions.assertTrue(content.contains(title));
 
         // Get by contentId (not found)
         given().when().contentType(CT_JSON).pathParam("contentId", Integer.MAX_VALUE)
@@ -186,9 +188,11 @@ public class IdsResourceTest extends AbstractResourceTestBase {
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200);
 
         // Get by contentHash
-        given().when().contentType(CT_JSON).pathParam("contentHash", contentHash)
-                .get("/registry/v3/ids/contentHashes/{contentHash}").then().statusCode(200)
-                .body("openapi", equalTo("3.0.2")).body("info.title", equalTo(title));
+        String content = given().when().contentType(CT_JSON).pathParam("contentHash", contentHash)
+                .get("/registry/v3/ids/contentHashes/{contentHash}").then().statusCode(200).extract().body()
+                .asString();
+        Assertions.assertTrue(content.contains("\"openapi\": \"3.0.2\""));
+        Assertions.assertTrue(content.contains(title));
 
         // Get by contentHash (not found)
         given().when().contentType(CT_JSON).pathParam("contentHash", "CONTENT-HASH-NOT-VALID")

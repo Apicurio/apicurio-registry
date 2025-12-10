@@ -40,6 +40,8 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -54,6 +56,7 @@ import static io.apicurio.registry.utils.tests.TestUtils.waitForSchemaLongId;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
+@Execution(ExecutionMode.CONCURRENT)
 public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
     @Test

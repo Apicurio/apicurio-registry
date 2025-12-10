@@ -3,21 +3,16 @@ package io.apicurio.registry.storage.impl.sql;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -155,94 +150,6 @@ public class RegistryContentUtils {
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Canonicalize the given content.
-     * <p>
-     * WARNING: Fails silently.
-     */
-    private static TypedContent canonicalizeContent(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
-            String artifactType, TypedContent content,
-            Map<String, TypedContent> recursivelyResolvedReferences) {
-        try {
-            return artifactTypeUtilProviderFactory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
-                    .canonicalize(content, recursivelyResolvedReferences);
-        } catch (Exception ex) {
-            // TODO: We should consider explicitly failing when a content could not be canonicalized.
-            // throw new RegistryException("Failed to canonicalize content.", ex);
-            log.debug("Failed to canonicalize content: {}", content.getContent());
-            return content;
-        }
-    }
-
-    /**
-     * Canonicalize the given content.
-     *
-     * @throws RegistryException in the case of an error.
-     */
-    public static TypedContent canonicalizeContent(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
-            String artifactType, ContentWrapperDto data,
-            Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
-        try {
-            return canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
-                    TypedContent.create(data.getContent(), data.getArtifactType()),
-                    recursivelyResolveReferences(data.getReferences(), loader));
-        } catch (Exception ex) {
-            throw new RegistryException("Failed to canonicalize content.", ex);
-        }
-    }
-
-    /**
-     * @param loader can be null *if and only if* references are empty.
-     */
-    public static String canonicalContentHash(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
-            String artifactType, ContentWrapperDto data,
-            Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
-        try {
-            if (notEmpty(data.getReferences())) {
-                String serializedReferences = serializeReferences(data.getReferences());
-                TypedContent canonicalContent = canonicalizeContent(artifactTypeUtilProviderFactory, artifactType, data, loader);
-                return DigestUtils.sha256Hex(concatContentAndReferences(canonicalContent.getContent().bytes(),
-                        serializedReferences));
-            } else {
-                TypedContent canonicalContent = canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
-                        TypedContent.create(data.getContent(), data.getArtifactType()), Map.of());
-                return DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
-            }
-        } catch (IOException ex) {
-            throw new RegistryException("Failed to compute canonical content hash.", ex);
-        }
-    }
-
-    /**
-     * data.references may be null
-     */
-    public static String contentHash(ContentWrapperDto data) {
-        try {
-            if (notEmpty(data.getReferences())) {
-                String serializedReferences = serializeReferences(data.getReferences());
-                return DigestUtils.sha256Hex(
-                        concatContentAndReferences(data.getContent().bytes(), serializedReferences));
-            } else {
-                return data.getContent().getSha256Hash();
-            }
-        } catch (IOException ex) {
-            throw new RegistryException("Failed to compute content hash.", ex);
-        }
-    }
-
-    private static byte[] concatContentAndReferences(byte[] contentBytes, String serializedReferences)
-            throws IOException {
-        if (serializedReferences != null && !serializedReferences.isEmpty()) {
-            var serializedReferencesBytes = ContentHandle.create(serializedReferences).bytes();
-            var bytes = ByteBuffer.allocate(contentBytes.length + serializedReferencesBytes.length);
-            bytes.put(contentBytes);
-            bytes.put(serializedReferencesBytes);
-            return bytes.array();
-        } else {
-            throw new IllegalArgumentException("serializedReferences is null or empty");
         }
     }
 

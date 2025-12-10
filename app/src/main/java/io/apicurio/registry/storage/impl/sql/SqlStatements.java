@@ -107,18 +107,14 @@ public interface SqlStatements {
 
     /**
      * A statement used to select a single row in the versions by artifactId and content hash.
+     * This now joins with the content_hashes table to find content by hash value and type.
      */
-    public String selectArtifactVersionMetaDataByContentHash();
+    public String selectArtifactVersionMetaDataByHash();
 
     /**
      * A statement used to select a single row in the versions by artifactId and content id.
      */
     public String selectArtifactVersionMetaDataByContentId();
-
-    /**
-     * A statement used to select a single row in the versions by artifactId and canonical content hash.
-     */
-    public String selectArtifactVersionMetaDataByCanonicalHash();
 
     /**
      * A statement to select the content of an artifact version from the versions table by globalId.
@@ -182,19 +178,24 @@ public interface SqlStatements {
     public String insertContent();
 
     /**
-     * A statement to update canonicalHash value in a row in the "content" table
+     * A statement to insert a row in the "content_hashes" table.
      */
-    public String updateContentCanonicalHash();
+    public String insertContentHash();
+
+    /**
+     * A statement to select all hashes for a given content ID.
+     */
+    public String selectContentHashesByContentId();
+
+    /**
+     * A statement to select a content ID by hash value and hash type.
+     */
+    public String selectContentIdByHashAndType();
 
     /**
      * A statement to get a single artifact (latest version) meta-data by artifactId.
      */
     public String selectArtifactMetaData();
-
-    /**
-     * A statement to select the contentId of a row in the content table by hash value.
-     */
-    public String selectContentIdByHash();
 
     /**
      * A statement used to select artifact rules by artifactId.
@@ -396,7 +397,7 @@ public interface SqlStatements {
     public String selectGroupCountById();
 
     /**
-     * A statement to select the number of content rows for a given content hash.
+     * A statement to select the number of content rows for a given hash value and type.
      */
     public String selectContentCountByHash();
 
@@ -416,9 +417,9 @@ public interface SqlStatements {
     public String selectContentById();
 
     /**
-     * A statement to select the bytes of a content row by contentHash
+     * A statement to select the bytes of a content row by hash value and type.
      */
-    public String selectContentByContentHash();
+    public String selectContentByHash();
 
     /**
      * A statement to delete content that is no longer being referenced by an artifact version.

@@ -87,6 +87,38 @@ public class RegistryStorageContentUtils {
     }
 
     /**
+     * Compute canonical content hash WITHOUT including references in the hash calculation.
+     * This hash is useful for finding content by canonical form while ignoring reference variations.
+     * The content is still canonicalized with references resolved (for proper canonicalization),
+     * but the references themselves are not included in the final hash.
+     *
+     * @param content the content to hash
+     * @param artifactType the artifact type
+     * @param references may be null
+     * @param referenceResolver may be null if references is null
+     * @return SHA-256 hash of the canonical content (without references)
+     */
+    public String getCanonicalContentHashWithoutRefs(TypedContent content, String artifactType,
+            List<ArtifactReferenceDto> references,
+            Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver) {
+        try {
+            // Canonicalize with resolved references (needed for proper canonicalization)
+            // but don't include the references in the hash calculation
+            TypedContent canonicalContent;
+            if (notEmpty(references)) {
+                canonicalContent = canonicalizeContent(artifactType, content,
+                        referenceResolver.apply(references));
+            } else {
+                canonicalContent = canonicalizeContent(artifactType, content, Map.of());
+            }
+            // Hash only the canonical content, not the references
+            return DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
+        } catch (Exception ex) {
+            throw new RegistryException("Failed to compute canonical content hash without refs.", ex);
+        }
+    }
+
+    /**
      * @param references may be null
      */
     public String getContentHash(TypedContent content, List<ArtifactReferenceDto> references) {

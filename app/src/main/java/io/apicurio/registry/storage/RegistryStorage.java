@@ -10,6 +10,7 @@ import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ContentHashType;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
@@ -58,7 +59,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -147,15 +147,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
             throws ContentNotFoundException, RegistryStorageException;
 
     /**
-     * Gets some artifact content by the SHA-256 hash of that content. This method of getting content from
+     * Gets some artifact content by hash value and hash type. This method of getting content from
      * storage does not allow extra meta-data to be returned, because the content hash only points to a piece
      * of content/data - it is divorced from any artifact version.
      *
-     * @param contentHash
+     * @param contentHash the hash value
+     * @param hashType the type of hash (e.g., CONTENT_SHA256, CANONICAL_SHA256, CANONICAL_NO_REFS_SHA256)
      * @throws ContentNotFoundException
      * @throws RegistryStorageException
      */
-    ContentWrapperDto getContentByHash(String contentHash)
+    ContentWrapperDto getContentByHash(String contentHash, ContentHashType hashType)
             throws ContentNotFoundException, RegistryStorageException;
 
     /**
@@ -966,8 +967,6 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     void importBranch(BranchEntity entity);
 
-    boolean isContentExists(String contentHash) throws RegistryStorageException;
-
     boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule)
             throws RegistryStorageException;
 
@@ -975,9 +974,15 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     boolean isRoleMappingExists(String principalId);
 
+    /**
+     * DEPRECATED: This method is no longer used and is kept for backward compatibility only.
+     * Content hashes are now immutable and generated at content creation time. This method
+     * is a no-op and should not be called.
+     *
+     * @deprecated Content hashes are immutable; this operation is no longer supported
+     */
+    @Deprecated
     void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash);
-
-    Optional<Long> contentIdFromHash(String contentHash);
 
     BranchSearchResultsDto getBranches(GA ga, int offset, int limit);
 

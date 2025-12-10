@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 101);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 102);
 
 CREATE TABLE sequences (seqName NVARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -23,11 +23,15 @@ CREATE INDEX IDX_down_1 ON downloads(expires);
 CREATE TABLE global_rules (type NVARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
 ALTER TABLE global_rules ADD PRIMARY KEY (type);
 
-CREATE TABLE content (contentId BIGINT NOT NULL, canonicalHash NVARCHAR(64) NOT NULL, contentHash NVARCHAR(64) NOT NULL, contentType NVARCHAR(64) NOT NULL, content VARBINARY(MAX) NOT NULL, refs TEXT);
+CREATE TABLE content (contentId BIGINT NOT NULL, contentHash NVARCHAR(512) NOT NULL, contentType NVARCHAR(64) NOT NULL, content VARBINARY(MAX) NOT NULL, refs TEXT);
 ALTER TABLE content ADD PRIMARY KEY (contentId);
 ALTER TABLE content ADD CONSTRAINT UQ_content_1 UNIQUE (contentHash);
-CREATE INDEX IDX_content_1 ON content(canonicalHash);
-CREATE INDEX IDX_content_2 ON content(contentHash);
+
+CREATE TABLE content_hashes (contentId BIGINT NOT NULL, hashType NVARCHAR(64) NOT NULL, hashValue NVARCHAR(128) NOT NULL, createdOn DATETIME2(6) NOT NULL);
+ALTER TABLE content_hashes ADD PRIMARY KEY (contentId, hashType);
+ALTER TABLE content_hashes ADD CONSTRAINT FK_content_hashes_1 FOREIGN KEY (contentId) REFERENCES content(contentId) ON DELETE CASCADE;
+CREATE INDEX IDX_content_hashes_1 ON content_hashes(hashValue);
+CREATE INDEX IDX_content_hashes_2 ON content_hashes(hashType, hashValue);
 
 CREATE TABLE content_references (contentId BIGINT NOT NULL, groupId NVARCHAR(512), artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), name NVARCHAR(512) NOT NULL);
 ALTER TABLE content_references ADD PRIMARY KEY (contentId, name);

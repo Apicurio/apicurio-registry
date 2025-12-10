@@ -39,6 +39,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentHashType;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
@@ -96,6 +97,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.BranchMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.CommentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ContentHashMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.DatabaseLockMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
@@ -145,6 +147,7 @@ import org.slf4j.Logger;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -503,12 +506,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public ContentWrapperDto getContentByHash(String contentHash)
+    public ContentWrapperDto getContentByHash(String contentHash, ContentHashType hashType)
             throws ContentNotFoundException, RegistryStorageException {
         return handles.withHandleNoException(handle -> {
-            Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements().selectContentByContentHash())
-                    .bind(0, contentHash).map(ContentMapper.instance).findFirst();
-            return res.orElseThrow(() -> new ContentNotFoundException(contentHash));
+            Optional<Long> contentId = handle.createQuery(sqlStatements().selectContentIdByHashAndType())
+                    .bind(0, hashType.value())
+                    .bind(1, contentHash)
+                    .mapTo(Long.class).findFirst();
+
+            if (contentId.isPresent()) {
+                Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements().selectContentById())
+                        .bind(0, contentId.get())
+                        .map(ContentMapper.instance).findFirst();
+                return res.orElseThrow(() -> new ContentNotFoundException(contentHash));
+            } else {
+                throw new ContentNotFoundException(contentHash);
+            }
         });
     }
 
@@ -774,13 +787,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         }
 
         TypedContent content = TypedContent.create(contentDto.getContent(), contentDto.getContentType());
-        String contentHash;
-        String canonicalContentHash;
+        Map<ContentHashType, String> contentHashes = new java.util.HashMap<>();
         String serializedReferences;
 
-        // Need to create the content hash and canonical content hash. If the content is DRAFT
-        // content, then do NOT calculate those hashes because we don't want DRAFT content to
-        // be looked up by those hashes.
+        // Need to create the content hashes. If the content is DRAFT content, then do NOT
+        // calculate those hashes because we don't want DRAFT content to be looked up by those hashes.
         //
         // So we have three different paths to calculate the hashes:
         // 1. If DRAFT state
@@ -788,8 +799,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         // 3. If the content has no references
 
         if (isDraft) {
-            contentHash = "draft:" + UUID.randomUUID().toString();
-            canonicalContentHash = "draft:" + UUID.randomUUID().toString();
+            // For draft content, use unique UUIDs to prevent lookup
+            contentHashes.put(ContentHashType.CONTENT_SHA256, "draft:" + UUID.randomUUID().toString());
+            contentHashes.put(ContentHashType.CANONICAL_SHA256, "draft:" + UUID.randomUUID().toString());
+            contentHashes.put(ContentHashType.CANONICAL_NO_REFS_SHA256, "draft:" + UUID.randomUUID().toString());
             serializedReferences = null;
         } else if (notEmpty(references)) {
             Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver = (refs) -> {
@@ -797,21 +810,29 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     return resolveReferencesRaw(handle, refs);
                 });
             };
-            contentHash = utils.getContentHash(content, references);
-            canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, references,
-                    referenceResolver);
+            contentHashes.put(ContentHashType.CONTENT_SHA256,
+                    utils.getContentHash(content, references));
+            contentHashes.put(ContentHashType.CANONICAL_SHA256,
+                    utils.getCanonicalContentHash(content, artifactType, references, referenceResolver));
+            contentHashes.put(ContentHashType.CANONICAL_NO_REFS_SHA256,
+                    utils.getCanonicalContentHashWithoutRefs(content, artifactType, references, referenceResolver));
             serializedReferences = RegistryContentUtils.serializeReferences(references);
         } else {
-            contentHash = utils.getContentHash(content, null);
-            canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, null, null);
+            contentHashes.put(ContentHashType.CONTENT_SHA256,
+                    utils.getContentHash(content, null));
+            contentHashes.put(ContentHashType.CANONICAL_SHA256,
+                    utils.getCanonicalContentHash(content, artifactType, null, null));
+            contentHashes.put(ContentHashType.CANONICAL_NO_REFS_SHA256,
+                    utils.getCanonicalContentHashWithoutRefs(content, artifactType, null, null));
             serializedReferences = null;
         }
 
         // Ensure the content is in the DB.
-        ensureContent(content, contentHash, canonicalContentHash, references, serializedReferences);
+        ensureContent(content, contentHashes, references, serializedReferences);
 
-        // Get the contentId using the unique contentHash.
-        Optional<Long> contentId = contentIdFromHash(contentHash);
+        // Get the contentId using the unique content hash.
+        String standardHash = contentHashes.get(ContentHashType.CONTENT_SHA256);
+        Optional<Long> contentId = contentIdFromHash(ContentHashType.CONTENT_SHA256, standardHash);
         return contentId.orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
     }
 
@@ -819,10 +840,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * Store the content in the database and return the content ID of the new row. If the content already
      * exists, just return the content ID of the existing row.
      */
-    private void ensureContent(TypedContent content, String contentHash, String canonicalContentHash,
+    private void ensureContent(TypedContent content, Map<ContentHashType, String> contentHashes,
             List<ArtifactReferenceDto> references, String referencesSerialized) {
 
         handles.withHandleNoException(handle -> {
+            // Check if content already exists by looking up the standard content hash
+            String standardHash = contentHashes.get(ContentHashType.CONTENT_SHA256);
+            Optional<Long> existingContentId = contentIdFromHashRaw(handle, ContentHashType.CONTENT_SHA256, standardHash);
+
+            if (existingContentId.isPresent()) {
+                log.debug("Content with hash {} already exists with contentId: {}", standardHash, existingContentId.get());
+                return;
+            }
 
             // Insert the content into the content table.
             long contentId = nextContentIdRaw(handle);
@@ -830,24 +859,75 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             try {
                 handle.createUpdate(sqlStatements.insertContent())
                         .bind(0, contentId)
-                        .bind(1, canonicalContentHash)
-                        .bind(2, contentHash)
-                        .bind(3, content.getContentType())
-                        .bind(4, content.getContent().bytes())
-                        .bind(5, referencesSerialized)
+                        .bind(1, standardHash)  // contentHash column (content-sha256)
+                        .bind(2, content.getContentType())
+                        .bind(3, content.getContent().bytes())
+                        .bind(4, referencesSerialized)
                         .execute();
             } catch (Exception e) {
+                // Unique constraint violation on contentHash means content already exists
                 if (sqlStatements.isPrimaryKeyViolation(e)) {
-                    log.debug("Content with content hash {} already exists: {}", contentHash, content);
+                    log.debug("Content with hash {} already exists", standardHash);
                     return;
                 } else {
                     throw e;
                 }
             }
 
+            // Insert all hash values for this content
+            insertContentHashesRaw(handle, contentId, contentHashes);
+
             // If we get here, then the content was inserted and we need to insert the references.
             insertReferencesRaw(contentId, references);
         });
+    }
+
+    /**
+     * Inserts multiple hash entries for a single content row.
+     *
+     * @param handle the database handle
+     * @param contentId the content ID
+     * @param contentHashes map of hash types to hash values
+     */
+    private void insertContentHashesRaw(Handle handle, long contentId, Map<ContentHashType, String> contentHashes) {
+        Timestamp now = new Timestamp(java.lang.System.currentTimeMillis());
+        for (Map.Entry<ContentHashType, String> entry : contentHashes.entrySet()) {
+            try {
+                handle.createUpdate(sqlStatements.insertContentHash())
+                        .bind(0, contentId)
+                        .bind(1, entry.getKey().value())
+                        .bind(2, entry.getValue())
+                        .bind(3, now)
+                        .execute();
+            } catch (Exception e) {
+                // TODO throw an exception here regardless of the issue - we should never get primary key violations when inserting a hash value
+                if (sqlStatements.isPrimaryKeyViolation(e)) {
+                    log.debug("Hash {} of type {} for contentId {} already exists",
+                            entry.getValue(), entry.getKey(), contentId);
+                } else {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    /**
+     * Enriches a ContentEntity with all its hash values from the content_hashes table.
+     * This populates both the new 'hashes' map and the deprecated contentHash/canonicalHash
+     * fields for backward compatibility.
+     *
+     * @param handle the database handle
+     * @param entity the content entity to enrich
+     */
+    private void enrichContentEntityWithHashes(Handle handle, io.apicurio.registry.utils.impexp.v3.ContentEntity entity) {
+        handle.createQuery(sqlStatements.selectContentHashesByContentId())
+                .bind(0, entity.contentId)
+                .setFetchSize(10)
+                .map(ContentHashMapper.instance)
+                .list()
+                .forEach(hashDto -> {
+                    io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper.addHash(entity, hashDto);
+                });
     }
 
     private void insertReferencesRaw(Long contentId, List<ArtifactReferenceDto> references) {
@@ -1269,15 +1349,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         return handles.withHandle(handle -> {
             String hash = getContentHashRaw(handle, groupId, artifactId, canonical, content, references);
+            ContentHashType hashType = canonical ? ContentHashType.CANONICAL_SHA256 : ContentHashType.CONTENT_SHA256;
 
-            String sql;
-            if (canonical) {
-                sql = sqlStatements.selectArtifactVersionMetaDataByCanonicalHash();
-            } else {
-                sql = sqlStatements.selectArtifactVersionMetaDataByContentHash();
-            }
+            String sql = sqlStatements.selectArtifactVersionMetaDataByHash();
             Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sql)
-                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, hash)
+                    .bind(0, normalizeGroupId(groupId))
+                    .bind(1, artifactId)
+                    .bind(2, hashType.value())
+                    .bind(3, hash)
                     .map(ArtifactVersionMetaDataDtoMapper.instance).findFirst();
             return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
         });
@@ -2508,7 +2587,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     .map(ContentEntityMapper.instance).stream();
             // Process and then close the stream.
             try (stream) {
-                stream.forEach(handler::apply);
+                stream.forEach(entity -> {
+                    // Populate hashes for this content entity from the content_hashes table
+                    enrichContentEntityWithHashes(handle, entity);
+                    handler.apply(entity);
+                });
             }
             return null;
         });
@@ -3268,11 +3351,38 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void importContent(ContentEntity entity) {
         handles.withHandleNoException(handle -> {
             if (!isContentExistsRaw(handle, entity.contentId)) {
-                handle.createUpdate(sqlStatements.importContent()).bind(0, entity.contentId)
-                        .bind(1, entity.canonicalHash).bind(2, entity.contentHash).bind(3, entity.contentType)
-                        .bind(4, entity.contentBytes).bind(5, entity.serializedReferences).execute();
+                // Extract the content-sha256 hash for the contentHash column
+                String contentHash = entity.hashes != null ? entity.hashes.get(ContentHashType.CONTENT_SHA256.value()) : null;
+                if (contentHash == null) {
+                    throw new IllegalStateException("Content entity must have content-sha256 hash for import");
+                }
 
-                insertReferencesRaw(entity.contentId, RegistryContentUtils.deserializeReferences(entity.serializedReferences));
+                // Insert the content row
+                handle.createUpdate(sqlStatements.importContent())
+                        .bind(0, entity.contentId)
+                        .bind(1, contentHash)  // contentHash column (content-sha256)
+                        .bind(2, entity.contentType)
+                        .bind(3, entity.contentBytes)
+                        .bind(4, entity.serializedReferences)
+                        .execute();
+
+                // Insert all hashes (including content-sha256) into content_hashes table
+                if (entity.hashes != null && !entity.hashes.isEmpty()) {
+                    Map<ContentHashType, String> hashesMap = new java.util.HashMap<>();
+                    for (Map.Entry<String, String> entry : entity.hashes.entrySet()) {
+                        try {
+                            ContentHashType hashType = ContentHashType.fromValue(entry.getKey());
+                            hashesMap.put(hashType, entry.getValue());
+                        } catch (IllegalArgumentException e) {
+                            log.warn("Unknown hash type during import: {}, skipping", entry.getKey());
+                        }
+                    }
+                    insertContentHashesRaw(handle, entity.contentId, hashesMap);
+                }
+
+                // Insert references
+                insertReferencesRaw(entity.contentId,
+                        RegistryContentUtils.deserializeReferences(entity.serializedReferences));
             } else {
                 throw new ContentAlreadyExistsException(entity.contentId);
             }
@@ -3384,14 +3494,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
-    public boolean isContentExists(String contentHash) throws RegistryStorageException {
-        return handles.withHandleNoException(handle -> {
-            return handle.createQuery(sqlStatements().selectContentCountByHash()).bind(0, contentHash)
-                    .mapTo(Integer.class).one() > 0;
-        });
-    }
-
-    @Override
     public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule)
             throws RegistryStorageException {
         return handles.withHandleNoException(handle -> {
@@ -3417,28 +3519,57 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
+    /**
+     * DEPRECATED: This method is no longer used in new code but is still needed for backward
+     * compatibility with old Kafka logs. When replaying Kafka logs from before the multiple
+     * hash support feature, this updates the canonical-sha256 hash in the content_hashes table.
+     *
+     * Old implementation: UPDATE content SET canonicalHash = ? WHERE contentId = ? AND contentHash = ?
+     * New implementation: UPDATE content_hashes SET hashValue = ? WHERE contentId = ? AND hashType = 'canonical-sha256'
+     *
+     * @deprecated Content hashes are now immutable in new code; this is only for Kafka log replay
+     */
+    @Deprecated
     @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         handles.withHandleNoException(handle -> {
-            int rowCount = handle.createUpdate(sqlStatements().updateContentCanonicalHash())
-                    .bind(0, newCanonicalHash).bind(1, contentId).bind(2, contentHash).execute();
+            // Update the canonical-sha256 hash in the content_hashes table
+            // Old code: UPDATE content SET canonicalHash = ? WHERE contentId = ? AND contentHash = ?
+            // We verify contentId matches but ignore contentHash (it's from the old content-sha256 hash)
+            String sql = "UPDATE content_hashes SET hashValue = ? WHERE contentId = ? AND hashType = ?";
+            int rowCount = handle.createUpdate(sql)
+                    .bind(0, newCanonicalHash)
+                    .bind(1, contentId)
+                    .bind(2, ContentHashType.CANONICAL_SHA256.value())
+                    .execute();
+
             if (rowCount == 0) {
-                log.warn("update content canonicalHash, no row match contentId {} contentHash {}", contentId,
-                        contentHash);
+                log.warn("Failed to update canonical hash for contentId {} - no matching row found in content_hashes table. "
+                        + "This may occur if replaying very old Kafka logs.", contentId);
+            } else {
+                log.debug("Updated canonical hash for contentId {} during Kafka log replay", contentId);
             }
             return null;
         });
     }
 
-    @Override
-    public Optional<Long> contentIdFromHash(String contentHash) {
+    /**
+     * Gets the content ID for a given hash value and hash type.
+     *
+     * @param hashType the type of hash
+     * @param hashValue the hash value
+     * @return the content ID, if found
+     */
+    public Optional<Long> contentIdFromHash(ContentHashType hashType, String hashValue) {
         return handles.withHandleNoException(handle -> {
-            return contentIdFromHashRaw(handle, contentHash);
+            return contentIdFromHashRaw(handle, hashType, hashValue);
         });
     }
 
-    private Optional<Long> contentIdFromHashRaw(Handle handle, String contentHash) {
-        return handle.createQuery(sqlStatements().selectContentIdByHash()).bind(0, contentHash)
+    private Optional<Long> contentIdFromHashRaw(Handle handle, ContentHashType hashType, String hashValue) {
+        return handle.createQuery(sqlStatements().selectContentIdByHashAndType())
+                .bind(0, hashType.value())
+                .bind(1, hashValue)
                 .mapTo(Long.class).findOne();
     }
 

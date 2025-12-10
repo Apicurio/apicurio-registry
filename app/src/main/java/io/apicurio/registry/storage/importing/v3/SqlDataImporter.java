@@ -112,12 +112,56 @@ public class SqlDataImporter extends AbstractDataImporter {
             TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes),
                     entity.contentType);
 
-            // We do not need canonicalHash if we have artifactType
-            if (entity.canonicalHash == null && entity.artifactType != null) {
-                TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
-                        RegistryContentUtils.recursivelyResolveReferences(references,
-                                storage::getContentByReference));
-                entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
+            // Convert old hash format to new format if needed
+            if (entity.isOldHashFormat()) {
+                log.debug("Importing content entity with old hash format, converting to new format");
+                entity.hashes = new HashMap<>();
+
+                // Populate hashes map from old fields
+                if (entity.contentHash != null) {
+                    entity.hashes.put("content-sha256", entity.contentHash);
+                }
+                if (entity.canonicalHash != null) {
+                    entity.hashes.put("canonical-sha256", entity.canonicalHash);
+                }
+
+                // Calculate canonical-no-refs hash if we have artifactType
+                if (entity.artifactType != null) {
+                    try {
+                        TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
+                                RegistryContentUtils.recursivelyResolveReferences(references,
+                                        storage::getContentByReference));
+                        entity.hashes.put("canonical-no-refs-sha256",
+                                DigestUtils.sha256Hex(canonicalContent.getContent().bytes()));
+                    } catch (Exception e) {
+                        log.warn("Failed to calculate canonical-no-refs hash for old format content: {}", e.getMessage());
+                    }
+                }
+            } else if (entity.isNewHashFormat()) {
+                log.debug("Importing content entity with new hash format");
+                // Ensure deprecated fields are populated for any code that might still reference them
+                entity.contentHash = entity.hashes.get("content-sha256");
+                entity.canonicalHash = entity.hashes.get("canonical-sha256");
+            } else {
+                // No hashes present at all - generate them if possible
+                log.warn("Content entity has no hash information, will generate if possible");
+                entity.hashes = new HashMap<>();
+
+                // Generate content hash
+                String contentHash = DigestUtils.sha256Hex(entity.contentBytes);
+                entity.hashes.put("content-sha256", contentHash);
+                entity.contentHash = contentHash;
+
+                // Generate canonical hash if we have artifactType
+                if (entity.artifactType != null) {
+                    TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
+                            RegistryContentUtils.recursivelyResolveReferences(references,
+                                    storage::getContentByReference));
+                    String canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
+                    entity.hashes.put("canonical-sha256", canonicalHash);
+                    entity.hashes.put("canonical-no-refs-sha256", canonicalHash);
+                    entity.canonicalHash = canonicalHash;
+                }
             }
 
             var oldContentId = entity.contentId;

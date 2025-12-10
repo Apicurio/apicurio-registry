@@ -15,6 +15,7 @@ import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.v2.impl.shared.CommonResourceOperations;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentHashType;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
@@ -115,7 +116,7 @@ public class IdsResourceImpl implements IdsResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public Response getContentByHash(String contentHash) {
-        ContentHandle content = storage.getContentByHash(contentHash).getContent();
+        ContentHandle content = storage.getContentByHash(contentHash, ContentHashType.CONTENT_SHA256).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
         return builder.build();
     }

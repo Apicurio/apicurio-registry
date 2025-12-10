@@ -132,6 +132,20 @@
               <inputSpec>${project.basedir}/src/main/resources/META-INF/artifact-type-webhooks.json</inputSpec>
             </configuration>
           </execution>
+          <execution>
+            <id>generate-api-a2a</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <projectSettings>
+                <javaPackage>io.apicurio.registry.rest.a2a</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+              </projectSettings>
+              <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi-a2a.json</inputSpec>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>

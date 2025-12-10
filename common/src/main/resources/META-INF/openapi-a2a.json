@@ -1,0 +1,784 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Apicurio Registry A2A Agent API [v1]",
+    "version": "1.0.x",
+    "description": "The A2A (Agent-to-Agent) Agent Registry API allows client applications to manage AI agent cards in the registry. This API is compatible with the A2A protocol specification for agent discovery and interaction.\n\nAgent Cards describe AI agents' capabilities, skills, and metadata, enabling agent-to-agent communication and discovery.\n\n**Important**: The A2A Agent Registry API is available from `https://MY-REGISTRY-URL/apis/a2a/v1` by default.",
+    "contact": {
+      "name": "Apicurio",
+      "url": "https://github.com/apicurio/apicurio-registry",
+      "email": "apicurio@lists.jboss.org"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    }
+  },
+  "paths": {
+    "/agents": {
+      "summary": "Manage A2A Agent Cards",
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "description": "The number of agents to skip before starting to collect the result set.",
+            "schema": {
+              "format": "int32",
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "description": "The number of agents to return.",
+            "schema": {
+              "format": "int32",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 500,
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "order",
+            "description": "Sort order, ascending (`asc`) or descending (`desc`).",
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder"
+            },
+            "in": "query"
+          },
+          {
+            "name": "orderby",
+            "description": "The field to sort by.",
+            "schema": {
+              "$ref": "#/components/schemas/AgentSortBy"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchResults"
+                }
+              }
+            },
+            "description": "The list of registered agents."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "listAgents",
+        "summary": "List agents",
+        "description": "Returns a list of all registered A2A Agent Cards."
+      },
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The agent was successfully registered."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "createAgent",
+        "summary": "Register a new agent",
+        "description": "Registers a new A2A Agent Card in the registry."
+      }
+    },
+    "/agents/search": {
+      "summary": "Search for agents",
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "skill",
+            "description": "Filter by skill ID.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "capability",
+            "description": "Filter by capability (streaming, pushNotifications, stateTransitionHistory).",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "tag",
+            "description": "Filter by skill tag.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "The number of agents to skip.",
+            "schema": {
+              "format": "int32",
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "description": "The number of agents to return.",
+            "schema": {
+              "format": "int32",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 500,
+              "type": "integer"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchResults"
+                }
+              }
+            },
+            "description": "The search results."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "searchAgents",
+        "summary": "Search agents",
+        "description": "Search for agents by skill, capability, or tag."
+      }
+    },
+    "/agents/{agentId}": {
+      "summary": "Manage a specific agent",
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The agent card."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getAgent",
+        "summary": "Get agent",
+        "description": "Gets the details of a specific A2A Agent Card."
+      },
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAgent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The updated agent card."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updateAgent",
+        "summary": "Update agent",
+        "description": "Updates an existing A2A Agent Card."
+      },
+      "delete": {
+        "tags": [
+          "Agents"
+        ],
+        "responses": {
+          "204": {
+            "description": "The agent was successfully deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteAgent",
+        "summary": "Delete agent",
+        "description": "Deletes an A2A Agent Card from the registry."
+      },
+      "parameters": [
+        {
+          "name": "agentId",
+          "description": "The unique identifier of the agent.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/agents/{agentId}/versions": {
+      "summary": "Manage agent versions",
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "description": "The number of versions to skip.",
+            "schema": {
+              "format": "int32",
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "description": "The number of versions to return.",
+            "schema": {
+              "format": "int32",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 500,
+              "type": "integer"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchResults"
+                }
+              }
+            },
+            "description": "The list of agent versions."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getAgentVersions",
+        "summary": "List agent versions",
+        "description": "Returns a list of all versions for a specific agent."
+      },
+      "parameters": [
+        {
+          "name": "agentId",
+          "description": "The unique identifier of the agent.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "x-codegen-contextRoot": "/apis/a2a/v1"
+  },
+  "components": {
+    "schemas": {
+      "SortOrder": {
+        "description": "Sort order, ascending or descending.",
+        "enum": [
+          "asc",
+          "desc"
+        ],
+        "type": "string"
+      },
+      "ProblemDetails": {
+        "title": "Root Type for Error",
+        "description": "All error responses, whether `4xx` or `5xx` will include one of these as the response body.",
+        "required": [
+          "title",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "type": "string"
+          },
+          "type": {
+            "description": "A URI reference [RFC3986] that identifies the problem type.",
+            "type": "string"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type.",
+            "type": "string"
+          },
+          "status": {
+            "format": "int32",
+            "description": "The HTTP status code.",
+            "type": "integer"
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the error (typically a server exception class name).",
+            "type": "string"
+          }
+        }
+      },
+      "AgentCard": {
+        "title": "Root Type for AgentCard",
+        "description": "An A2A Agent Card that describes an AI agent's capabilities and metadata.",
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The display name of the agent.",
+            "type": "string"
+          },
+          "description": {
+            "description": "A human-readable description of what the agent does.",
+            "type": "string"
+          },
+          "url": {
+            "description": "The URL endpoint where the agent can be accessed.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of the agent.",
+            "type": "string"
+          },
+          "documentationUrl": {
+            "description": "URL to the agent's documentation.",
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/AgentProvider"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AgentCapabilities"
+          },
+          "authentication": {
+            "$ref": "#/components/schemas/AgentAuthentication"
+          },
+          "skills": {
+            "description": "The list of skills this agent provides.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSkill"
+            }
+          },
+          "defaultInputModes": {
+            "description": "Default input modes supported by the agent.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultOutputModes": {
+            "description": "Default output modes supported by the agent.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "example": {
+          "name": "SearchAgent",
+          "description": "An agent that searches the web",
+          "url": "https://example.com/agent",
+          "version": "1.0.0",
+          "capabilities": {
+            "streaming": true,
+            "pushNotifications": false
+          },
+          "skills": [
+            {
+              "id": "web-search",
+              "name": "Web Search",
+              "description": "Search the web for information"
+            }
+          ]
+        }
+      },
+      "AgentSkill": {
+        "title": "Root Type for AgentSkill",
+        "description": "A skill that an A2A agent can perform.",
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique identifier for the skill.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name of the skill.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of what the skill does.",
+            "type": "string"
+          },
+          "tags": {
+            "description": "Tags for categorizing and searching skills.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inputModes": {
+            "description": "Input modes supported by this skill.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputModes": {
+            "description": "Output modes supported by this skill.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "examples": {
+            "description": "Example prompts for this skill.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "example": {
+          "id": "web-search",
+          "name": "Web Search",
+          "description": "Search the web for information",
+          "tags": ["search", "web"]
+        }
+      },
+      "AgentCapabilities": {
+        "title": "Root Type for AgentCapabilities",
+        "description": "Capabilities supported by an A2A agent.",
+        "type": "object",
+        "properties": {
+          "streaming": {
+            "description": "Whether the agent supports streaming responses.",
+            "type": "boolean"
+          },
+          "pushNotifications": {
+            "description": "Whether the agent supports push notifications.",
+            "type": "boolean"
+          },
+          "stateTransitionHistory": {
+            "description": "Whether the agent maintains state transition history.",
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "streaming": true,
+          "pushNotifications": false,
+          "stateTransitionHistory": true
+        }
+      },
+      "AgentProvider": {
+        "title": "Root Type for AgentProvider",
+        "description": "Information about the provider/organization that created the agent.",
+        "type": "object",
+        "properties": {
+          "organization": {
+            "description": "Name of the organization providing the agent.",
+            "type": "string"
+          },
+          "url": {
+            "description": "URL of the provider's website.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "organization": "Acme Corp",
+          "url": "https://acme.example.com"
+        }
+      },
+      "AgentAuthentication": {
+        "title": "Root Type for AgentAuthentication",
+        "description": "Authentication configuration for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "schemes": {
+            "description": "Supported authentication schemes.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "credentials": {
+            "description": "Credential requirements (if any).",
+            "type": "string"
+          }
+        },
+        "example": {
+          "schemes": ["bearer", "apiKey"]
+        }
+      },
+      "AgentSearchResults": {
+        "title": "Root Type for AgentSearchResults",
+        "description": "Describes the response received when searching for agents.",
+        "required": [
+          "count",
+          "agents"
+        ],
+        "type": "object",
+        "properties": {
+          "agents": {
+            "description": "The agents returned in the result set.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchedAgent"
+            }
+          },
+          "count": {
+            "description": "The total number of agents that matched the query.",
+            "type": "integer"
+          }
+        }
+      },
+      "SearchedAgent": {
+        "title": "Root Type for SearchedAgent",
+        "description": "An agent returned in search results.",
+        "required": [
+          "agentId",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "description": "The unique identifier of the agent.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The display name of the agent.",
+            "type": "string"
+          },
+          "description": {
+            "description": "A description of the agent.",
+            "type": "string"
+          },
+          "createdOn": {
+            "format": "date-time",
+            "description": "When the agent was created.",
+            "type": "string"
+          },
+          "modifiedOn": {
+            "format": "date-time",
+            "description": "When the agent was last modified.",
+            "type": "string"
+          }
+        }
+      },
+      "CreateAgent": {
+        "title": "Root Type for CreateAgent",
+        "description": "Request body for creating a new agent.",
+        "required": [
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "description": "Optional unique identifier for the agent. If not provided, one will be generated.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The initial version of the agent.",
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/AgentCard"
+          }
+        }
+      },
+      "UpdateAgent": {
+        "title": "Root Type for UpdateAgent",
+        "description": "Request body for updating an existing agent.",
+        "required": [
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "description": "The new version of the agent.",
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/AgentCard"
+          }
+        }
+      },
+      "AgentSortBy": {
+        "description": "The field to use when sorting agents.",
+        "enum": [
+          "agentId",
+          "name",
+          "createdOn",
+          "modifiedOn"
+        ],
+        "type": "string"
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `404` error."
+      },
+      "ServerError": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        },
+        "description": "Common response for all operations that can fail with an unexpected server error."
+      },
+      "BadRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `400` error."
+      },
+      "Conflict": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `409` error."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Agents",
+      "description": "Manage A2A Agent Cards in the registry."
+    }
+  ],
+  "x-codegen": {
+    "suppress-date-time-formatting": true,
+    "bean-annotations": [
+      "io.quarkus.runtime.annotations.RegisterForReflection",
+      {
+        "annotation": "lombok.experimental.SuperBuilder",
+        "excludeEnums": true
+      },
+      {
+        "annotation": "lombok.AllArgsConstructor",
+        "excludeEnums": true
+      },
+      {
+        "annotation": "lombok.NoArgsConstructor",
+        "excludeEnums": true
+      },
+      {
+        "annotation": "lombok.EqualsAndHashCode",
+        "excludeEnums": true
+      },
+      {
+        "annotation": "lombok.ToString(callSuper = true)",
+        "excludeEnums": true
+      }
+    ]
+  }
+}

@@ -65,6 +65,21 @@ on:
         required: false
         type: string
         default: 'clean package -Pprod -DskipTests --no-transfer-progress'
+      npm-build:
+        description: 'Run npm build before Docker build'
+        required: false
+        type: boolean
+        default: false
+      npm-build-dir:
+        description: 'Directory to run npm build in'
+        required: false
+        type: string
+        default: '.'
+      node-version:
+        description: 'Node.js version for npm build (if npm-build is true)'
+        required: false
+        type: string
+        default: '20'
     secrets:
       DOCKERHUB_USERNAME:
         required: false
@@ -101,6 +116,29 @@ jobs:
       - name: Maven Build
         if: inputs.maven-build
         run: ./mvnw ${{ inputs.maven-args }}
+
+      - name: Set up Node.js ${{ inputs.node-version }}
+        if: inputs.npm-build
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+          cache-dependency-path: '${{ inputs.npm-build-dir }}/**/package-lock.json'
+
+      - name: NPM Install
+        if: inputs.npm-build
+        working-directory: ${{ inputs.npm-build-dir }}
+        run: npm install
+
+      - name: NPM Build
+        if: inputs.npm-build
+        working-directory: ${{ inputs.npm-build-dir }}
+        run: npm run build
+
+      - name: NPM Package
+        if: inputs.npm-build
+        working-directory: ${{ inputs.npm-build-dir }}
+        run: npm run package
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

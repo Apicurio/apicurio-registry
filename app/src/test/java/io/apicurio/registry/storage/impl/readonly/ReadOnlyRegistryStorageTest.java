@@ -79,7 +79,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("deleteGroup1", new State(true, s -> s.deleteGroup(null))),
                 entry("deleteRoleMapping1", new State(true, s -> s.deleteRoleMapping(null))),
                 entry("exportData1", new State(false, s -> s.exportData(null))),
-                entry("getContentByHash1", new State(false, s -> s.getContentByHash(null, null))),
+                entry("getContentByHash2", new State(false, s -> s.getContentByHash(null, null))),
                 entry("getContentById1", new State(false, s -> s.getContentById(0))),
                 entry("getBranchMetaData2", new State(false, s -> s.getBranchMetaData(null, null))),
                 entry("getBranches3", new State(false, s -> s.getBranches(null, 0, 0))),

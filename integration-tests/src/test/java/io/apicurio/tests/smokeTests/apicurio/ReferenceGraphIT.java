@@ -8,6 +8,7 @@ import io.apicurio.registry.rest.client.models.ReferenceGraph;
 import io.apicurio.registry.rest.client.models.ReferenceGraphDirection;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -22,6 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.junit.jupiter.api.Assertions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -356,10 +359,12 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
     }
 
     /**
-     * Test that circular references are blocked when the NO_CIRCULAR_REFERENCES integrity rule is enabled.
+     * Test that cross-version references are allowed when the NO_CIRCULAR_REFERENCES integrity rule is
+     * enabled. A reference chain like A@2 -> B@1 -> A@1 is NOT a cycle because A@1 has no references, so
+     * there's no path back to A@2.
      */
     @Test
-    void testCircularReferencePreventionWithIntegrityRule() throws Exception {
+    void testCrossVersionReferencesAllowedWithIntegrityRule() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
         // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
@@ -393,8 +398,8 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
                     });
             String versionB = responseB.getVersion().getVersion();
 
-            // Try to create a new version of A with reference back to B (creating a cycle)
-            // This should fail because of the NO_CIRCULAR_REFERENCES rule
+            // Create a new version of A with reference back to B
+            // This forms: A@2 -> B@1 -> A@1, which is NOT a cycle because A@1 has no references
             String contentA2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2");
             List<ArtifactReference> refsA2 = new ArrayList<>();
             ArtifactReference refB = new ArtifactReference();
@@ -411,13 +416,13 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             versionContent.setReferences(refsA2);
             createVersion.setContent(versionContent);
 
-            // This should fail with RuleViolationException due to circular reference
-            assertClientError("RuleViolationException", 409, () -> {
-                registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
-                        .post(createVersion);
-            }, errorCodeExtractor);
+            // This should succeed - it's a valid reference chain, not a cycle
+            VersionMetaData newVersion = registryClient.groups().byGroupId(groupId).artifacts()
+                    .byArtifactId(artifactA).versions().post(createVersion);
+            Assertions.assertNotNull(newVersion);
+            Assertions.assertEquals("2", newVersion.getVersion());
 
-            LOGGER.info("Circular reference was correctly blocked by the integrity rule");
+            LOGGER.info("Cross-version reference chain was correctly allowed");
         } finally {
             // Clean up the global rule
             try {
@@ -429,10 +434,11 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
     }
 
     /**
-     * Test that direct self-reference is blocked when the NO_CIRCULAR_REFERENCES integrity rule is enabled.
+     * Test that cross-version references to the same artifact are allowed when the NO_CIRCULAR_REFERENCES
+     * integrity rule is enabled. A@2 referencing A@1 is valid because A@1 has no references.
      */
     @Test
-    void testDirectSelfReferencePreventionWithIntegrityRule() throws Exception {
+    void testCrossVersionReferenceToSameArtifactAllowedWithIntegrityRule() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
         // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
@@ -449,7 +455,8 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
                     ContentTypes.APPLICATION_JSON, null, null);
             String versionA = responseA.getVersion().getVersion();
 
-            // Try to create a new version of A that references itself (direct self-reference)
+            // Create a new version of A that references the previous version
+            // A@2 -> A@1 is valid because A@1 has no references, so there's no cycle
             String contentA2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2");
             List<ArtifactReference> selfRef = new ArrayList<>();
             ArtifactReference refA = new ArtifactReference();
@@ -466,13 +473,13 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             versionContent.setReferences(selfRef);
             createVersion.setContent(versionContent);
 
-            // This should fail with RuleViolationException due to self-reference
-            assertClientError("RuleViolationException", 409, () -> {
-                registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
-                        .post(createVersion);
-            }, errorCodeExtractor);
+            // This should succeed - referencing an older version of the same artifact is valid
+            VersionMetaData newVersion = registryClient.groups().byGroupId(groupId).artifacts()
+                    .byArtifactId(artifactA).versions().post(createVersion);
+            Assertions.assertNotNull(newVersion);
+            Assertions.assertEquals("2", newVersion.getVersion());
 
-            LOGGER.info("Direct self-reference was correctly blocked by the integrity rule");
+            LOGGER.info("Cross-version reference to same artifact was correctly allowed");
         } finally {
             // Clean up the global rule
             try {
@@ -484,10 +491,11 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
     }
 
     /**
-     * Test that transitive circular references are blocked (A -> B -> C -> A).
+     * Test that transitive reference chains are allowed (C@2 -> A@1 -> B@1 -> C@1). This is NOT a cycle
+     * because C@1 has no references, so there's no path back to C@2.
      */
     @Test
-    void testTransitiveCircularReferencePreventionWithIntegrityRule() throws Exception {
+    void testTransitiveReferenceChainAllowedWithIntegrityRule() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
         // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
@@ -538,7 +546,8 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
                     });
             String versionA = responseA.getVersion().getVersion();
 
-            // Try to update C to reference A, creating a transitive cycle: A -> B -> C -> A
+            // Create C@2 referencing A@1
+            // This forms: C@2 -> A@1 -> B@1 -> C@1, which is NOT a cycle because C@1 has no references
             String contentC2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordCv2");
             List<ArtifactReference> refsC2 = new ArrayList<>();
             ArtifactReference refA = new ArtifactReference();
@@ -555,13 +564,13 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             versionContent.setReferences(refsC2);
             createVersion.setContent(versionContent);
 
-            // This should fail with RuleViolationException due to transitive circular reference
-            assertClientError("RuleViolationException", 409, () -> {
-                registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactC).versions()
-                        .post(createVersion);
-            }, errorCodeExtractor);
+            // This should succeed - it's a valid reference chain, not a cycle
+            VersionMetaData newVersion = registryClient.groups().byGroupId(groupId).artifacts()
+                    .byArtifactId(artifactC).versions().post(createVersion);
+            Assertions.assertNotNull(newVersion);
+            Assertions.assertEquals("2", newVersion.getVersion());
 
-            LOGGER.info("Transitive circular reference was correctly blocked by the integrity rule");
+            LOGGER.info("Transitive reference chain was correctly allowed");
         } finally {
             // Clean up the global rule
             try {

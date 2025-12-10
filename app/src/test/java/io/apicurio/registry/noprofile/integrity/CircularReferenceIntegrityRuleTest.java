@@ -48,7 +48,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
     }
 
     @Test
-    public void testDirectCircularReferenceBlocked() throws Exception {
+    public void testCrossVersionReferenceAllowed() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
         // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
@@ -97,7 +97,9 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         var responseB = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifactB);
         String versionBStr = responseB.getVersion().getVersion();
 
-        // Now try to create a new version of A that references B (creating a cycle: A -> B -> A)
+        // Create a new version of A that references B
+        // This forms a chain: A@2 -> B@1 -> A@1, which is NOT a cycle
+        // because A@1 has no references, so there's no path back to A@2
         CreateVersion newVersionA = new CreateVersion();
         VersionContent newContentA = new VersionContent();
         newContentA.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2"));
@@ -114,15 +116,15 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
 
         newVersionA.setContent(newContentA);
 
-        // This should throw a RuleViolationException
-        Assertions.assertThrows(Exception.class, () -> {
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
-                    .post(newVersionA);
-        }, "Should have thrown exception due to circular reference");
+        // This should succeed - it's a valid reference chain, not a cycle
+        var newResponseA = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
+                .post(newVersionA);
+        Assertions.assertNotNull(newResponseA);
+        Assertions.assertEquals("2", newResponseA.getVersion());
     }
 
     @Test
-    public void testSelfReferenceBlocked() throws Exception {
+    public void testCrossVersionReferenceToSameArtifactAllowed() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
         // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
@@ -146,7 +148,8 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         var responseA = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifactA);
         String versionAStr = responseA.getVersion().getVersion();
 
-        // Now try to create a new version of A that references itself
+        // Create a new version of A that references the previous version
+        // A@2 -> A@1 is valid because A@1 has no references, so there's no cycle
         CreateVersion newVersionA = new CreateVersion();
         VersionContent newContentA = new VersionContent();
         newContentA.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2"));
@@ -163,11 +166,11 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
 
         newVersionA.setContent(newContentA);
 
-        // This should throw a RuleViolationException
-        Assertions.assertThrows(Exception.class, () -> {
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
-                    .post(newVersionA);
-        }, "Should have thrown exception due to self-reference");
+        // This should succeed - referencing an older version of the same artifact is valid
+        var newResponseA = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
+                .post(newVersionA);
+        Assertions.assertNotNull(newResponseA);
+        Assertions.assertEquals("2", newResponseA.getVersion());
     }
 
     @Test
@@ -322,7 +325,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
     }
 
     @Test
-    public void testFullIntegrityLevelBlocksCircularReferences() throws Exception {
+    public void testFullIntegrityLevelAllowsCrossVersionReferences() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
         // Create a global INTEGRITY rule with FULL (which includes all checks)
@@ -371,7 +374,8 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         var responseB = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifactB);
         String versionBStr = responseB.getVersion().getVersion();
 
-        // Now try to create a new version of A that references B (creating a cycle: A -> B -> A)
+        // Create a new version of A that references B
+        // This forms: A@2 -> B@1 -> A@1, which is NOT a cycle
         CreateVersion newVersionA = new CreateVersion();
         VersionContent newContentA = new VersionContent();
         newContentA.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2"));
@@ -388,10 +392,10 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
 
         newVersionA.setContent(newContentA);
 
-        // This should throw a RuleViolationException because FULL includes NO_CIRCULAR_REFERENCES
-        Assertions.assertThrows(Exception.class, () -> {
-            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
-                    .post(newVersionA);
-        }, "Should have thrown exception due to circular reference with FULL integrity level");
+        // This should succeed - it's a valid reference chain, not a cycle
+        var newResponseA = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactA).versions()
+                .post(newVersionA);
+        Assertions.assertNotNull(newResponseA);
+        Assertions.assertEquals("2", newResponseA.getVersion());
     }
 }

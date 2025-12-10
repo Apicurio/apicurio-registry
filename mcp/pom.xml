@@ -16,7 +16,7 @@
 
     <properties>
         <projectRoot>${project.basedir}/..</projectRoot>
-        <docker.app.file>app-files/apicurio-registry-mcp-server-${project.version}-runner.jar</docker.app.file>
+        <docker.app.file>app-files/apicurio-registry-mcp-server-${project.version}.tar.gz</docker.app.file>
     </properties>
 
     <dependencyManagement>
@@ -123,7 +123,7 @@
                                     <directory>${basedir}/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
-                                        <include>apicurio-*-runner.jar</include>
+                                        <include>apicurio-*.tar.gz</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -140,6 +140,27 @@
                         <maven.home>${maven.home}</maven.home>
                     </systemPropertyVariables>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assembly</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <finalName>${project.artifactId}-${project.version}</finalName>
+                            <attach>true</attach>
+                            <descriptors>
+                                <descriptor>src/main/assembly/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>

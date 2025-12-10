@@ -7,14 +7,20 @@
   </formats>
   <includeBaseDirectory>false</includeBaseDirectory>
   <fileSets>
+    <!-- Quarkus fast-jar layout -->
+    <fileSet>
+      <directory>target/quarkus-app</directory>
+      <outputDirectory>/quarkus-app</outputDirectory>
+      <filtered>false</filtered>
+      <includes>
+        <include>**/*</include>
+      </includes>
+    </fileSet>
     <fileSet>
       <directory>target</directory>
       <outputDirectory>/</outputDirectory>
       <filtered>false</filtered>
       <includes>
-        <include>apicurio-registry-*-runner.jar</include>
-        <include>lib</include>
-        <include>lib/*</include>
         <include>meta</include>
         <include>meta/*</include>
       </includes>

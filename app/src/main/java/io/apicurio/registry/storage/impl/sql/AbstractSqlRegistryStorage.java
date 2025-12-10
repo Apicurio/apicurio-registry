@@ -1186,8 +1186,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     case canonicalHash:
                         op = filter.isNot() ? "!=" : "=";
                         where.append(
-                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
-                        where.append("c.canonicalHash " + op + " ?");
+                                "EXISTS(SELECT ch.* FROM content_hashes ch JOIN versions v ON ch.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append("ch.hashType = 'canonical-sha256' AND ch.hashValue " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getStringValue());
                         });
@@ -1847,8 +1847,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         break;
                     case canonicalHash:
                         op = filter.isNot() ? "!=" : "=";
-                        where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ");
-                        where.append("c.canonicalHash " + op + " ?");
+                        where.append("EXISTS(SELECT ch.* FROM content_hashes ch WHERE ch.contentId = v.contentId AND ");
+                        where.append("ch.hashType = 'canonical-sha256' AND ch.hashValue " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getStringValue());
                         });

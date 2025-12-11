@@ -4,14 +4,10 @@ import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.roastedroot.protobuf4j.common.ValidationResult;
-import io.roastedroot.protobuf4j.v4.Protobuf;
-import io.roastedroot.zerofs.Configuration;
-import io.roastedroot.zerofs.ZeroFs;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -90,6 +86,9 @@ public class ProtobufFile {
      * Validate protobuf syntax without resolving imports.
      * Uses protobuf4j for accurate syntax validation while gracefully handling missing dependencies.
      * Used by ContentAccepter to determine if content is valid protobuf without needing dependencies.
+     *
+     * This method now uses {@link ProtobufCompilationContext} for pooled filesystem and WASM
+     * instance reuse, improving performance for repeated validations.
      */
     public static void validateSyntaxOnly(String data) throws IOException {
         if (data == null || data.trim().isEmpty()) {
@@ -97,36 +96,16 @@ public class ProtobufFile {
         }
 
         try {
-            String trimmed = data.trim();
-
-            // Try binary format first (fastest path for FileDescriptorProto)
-            // Binary format won't start with common protobuf text keywords
-            if (!trimmed.startsWith("syntax") && !trimmed.startsWith("//") &&
-                !trimmed.startsWith("package") && !trimmed.startsWith("message") &&
-                !trimmed.startsWith("enum") && !trimmed.startsWith("service")) {
-                try {
-                    byte[] decodedBytes = Base64.getDecoder().decode(data);
-                    DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
-                    return; // Valid binary format
-                } catch (Exception e) {
-                    // Not binary format, continue to text validation
-                }
-            }
-
             // Use protobuf4j's validateSyntax which checks syntax without resolving imports
             // This is the correct method for ContentAccepter since we don't have dependencies available
-            FileSystem fs = ZeroFs.newFileSystem(
-                    Configuration.unix().toBuilder().setAttributeViews("unix").build());
-            try (FileSystem ignored = fs) {
-                Path workDir = fs.getPath(".");
+            try (ProtobufCompilationContext ctx = ProtobufCompilationContext.acquire()) {
+                Path workDir = ctx.getWorkDir();
                 Files.write(workDir.resolve("schema.proto"), data.getBytes(StandardCharsets.UTF_8));
 
-                // Use protobuf4j v4 builder pattern - create Protobuf instance with workdir
-                try (Protobuf protobuf = Protobuf.builder().withWorkdir(workDir).build()) {
-                    ValidationResult result = protobuf.validateSyntax("schema.proto");
-                    if (!result.isValid()) {
-                        throw new IOException("Invalid protobuf syntax: " + result.getErrors());
-                    }
+                // Use the cached Protobuf instance from the context
+                ValidationResult result = ctx.getProtobuf().validateSyntax("schema.proto");
+                if (!result.isValid()) {
+                    throw new IOException("Invalid protobuf syntax: " + result.getErrors());
                 }
             }
         } catch (IOException e) {

@@ -135,6 +135,8 @@
                                     <include>com.squareup.wire:*</include>
                                     <include>com.squareup.okio:*</include>
                                     <include>com.ibm.icu:*</include>
+                                    <!-- Include Guava - needed by old FileDescriptorUtils -->
+                                    <include>com.google.guava:*</include>
                                 </includes>
                                 <excludes>
                                     <!-- Keep Kafka clients unshaded -->
@@ -166,6 +168,11 @@
                                 <relocation>
                                     <pattern>com.ibm.icu</pattern>
                                     <shadedPattern>io.apicurio.registry.old.icu</shadedPattern>
+                                </relocation>
+                                <!-- Relocate Guava -->
+                                <relocation>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>io.apicurio.registry.old.guava</shadedPattern>
                                 </relocation>
                                 <!-- NOTE: Do NOT relocate metadata and additionalTypes packages
                                      because they contain .proto resources that the code loads via

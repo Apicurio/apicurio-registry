@@ -1,15 +1,11 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
 import com.google.protobuf.Descriptors;
-import io.roastedroot.protobuf4j.v4.Protobuf;
-import io.roastedroot.zerofs.Configuration;
-import io.roastedroot.zerofs.ZeroFs;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -57,8 +53,7 @@ public class ProtobufSchemaLoader {
 
     // Package names used by bundled protos - if user schema uses these packages,
     // we must skip loading the bundled protos to avoid duplicate definitions
-    private static final String METADATA_PACKAGE = "metadata";
-    private static final String DECIMAL_PACKAGE = "additionalTypes";
+    // @see ProtobufWellKnownTypes for centralized package name constants
 
     // Pattern to extract package name from proto schema
     // Matches: package some.package.name;
@@ -136,10 +131,10 @@ public class ProtobufSchemaLoader {
 
         // Load custom Apicurio protos, but skip if user schema uses the same package
         // to avoid duplicate definition errors that crash the WASM protoc
-        if (!skipPackages.contains(METADATA_PACKAGE)) {
+        if (!skipPackages.contains(ProtobufWellKnownTypes.getMetadataPackage())) {
             loadProtoFiles(baseDir, classLoader, Collections.singleton(METADATA_PROTO), METADATA_PATH);
         }
-        if (!skipPackages.contains(DECIMAL_PACKAGE)) {
+        if (!skipPackages.contains(ProtobufWellKnownTypes.getAdditionalTypesPackage())) {
             loadProtoFiles(baseDir, classLoader, Collections.singleton(DECIMAL_PROTO), DECIMAL_PATH);
         }
     }
@@ -153,49 +148,46 @@ public class ProtobufSchemaLoader {
      * - Automatic dependency resolution
      * - FileDescriptor building with proper dependency linking
      *
+     * This method now uses {@link ProtobufCompilationContext} for pooled filesystem
+     * and WASM instance reuse, improving performance for repeated compilations.
+     *
      * @param fileName Name of the .proto file.
      * @param schemaDefinition Schema Definition to parse.
      * @param deps Map of dependency file names to their schema definitions.
      * @return ProtobufSchemaLoaderContext containing the compiled FileDescriptor.
      */
     public static ProtobufSchemaLoaderContext loadSchema(String fileName, String schemaDefinition, Map<String, String> deps) throws IOException {
-        // Create virtual filesystem for proto files (required by protobuf4j WASM)
-        // protobuf4j uses WASM which requires a virtual filesystem mapped via WASI
-        FileSystem fs = ZeroFs.newFileSystem(
-                Configuration.unix().toBuilder().setAttributeViews("unix").build());
-
-        try (FileSystem ignored = fs) {
-            Path workDir = fs.getPath(".");
-
-            // Detect packages used by user schemas to avoid conflicts with bundled protos.
-            // If user schema uses the same package as our bundled protos (metadata, additionalTypes),
-            // we must skip loading those bundled protos to avoid duplicate definition errors
-            // that crash the WASM protoc.
-            Set<String> userPackages = new HashSet<>();
-            String mainPackage = extractPackageName(schemaDefinition);
-            if (mainPackage != null) {
-                userPackages.add(mainPackage);
-            }
-            // Also check dependency packages
-            if (deps != null) {
-                for (String depContent : deps.values()) {
-                    String depPackage = extractPackageName(depContent);
-                    if (depPackage != null) {
-                        userPackages.add(depPackage);
-                    }
+        // Detect packages used by user schemas that CONFLICT with bundled protos.
+        // We only need to skip bundled protos if user schema uses the same package
+        // (metadata or additionalTypes). Otherwise, we can use pooled contexts.
+        Set<String> conflictingPackages = new HashSet<>();
+        String mainPackage = extractPackageName(schemaDefinition);
+        if (mainPackage != null && ProtobufWellKnownTypes.isBundledPackage(mainPackage)) {
+            conflictingPackages.add(mainPackage);
+        }
+        // Also check dependency packages
+        if (deps != null) {
+            for (String depContent : deps.values()) {
+                String depPackage = extractPackageName(depContent);
+                if (depPackage != null && ProtobufWellKnownTypes.isBundledPackage(depPackage)) {
+                    conflictingPackages.add(depPackage);
                 }
             }
+        }
 
-            // Step 1: Write well-known protos to work directory, skipping conflicting packages
-            writeWellKnownProtos(workDir, userPackages);
+        // Acquire a compilation context from the pool (or create a new one)
+        // The context includes a virtual filesystem and cached Protobuf WASM instance
+        // Only pass conflicting packages - empty set means we can use the pool
+        try (ProtobufCompilationContext ctx = ProtobufCompilationContext.acquire(conflictingPackages)) {
+            Path workDir = ctx.getWorkDir();
 
-            // Step 2: Convert all .proto files to ProtoContent instances
+            // Step 1: Convert all .proto files to ProtoContent instances
             // Filter out google/protobuf/* well-known types - protobuf4j handles these internally
             // via ensureWellKnownTypes(). Including them here would cause duplicate definitions.
             String protoFileName = fileName.endsWith(".proto") ? fileName : fileName + ".proto";
             ProtoContent protoContent = new ProtoContent(protoFileName, schemaDefinition);
             List<ProtoContent> allDependencies = deps.entrySet().stream()
-                    .filter(entry -> !entry.getKey().startsWith("google/protobuf/"))
+                    .filter(entry -> !ProtobufWellKnownTypes.isHandledByProtobuf4j(entry.getKey()))
                     .map(entry -> new ProtoContent(entry.getKey(), entry.getValue()))
                     .collect(Collectors.toList());
 
@@ -203,7 +195,7 @@ public class ProtobufSchemaLoader {
             // This ensures FileDescriptor.getName() returns the original name
             // Dependencies still use package-based paths to match import statements
 
-            // Step 3: Fix up the import statements in all .proto files so they point to canonical locations
+            // Step 2: Fix up the import statements in all .proto files so they point to canonical locations
             allDependencies.forEach(proto -> {
                 if (proto.isImportPathMismatched()) {
                     protoContent.fixImport(proto.getImportPath(), proto.getExpectedImportPath());
@@ -215,7 +207,7 @@ public class ProtobufSchemaLoader {
                 }
             });
 
-            // Step 4: Write out all .proto files to their correct locations
+            // Step 3: Write out all .proto files to their correct locations
             // Dependencies use package-based paths to match import statements
             for (ProtoContent proto : allDependencies) {
                 proto.writeTo(workDir);
@@ -230,16 +222,17 @@ public class ProtobufSchemaLoader {
             }
             Files.write(mainProtoPath, protoContent.getContent().getBytes(StandardCharsets.UTF_8));
 
-            // Step 5: Use protobuf4j to compile the proto files and build FileDescriptors
-            // The new buildFileDescriptors() method handles both compilation and dependency resolution
-            // Note: buildFileDescriptors expects file paths relative to workDir, not absolute paths
+            // Step 4: Build the list of proto files to compile
             // NOTE: protobuf4j handles google.protobuf.* well-known types internally,
-            // so we only need to add our custom protos and google.type.* protos
+            // so we only need to compile the user's proto and explicit dependencies.
+            // Bundled protos (google.type.*, metadata/*, additionalTypes/*) are added
+            // only if they're actually imported by the user schema.
 
-            // Pre-size collections for better performance:
-            // protoFiles = GOOGLE_API_PROTOS (15) + 2 custom protos + dependencies + 1 main file
-            int estimatedSize = GOOGLE_API_PROTOS.size() + 3 + allDependencies.size();
-            List<String> protoFiles = new ArrayList<>(estimatedSize);
+            // Extract imports from main schema and dependencies to determine which bundled protos are needed
+            Set<String> allImports = new HashSet<>(ProtobufSchemaUtils.extractImports(schemaDefinition));
+            for (ProtoContent proto : allDependencies) {
+                allImports.addAll(ProtobufSchemaUtils.extractImports(proto.getContent()));
+            }
 
             // Collect all dependency paths to avoid duplicates
             Set<String> depPaths = new HashSet<>(allDependencies.size());
@@ -247,26 +240,31 @@ public class ProtobufSchemaLoader {
                 depPaths.add(proto.getExpectedImportPath());
             }
 
-            // Add Google API protos (google.type.*) - NOT handled by protobuf4j
-            // Only add them if they're not already provided as explicit dependencies
+            // Pre-size for bundled protos + user's schema + dependencies
+            List<String> protoFiles = new ArrayList<>(allImports.size() + allDependencies.size() + 1);
+
+            // Add Google API protos (google.type.*) only if they're actually imported
+            // These are NOT handled by protobuf4j's ensureWellKnownTypes()
             for (String proto : GOOGLE_API_PROTOS) {
                 String path = GOOGLE_API_PATH + proto;
-                if (!depPaths.contains(path)) {
+                if (allImports.contains(path) && !depPaths.contains(path)) {
                     protoFiles.add(path);
                 }
             }
-            // Add custom Apicurio protos, but skip if user schema uses the same package
-            // to avoid duplicate definition errors
+
+            // Add custom Apicurio protos only if imported and not conflicting with user packages
             String metadataPath = METADATA_PATH + METADATA_PROTO;
-            if (!depPaths.contains(metadataPath) && !userPackages.contains(METADATA_PACKAGE)) {
+            if (allImports.contains(metadataPath) && !depPaths.contains(metadataPath)
+                    && !conflictingPackages.contains(ProtobufWellKnownTypes.getMetadataPackage())) {
                 protoFiles.add(metadataPath);
             }
             String decimalPath = DECIMAL_PATH + DECIMAL_PROTO;
-            if (!depPaths.contains(decimalPath) && !userPackages.contains(DECIMAL_PACKAGE)) {
+            if (allImports.contains(decimalPath) && !depPaths.contains(decimalPath)
+                    && !conflictingPackages.contains(ProtobufWellKnownTypes.getAdditionalTypesPackage())) {
                 protoFiles.add(decimalPath);
             }
 
-            // Add all dependencies (using their package-based paths)
+            // Add all explicit dependencies (using their package-based paths)
             for (ProtoContent proto : allDependencies) {
                 protoFiles.add(proto.getExpectedImportPath());
             }
@@ -274,11 +272,9 @@ public class ProtobufSchemaLoader {
             // Add main file last (using original fileName)
             protoFiles.add(protoFileName);
 
-            // Use protobuf4j v4 builder pattern - create Protobuf instance with workdir
-            List<Descriptors.FileDescriptor> fileDescriptors;
-            try (Protobuf protobuf = Protobuf.builder().withWorkdir(workDir).build()) {
-                fileDescriptors = protobuf.buildFileDescriptors(protoFiles);
-            }
+            // Step 5: Use protobuf4j to compile the proto files and build FileDescriptors
+            // The cached Protobuf instance from the context avoids WASM cold-start overhead
+            List<Descriptors.FileDescriptor> fileDescriptors = ctx.getProtobuf().buildFileDescriptors(protoFiles);
 
             // Step 6: Find the main FileDescriptor from the built descriptors
             Descriptors.FileDescriptor mainDescriptor = fileDescriptors.stream()
@@ -295,10 +291,24 @@ public class ProtobufSchemaLoader {
         catch (RuntimeException e) {
             // Wrap protobuf4j RuntimeExceptions (compilation errors) in IOException
             // so they can be properly handled upstream
-            throw new IOException("Failed to compile protobuf schema: " + fileName, e);
+            String detailedMessage = extractProtocError(e);
+            throw new IOException("Failed to compile protobuf schema '" + fileName + "': " + detailedMessage, e);
         }
-        // Close the virtual filesystem
-        // Ignore close errors
+    }
+
+    /**
+     * Extract detailed error information from a protobuf4j exception.
+     *
+     * @param e The runtime exception from protobuf4j
+     * @return A detailed error message
+     */
+    private static String extractProtocError(RuntimeException e) {
+        // Try to get the most specific error message
+        Throwable cause = e.getCause();
+        if (cause != null && cause.getMessage() != null) {
+            return cause.getMessage();
+        }
+        return e.getMessage() != null ? e.getMessage() : "Unknown compilation error";
     }
 
     protected static class ProtobufSchemaLoaderContext {

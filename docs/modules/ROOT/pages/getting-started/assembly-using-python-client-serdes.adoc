@@ -1,0 +1,844 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="using-python-client-serdes_{context}"]
+= Validating Kafka messages using serializers/deserializers in Python clients
+
+[role="_abstract"]
+{registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications written in Python. Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. This ensures consistent schema use and helps to prevent data errors at runtime.
+
+This chapter explains how to use Kafka client SerDes in your Python producer and consumer client applications:
+
+* xref:python-serdes-concepts_{context}[]
+* xref:python-serdes-install_{context}[]
+* xref:python-serdes-config_{context}[]
+* xref:python-serdes-avro_{context}[]
+* xref:python-serdes-jsonschema_{context}[]
+* xref:python-serdes-protobuf_{context}[]
+* xref:python-serdes-kafka-producer_{context}[]
+* xref:python-serdes-kafka-consumer_{context}[]
+* xref:python-serdes-config-reference_{context}[]
+
+.Prerequisites
+* You have read {registry-overview}.
+* You have installed {registry}.
+* You have Python 3.9 or later installed.
+* You have created Kafka producer and consumer client applications using the `kafka-python` library.
+
+//INCLUDES
+
+
+[id='python-serdes-concepts_{context}']
+== Python client applications and {registry}
+
+[role="_abstract"]
+{registry} decouples schema management from client application configuration. You can enable a Python client application to use a schema from {registry} by specifying its URL in your client code.
+
+The `apicurio-registry-serdes` Python package provides serializers and deserializers that integrate with {registry}. These SerDes classes handle:
+
+* Looking up schemas by ID (content ID or global ID)
+* Looking up schemas by artifact coordinates (group/artifact/version)
+* Auto-registering schemas when enabled
+* Caching schemas to reduce registry calls
+* Serializing and deserializing messages with schema validation
+
+[discrete]
+=== Supported schema technologies
+
+The Python SerDes library supports the following schema technologies:
+
+* Apache Avro (using the `fastavro` library)
+* JSON Schema (using the `jsonschema` library)
+* Google Protobuf (using the `protobuf` library)
+
+[discrete]
+=== Wire format
+
+The Python SerDes uses the same wire format as the Java SerDes, ensuring interoperability between Python and Java applications. The format is:
+
+[source,shell,subs="+quotes,attributes"]
+----
+[MAGIC_BYTE (1 byte: 0x00)]
+[SCHEMA_ID (4 bytes: big-endian unsigned int)]
+[MESSAGE DATA (N bytes)]
+----
+
+By default, the schema is identified using the *content ID*, which is unique to the content of an artifact version. You can also configure the SerDes to use the *global ID*, which is unique to each artifact version.
+
+
+[id='python-serdes-install_{context}']
+== Installing the Python SerDes library
+
+[role="_abstract"]
+This section describes how to install the `apicurio-registry-serdes` Python package.
+
+.Prerequisites
+
+* Python 3.9 or later
+* pip package manager
+
+.Procedure
+
+. Install the base package with Avro support:
++
+[source,shell,subs="+quotes,attributes"]
+----
+pip install apicurio-registry-serdes
+----
+
+. Optionally, install with additional schema type support:
++
+[source,shell,subs="+quotes,attributes"]
+----
+# For JSON Schema support
+pip install apicurio-registry-serdes[jsonschema]
+
+# For Protobuf support
+pip install apicurio-registry-serdes[protobuf]
+
+# For all schema types
+pip install apicurio-registry-serdes[all]
+----
+
+. If using with Kafka (kafka-python), install the Kafka extras:
++
+[source,shell,subs="+quotes,attributes"]
+----
+pip install apicurio-registry-serdes[kafka]
+----
++
+This installs `kafka-python` as a dependency.
+
+.Verification
+
+Verify the installation by importing the package:
+
+[source,python]
+----
+from apicurio_registry_serdes import SerdeConfig
+print("Apicurio Registry SerDes installed successfully")
+----
+
+
+[id='python-serdes-config_{context}']
+== Configuring the Python SerDes
+
+[role="_abstract"]
+This section describes how to configure the `apicurio-registry-serdes` Python package to connect to {registry}.
+
+.Procedure
+
+. Create a `SerdeConfig` object with the registry URL:
++
+[source,python]
+----
+from apicurio_registry_serdes import SerdeConfig
+
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3"
+)
+----
+
+. Optionally, configure auto-registration of schemas:
++
+[source,python]
+----
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    auto_register=True,
+    auto_register_if_exists="FIND_OR_CREATE_VERSION"
+)
+----
+
+. If using authentication, configure credentials:
++
+[source,python]
+----
+# Basic authentication
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    auth_username="my-user",
+    auth_password="my-password"
+)
+
+# Bearer token authentication
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    auth_token="my-bearer-token"
+)
+----
+
+. Optionally, configure caching and retry behavior:
++
+[source,python]
+----
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    check_period_ms=30000,  # Cache TTL in milliseconds
+    retry_count=3,          # Number of retries for failed requests
+    retry_backoff_ms=300    # Delay between retries
+)
+----
+
+
+[id='python-serdes-avro_{context}']
+== Using Avro SerDes with Python
+
+[role="_abstract"]
+This section describes how to use Apache Avro serializers and deserializers with {registry} in Python applications.
+
+.Prerequisites
+
+* The `fastavro` package is installed (included by default with `apicurio-registry-serdes`)
+
+.Procedure
+
+. Import the required classes:
++
+[source,python]
+----
+from apicurio_registry_serdes import SerdeConfig
+from apicurio_registry_serdes.avro import AvroSerializer, AvroDeserializer
+----
+
+. Define your Avro schema:
++
+[source,python]
+----
+schema = {
+    "type": "record",
+    "name": "User",
+    "namespace": "com.example",
+    "fields": [
+        {"name": "name", "type": "string"},
+        {"name": "age", "type": "int"}
+    ]
+}
+----
+
+. Create the serializer with your schema:
++
+[source,python]
+----
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    auto_register=True
+)
+
+serializer = AvroSerializer(config, schema=schema)
+----
+
+. Serialize data:
++
+[source,python]
+----
+data = {"name": "John Doe", "age": 30}
+serialized = serializer.serialize("my-topic", data)
+----
+
+. Create the deserializer:
++
+[source,python]
+----
+deserializer = AvroDeserializer(config)
+----
+
+. Deserialize data:
++
+[source,python]
+----
+deserialized = deserializer.deserialize("my-topic", serialized)
+print(deserialized)  # {'name': 'John Doe', 'age': 30}
+----
+
+. Close the serializer and deserializer when done:
++
+[source,python]
+----
+serializer.close()
+deserializer.close()
+----
+
+[discrete]
+=== Schema evolution with Avro
+
+The Avro deserializer supports schema evolution using a reader schema. This allows you to deserialize messages written with an older schema version using a newer schema:
+
+[source,python]
+----
+# Reader schema with an additional field
+reader_schema = {
+    "type": "record",
+    "name": "User",
+    "namespace": "com.example",
+    "fields": [
+        {"name": "name", "type": "string"},
+        {"name": "age", "type": "int"},
+        {"name": "email", "type": ["null", "string"], "default": None}
+    ]
+}
+
+deserializer = AvroDeserializer(config, reader_schema=reader_schema)
+----
+
+
+[id='python-serdes-jsonschema_{context}']
+== Using JSON Schema SerDes with Python
+
+[role="_abstract"]
+This section describes how to use JSON Schema serializers and deserializers with {registry} in Python applications.
+
+.Prerequisites
+
+* The `jsonschema` package is installed: `pip install apicurio-registry-serdes[jsonschema]`
+
+.Procedure
+
+. Import the required classes:
++
+[source,python]
+----
+from apicurio_registry_serdes import SerdeConfig
+from apicurio_registry_serdes.jsonschema import (
+    JsonSchemaSerializer,
+    JsonSchemaDeserializer
+)
+----
+
+. Define your JSON Schema:
++
+[source,python]
+----
+schema = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "age": {"type": "integer"}
+    },
+    "required": ["name", "age"]
+}
+----
+
+. Create the serializer with your schema:
++
+[source,python]
+----
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    auto_register=True
+)
+
+# JSON Schema requires an explicit schema
+serializer = JsonSchemaSerializer(config, schema=schema)
+----
+
+. Serialize data:
++
+[source,python]
+----
+data = {"name": "John Doe", "age": 30}
+serialized = serializer.serialize("my-topic", data)
+----
+
+. Create the deserializer:
++
+[source,python]
+----
+deserializer = JsonSchemaDeserializer(config)
+----
+
+. Deserialize data:
++
+[source,python]
+----
+deserialized = deserializer.deserialize("my-topic", serialized)
+print(deserialized)  # {'name': 'John Doe', 'age': 30}
+----
+
+. Close the serializer and deserializer when done:
++
+[source,python]
+----
+serializer.close()
+deserializer.close()
+----
+
+[discrete]
+=== Data validation
+
+By default, the JSON Schema SerDes validates data against the schema during serialization and deserialization. You can disable validation if needed:
+
+[source,python]
+----
+serializer = JsonSchemaSerializer(config, schema=schema, validate=False)
+deserializer = JsonSchemaDeserializer(config, validate=False)
+----
+
+You can also control validation globally through the configuration:
+
+[source,python]
+----
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    validation_enabled=False
+)
+----
+
+
+[id='python-serdes-protobuf_{context}']
+== Using Protobuf SerDes with Python
+
+[role="_abstract"]
+This section describes how to use Google Protobuf serializers and deserializers with {registry} in Python applications.
+
+.Prerequisites
+
+* The `protobuf` package is installed: `pip install apicurio-registry-serdes[protobuf]`
+* You have compiled Protobuf message classes from your `.proto` files
+
+.Procedure
+
+. Import the required classes:
++
+[source,python]
+----
+from apicurio_registry_serdes import SerdeConfig
+from apicurio_registry_serdes.protobuf import (
+    ProtobufSerializer,
+    ProtobufDeserializer
+)
+
+# Import your compiled Protobuf message class
+from my_messages_pb2 import User
+----
+
+. Create the serializer:
++
+[source,python]
+----
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    auto_register=True
+)
+
+serializer = ProtobufSerializer(config, message_type=User)
+----
+
+. Serialize a Protobuf message:
++
+[source,python]
+----
+message = User(name="John Doe", age=30)
+serialized = serializer.serialize("my-topic", message)
+----
+
+. Create the deserializer with the message type:
++
+[source,python]
+----
+deserializer = ProtobufDeserializer(config, message_type=User)
+----
+
+. Deserialize data:
++
+[source,python]
+----
+deserialized = deserializer.deserialize("my-topic", serialized)
+print(f"Name: {deserialized.name}, Age: {deserialized.age}")
+----
+
+. Close the serializer and deserializer when done:
++
+[source,python]
+----
+serializer.close()
+deserializer.close()
+----
+
+[discrete]
+=== Dynamic Protobuf deserialization
+
+If you don't know the message type at compile time, you can use the `DynamicProtobufDeserializer`:
+
+[source,python]
+----
+from apicurio_registry_serdes.protobuf import DynamicProtobufDeserializer
+
+deserializer = DynamicProtobufDeserializer(config)
+message = deserializer.deserialize("my-topic", serialized)
+----
+
+NOTE: Dynamic deserialization requires that the schema is stored in the registry as a `FileDescriptorSet` binary format.
+
+
+[id='python-serdes-kafka-producer_{context}']
+== Using Python SerDes with Kafka producers
+
+[role="_abstract"]
+This section describes how to use the {registry} Python SerDes with Kafka producer applications using the `kafka-python` library.
+
+.Prerequisites
+
+* The `kafka-python` package is installed: `pip install apicurio-registry-serdes[kafka]`
+* Kafka is running and accessible
+
+.Procedure
+
+. Import the required classes:
++
+[source,python]
+----
+from kafka import KafkaProducer
+
+from apicurio_registry_serdes import SerdeConfig
+from apicurio_registry_serdes.kafka import (
+    KafkaAvroSerializer,
+    KafkaJsonSchemaSerializer,
+    KafkaProtobufSerializer
+)
+----
+
+. Configure the SerDes:
++
+[source,python]
+----
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    auto_register=True
+)
+----
+
+. Define your schema and create the serializer:
++
+[source,python]
+----
+schema = {
+    "type": "record",
+    "name": "User",
+    "namespace": "com.example",
+    "fields": [
+        {"name": "name", "type": "string"},
+        {"name": "age", "type": "int"}
+    ]
+}
+
+serializer = KafkaAvroSerializer(config, schema=schema)
+----
+
+. Create the Kafka producer with the serializer:
++
+[source,python]
+----
+producer = KafkaProducer(
+    bootstrap_servers=["localhost:9092"],
+    value_serializer=serializer
+)
+----
+
+. Produce messages:
++
+[source,python]
+----
+topic = "users"
+data = {"name": "John Doe", "age": 30}
+
+# Send message - serialization happens automatically
+future = producer.send(topic, value=data)
+
+# Wait for message to be delivered
+try:
+    record_metadata = future.get(timeout=10)
+    print(f"Message delivered to {record_metadata.topic} [{record_metadata.partition}]")
+except Exception as e:
+    print(f"Message delivery failed: {e}")
+
+producer.flush()
+----
+
+. Close the producer and serializer when done:
++
+[source,python]
+----
+producer.close()
+serializer.close()
+----
+
+[discrete]
+=== Using explicit topic in serialization
+
+If you need to specify the topic explicitly for artifact resolution (instead of using the producer's target topic), you can use the `serialize()` method directly:
+
+[source,python]
+----
+# Create serializer without topic
+serializer = KafkaAvroSerializer(config, schema=schema)
+
+# Serialize with explicit topic
+serialized_value = serializer.serialize("my-topic", data)
+
+# Use with a producer that has no value_serializer
+producer = KafkaProducer(bootstrap_servers=["localhost:9092"])
+producer.send("my-topic", value=serialized_value)
+----
+
+[discrete]
+=== Using serializers for message keys
+
+To serialize message keys, create a separate serializer with `is_key=True` and pass it as `key_serializer`:
+
+[source,python]
+----
+key_serializer = KafkaAvroSerializer(config, schema=key_schema, is_key=True)
+value_serializer = KafkaAvroSerializer(config, schema=value_schema, is_key=False)
+
+producer = KafkaProducer(
+    bootstrap_servers=["localhost:9092"],
+    key_serializer=key_serializer,
+    value_serializer=value_serializer
+)
+
+producer.send("my-topic", key=key_data, value=value_data)
+----
+
+
+[id='python-serdes-kafka-consumer_{context}']
+== Using Python SerDes with Kafka consumers
+
+[role="_abstract"]
+This section describes how to use the {registry} Python SerDes with Kafka consumer applications using the `kafka-python` library.
+
+.Prerequisites
+
+* The `kafka-python` package is installed: `pip install apicurio-registry-serdes[kafka]`
+* Kafka is running and accessible
+* Messages have been produced using the {registry} SerDes format
+
+.Procedure
+
+. Import the required classes:
++
+[source,python]
+----
+from kafka import KafkaConsumer
+
+from apicurio_registry_serdes import SerdeConfig
+from apicurio_registry_serdes.kafka import (
+    KafkaAvroDeserializer,
+    KafkaJsonSchemaDeserializer,
+    KafkaProtobufDeserializer
+)
+----
+
+. Configure the SerDes:
++
+[source,python]
+----
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3"
+)
+----
+
+. Create the deserializer:
++
+[source,python]
+----
+deserializer = KafkaAvroDeserializer(config)
+----
+
+. Create the Kafka consumer with the deserializer:
++
+[source,python]
+----
+consumer = KafkaConsumer(
+    "users",
+    bootstrap_servers=["localhost:9092"],
+    group_id="my-consumer-group",
+    auto_offset_reset="earliest",
+    value_deserializer=deserializer
+)
+----
+
+. Consume messages:
++
+[source,python]
+----
+try:
+    for message in consumer:
+        # message.value is automatically deserialized
+        print(f"Received: {message.value}")
+        print(f"Topic: {message.topic}, Partition: {message.partition}, Offset: {message.offset}")
+
+except KeyboardInterrupt:
+    pass
+finally:
+    consumer.close()
+    deserializer.close()
+----
+
+[discrete]
+=== Using explicit topic in deserialization
+
+If you need to specify the topic explicitly for artifact resolution, you can use the `deserialize()` method directly:
+
+[source,python]
+----
+# Create consumer without value_deserializer
+consumer = KafkaConsumer(
+    "users",
+    bootstrap_servers=["localhost:9092"],
+    group_id="my-consumer-group"
+)
+
+# Create deserializer
+deserializer = KafkaAvroDeserializer(config)
+
+for message in consumer:
+    # Deserialize with explicit topic
+    value = deserializer.deserialize(message.topic, message.value)
+    print(f"Received: {value}")
+----
+
+[discrete]
+=== Using deserializers for message keys
+
+To deserialize message keys, create a separate deserializer with `is_key=True` and pass it as `key_deserializer`:
+
+[source,python]
+----
+key_deserializer = KafkaAvroDeserializer(config, is_key=True)
+value_deserializer = KafkaAvroDeserializer(config, is_key=False)
+
+consumer = KafkaConsumer(
+    "users",
+    bootstrap_servers=["localhost:9092"],
+    group_id="my-consumer-group",
+    key_deserializer=key_deserializer,
+    value_deserializer=value_deserializer
+)
+
+for message in consumer:
+    print(f"Key: {message.key}, Value: {message.value}")
+----
+
+
+[id='python-serdes-config-reference_{context}']
+== Python SerDes configuration reference
+
+[role="_abstract"]
+This section provides a reference for all configuration options available in the `SerdeConfig` class.
+
+.{registry} Python SerDes configuration options
+[%header,cols="3,2,4,2"]
+|===
+|Parameter
+|Type
+|Description
+|Default
+
+|`registry_url`
+|`str`
+|The base URL of the {registry} API (v3). Example: `\http://localhost:8080/apis/registry/v3`
+|Required
+
+|`auto_register`
+|`bool`
+|If `True`, automatically register schemas that don't exist in the registry.
+|`False`
+
+|`auto_register_if_exists`
+|`str`
+|Behavior when artifact already exists during auto-registration. One of: `FAIL`, `CREATE_VERSION`, `FIND_OR_CREATE_VERSION`.
+|`FIND_OR_CREATE_VERSION`
+
+|`find_latest`
+|`bool`
+|If `True`, always use the latest version of the schema from the registry.
+|`False`
+
+|`use_id`
+|`IdOption`
+|Which ID to use for schema lookup: `IdOption.CONTENT_ID` or `IdOption.GLOBAL_ID`.
+|`IdOption.CONTENT_ID`
+
+|`artifact_group_id`
+|`str`
+|Explicit group ID for the artifact. If not set, defaults to `default`.
+|`None`
+
+|`artifact_id`
+|`str`
+|Explicit artifact ID. If not set, defaults to `{topic}-value` or `{topic}-key`.
+|`None`
+
+|`artifact_version`
+|`str`
+|Explicit version to use. If not set, uses the latest version.
+|`None`
+
+|`check_period_ms`
+|`int`
+|How often to refresh cached schemas (in milliseconds).
+|`30000`
+
+|`retry_count`
+|`int`
+|Number of retries for failed registry requests.
+|`3`
+
+|`retry_backoff_ms`
+|`int`
+|Delay between retries (in milliseconds).
+|`300`
+
+|`auth_username`
+|`str`
+|Username for basic authentication.
+|`None`
+
+|`auth_password`
+|`str`
+|Password for basic authentication.
+|`None`
+
+|`auth_token`
+|`str`
+|Bearer token for authentication.
+|`None`
+
+|`headers`
+|`dict`
+|Additional HTTP headers to include in registry requests.
+|`{}`
+
+|`dereference_schema`
+|`bool`
+|If `True`, dereference schemas when fetching from the registry.
+|`False`
+
+|`validation_enabled`
+|`bool`
+|If `True`, enable data validation against the schema (for JSON Schema).
+|`True`
+|===
+
+[discrete]
+=== Creating configuration from a dictionary
+
+You can create a `SerdeConfig` from a dictionary using Kafka-style configuration keys:
+
+[source,python]
+----
+from apicurio_registry_serdes import SerdeConfig
+
+config = SerdeConfig.from_dict({
+    "apicurio.registry.url": "http://localhost:8080/apis/registry/v3",
+    "apicurio.registry.auto-register": True,
+    "apicurio.registry.find-latest": False,
+    "apicurio.registry.use-id": "contentId",
+    "apicurio.registry.artifact.group-id": "my-group",
+    "apicurio.registry.check-period-ms": 30000,
+    "apicurio.registry.auth.username": "my-user",
+    "apicurio.registry.auth.password": "my-password"
+})
+----
+
+This is useful when integrating with existing Kafka configuration patterns.

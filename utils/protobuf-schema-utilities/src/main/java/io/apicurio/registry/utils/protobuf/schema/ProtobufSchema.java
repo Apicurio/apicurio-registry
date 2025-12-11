@@ -19,18 +19,24 @@ public class ProtobufSchema {
 
     private final FileDescriptor fileDescriptor;
     private ProtobufFile protobufFile;
-    private String originalProtoText; // Store original .proto text for toProtoText()
+    private String cachedProtoText;      // Stores either original or generated text
+    private String cachedNormalizedText; // Stores normalized text (generated via protobuf4j)
+    private final boolean hasOriginalText; // Tracks if original was provided
 
     public ProtobufSchema(FileDescriptor fileDescriptor) {
         Objects.requireNonNull(fileDescriptor);
         this.fileDescriptor = fileDescriptor;
-        this.originalProtoText = null; // Will be generated on-demand if needed
+        this.cachedProtoText = null; // Will be generated on-demand if needed
+        this.cachedNormalizedText = null;
+        this.hasOriginalText = false;
     }
 
     public ProtobufSchema(FileDescriptor fileDescriptor, String originalProtoText) {
         Objects.requireNonNull(fileDescriptor);
         this.fileDescriptor = fileDescriptor;
-        this.originalProtoText = originalProtoText;
+        this.cachedProtoText = originalProtoText;
+        this.cachedNormalizedText = null;
+        this.hasOriginalText = originalProtoText != null;
     }
 
     /**
@@ -107,17 +113,52 @@ public class ProtobufSchema {
      * Convert this schema to protobuf text format.
      * Replaces: getProtoFileElement().toSchema()
      *
-     * Returns the original .proto text if available, otherwise generates it from FileDescriptor.
-     * The generated text is cached for subsequent calls.
+     * Returns the original .proto text if available, otherwise generates normalized text
+     * from FileDescriptor using protobuf4j. The generated text is cached for subsequent calls.
+     *
+     * <p>For explicit canonicalization purposes where you always want the normalized form,
+     * use {@link #toNormalizedProtoText()} instead.</p>
      *
      * @return Text representation of the schema in .proto format
      */
     public String toProtoText() {
-        if (originalProtoText != null) {
-            return originalProtoText;
+        if (cachedProtoText != null) {
+            return cachedProtoText;
         }
         // Generate .proto text from FileDescriptor and cache it
-        originalProtoText = ProtobufSchemaUtils.toProtoText(fileDescriptor);
-        return originalProtoText;
+        cachedProtoText = ProtobufSchemaUtils.toProtoText(fileDescriptor);
+        return cachedProtoText;
+    }
+
+    /**
+     * Convert this schema to normalized/canonical protobuf text format.
+     *
+     * This method always returns the normalized form generated via protobuf4j's
+     * normalization, regardless of whether original text was provided. This ensures
+     * consistent representation for content hashing and comparison.
+     *
+     * <p>The normalized text is cached separately from the original text.</p>
+     *
+     * @return Normalized/canonical text representation of the schema in .proto format
+     */
+    public String toNormalizedProtoText() {
+        if (cachedNormalizedText != null) {
+            return cachedNormalizedText;
+        }
+        // Always generate normalized text from FileDescriptor
+        cachedNormalizedText = ProtobufSchemaUtils.toProtoText(fileDescriptor);
+        return cachedNormalizedText;
+    }
+
+    /**
+     * Returns true if this schema was created with original .proto text.
+     *
+     * <p>When original text is available, {@link #toProtoText()} returns it as-is.
+     * When not available, it generates normalized text from the FileDescriptor.</p>
+     *
+     * @return true if original .proto text was provided at construction time
+     */
+    public boolean hasOriginalProtoText() {
+        return hasOriginalText;
     }
 }

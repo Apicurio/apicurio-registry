@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 
 @ApplicationScoped
 public class RegistryService {
@@ -56,30 +55,6 @@ public class RegistryService {
     @ConfigProperty(name = "apicurio.mcp.paging.limit-error", defaultValue = "true")
     boolean pagingLimitError;
 
-    // Authentication configuration
-    @ConfigProperty(name = "apicurio.mcp.auth.type", defaultValue = "none")
-    String authType;
-
-    // Basic auth configuration
-    @ConfigProperty(name = "apicurio.mcp.auth.basic.username")
-    Optional<String> basicUsername;
-
-    @ConfigProperty(name = "apicurio.mcp.auth.basic.password")
-    Optional<String> basicPassword;
-
-    // OAuth2 configuration
-    @ConfigProperty(name = "apicurio.mcp.auth.oauth2.token-endpoint")
-    Optional<String> oauth2TokenEndpoint;
-
-    @ConfigProperty(name = "apicurio.mcp.auth.oauth2.client-id")
-    Optional<String> oauth2ClientId;
-
-    @ConfigProperty(name = "apicurio.mcp.auth.oauth2.client-secret")
-    Optional<String> oauth2ClientSecret;
-
-    @ConfigProperty(name = "apicurio.mcp.auth.oauth2.scope")
-    Optional<String> oauth2Scope;
-
     private RegistryClient client;
 
     @Inject
@@ -87,43 +62,10 @@ public class RegistryService {
 
     @PostConstruct
     void init() {
-        var options = RegistryClientOptions.create(rawBaseUrl).retry();
-        configureAuthentication(options);
-        client = RegistryClientFactory.create(options);
+        client = RegistryClientFactory.create(RegistryClientOptions.create(rawBaseUrl).retry());
         // Test the connection
         var info = client.system().info().get();
         log.info("Successfully connected to Apicurio Registry version {} at {}", info.getVersion(), rawBaseUrl);
-    }
-
-    private void configureAuthentication(RegistryClientOptions options) {
-        switch (authType.toLowerCase()) {
-            case "basic":
-                if (basicUsername.isEmpty() || basicPassword.isEmpty()) {
-                    throw new IllegalStateException(
-                            "Basic authentication requires both 'apicurio.mcp.auth.basic.username' and 'apicurio.mcp.auth.basic.password' to be configured");
-                }
-                options.basicAuth(basicUsername.get(), basicPassword.get());
-                log.info("Configured basic authentication for user: {}", basicUsername.get());
-                break;
-            case "oauth2":
-            case "oidc":
-                if (oauth2TokenEndpoint.isEmpty() || oauth2ClientId.isEmpty() || oauth2ClientSecret.isEmpty()) {
-                    throw new IllegalStateException(
-                            "OAuth2 authentication requires 'apicurio.mcp.auth.oauth2.token-endpoint', 'apicurio.mcp.auth.oauth2.client-id', and 'apicurio.mcp.auth.oauth2.client-secret' to be configured");
-                }
-                if (oauth2Scope.isPresent()) {
-                    options.oauth2(oauth2TokenEndpoint.get(), oauth2ClientId.get(), oauth2ClientSecret.get(),
-                            oauth2Scope.get());
-                } else {
-                    options.oauth2(oauth2TokenEndpoint.get(), oauth2ClientId.get(), oauth2ClientSecret.get());
-                }
-                log.info("Configured OAuth2 authentication with token endpoint: {}", oauth2TokenEndpoint.get());
-                break;
-            case "none":
-            default:
-                log.info("No authentication configured for registry client");
-                break;
-        }
     }
 
     public SystemInfo getServerInfo() {

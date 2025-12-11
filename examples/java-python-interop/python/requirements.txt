@@ -1,0 +1,10 @@
+# Python dependencies for the Java-Python interoperability example
+#
+# Install with: pip install -r requirements.txt
+
+# Apicurio Registry SerDes with all extras
+apicurio-registry-serdes[kafka,jsonschema,protobuf]
+
+# If you want to use the local development version instead of PyPI,
+# comment out the line above and use:
+# -e ../../python-serdes[kafka,jsonschema,protobuf]

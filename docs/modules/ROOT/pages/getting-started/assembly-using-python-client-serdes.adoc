@@ -16,6 +16,7 @@ This chapter explains how to use Kafka client SerDes in your Python producer and
 * xref:python-serdes-protobuf_{context}[]
 * xref:python-serdes-kafka-producer_{context}[]
 * xref:python-serdes-kafka-consumer_{context}[]
+* xref:python-serdes-limitations_{context}[]
 * xref:python-serdes-config-reference_{context}[]
 
 .Prerequisites
@@ -718,6 +719,57 @@ consumer = KafkaConsumer(
 for message in consumer:
     print(f"Key: {message.key}, Value: {message.value}")
 ----
+
+
+[id='python-serdes-limitations_{context}']
+== Known limitations
+
+[role="_abstract"]
+This section describes known limitations of the current Python SerDes implementation.
+
+[discrete]
+=== Schema references
+
+The current Python SerDes implementation has limited support for schema references (schemas that reference other schemas). This affects:
+
+* **Avro schemas** that use references to other Avro types defined in separate artifacts
+* **JSON Schema** that use `$ref` to reference external schema definitions
+* **Protobuf** `.proto` files that use `import` statements to reference other `.proto` files
+
+[discrete]
+==== Current behavior
+
+The `SchemaParser.parse_schema()` method accepts a `references` parameter in its interface, but the actual implementations do not fully utilize it:
+
+* **Avro**: The `AvroSchemaParser` does not pass referenced schemas to `fastavro` during parsing
+* **JSON Schema**: The `JsonSchemaParser` does not resolve external `$ref` references
+* **Protobuf**: The `ProtobufSchemaParser` does not handle imported `.proto` files
+
+[discrete]
+==== Workaround: Use registry-side dereferencing
+
+To work with schemas that have references, enable the `dereference_schema` configuration option. This instructs the registry to resolve and inline all referenced schemas before returning them to the client:
+
+[source,python]
+----
+from apicurio_registry_serdes import SerdeConfig
+
+config = SerdeConfig(
+    registry_url="http://localhost:8080/apis/registry/v3",
+    dereference_schema=True  # Enable registry-side dereferencing
+)
+----
+
+With this option enabled, the registry returns fully resolved schemas with all references inlined, allowing the Python SerDes to work correctly without client-side reference resolution.
+
+[discrete]
+==== Limitations of the workaround
+
+* The dereferenced schema may be significantly larger than the original
+* Schema registration with references is not fully supported - you may need to register schemas with their references using the {registry} REST API or UI directly
+* Some complex reference patterns may not be fully supported
+
+NOTE: Full client-side schema reference support is planned for a future release.
 
 
 [id='python-serdes-config-reference_{context}']

@@ -385,8 +385,8 @@ public class GitManager {
 
                                 // Populate the hashes map for the new multiple hash support
                                 e.hashes = new java.util.HashMap<>();
-                                e.hashes.put(ContentHashType.CONTENT_SHA256.name(), content.getContentHash());
-                                e.hashes.put(ContentHashType.CANONICAL_SHA256.name(), e.canonicalHash);
+                                e.hashes.put(ContentHashType.CONTENT_SHA256.value(), content.getContentHash());
+                                e.hashes.put(ContentHashType.CANONICAL_SHA256.value(), e.canonicalHash);
                                 if (contentFile.getPath().toLowerCase().endsWith(".yaml")
                                         || contentFile.getPath().toLowerCase().endsWith(".yml")) {
                                     e.contentType = ContentTypes.APPLICATION_YAML;

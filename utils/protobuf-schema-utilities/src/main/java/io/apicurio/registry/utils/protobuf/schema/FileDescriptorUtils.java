@@ -170,7 +170,6 @@ public class FileDescriptorUtils {
             try {
                 // Write main proto file
                 String mainContent = new String(Files.readAllBytes(mainProtoFile.toPath()), StandardCharsets.UTF_8);
-                ProtoContent mainProto = new ProtoContent(mainProtoFile.getName(), mainContent);
 
                 // Write dependencies
                 Map<String, String> depMap = new HashMap<>();

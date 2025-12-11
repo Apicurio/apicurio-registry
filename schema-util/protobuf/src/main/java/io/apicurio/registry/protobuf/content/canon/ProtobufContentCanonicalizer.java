@@ -6,6 +6,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufWellKnownTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,7 @@ public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
             // trying to compile them would cause duplicate definition errors.
             // This handles backward compatibility with old serializers (v3.1.2) that
             // registered well-known types as separate artifacts.
-            if (isGoogleProtobufPackage(schemaContent)) {
+            if (ProtobufWellKnownTypes.isGoogleProtobufSchema(schemaContent)) {
                 log.debug("Skipping canonicalization for Google well-known type (google.protobuf.*)");
                 return content;
             }
@@ -54,7 +55,7 @@ public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
             Map<String, String> dependencies = (resolvedReferences == null || resolvedReferences.isEmpty())
                 ? Collections.emptyMap()
                 : resolvedReferences.entrySet().stream()
-                    .filter(e -> !isWellKnownType(e.getKey()))
+                    .filter(e -> !ProtobufWellKnownTypes.isHandledByProtobuf4j(e.getKey()))
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getContent().content()));
 
             // Use protobuf4j to compile to FileDescriptor
@@ -76,29 +77,6 @@ public class ProtobufContentCanonicalizer implements ContentCanonicalizer {
             log.error("Unexpected error during protobuf canonicalization, returning original content", e);
             return content;
         }
-    }
-
-    /**
-     * Checks if the given file name is a well-known protobuf type.
-     * These are provided by protobuf4j internally and should not be included in dependencies.
-     */
-    private boolean isWellKnownType(String fileName) {
-        return fileName != null && fileName.startsWith("google/protobuf/");
-    }
-
-    /**
-     * Checks if the schema content defines a Google well-known type (package google.protobuf).
-     * These types are provided internally by protobuf4j and cannot be compiled separately
-     * without causing duplicate definition errors.
-     *
-     * This handles backward compatibility with old serializers that registered well-known
-     * types as separate artifacts in the registry.
-     */
-    private boolean isGoogleProtobufPackage(String schemaContent) {
-        // Check for package google.protobuf declaration
-        // This regex matches "package google.protobuf;" with optional whitespace
-        return schemaContent != null &&
-                schemaContent.matches("(?s).*\\bpackage\\s+google\\.protobuf\\s*;.*");
     }
 
 }

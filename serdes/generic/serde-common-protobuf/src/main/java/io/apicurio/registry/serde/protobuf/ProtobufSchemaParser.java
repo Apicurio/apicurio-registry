@@ -14,6 +14,7 @@ import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufWellKnownTypes;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,7 +83,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             // Skip well-known types - protobuf4j handles these internally
             // This is important for backward compatibility with older serializers
             // that may have stored well-known types as references
-            if (isWellKnownType(referenceName)) {
+            if (ProtobufWellKnownTypes.shouldSkipAsReference(referenceName)) {
                 return; // Skip this reference
             }
 
@@ -122,7 +123,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
 
             // Skip well-known types - protobuf4j handles these internally
             // This includes google/protobuf/*.proto and google/type/*.proto
-            if (isWellKnownType(fileName)) {
+            if (ProtobufWellKnownTypes.shouldSkipAsReference(fileName)) {
                 return; // Skip this dependency
             }
 
@@ -141,22 +142,4 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
         return schemaReferences;
     }
 
-    /**
-     * Check if a proto file is a well-known type that protobuf4j handles internally.
-     * These types don't need to be stored as references in the registry.
-     *
-     * @param fileName The proto file name (e.g., "google/protobuf/timestamp.proto")
-     * @return true if this is a well-known type handled by protobuf4j
-     */
-    private boolean isWellKnownType(String fileName) {
-        // Google Protocol Buffer well-known types
-        if (fileName.startsWith("google/protobuf/")) {
-            return true;
-        }
-        // Google common types (from googleapis)
-        if (fileName.startsWith("google/type/")) {
-            return true;
-        }
-        return false;
-    }
 }

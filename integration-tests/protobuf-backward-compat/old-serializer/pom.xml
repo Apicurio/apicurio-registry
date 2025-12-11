@@ -141,6 +141,9 @@
                                     <exclude>org.apache.kafka:*</exclude>
                                     <!-- CRITICAL: Keep protobuf-java unshaded - both old and new serializers must work with same Message types -->
                                     <exclude>com.google.protobuf:*</exclude>
+                                    <!-- Keep Kotlin unshaded - both old and new use Kotlin, let runtime provide it -->
+                                    <exclude>org.jetbrains.kotlin:*</exclude>
+                                    <exclude>org.jetbrains.kotlinx:*</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>
@@ -164,6 +167,10 @@
                                     <pattern>com.ibm.icu</pattern>
                                     <shadedPattern>io.apicurio.registry.old.icu</shadedPattern>
                                 </relocation>
+                                <!-- NOTE: Do NOT relocate metadata and additionalTypes packages
+                                     because they contain .proto resources that the code loads via
+                                     hardcoded paths using getResourceAsStream(). Relocating them
+                                     moves the .proto files but not the path strings in code. -->
                             </relocations>
                             <filters>
                                 <filter>

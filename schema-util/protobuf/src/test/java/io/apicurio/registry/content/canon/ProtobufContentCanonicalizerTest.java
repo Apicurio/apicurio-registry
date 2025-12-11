@@ -2,6 +2,7 @@ package io.apicurio.registry.content.canon;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.protobuf.content.canon.ProtobufContentCanonicalizer;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

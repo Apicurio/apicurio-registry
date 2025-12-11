@@ -8,6 +8,7 @@ import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentHashType;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
@@ -192,7 +193,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
 
             // 1. Calculate content-sha256 hash
             String contentHash = utils.getContentHash(typedContent, references);
-            hashes.put("content-sha256", contentHash);
+            hashes.put(ContentHashType.CONTENT_SHA256.value(), contentHash);
 
             // 2. Try to calculate canonical-sha256 and canonical-no-refs-sha256
             // This may fail if the content has references that cannot be resolved
@@ -208,7 +209,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                 // Calculate canonical-sha256 (canonical content with references)
                 String canonicalHash = utils.getCanonicalContentHash(typedContent, entity.artifactType,
                         references, refs -> resolvedReferences);
-                hashes.put("canonical-sha256", canonicalHash);
+                hashes.put(ContentHashType.CANONICAL_SHA256.value(), canonicalHash);
 
                 // Calculate canonical-no-refs-sha256 (canonical content without references)
                 String canonicalNoRefsHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());

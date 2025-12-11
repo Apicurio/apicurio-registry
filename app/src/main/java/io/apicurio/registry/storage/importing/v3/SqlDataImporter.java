@@ -4,6 +4,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ContentHashType;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
@@ -119,10 +120,10 @@ public class SqlDataImporter extends AbstractDataImporter {
 
                 // Populate hashes map from old fields
                 if (entity.contentHash != null) {
-                    entity.hashes.put("content-sha256", entity.contentHash);
+                    entity.hashes.put(ContentHashType.CONTENT_SHA256.value(), entity.contentHash);
                 }
                 if (entity.canonicalHash != null) {
-                    entity.hashes.put("canonical-sha256", entity.canonicalHash);
+                    entity.hashes.put(ContentHashType.CANONICAL_SHA256.value(), entity.canonicalHash);
                 }
 
                 // Calculate canonical-no-refs hash if we have artifactType
@@ -140,8 +141,8 @@ public class SqlDataImporter extends AbstractDataImporter {
             } else if (entity.isNewHashFormat()) {
                 log.debug("Importing content entity with new hash format");
                 // Ensure deprecated fields are populated for any code that might still reference them
-                entity.contentHash = entity.hashes.get("content-sha256");
-                entity.canonicalHash = entity.hashes.get("canonical-sha256");
+                entity.contentHash = entity.hashes.get(ContentHashType.CONTENT_SHA256.value());
+                entity.canonicalHash = entity.hashes.get(ContentHashType.CANONICAL_SHA256.value());
             } else {
                 // No hashes present at all - generate them if possible
                 log.warn("Content entity has no hash information, will generate if possible");
@@ -149,7 +150,7 @@ public class SqlDataImporter extends AbstractDataImporter {
 
                 // Generate content hash
                 String contentHash = DigestUtils.sha256Hex(entity.contentBytes);
-                entity.hashes.put("content-sha256", contentHash);
+                entity.hashes.put(ContentHashType.CONTENT_SHA256.value(), contentHash);
                 entity.contentHash = contentHash;
 
                 // Generate canonical hash if we have artifactType
@@ -158,8 +159,8 @@ public class SqlDataImporter extends AbstractDataImporter {
                             RegistryContentUtils.recursivelyResolveReferences(references,
                                     storage::getContentByReference));
                     String canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
-                    entity.hashes.put("canonical-sha256", canonicalHash);
-                    entity.hashes.put("canonical-no-refs-sha256", canonicalHash);
+                    entity.hashes.put(ContentHashType.CANONICAL_SHA256.value(), canonicalHash);
+                    entity.hashes.put(ContentHashType.CANONICAL_NO_REFS_SHA256.value(), canonicalHash);
                     entity.canonicalHash = canonicalHash;
                 }
             }

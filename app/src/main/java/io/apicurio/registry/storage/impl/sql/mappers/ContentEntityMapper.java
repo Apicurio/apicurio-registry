@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.dto.ContentHashDto;
+import io.apicurio.registry.storage.dto.ContentHashType;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 
@@ -60,9 +61,9 @@ public class ContentEntityMapper implements RowMapper<ContentEntity> {
         entity.hashes.put(hashType, hashValue);
 
         // Also populate the deprecated fields for backward compatibility with old import code
-        if ("content-sha256".equals(hashType)) {
+        if (ContentHashType.CONTENT_SHA256.value().equals(hashType)) {
             entity.contentHash = hashValue;
-        } else if ("canonical-sha256".equals(hashType)) {
+        } else if (ContentHashType.CANONICAL_SHA256.value().equals(hashType)) {
             entity.canonicalHash = hashValue;
         }
     }

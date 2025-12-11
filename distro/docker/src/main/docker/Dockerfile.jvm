@@ -17,3 +17,7 @@ RUN chmod -R "ug=rwx" /deployments \
 USER 1001
 
 EXPOSE 8080 8778 9779
+
+# Quarkus fast-jar: run from quarkus-app directory
+WORKDIR /deployments/quarkus-app
+CMD ["java", "-jar", "quarkus-run.jar"]

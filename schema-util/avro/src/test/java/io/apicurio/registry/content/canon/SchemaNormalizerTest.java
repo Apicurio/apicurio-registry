@@ -269,6 +269,28 @@ class SchemaNormalizerTest {
                 Schema.parseJsonToObject(normalizedSchemas.get(1).getContent().content()));
     }
 
+    /**
+     * Test for issue #7023: Stackoverflow error with normalized self referencing AVRO schema.
+     * This test verifies that a self-referencing schema with a map type does not cause
+     * infinite recursion during normalization.
+     */
+    @Test
+    void parseSchema_selfReferencingMapSchema() throws Exception {
+        // given a schema that has a map field whose values reference the same type
+        final String schemaWithSelfRefMap = getSchemaFromResource("avro/simple/schema-self-ref-map.avsc");
+        assertNotNull(schemaWithSelfRefMap);
+
+        // the schema should be parsed without infinite recursion
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        final TypedContent parsed = canonicalizer.canonicalize(toTypedContent(schemaWithSelfRefMap),
+                new HashMap<>());
+
+        // verify the result is not null and contains the expected structure
+        assertNotNull(parsed);
+        assertNotNull(parsed.getContent());
+        assertNotNull(parsed.getContent().content());
+    }
+
     @Test
     void parseSchema_unionOfNullAndSelf() throws Exception {
         // given a schema containing a union of null and its own type

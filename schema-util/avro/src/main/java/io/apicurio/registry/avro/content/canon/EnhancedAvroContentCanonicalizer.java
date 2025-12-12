@@ -72,7 +72,7 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
                 result = Schema.createUnion(normalizeSchemasList(schema.getTypes(), alreadyNormalized));
                 break;
             case MAP:
-                result = Schema.createMap(normalizeSchema(schema.getValueType()));
+                result = Schema.createMap(normalizeSchema(schema.getValueType(), alreadyNormalized));
                 break;
             default:
                 result = Schema.create(schema.getType());

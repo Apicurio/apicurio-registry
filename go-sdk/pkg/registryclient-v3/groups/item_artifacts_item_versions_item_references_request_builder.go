@@ -73,6 +73,12 @@ func (m *ItemArtifactsItemVersionsItemReferencesRequestBuilder) Get(ctx context.
 	return val, nil
 }
 
+// Graph get a graph representation of artifact references.
+// returns a *ItemArtifactsItemVersionsItemReferencesGraphRequestBuilder when successful
+func (m *ItemArtifactsItemVersionsItemReferencesRequestBuilder) Graph() *ItemArtifactsItemVersionsItemReferencesGraphRequestBuilder {
+	return NewItemArtifactsItemVersionsItemReferencesGraphRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // ToGetRequestInformation retrieves all references for a single version of an artifact.  Both the `artifactId` and theunique `version` number must be provided.  Using the `refType` query parameter, it is possibleto retrieve an array of either the inbound or outbound references.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 // returns a *RequestInformation when successful
 func (m *ItemArtifactsItemVersionsItemReferencesRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemArtifactsItemVersionsItemReferencesRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {

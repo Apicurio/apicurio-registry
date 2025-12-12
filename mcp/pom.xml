@@ -17,6 +17,8 @@
     <properties>
         <projectRoot>${project.basedir}/..</projectRoot>
         <docker.app.file>app-files/apicurio-registry-mcp-server-${project.version}.tar.gz</docker.app.file>
+        <!-- Exclude integration tests by default. Use -DexcludedGroups= to run them -->
+        <excludedGroups>integration</excludedGroups>
     </properties>
 
     <dependencyManagement>
@@ -65,20 +67,26 @@
         </dependency>
 
         <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-tests</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>com.github.dasniko</groupId>
-            <artifactId>testcontainers-keycloak</artifactId>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
+            <groupId>com.github.dasniko</groupId>
+            <artifactId>testcontainers-keycloak</artifactId>
             <scope>test</scope>
         </dependency>
 

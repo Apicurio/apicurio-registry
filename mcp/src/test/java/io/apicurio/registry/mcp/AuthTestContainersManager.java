@@ -17,6 +17,8 @@ import java.util.Map;
 /**
  * Test container manager that starts both Keycloak and Apicurio Registry containers
  * for testing the MCP server authentication functionality.
+ * <p>
+ * Uses the shared realm.json from apicurio-registry-utils-tests.
  */
 public class AuthTestContainersManager implements QuarkusTestResourceLifecycleManager {
 
@@ -36,7 +38,7 @@ public class AuthTestContainersManager implements QuarkusTestResourceLifecycleMa
     public Map<String, String> start() {
         network = Network.newNetwork();
 
-        // Start Keycloak first
+        // Start Keycloak first - uses realm.json from apicurio-registry-utils-tests classpath
         keycloak = new KeycloakContainer(DockerImageName.parse(KEYCLOAK_IMAGE).toString())
                 .withNetwork(network)
                 .withNetworkAliases("keycloak")
@@ -79,10 +81,10 @@ public class AuthTestContainersManager implements QuarkusTestResourceLifecycleMa
 
         Map<String, String> props = new HashMap<>();
         props.put("registry.url", registryUrl);
-        props.put("apicurio.mcp.auth.type", "oauth2");
-        props.put("apicurio.mcp.auth.oauth2.token-endpoint", externalTokenEndpoint);
-        props.put("apicurio.mcp.auth.oauth2.client-id", ADMIN_CLIENT_ID);
-        props.put("apicurio.mcp.auth.oauth2.client-secret", ADMIN_CLIENT_SECRET);
+        props.put("apicurio.mcp.auth.enabled", "true");
+        props.put("apicurio.mcp.auth.token-endpoint", externalTokenEndpoint);
+        props.put("apicurio.mcp.auth.client-id", ADMIN_CLIENT_ID);
+        props.put("apicurio.mcp.auth.client-secret", ADMIN_CLIENT_SECRET);
 
         log.info("MCP Test configuration: {}", props);
         return props;

@@ -57,28 +57,47 @@ public class RegistryService {
     boolean pagingLimitError;
 
     // Authentication configuration
-    @ConfigProperty(name = "apicurio.mcp.auth.type", defaultValue = "none")
-    String authType;
-
-    // Basic auth configuration
-    @ConfigProperty(name = "apicurio.mcp.auth.basic.username")
-    Optional<String> basicUsername;
-
-    @ConfigProperty(name = "apicurio.mcp.auth.basic.password")
-    Optional<String> basicPassword;
+    @ConfigProperty(name = "apicurio.mcp.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
 
     // OAuth2 configuration
-    @ConfigProperty(name = "apicurio.mcp.auth.oauth2.token-endpoint")
-    Optional<String> oauth2TokenEndpoint;
+    @ConfigProperty(name = "apicurio.mcp.auth.token-endpoint")
+    Optional<String> tokenEndpoint;
 
-    @ConfigProperty(name = "apicurio.mcp.auth.oauth2.client-id")
-    Optional<String> oauth2ClientId;
+    @ConfigProperty(name = "apicurio.mcp.auth.client-id")
+    Optional<String> clientId;
 
-    @ConfigProperty(name = "apicurio.mcp.auth.oauth2.client-secret")
-    Optional<String> oauth2ClientSecret;
+    @ConfigProperty(name = "apicurio.mcp.auth.client-secret")
+    Optional<String> clientSecret;
 
-    @ConfigProperty(name = "apicurio.mcp.auth.oauth2.scope")
-    Optional<String> oauth2Scope;
+    @ConfigProperty(name = "apicurio.mcp.auth.scope")
+    Optional<String> scope;
+
+    // TLS configuration
+    @ConfigProperty(name = "apicurio.mcp.tls.trust-all", defaultValue = "false")
+    boolean tlsTrustAll;
+
+    @ConfigProperty(name = "apicurio.mcp.tls.verify-host", defaultValue = "true")
+    boolean tlsVerifyHost;
+
+    @ConfigProperty(name = "apicurio.mcp.tls.truststore.type")
+    Optional<String> truststoreType;
+
+    @ConfigProperty(name = "apicurio.mcp.tls.truststore.path")
+    Optional<String> truststorePath;
+
+    @ConfigProperty(name = "apicurio.mcp.tls.truststore.password")
+    Optional<String> truststorePassword;
+
+    // mTLS configuration (client certificate)
+    @ConfigProperty(name = "apicurio.mcp.tls.keystore.type")
+    Optional<String> keystoreType;
+
+    @ConfigProperty(name = "apicurio.mcp.tls.keystore.path")
+    Optional<String> keystorePath;
+
+    @ConfigProperty(name = "apicurio.mcp.tls.keystore.password")
+    Optional<String> keystorePassword;
 
     private RegistryClient client;
 
@@ -89,6 +108,7 @@ public class RegistryService {
     void init() {
         var options = RegistryClientOptions.create(rawBaseUrl).retry();
         configureAuthentication(options);
+        configureTls(options);
         client = RegistryClientFactory.create(options);
         // Test the connection
         var info = client.system().info().get();
@@ -96,33 +116,84 @@ public class RegistryService {
     }
 
     private void configureAuthentication(RegistryClientOptions options) {
-        switch (authType.toLowerCase()) {
-            case "basic":
-                if (basicUsername.isEmpty() || basicPassword.isEmpty()) {
-                    throw new IllegalStateException(
-                            "Basic authentication requires both 'apicurio.mcp.auth.basic.username' and 'apicurio.mcp.auth.basic.password' to be configured");
-                }
-                options.basicAuth(basicUsername.get(), basicPassword.get());
-                log.info("Configured basic authentication for user: {}", basicUsername.get());
-                break;
-            case "oauth2":
-            case "oidc":
-                if (oauth2TokenEndpoint.isEmpty() || oauth2ClientId.isEmpty() || oauth2ClientSecret.isEmpty()) {
-                    throw new IllegalStateException(
-                            "OAuth2 authentication requires 'apicurio.mcp.auth.oauth2.token-endpoint', 'apicurio.mcp.auth.oauth2.client-id', and 'apicurio.mcp.auth.oauth2.client-secret' to be configured");
-                }
-                if (oauth2Scope.isPresent()) {
-                    options.oauth2(oauth2TokenEndpoint.get(), oauth2ClientId.get(), oauth2ClientSecret.get(),
-                            oauth2Scope.get());
-                } else {
-                    options.oauth2(oauth2TokenEndpoint.get(), oauth2ClientId.get(), oauth2ClientSecret.get());
-                }
-                log.info("Configured OAuth2 authentication with token endpoint: {}", oauth2TokenEndpoint.get());
-                break;
-            case "none":
-            default:
-                log.info("No authentication configured for registry client");
-                break;
+        if (!authEnabled) {
+            log.info("Authentication is disabled");
+            return;
+        }
+
+        if (tokenEndpoint.isEmpty() || clientId.isEmpty() || clientSecret.isEmpty()) {
+            throw new IllegalStateException(
+                    "OAuth2 authentication requires 'apicurio.mcp.auth.token-endpoint', "
+                            + "'apicurio.mcp.auth.client-id', and 'apicurio.mcp.auth.client-secret' to be configured");
+        }
+
+        if (scope.isPresent()) {
+            options.oauth2(tokenEndpoint.get(), clientId.get(), clientSecret.get(), scope.get());
+        } else {
+            options.oauth2(tokenEndpoint.get(), clientId.get(), clientSecret.get());
+        }
+        log.info("Configured OAuth2 authentication with token endpoint: {}", tokenEndpoint.get());
+    }
+
+    private void configureTls(RegistryClientOptions options) {
+        // Trust all certificates (development only)
+        if (tlsTrustAll) {
+            log.warn("TLS trust-all is enabled. This should only be used in development environments.");
+            options.trustAll(true);
+        }
+
+        // Hostname verification
+        if (!tlsVerifyHost) {
+            log.warn("TLS hostname verification is disabled. This reduces security.");
+            options.verifyHost(false);
+        }
+
+        // Trust store configuration
+        if (truststoreType.isPresent() && truststorePath.isPresent()) {
+            String type = truststoreType.get().toUpperCase();
+            String path = truststorePath.get();
+            String password = truststorePassword.orElse(null);
+
+            switch (type) {
+                case "JKS":
+                    options.trustStoreJks(path, password);
+                    log.info("Configured JKS trust store: {}", path);
+                    break;
+                case "PKCS12":
+                case "P12":
+                    options.trustStorePkcs12(path, password);
+                    log.info("Configured PKCS12 trust store: {}", path);
+                    break;
+                case "PEM":
+                    options.trustStorePem(path);
+                    log.info("Configured PEM trust store: {}", path);
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported trust store type: " + type
+                            + ". Supported types: JKS, PKCS12, PEM");
+            }
+        }
+
+        // Key store configuration (mTLS)
+        if (keystoreType.isPresent() && keystorePath.isPresent()) {
+            String type = keystoreType.get().toUpperCase();
+            String path = keystorePath.get();
+            String password = keystorePassword.orElse(null);
+
+            switch (type) {
+                case "JKS":
+                    options.keystoreJks(path, password);
+                    log.info("Configured JKS key store for mTLS: {}", path);
+                    break;
+                case "PKCS12":
+                case "P12":
+                    options.keystorePkcs12(path, password);
+                    log.info("Configured PKCS12 key store for mTLS: {}", path);
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported key store type: " + type
+                            + ". Supported types: JKS, PKCS12");
+            }
         }
     }
 

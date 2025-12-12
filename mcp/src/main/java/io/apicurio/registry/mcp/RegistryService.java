@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 
 @ApplicationScoped
 public class RegistryService {
@@ -47,62 +46,13 @@ public class RegistryService {
     @ConfigProperty(name = "registry.url", defaultValue = "localhost:8080")
     String rawBaseUrl;
 
-    @ConfigProperty(name = "apicurio.mcp.safe-mode", defaultValue = "true")
-    boolean safeMode;
-
-    @ConfigProperty(name = "apicurio.mcp.paging.limit", defaultValue = "200")
-    int pagingLimit;
-
-    @ConfigProperty(name = "apicurio.mcp.paging.limit-error", defaultValue = "true")
-    boolean pagingLimitError;
-
-    // Authentication configuration
-    @ConfigProperty(name = "apicurio.mcp.auth.enabled", defaultValue = "false")
-    boolean authEnabled;
-
-    // OAuth2 configuration
-    @ConfigProperty(name = "apicurio.mcp.auth.token-endpoint")
-    Optional<String> tokenEndpoint;
-
-    @ConfigProperty(name = "apicurio.mcp.auth.client-id")
-    Optional<String> clientId;
-
-    @ConfigProperty(name = "apicurio.mcp.auth.client-secret")
-    Optional<String> clientSecret;
-
-    @ConfigProperty(name = "apicurio.mcp.auth.scope")
-    Optional<String> scope;
-
-    // TLS configuration
-    @ConfigProperty(name = "apicurio.mcp.tls.trust-all", defaultValue = "false")
-    boolean tlsTrustAll;
-
-    @ConfigProperty(name = "apicurio.mcp.tls.verify-host", defaultValue = "true")
-    boolean tlsVerifyHost;
-
-    @ConfigProperty(name = "apicurio.mcp.tls.truststore.type")
-    Optional<String> truststoreType;
-
-    @ConfigProperty(name = "apicurio.mcp.tls.truststore.path")
-    Optional<String> truststorePath;
-
-    @ConfigProperty(name = "apicurio.mcp.tls.truststore.password")
-    Optional<String> truststorePassword;
-
-    // mTLS configuration (client certificate)
-    @ConfigProperty(name = "apicurio.mcp.tls.keystore.type")
-    Optional<String> keystoreType;
-
-    @ConfigProperty(name = "apicurio.mcp.tls.keystore.path")
-    Optional<String> keystorePath;
-
-    @ConfigProperty(name = "apicurio.mcp.tls.keystore.password")
-    Optional<String> keystorePassword;
-
-    private RegistryClient client;
+    @Inject
+    McpConfig config;
 
     @Inject
     Utils utils;
+
+    private RegistryClient client;
 
     @PostConstruct
     void init() {
@@ -116,43 +66,48 @@ public class RegistryService {
     }
 
     private void configureAuthentication(RegistryClientOptions options) {
-        if (!authEnabled) {
+        var auth = config.auth();
+        if (!auth.enabled()) {
             log.info("Authentication is disabled");
             return;
         }
 
-        if (tokenEndpoint.isEmpty() || clientId.isEmpty() || clientSecret.isEmpty()) {
+        if (auth.tokenEndpoint().isEmpty() || auth.clientId().isEmpty() || auth.clientSecret().isEmpty()) {
             throw new IllegalStateException(
                     "OAuth2 authentication requires 'apicurio.mcp.auth.token-endpoint', "
                             + "'apicurio.mcp.auth.client-id', and 'apicurio.mcp.auth.client-secret' to be configured");
         }
 
-        if (scope.isPresent()) {
-            options.oauth2(tokenEndpoint.get(), clientId.get(), clientSecret.get(), scope.get());
+        if (auth.scope().isPresent()) {
+            options.oauth2(auth.tokenEndpoint().get(), auth.clientId().get(), auth.clientSecret().get(),
+                    auth.scope().get());
         } else {
-            options.oauth2(tokenEndpoint.get(), clientId.get(), clientSecret.get());
+            options.oauth2(auth.tokenEndpoint().get(), auth.clientId().get(), auth.clientSecret().get());
         }
-        log.info("Configured OAuth2 authentication with token endpoint: {}", tokenEndpoint.get());
+        log.info("Configured OAuth2 authentication with token endpoint: {}", auth.tokenEndpoint().get());
     }
 
     private void configureTls(RegistryClientOptions options) {
+        var tls = config.tls();
+
         // Trust all certificates (development only)
-        if (tlsTrustAll) {
+        if (tls.trustAll()) {
             log.warn("TLS trust-all is enabled. This should only be used in development environments.");
             options.trustAll(true);
         }
 
         // Hostname verification
-        if (!tlsVerifyHost) {
+        if (!tls.verifyHost()) {
             log.warn("TLS hostname verification is disabled. This reduces security.");
             options.verifyHost(false);
         }
 
         // Trust store configuration
-        if (truststoreType.isPresent() && truststorePath.isPresent()) {
-            String type = truststoreType.get().toUpperCase();
-            String path = truststorePath.get();
-            String password = truststorePassword.orElse(null);
+        var truststore = tls.truststore();
+        if (truststore.type().isPresent() && truststore.path().isPresent()) {
+            String type = truststore.type().get().toUpperCase();
+            String path = truststore.path().get();
+            String password = truststore.password().orElse(null);
 
             switch (type) {
                 case "JKS":
@@ -175,10 +130,11 @@ public class RegistryService {
         }
 
         // Key store configuration (mTLS)
-        if (keystoreType.isPresent() && keystorePath.isPresent()) {
-            String type = keystoreType.get().toUpperCase();
-            String path = keystorePath.get();
-            String password = keystorePassword.orElse(null);
+        var keystore = tls.keystore();
+        if (keystore.type().isPresent() && keystore.path().isPresent()) {
+            String type = keystore.type().get().toUpperCase();
+            String path = keystore.path().get();
+            String password = keystore.password().orElse(null);
 
             switch (type) {
                 case "JKS":
@@ -206,7 +162,7 @@ public class RegistryService {
             String groupOrderBy
     ) {
         var page = client.groups().get(r -> {
-            r.queryParameters.limit = pagingLimit + 1;
+            r.queryParameters.limit = config.paging().limit() + 1;
             r.queryParameters.order = SortOrder.forValue(order);
             r.queryParameters.orderby = GroupSortBy.forValue(groupOrderBy);
         });
@@ -215,10 +171,11 @@ public class RegistryService {
     }
 
     private void checkPagingLimit(int count) {
-        if (pagingLimitError && count > pagingLimit) {
+        if (config.paging().limitError() && count > config.paging().limit()) {
             throw new ToolCallException("""
                     Apicurio Registry contains more than %s objects, which is the currently configured paging limit. \
-                    Use configuration properties "apicurio.mcp.paging.limit" and "apicurio.mcp.paging.limit-error" to configure how paging is handled.""".formatted(pagingLimit));
+                    Use configuration properties "apicurio.mcp.paging.limit" and "apicurio.mcp.paging.limit-error" to configure how paging is handled."""
+                    .formatted(config.paging().limit()));
         }
     }
 
@@ -263,7 +220,7 @@ public class RegistryService {
             String artifactOrderBy
     ) {
         var page = client.groups().byGroupId(groupId).artifacts().get(r -> {
-            r.queryParameters.limit = pagingLimit + 1;
+            r.queryParameters.limit = config.paging().limit() + 1;
             r.queryParameters.order = SortOrder.forValue(order);
             r.queryParameters.orderby = ArtifactSortBy.forValue(artifactOrderBy);
         });
@@ -289,7 +246,6 @@ public class RegistryService {
         m.setName(name);
         m.setDescription(description);
         m.setLabels(utils.toLabels(jsonLabels));
-        // TODO: m.setOwner(owner);
 
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(m);
     }
@@ -362,7 +318,7 @@ public class RegistryService {
                 .artifacts().byArtifactId(artifactId)
                 .versions()
                 .get(r -> {
-                    r.queryParameters.limit = pagingLimit + 1;
+                    r.queryParameters.limit = config.paging().limit() + 1;
                     r.queryParameters.order = SortOrder.forValue(order);
                     r.queryParameters.orderby = VersionSortBy.forValue(versionOrderBy);
                 });
@@ -441,7 +397,7 @@ public class RegistryService {
             r.queryParameters.description = description;
             r.queryParameters.labels = utils.toQueryLabels(labels);
 
-            r.queryParameters.limit = pagingLimit + 1;
+            r.queryParameters.limit = config.paging().limit() + 1;
             r.queryParameters.order = SortOrder.forValue(order);
             r.queryParameters.orderby = GroupSortBy.forValue(groupOrderBy);
         });
@@ -466,10 +422,8 @@ public class RegistryService {
             r.queryParameters.name = name;
             r.queryParameters.description = description;
             r.queryParameters.labels = utils.toQueryLabels(jsonLabels);
-            // TODO: r.queryParameters.globalId = globalId;
-            // TODO: r.queryParameters.contentId = contentId;
 
-            r.queryParameters.limit = pagingLimit + 1;
+            r.queryParameters.limit = config.paging().limit() + 1;
             r.queryParameters.order = SortOrder.forValue(order);
             r.queryParameters.orderby = VersionSortBy.forValue(versionOrderBy);
         });
@@ -494,10 +448,8 @@ public class RegistryService {
             r.queryParameters.name = name;
             r.queryParameters.description = description;
             r.queryParameters.labels = utils.toQueryLabels(jsonLabels);
-            // TODO: r.queryParameters.globalId = globalId;
-            // TODO: r.queryParameters.contentId = contentId;
 
-            r.queryParameters.limit = pagingLimit + 1;
+            r.queryParameters.limit = config.paging().limit() + 1;
             r.queryParameters.order = SortOrder.forValue(order);
             r.queryParameters.orderby = ArtifactSortBy.forValue(artifactOrderBy);
         });
@@ -505,23 +457,16 @@ public class RegistryService {
         return page.getArtifacts();
     }
 
-    public List<ConfigurationProperty> listConfigurationProperties(
-    ) {
+    public List<ConfigurationProperty> listConfigurationProperties() {
         return client.admin().config().properties().get();
     }
 
-    public ConfigurationProperty getConfigurationProperty(
-            String propertyName
-    ) {
+    public ConfigurationProperty getConfigurationProperty(String propertyName) {
         return client.admin().config().properties().byPropertyName(propertyName).get();
     }
 
-    public void updateConfigurationProperty(
-            String propertyName,
-            String propertyValue
-    ) {
-        // Sanitize
-        if (safeMode && !List.of(
+    public void updateConfigurationProperty(String propertyName, String propertyValue) {
+        if (config.safeMode() && !List.of(
                 "apicurio.rest.mutability.artifact-version-content.enabled"
         ).contains(propertyName)) {
             throw new ToolCallException("Configuration property can't be updated because it's not in the whitelist.");

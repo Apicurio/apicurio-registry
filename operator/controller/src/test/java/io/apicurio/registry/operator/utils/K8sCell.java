@@ -87,8 +87,9 @@ public class K8sCell<T extends HasMetadata> {
                 cachedValue = client.resource(cachedValue).update();
                 return true;
             } catch (KubernetesClientException ex) {
-                if (ex.getMessage().contains("the object has been modified")) {
-                    log.info("Retrying update of {}", ResourceID.fromResource(cachedValue));
+                if (ex.getMessage().contains("the object has been modified") || ex.getMessage().contains("timeout")) {
+                    log.info("Retrying update of {} because of a Kubernetes client exception: {}",
+                            ResourceID.fromResource(cachedValue), ex.getMessage());
                     return false;
                 } else {
                     throw ex;

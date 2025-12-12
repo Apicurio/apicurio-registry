@@ -94,6 +94,7 @@ jobs:
   docker-build:
     name: Build and Push Docker Image
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -188,10 +189,24 @@ jobs:
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and Push Multi-arch Image
-        uses: docker/build-push-action@v5
+        uses: nick-fields/retry@v3
+        env:
+          DOCKER_TAGS: ${{ steps.tags.outputs.tags }}
         with:
-          push: true
-          file: ${{ inputs.dockerfile }}
-          context: ${{ inputs.context }}
-          platforms: ${{ inputs.platforms }}
-          tags: ${{ steps.tags.outputs.tags }}
+          timeout_minutes: 45
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            # Convert comma-separated tags to --tag arguments
+            TAG_ARGS=""
+            IFS=',' read -ra TAGS <<< "$DOCKER_TAGS"
+            for tag in "${TAGS[@]}"; do
+              TAG_ARGS="$TAG_ARGS --tag $tag"
+            done
+
+            docker buildx build \
+              --push \
+              --file ${{ inputs.dockerfile }} \
+              --platform ${{ inputs.platforms }} \
+              $TAG_ARGS \
+              ${{ inputs.context }}

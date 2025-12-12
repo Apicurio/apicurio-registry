@@ -1,0 +1,252 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+
+[id="migrating-protobuf-implementation_{context}"]
+= Migrating to the protobuf4j implementation
+
+[role="_abstract"]
+This chapter explains the migration from Wire-Schema to protobuf4j for Protobuf schema handling in {registry} version 3.x, and provides guidance for users upgrading between 3.x versions.
+
+* xref:protobuf4j-overview_{context}[]
+* xref:protobuf4j-benefits_{context}[]
+* xref:protobuf4j-compatibility_{context}[]
+* xref:protobuf4j-upgrade-path_{context}[]
+* xref:protobuf4j-custom-code_{context}[]
+* xref:protobuf4j-performance_{context}[]
+
+//INCLUDES
+
+
+[id="protobuf4j-overview_{context}"]
+== Overview of the protobuf4j migration
+
+[role="_abstract"]
+Starting with {registry} version 3.x, the Protobuf implementation has been migrated from Square's Wire-Schema library to protobuf4j. This migration provides significant improvements in compatibility, dependency management, and schema canonicalization.
+
+protobuf4j runs the official Google `protoc` compiler via WebAssembly (WASM) using the Chicory runtime. This approach ensures 100% compatibility with native protobuf behavior because it uses the actual `protoc` binary rather than a reimplementation.
+
+.Architecture overview
+The protobuf4j implementation works as follows:
+
+. Proto text input is written to a virtual filesystem (ZeroFs)
+. The `protoc` compiler (compiled to WASM) processes the schema
+. A `FileDescriptor` is returned using the Google Protobuf Java API
+
+This architecture provides exact semantic compatibility with the native `protoc` compiler, eliminating edge cases where Wire-Schema behavior differed from official protobuf semantics.
+
+
+[id="protobuf4j-benefits_{context}"]
+== Benefits of the protobuf4j implementation
+
+[role="_abstract"]
+The migration to protobuf4j provides the following benefits:
+
+.100% protoc compatibility
+By running the actual `protoc` binary compiled to WebAssembly, protobuf4j guarantees identical behavior to the native compiler. This eliminates semantic inconsistencies that could occur with reimplemented parsers.
+
+.Improved canonicalization
+The `normalizeSchemaToText()` function provides guaranteed-consistent canonical forms. Two semantically equivalent schemas always produce identical canonical output, which is critical for:
+
+* Content-based deduplication
+* Schema compatibility checking
+* Content ID generation
+
+.Reduced dependencies
+The migration significantly reduces the dependency footprint:
+
+[cols="1,1,1", options="header"]
+|===
+|Metric
+|Before (Wire-Schema)
+|After (protobuf4j)
+
+|Direct dependencies
+|7
+|1
+
+|Total dependency size
+|~19 MB
+|~4 MB
+
+|Kotlin runtime required
+|Yes
+|No
+
+|ICU4J required
+|Yes (~14 MB)
+|No
+|===
+
+.Code simplification
+The migration reduced code complexity significantly:
+
+* `FileDescriptorUtils.java`: 1,605 lines reduced to 432 lines (73% reduction)
+* Removed internal classes: `DynamicSchema`, `EnumDefinition`, `MessageDefinition`, `ProtobufMessage`
+
+
+[id="protobuf4j-compatibility_{context}"]
+== Backward compatibility
+
+[role="_abstract"]
+The protobuf4j migration maintains full backward compatibility for standard usage patterns.
+
+.Compatibility matrix
+[cols="2,1", options="header"]
+|===
+|Scenario
+|Compatibility
+
+|Old clients (Wire-Schema serdes) with new server (protobuf4j)
+|Fully compatible
+
+|New clients (protobuf4j serdes) with old server (Wire-Schema)
+|Fully compatible
+
+|Existing schemas in registry
+|Content IDs preserved
+
+|Auto-registration of schemas
+|Works as before
+
+|Schema references and imports
+|Fully supported
+|===
+
+.Why compatibility is maintained
+The Kafka message format remains unchanged. The serializers write the same magic byte, content ID, and message data regardless of which Protobuf implementation is used. The deserializers can read messages from either implementation because the wire format is identical.
+
+
+[id="protobuf4j-upgrade-path_{context}"]
+== Recommended upgrade path
+
+[role="_abstract"]
+Follow these steps to upgrade to the protobuf4j implementation:
+
+.Procedure
+
+. *Upgrade the registry server first*
++
+Deploy the new version of {registry} with protobuf4j support. All existing protobuf schemas remain accessible, and old client applications continue to work without modification.
+
+. *Test in a staging environment*
++
+Before upgrading clients, verify that your existing Kafka producers and consumers work correctly with the upgraded server.
+
+. *Gradually upgrade client applications*
++
+Update your Kafka producer and consumer applications to use the new serdes dependencies:
++
+[source,xml,subs="attributes+"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+----
+
+. *Verify schema registration*
++
+New schemas registered after the upgrade use protobuf4j canonicalization. Semantically equivalent schemas produce identical canonical forms.
+
+.Verification
+You can run the backward compatibility integration test to verify that old and new serializers interoperate correctly:
+
+[source,bash]
+----
+cd integration-tests
+../mvnw verify -Pintegration-tests -Plocal-tests -Dtest=ProtobufBackwardCompatibilityIT
+----
+
+
+[id="protobuf4j-custom-code_{context}"]
+== Breaking changes for custom code
+
+[role="_abstract"]
+If you have custom code that directly uses Wire-Schema AST types, you must update it to use the new protobuf4j-based APIs.
+
+.Removed Wire-Schema types
+The following Wire-Schema types are no longer available:
+
+* `com.squareup.wire.schema.internal.parser.ProtoFileElement`
+* `com.squareup.wire.schema.internal.parser.MessageElement`
+* `com.squareup.wire.schema.internal.parser.ProtoParser`
+
+.Migration examples
+
+.Before (Wire-Schema)
+[source,java]
+----
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import com.squareup.wire.schema.internal.parser.ProtoParser;
+import com.squareup.wire.schema.Location;
+
+Location location = Location.get("schema.proto");
+ProtoFileElement fileElem = ProtoParser.parse(location, content);
+MessageElement firstMessage = FileDescriptorUtils.firstMessage(fileElem);
+----
+
+.After (protobuf4j)
+[source,java]
+----
+import com.google.protobuf.Descriptors.FileDescriptor;
+import com.google.protobuf.Descriptors.Descriptor;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
+
+FileDescriptor fd = ProtobufSchemaUtils.parseAndCompile("schema.proto", content, dependencies);
+Descriptor firstMessage = ProtobufSchemaUtils.getFirstMessage(fd);
+----
+
+.New utility classes
+The following utility classes are available for working with Protobuf schemas:
+
+[cols="1,2", options="header"]
+|===
+|Class
+|Purpose
+
+|`ProtobufSchemaUtils`
+|Main entry point for schema parsing and compilation
+
+|`ProtobufWellKnownTypes`
+|Centralized detection of well-known types (google/protobuf/*, google/type/*)
+
+|`ProtobufCompilationContext`
+|Filesystem pooling and WASM instance caching for performance
+|===
+
+
+[id="protobuf4j-performance_{context}"]
+== Performance considerations
+
+[role="_abstract"]
+The protobuf4j implementation includes optimizations to minimize the overhead of running protoc via WASM.
+
+.Compilation performance
+* *First compilation*: Approximately 100-200ms for WASM module instantiation
+* *Subsequent compilations*: Faster due to filesystem pooling and WASM instance caching
+
+.Serialization and deserialization performance
+WASM is only used for schema compilation, not for message serialization or deserialization. The actual message handling uses the standard Google Protobuf Java library, so there is no performance impact on the hot path.
+
+.Optimizations
+The implementation includes the following optimizations:
+
+* *ZeroFs filesystem pooling*: Reuses virtual filesystems across compilations to reduce object allocation
+* *WASM instance caching*: Avoids cold-start overhead by caching Protobuf WASM instances
+* *Well-known types pre-loading*: Google well-known types are pre-loaded in the pool
+
+.Performance testing
+A performance comparison test (`ProtobufSerdesPerformanceIT`) is available that compares:
+
+* Old Wire-Schema based serializer (v3.1.2)
+* New protobuf4j based serializer
+* Confluent's KafkaProtobufSerializer
+
+The test measures simple message serialization, complex message serialization, and round-trip performance.
+
+
+[role="_additional-resources"]
+.Additional resources
+* For more details on configuring Protobuf SerDes, see {registry-client-serdes-config}.
+* For Java example applications, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry example applications].

@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "Any",
+  "namespace": "foo.bar",
+  "doc": "Self referencing schema with map",
+  "fields": [
+    {
+      "name": "value",
+      "type": [
+        "null",
+        "string",
+        {
+          "type": "map",
+          "values": "foo.bar.Any"
+        }
+      ],
+      "doc": "Union containing null, string, and map of self-references"
+    }
+  ]
+}

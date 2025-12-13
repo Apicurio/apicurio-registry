@@ -1,9 +1,6 @@
 package io.apicurio.registry.protobuf.rules.compatibility.protobuf;
 
-import com.squareup.wire.Syntax;
-import com.squareup.wire.schema.Field;
-import com.squareup.wire.schema.internal.parser.EnumConstantElement;
-import com.squareup.wire.schema.internal.parser.FieldElement;
+import com.google.protobuf.DescriptorProtos;
 import io.apicurio.registry.protobuf.ProtobufDifference;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
@@ -71,7 +68,7 @@ public class ProtobufCompatibilityCheckerLibrary {
         totalIssues.addAll(checkNoChangingFieldNames());
         totalIssues.addAll(checkNoRemovingServiceRPCs());
         totalIssues.addAll(checkNoChangingRPCSignature());
-        if (Syntax.PROTO_2.equals(fileBefore.getSyntax())) {
+        if ("proto2".equals(fileBefore.getSyntax())) {
             totalIssues.addAll(checkRequiredFields());
         }
         // Adding the new check for forward-compatible additions
@@ -157,15 +154,15 @@ public class ProtobufCompatibilityCheckerLibrary {
 
         List<ProtobufDifference> issues = new ArrayList<>();
 
-        Map<String, Map<String, FieldElement>> before = fileBefore.getFieldMap();
-        Map<String, Map<String, FieldElement>> after = fileAfter.getFieldMap();
+        Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> before = fileBefore.getFieldMap();
+        Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> after = fileAfter.getFieldMap();
 
         Map<String, Set<Object>> afterReservedFields = fileAfter.getReservedFields();
         Map<String, Set<Object>> afterNonreservedFields = fileAfter.getNonReservedFields();
 
-        for (Map.Entry<String, Map<String, FieldElement>> entry : before.entrySet()) {
+        for (Map.Entry<String, Map<String, DescriptorProtos.FieldDescriptorProto>> entry : before.entrySet()) {
             Set<String> removedFieldNames = new HashSet<>(entry.getValue().keySet());
-            Map<String, FieldElement> updated = after.get(entry.getKey());
+            Map<String, DescriptorProtos.FieldDescriptorProto> updated = after.get(entry.getKey());
             if (updated != null) {
                 removedFieldNames.removeAll(updated.keySet());
             }
@@ -181,10 +178,10 @@ public class ProtobufCompatibilityCheckerLibrary {
             issuesCount += nonReservedRemovedFieldNames.size();
 
             // count again for each non-reserved field id
-            for (FieldElement fieldElement : entry.getValue().values()) {
+            for (DescriptorProtos.FieldDescriptorProto fieldElement : entry.getValue().values()) {
                 if (removedFieldNames.contains(fieldElement.getName())
-                        && !(reserved.contains(fieldElement.getTag())
-                                || nonreserved.contains(fieldElement.getTag()))) {
+                        && !(reserved.contains(fieldElement.getNumber())
+                                || nonreserved.contains(fieldElement.getNumber()))) {
                     issuesCount++;
                 }
             }
@@ -207,37 +204,37 @@ public class ProtobufCompatibilityCheckerLibrary {
 
         List<ProtobufDifference> issues = new ArrayList<>();
 
-        Map<String, Map<String, FieldElement>> before = fileBefore.getFieldMap();
-        Map<String, Map<String, FieldElement>> after = fileAfter.getFieldMap();
+        Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> before = fileBefore.getFieldMap();
+        Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> after = fileAfter.getFieldMap();
 
-        for (Map.Entry<String, Map<String, FieldElement>> entry : before.entrySet()) {
-            Map<String, FieldElement> afterMap = after.get(entry.getKey());
+        for (Map.Entry<String, Map<String, DescriptorProtos.FieldDescriptorProto>> entry : before.entrySet()) {
+            Map<String, DescriptorProtos.FieldDescriptorProto> afterMap = after.get(entry.getKey());
 
             if (afterMap != null) {
-                for (Map.Entry<String, FieldElement> beforeKV : entry.getValue().entrySet()) {
-                    FieldElement afterFE = afterMap.get(beforeKV.getKey());
-                    if (afterFE != null && beforeKV.getValue().getTag() != afterFE.getTag()) {
+                for (Map.Entry<String, DescriptorProtos.FieldDescriptorProto> beforeKV : entry.getValue().entrySet()) {
+                    DescriptorProtos.FieldDescriptorProto afterFE = afterMap.get(beforeKV.getKey());
+                    if (afterFE != null && beforeKV.getValue().getNumber() != afterFE.getNumber()) {
                         issues.add(ProtobufDifference.from(String.format(
                                 "Conflict, field id changed, message %s , before: %s , after %s",
-                                entry.getKey(), beforeKV.getValue().getTag(), afterFE.getTag())));
+                                entry.getKey(), beforeKV.getValue().getNumber(), afterFE.getNumber())));
                     }
                 }
             }
         }
 
-        Map<String, Map<String, EnumConstantElement>> beforeEnum = fileBefore.getEnumFieldMap();
-        Map<String, Map<String, EnumConstantElement>> afterEnum = fileAfter.getEnumFieldMap();
+        Map<String, Map<String, DescriptorProtos.EnumValueDescriptorProto>> beforeEnum = fileBefore.getEnumFieldMap();
+        Map<String, Map<String, DescriptorProtos.EnumValueDescriptorProto>> afterEnum = fileAfter.getEnumFieldMap();
 
-        for (Map.Entry<String, Map<String, EnumConstantElement>> entry : beforeEnum.entrySet()) {
-            Map<String, EnumConstantElement> afterMap = afterEnum.get(entry.getKey());
+        for (Map.Entry<String, Map<String, DescriptorProtos.EnumValueDescriptorProto>> entry : beforeEnum.entrySet()) {
+            Map<String, DescriptorProtos.EnumValueDescriptorProto> afterMap = afterEnum.get(entry.getKey());
 
             if (afterMap != null) {
-                for (Map.Entry<String, EnumConstantElement> beforeKV : entry.getValue().entrySet()) {
-                    EnumConstantElement afterECE = afterMap.get(beforeKV.getKey());
-                    if (afterECE != null && beforeKV.getValue().getTag() != afterECE.getTag()) {
+                for (Map.Entry<String, DescriptorProtos.EnumValueDescriptorProto> beforeKV : entry.getValue().entrySet()) {
+                    DescriptorProtos.EnumValueDescriptorProto afterECE = afterMap.get(beforeKV.getKey());
+                    if (afterECE != null && beforeKV.getValue().getNumber() != afterECE.getNumber()) {
                         issues.add(ProtobufDifference.from(String.format(
                                 "Conflict, field id changed, message %s , before: %s , after %s",
-                                entry.getKey(), beforeKV.getValue().getTag(), afterECE.getTag())));
+                                entry.getKey(), beforeKV.getValue().getNumber(), afterECE.getNumber())));
                     }
                 }
             }
@@ -255,26 +252,28 @@ public class ProtobufCompatibilityCheckerLibrary {
 
         List<ProtobufDifference> issues = new ArrayList<>();
 
-        Map<String, Map<String, FieldElement>> before = fileBefore.getFieldMap();
-        Map<String, Map<String, FieldElement>> after = fileAfter.getFieldMap();
+        Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> before = fileBefore.getFieldMap();
+        Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> after = fileAfter.getFieldMap();
 
-        for (Map.Entry<String, Map<String, FieldElement>> entry : before.entrySet()) {
-            Map<String, FieldElement> afterMap = after.get(entry.getKey());
+        for (Map.Entry<String, Map<String, DescriptorProtos.FieldDescriptorProto>> entry : before.entrySet()) {
+            Map<String, DescriptorProtos.FieldDescriptorProto> afterMap = after.get(entry.getKey());
 
             if (afterMap != null) {
-                for (Map.Entry<String, FieldElement> beforeKV : entry.getValue().entrySet()) {
-                    FieldElement afterFE = afterMap.get(beforeKV.getKey());
+                for (Map.Entry<String, DescriptorProtos.FieldDescriptorProto> beforeKV : entry.getValue().entrySet()) {
+                    DescriptorProtos.FieldDescriptorProto afterFE = afterMap.get(beforeKV.getKey());
 
                     if (afterFE != null) {
+                        // Get type strings - use getTypeName() for message types, getType() for primitives
+                        String beforeTypeStr = getFieldTypeString(beforeKV.getValue());
+                        String afterTypeStr = getFieldTypeString(afterFE);
 
-                        String beforeType = normalizeType(fileBefore, beforeKV.getValue().getType(),
-                                entry.getKey());
-                        String afterType = normalizeType(fileAfter, afterFE.getType(), entry.getKey());
+                        String beforeType = normalizeType(fileBefore, beforeTypeStr, entry.getKey());
+                        String afterType = normalizeType(fileAfter, afterTypeStr, entry.getKey());
 
                         if (afterFE != null && !beforeType.equals(afterType)) {
                             issues.add(ProtobufDifference.from(String.format(
                                     "Field type changed, message %s , before: %s , after %s", entry.getKey(),
-                                    beforeKV.getValue().getType(), afterFE.getType())));
+                                    beforeTypeStr, afterTypeStr)));
                         }
 
                         if (afterFE != null
@@ -553,17 +552,17 @@ public class ProtobufCompatibilityCheckerLibrary {
 
         List<ProtobufDifference> issues = new ArrayList<>();
 
-        Map<String, Map<String, FieldElement>> before = fileBefore.getFieldMap();
-        Map<String, Map<String, FieldElement>> after = fileAfter.getFieldMap();
+        Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> before = fileBefore.getFieldMap();
+        Map<String, Map<String, DescriptorProtos.FieldDescriptorProto>> after = fileAfter.getFieldMap();
 
-        for (Map.Entry<String, Map<String, FieldElement>> entry : after.entrySet()) {
-            Map<String, FieldElement> beforeMap = before.get(entry.getKey());
+        for (Map.Entry<String, Map<String, DescriptorProtos.FieldDescriptorProto>> entry : after.entrySet()) {
+            Map<String, DescriptorProtos.FieldDescriptorProto> beforeMap = before.get(entry.getKey());
 
             if (beforeMap != null) {
-                for (Map.Entry<String, FieldElement> afterKV : entry.getValue().entrySet()) {
-                    FieldElement afterSig = beforeMap.get(afterKV.getKey());
-                    if (afterSig == null && afterKV.getValue().getLabel() != null
-                            && afterKV.getValue().getLabel().equals(Field.Label.REQUIRED)) {
+                for (Map.Entry<String, DescriptorProtos.FieldDescriptorProto> afterKV : entry.getValue().entrySet()) {
+                    DescriptorProtos.FieldDescriptorProto afterSig = beforeMap.get(afterKV.getKey());
+                    if (afterSig == null && afterKV.getValue().hasLabel()
+                            && afterKV.getValue().getLabel().equals(DescriptorProtos.FieldDescriptorProto.Label.LABEL_REQUIRED)) {
                         issues.add(ProtobufDifference.from(
                                 String.format("required field added in new version, message %s, after %s",
                                         entry.getKey(), afterKV.getValue())));
@@ -573,6 +572,20 @@ public class ProtobufCompatibilityCheckerLibrary {
         }
 
         return issues;
+    }
+
+    /**
+     * Helper method to get the type string from a FieldDescriptorProto.
+     * For message/enum types, returns the type name. For primitive types, returns the type enum name.
+     */
+    private String getFieldTypeString(DescriptorProtos.FieldDescriptorProto field) {
+        if (field.hasTypeName()) {
+            // Message or enum type
+            return field.getTypeName();
+        } else {
+            // Primitive type - convert enum to string
+            return field.getType().name();
+        }
     }
 
 }

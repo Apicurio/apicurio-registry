@@ -778,6 +778,17 @@ COMMAND = 4;
 In this example, two Protobuf artifacts are stored in {registry}, one for `TableInfo` and one for `Mode`. However, because `Mode` is part of `TableInfo`, whenever `TableInfo` is fetched to check a message in the SerDes, `Mode` is also returned as an artifact referenced by `TableInfo`.
 
 
+.Protobuf implementation details
+Starting with {registry} version 3.x, the Protobuf SerDes implementation uses *protobuf4j*, which runs the official Google `protoc` compiler via WebAssembly (WASM). This provides 100% compatibility with native protobuf behavior and improved schema canonicalization.
+
+Key benefits of the protobuf4j implementation:
+
+* *100% protoc compatibility*: Uses the actual `protoc` binary compiled to WebAssembly
+* *Improved canonicalization*: Guaranteed byte-for-byte consistency for semantically equivalent schemas
+* *Reduced dependencies*: Significantly smaller dependency footprint compared to previous implementations
+
+NOTE: If you are upgrading from an earlier 3.x version that used Wire-Schema, the new protobuf4j implementation maintains full backward compatibility. Old clients work with new servers and vice versa. No code changes are required for standard usage patterns.
+
 [role="_additional-resources"]
 .Additional resources
 * For Java example applications, see:

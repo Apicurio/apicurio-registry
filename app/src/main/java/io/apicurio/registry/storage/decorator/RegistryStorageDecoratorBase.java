@@ -321,6 +321,10 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
         delegate.importBranch(entity);
     }
 
+    /**
+     * @deprecated Content hashes are immutable; this operation is no longer supported
+     */
+    @Deprecated
     @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         delegate.updateContentCanonicalHash(newCanonicalHash, contentId, contentHash);

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 public class AppFeaturesITTest extends ITBase {
@@ -27,14 +28,16 @@ public class AppFeaturesITTest extends ITBase {
         checkDeploymentExists(registry, ResourceFactory.COMPONENT_APP, 1);
 
         // Check that the three deletion ENV vars are set
-        var appEnv = getContainerFromDeployment(
-                client.apps().deployments().inNamespace(namespace)
-                        .withName(registry.getMetadata().getName() + "-app-deployment").get(),
-                REGISTRY_APP_CONTAINER_NAME).getEnv();
-        assertThat(appEnv).map(EnvVar::getName).contains(
-                EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED,
-                EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED,
-                EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED);
+        await().untilAsserted(() -> {
+            var appEnv = getContainerFromDeployment(
+                    client.apps().deployments().inNamespace(namespace)
+                            .withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                    REGISTRY_APP_CONTAINER_NAME).getEnv();
+            assertThat(appEnv).map(EnvVar::getName).contains(
+                    EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED,
+                    EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED,
+                    EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED);
+        });
     }
 
     @Test
@@ -47,14 +50,16 @@ public class AppFeaturesITTest extends ITBase {
         checkDeploymentExists(registry, ResourceFactory.COMPONENT_APP, 1);
 
         // Check that the three deletion ENV vars are NOT set
-        var appEnv = getContainerFromDeployment(
-                client.apps().deployments().inNamespace(namespace)
-                        .withName(registry.getMetadata().getName() + "-app-deployment").get(),
-                REGISTRY_APP_CONTAINER_NAME).getEnv();
-        assertThat(appEnv).map(EnvVar::getName).doesNotContain(
-                EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED,
-                EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED,
-                EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED);
+        await().untilAsserted(() -> {
+            var appEnv = getContainerFromDeployment(
+                    client.apps().deployments().inNamespace(namespace)
+                            .withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                    REGISTRY_APP_CONTAINER_NAME).getEnv();
+            assertThat(appEnv).map(EnvVar::getName).doesNotContain(
+                    EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_ENABLED,
+                    EnvironmentVariables.APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED,
+                    EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED);
+        });
     }
 
     @Test
@@ -69,16 +74,18 @@ public class AppFeaturesITTest extends ITBase {
         checkDeploymentExists(registry, ResourceFactory.COMPONENT_APP, 1);
 
         // Check that the mutability ENV var is set with value "true"
-        var appEnv = getContainerFromDeployment(
-                client.apps().deployments().inNamespace(namespace)
-                        .withName(registry.getMetadata().getName() + "-app-deployment").get(),
-                REGISTRY_APP_CONTAINER_NAME).getEnv();
-        assertThat(appEnv)
-                .filteredOn(e -> e.getName().equals(EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED))
-                .hasSize(1)
-                .first()
-                .extracting(EnvVar::getValue)
-                .isEqualTo("true");
+        await().untilAsserted(() -> {
+            var appEnv = getContainerFromDeployment(
+                    client.apps().deployments().inNamespace(namespace)
+                            .withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                    REGISTRY_APP_CONTAINER_NAME).getEnv();
+            assertThat(appEnv)
+                    .filteredOn(e -> e.getName().equals(EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED))
+                    .hasSize(1)
+                    .first()
+                    .extracting(EnvVar::getValue)
+                    .isEqualTo("true");
+        });
     }
 
     @Test
@@ -91,11 +98,13 @@ public class AppFeaturesITTest extends ITBase {
         checkDeploymentExists(registry, ResourceFactory.COMPONENT_APP, 1);
 
         // Check that the mutability ENV var is NOT set
-        var appEnv = getContainerFromDeployment(
-                client.apps().deployments().inNamespace(namespace)
-                        .withName(registry.getMetadata().getName() + "-app-deployment").get(),
-                REGISTRY_APP_CONTAINER_NAME).getEnv();
-        assertThat(appEnv).map(EnvVar::getName).doesNotContain(
-                EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED);
+        await().untilAsserted(() -> {
+            var appEnv = getContainerFromDeployment(
+                    client.apps().deployments().inNamespace(namespace)
+                            .withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                    REGISTRY_APP_CONTAINER_NAME).getEnv();
+            assertThat(appEnv).map(EnvVar::getName).doesNotContain(
+                    EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED);
+        });
     }
 }

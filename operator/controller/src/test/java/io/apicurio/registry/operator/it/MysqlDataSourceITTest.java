@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.it;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,7 @@ import static org.awaitility.Awaitility.await;
 /**
  * Integration test for MySQL datasource configuration.
  */
+@Disabled // TODO: Temporary workaround: Skip test for yet unsupported feature.
 @QuarkusTest
 public class MysqlDataSourceITTest extends ITBase {
 

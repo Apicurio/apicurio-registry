@@ -101,6 +101,7 @@
     <module>utils/kafka</module>
     <module>utils/maven-plugin</module>
     <module>utils/protobuf-schema-utilities</module>
+    <module>utils/reflectgen</module>
     <module>utils/tests</module>
     <module>utils/raml-test-micro-service</module>
 
@@ -213,7 +214,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.2.6</apicurio-data-models.version>
+    <apicurio-data-models.version>2.2.7</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>

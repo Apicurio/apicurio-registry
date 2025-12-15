@@ -128,7 +128,7 @@ public abstract class AbstractResourceImpl {
             return null;
         }
 
-        String path = String.format("/apis/registry/v3/groups/%s/artifacts/%s/versions/%s?references=REWRITE",
+        String path = String.format("/apis/registry/v3/groups/%s/artifacts/%s/versions/%s/content?references=REWRITE",
                 URLEncoder.encode(reference.getGroupId(), StandardCharsets.UTF_8),
                 URLEncoder.encode(reference.getArtifactId(), StandardCharsets.UTF_8),
                 URLEncoder.encode(reference.getVersion(), StandardCharsets.UTF_8));

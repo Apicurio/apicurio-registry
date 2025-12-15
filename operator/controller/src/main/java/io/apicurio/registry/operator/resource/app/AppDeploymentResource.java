@@ -10,6 +10,7 @@ import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
+import io.apicurio.registry.operator.feat.OTel;
 import io.apicurio.registry.operator.feat.SqlStorage;
 import io.apicurio.registry.operator.feat.TLS;
 import io.apicurio.registry.operator.feat.security.Auth;
@@ -110,6 +111,10 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
 
         // Configure the TLS env vars
         TLS.configureTLS(primary, deployment, REGISTRY_APP_CONTAINER_NAME, envVars);
+
+        // Configure OpenTelemetry observability
+        ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getOtel)
+                .ifPresent(otelSpec -> OTel.configureOTel(otelSpec, envVars));
 
         // Configure the storage (PostgreSQL, MySQL, or KafkaSQL).
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)

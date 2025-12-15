@@ -35,3 +35,6 @@ python-sdk/openapi.json
 __pycache__
 
 .env
+
+# Docker/Testcontainers workarounds
+**/docker-java.properties

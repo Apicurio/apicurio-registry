@@ -1,0 +1,14 @@
+# Prometheus configuration for Apicurio Registry observability
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'apicurio-registry'
+    metrics_path: '/q/metrics'
+    static_configs:
+      - targets: ['apicurio-registry:8080']

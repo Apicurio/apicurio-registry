@@ -38,12 +38,15 @@ public class RegistryStorageProducer {
 
     private RegistryStorage cachedRaw;
 
+    // Use Instance<> for lazy lookup to avoid instantiating beans that are not needed
+    // based on the configured storage type. Combined with @LookupIfProperty on each
+    // storage implementation, this ensures only the required storage beans are created.
     @Inject
-    KafkaSqlRegistryStorage kafkaSqlRegistryStorage;
+    Instance<KafkaSqlRegistryStorage> kafkaSqlRegistryStorage;
     @Inject
-    SqlRegistryStorage sqlRegistryStorage;
+    Instance<SqlRegistryStorage> sqlRegistryStorage;
     @Inject
-    GitOpsRegistryStorage gitOpsRegistryStorage;
+    Instance<GitOpsRegistryStorage> gitOpsRegistryStorage;
 
     @Produces
     @ApplicationScoped
@@ -83,11 +86,11 @@ public class RegistryStorageProducer {
     public RegistryStorage raw() {
         if (cachedRaw == null) {
             if ("kafkasql".equals(registryStorageType)) {
-                cachedRaw = kafkaSqlRegistryStorage;
+                cachedRaw = kafkaSqlRegistryStorage.get();
             } else if ("gitops".equals(registryStorageType)) {
-                cachedRaw = gitOpsRegistryStorage;
+                cachedRaw = gitOpsRegistryStorage.get();
             } else if ("sql".equals(registryStorageType)) {
-                cachedRaw = sqlRegistryStorage;
+                cachedRaw = sqlRegistryStorage.get();
             } else {
                 throw new IllegalStateException(String
                         .format("No Registry storage variant defined for value %s", registryStorageType));

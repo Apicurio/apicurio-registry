@@ -2,32 +2,46 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.impl.util.ProducerActions;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Collections;
 
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 
 @ApplicationScoped
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlEventsProcessor {
 
+    @ConfigProperty(name = "apicurio.storage.kind", defaultValue = "sql")
+    String storageType;
+
     @Inject
-    KafkaSqlConfiguration configuration;
+    Instance<KafkaSqlConfiguration> configuration;
 
     @Inject
     @Named("KafkaSqlEventsProducer")
-    ProducerActions<String, String> eventsProducer;
+    Instance<ProducerActions<String, String>> eventsProducer;
+
+    private boolean isKafkaSqlStorage() {
+        return "kafkasql".equals(storageType);
+    }
 
     public void processEvent(@Observes KafkaSqlOutboxEvent event) {
+        if (!isKafkaSqlStorage()) {
+            return;
+        }
         OutboxEvent outboxEvent = event.getOutboxEvent();
         // Explicitly send to partition 0 to guarantee total ordering of all events.
         // See KafkaSqlConfiguration.getEventsTopicProperties() for details on this design decision.
-        ProducerRecord<String, String> record = new ProducerRecord<>(configuration.getEventsTopic(), 0,
+        ProducerRecord<String, String> record = new ProducerRecord<>(configuration.get().getEventsTopic(), 0,
                 outboxEvent.getAggregateId(), outboxEvent.getPayload().toString(), Collections.emptyList());
-        blockOnResult(eventsProducer.apply(record));
+        blockOnResult(eventsProducer.get().apply(record));
     }
 }

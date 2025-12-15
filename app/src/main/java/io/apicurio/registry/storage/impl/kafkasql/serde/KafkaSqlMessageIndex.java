@@ -2,12 +2,14 @@ package io.apicurio.registry.storage.impl.kafkasql.serde;
 
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import io.apicurio.registry.storage.impl.kafkasql.messages.*;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @ApplicationScoped
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlMessageIndex {
 
     private static Map<String, Class<? extends KafkaSqlMessage>> index = new HashMap<>();

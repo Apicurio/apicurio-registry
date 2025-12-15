@@ -18,6 +18,7 @@ import io.apicurio.registry.storage.impl.gitops.sql.GreenSqlStorage;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -40,6 +41,7 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 @ApplicationScoped
 @StorageMetricsApply
 @Logged
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "gitops")
 public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
 
     @Inject

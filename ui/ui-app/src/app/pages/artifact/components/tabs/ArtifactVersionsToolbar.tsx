@@ -1,7 +1,7 @@
 import { FunctionComponent, useState } from "react";
 import "./ArtifactVersionsToolbar.css";
 import { Button, Pagination, SearchInput, Toolbar, ToolbarContent, ToolbarItem, Tooltip } from "@patternfly/react-core";
-import { CodeCompareIcon } from "@patternfly/react-icons";
+import { CompressArrowsAltIcon } from "@patternfly/react-icons";
 import { Paging } from "@models/Paging.ts";
 import { SearchedVersion, VersionSearchResults } from "@sdk/lib/generated-client/models";
 
@@ -82,7 +82,7 @@ export const ArtifactVersionsToolbar: FunctionComponent<ArtifactVersionsToolbarP
                     >
                         <Button
                             variant="secondary"
-                            icon={<CodeCompareIcon />}
+                            icon={<CompressArrowsAltIcon />}
                             isDisabled={!compareButtonEnabled}
                             onClick={props.onCompareVersions}
                             data-testid="compare-versions-btn"

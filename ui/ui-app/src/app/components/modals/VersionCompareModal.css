@@ -1,0 +1,59 @@
+#version-compare-modal {
+    position: fixed;
+    bottom: 32px;
+    top: 32px;
+}
+
+#version-compare-modal .compare-label {
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+
+#version-compare-modal .compare-label .before {
+    color: #c9190b;
+    font-weight: 500;
+}
+
+#version-compare-modal .compare-label .after {
+    color: #3e8635;
+    font-weight: 500;
+}
+
+#version-compare-modal .compare-label .divider {
+    margin-left: 16px;
+    margin-right: 16px;
+    color: #6a6e73;
+}
+
+#version-compare-modal .compare-editor {
+    flex-grow: 1;
+    border: 1px solid #ddd;
+}
+
+#version-compare-modal .compare-toggle-group {
+    padding: 5px 5px 10px 0px;
+}
+
+#version-compare-modal .compare-view {
+    position: absolute;
+    top: 64px;
+    bottom: 24px;
+    left: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+}
+
+#version-compare-modal .compare-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    gap: 16px;
+}
+
+#version-compare-modal .compare-loading span {
+    color: #6a6e73;
+    font-size: 14px;
+}

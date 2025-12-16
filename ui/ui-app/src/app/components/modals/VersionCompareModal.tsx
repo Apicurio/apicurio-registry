@@ -1,12 +1,9 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./VersionCompareModal.css";
-import { Modal, ToggleGroup, ToggleGroupItem, Spinner, Alert } from "@patternfly/react-core";
-import { editor } from "monaco-editor";
-import { DiffEditor } from "@monaco-editor/react";
-import { ArrowsAltHIcon } from "@patternfly/react-icons";
-import IDiffEditorConstructionOptions = editor.IDiffEditorConstructionOptions;
+import { Modal, Spinner, Alert } from "@patternfly/react-core";
 import { SearchedVersion } from "@sdk/lib/generated-client/models";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { DiffView } from "@app/components";
 
 /**
  * Properties
@@ -31,41 +28,12 @@ export const VersionCompareModal: FunctionComponent<VersionCompareModalProps> = 
     version2,
     onClose
 }: VersionCompareModalProps) => {
-    const [diffEditorContentOptions, setDiffEditorContentOptions] = useState({
-        renderSideBySide: true,
-        automaticLayout: true,
-        wordWrap: "off",
-        readOnly: true,
-        inDiffEditor: true,
-        originalAriaLabel: "Older version",
-        modifiedAriaLabel: "Newer version"
-    } as IDiffEditorConstructionOptions);
-
     const [version1Content, setVersion1Content] = useState<string>("");
     const [version2Content, setVersion2Content] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [isDiffInline, setIsDiffInline] = useState(false);
-    const [isDiffWrapped, setIsDiffWrapped] = useState(false);
-
     const groups: GroupsService = useGroupsService();
-
-    const switchInlineCompare = () => {
-        setDiffEditorContentOptions({
-            ...diffEditorContentOptions as IDiffEditorConstructionOptions,
-            renderSideBySide: !diffEditorContentOptions.renderSideBySide
-        });
-        setIsDiffInline(!!diffEditorContentOptions.renderSideBySide);
-    };
-
-    const switchWordWrap = () => {
-        setDiffEditorContentOptions({
-            ...diffEditorContentOptions as IDiffEditorConstructionOptions,
-            wordWrap: diffEditorContentOptions.wordWrap == "off" ? "on" : "off"
-        });
-        setIsDiffWrapped(diffEditorContentOptions.wordWrap != "on");
-    };
 
     // Load version contents when modal opens
     useEffect(() => {
@@ -142,7 +110,7 @@ export const VersionCompareModal: FunctionComponent<VersionCompareModalProps> = 
             onClose={onClose}
             aria-label="Compare artifact versions"
         >
-            <div className="compare-view">
+            <div className="compare-modal-content">
                 {isLoading ? (
                     <div className="compare-loading">
                         <Spinner size="lg" />
@@ -153,39 +121,14 @@ export const VersionCompareModal: FunctionComponent<VersionCompareModalProps> = 
                         {error}
                     </Alert>
                 ) : (
-                    <>
-                        <ToggleGroup className="compare-toggle-group" aria-label="Compare view toggle group">
-                            <ToggleGroupItem
-                                text="Inline"
-                                key={1}
-                                buttonId="inline-toggle"
-                                isSelected={isDiffInline}
-                                onChange={switchInlineCompare}
-                            />
-                            <ToggleGroupItem
-                                text="Wrap text"
-                                key={0}
-                                buttonId="wrap-toggle"
-                                isSelected={isDiffWrapped}
-                                onChange={switchWordWrap}
-                            />
-                        </ToggleGroup>
-                        <div className="compare-label">
-                            <span className="before">Older: {labels.older}</span>
-                            <span className="divider">
-                                <ArrowsAltHIcon />
-                            </span>
-                            <span className="after">Newer: {labels.newer}</span>
-                        </div>
-                        <div className="compare-editor">
-                            <DiffEditor
-                                className="text-editor"
-                                original={version1Content}
-                                modified={version2Content}
-                                options={diffEditorContentOptions}
-                            />
-                        </div>
-                    </>
+                    <DiffView
+                        original={version1Content}
+                        originalLabel={`Older: ${labels.older}`}
+                        modified={version2Content}
+                        modifiedLabel={`Newer: ${labels.newer}`}
+                        originalAriaLabel="Older version"
+                        modifiedAriaLabel="Newer version"
+                    />
                 )}
             </div>
         </Modal>

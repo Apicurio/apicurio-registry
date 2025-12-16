@@ -35,6 +35,8 @@ func NewImportRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 }
 
 // Post imports registry data that was previously exported using the `/admin/export` operation.
+// returns a AuthError error when the service returns a 401 status code
+// returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 500 status code
 func (m *ImportRequestBuilder) Post(ctx context.Context, body []byte, requestConfiguration *ImportRequestBuilderPostRequestConfiguration) error {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
@@ -42,6 +44,8 @@ func (m *ImportRequestBuilder) Post(ctx context.Context, body []byte, requestCon
 		return err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
+		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"500": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 	}
 	err = m.BaseRequestBuilder.RequestAdapter.SendNoContent(ctx, requestInfo, errorMapping)

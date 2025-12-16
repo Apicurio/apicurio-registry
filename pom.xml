@@ -187,7 +187,7 @@
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.16.4</okio.version>
-    <kotlin-stdlib.version>2.2.21</kotlin-stdlib.version>
+    <kotlin-stdlib.version>2.3.0</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.33.2</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
@@ -214,7 +214,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.2.7</apicurio-data-models.version>
+    <apicurio-data-models.version>2.2.9</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>
@@ -246,7 +246,7 @@
     <nats.version>2.24.1</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
-    <jgit.version>7.4.0.202509020913-r</jgit.version>
+    <jgit.version>7.5.0.202512021534-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.6</assertj.core.version>
     <semver4j.version>5.8.0</semver4j.version>
@@ -309,7 +309,7 @@
     <groovy.version>4.0.29</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
-    <pulsar.testcontainers.version>1.21.3</pulsar.testcontainers.version>
+    <pulsar.testcontainers.version>1.21.4</pulsar.testcontainers.version>
     <keycloak.testcontainers.version>3.9.1</keycloak.testcontainers.version>
     <embedded-postgres.version>2.2.0</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>

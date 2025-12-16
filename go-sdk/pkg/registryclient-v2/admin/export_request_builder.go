@@ -44,6 +44,8 @@ func NewExportRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 
 // Get exports registry data as a ZIP archive.
 // returns a DownloadRefable when successful
+// returns a AuthError error when the service returns a 401 status code
+// returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 500 status code
 func (m *ExportRequestBuilder) Get(ctx context.Context, requestConfiguration *ExportRequestBuilderGetRequestConfiguration) (idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.DownloadRefable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
@@ -51,6 +53,8 @@ func (m *ExportRequestBuilder) Get(ctx context.Context, requestConfiguration *Ex
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
+		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"500": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 	}
 	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateDownloadRefFromDiscriminatorValue, errorMapping)

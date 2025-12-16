@@ -92,11 +92,15 @@ public class RegistryContentUtils {
                     throw new IllegalStateException("Invalid reference: " + reference);
                 } else {
                     String refName = reference.getName();
+                    JsonPointerExternalReference refPointer = new JsonPointerExternalReference(refName);
+
+                    // Use only the resource part (without JSON pointer component) when building coordinates,
+                    // then reconstruct the full reference with the component to avoid duplication
+                    String resourceOnly = refPointer.getResource() != null ? refPointer.getResource() : refName;
                     String referenceCoordinates = concatArtifactVersionCoordinatesWithRefName(
                             reference.getGroupId(), reference.getArtifactId(), reference.getVersion(),
-                            refName);
+                            resourceOnly);
 
-                    JsonPointerExternalReference refPointer = new JsonPointerExternalReference(refName);
                     JsonPointerExternalReference coordinatePointer = new JsonPointerExternalReference(
                             referenceCoordinates, refPointer.getComponent());
 
@@ -113,7 +117,7 @@ public class RegistryContentUtils {
                                         TypedContent.create(nested.getContent(), nested.getArtifactType()),
                                         nested.getArtifactType(), partialRecursivelyResolvedReferences,
                                         nested.getReferences(), loader, referencesRewrites);
-                                referencesRewrites.put(refName, referenceCoordinates);
+                                referencesRewrites.put(refName, newRefName);
                                 TypedContent rewrittenContent = typeUtilProvider.getContentDereferencer()
                                         .rewriteReferences(rewrittenContentHolder.getRewrittenContent(),
                                                 referencesRewrites);

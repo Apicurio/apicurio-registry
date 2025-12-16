@@ -7,8 +7,10 @@ import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.types.RegistryException;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.control.ActivateRequestContext;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
@@ -21,13 +23,14 @@ import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.REQUE
 
 @ApplicationScoped
 @Logged
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlSink {
 
     @Inject
     Logger log;
 
     @Inject
-    KafkaSqlCoordinator coordinator;
+    Instance<KafkaSqlCoordinator> coordinator;
 
     @Inject
     SqlRegistryStorage sqlStore;
@@ -54,16 +57,16 @@ public class KafkaSqlSink {
                     record.value() != null ? record.value().toString() : "",
                     result != null ? result.toString() : "");
             log.debug("Kafka message successfully processed. Notifying listeners of response.");
-            coordinator.notifyResponse(requestId, result);
+            coordinator.get().notifyResponse(requestId, result);
         } catch (RuntimeException e) {
             // Pass RuntimeException (including RegistryException) directly without wrapping
             // to preserve the original exception type for proper handling by exception mappers.
             log.debug("Runtime exception detected: {}", e.getMessage());
-            coordinator.notifyResponse(requestId, e);
+            coordinator.get().notifyResponse(requestId, e);
         } catch (Throwable e) {
             // Wrap checked exceptions and Errors in RegistryException
             log.debug("Unexpected exception detected: {}", e.getMessage());
-            coordinator.notifyResponse(requestId, new RegistryException(e));
+            coordinator.get().notifyResponse(requestId, new RegistryException(e));
         }
     }
 

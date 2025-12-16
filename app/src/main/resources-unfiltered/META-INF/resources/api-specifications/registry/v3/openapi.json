@@ -48,6 +48,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getContentByGlobalId",
@@ -90,6 +96,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listGlobalRules",
@@ -123,6 +135,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createGlobalRule",
@@ -140,6 +158,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteAllGlobalRules",
@@ -170,6 +194,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getGlobalRuleConfig",
@@ -207,6 +237,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateGlobalRuleConfig",
@@ -227,6 +263,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteGlobalRule",
@@ -399,6 +441,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchArtifacts",
@@ -499,6 +547,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchArtifactsByContent",
@@ -540,6 +594,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "exportData",
@@ -601,6 +661,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "importData",
@@ -633,6 +699,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionMetaData",
@@ -665,6 +737,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactVersionMetaData",
@@ -690,6 +768,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactVersion",
@@ -751,6 +835,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listArtifactRules",
@@ -786,6 +876,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createArtifactRule",
@@ -805,6 +901,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactRules",
@@ -854,6 +956,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactRuleConfig",
@@ -890,6 +998,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactRuleConfig",
@@ -909,6 +1023,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactRule",
@@ -972,6 +1092,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getRoleMapping",
@@ -1001,6 +1127,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateRoleMapping",
@@ -1020,6 +1152,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteRoleMapping",
@@ -1057,6 +1195,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getCurrentUserInfo",
@@ -1082,6 +1226,12 @@
               }
             },
             "description": "A list containing all the references for the artifact with the given content id."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "referencesByContentId",
@@ -1119,6 +1269,12 @@
               }
             },
             "description": "A list containing all the references for the artifact with the given global id."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "referencesByGlobalId",
@@ -1174,6 +1330,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionReferences",
@@ -1244,6 +1406,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionReferencesGraph",
@@ -1323,6 +1491,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listConfigProperties",
@@ -1352,6 +1526,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getConfigProperty",
@@ -1381,6 +1561,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateConfigProperty",
@@ -1400,6 +1586,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "resetConfigProperty",
@@ -1474,6 +1666,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listArtifactsInGroup",
@@ -1546,6 +1744,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createArtifact",
@@ -1562,6 +1766,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactsInGroup",
@@ -1633,6 +1843,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listGroups",
@@ -1669,6 +1885,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createGroup",
@@ -1704,6 +1926,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionComments",
@@ -1743,6 +1971,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "addArtifactVersionComment",
@@ -1807,6 +2041,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactVersionComment",
@@ -1829,6 +2069,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactVersionComment",
@@ -1916,6 +2162,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listBranches",
@@ -1955,6 +2207,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createBranch",
@@ -2040,6 +2298,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listArtifactVersions",
@@ -2096,6 +2360,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createArtifactVersion",
@@ -2145,6 +2415,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getBranchMetaData",
@@ -2174,6 +2450,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateBranchMetaData",
@@ -2196,6 +2478,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteBranch",
@@ -2277,6 +2565,12 @@
               }
             },
             "description": "A list containing all the references for the artifact with the given content hash."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "referencesByContentHash",
@@ -2310,6 +2604,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getContentByHash",
@@ -2343,6 +2643,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getContentById",
@@ -2384,6 +2690,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getGroupById",
@@ -2414,6 +2726,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateGroupById",
@@ -2436,6 +2754,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteGroupById",
@@ -2491,6 +2815,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listRoleMappings",
@@ -2517,6 +2847,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createRoleMapping",
@@ -2547,6 +2883,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listArtifactTypes",
@@ -2575,6 +2917,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "triggerSnapshot",
@@ -2604,6 +2952,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactMetaData",
@@ -2634,6 +2988,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactMetaData",
@@ -2656,6 +3016,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifact",
@@ -2711,6 +3077,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionContent",
@@ -2747,6 +3119,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactVersionContent",
@@ -2868,6 +3246,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchGroups",
@@ -3019,6 +3403,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchVersions",
@@ -3127,6 +3517,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchVersionsByContent",
@@ -3176,6 +3572,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listBranchVersions",
@@ -3206,6 +3608,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "replaceBranchVersions",
@@ -3239,6 +3647,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "addVersionToBranch",
@@ -3300,6 +3714,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listGroupRules",
@@ -3335,6 +3755,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createGroupRule",
@@ -3354,6 +3780,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteGroupRules",
@@ -3394,6 +3826,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getGroupRuleConfig",
@@ -3430,6 +3868,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateGroupRuleConfig",
@@ -3449,6 +3893,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteGroupRule",
@@ -3503,6 +3953,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionState",
@@ -3549,6 +4005,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactVersionState",
@@ -5710,6 +6172,46 @@
           }
         },
         "description": "The artifact content is not valid for one of the following reasons:\n* Schema validation failed\n* References could not be validated\n* Required references are missing"
+      },
+      "Unauthorized": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "UnauthorizedExample": {
+                "value": {
+                  "detail": "UnauthorizedException: User is not authenticated.",
+                  "title": "User is not authenticated.",
+                  "status": 401,
+                  "name": "UnauthorizedException"
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `401` error indicating authentication is required."
+      },
+      "Forbidden": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "ForbiddenExample": {
+                "value": {
+                  "detail": "ForbiddenException: User is not authorized to perform this operation.",
+                  "title": "User is not authorized to perform this operation.",
+                  "status": 403,
+                  "name": "ForbiddenException"
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `403` error indicating the user is authenticated but not authorized."
       }
     }
   },

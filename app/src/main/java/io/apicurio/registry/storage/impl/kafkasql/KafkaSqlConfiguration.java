@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlPartitioner;
 import io.apicurio.registry.utils.RegistryProperties;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.Getter;
@@ -26,6 +27,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STO
 import static io.apicurio.registry.utils.CollectionsUtil.toMap;
 
 @ApplicationScoped
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlConfiguration.class);
@@ -44,7 +46,7 @@ public class KafkaSqlConfiguration {
 
     // === Common configurations ===
 
-    @ConfigProperty(name = "apicurio.kafkasql.bootstrap.servers")
+    @ConfigProperty(name = "apicurio.kafkasql.bootstrap.servers", defaultValue = "")
     @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage bootstrap servers")
     @Getter
     String bootstrapServers;

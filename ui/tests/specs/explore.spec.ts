@@ -8,7 +8,7 @@ const OPENAPI_DATA_V2_STR: string = JSON.stringify(OPENAPI_DATA_V2, null, 4);
 const REGISTRY_UI_URL: string = process.env["REGISTRY_UI_URL"] || "http://localhost:8888";
 
 test("Explore - Create group", async ({ page }) => {
-    await page.goto(REGISTRY_UI_URL);
+    await page.goto(`${REGISTRY_UI_URL}/explore`);
     await expect(page).toHaveTitle(/Apicurio Registry/);
 
     expect(page.getByTestId("btn-toolbar-create-group")).toBeDefined();

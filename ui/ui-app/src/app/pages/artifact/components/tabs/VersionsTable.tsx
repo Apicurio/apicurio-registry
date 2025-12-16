@@ -14,7 +14,7 @@ import {
     VersionSortByObject
 } from "@sdk/lib/generated-client/models";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { Flex, FlexItem } from "@patternfly/react-core";
+import { Checkbox, Flex, FlexItem } from "@patternfly/react-core";
 import { UserService, useUserService } from "@services/useUserService.ts";
 
 export type VersionsTableProps = {
@@ -22,11 +22,13 @@ export type VersionsTableProps = {
     versions: SearchedVersion[];
     sortBy: VersionSortBy;
     sortOrder: SortOrder;
+    selectedVersions: SearchedVersion[];
     onSort: (by: VersionSortBy, order: SortOrder) => void;
     onView: (version: SearchedVersion) => void;
     onAddToBranch: (version: SearchedVersion) => void;
     onDelete: (version: SearchedVersion) => void;
     onEditDraft: (version: SearchedVersion) => void;
+    onSelectVersion: (version: SearchedVersion, isSelected: boolean) => void;
 }
 type VersionAction = {
     label: string;
@@ -46,15 +48,37 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
     const user: UserService = useUserService();
 
     const columns: any[] = [
-        { index: 0, id: "version", label: "Version", width: 40, sortable: true, sortBy: VersionSortByObject.Version },
-        { index: 1, id: "globalId", label: "Global Id", width: 10, sortable: true, sortBy: VersionSortByObject.GlobalId },
-        { index: 2, id: "contentId", label: "Content Id", width: 10, sortable: false },
-        { index: 3, id: "createdOn", label: "Created on", width: 15, sortable: true, sortBy: VersionSortByObject.CreatedOn },
+        { index: 0, id: "select", label: "", width: 5, sortable: false },
+        { index: 1, id: "version", label: "Version", width: 35, sortable: true, sortBy: VersionSortByObject.Version },
+        { index: 2, id: "globalId", label: "Global Id", width: 10, sortable: true, sortBy: VersionSortByObject.GlobalId },
+        { index: 3, id: "contentId", label: "Content Id", width: 10, sortable: false },
+        { index: 4, id: "createdOn", label: "Created on", width: 15, sortable: true, sortBy: VersionSortByObject.CreatedOn },
     ];
 
+    const isVersionSelected = (version: SearchedVersion): boolean => {
+        return props.selectedVersions.some(v => v.version === version.version);
+    };
+
+    const handleCheckboxChange = (version: SearchedVersion, isChecked: boolean): void => {
+        props.onSelectVersion(version, isChecked);
+    };
+
     const renderColumnData = (column: SearchedVersion, colIndex: number): React.ReactNode => {
-        // Name.
+        // Checkbox for selection.
         if (colIndex === 0) {
+            const isDisabled = props.selectedVersions.length >= 2 && !isVersionSelected(column);
+            return (
+                <Checkbox
+                    id={`select-version-${shash(column.version!)}`}
+                    isChecked={isVersionSelected(column)}
+                    isDisabled={isDisabled}
+                    onChange={(_event, checked) => handleCheckboxChange(column, checked)}
+                    aria-label={`Select version ${column.version}`}
+                />
+            );
+        }
+        // Version name.
+        if (colIndex === 1) {
             const groupId: string = encodeURIComponent(props.artifact.groupId || "default");
             const artifactId: string = encodeURIComponent(props.artifact.artifactId!);
             const version: string = encodeURIComponent(column.version!);
@@ -83,19 +107,19 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
             );
         }
         // Global id.
-        if (colIndex === 1) {
+        if (colIndex === 2) {
             return (
                 <span>{ column.globalId }</span>
             );
         }
-        // Global id.
-        if (colIndex === 2) {
+        // Content id.
+        if (colIndex === 3) {
             return (
                 <span>{ column.contentId }</span>
             );
         }
         // Created on.
-        if (colIndex === 3) {
+        if (colIndex === 4) {
             return (
                 <FromNow date={column.createdOn} />
             );
@@ -146,13 +170,13 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
 
     useEffect(() => {
         if (props.sortBy === VersionSortByObject.Version) {
-            setSortByIndex(0);
-        }
-        if (props.sortBy === VersionSortByObject.GlobalId) {
             setSortByIndex(1);
         }
+        if (props.sortBy === VersionSortByObject.GlobalId) {
+            setSortByIndex(2);
+        }
         if (props.sortBy === VersionSortByObject.CreatedOn) {
-            setSortByIndex(3);
+            setSortByIndex(4);
         }
     }, [props.sortBy]);
 

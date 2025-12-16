@@ -109,5 +109,6 @@ include::attributes-links.adoc[]
 :rest-client: xref:using-the-registry-sdk_{context}[]
 :kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
 :registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
+:python-client-serdes: xref:using-python-client-serdes_{context}[]
 :registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 

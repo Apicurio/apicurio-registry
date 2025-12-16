@@ -7,12 +7,15 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 
+import static io.apicurio.registry.operator.Tags.AUTH;
+import static io.apicurio.registry.operator.Tags.SLOW;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
@@ -20,6 +23,8 @@ import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.g
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
+@Tag(AUTH)
+@Tag(SLOW)
 public class AuthTLSITTest extends BaseAuthITTest {
 
     private static final Logger log = LoggerFactory.getLogger(AuthTLSITTest.class);

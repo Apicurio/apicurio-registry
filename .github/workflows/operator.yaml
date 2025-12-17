@@ -10,41 +10,28 @@ on:
       - main
     paths:
       - operator/**
-  workflow_dispatch:
-    inputs:
-      run-local-tests:
-        description: 'Run local tests (in addition to OLM tests)'
-        required: false
-        default: true
-        type: boolean
-      skip-publish:
-        description: 'Skip publishing to quay.io'
-        required: false
-        default: false
-        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # Shared image references for all jobs
-  REGISTRY_APP_IMAGE: ttl.sh/apicurio-registry-${{ github.sha }}:8h
-  IMAGE: ttl.sh/apicurio-registry-3-operator-${{ github.sha }}:8h
-  BUNDLE_IMAGE: ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h
-  CATALOG_IMAGE: ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h
-
 jobs:
 
-  # ============================================================================
-  # Build job: Compiles everything and pushes images to ttl.sh
-  # ============================================================================
-  operator-build:
-    name: Build Operator
+  operator-build-test:
+    name: Build and Test Operator
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
 
+      # We need tho push the bundle image because opm always pulls; the catalog image because OLM
+      # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
+      - name: Configure env. variables
+        run: |
+          echo "REGISTRY_APP_IMAGE=ttl.sh/apicurio-registry-${{ github.sha }}:8h" >> $GITHUB_ENV
+          echo "IMAGE=ttl.sh/apicurio-registry-3-operator-${{ github.sha }}:8h" >> $GITHUB_ENV
+          echo "BUNDLE_IMAGE=ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h" >> $GITHUB_ENV
+          echo "CATALOG_IMAGE=ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h" >> $GITHUB_ENV
+
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v4
 
@@ -55,117 +42,62 @@ jobs:
           distribution: temurin
           cache: maven
 
-      # Build the operand image as well as the operator, otherwise the tests would not reflect changes in the current PR.
-      - name: Build Java artifacts
+      # We need to build the operand image as well as the operator, otherwise the tests would not reflect changes in the current PR.
+      - name: Build
         run: mvn -B clean package -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip
 
-      - name: Build and push operand image
+      - name: Build temporary operand image
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
-          docker push "$REGISTRY_APP_IMAGE"
-
-      - name: Build and push operator image
-        working-directory: operator
-        run: |
-          make image-build image-push
-
-      - name: Build and push operator bundle
-        working-directory: operator
-        run: |
-          make bundle
-
-      - name: Build and push operator catalog
-        working-directory: operator
-        run: |
-          make catalog
-
-      # Upload operator target directory for test jobs
-      - name: Upload operator build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: operator-build
-          path: |
-            operator/controller/target
-            operator/model/target
-            operator/olm-tests/target
-          retention-days: 1
-
-  # ============================================================================
-  # Local tests job: Runs unit/integration tests locally (push or manual trigger)
-  # ============================================================================
-  operator-local-tests:
-    name: Local Tests
-    runs-on: ubuntu-latest
-    needs: operator-build
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run-local-tests)
-    steps:
-
-      - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: temurin
-          cache: maven
 
       - uses: apicurio/apicurio-github-actions/setup-minikube@v2
         with:
+          # Do not use the "docker" driver, it is causing port-forwarding errors. I have no clue why :(
+          # TODO: I might've been wrong, check this again later.
           driver: 'none'
           ingress-enable: 'true'
-          olm-enable: 'false'
-          olm-v1-enable: 'false'
-          start-args: '--alsologtostderr --v=2'
+          olm-enable: 'true'
+          olm-v1-enable: 'true'
+          start-args: '--alsologtostderr --v=2' # Debug
 
       - name: Build and run local tests on Minikube
+        # Speed up the PR check by running both local and remote tests on push to main,
+        # and only run remote tests against a PR.
+        # TODO: Is this ok?
+        if: github.event_name == 'push'
         working-directory: operator
         run: |
           make BUILD_OPTS=--no-transfer-progress build
 
-  # ============================================================================
-  # OLM v1 tests job: Runs remote tests with OLM v1
-  # ============================================================================
-  operator-test-olm-v1:
-    name: OLM v1 Tests
-    runs-on: ubuntu-latest
-    needs: operator-build
-    steps:
+      - name: Build temporary operator image
+        working-directory: operator
+        run: |
+          make image-build image-push
 
-      - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
+      - name: Build temporary operator bundle
+        working-directory: operator
+        run: |
+          make bundle
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: temurin
-          cache: maven
+      - name: Build temporary operator catalog
+        working-directory: operator
+        run: |
+          make catalog
 
-      - name: Download operator build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: operator-build
-          path: operator
-
-      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
-        with:
-          driver: 'none'
-          ingress-enable: 'true'
-          olm-enable: 'false'
-          olm-v1-enable: 'true'
-          start-args: '--alsologtostderr --v=2'
-
-      - name: Run OLM v1 remote tests on Minikube
+      - name: Run remote and OLM v1 tests on Minikube
         working-directory: operator
         run: |
           make BUILD_OPTS="--no-transfer-progress -Dtest.operator.olm-version=1" test-remote-all
 
-      # Update and check install file in this job (only needs to run once)
+      - name: Run OLM v0 smoke tests on Minikube
+        working-directory: operator
+        run: |
+          make BUILD_OPTS="--no-transfer-progress -Dgroups=OLM" test-remote-all
+
       - name: Update install file
         working-directory: operator
         run: |
-          # Unset the variables to generate a clean install file
+          # We need to remove unset the variables to generate a clean install file.
           # See https://github.com/actions/runner/issues/1126
           unset REGISTRY_APP_IMAGE
           unset IMAGE
@@ -184,6 +116,7 @@ jobs:
           fi
 
       # Uncomment if you need to debug the tests:
+
   #      - name: Install debug tools on failure
   #        if: failure()
   #        run: |
@@ -203,79 +136,11 @@ jobs:
   #        with:
   #          limit-access-to-actor: true
 
-  # ============================================================================
-  # OLM v0 tests job: Runs OLM v0 smoke tests (parallel with v1)
-  # ============================================================================
-  operator-test-olm-v0:
-    name: OLM v0 Smoke Tests
-    runs-on: ubuntu-latest
-    needs: operator-build
-    steps:
-
-      - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: temurin
-          cache: maven
-
-      - name: Download operator build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: operator-build
-          path: operator
-
-      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
-        with:
-          driver: 'none'
-          ingress-enable: 'true'
-          olm-enable: 'true'
-          olm-v1-enable: 'false'
-          start-args: '--alsologtostderr --v=2'
-
-      - name: Run OLM v0 smoke tests on Minikube
-        working-directory: operator
-        run: |
-          make BUILD_OPTS="--no-transfer-progress -Dgroups=OLM" test-remote-all
-
-  # ============================================================================
-  # Gate job: Waits for all test jobs to complete
-  # ============================================================================
-  operator-tests-complete:
-    name: All Tests Complete
-    runs-on: ubuntu-latest
-    needs: [operator-test-olm-v1, operator-test-olm-v0, operator-local-tests]
-    if: always()
-    steps:
-      - name: Check test results
-        run: |
-          # Check OLM v1 tests (required)
-          if [ "${{ needs.operator-test-olm-v1.result }}" != "success" ]; then
-            echo "OLM v1 tests failed"
-            exit 1
-          fi
-          # Check OLM v0 tests (required)
-          if [ "${{ needs.operator-test-olm-v0.result }}" != "success" ]; then
-            echo "OLM v0 tests failed"
-            exit 1
-          fi
-          # Check local tests (only required on push, skipped on PR)
-          if [ "${{ needs.operator-local-tests.result }}" != "success" ] && [ "${{ needs.operator-local-tests.result }}" != "skipped" ]; then
-            echo "Local tests failed"
-            exit 1
-          fi
-          echo "All tests passed!"
-
   operator-publish:
     name: Publish Operator
     runs-on: ubuntu-latest
-    needs: operator-tests-complete
-    if: |
-      needs.operator-tests-complete.result == 'success' &&
-      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.skip-publish))
+    needs: operator-build-test
+    if: github.event_name == 'push'
     steps:
 
       - name: Configure env. variables

@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.status;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.status.Condition;
 import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
+import io.fabric8.kubernetes.api.model.Status;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.javaoperatorsdk.operator.AggregatedOperatorException;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.TYPE_OPERATOR_ERROR;
+import static java.util.Optional.ofNullable;
 
 /**
  * Manages the condition that reports unexpected operator errors.
@@ -52,7 +54,7 @@ public class OperatorErrorConditionManager extends AbstractConditionManager {
                 })
                 .filter(e -> {
                     if (e instanceof KubernetesClientException ex) {
-                        if ("Conflict".equals(ex.getStatus().getReason())) {
+                        if (ofNullable(ex.getStatus()).map(Status::getReason).map("Conflict"::equals).orElse(false)) {
                             log.debug("Ignoring exception.", ex);
                             return false;
                         }

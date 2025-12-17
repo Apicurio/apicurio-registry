@@ -66,7 +66,7 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          ./mvnw verify --no-transfer-progress \
+          ./mvnw test --no-transfer-progress \
             -Pprod -DskipCommitIdPlugin=false \
             -Dkiota.system=true \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \

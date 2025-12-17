@@ -70,17 +70,30 @@ jobs:
 
   publish-native-image:
     name: Publish Native Docker Image
-    uses: ./.github/workflows/reusable-docker-build.yaml
-    with:
-      image-name: 'apicurio/apicurio-registry-native'
-      dockerfile: './distro/docker/target/docker/Dockerfile.native'
-      context: './app'
-      tag: 'latest-snapshot'
-      platforms: 'linux/amd64'
-      maven-build: true
-      maven-args: 'package -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests --no-transfer-progress'
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download Native Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: apicurio-registry-native-${{ inputs.image-tag }}.tar
+          path: /tmp
+
+      - name: Load Native Docker Image
+        run: |
+          docker load -i /tmp/apicurio-registry-native-${{ inputs.image-tag }}.tar
+
+      - name: Login to DockerHub Registry
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      - name: Login to Quay.io Registry
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+
+      - name: Tag and Push Native Image
+        run: |
+          # Tag for DockerHub
+          docker tag apicurio/apicurio-registry-native:${{ inputs.image-tag }} docker.io/apicurio/apicurio-registry-native:latest-snapshot
+          docker push docker.io/apicurio/apicurio-registry-native:latest-snapshot
+
+          # Tag for Quay.io
+          docker tag apicurio/apicurio-registry-native:${{ inputs.image-tag }} quay.io/apicurio/apicurio-registry-native:latest-snapshot
+          docker push quay.io/apicurio/apicurio-registry-native:latest-snapshot

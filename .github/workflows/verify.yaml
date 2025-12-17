@@ -109,7 +109,7 @@ jobs:
   # ============================================================================
   publish:
     name: Publish Images
-    needs: [build, unit-tests, integration-tests, extras]
+    needs: [build, unit-tests, integration-tests, extras, native]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
     uses: ./.github/workflows/verify-publish.yaml
     with:

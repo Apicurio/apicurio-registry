@@ -12,19 +12,27 @@ on:
         description: 'Docker image tag to test'
 
 jobs:
+  # Consolidated by storage type to reduce concurrent runner usage (3 jobs instead of 11)
   integration-tests:
-    name: Integration Tests (${{ matrix.storage }}-${{ matrix.profile }})
+    name: Integration Tests (${{ matrix.storage }})
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         storage: [h2, postgresql, kafkasql]
-        profile: [ci, auth, migration]
         include:
           - storage: h2
-            profile: debezium-all
+            remote-profile: remote-mem
+            image-prop: registry-in-memory-image
+            profiles: "ci auth migration debezium-all"
+          - storage: postgresql
+            remote-profile: remote-sql
+            image-prop: registry-sql-image
+            profiles: "ci auth migration"
           - storage: kafkasql
-            profile: kafkasql-snapshotting
+            remote-profile: remote-kafka
+            image-prop: registry-kafkasql-image
+            profiles: "ci auth migration kafkasql-snapshotting"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -46,33 +54,20 @@ jobs:
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
 
-      - name: Set storage-specific variables
-        id: storage-vars
+      - name: Run Integration Tests (all profiles sequentially)
         run: |
-          case "${{ matrix.storage }}" in
-            h2)
-              echo "remote-profile=remote-mem" >> $GITHUB_OUTPUT
-              echo "image-prop=registry-in-memory-image" >> $GITHUB_OUTPUT
-              ;;
-            postgresql)
-              echo "remote-profile=remote-sql" >> $GITHUB_OUTPUT
-              echo "image-prop=registry-sql-image" >> $GITHUB_OUTPUT
-              ;;
-            kafkasql)
-              echo "remote-profile=remote-kafka" >> $GITHUB_OUTPUT
-              echo "image-prop=registry-kafkasql-image" >> $GITHUB_OUTPUT
-              ;;
-          esac
-
-      - name: Run Integration Tests
-        run: |
-          ./mvnw verify -am --no-transfer-progress \
-            -Pintegration-tests \
-            -P${{ matrix.profile }} \
-            -P${{ steps.storage-vars.outputs.remote-profile }} \
-            -D${{ steps.storage-vars.outputs.image-prop }}=apicurio/apicurio-registry:${{ inputs.image-tag }} \
-            -pl integration-tests \
-            -Dmaven.javadoc.skip=true
+          for profile in ${{ matrix.profiles }}; do
+            echo "=========================================="
+            echo "Running integration tests: ${{ matrix.storage }}-${profile}"
+            echo "=========================================="
+            ./mvnw verify -am --no-transfer-progress \
+              -Pintegration-tests \
+              -P${profile} \
+              -P${{ matrix.remote-profile }} \
+              -D${{ matrix.image-prop }}=apicurio/apicurio-registry:${{ inputs.image-tag }} \
+              -pl integration-tests \
+              -Dmaven.javadoc.skip=true
+          done
 
       - name: Collect logs
         if: failure()
@@ -82,5 +77,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: tests-logs-${{ matrix.storage }}-${{ matrix.profile }}
+          name: tests-logs-${{ matrix.storage }}
           path: artifacts

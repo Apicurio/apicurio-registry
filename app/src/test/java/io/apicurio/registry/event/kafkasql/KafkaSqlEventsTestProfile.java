@@ -6,6 +6,12 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Test profile for KafkaSQL event streaming tests.
+ * Uses KafkaTestContainerManager to start a Kafka container.
+ * Note: Kafka DevServices requires quarkus-kafka-client extension which this
+ * project doesn't use (uses plain kafka-clients for custom configuration).
+ */
 public class KafkaSqlEventsTestProfile implements QuarkusTestProfile {
 
     @Override

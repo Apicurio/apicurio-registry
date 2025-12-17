@@ -2,12 +2,21 @@ package io.apicurio.registry.utils.tests;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+/**
+ * Test profile for basic authentication with embedded users (no Keycloak).
+ * Uses properties-based user configuration instead of external identity provider.
+ * DevServices configuration is in app/src/test/resources/application.properties
+ * under the %authbasic.* profile prefix.
+ */
 public class BasicAuthWithPropertiesTestProfile implements QuarkusTestProfile {
+
+    @Override
+    public String getConfigProfile() {
+        return "authbasic";
+    }
 
     @Override
     public Map<String, String> getConfigOverrides() {
@@ -30,11 +39,10 @@ public class BasicAuthWithPropertiesTestProfile implements QuarkusTestProfile {
         map.put("apicurio.rest.deletion.group.enabled", "true");
         map.put("apicurio.rest.deletion.artifact.enabled", "true");
         map.put("apicurio.rest.deletion.artifact-version.enabled", "true");
+
+        // Explicitly disable DevServices for this profile (no Keycloak needed)
+        map.put("quarkus.keycloak.devservices.enabled", "false");
         return map;
     }
 
-    @Override
-    public List<TestResourceEntry> testResources() {
-        return Collections.emptyList();
-    }
 }

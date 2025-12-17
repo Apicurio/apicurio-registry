@@ -6,6 +6,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Test profile for KafkaSQL storage with authentication (Keycloak).
+ * Uses KafkaTestContainerManager for Kafka and KeycloakTestContainerManager for Keycloak.
+ * Note: Kafka DevServices requires quarkus-kafka-client extension which this
+ * project doesn't use (uses plain kafka-clients for custom configuration).
+ */
 public class KafkasqlAuthTestProfile implements QuarkusTestProfile {
 
     @Override

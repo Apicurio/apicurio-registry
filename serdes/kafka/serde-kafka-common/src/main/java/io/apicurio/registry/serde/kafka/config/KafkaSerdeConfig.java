@@ -106,4 +106,45 @@ public class KafkaSerdeConfig {
      */
     public static final String HEADER_VALUE_MESSAGE_TYPE_OVERRIDE_NAME = "apicurio.registry.headers.value.msgType.name";
 
+    /**
+     * Boolean to indicate whether the serializer should read the schema from message headers instead of
+     * inferring it from the data. When enabled, the serializer will look for the schema content in the
+     * header specified by {@link KafkaSerdeHeaders#HEADER_KEY_SCHEMA} or
+     * {@link KafkaSerdeHeaders#HEADER_VALUE_SCHEMA} (depending on whether it's a key or value serializer).
+     * This allows producers to explicitly specify the schema to use for registration, which is useful when
+     * the data source knows the exact schema in advance (e.g., Apache Camel integration).
+     */
+    public static final String USE_SCHEMA_FROM_HEADERS = "apicurio.registry.use-schema-from-headers";
+    public static final boolean USE_SCHEMA_FROM_HEADERS_DEFAULT = false;
+
+    /**
+     * Used to override the Kafka message header name used to pass the schema content for the message key.
+     * Only applicable when {@link KafkaSerdeConfig#USE_SCHEMA_FROM_HEADERS} is enabled.
+     * Default value is {@link KafkaSerdeHeaders#HEADER_KEY_SCHEMA}.
+     */
+    public static final String HEADER_KEY_SCHEMA_OVERRIDE_NAME = "apicurio.registry.headers.key.schema.name";
+
+    /**
+     * Used to override the Kafka message header name used to pass the schema content for the message value.
+     * Only applicable when {@link KafkaSerdeConfig#USE_SCHEMA_FROM_HEADERS} is enabled.
+     * Default value is {@link KafkaSerdeHeaders#HEADER_VALUE_SCHEMA}.
+     */
+    public static final String HEADER_VALUE_SCHEMA_OVERRIDE_NAME = "apicurio.registry.headers.value.schema.name";
+
+    /**
+     * Used to override the Kafka message header name used to pass the schema type for the message key.
+     * The schema type should match one of the artifact types (e.g., "AVRO", "PROTOBUF", "JSON").
+     * Only applicable when {@link KafkaSerdeConfig#USE_SCHEMA_FROM_HEADERS} is enabled.
+     * Default value is {@link KafkaSerdeHeaders#HEADER_KEY_SCHEMA_TYPE}.
+     */
+    public static final String HEADER_KEY_SCHEMA_TYPE_OVERRIDE_NAME = "apicurio.registry.headers.key.schemaType.name";
+
+    /**
+     * Used to override the Kafka message header name used to pass the schema type for the message value.
+     * The schema type should match one of the artifact types (e.g., "AVRO", "PROTOBUF", "JSON").
+     * Only applicable when {@link KafkaSerdeConfig#USE_SCHEMA_FROM_HEADERS} is enabled.
+     * Default value is {@link KafkaSerdeHeaders#HEADER_VALUE_SCHEMA_TYPE}.
+     */
+    public static final String HEADER_VALUE_SCHEMA_TYPE_OVERRIDE_NAME = "apicurio.registry.headers.value.schemaType.name";
+
 }

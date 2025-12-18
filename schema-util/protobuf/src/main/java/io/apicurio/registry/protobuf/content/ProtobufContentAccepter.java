@@ -1,12 +1,9 @@
 package io.apicurio.registry.protobuf.content;
 
-import com.google.protobuf.DescriptorProtos;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
-import java.util.Base64;
 import java.util.Map;
 
 public class ProtobufContentAccepter implements ContentAccepter {
@@ -18,20 +15,15 @@ public class ProtobufContentAccepter implements ContentAccepter {
             if (contentType != null && !contentType.toLowerCase().contains("proto")) {
                 return false;
             }
-            ProtobufFile.toProtoFileElement(content.getContent().content());
+
+            // Use syntax-only validation (doesn't require resolving imports)
+            // This matches the behavior of the old wire-schema based implementation
+            ProtobufFile.validateSyntaxOnly(content.getContent().content());
             return true;
         } catch (Exception e) {
-            try {
-                // Attempt to parse binary FileDescriptorProto
-                byte[] bytes = Base64.getDecoder().decode(content.getContent().content());
-                FileDescriptorUtils
-                        .fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
-                return true;
-            } catch (Exception pe) {
-                // Doesn't seem to be protobuf
-            }
+            // Doesn't seem to be protobuf
+            return false;
         }
-        return false;
     }
 
 }

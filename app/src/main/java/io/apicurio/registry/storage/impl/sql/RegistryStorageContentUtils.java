@@ -37,8 +37,7 @@ public class RegistryStorageContentUtils {
      */
     public TypedContent canonicalizeContent(String artifactType, TypedContent content,
             Map<String, TypedContent> resolvedReferences) {
-        try {
-            return factory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
+        try {return factory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
                     .canonicalize(content, resolvedReferences);
         } catch (Exception ex) {
             // TODO: We should consider explicitly failing when a content could not be canonicalized.

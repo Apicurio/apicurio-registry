@@ -1,0 +1,27 @@
+syntax = "proto3";
+package sample;
+option java_package = "io.api.sample";
+option java_multiple_files = true;
+
+import "sample/mode.proto";
+
+message TableInfo {
+
+  int32 winIndex = 1;
+
+  Mode mode = 2;
+
+  int32 min = 3;
+
+  int32 max = 4;
+
+  string id = 5;
+
+  string dataAdapter = 6;
+
+  string schema = 7;
+
+  string selector = 8;
+
+  string subscription_id = 9;
+}

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package io.apicurio.registry.test;
+
+option java_package = "io.apicurio.registry.test";
+option java_outer_classname = "PersonProtos";
+
+// Message with reserved fields to test serializer validation
+// This reproduces the issue from GitHub #6697
+message Person {
+  // Current active fields
+  string name = 1;
+  int32 age = 3;
+  string email = 4;
+
+  // Reserved fields (these will be stripped from compiled Java class)
+  // Field 2 was removed and reserved to prevent reuse
+  // Fields 5-9 are reserved for future use
+  reserved 2, 5 to 9;
+  reserved "old_field_name";
+}

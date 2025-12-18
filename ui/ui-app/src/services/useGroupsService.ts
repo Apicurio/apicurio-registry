@@ -25,7 +25,8 @@ import {
     SortOrder,
     VersionMetaData,
     VersionSearchResults,
-    VersionSortBy
+    VersionSortBy,
+    VersionState
 } from "@sdk/lib/generated-client/models";
 
 
@@ -402,6 +403,13 @@ const deleteArtifactVersion = async (config: ConfigService, auth: AuthService, g
         .versions.byVersionExpression(version).delete();
 };
 
+const updateArtifactVersionState = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, state: VersionState): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+    console.info("[GroupsService] Updating version state: ", groupId, artifactId, version, state);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId)
+        .versions.byVersionExpression(version).state.put({ state });
+};
+
 const normalizeGroupId = (groupId: string|null): string => {
     return groupId || "default";
 };
@@ -440,6 +448,7 @@ export interface GroupsService {
     getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
     updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void>;
+    updateArtifactVersionState(groupId: string|null, artifactId: string, version: string, state: VersionState): Promise<void>;
     deleteArtifactVersion(groupId: string|null, artifactId: string, version: string): Promise<void>;
 
     getArtifactVersionComments(groupId: string|null, artifactId: string, version: string): Promise<Comment[]>;
@@ -553,6 +562,9 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         },
         updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void> {
             return updateArtifactVersionMetaData(config, auth, groupId, artifactId, version, metaData);
+        },
+        updateArtifactVersionState(groupId: string|null, artifactId: string, version: string, state: VersionState): Promise<void> {
+            return updateArtifactVersionState(config, auth, groupId, artifactId, version, state);
         },
         deleteArtifactVersion(groupId: string|null, artifactId: string, version: string): Promise<void> {
             return deleteArtifactVersion(config, auth, groupId, artifactId, version);

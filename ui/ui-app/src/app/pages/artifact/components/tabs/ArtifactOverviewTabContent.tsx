@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactOverviewTabContent.css";
 import "@app/styles/empty.css";
-import { ArtifactTypeIcon, IfAuth, IfFeature } from "@app/components";
+import { ArtifactTypeIcon, IfAuth, IfFeature, VersionCompareModal } from "@app/components";
 import {
     Button,
     Card,
@@ -79,11 +79,37 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         versions: []
     });
     const [isExpanded] = useState(true);
+    const [selectedVersions, setSelectedVersions] = useState<SearchedVersion[]>([]);
+    const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
 
     const drawerRef: any = React.useRef<HTMLDivElement>();
 
     const search: SearchService = useSearchService();
     const logger: LoggerService = useLoggerService();
+
+    const handleSelectVersion = (version: SearchedVersion, isSelected: boolean): void => {
+        if (isSelected) {
+            if (selectedVersions.length < 2) {
+                setSelectedVersions([...selectedVersions, version]);
+            }
+        } else {
+            setSelectedVersions(selectedVersions.filter(v => v.version !== version.version));
+        }
+    };
+
+    const handleClearSelection = (): void => {
+        setSelectedVersions([]);
+    };
+
+    const handleCompareVersions = (): void => {
+        if (selectedVersions.length === 2) {
+            setIsCompareModalOpen(true);
+        }
+    };
+
+    const handleCloseCompareModal = (): void => {
+        setIsCompareModalOpen(false);
+    };
 
     const description = (): string => {
         return props.artifact.description || "No description";
@@ -136,8 +162,11 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         <ArtifactVersionsToolbar
             results={results}
             paging={paging}
+            selectedVersions={selectedVersions}
             onPageChange={setPaging}
-            onFilterChange={setFilterValue} />
+            onFilterChange={setFilterValue}
+            onCompareVersions={handleCompareVersions}
+            onClearSelection={handleClearSelection} />
     );
 
     const emptyState = (
@@ -282,6 +311,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                     <VersionsTable
                         artifact={props.artifact}
                         versions={results.versions!}
+                        selectedVersions={selectedVersions}
                         onSort={onSort}
                         sortBy={sortBy}
                         sortOrder={sortOrder}
@@ -289,6 +319,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                         onView={props.onViewVersion}
                         onAddToBranch={props.onAddVersionToBranch}
                         onEditDraft={props.onEditDraft}
+                        onSelectVersion={handleSelectVersion}
                     />
                 </ListWithToolbar>
             </div>
@@ -306,6 +337,14 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                     </Drawer>
                 </CardBody>
             </Card>
+            <VersionCompareModal
+                isOpen={isCompareModalOpen}
+                groupId={props.artifact.groupId || null}
+                artifactId={props.artifact.artifactId!}
+                version1={selectedVersions.length >= 1 ? selectedVersions[0] : null}
+                version2={selectedVersions.length >= 2 ? selectedVersions[1] : null}
+                onClose={handleCloseCompareModal}
+            />
         </div>
     );
 

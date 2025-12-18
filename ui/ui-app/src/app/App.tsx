@@ -8,7 +8,10 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AppHeader } from "@app/components";
 import {
     ArtifactPage,
-    BranchPage, DraftsPage, EditorPage,
+    BranchPage,
+    DashboardPage,
+    DraftsPage,
+    EditorPage,
     ExplorePage,
     GroupPage,
     NotFoundPage,
@@ -61,6 +64,7 @@ export const App: FunctionComponent<AppProps> = () => {
                     >
                         <Routes>
                             <Route path="/" element={ <RootRedirectPage /> } />
+                            <Route path="/dashboard" element={ <DashboardPage /> } />
                             <Route path="/rules" element={ <RulesPage /> } />
                             <Route path="/roles" element={ <RolesPage /> } />
                             <Route path="/settings" element={ <SettingsPage /> } />

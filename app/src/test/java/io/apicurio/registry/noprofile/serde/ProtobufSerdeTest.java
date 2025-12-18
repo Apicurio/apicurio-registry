@@ -36,7 +36,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -51,11 +53,12 @@ import static io.apicurio.registry.utils.tests.TestUtils.waitForSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
+@Execution(ExecutionMode.CONCURRENT)
 public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
 
     private String groupId = "protobuf-serde-test";
 
-    @BeforeEach
+    @BeforeAll
     public void createIsolatedClient() {
         CreateRule rule = new CreateRule();
         rule.setConfig("SYNTAX_ONLY");

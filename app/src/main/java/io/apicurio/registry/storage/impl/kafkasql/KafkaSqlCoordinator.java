@@ -1,7 +1,9 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.types.RegistryException;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 import java.util.Map;
@@ -16,10 +18,11 @@ import java.util.concurrent.TimeUnit;
  * thread is waiting for an operation to be completed by the Kafka consumer thread.
  */
 @ApplicationScoped
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlCoordinator {
 
     @Inject
-    KafkaSqlConfiguration configuration;
+    Instance<KafkaSqlConfiguration> configuration;
 
     private static final Object NULL = new Object();
     private Map<UUID, CountDownLatch> latches = new ConcurrentHashMap<>();
@@ -44,7 +47,7 @@ public class KafkaSqlCoordinator {
      */
     public Object waitForResponse(UUID uuid) {
         try {
-            latches.get(uuid).await(configuration.getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            latches.get(uuid).await(configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
 
             Object rval = returnValues.remove(uuid);
             if (rval == NULL) {
@@ -66,7 +69,7 @@ public class KafkaSqlCoordinator {
     /**
      * Countdown the latch for the given UUID. This will wake up the thread waiting for the response so that
      * it can proceed.
-     * 
+     *
      * @param uuid
      * @param returnValue
      */

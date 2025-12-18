@@ -1,8 +1,9 @@
 import { FunctionComponent, useState } from "react";
 import "./ArtifactVersionsToolbar.css";
-import { Pagination, SearchInput, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import { Button, Pagination, SearchInput, Toolbar, ToolbarContent, ToolbarItem, Tooltip } from "@patternfly/react-core";
+import { CompressArrowsAltIcon } from "@patternfly/react-icons";
 import { Paging } from "@models/Paging.ts";
-import { VersionSearchResults } from "@sdk/lib/generated-client/models";
+import { SearchedVersion, VersionSearchResults } from "@sdk/lib/generated-client/models";
 
 
 /**
@@ -11,8 +12,11 @@ import { VersionSearchResults } from "@sdk/lib/generated-client/models";
 export type ArtifactVersionsToolbarProps = {
     results: VersionSearchResults;
     paging: Paging;
+    selectedVersions: SearchedVersion[];
     onFilterChange: (filterBy: string) => void;
     onPageChange: (paging: Paging) => void;
+    onCompareVersions: () => void;
+    onClearSelection: () => void;
 };
 
 
@@ -51,6 +55,9 @@ export const ArtifactVersionsToolbar: FunctionComponent<ArtifactVersionsToolbarP
         props.onPageChange(newPaging);
     };
 
+    const compareButtonEnabled = props.selectedVersions.length === 2;
+    const selectionCount = props.selectedVersions.length;
+
     return (
         <Toolbar id="artifact-versions-toolbar-1" className="artifact-versions-toolbar">
             <ToolbarContent>
@@ -63,6 +70,38 @@ export const ArtifactVersionsToolbar: FunctionComponent<ArtifactVersionsToolbarP
                         onClear={onFilterClear}
                     />
                 </ToolbarItem>
+                <ToolbarItem>
+                    <Tooltip
+                        content={
+                            selectionCount === 0
+                                ? "Select 2 versions to compare"
+                                : selectionCount === 1
+                                    ? "Select 1 more version to compare"
+                                    : "Compare selected versions"
+                        }
+                    >
+                        <Button
+                            variant="secondary"
+                            icon={<CompressArrowsAltIcon />}
+                            isDisabled={!compareButtonEnabled}
+                            onClick={props.onCompareVersions}
+                            data-testid="compare-versions-btn"
+                        >
+                            Compare{selectionCount > 0 ? ` (${selectionCount}/2)` : ""}
+                        </Button>
+                    </Tooltip>
+                </ToolbarItem>
+                {selectionCount > 0 && (
+                    <ToolbarItem>
+                        <Button
+                            variant="link"
+                            onClick={props.onClearSelection}
+                            data-testid="clear-selection-btn"
+                        >
+                            Clear selection
+                        </Button>
+                    </ToolbarItem>
+                )}
                 <ToolbarItem className="paging-item" align={{ default: "alignRight" }}>
                     <Pagination
                         variant="top"

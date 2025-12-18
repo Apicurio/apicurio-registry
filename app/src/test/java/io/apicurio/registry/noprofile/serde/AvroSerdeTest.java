@@ -16,9 +16,9 @@ import io.apicurio.registry.serde.avro.strategy.QualifiedRecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.RecordIdStrategy;
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.serde.config.IdOption;
-import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
-import io.apicurio.registry.serde.headers.KafkaSerdeHeaders;
+import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;
+import io.apicurio.registry.serde.kafka.headers.KafkaSerdeHeaders;
 import io.apicurio.registry.support.Tester;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -40,6 +40,8 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -54,6 +56,7 @@ import static io.apicurio.registry.utils.tests.TestUtils.waitForSchemaLongId;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
+@Execution(ExecutionMode.CONCURRENT)
 public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
     @Test

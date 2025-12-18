@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry</artifactId>
+        <version>3.1.6-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>apicurio-registry-utils-reflectgen</artifactId>
+    <packaging>jar</packaging>
+    <name>apicurio-registry-utils-reflectgen</name>
+    <description>Build-time utility to generate reflection registry for GraalVM native builds</description>
+
+    <properties>
+        <projectRoot>${project.basedir}/../..</projectRoot>
+    </properties>
+
+    <dependencies>
+        <!-- Reflections library for classpath scanning -->
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.10.2</version>
+        </dependency>
+
+        <!-- Required to scan apicurio-data-models classes -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-data-models</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>

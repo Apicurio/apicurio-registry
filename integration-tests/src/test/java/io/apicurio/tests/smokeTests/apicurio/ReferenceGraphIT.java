@@ -2,10 +2,14 @@ package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.ReferenceGraph;
 import io.apicurio.registry.rest.client.models.ReferenceGraphDirection;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -19,6 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.junit.jupiter.api.Assertions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -350,5 +356,228 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .byVersionExpression("1.0").references().graph().get();
         }, errorCodeExtractor);
+    }
+
+    /**
+     * Test that cross-version references are allowed when the NO_CIRCULAR_REFERENCES integrity rule is
+     * enabled. A reference chain like A@2 -> B@1 -> A@1 is NOT a cycle because A@1 has no references, so
+     * there's no path back to A@2.
+     */
+    @Test
+    void testCrossVersionReferencesAllowedWithIntegrityRule() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.NO_CIRCULAR_REFERENCES.name());
+        registryClient.admin().rules().post(createRule);
+
+        try {
+            // Create artifact A first (no references initially)
+            String artifactA = TestUtils.generateArtifactId();
+            String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
+            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+                    ContentTypes.APPLICATION_JSON, null, null);
+            String versionA = responseA.getVersion().getVersion();
+
+            // Create artifact B with reference to A
+            String artifactB = TestUtils.generateArtifactId();
+            String contentB = String.format(AVRO_SCHEMA_TEMPLATE, "RecordB");
+            List<ArtifactReference> refsB = new ArrayList<>();
+            ArtifactReference refA = new ArtifactReference();
+            refA.setGroupId(groupId);
+            refA.setArtifactId(artifactA);
+            refA.setVersion(versionA);
+            refA.setName("a.avsc");
+            refsB.add(refA);
+
+            CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB,
+                    ContentTypes.APPLICATION_JSON, null, createArtifact -> {
+                        createArtifact.getFirstVersion().getContent().setReferences(refsB);
+                    });
+            String versionB = responseB.getVersion().getVersion();
+
+            // Create a new version of A with reference back to B
+            // This forms: A@2 -> B@1 -> A@1, which is NOT a cycle because A@1 has no references
+            String contentA2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2");
+            List<ArtifactReference> refsA2 = new ArrayList<>();
+            ArtifactReference refB = new ArtifactReference();
+            refB.setGroupId(groupId);
+            refB.setArtifactId(artifactB);
+            refB.setVersion(versionB);
+            refB.setName("b.avsc");
+            refsA2.add(refB);
+
+            CreateVersion createVersion = new CreateVersion();
+            VersionContent versionContent = new VersionContent();
+            versionContent.setContent(contentA2);
+            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+            versionContent.setReferences(refsA2);
+            createVersion.setContent(versionContent);
+
+            // This should succeed - it's a valid reference chain, not a cycle
+            VersionMetaData newVersion = registryClient.groups().byGroupId(groupId).artifacts()
+                    .byArtifactId(artifactA).versions().post(createVersion);
+            Assertions.assertNotNull(newVersion);
+            Assertions.assertEquals("2", newVersion.getVersion());
+
+            LOGGER.info("Cross-version reference chain was correctly allowed");
+        } finally {
+            // Clean up the global rule
+            try {
+                registryClient.admin().rules().byRuleType(RuleType.INTEGRITY.name()).delete();
+            } catch (Exception e) {
+                // Ignore cleanup errors
+            }
+        }
+    }
+
+    /**
+     * Test that cross-version references to the same artifact are allowed when the NO_CIRCULAR_REFERENCES
+     * integrity rule is enabled. A@2 referencing A@1 is valid because A@1 has no references.
+     */
+    @Test
+    void testCrossVersionReferenceToSameArtifactAllowedWithIntegrityRule() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.NO_CIRCULAR_REFERENCES.name());
+        registryClient.admin().rules().post(createRule);
+
+        try {
+            // Create artifact A first (no references initially)
+            String artifactA = TestUtils.generateArtifactId();
+            String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
+            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+                    ContentTypes.APPLICATION_JSON, null, null);
+            String versionA = responseA.getVersion().getVersion();
+
+            // Create a new version of A that references the previous version
+            // A@2 -> A@1 is valid because A@1 has no references, so there's no cycle
+            String contentA2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordAv2");
+            List<ArtifactReference> selfRef = new ArrayList<>();
+            ArtifactReference refA = new ArtifactReference();
+            refA.setGroupId(groupId);
+            refA.setArtifactId(artifactA);
+            refA.setVersion(versionA);
+            refA.setName("self.avsc");
+            selfRef.add(refA);
+
+            CreateVersion createVersion = new CreateVersion();
+            VersionContent versionContent = new VersionContent();
+            versionContent.setContent(contentA2);
+            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+            versionContent.setReferences(selfRef);
+            createVersion.setContent(versionContent);
+
+            // This should succeed - referencing an older version of the same artifact is valid
+            VersionMetaData newVersion = registryClient.groups().byGroupId(groupId).artifacts()
+                    .byArtifactId(artifactA).versions().post(createVersion);
+            Assertions.assertNotNull(newVersion);
+            Assertions.assertEquals("2", newVersion.getVersion());
+
+            LOGGER.info("Cross-version reference to same artifact was correctly allowed");
+        } finally {
+            // Clean up the global rule
+            try {
+                registryClient.admin().rules().byRuleType(RuleType.INTEGRITY.name()).delete();
+            } catch (Exception e) {
+                // Ignore cleanup errors
+            }
+        }
+    }
+
+    /**
+     * Test that transitive reference chains are allowed (C@2 -> A@1 -> B@1 -> C@1). This is NOT a cycle
+     * because C@1 has no references, so there's no path back to C@2.
+     */
+    @Test
+    void testTransitiveReferenceChainAllowedWithIntegrityRule() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a global INTEGRITY rule with NO_CIRCULAR_REFERENCES
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.NO_CIRCULAR_REFERENCES.name());
+        registryClient.admin().rules().post(createRule);
+
+        try {
+            // Create artifact C first (no references)
+            String artifactC = TestUtils.generateArtifactId();
+            String contentC = String.format(AVRO_SCHEMA_TEMPLATE, "RecordC");
+            CreateArtifactResponse responseC = createArtifact(groupId, artifactC, ArtifactType.AVRO, contentC,
+                    ContentTypes.APPLICATION_JSON, null, null);
+            String versionC = responseC.getVersion().getVersion();
+
+            // Create artifact B referencing C
+            String artifactB = TestUtils.generateArtifactId();
+            String contentB = String.format(AVRO_SCHEMA_TEMPLATE, "RecordB");
+            List<ArtifactReference> refsB = new ArrayList<>();
+            ArtifactReference refC = new ArtifactReference();
+            refC.setGroupId(groupId);
+            refC.setArtifactId(artifactC);
+            refC.setVersion(versionC);
+            refC.setName("c.avsc");
+            refsB.add(refC);
+
+            CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB,
+                    ContentTypes.APPLICATION_JSON, null, createArtifact -> {
+                        createArtifact.getFirstVersion().getContent().setReferences(refsB);
+                    });
+            String versionB = responseB.getVersion().getVersion();
+
+            // Create artifact A referencing B
+            String artifactA = TestUtils.generateArtifactId();
+            String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
+            List<ArtifactReference> refsA = new ArrayList<>();
+            ArtifactReference refB = new ArtifactReference();
+            refB.setGroupId(groupId);
+            refB.setArtifactId(artifactB);
+            refB.setVersion(versionB);
+            refB.setName("b.avsc");
+            refsA.add(refB);
+
+            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+                    ContentTypes.APPLICATION_JSON, null, createArtifact -> {
+                        createArtifact.getFirstVersion().getContent().setReferences(refsA);
+                    });
+            String versionA = responseA.getVersion().getVersion();
+
+            // Create C@2 referencing A@1
+            // This forms: C@2 -> A@1 -> B@1 -> C@1, which is NOT a cycle because C@1 has no references
+            String contentC2 = String.format(AVRO_SCHEMA_TEMPLATE, "RecordCv2");
+            List<ArtifactReference> refsC2 = new ArrayList<>();
+            ArtifactReference refA = new ArtifactReference();
+            refA.setGroupId(groupId);
+            refA.setArtifactId(artifactA);
+            refA.setVersion(versionA);
+            refA.setName("a.avsc");
+            refsC2.add(refA);
+
+            CreateVersion createVersion = new CreateVersion();
+            VersionContent versionContent = new VersionContent();
+            versionContent.setContent(contentC2);
+            versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+            versionContent.setReferences(refsC2);
+            createVersion.setContent(versionContent);
+
+            // This should succeed - it's a valid reference chain, not a cycle
+            VersionMetaData newVersion = registryClient.groups().byGroupId(groupId).artifacts()
+                    .byArtifactId(artifactC).versions().post(createVersion);
+            Assertions.assertNotNull(newVersion);
+            Assertions.assertEquals("2", newVersion.getVersion());
+
+            LOGGER.info("Transitive reference chain was correctly allowed");
+        } finally {
+            // Clean up the global rule
+            try {
+                registryClient.admin().rules().byRuleType(RuleType.INTEGRITY.name()).delete();
+            } catch (Exception e) {
+                // Ignore cleanup errors
+            }
+        }
     }
 }

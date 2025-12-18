@@ -2,8 +2,8 @@ package io.apicurio.tests.serdes.apicurio;
 
 import com.google.protobuf.DynamicMessage;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufDeserializerConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;

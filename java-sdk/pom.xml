@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.1.5-SNAPSHOT</version>
+    <version>3.1.6-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -128,7 +128,7 @@
                   log.info('Post-processing Kiota-generated files in ' + generatedDir)
 
                   def oldPattern = 'n.getOffsetDateTimeValue()'
-                  def newPattern = 'io.apicurio.registry.client.util.DateTimeUtil.getOffsetDateTimeValue(n)'
+                  def newPattern = 'io.apicurio.registry.client.common.util.DateTimeUtil.getOffsetDateTimeValue(n)'
 
                   def modifiedCount = 0
 

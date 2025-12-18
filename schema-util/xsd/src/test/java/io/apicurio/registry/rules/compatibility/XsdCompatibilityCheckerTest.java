@@ -3,6 +3,7 @@ package io.apicurio.registry.rules.compatibility;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.xsd.rules.compatibility.XsdCompatibilityChecker;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

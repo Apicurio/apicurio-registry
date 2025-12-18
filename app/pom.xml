@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.1.5-SNAPSHOT</version>
+    <version>3.1.6-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -471,6 +471,7 @@
           <skipExec>${skipTests}</skipExec>
           <skipTests>${skipAppTests}</skipTests>
           <groups>${groups}</groups>
+          <forkCount>1</forkCount>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <org.jboss.logging.provider>jboss</org.jboss.logging.provider>
@@ -604,11 +605,44 @@
               <projectSettings>
                 <javaPackage>io.apicurio.registry.ccompat.rest.v7</javaPackage>
                 <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/ccompat/v7/openapi.json</inputSpec>
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-reflection-registry</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <mainClass>io.apicurio.registry.utils.reflectgen.ReflectionRegistryGenerator</mainClass>
+              <arguments>
+                <argument>${project.basedir}/target/generated-sources/reflection/io/apicurio/registry/ApicurioRegisterForReflection.java</argument>
+              </arguments>
+              <includePluginDependencies>true</includePluginDependencies>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-reflectgen</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-data-models</artifactId>
+            <version>${apicurio-data-models.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -623,6 +657,7 @@
             <configuration>
               <sources>
                 <source>${project.basedir}/target/generated-sources/jaxrs</source>
+                <source>${project.basedir}/target/generated-sources/reflection</source>
               </sources>
             </configuration>
           </execution>

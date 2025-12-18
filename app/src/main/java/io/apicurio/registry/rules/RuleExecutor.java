@@ -1,5 +1,7 @@
 package io.apicurio.registry.rules;
 
+import io.apicurio.registry.rules.violation.RuleViolationException;
+
 /**
  * This interface is used to execute/apply a specific rule. Each rule supported by the registry will have an
  * implementation of this interface, where the logic specific to the rule is applied. For example, the

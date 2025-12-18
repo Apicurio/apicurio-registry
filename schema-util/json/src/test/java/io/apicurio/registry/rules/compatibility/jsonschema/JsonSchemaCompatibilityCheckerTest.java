@@ -3,7 +3,7 @@ package io.apicurio.registry.rules.compatibility.jsonschema;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-import io.apicurio.registry.rules.compatibility.JsonSchemaCompatibilityChecker;
+import io.apicurio.registry.json.rules.compatibility.JsonSchemaCompatibilityChecker;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Test;
 

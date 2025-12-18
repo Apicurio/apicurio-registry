@@ -3,7 +3,7 @@ package io.apicurio.registry;
 import com.microsoft.kiota.ApiException;
 import com.microsoft.kiota.RequestAdapter;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.RegistryClientOptions;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -15,7 +15,7 @@ import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.rest.v3.V3ApiUtil;
+import io.apicurio.registry.rest.v3.impl.V3ApiUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
@@ -389,20 +389,34 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected void assertForbidden(Exception exception) {
-        if (exception.getClass().equals(ApiException.class)) {
+        if (exception.getClass().equals(io.apicurio.registry.rest.client.models.ProblemDetails.class)) {
+            // Kiota maps 403 errors to ProblemDetails
+            io.apicurio.registry.rest.client.models.ProblemDetails problemDetails =
+                (io.apicurio.registry.rest.client.models.ProblemDetails) exception;
+            Assertions.assertEquals(403, problemDetails.getStatus());
+            Assertions.assertNotNull(problemDetails.getTitle());
+            Assertions.assertNotNull(problemDetails.getName());
+        } else if (exception.getClass().equals(ApiException.class)) {
             Assertions.assertEquals(403, ((ApiException) exception).getResponseStatusCode());
         } else if (exception.getClass().equals(RestClientException.class)) {
             Assertions.assertEquals(403, ((RestClientException) exception).getStatus());
         } else {
-            Assertions.fail("Unexpected exception type.", exception);
+            Assertions.fail("Unexpected exception type: " + exception.getClass().getName(), exception);
         }
     }
 
     protected void assertNotAuthorized(Exception exception) {
         if (exception instanceof NotAuthorizedException) {
             // thrown by the token provider adapter
+        } else if (exception.getClass().equals(io.apicurio.registry.rest.client.models.ProblemDetails.class)) {
+            // Kiota maps 401 errors to ProblemDetails
+            io.apicurio.registry.rest.client.models.ProblemDetails problemDetails =
+                (io.apicurio.registry.rest.client.models.ProblemDetails) exception;
+            Assertions.assertEquals(401, problemDetails.getStatus());
+            Assertions.assertNotNull(problemDetails.getTitle());
+            Assertions.assertNotNull(problemDetails.getName());
         } else {
-            // mapped by Kiota
+            // Fallback for generic ApiException
             Assertions.assertEquals(ApiException.class, exception.getClass());
             Assertions.assertEquals(401, ((ApiException) exception).getResponseStatusCode());
         }

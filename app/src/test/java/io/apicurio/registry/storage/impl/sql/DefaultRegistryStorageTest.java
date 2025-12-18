@@ -2,7 +2,7 @@ package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.noprofile.storage.AbstractRegistryStorageTest;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 

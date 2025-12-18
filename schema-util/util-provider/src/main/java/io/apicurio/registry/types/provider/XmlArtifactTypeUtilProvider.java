@@ -2,8 +2,8 @@ package io.apicurio.registry.types.provider;
 
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.content.XmlContentAccepter;
-import io.apicurio.registry.content.canon.XmlContentCanonicalizer;
+import io.apicurio.registry.xml.content.XmlContentAccepter;
+import io.apicurio.registry.xml.content.canon.XmlContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.NoopContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
@@ -15,7 +15,7 @@ import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
-import io.apicurio.registry.rules.validity.XmlContentValidator;
+import io.apicurio.registry.xml.rules.validity.XmlContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 

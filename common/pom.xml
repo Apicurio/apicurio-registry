@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.1.5-SNAPSHOT</version>
+    <version>3.1.6-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -100,6 +100,7 @@
               <projectSettings>
                 <javaPackage>io.apicurio.registry.rest.v3</javaPackage>
                 <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.json</inputSpec>
             </configuration>
@@ -114,6 +115,7 @@
               <projectSettings>
                 <javaPackage>io.apicurio.registry.rest.v2</javaPackage>
                 <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi-v2.json</inputSpec>
             </configuration>
@@ -128,6 +130,7 @@
               <projectSettings>
                 <javaPackage>io.apicurio.registry.types.webhooks</javaPackage>
                 <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/artifact-type-webhooks.json</inputSpec>
             </configuration>

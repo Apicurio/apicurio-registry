@@ -15,7 +15,7 @@ test("Reference Graph - view mode toggle and graph view", async ({ page }) => {
     // Use a unique group name to avoid conflicts with other runs
     const TEST_GROUP = `RefGraphTest${Date.now()}`;
     // Step 1: Create a group
-    await page.goto(REGISTRY_UI_URL);
+    await page.goto(`${REGISTRY_UI_URL}/explore`);
     await expect(page).toHaveTitle(/Apicurio Registry/);
 
     await page.getByTestId("btn-toolbar-create-group").click();

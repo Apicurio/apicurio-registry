@@ -1,0 +1,73 @@
+name: Unit Tests
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '17'
+      image-tag:
+        type: string
+        required: true
+        description: 'Build artifact identifier (commit SHA)'
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Kiota binary
+        uses: actions/cache@v4
+        id: kiota-cache
+        with:
+          path: ~/.kiota
+          key: kiota-1.28.0-linux-x64
+
+      - name: Download Kiota binary
+        if: steps.kiota-cache.outputs.cache-hit != 'true'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            mkdir -p ~/.kiota
+            curl -L --retry 3 --retry-delay 5 \
+              -o ~/.kiota/kiota-linux-x64.zip \
+              https://github.com/microsoft/kiota/releases/download/v1.28.0/linux-x64.zip
+            unzip -o ~/.kiota/kiota-linux-x64.zip -d ~/.kiota/
+            chmod +x ~/.kiota/kiota
+
+      - name: Add Kiota to PATH
+        run: echo "$HOME/.kiota" >> $GITHUB_PATH
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ inputs.image-tag }}
+          path: .
+
+      - name: Restore executable permissions
+        run: |
+          # GitHub Actions artifact upload/download doesn't preserve executable permissions
+          # Restore execute permission on protoc binaries
+          find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
+          find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
+
+      - name: Run Unit Tests
+        run: |
+          ./mvnw verify --no-transfer-progress \
+            -Pprod -DskipCommitIdPlugin=false \
+            -Dkiota.system=true \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5

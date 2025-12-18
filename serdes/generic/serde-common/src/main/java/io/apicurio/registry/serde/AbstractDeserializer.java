@@ -102,7 +102,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     protected abstract U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
 
-    protected U readData(String topic, byte[] data, ArtifactReference artifactReference) {
+    public U readData(String topic, byte[] data, ArtifactReference artifactReference) {
         SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
 
         ByteBuffer buffer = ByteBuffer.wrap(data);

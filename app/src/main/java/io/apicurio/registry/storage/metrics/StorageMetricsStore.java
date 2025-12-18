@@ -6,7 +6,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;

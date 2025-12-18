@@ -2,12 +2,17 @@ package io.apicurio.registry.operator.status;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Status;
+import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static io.apicurio.registry.operator.api.v1.status.ConditionConstants.TYPE_READY;
 
 /**
  * Entry point for reporting events that affect operator status.
@@ -15,6 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Then, based on the event, get the relevant condition manager.
  */
 public class StatusManager {
+
+    private static final Logger log = LoggerFactory.getLogger(StatusManager.class);
 
     private static final Map<ResourceID, StatusManager> instances = new ConcurrentHashMap<>();
 
@@ -53,7 +60,11 @@ public class StatusManager {
         for (AbstractConditionManager conditionManager : conditionManagers) {
             conditionManager.updateCondition(primary, context);
             if (conditionManager.show()) {
-                status.getConditions().add(conditionManager.getCondition());
+                var condition = conditionManager.getCondition();
+                if (!TYPE_READY.equals(condition.getType()) && ConditionStatus.TRUE.equals(condition.getStatus())) {
+                    log.warn("Setting condition: {}", condition);
+                }
+                status.getConditions().add(condition);
             }
         }
 

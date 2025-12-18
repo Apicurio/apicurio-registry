@@ -14,7 +14,7 @@ import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
-import io.apicurio.registry.rules.compatibility.jsonschema.diff.DiffType;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -1855,16 +1855,19 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200).body("openapi", equalTo("3.0.2"))
                 .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", endsWith(
-                        "/apis/registry/v3/groups/GroupsResourceTest/artifacts/testGetArtifactVersionWithReferences%2FReferencedTypes/versions/1?references=REWRITE#/components/schemas/Widget"));
+                        "/apis/registry/v3/groups/GroupsResourceTest/artifacts/testGetArtifactVersionWithReferences%2FReferencedTypes/versions/1/content?references=REWRITE#/components/schemas/Widget"));
 
         // Get the content of the artifact inlining/dereferencing external references
+        // After DEREFERENCE, the $ref should be replaced with the actual inlined content
         given().when().pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
                 .queryParam("references", "DEREFERENCE")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200).body("openapi", equalTo("3.0.2"))
-                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo(
-                        "GroupsResourceTest:testGetArtifactVersionWithReferences/ReferencedTypes:1:./referenced-types.json#/components/schemas/Widget"));
+                .body("paths.widgets.get.responses.200.content.json.schema.items.title", equalTo("Root Type for Widget"))
+                .body("paths.widgets.get.responses.200.content.json.schema.items.type", equalTo("object"))
+                .body("paths.widgets.get.responses.200.content.json.schema.items.properties.name.type", equalTo("string"))
+                .body("paths.widgets.get.responses.200.content.json.schema.items.properties.description.type", equalTo("string"));
     }
 
 }

@@ -7,7 +7,9 @@ import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlFactory.KafkaSqlVerifi
 import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeyDeserializer;
 import io.apicurio.registry.storage.impl.kafkasql.v2compat.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.v2compat.UpgraderKey;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.DescribeConfigsOptions;
@@ -37,19 +39,20 @@ import static java.lang.String.valueOf;
 import static java.util.Collections.singleton;
 
 @ApplicationScoped
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaAdminUtil {
 
     @Inject
     Logger log;
 
     @Inject
-    KafkaAdminClient adminClient;
+    Instance<KafkaAdminClient> adminClient;
 
     @Inject
-    KafkaSqlVerificationJournalConsumer verificationConsumer;
+    Instance<KafkaSqlVerificationJournalConsumer> verificationConsumer;
 
     @Inject
-    KafkaSqlConfiguration configuration;
+    Instance<KafkaSqlConfiguration> configuration;
 
     public void createTopicIfDoesNotExist(String topic, Map<String, String> properties) {
         var showConfig = true;
@@ -80,13 +83,13 @@ public class KafkaAdminUtil {
     public CompletableFuture<Boolean> createTopicIfDoesNotExistAsync(String topic, Map<String, String> properties) {
         final var props = copy(properties);
         // Get the list of existing topics
-        return toJavaFuture(adminClient.get().listTopics().names())
+        return toJavaFuture(adminClient.get().get().listTopics().names())
                 .thenCompose(topics -> {
                     if (topics.contains(topic)) {
                         return CompletableFuture.completedFuture(false);
                     } else {
                         // Get the cluster nodes to determine replication factor
-                        return toJavaFuture(adminClient.get().describeCluster().nodes())
+                        return toJavaFuture(adminClient.get().get().describeCluster().nodes())
                                 .thenApply(nodes -> {
 
                                     var partitions = Optional.ofNullable(props.get(TOPIC_PARTITIONS_CONFIG))
@@ -103,7 +106,7 @@ public class KafkaAdminUtil {
                                     return new NewTopic(topic, partitions, replicationFactor).configs(props);
 
                                 })
-                                .thenCompose(newTopic -> toJavaFuture(adminClient.get().createTopics(List.of(newTopic)).all()))
+                                .thenCompose(newTopic -> toJavaFuture(adminClient.get().get().createTopics(List.of(newTopic)).all()))
                                 .thenApply(_ignored -> true);
                     }
                 });
@@ -130,7 +133,7 @@ public class KafkaAdminUtil {
         var key = new ConfigResource(ConfigResource.Type.TOPIC, topic);
         // includeSynonyms should ensure we get effective values (including default configs).
         var options = new DescribeConfigsOptions().includeSynonyms(true);
-        blockOn(toJavaFuture(adminClient.get().describeConfigs(singleton(key), options).all())
+        blockOn(toJavaFuture(adminClient.get().get().describeConfigs(singleton(key), options).all())
                 .thenAccept(d -> {
                     var config = d.get(key);
                     assertConfiguration(topic, config, TopicConfig.CLEANUP_POLICY_CONFIG, "delete"::equals, """
@@ -139,8 +142,8 @@ public class KafkaAdminUtil {
                             """.formatted(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
                             TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.RETENTION_MS_CONFIG, TopicConfig.RETENTION_BYTES_CONFIG));
 
-                    if (!topic.equals(configuration.getEventsTopic())) { // Events topic is allowed to use retention. If configured, old events should be eventually deleted.
-                        if (!configuration.isTopicConfigurationVerificationOverrideEnabled()) {
+                    if (!topic.equals(configuration.get().getEventsTopic())) { // Events topic is allowed to use retention. If configured, old events should be eventually deleted.
+                        if (!configuration.get().isTopicConfigurationVerificationOverrideEnabled()) {
                             assertConfiguration(topic, config, TopicConfig.RETENTION_MS_CONFIG, "-1"::equals,
                                     "Topic must have '%s=-1' and '%s=-1' to prevent accidental loss of data"
                                             .formatted(TopicConfig.RETENTION_MS_CONFIG, TopicConfig.RETENTION_BYTES_CONFIG));
@@ -180,15 +183,16 @@ public class KafkaAdminUtil {
 
     public void verifyJournalTopicContents() {
 
-        var consumer = verificationConsumer.get();
+        var verificationConsumerResource = verificationConsumer.get();
+        var consumer = verificationConsumerResource.get();
 
-        var topic = configuration.getTopic();
+        var topic = configuration.get().getTopic();
         consumer.subscribe(singleton(topic));
 
         // Wait for partition assignment:
         var assigned = consumer.assignment();
         while (assigned.isEmpty()) {
-            consumer.poll(configuration.getPollTimeout());
+            consumer.poll(configuration.get().getPollTimeout());
             assigned = consumer.assignment();
             log.debug("Consumer was assigned {} partitions.", assigned.size());
         }
@@ -214,7 +218,7 @@ public class KafkaAdminUtil {
                 boolean foundUnknownWithHeaders = false;
 
                 while (true) { // We process a limited number of messages, so this will terminate.
-                    var records = verificationConsumer.get().poll(configuration.getPollTimeout());
+                    var records = consumer.poll(configuration.get().getPollTimeout());
                     if (records.isEmpty()) {
                         break;
                     }
@@ -332,7 +336,7 @@ public class KafkaAdminUtil {
                 }
             }
         } finally {
-            verificationConsumer.close();
+            verificationConsumerResource.close();
         }
     }
 }

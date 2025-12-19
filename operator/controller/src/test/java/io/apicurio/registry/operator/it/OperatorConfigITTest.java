@@ -4,14 +4,17 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.operator.Tags.FEATURE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@Tag(FEATURE)
 public class OperatorConfigITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(OperatorConfigITTest.class);

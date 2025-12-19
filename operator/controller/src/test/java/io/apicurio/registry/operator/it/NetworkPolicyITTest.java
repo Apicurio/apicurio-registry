@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.quarkus.test.junit.QuarkusTest;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +13,10 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.apicurio.registry.operator.Tags.FEATURE;
+
 @QuarkusTest
+@Tag(FEATURE)
 public class NetworkPolicyITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(NetworkPolicyITTest.class);

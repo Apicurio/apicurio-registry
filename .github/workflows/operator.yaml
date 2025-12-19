@@ -189,7 +189,7 @@ jobs:
   notify-slack:
     name: Slack Notification
     needs: operator-publish
-    if: always()
+    if: always() && github.event_name == 'push'
     uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}

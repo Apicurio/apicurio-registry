@@ -126,6 +126,7 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
+                            <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
                             <finalName>${project.artifactId}-${project.version}</finalName>
                             <attach>true</attach>
                             <descriptors>

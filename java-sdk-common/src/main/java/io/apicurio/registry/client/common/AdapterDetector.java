@@ -17,7 +17,7 @@ public final class AdapterDetector {
 
     static {
         VERTX_AVAILABLE = isClassAvailable("io.kiota.http.vertx.VertXRequestAdapter");
-        JDK_ADAPTER_AVAILABLE = isClassAvailable("io.kiota.http.jdk.JdkHttpRequestAdapter");
+        JDK_ADAPTER_AVAILABLE = isClassAvailable("io.kiota.http.jdk.JDKRequestAdapter");
 
         log.log(Level.FINE, "Adapter detection: Vert.x={0}, JDK={1}",
                 new Object[]{VERTX_AVAILABLE, JDK_ADAPTER_AVAILABLE});

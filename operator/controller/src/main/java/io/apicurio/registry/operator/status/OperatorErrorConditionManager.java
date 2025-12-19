@@ -52,15 +52,8 @@ public class OperatorErrorConditionManager extends AbstractConditionManager {
                         return Stream.of(e);
                     }
                 })
-                .filter(e -> {
-                    if (e instanceof KubernetesClientException ex) {
-                        if (ofNullable(ex.getStatus()).map(Status::getReason).map("Conflict"::equals).orElse(false)) {
-                            log.debug("Ignoring exception.", ex);
-                            return false;
-                        }
-                    }
-                    return true;
-                }).forEach(this.exceptions::add);
+                .filter(e -> !shouldIgnoreException(e))
+                .forEach(this.exceptions::add);
     }
 
     @Override
@@ -82,5 +75,12 @@ public class OperatorErrorConditionManager extends AbstractConditionManager {
             current.setReason(REASON_NO_ERROR);
             current.setMessage("No error.");
         }
+    }
+
+    public static boolean shouldIgnoreException(Exception exception) {
+        if (exception instanceof KubernetesClientException ex) {
+            return ofNullable(ex.getStatus()).map(Status::getReason).map("Conflict"::equals).orElse(false);
+        }
+        return false;
     }
 }

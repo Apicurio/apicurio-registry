@@ -73,6 +73,7 @@
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
+          <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
           <archive>
             <manifest>
               <mainClass>io.apicurio.registry.tools.kafkasqltopicimport.Main</mainClass>

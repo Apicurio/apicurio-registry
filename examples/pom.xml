@@ -54,6 +54,7 @@
     <module>docker-compose</module>
     <module>openshift-template</module>
     <module>mtls-minikube/client</module>
+    <module>tools/kafkasql-topic-import</module>
   </modules>
 
   <scm>

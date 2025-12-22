@@ -25,14 +25,22 @@
       <artifactId>microsoft-kiota-abstractions</artifactId>
       <version>${kiota.libs.version}</version>
     </dependency>
+    <!-- HTTP Adapters - jdk optional, this allows users to exclude vertx and use the jdk http client -->
     <dependency>
       <groupId>io.kiota</groupId>
       <artifactId>kiota-http-vertx</artifactId>
       <version>${kiota.community.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-jdk</artifactId>
+      <version>${kiota.community.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-auth-oauth2</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.microprofile.config</groupId>

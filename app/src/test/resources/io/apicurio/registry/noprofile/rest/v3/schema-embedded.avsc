@@ -1,0 +1,11 @@
+{
+  "type": "enum",
+  "name": "UserType",
+  "namespace": "io.apicurio.registry.avro.example",
+  "symbols": [
+    "ADMIN",
+    "USER",
+    "GUEST"
+  ],
+  "default": "OTHER"
+}

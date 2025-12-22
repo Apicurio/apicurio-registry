@@ -1,0 +1,37 @@
+{
+  "type": "record",
+  "name": "ExampleRecordWithRef",
+  "namespace": "io.apicurio.registry.avro.example",
+  "fields": [
+    {
+      "name": "userId",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      }
+    },
+    {
+      "name": "type",
+      "type": "io.apicurio.registry.avro.example.UserType"
+    },
+    {
+      "name": "creationDate",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "userStatus",
+      "type": {
+        "type": "enum",
+        "name": "UserStatus",
+        "symbols": [
+          "ENABLED",
+          "DISABLED",
+          "PENDING"
+        ]
+      }
+    }
+  ]
+}

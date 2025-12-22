@@ -25,12 +25,11 @@
       <artifactId>microsoft-kiota-abstractions</artifactId>
       <version>${kiota.libs.version}</version>
     </dependency>
-    <!-- HTTP Adapters - both optional, at least one must be provided by consumer -->
+    <!-- HTTP Adapters - jdk optional, this allows users to exclude vertx and use the jdk http client -->
     <dependency>
       <groupId>io.kiota</groupId>
       <artifactId>kiota-http-vertx</artifactId>
       <version>${kiota.community.version}</version>
-      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>io.kiota</groupId>

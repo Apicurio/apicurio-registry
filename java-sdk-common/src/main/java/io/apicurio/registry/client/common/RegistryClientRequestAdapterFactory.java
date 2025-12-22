@@ -19,19 +19,15 @@ import io.vertx.ext.web.client.WebClientOptions;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.net.Authenticator;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -45,6 +41,16 @@ import java.util.regex.Pattern;
 public class RegistryClientRequestAdapterFactory {
 
     private static final Logger log = Logger.getLogger(RegistryClientRequestAdapterFactory.class.getName());
+
+    /**
+     * Internal property key for storing a Vertx instance. This is not typically set via string properties
+     * but rather programmatically when creating the configuration. When provided, this Vertx instance
+     * will be used for HTTP client connections instead of creating a new instance.
+     *
+     * <p><strong>Recommended:</strong> Provide your own managed Vertx instance to ensure proper
+     * lifecycle management and resource cleanup.</p>
+     */
+    public static final String VERTX_INSTANCE = "apicurio.registry.vertx.instance";
 
     /**
      * Creates a RequestAdapter configured with authentication, SSL/TLS, and retry settings

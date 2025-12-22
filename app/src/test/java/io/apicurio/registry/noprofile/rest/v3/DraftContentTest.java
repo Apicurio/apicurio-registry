@@ -1,7 +1,6 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
@@ -17,9 +16,8 @@ import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
+import org.apache.commons.codec.digest.DigestUtils;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.MutabilityEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -110,9 +108,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         });
 
         // Note: Should NOT be able to fetch its content by contentHash (disallowed for DRAFT content)
-        ContentWrapperDto contentWrapperDto = ContentWrapperDto.builder()
-                .content(ContentHandle.create(content)).contentType(ContentTypes.APPLICATION_JSON).build();
-        String contentHash = RegistryContentUtils.contentHash(contentWrapperDto);
+        String contentHash = DigestUtils.sha256Hex(content);
         Assertions.assertThrows(ProblemDetails.class, () -> {
             clientV3.ids().contentHashes().byContentHash(contentHash).get();
         });

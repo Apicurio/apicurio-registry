@@ -10,7 +10,26 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.*;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentHashType;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.OutboxEvent;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.gitops.sql.BlueSqlStorage;
@@ -28,7 +47,6 @@ import org.slf4j.Logger;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -205,8 +223,8 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
-    public ContentWrapperDto getContentByHash(String contentHash) {
-        return proxy(storage -> storage.getContentByHash(contentHash));
+    public ContentWrapperDto getContentByHash(String contentHash, ContentHashType hashType) {
+        return proxy(storage -> storage.getContentByHash(contentHash, hashType));
     }
 
     @Override
@@ -383,11 +401,6 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     }
 
     @Override
-    public boolean isContentExists(String contentHash) {
-        return proxy(storage -> storage.isContentExists(contentHash));
-    }
-
-    @Override
     public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) {
         return false;
     }
@@ -400,11 +413,6 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     @Override
     public boolean isRoleMappingExists(String principalId) {
         return proxy(storage -> storage.isRoleMappingExists(principalId));
-    }
-
-    @Override
-    public Optional<Long> contentIdFromHash(String contentHash) {
-        return proxy(storage -> storage.contentIdFromHash(contentHash));
     }
 
     @Override

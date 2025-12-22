@@ -75,8 +75,23 @@ public class EntityWriter {
     }
 
     private void writeEntity(ContentEntity entity) throws IOException {
-        ZipEntry mdEntry = createZipEntry(EntityType.Content, entity.contentHash, "json");
-        ZipEntry dataEntry = createZipEntry(EntityType.Content, entity.contentHash, "data");
+        // Use contentHash if available (backward compat), otherwise use first available hash from map
+        String hashForFilename = entity.contentHash;
+        if (hashForFilename == null && entity.hashes != null && !entity.hashes.isEmpty()) {
+            // Prefer content-sha256 hash for filename
+            hashForFilename = entity.hashes.get("content-sha256");
+            if (hashForFilename == null) {
+                // Fall back to any available hash
+                hashForFilename = entity.hashes.values().iterator().next();
+            }
+        }
+        if (hashForFilename == null) {
+            // This should not happen, but handle gracefully
+            hashForFilename = String.valueOf(entity.contentId);
+        }
+
+        ZipEntry mdEntry = createZipEntry(EntityType.Content, hashForFilename, "json");
+        ZipEntry dataEntry = createZipEntry(EntityType.Content, hashForFilename, "data");
 
         // Write the meta-data file.
         write(mdEntry, entity, ContentEntity.class);

@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 100);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 102);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,

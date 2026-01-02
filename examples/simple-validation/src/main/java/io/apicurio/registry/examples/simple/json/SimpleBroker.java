@@ -57,7 +57,7 @@ public class SimpleBroker {
 
             server.start();
         } catch (Throwable tr) {
-            tr.printStackTrace();
+            System.err.println("Failed to start SimpleBroker: " + tr.getMessage());
         }
     }
 

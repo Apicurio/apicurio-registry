@@ -7,6 +7,8 @@ import org.jboss.jandex.Index;
 import org.jboss.jandex.IndexReader;
 import org.jboss.jandex.Main;
 import org.jboss.jandex.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -50,6 +52,8 @@ import java.util.stream.Collectors;
  * @see io.apicurio.common.apps.config.ConfigPropertyCategory
  */
 public class GenerateAllConfigPartial {
+
+    private static final Logger log = LoggerFactory.getLogger(GenerateAllConfigPartial.class);
 
     private static Map<String, Option> allConfiguration = new HashMap();
     private static Set<String> skipProperties = Set.of("quarkus.oidc.auth-server-url");
@@ -161,19 +165,21 @@ public class GenerateAllConfigPartial {
         try {
             input = new FileInputStream(jarFile.replace(".jar", "-jar.idx"));
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            log.error("Jandex index file not found for JAR: {}", jarFile, e);
+            throw new RuntimeException("Jandex index file not found", e);
         }
         IndexReader reader = new IndexReader(input);
         Index index = null;
         try {
             index = reader.read();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to read Jandex index for JAR: {}", jarFile, e);
+            throw new RuntimeException("Failed to read Jandex index", e);
         } finally {
             try {
                 input.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.warn("Failed to close Jandex index input stream", e);
             }
         }
 
@@ -322,7 +328,7 @@ public class GenerateAllConfigPartial {
             //load a properties file from class path, inside static method
             props.load(new FileInputStream(baseDir + "/../app/src/main/resources/application.properties"));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Failed to load application.properties for configuration extraction", e);
         }
         for (var prop : props.entrySet()) {
 

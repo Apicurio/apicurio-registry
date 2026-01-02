@@ -59,7 +59,6 @@ public class MessagePublisher {
             }
         } catch (Exception e) {
             System.err.println("Error publishing message: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 

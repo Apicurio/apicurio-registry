@@ -1,6 +1,7 @@
 package io.apicurio.registry.client.common;
 
 import com.microsoft.kiota.RequestAdapter;
+import com.microsoft.kiota.RequestInformation;
 import io.apicurio.registry.client.common.auth.JdkAuthFactory;
 import io.apicurio.registry.client.common.auth.VertXAuthFactory;
 import io.apicurio.registry.client.common.ssl.JdkSslContextFactory;
@@ -27,7 +28,9 @@ import java.lang.reflect.Proxy;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
+import java.io.IOException;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.time.Duration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -331,6 +334,7 @@ public class RegistryClientRequestAdapterFactory {
      * Used for Basic authentication.
      */
     private static class JdkAuthenticatedRequestAdapter extends JDKRequestAdapter {
+        private static final String AUTHORIZATION_HEADER = "Authorization";
         private final String authorizationHeader;
 
         public JdkAuthenticatedRequestAdapter(HttpClient httpClient, String authorizationHeader) {
@@ -338,9 +342,11 @@ public class RegistryClientRequestAdapterFactory {
             this.authorizationHeader = authorizationHeader;
         }
 
-        // The JDKRequestAdapter from kiota-http-jdk allows customization through
-        // request interceptors. We'll need to add the header at the right point.
-        // For now, we use the built-in mechanisms available in the adapter.
+        @Override
+        protected HttpRequest getRequestFromRequestInformation(RequestInformation requestInfo) {
+            requestInfo.headers.tryAdd(AUTHORIZATION_HEADER, authorizationHeader);
+            return super.getRequestFromRequestInformation(requestInfo);
+        }
     }
 
     /**
@@ -348,6 +354,7 @@ public class RegistryClientRequestAdapterFactory {
      * Fetches and caches tokens, automatically refreshing before expiry.
      */
     private static class JdkOAuth2RequestAdapter extends JDKRequestAdapter {
+        private static final String AUTHORIZATION_HEADER = "Authorization";
         private final JdkAuthFactory.TokenProvider tokenProvider;
 
         public JdkOAuth2RequestAdapter(HttpClient httpClient, JdkAuthFactory.TokenProvider tokenProvider) {
@@ -355,8 +362,16 @@ public class RegistryClientRequestAdapterFactory {
             this.tokenProvider = tokenProvider;
         }
 
-        // Similar to JdkAuthenticatedRequestAdapter, token injection will be handled
-        // through the adapter's customization points.
+        @Override
+        protected HttpRequest getRequestFromRequestInformation(RequestInformation requestInfo) {
+            try {
+                String token = tokenProvider.getToken();
+                requestInfo.headers.tryAdd(AUTHORIZATION_HEADER, "Bearer " + token);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to obtain OAuth2 token", e);
+            }
+            return super.getRequestFromRequestInformation(requestInfo);
+        }
     }
 
     // ==================== Retry Logic ====================

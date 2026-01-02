@@ -50,6 +50,12 @@ public class JdkSslContextFactory {
             "-----BEGIN PRIVATE KEY-----\\s*([A-Za-z0-9+/=\\s]+?)\\s*-----END PRIVATE KEY-----",
             Pattern.DOTALL);
 
+    private static final Pattern EC_KEY_PATTERN = Pattern.compile(
+            "-----BEGIN EC PRIVATE KEY-----\\s*([A-Za-z0-9+/=\\s]+?)\\s*-----END EC PRIVATE KEY-----",
+            Pattern.DOTALL);
+
+    private static final String[] KEY_ALGORITHMS = {"RSA", "EC", "DSA"};
+
     private JdkSslContextFactory() {
         // Prevent instantiation
     }
@@ -238,13 +244,24 @@ public class JdkSslContextFactory {
     }
 
     private static PrivateKey parsePemPrivateKey(String pemContent) throws Exception {
-        // Try PKCS#8 format first
+        // Try PKCS#8 format first (algorithm-agnostic)
         Matcher pkcs8Matcher = PKCS8_KEY_PATTERN.matcher(pemContent);
         if (pkcs8Matcher.find()) {
             String base64Key = pkcs8Matcher.group(1).replaceAll("\\s", "");
             byte[] keyBytes = Base64.getDecoder().decode(base64Key);
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return tryParseWithMultipleAlgorithms(keySpec);
+        }
+
+        // Try EC PRIVATE KEY format (SEC1/RFC 5915)
+        Matcher ecMatcher = EC_KEY_PATTERN.matcher(pemContent);
+        if (ecMatcher.find()) {
+            String base64Key = ecMatcher.group(1).replaceAll("\\s", "");
+            byte[] keyBytes = Base64.getDecoder().decode(base64Key);
+            // Convert SEC1 EC key to PKCS#8 format
+            byte[] pkcs8Bytes = convertEcToPkcs8(keyBytes);
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pkcs8Bytes);
+            KeyFactory kf = KeyFactory.getInstance("EC");
             return kf.generatePrivate(keySpec);
         }
 
@@ -260,59 +277,107 @@ public class JdkSslContextFactory {
             return kf.generatePrivate(keySpec);
         }
 
-        throw new IllegalArgumentException("No valid private key found in PEM content");
+        throw new IllegalArgumentException("No valid private key found in PEM content. " +
+                "Supported formats: PKCS#8 (BEGIN PRIVATE KEY), RSA (BEGIN RSA PRIVATE KEY), EC (BEGIN EC PRIVATE KEY)");
+    }
+
+    private static PrivateKey tryParseWithMultipleAlgorithms(PKCS8EncodedKeySpec keySpec) throws Exception {
+        Exception lastException = null;
+        for (String algorithm : KEY_ALGORITHMS) {
+            try {
+                KeyFactory kf = KeyFactory.getInstance(algorithm);
+                return kf.generatePrivate(keySpec);
+            } catch (Exception e) {
+                lastException = e;
+            }
+        }
+        throw new IllegalArgumentException("Failed to parse PKCS#8 private key with any supported algorithm (RSA, EC, DSA)", lastException);
     }
 
     private static byte[] convertPkcs1ToPkcs8(byte[] pkcs1Bytes) {
         // RSA OID: 1.2.840.113549.1.1.1
-        byte[] rsaOid = {0x30, 0x0D, 0x06, 0x09, 0x2A, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xF7,
-                0x0D, 0x01, 0x01, 0x01, 0x05, 0x00};
+        byte[] rsaAlgorithmIdentifier = {
+                0x30, 0x0D,                                     // SEQUENCE (13 bytes)
+                0x06, 0x09,                                     // OID (9 bytes)
+                0x2A, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xF7, 0x0D, 0x01, 0x01, 0x01,  // 1.2.840.113549.1.1.1
+                0x05, 0x00                                      // NULL
+        };
 
-        // Build PKCS#8 structure
-        int pkcs8Length = 4 + rsaOid.length + 4 + pkcs1Bytes.length;
-        if (pkcs8Length > 127) {
-            pkcs8Length += 2; // Need length bytes for outer sequence
-        }
+        return buildPkcs8Structure(pkcs1Bytes, rsaAlgorithmIdentifier);
+    }
 
-        byte[] pkcs8Bytes = new byte[pkcs8Length + 4];
+    private static byte[] convertEcToPkcs8(byte[] ecKeyBytes) {
+        // For EC keys, we need to extract the curve OID from the key itself
+        // The SEC1 format contains the curve info, so we use a generic EC algorithm identifier
+        // EC OID: 1.2.840.10045.2.1 with the curve parameters embedded in the key
+        // We'll use id-ecPublicKey without parameters since the curve is in the private key
+        byte[] ecAlgorithmIdentifier = {
+                0x30, 0x13,                                     // SEQUENCE (19 bytes)
+                0x06, 0x07,                                     // OID (7 bytes)
+                0x2A, (byte) 0x86, 0x48, (byte) 0xCE, 0x3D, 0x02, 0x01,  // 1.2.840.10045.2.1 (id-ecPublicKey)
+                0x06, 0x08,                                     // OID (8 bytes) - secp256r1/prime256v1
+                0x2A, (byte) 0x86, 0x48, (byte) 0xCE, 0x3D, 0x03, 0x01, 0x07  // 1.2.840.10045.3.1.7
+        };
+
+        return buildPkcs8Structure(ecKeyBytes, ecAlgorithmIdentifier);
+    }
+
+    private static byte[] buildPkcs8Structure(byte[] privateKeyBytes, byte[] algorithmIdentifier) {
+        // PKCS#8 structure:
+        // SEQUENCE {
+        //   INTEGER (version = 0)
+        //   AlgorithmIdentifier
+        //   OCTET STRING (private key)
+        // }
+
+        // Version: INTEGER 0
+        byte[] version = {0x02, 0x01, 0x00};
+
+        // Private key wrapped in OCTET STRING
+        byte[] privateKeyOctetString = wrapInOctetString(privateKeyBytes);
+
+        // Inner content length
+        int innerLength = version.length + algorithmIdentifier.length + privateKeyOctetString.length;
+
+        // Build the complete PKCS#8 structure
+        byte[] lengthBytes = encodeLength(innerLength);
+        byte[] result = new byte[1 + lengthBytes.length + innerLength];
+
         int offset = 0;
+        result[offset++] = 0x30; // SEQUENCE tag
+        System.arraycopy(lengthBytes, 0, result, offset, lengthBytes.length);
+        offset += lengthBytes.length;
 
-        // Outer SEQUENCE
-        pkcs8Bytes[offset++] = 0x30;
-        offset = writeLength(pkcs8Bytes, offset, pkcs8Length);
+        System.arraycopy(version, 0, result, offset, version.length);
+        offset += version.length;
 
-        // Version INTEGER 0
-        pkcs8Bytes[offset++] = 0x02;
-        pkcs8Bytes[offset++] = 0x01;
-        pkcs8Bytes[offset++] = 0x00;
+        System.arraycopy(algorithmIdentifier, 0, result, offset, algorithmIdentifier.length);
+        offset += algorithmIdentifier.length;
 
-        // Algorithm SEQUENCE (RSA OID)
-        System.arraycopy(rsaOid, 0, pkcs8Bytes, offset, rsaOid.length);
-        offset += rsaOid.length;
+        System.arraycopy(privateKeyOctetString, 0, result, offset, privateKeyOctetString.length);
 
-        // Private key OCTET STRING
-        pkcs8Bytes[offset++] = 0x04;
-        offset = writeLength(pkcs8Bytes, offset, pkcs1Bytes.length);
-        System.arraycopy(pkcs1Bytes, 0, pkcs8Bytes, offset, pkcs1Bytes.length);
-
-        // Trim to actual size
-        byte[] result = new byte[offset + pkcs1Bytes.length];
-        System.arraycopy(pkcs8Bytes, 0, result, 0, result.length);
         return result;
     }
 
-    private static int writeLength(byte[] bytes, int offset, int length) {
+    private static byte[] wrapInOctetString(byte[] data) {
+        byte[] lengthBytes = encodeLength(data.length);
+        byte[] result = new byte[1 + lengthBytes.length + data.length];
+        result[0] = 0x04; // OCTET STRING tag
+        System.arraycopy(lengthBytes, 0, result, 1, lengthBytes.length);
+        System.arraycopy(data, 0, result, 1 + lengthBytes.length, data.length);
+        return result;
+    }
+
+    private static byte[] encodeLength(int length) {
         if (length < 128) {
-            bytes[offset++] = (byte) length;
+            return new byte[]{(byte) length};
         } else if (length < 256) {
-            bytes[offset++] = (byte) 0x81;
-            bytes[offset++] = (byte) length;
+            return new byte[]{(byte) 0x81, (byte) length};
+        } else if (length < 65536) {
+            return new byte[]{(byte) 0x82, (byte) (length >> 8), (byte) length};
         } else {
-            bytes[offset++] = (byte) 0x82;
-            bytes[offset++] = (byte) (length >> 8);
-            bytes[offset++] = (byte) length;
+            return new byte[]{(byte) 0x83, (byte) (length >> 16), (byte) (length >> 8), (byte) length};
         }
-        return offset;
     }
 
     private static InputStream openResource(String path) throws IOException {

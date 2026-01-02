@@ -8,6 +8,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.SystemInfo;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.enterprise.inject.Typed;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
  */
 @QuarkusTest
 @TestProfile(TlsTestProfile.class)
+@Typed(TlsSdkClientJdkAdapterTest.class)
 public class TlsSdkClientJdkAdapterTest extends TlsSdkClientTest {
 
     /**

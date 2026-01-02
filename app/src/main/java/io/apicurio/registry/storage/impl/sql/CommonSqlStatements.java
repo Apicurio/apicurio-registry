@@ -1245,6 +1245,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 orderBy);
     }
 
+    @Override
+    public String selectWithCountWindowTemplate(String columns, String tableName, String alias,
+            String joins, String whereClause, String orderBy) {
+        return "SELECT %s, COUNT(*) OVER() AS total_count FROM %s %s %s %s %s LIMIT ? OFFSET ?".formatted(
+                columns, tableName, alias, joins, whereClause, orderBy);
+    }
+
     protected String groupsTable() {
         return "groups";
     }

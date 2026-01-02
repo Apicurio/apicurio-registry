@@ -17,6 +17,8 @@ dependency-reduced-pom.xml
 *.ipr
 *.iws
 
+claudedocs/
+
 website
 
 # Other

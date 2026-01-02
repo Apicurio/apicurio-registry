@@ -51,6 +51,7 @@
     <module>simple-protobuf</module>
     <module>protobuf-find-latest</module>
     <module>protobuf-bean</module>
+    <module>java-python-interop</module>
     <module>docker-compose</module>
     <module>openshift-template</module>
     <module>mtls-minikube/client</module>

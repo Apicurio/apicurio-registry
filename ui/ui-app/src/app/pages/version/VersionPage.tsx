@@ -16,6 +16,7 @@ import {
 } from "@app/pages";
 import { ReferencesTabContent } from "@app/pages/version/components/tabs/ReferencesTabContent.tsx";
 import {
+    ChangeVersionStateModal,
     ConfirmDeleteModal,
     EditMetaDataModal,
     GenerateClientModal,
@@ -36,7 +37,8 @@ import {
     Labels,
     RuleViolationProblemDetails,
     SearchedVersion,
-    VersionMetaData
+    VersionMetaData,
+    VersionState
 } from "@sdk/lib/generated-client/models";
 import { DraftsService, useDraftsService } from "@services/useDraftsService.ts";
 import { CreateDraft, Draft } from "@models/drafts";
@@ -67,6 +69,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
+    const [isChangeStateModalOpen, setIsChangeStateModalOpen] = useState(false);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
@@ -247,6 +250,33 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         onEditModalClose();
     };
 
+    const openChangeStateModal = (): void => {
+        setIsChangeStateModalOpen(true);
+    };
+
+    const onChangeStateModalClose = (): void => {
+        setIsChangeStateModalOpen(false);
+    };
+
+    const doChangeState = (newState: VersionState): void => {
+        onChangeStateModalClose();
+        pleaseWait(true, "Changing version state, please wait...");
+        groups.updateArtifactVersionState(groupId as string, artifactId as string, version as string, newState).then(() => {
+            pleaseWait(false);
+            setArtifactVersion({
+                ...artifactVersion,
+                state: newState
+            } as VersionMetaData);
+        }).catch(error => {
+            pleaseWait(false);
+            if (error && (error.status === 400 || error.status === 409)) {
+                handleInvalidContentError(error);
+            } else {
+                setPageError(toPageError(error, "Error changing version state."));
+            }
+        });
+    };
+
     const handleInvalidContentError = (error: any): void => {
         console.info("[DraftsPage] Invalid content error:", error);
         setInvalidContentError(error);
@@ -353,6 +383,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 artifact={artifact as ArtifactMetaData}
                 version={artifactVersion as VersionMetaData}
                 onEditMetaData={openEditMetaDataModal}
+                onChangeState={openChangeStateModal}
             />
         </Tab>,
         <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
@@ -458,6 +489,12 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             <FinalizeDryRunSuccessModal
                 isOpen={isFinalizeDryRunSuccessModalOpen}
                 onClose={() => setIsFinalizeDryRunSuccessModalOpen(false)} />
+            <ChangeVersionStateModal
+                isOpen={isChangeStateModalOpen}
+                currentState={artifactVersion?.state as VersionState}
+                onClose={onChangeStateModalClose}
+                onChangeState={doChangeState}
+            />
             <PleaseWaitModal
                 message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />

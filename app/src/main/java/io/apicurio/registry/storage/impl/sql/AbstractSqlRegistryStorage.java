@@ -107,9 +107,12 @@ import io.apicurio.registry.storage.impl.sql.mappers.GroupRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactWithCountMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedBranchMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupWithCountMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionWithCountMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.VersionStateMapper;
@@ -996,7 +999,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
             StringBuilder where = new StringBuilder();
+            StringBuilder joins = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
+            int labelJoinCount = 0;
+            boolean hasLabelJoin = false;
 
             // Formulate the WHERE clause for both queries
             String op;
@@ -1114,24 +1120,46 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(")");
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
+                        // Use JOIN-based label search for better performance
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        // Note: convert search to lowercase when searching for labels (case-insensitivity
-                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append(
-                                "EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, labelKey);
-                        });
-                        if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
+                        String labelAlias = "l" + labelJoinCount++;
+
+                        if (filter.isNot()) {
+                            // For NOT filter, use LEFT JOIN + IS NULL pattern
+                            joins.append(" LEFT JOIN artifact_labels ").append(labelAlias)
+                                 .append(" ON ").append(labelAlias).append(".groupId = a.groupId")
+                                 .append(" AND ").append(labelAlias).append(".artifactId = a.artifactId")
+                                 .append(" AND ").append(labelAlias).append(".labelKey = ?");
                             binders.add((query, idx) -> {
-                                query.bind(idx, labelValue);
+                                query.bind(idx, labelKey);
                             });
+                            if (label.getValue() != null) {
+                                String labelValue = label.getValue().toLowerCase();
+                                joins.append(" AND ").append(labelAlias).append(".labelValue = ?");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, labelValue);
+                                });
+                            }
+                            where.append(labelAlias).append(".labelKey IS NULL");
+                        } else {
+                            // For positive filter, use INNER JOIN
+                            joins.append(" INNER JOIN artifact_labels ").append(labelAlias)
+                                 .append(" ON ").append(labelAlias).append(".groupId = a.groupId")
+                                 .append(" AND ").append(labelAlias).append(".artifactId = a.artifactId");
+                            where.append(labelAlias).append(".labelKey = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, labelKey);
+                            });
+                            if (label.getValue() != null) {
+                                String labelValue = label.getValue().toLowerCase();
+                                where.append(" AND ").append(labelAlias).append(".labelValue = ?");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, labelValue);
+                                });
+                            }
                         }
-                        where.append(" AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
+                        hasLabelJoin = true;
                         break;
                     case globalId:
                         op = filter.isNot() ? "!=" : "=";
@@ -1188,23 +1216,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Query for the artifacts
-            String artifactsQuerySql = sqlStatements.selectTableTemplate("a.*", "artifacts", "a",
-                    where.toString(), orderByQuery.toString());
+            // Use window function for combined count+data query
+            String columns = hasLabelJoin ? "DISTINCT a.*" : "a.*";
+            String artifactsQuerySql = sqlStatements.selectWithCountWindowTemplate(columns, "artifacts", "a",
+                    joins.toString(), where.toString(), orderByQuery.toString());
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
-
-            String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts", "a",
-                    where.toString());
-            Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(artifactsQuery, idx);
-                binder.bind(countQuery, idx);
                 idx++;
             }
-            // TODO find a better way to swap arguments
             if ("mssql".equals(sqlStatements.dbType())) {
                 artifactsQuery.bind(idx++, offset);
                 artifactsQuery.bind(idx++, limit);
@@ -1213,15 +1236,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 artifactsQuery.bind(idx++, offset);
             }
 
-            // Execute artifact query
-            List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
+            // Execute query and extract results with count
+            List<Pair<SearchedArtifactDto, Long>> resultsWithCount = artifactsQuery
+                    .map(SearchedArtifactWithCountMapper.instance).list();
+
+            List<SearchedArtifactDto> artifacts = resultsWithCount.stream()
+                    .map(Pair::getLeft)
+                    .collect(Collectors.toList());
             limitReturnedLabelsInArtifacts(artifacts);
-            // Execute count query
-            Integer count = countQuery.mapTo(Integer.class).one();
+
+            // Get count from first result (all rows have same total_count from window function)
+            long count = resultsWithCount.isEmpty() ? 0 : resultsWithCount.get(0).getRight();
 
             ArtifactSearchResultsDto results = new ArtifactSearchResultsDto();
             results.setArtifacts(artifacts);
-            results.setCount(count);
+            results.setCount((int) count);
             return results;
         });
     }
@@ -1685,8 +1714,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
+            StringBuilder joins = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
             StringBuilder limitOffset = new StringBuilder();
+            int labelJoinCount = 0;
+            boolean hasLabelJoin = false;
 
             // Formulate the SELECT clause for the query
             selectTemplate.append(
@@ -1739,23 +1771,44 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
+                        // Use JOIN-based label search for better performance
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        // Note: convert search to lowercase when searching for labels (case-insensitivity
-                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE l.labelKey " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, labelKey);
-                        });
-                        if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
+                        String labelAlias = "l" + labelJoinCount++;
+
+                        if (filter.isNot()) {
+                            // For NOT filter, use LEFT JOIN + IS NULL pattern
+                            joins.append(" LEFT JOIN version_labels ").append(labelAlias)
+                                 .append(" ON ").append(labelAlias).append(".globalId = v.globalId")
+                                 .append(" AND ").append(labelAlias).append(".labelKey = ?");
                             binders.add((query, idx) -> {
-                                query.bind(idx, labelValue);
+                                query.bind(idx, labelKey);
                             });
+                            if (label.getValue() != null) {
+                                String labelValue = label.getValue().toLowerCase();
+                                joins.append(" AND ").append(labelAlias).append(".labelValue = ?");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, labelValue);
+                                });
+                            }
+                            where.append(labelAlias).append(".labelKey IS NULL");
+                        } else {
+                            // For positive filter, use INNER JOIN
+                            joins.append(" INNER JOIN version_labels ").append(labelAlias)
+                                 .append(" ON ").append(labelAlias).append(".globalId = v.globalId");
+                            where.append(labelAlias).append(".labelKey = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, labelKey);
+                            });
+                            if (label.getValue() != null) {
+                                String labelValue = label.getValue().toLowerCase();
+                                where.append(" AND ").append(labelAlias).append(".labelValue = ?");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, labelValue);
+                                });
+                            }
                         }
-                        where.append(" AND l.globalId = v.globalId)");
+                        hasLabelJoin = true;
                         break;
                     case contentHash:
                         op = filter.isNot() ? "!=" : "=";
@@ -1806,24 +1859,19 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 limitOffset.append(" LIMIT ? OFFSET ?");
             }
 
-            // Query for the versions
-            String versionsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");
+            // Use window function for combined count+data query
+            String columns = hasLabelJoin ? "DISTINCT v.*, a.type" : "v.*, a.type";
+            String versionsQuerySql = new StringBuilder(selectTemplate).append(joins).append(where).append(orderByQuery)
+                    .append(limitOffset).toString().replace("{{selectColumns}}", columns + ", COUNT(*) OVER() AS total_count");
             Query versionsQuery = handle.createQuery(versionsQuerySql);
-            // Query for the total row count
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(v.globalId)");
-            Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(versionsQuery, idx);
-                binder.bind(countQuery, idx);
                 idx++;
             }
 
-            // TODO find a better way to swap arguments
             if ("mssql".equals(sqlStatements.dbType())) {
                 versionsQuery.bind(idx++, offset);
                 versionsQuery.bind(idx++, limit);
@@ -1832,15 +1880,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 versionsQuery.bind(idx++, offset);
             }
 
-            // Execute query
-            List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
+            // Execute query and extract results with count
+            List<Pair<SearchedVersionDto, Long>> resultsWithCount = versionsQuery
+                    .map(SearchedVersionWithCountMapper.instance).list();
+
+            List<SearchedVersionDto> versions = resultsWithCount.stream()
+                    .map(Pair::getLeft)
+                    .collect(Collectors.toList());
             limitReturnedLabelsInVersions(versions);
-            // Execute count query
-            Integer count = countQuery.mapTo(Integer.class).one();
+
+            // Get count from first result (all rows have same total_count from window function)
+            long count = resultsWithCount.isEmpty() ? 0 : resultsWithCount.get(0).getRight();
 
             VersionSearchResultsDto results = new VersionSearchResultsDto();
             results.setVersions(versions);
-            results.setCount(count);
+            results.setCount((int) count);
             return results;
         });
     }
@@ -2930,7 +2984,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             String op;
 
             StringBuilder where = new StringBuilder();
+            StringBuilder joins = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
+            int labelJoinCount = 0;
+            boolean hasLabelJoin = false;
 
             // Formulate the WHERE clause for both queries
             where.append(" WHERE (1 = 1)");
@@ -2956,23 +3013,44 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
+                        // Use JOIN-based label search for better performance
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        // Note: convert search to lowercase when searching for labels (case-insensitivity
-                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.* FROM group_labels l WHERE l.labelKey " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, labelKey);
-                        });
-                        if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
+                        String labelAlias = "l" + labelJoinCount++;
+
+                        if (filter.isNot()) {
+                            // For NOT filter, use LEFT JOIN + IS NULL pattern
+                            joins.append(" LEFT JOIN group_labels ").append(labelAlias)
+                                 .append(" ON ").append(labelAlias).append(".groupId = g.groupId")
+                                 .append(" AND ").append(labelAlias).append(".labelKey = ?");
                             binders.add((query, idx) -> {
-                                query.bind(idx, labelValue);
+                                query.bind(idx, labelKey);
                             });
+                            if (label.getValue() != null) {
+                                String labelValue = label.getValue().toLowerCase();
+                                joins.append(" AND ").append(labelAlias).append(".labelValue = ?");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, labelValue);
+                                });
+                            }
+                            where.append(labelAlias).append(".labelKey IS NULL");
+                        } else {
+                            // For positive filter, use INNER JOIN
+                            joins.append(" INNER JOIN group_labels ").append(labelAlias)
+                                 .append(" ON ").append(labelAlias).append(".groupId = g.groupId");
+                            where.append(labelAlias).append(".labelKey = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, labelKey);
+                            });
+                            if (label.getValue() != null) {
+                                String labelValue = label.getValue().toLowerCase();
+                                where.append(" AND ").append(labelAlias).append(".labelValue = ?");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, labelValue);
+                                });
+                            }
                         }
-                        where.append(" AND l.groupId = g.groupId)");
+                        hasLabelJoin = true;
                         break;
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
@@ -2992,23 +3070,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Query for the group
-            String groupsQuerySql = sqlStatements.selectTableTemplate("*", "groups", "g", where.toString(),
-                    orderByQuery.toString());
+            // Use window function for combined count+data query
+            String columns = hasLabelJoin ? "DISTINCT g.*" : "g.*";
+            String groupsQuerySql = sqlStatements.selectWithCountWindowTemplate(columns, "groups", "g",
+                    joins.toString(), where.toString(), orderByQuery.toString());
             Query groupsQuery = handle.createQuery(groupsQuerySql);
-            // Query for the total row count
-            String countQuerySql = sqlStatements.selectCountTableTemplate("g.groupId", "groups", "g",
-                    where.toString());
-            Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(groupsQuery, idx);
-                binder.bind(countQuery, idx);
                 idx++;
             }
-            // TODO find a better way to swap arguments
             if ("mssql".equals(sqlStatements.dbType())) {
                 groupsQuery.bind(idx++, offset);
                 groupsQuery.bind(idx++, limit);
@@ -3017,16 +3090,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 groupsQuery.bind(idx++, offset);
             }
 
-            // Execute query
-            List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
+            // Execute query and extract results with count
+            List<Pair<SearchedGroupDto, Long>> resultsWithCount = groupsQuery
+                    .map(SearchedGroupWithCountMapper.instance).list();
+
+            List<SearchedGroupDto> groups = resultsWithCount.stream()
+                    .map(Pair::getLeft)
+                    .collect(Collectors.toList());
             limitReturnedLabelsInGroups(groups);
 
-            // Execute count query
-            Integer count = countQuery.mapTo(Integer.class).one();
+            // Get count from first result (all rows have same total_count from window function)
+            long count = resultsWithCount.isEmpty() ? 0 : resultsWithCount.get(0).getRight();
 
             GroupSearchResultsDto results = new GroupSearchResultsDto();
             results.setGroups(groups);
-            results.setCount(count);
+            results.setCount((int) count);
             return results;
         });
     }

@@ -21,50 +21,47 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-java-sdk-common</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.kiota</groupId>
       <artifactId>microsoft-kiota-abstractions</artifactId>
-      <version>${kiota.libs.version}</version>
     </dependency>
+    <!-- HTTP Adapters - both optional, at least one must be provided by consumer -->
     <dependency>
       <groupId>io.kiota</groupId>
       <artifactId>kiota-http-jdk</artifactId>
-      <version>${kiota.community.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>io.kiota</groupId>
       <artifactId>kiota-http-vertx</artifactId>
-      <version>${kiota.community.version}</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>io.kiota</groupId>
       <artifactId>kiota-serialization-jackson</artifactId>
-      <version>${kiota.community.version}</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.kiota</groupId>
       <artifactId>microsoft-kiota-serialization-text</artifactId>
-      <version>${kiota.libs.version}</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.kiota</groupId>
       <artifactId>microsoft-kiota-serialization-form</artifactId>
-      <version>${kiota.libs.version}</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.kiota</groupId>
       <artifactId>microsoft-kiota-serialization-multipart</artifactId>
-      <version>${kiota.libs.version}</version>
     </dependency>
     <dependency>
       <groupId>jakarta.annotation</groupId>
       <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
+    <!-- Vert.x OAuth2 - optional, only needed when using Vert.x adapter with OAuth2 -->
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-auth-oauth2</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

@@ -273,6 +273,19 @@ public class SchemaResolverConfig extends AbstractConfig {
      */
     public static final String VERTX_INSTANCE = "apicurio.registry.vertx.instance";
 
+    /**
+     * The HTTP adapter to use for registry client connections. Valid values are:
+     * <ul>
+     *   <li>"AUTO" - Automatically detect and use the best available adapter (default).
+     *       Prefers Vert.x if available, falls back to JDK if not.</li>
+     *   <li>"VERTX" - Use the Vert.x HTTP adapter. Requires kiota-http-vertx dependency.</li>
+     *   <li>"JDK" - Use the JDK 11+ HttpClient adapter. Requires kiota-http-jdk dependency.
+     *       Provides a lighter-weight option with no additional dependencies beyond the JDK.</li>
+     * </ul>
+     */
+    public static final String HTTP_ADAPTER = "apicurio.registry.http.adapter";
+    public static final String HTTP_ADAPTER_DEFAULT = "AUTO";
+
     public String getRegistryUrl() {
         String registryUrl = getString(REGISTRY_URL);
         if (registryUrl != null) {
@@ -458,6 +471,15 @@ public class SchemaResolverConfig extends AbstractConfig {
         return null;
     }
 
+    /**
+     * Returns the HTTP adapter type to use for registry client connections.
+     *
+     * @return the HTTP adapter type string ("AUTO", "VERTX", or "JDK")
+     */
+    public String getHttpAdapter() {
+        return getString(HTTP_ADAPTER);
+    }
+
     @Override
     protected Map<String, ?> getDefaults() {
         return DEFAULTS;
@@ -476,5 +498,6 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(DEREFERENCE_SCHEMA, DEREFERENCE_DEFAULT),
             entry(TLS_TRUSTSTORE_TYPE, TLS_TRUSTSTORE_TYPE_DEFAULT),
             entry(TLS_TRUST_ALL, TLS_TRUST_ALL_DEFAULT),
-            entry(TLS_VERIFY_HOST, TLS_VERIFY_HOST_DEFAULT));
+            entry(TLS_VERIFY_HOST, TLS_VERIFY_HOST_DEFAULT),
+            entry(HTTP_ADAPTER, HTTP_ADAPTER_DEFAULT));
 }

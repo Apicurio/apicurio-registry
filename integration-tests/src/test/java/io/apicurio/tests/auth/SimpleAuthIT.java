@@ -157,7 +157,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             try {
                 client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
             } catch (Exception ex) {
-                ex.printStackTrace();
+                logger.warn("Failed to delete test artifact during cleanup", ex);
             }
         }
     }
@@ -199,7 +199,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
             try {
                 client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
             } catch (Exception ex) {
-                ex.printStackTrace();
+                logger.warn("Failed to delete test artifact during cleanup", ex);
             }
         }
     }

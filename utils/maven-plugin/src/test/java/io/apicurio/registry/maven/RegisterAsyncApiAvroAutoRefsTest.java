@@ -18,7 +18,9 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -31,6 +33,7 @@ public class RegisterAsyncApiAvroAutoRefsTest {
     private final File examplesRoot = Paths.get("../../examples/").toAbsolutePath().toFile();
     private WireMockServer wireMockServer;
     private Set<String> registeredArtifacts = new HashSet<>();
+    private Map<String, String> artifactContentTypes = new HashMap<>();
 
     @BeforeEach public void setup() {
         // Start WireMock server with custom transformer
@@ -48,6 +51,7 @@ public class RegisterAsyncApiAvroAutoRefsTest {
 
         // clear captured registered artifacts
         registeredArtifacts.clear();
+        artifactContentTypes.clear();
     }
 
     @AfterEach public void tearDown() {
@@ -86,6 +90,19 @@ public class RegisterAsyncApiAvroAutoRefsTest {
                 "asyncapi-avro-maven-with-references-auto:io.example.api.dtos.PaymentMethodType"));
         assertTrue(registeredArtifacts.contains(
                 "asyncapi-avro-maven-with-references-auto:io.example.api.dtos.CustomerDeletedEvent"));
+
+        // Verify content types - the main AsyncAPI artifact should be YAML, Avro schemas should be JSON
+        String asyncApiContentType = artifactContentTypes
+                .get("asyncapi-avro-maven-with-references-auto:CustomersExample");
+        assertEquals("application/x-yaml", asyncApiContentType,
+                "AsyncAPI YAML file should be registered with application/x-yaml content-type but was: "
+                        + asyncApiContentType);
+
+        String avroContentType = artifactContentTypes
+                .get("asyncapi-avro-maven-with-references-auto:io.example.api.dtos.CustomerEvent");
+        assertEquals("application/json", avroContentType,
+                "Avro schema file should be registered with application/json content-type but was: "
+                        + avroContentType);
 
     }
 
@@ -138,8 +155,11 @@ public class RegisterAsyncApiAvroAutoRefsTest {
 
             String groupId = extractGroupIdFromUrl(url);
             String artifactId = extractArtifactIdFromBody(body);
+            String contentType = extractContentTypeFromBody(body);
 
-            registeredArtifacts.add(groupId + ":" + artifactId);
+            String key = groupId + ":" + artifactId;
+            registeredArtifacts.add(key);
+            artifactContentTypes.put(key, contentType);
 
             return """
                     {
@@ -176,6 +196,23 @@ public class RegisterAsyncApiAvroAutoRefsTest {
                 return artifactIdNode.asText();
             }
             throw new RuntimeException("ArtifactId not found in request body");
+        }
+
+        private String extractContentTypeFromBody(String body) throws JsonProcessingException {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode jsonNode = mapper.readTree(body);
+
+            JsonNode firstVersionNode = jsonNode.get("firstVersion");
+            if (firstVersionNode != null && !firstVersionNode.isNull()) {
+                JsonNode contentNode = firstVersionNode.get("content");
+                if (contentNode != null && !contentNode.isNull()) {
+                    JsonNode contentTypeNode = contentNode.get("contentType");
+                    if (contentTypeNode != null && !contentTypeNode.isNull()) {
+                        return contentTypeNode.asText();
+                    }
+                }
+            }
+            return "unknown";
         }
 
     }

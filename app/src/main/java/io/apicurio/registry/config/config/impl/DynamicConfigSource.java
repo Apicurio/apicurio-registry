@@ -82,7 +82,7 @@ public class DynamicConfigSource implements ConfigSource {
                                 pname, Thread.currentThread().getName());
                         return dto.getValue();
                     } else {
-                        log.debug(LOG_PREFIX + "Storage returned null.", pname,
+                        log.trace(LOG_PREFIX + "Property not found in storage.", pname,
                                 Thread.currentThread().getName());
                     }
                 } else {

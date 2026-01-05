@@ -35,3 +35,7 @@ python-sdk/openapi.json
 __pycache__
 
 .env
+
+PROJECT_INDEX.json
+PROJECT_INDEX.md
+app/src/test/resources/docker-java.properties

@@ -121,17 +121,11 @@ public class JdkAuthFactory {
 
         @Override
         public String getToken() throws IOException {
-            if (isTokenValid()) {
-                return cachedToken;
-            }
-
             lock.lock();
             try {
-                // Double-check after acquiring lock
-                if (isTokenValid()) {
-                    return cachedToken;
+                if (!isTokenValid()) {
+                    refreshToken();
                 }
-                refreshToken();
                 return cachedToken;
             } finally {
                 lock.unlock();

@@ -93,7 +93,7 @@ public class RegistryClientRequestAdapterFactory {
 
         // Wrap with retry proxy if retry is enabled
         if (options.isRetryEnabled()) {
-            adapter = createRetryProxy(adapter, options, adapterType);
+            adapter = createRetryProxy(adapter, options);
         }
 
         return adapter;
@@ -379,7 +379,7 @@ public class RegistryClientRequestAdapterFactory {
     /**
      * Creates a retry-enabled proxy for the RequestAdapter.
      */
-    private static RequestAdapter createRetryProxy(RequestAdapter delegate, RegistryClientOptions options, HttpAdapterType adapterType) {
+    private static RequestAdapter createRetryProxy(RequestAdapter delegate, RegistryClientOptions options) {
         return (RequestAdapter) Proxy.newProxyInstance(
                 delegate.getClass().getClassLoader(),
                 new Class<?>[]{RequestAdapter.class},
@@ -388,15 +388,14 @@ public class RegistryClientRequestAdapterFactory {
                         options.getMaxRetryAttempts(),
                         options.getRetryDelayMs(),
                         options.getBackoffMultiplier(),
-                        options.getMaxRetryDelayMs(),
-                        adapterType
+                        options.getMaxRetryDelayMs()
                 )
         );
     }
 
     /**
      * InvocationHandler that implements retry logic with exponential backoff for RequestAdapter methods.
-     * Retries on specific exceptions based on the adapter type.
+     * Retries on transient network exceptions (connection reset, timeout, etc.) for both Vert.x and JDK adapters.
      */
     private static class RetryInvocationHandler implements InvocationHandler {
         private final RequestAdapter delegate;
@@ -404,16 +403,14 @@ public class RegistryClientRequestAdapterFactory {
         private final long initialRetryDelayMs;
         private final double backoffMultiplier;
         private final long maxRetryDelayMs;
-        private final HttpAdapterType adapterType;
 
         public RetryInvocationHandler(RequestAdapter delegate, int maxRetryAttempts, long initialRetryDelayMs,
-                                      double backoffMultiplier, long maxRetryDelayMs, HttpAdapterType adapterType) {
+                                      double backoffMultiplier, long maxRetryDelayMs) {
             this.delegate = delegate;
             this.maxRetryAttempts = maxRetryAttempts;
             this.initialRetryDelayMs = initialRetryDelayMs;
             this.backoffMultiplier = backoffMultiplier;
             this.maxRetryDelayMs = maxRetryDelayMs;
-            this.adapterType = adapterType;
         }
 
         @Override

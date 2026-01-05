@@ -288,6 +288,9 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Build and Publish Artifact Type Builtins Package
         working-directory: registry/artifact-type-builtins
         run: |

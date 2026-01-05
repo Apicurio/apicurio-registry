@@ -285,6 +285,16 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-jdk</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-vertx</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
       <scope>test</scope>

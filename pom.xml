@@ -791,6 +791,46 @@
         <version>${slf4j.version}</version>
       </dependency>
 
+      <!-- Kiota -->
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-abstractions</artifactId>
+        <version>${kiota.libs.version}</version>
+      </dependency>
+      <!-- HTTP Adapters - both optional, at least one must be provided by consumer -->
+      <dependency>
+        <groupId>io.kiota</groupId>
+        <artifactId>kiota-http-jdk</artifactId>
+        <version>${kiota.community.version}</version>
+        <optional>true</optional>
+      </dependency>
+      <dependency>
+        <groupId>io.kiota</groupId>
+        <artifactId>kiota-http-vertx</artifactId>
+        <version>${kiota.community.version}</version>
+        <optional>true</optional>
+      </dependency>
+      <dependency>
+        <groupId>io.kiota</groupId>
+        <artifactId>kiota-serialization-jackson</artifactId>
+        <version>${kiota.community.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-text</artifactId>
+        <version>${kiota.libs.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-form</artifactId>
+        <version>${kiota.libs.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-multipart</artifactId>
+        <version>${kiota.libs.version}</version>
+      </dependency>
+
       <!-- Tests -->
       <dependency>
         <groupId>io.confluent</groupId>

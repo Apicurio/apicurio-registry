@@ -26,6 +26,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.Workflow;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
+import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,7 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_NETWORK_POLICY_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_POD_DISRUPTION_BUDGET_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
+import static io.apicurio.registry.operator.status.OperatorErrorConditionManager.shouldIgnoreException;
 import static io.apicurio.registry.operator.utils.Mapper.copy;
 
 @Workflow(
@@ -138,6 +140,12 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
     @Override
     public ErrorStatusUpdateControl<ApicurioRegistry3> updateErrorStatus(ApicurioRegistry3 primary,
                                                                          Context<ApicurioRegistry3> context, Exception ex) {
+        if (shouldIgnoreException(ex)) {
+            log.warn("Exception was thrown during reconciliation of Apicurio Registry {}, but can be ignored: {}: {}",
+                    ResourceID.fromResource(primary), ex.getClass().getCanonicalName(), ex.getMessage());
+        } else {
+            log.error("Exception was thrown during reconciliation of Apicurio Registry %s".formatted(ResourceID.fromResource(primary)), ex);
+        }
         StatusManager.get(primary).getConditionManager(OperatorErrorConditionManager.class).recordException(ex);
         return ErrorStatusUpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
     }

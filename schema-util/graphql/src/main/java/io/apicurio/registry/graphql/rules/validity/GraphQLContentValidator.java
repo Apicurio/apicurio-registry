@@ -7,6 +7,8 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +17,8 @@ import java.util.Map;
  * A content validator implementation for the GraphQL content type.
  */
 public class GraphQLContentValidator implements ContentValidator {
+
+    private static final Logger log = LoggerFactory.getLogger(GraphQLContentValidator.class);
 
     /**
      * Constructor.
@@ -32,7 +36,7 @@ public class GraphQLContentValidator implements ContentValidator {
             try {
                 new SchemaParser().parse(content.getContent().content());
             } catch (Exception e) {
-                e.printStackTrace();
+                log.debug("GraphQL schema validation failed", e);
                 throw new RuleViolationException("Syntax violation for GraphQL artifact.", RuleType.VALIDITY,
                         level.name(), e);
             }

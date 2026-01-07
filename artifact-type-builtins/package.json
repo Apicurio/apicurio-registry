@@ -1,7 +1,7 @@
 {
     "name": "@apicurio/artifact-type-builtins",
     "private": false,
-    "version": "3.1.6-Dev",
+    "version": "3.1.7-Dev",
     "type": "module",
     "description": "Built-in functions and TypeScript type definitions for creating custom artifact types in Apicurio Registry",
     "main": "lib/ArtifactTypeScriptProvider_Builtins.mjs",

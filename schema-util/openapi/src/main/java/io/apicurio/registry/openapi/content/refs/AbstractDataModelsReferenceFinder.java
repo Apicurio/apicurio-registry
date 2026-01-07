@@ -19,6 +19,7 @@ import io.apicurio.datamodels.models.visitors.AllNodeVisitor;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 
@@ -51,7 +52,7 @@ public abstract class AbstractDataModelsReferenceFinder implements ReferenceFind
             return visitor.allReferences.stream().map(ref -> new JsonPointerExternalReference(ref))
                     .filter(ref -> ref.getResource() != null).collect(Collectors.toSet());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ReferenceFinderException("Error finding external references in an OpenAPI/AsyncAPI file.", e);
         }
     }
 

@@ -1065,6 +1065,11 @@ The following {registry} configuration options are available for each component 
 |`apicurio-registry-ui`
 |`3.0.0`
 |The OIDC clientId
+|`apicurio.ui.auth.oidc.load-user-info`
+|`optional<boolean>`
+|
+|`3.1.6`
+|Whether to load user info from the OIDC userinfo endpoint. Defaults to true if not specified. Set to false for OIDC providers like Azure Entra ID where the userinfo endpoint has incompatible audience requirements.
 |`apicurio.ui.auth.oidc.logout-url`
 |`string`
 |`f5`

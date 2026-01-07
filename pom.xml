@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.1.6-SNAPSHOT</version>
+  <version>3.1.7-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -230,7 +230,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.6</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.36</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.37</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.42</lombok.version>
@@ -278,8 +278,8 @@
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
-    <version.license-maven-plugin>2.7.0</version.license-maven-plugin>
-    <version.exec-maven-plugin>3.6.2</version.exec-maven-plugin>
+    <version.license-maven-plugin>2.7.1</version.license-maven-plugin>
+    <version.exec-maven-plugin>3.6.3</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.8.Final</version.apicurio-codegen-plugin>
     <version.gmavenplus-plugin>4.2.1</version.gmavenplus-plugin>
 
@@ -789,6 +789,46 @@
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-jdk14</artifactId>
         <version>${slf4j.version}</version>
+      </dependency>
+
+      <!-- Kiota -->
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-abstractions</artifactId>
+        <version>${kiota.libs.version}</version>
+      </dependency>
+      <!-- HTTP Adapters - both optional, at least one must be provided by consumer -->
+      <dependency>
+        <groupId>io.kiota</groupId>
+        <artifactId>kiota-http-jdk</artifactId>
+        <version>${kiota.community.version}</version>
+        <optional>true</optional>
+      </dependency>
+      <dependency>
+        <groupId>io.kiota</groupId>
+        <artifactId>kiota-http-vertx</artifactId>
+        <version>${kiota.community.version}</version>
+        <optional>true</optional>
+      </dependency>
+      <dependency>
+        <groupId>io.kiota</groupId>
+        <artifactId>kiota-serialization-jackson</artifactId>
+        <version>${kiota.community.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-text</artifactId>
+        <version>${kiota.libs.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-form</artifactId>
+        <version>${kiota.libs.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-multipart</artifactId>
+        <version>${kiota.libs.version}</version>
       </dependency>
 
       <!-- Tests -->

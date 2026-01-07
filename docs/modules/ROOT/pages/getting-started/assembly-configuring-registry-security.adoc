@@ -9,6 +9,7 @@ This chapter explains how to set configuration options for {registry} security. 
 * xref:registry-security-keycloak_{context}[]
 * xref:registry-security-azure_{context}[]
 * xref:registry-security-settings_{context}[]
+* xref:registry-cors-configuration_{context}[]
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
@@ -650,5 +651,88 @@ calls to the REST API, set the following options to `true`:
 .Additional resources
 * For an example of how to set environment variables in your {registry} deployment on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[]
 * For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]
+
+
+
+// Metadata created by nebel
+
+[id="registry-cors-configuration_{context}"]
+
+== Configuring {registry} Cross-Origin Resource Sharing (CORS)
+
+[role="_abstract"]
+Cross-Origin Resource Sharing (CORS) is a browser security feature that controls how web applications running at one origin can request resources from a different origin. {registry} includes built-in CORS support that you can configure to allow the {registry} web console or other client applications to access the {registry} REST API from different domains.
+
+CORS configuration in {registry} is based on the underlying Quarkus HTTP CORS filter. By default, {registry} enables CORS and allows requests from `http://localhost:8888` and `http://127.0.0.1:8888` for local development.
+
+.Prerequisites
+* {registry} is installed and running.
+
+.Procedure
+
+Configure the following environment variables to customize CORS behavior for your {registry} deployment:
+
+.Configuration for {registry} CORS
+[.table-expandable,width="100%",cols="4,6,3",options="header"]
+|===
+|Environment variable
+|Description
+|Default
+
+|`QUARKUS_HTTP_CORS`
+|Enables or disables the CORS filter. Set to `true` to enable CORS support.
+|`true`
+
+|`QUARKUS_HTTP_CORS_ORIGINS`
+|A comma-separated list of allowed origins for CORS requests. Use `*` to allow all origins, or specify explicit origins such as `\https://my-ui.example.com`. For multiple origins, use a comma-separated list, for example: `\https://ui1.example.com,\https://ui2.example.com`.
+|`http://localhost:8888,http://127.0.0.1:8888`
+
+|`QUARKUS_HTTP_CORS_METHODS`
+|A comma-separated list of HTTP methods allowed for CORS requests.
+|`GET,PUT,POST,PATCH,DELETE,OPTIONS`
+
+|`QUARKUS_HTTP_CORS_HEADERS`
+|A comma-separated list of HTTP headers allowed in CORS requests. This includes custom {registry} headers used for artifact metadata.
+|See note below
+|===
+
+NOTE: The default allowed headers include: `x-registry-name`, `x-registry-name-encoded`, `x-registry-description`, `x-registry-description-encoded`, `x-registry-version`, `x-registry-artifactid`, `x-registry-artifacttype`, `x-registry-hash-algorithm`, `x-registry-content-hash`, `access-control-request-method`, `access-control-allow-credentials`, `access-control-allow-origin`, `access-control-allow-headers`, `authorization`, `content-type`, `content-encoding`, `user-agent`.
+
+.Example: Allow all origins (development only)
+[source,yaml]
+----
+environment:
+  QUARKUS_HTTP_CORS_ORIGINS: "*"
+----
+
+WARNING: Using `*` to allow all origins is not recommended for production deployments. Always specify explicit allowed origins in production environments.
+
+.Example: Allow specific origins (production)
+[source,yaml]
+----
+environment:
+  QUARKUS_HTTP_CORS_ORIGINS: "https://registry-ui.example.com,https://admin.example.com"
+----
+
+.Example: Kubernetes operator configuration
+If you are using the {registry} Operator, you can configure CORS in the `ApicurioRegistry3` custom resource:
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: my-registry
+spec:
+  app:
+    env:
+      - name: QUARKUS_HTTP_CORS_ORIGINS
+        value: https://ui.example.com
+----
+
+NOTE: When using the {registry} Operator with an Ingress configured for the UI component, the operator automatically configures CORS allowed origins based on the Ingress host. If you explicitly set `QUARKUS_HTTP_CORS_ORIGINS` in the CR, your configuration takes precedence.
+
+[role="_additional-resources"]
+.Additional resources
+* For detailed information about all available Quarkus CORS configuration options, see the link:https://quarkus.io/guides/http-reference#cors-filter[Quarkus HTTP Reference - CORS Filter] documentation.
 
 

@@ -59,7 +59,6 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToObject;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -1147,7 +1146,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("artifactId", equalTo("testGetArtifactMetaData/EmptyAPI"))
                 .body("name", equalTo("Empty API Name"))
                 .body("description", equalTo("Empty API description."))
-                .body("labels", equalToObject(expectedLabels));
+                .body("labels", equalTo(expectedLabels));
 
         // Update the artifact content (new version) and then make sure the name/description meta-data is
         // still available
@@ -1197,7 +1196,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", group).pathParam("artifactId", artifactId)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(200)
                 .body("artifactId", equalTo(artifactId)).body("version", anything())
-                .body("labels", equalToObject(expectedLabels));
+                .body("labels", equalTo(expectedLabels));
 
     }
 

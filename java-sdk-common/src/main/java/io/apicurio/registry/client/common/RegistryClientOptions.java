@@ -119,6 +119,8 @@ public class RegistryClientOptions {
     private int proxyPort = -1;
     private String proxyUsername;
     private String proxyPassword;
+    // HTTP adapter config
+    private HttpAdapterType httpAdapterType = HttpAdapterType.AUTO;
 
     private RegistryClientOptions() {
     }
@@ -257,6 +259,10 @@ public class RegistryClientOptions {
 
     public String getPemClientKeyContent() {
         return pemClientKeyContent;
+    }
+
+    public HttpAdapterType getHttpAdapterType() {
+        return httpAdapterType;
     }
 
     /**
@@ -772,6 +778,33 @@ public class RegistryClientOptions {
         this.proxyPort = -1;
         this.proxyUsername = null;
         this.proxyPassword = null;
+        return this;
+    }
+
+    /**
+     * Sets the HTTP adapter type to use for client communication.
+     *
+     * <p>The adapter type determines which underlying HTTP client implementation will be used:</p>
+     * <ul>
+     *   <li>{@link HttpAdapterType#VERTX} - Uses Vert.x WebClient (default when available).
+     *       Requires kiota-http-vertx and vertx-auth-oauth2 dependencies.</li>
+     *   <li>{@link HttpAdapterType#JDK} - Uses JDK 11+ HttpClient.
+     *       Requires kiota-http-jdk dependency. Minimal dependencies, better for simple apps.</li>
+     *   <li>{@link HttpAdapterType#AUTO} - Auto-detects available adapter at runtime.
+     *       Prefers Vert.x if available, falls back to JDK adapter.</li>
+     * </ul>
+     *
+     * <p><strong>Note:</strong> When using JDK adapter, the {@link #customWebClient(WebClient)}
+     * option is not supported and will throw an exception at client creation time.</p>
+     *
+     * @param httpAdapterType the HTTP adapter type to use
+     * @return this builder
+     */
+    public RegistryClientOptions httpAdapter(HttpAdapterType httpAdapterType) {
+        if (httpAdapterType == null) {
+            throw new IllegalArgumentException("HTTP adapter type cannot be null");
+        }
+        this.httpAdapterType = httpAdapterType;
         return this;
     }
 }

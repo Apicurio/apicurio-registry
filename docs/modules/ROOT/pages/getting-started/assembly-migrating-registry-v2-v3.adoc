@@ -50,6 +50,58 @@ see {installing-the-registry-storage-openshift}.
 {registry} 3.x has changed a number of configuration options and added some new ones.  Options you may be using when deploying
 2.x are likely still available, but may have been renamed.
 
+=== SerDes ID encoding has changed
+
+IMPORTANT: This is a critical breaking change that affects Kafka message compatibility.
+
+In {registry} 2.x, the SerDes libraries used *8 bytes* (long) to encode schema identifiers in Kafka messages, and used the `globalId` by default. In {registry} 3.x, the SerDes libraries now use *4 bytes* (int) to encode identifiers and use the `contentId` by default. This change aligns with the Confluent Schema Registry wire format.
+
+This means that:
+
+* *Kafka messages produced with 2.x SerDes cannot be consumed by 3.x SerDes* (and vice versa) without additional configuration.
+* Existing Kafka topics with messages serialized using 2.x SerDes will fail to deserialize with 3.x SerDes unless you configure backward compatibility.
+
+==== Configuring backward compatibility
+
+To consume messages that were produced using {registry} 2.x SerDes, you must configure your 3.x consumers to use the legacy 8-byte ID handler:
+
+[source,java]
+----
+props.put("apicurio.registry.id-handler", "io.apicurio.registry.serde.Legacy8ByteIdHandler");
+props.put("apicurio.registry.use-id", "globalId");
+----
+
+==== Summary of ID handling changes
+
+[cols="1,1,1", options="header"]
+|===
+|Setting
+|{registry} 2.x Default
+|{registry} 3.x Default
+
+|ID size
+|8 bytes (long)
+|4 bytes (int)
+
+|ID handler class
+|`Legacy8ByteIdHandler`
+|`Default4ByteIdHandler`
+
+|ID type
+|`globalId`
+|`contentId`
+|===
+
+==== Migration strategies
+
+There are two approaches to handle this breaking change:
+
+. *Configure 3.x SerDes for backward compatibility* (recommended for existing topics): Use the `Legacy8ByteIdHandler` configuration shown above. This allows 3.x consumers to read messages produced by 2.x producers.
+
+. *Migrate to new format* (recommended for new deployments): Accept the new 4-byte format. This requires that all producers and consumers are upgraded to 3.x simultaneously, or that you create new Kafka topics for 3.x usage.
+
+NOTE: The 4-byte format is more efficient and aligns with the Confluent Schema Registry wire format, making interoperability easier.
+
 [role="_additional-resources"]
 .Additional resources
 * For more details on the v3 REST API, see the link:{attachmentsdir}/registry-rest-api.htm[Registry REST API documentation].
@@ -169,6 +221,15 @@ You can find more details on the Java client in
 +
 In {registry} 3.x, the SerDes libraries have been significantly refactored to make them re-usable for other messaging platforms like Apache Pulsar, that's why the Apache Kafka specific ones have been renamed.
 +
+IMPORTANT: The SerDes ID encoding format has changed from 8 bytes to 4 bytes. See xref:registry-migration_{context}[SerDes ID encoding has changed] for details on configuring backward compatibility with existing Kafka topics.
+
+. If you have existing Kafka topics with messages serialized using {registry} 2.x SerDes, configure the legacy ID handler:
++
+[source,java]
+----
+props.put("apicurio.registry.id-handler", "io.apicurio.registry.serde.Legacy8ByteIdHandler");
+props.put("apicurio.registry.use-id", "globalId");
+----
 
 . In your Kafka producer and consumer Java applications, you must change your registry URL configuration from pointing to the existing v2 API path to the new v3 path. For example:
 +

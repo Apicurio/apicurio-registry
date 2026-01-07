@@ -19,6 +19,9 @@ public class DefaultHeadersHandler implements HeadersHandler {
     private String artifactIdHeaderName;
     private String versionHeaderName;
     private IdOption idOption;
+    private boolean useSchemaFromHeaders;
+    private String schemaHeaderName;
+    private String schemaTypeHeaderName;
 
     /**
      * @see io.apicurio.registry.serde.kafka.headers.HeadersHandler#configure(java.util.Map, boolean)
@@ -33,6 +36,8 @@ public class DefaultHeadersHandler implements HeadersHandler {
             groupIdHeaderName = config.getKeyGroupIdHeader();
             artifactIdHeaderName = config.getKeyArtifactIdHeader();
             versionHeaderName = config.getKeyVersionHeader();
+            schemaHeaderName = config.getKeySchemaHeader();
+            schemaTypeHeaderName = config.getKeySchemaTypeHeader();
         } else {
             globalIdHeaderName = config.getValueGlobalIdHeader();
             contentIdHeaderName = config.getValueContentIdHeader();
@@ -40,10 +45,13 @@ public class DefaultHeadersHandler implements HeadersHandler {
             groupIdHeaderName = config.getValueGroupIdHeader();
             artifactIdHeaderName = config.getValueArtifactIdHeader();
             versionHeaderName = config.getValueVersionHeader();
+            schemaHeaderName = config.getValueSchemaHeader();
+            schemaTypeHeaderName = config.getValueSchemaTypeHeader();
         }
         if (config.useIdOption() != null) {
             idOption = config.useIdOption();
         }
+        useSchemaFromHeaders = config.useSchemaFromHeaders();
     }
 
     /**
@@ -137,6 +145,67 @@ public class DefaultHeadersHandler implements HeadersHandler {
             return null;
         } else {
             return IoUtil.toString(header.value());
+        }
+    }
+
+    /**
+     * Checks if schema reading from headers is enabled.
+     *
+     * @return true if schema should be read from headers
+     */
+    public boolean isUseSchemaFromHeaders() {
+        return useSchemaFromHeaders;
+    }
+
+    /**
+     * Reads the schema content from the headers.
+     *
+     * @param headers the Kafka message headers
+     * @return the schema content as a string, or null if not present
+     */
+    public String readSchemaFromHeaders(Headers headers) {
+        Header header = headers.lastHeader(schemaHeaderName);
+        if (header == null) {
+            return null;
+        }
+        return IoUtil.toString(header.value());
+    }
+
+    /**
+     * Reads the schema type from the headers.
+     *
+     * @param headers the Kafka message headers
+     * @return the schema type as a string (e.g., "AVRO", "PROTOBUF", "JSON"), or null if not present
+     */
+    public String readSchemaTypeFromHeaders(Headers headers) {
+        Header header = headers.lastHeader(schemaTypeHeaderName);
+        if (header == null) {
+            return null;
+        }
+        return IoUtil.toString(header.value());
+    }
+
+    /**
+     * Writes the schema content to the headers.
+     *
+     * @param headers the Kafka message headers
+     * @param schemaContent the schema content to write
+     */
+    public void writeSchemaToHeaders(Headers headers, String schemaContent) {
+        if (schemaContent != null) {
+            headers.add(schemaHeaderName, IoUtil.toBytes(schemaContent));
+        }
+    }
+
+    /**
+     * Writes the schema type to the headers.
+     *
+     * @param headers the Kafka message headers
+     * @param schemaType the schema type to write (e.g., "AVRO", "PROTOBUF", "JSON")
+     */
+    public void writeSchemaTypeToHeaders(Headers headers, String schemaType) {
+        if (schemaType != null) {
+            headers.add(schemaTypeHeaderName, IoUtil.toBytes(schemaType));
         }
     }
 

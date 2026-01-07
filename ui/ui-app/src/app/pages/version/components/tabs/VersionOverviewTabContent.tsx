@@ -33,6 +33,7 @@ export type VersionOverviewTabContentProps = {
     artifact: ArtifactMetaData;
     version: VersionMetaData;
     onEditMetaData: () => void;
+    onChangeState: () => void;
 };
 
 /**
@@ -103,7 +104,24 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Status</DescriptionListTerm>
                                 <DescriptionListDescription data-testid="version-details-state">
-                                    <VersionStateBadge version={props.version} showEnabled={true} />
+                                    <Flex>
+                                        <FlexItem>
+                                            <VersionStateBadge version={props.version} showEnabled={true} />
+                                        </FlexItem>
+                                        <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                                            <IfFeature feature="readOnly" isNot={true}>
+                                                <FlexItem>
+                                                    <Button
+                                                        id="change-state-action"
+                                                        data-testid="version-btn-change-state"
+                                                        onClick={props.onChangeState}
+                                                        style={{ padding: "0", marginLeft: "10px" }}
+                                                        variant="link"
+                                                    >Change</Button>
+                                                </FlexItem>
+                                            </IfFeature>
+                                        </IfAuth>
+                                    </Flex>
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>

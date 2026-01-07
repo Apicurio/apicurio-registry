@@ -5,11 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.content.refs.ReferenceFinder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -22,7 +20,6 @@ import java.util.stream.Collectors;
 public class JsonSchemaReferenceFinder implements ReferenceFinder {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final Logger log = LoggerFactory.getLogger(JsonSchemaReferenceFinder.class);
 
     /**
      * @see io.apicurio.registry.content.refs.ReferenceFinder#findExternalReferences(TypedContent)
@@ -37,8 +34,7 @@ public class JsonSchemaReferenceFinder implements ReferenceFinder {
             return externalTypes.stream().map(type -> new JsonPointerExternalReference(type))
                     .filter(ref -> ref.getResource() != null).collect(Collectors.toSet());
         } catch (Exception e) {
-            log.error("Error finding external references in a JSON Schema file.", e);
-            return Collections.emptySet();
+            throw new ReferenceFinderException("Error finding external references in a JSON Schema file.", e);
         }
     }
 

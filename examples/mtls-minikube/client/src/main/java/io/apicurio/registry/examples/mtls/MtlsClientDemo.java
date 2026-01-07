@@ -161,8 +161,10 @@ public class MtlsClientDemo {
             }
 
             System.err.println();
-            System.err.println("Error details:");
-            e.printStackTrace();
+            System.err.println("Error details: " + e.getMessage());
+            if (e.getCause() != null) {
+                System.err.println("Caused by: " + e.getCause().getMessage());
+            }
             System.exit(1);
         } finally {
             // Clean up Vert.x instance

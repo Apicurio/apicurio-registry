@@ -3,6 +3,7 @@ package io.apicurio.registry.protobuf.content.refs;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 import io.apicurio.registry.content.refs.ExternalReference;
+import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 
 import java.util.Set;

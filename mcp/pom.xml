@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>3.1.6-SNAPSHOT</version>
+        <version>3.1.7-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -126,6 +126,7 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
+                            <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
                             <finalName>${project.artifactId}-${project.version}</finalName>
                             <attach>true</attach>
                             <descriptors>

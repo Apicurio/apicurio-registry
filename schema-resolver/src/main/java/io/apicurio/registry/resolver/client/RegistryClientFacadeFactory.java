@@ -1,8 +1,9 @@
 package io.apicurio.registry.resolver.client;
 
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.client.RegistryV2ClientFactory;
+import io.apicurio.registry.client.common.HttpAdapterType;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.vertx.core.Vertx;
 
@@ -51,8 +52,24 @@ public class RegistryClientFacadeFactory {
         final String baseUrl = config.getRegistryUrl();
         final String tokenEndpoint = config.getTokenEndpoint();
         final String username = config.getAuthUsername();
+        final String httpAdapterStr = config.getHttpAdapter();
 
-        RegistryClientOptions clientOptions = RegistryClientOptions.create(baseUrl, vertx);
+        // Determine which HTTP adapter to use
+        HttpAdapterType httpAdapterType = parseHttpAdapterType(httpAdapterStr);
+        RegistryClientOptions clientOptions;
+
+        if (httpAdapterType == HttpAdapterType.JDK) {
+            // Use JDK adapter - don't pass Vertx instance
+            clientOptions = RegistryClientOptions.create(baseUrl)
+                    .httpAdapter(HttpAdapterType.JDK);
+        } else if (httpAdapterType == HttpAdapterType.VERTX) {
+            // Use Vert.x adapter explicitly
+            clientOptions = RegistryClientOptions.create(baseUrl, vertx)
+                    .httpAdapter(HttpAdapterType.VERTX);
+        } else {
+            // AUTO - use Vert.x if available (pass vertx instance for backward compatibility)
+            clientOptions = RegistryClientOptions.create(baseUrl, vertx);
+        }
         try {
             if (tokenEndpoint != null) {
                 final String clientId = config.getAuthClientId();
@@ -158,4 +175,18 @@ public class RegistryClientFacadeFactory {
         return new RegistryClientFacadeImpl_v2(client);
     }
 
+    private static HttpAdapterType parseHttpAdapterType(String httpAdapterStr) {
+        if (httpAdapterStr == null) {
+            return HttpAdapterType.AUTO;
+        }
+        switch (httpAdapterStr.toUpperCase()) {
+            case "JDK":
+                return HttpAdapterType.JDK;
+            case "VERTX":
+                return HttpAdapterType.VERTX;
+            case "AUTO":
+            default:
+                return HttpAdapterType.AUTO;
+        }
+    }
 }

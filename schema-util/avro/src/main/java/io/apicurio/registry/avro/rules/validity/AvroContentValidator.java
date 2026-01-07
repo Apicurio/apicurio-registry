@@ -1,35 +1,26 @@
 package io.apicurio.registry.avro.rules.validity;
 
+import io.apicurio.registry.avro.content.refs.AvroReferenceFinder;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
-import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.RuleType;
-import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A content validator implementation for the Avro content type.
  */
 public class AvroContentValidator implements ContentValidator {
-
-    private static final String DUMMY_AVRO_RECORD = """
-            {
-                 "type": "record",
-                 "namespace": "NAMESPACE",
-                 "name": "NAME",
-                 "fields": [
-                   { "name": "first", "type": "string" },
-                   { "name": "last", "type": "string" }
-                 ]
-            }""";
 
     /**
      * Constructor.
@@ -63,29 +54,31 @@ public class AvroContentValidator implements ContentValidator {
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
-        try {
-            Schema.Parser parser = new Schema.Parser();
-            references.forEach(ref -> {
-                String refName = ref.getName();
-                if (refName != null && refName.contains(".")) {
-                    int idx = refName.lastIndexOf('.');
-                    String ns = refName.substring(0, idx);
-                    String name = refName.substring(idx + 1);
-                    parser.parse(DUMMY_AVRO_RECORD.replace("NAMESPACE", ns).replace("NAME", name));
-                }
-            });
-            parser.parse(content.getContent().content());
-        } catch (AvroTypeException e) {
-            // This isn't great, but I don't know how else to detect if the reason for the parse failure
-            // is because of a missing defined type or some OTHER parse exception.
-            if (e.getMessage().startsWith("Undefined schema")) {
-                RuleViolation violation = new RuleViolation("Missing reference detected.", e.getMessage());
-                throw new RuleViolationException("Missing reference detected in Avro artifact.",
-                        RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(),
-                        Collections.singleton(violation));
-            }
-        } catch (Exception e) {
-            // Ignore other errors
+        // Use pre-validation approach: extract all external type references from the schema
+        // and compare them against the mapped reference names.
+        // This avoids relying on fragile error message parsing from Avro exceptions.
+        AvroReferenceFinder referenceFinder = new AvroReferenceFinder();
+        Set<ExternalReference> requiredReferences = referenceFinder.findExternalReferences(content);
+
+        // Collect all mapped reference names
+        Set<String> mappedReferenceNames = references.stream()
+                .map(ArtifactReference::getName)
+                .filter(name -> name != null)
+                .collect(Collectors.toSet());
+
+        // Find any missing references (required but not mapped)
+        Set<String> missingReferences = requiredReferences.stream()
+                .map(ExternalReference::getResource)
+                .filter(refName -> !mappedReferenceNames.contains(refName))
+                .collect(Collectors.toSet());
+
+        if (!missingReferences.isEmpty()) {
+            String missingList = String.join(", ", missingReferences);
+            RuleViolation violation = new RuleViolation("Missing reference detected.",
+                    "Undefined schema: " + missingList);
+            throw new RuleViolationException("Missing reference detected in Avro artifact.",
+                    RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(),
+                    Set.of(violation));
         }
     }
 

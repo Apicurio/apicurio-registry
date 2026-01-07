@@ -2,6 +2,8 @@ package io.apicurio.registry.resolver.cache;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -16,6 +18,8 @@ import java.util.function.Supplier;
  * Expiration and Retry Cache
  */
 public class ERCache<V> {
+
+    private static final Logger log = LoggerFactory.getLogger(ERCache.class);
 
     private final Map<Long, WrappedValue<V>> globalIdIndex = new ConcurrentHashMap<>();
     private final Map<ContentWithReferences, WrappedValue<V>> contentIndex = new ConcurrentHashMap<>();
@@ -238,15 +242,15 @@ public class ERCache<V> {
                 // && (((ApiException) e.getCause().getCause()).getResponseStatusCode() == 429)))
                 if (i == retries || !(e.getCause() != null && e.getCause() instanceof ApiException
                         && (((ApiException) e.getCause()).getResponseStatusCode() == 429))) {
-                    e.printStackTrace();
+                    log.error("Cache load failed after {} retries", i, e);
                     return Result.error(new RuntimeException(e));
                 }
             }
             try {
                 Thread.sleep(backoff.toMillis());
             } catch (InterruptedException e) {
-                // Ignore
-                e.printStackTrace();
+                log.debug("Cache retry backoff interrupted", e);
+                Thread.currentThread().interrupt();
             }
         }
         return Result.error(new IllegalStateException("Unreachable."));

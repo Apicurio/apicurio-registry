@@ -10,7 +10,7 @@ import { PageProperties } from "@app/pages";
 export const RootRedirectPage: FunctionComponent<PageProperties> = () => {
     const appNav: AppNavigation = useAppNavigation();
 
-    const redirect: string = appNav.createLink("/explore");
+    const redirect: string = appNav.createLink("/dashboard");
     return (
         <Navigate to={redirect} replace />
     );

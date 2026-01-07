@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
+import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 
 import java.util.HashSet;
@@ -20,13 +21,14 @@ public class RamlReferenceFinder implements ReferenceFinder {
 
     @Override
     public Set<ExternalReference> findExternalReferences(TypedContent content) {
-        Set<ExternalReference> externalReferences = new HashSet<>();
         try {
+            Set<ExternalReference> externalReferences = new HashSet<>();
             JsonNode root = mapper.readTree(content.getContent().content());
             findRefs(root, externalReferences);
+            return externalReferences;
         } catch (JsonProcessingException e) {
+            throw new ReferenceFinderException("Error finding external references in a RAML file.", e);
         }
-        return externalReferences;
     }
 
     private void findRefs(JsonNode node, Set<ExternalReference> externalReferences) {

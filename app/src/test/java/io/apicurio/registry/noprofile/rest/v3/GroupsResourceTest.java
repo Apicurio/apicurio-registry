@@ -1,6 +1,9 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.GroupSearchResults;
@@ -1855,16 +1858,133 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200).body("openapi", equalTo("3.0.2"))
                 .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", endsWith(
-                        "/apis/registry/v3/groups/GroupsResourceTest/artifacts/testGetArtifactVersionWithReferences%2FReferencedTypes/versions/1?references=REWRITE#/components/schemas/Widget"));
+                        "/apis/registry/v3/groups/GroupsResourceTest/artifacts/testGetArtifactVersionWithReferences%2FReferencedTypes/versions/1/content?references=REWRITE#/components/schemas/Widget"));
 
         // Get the content of the artifact inlining/dereferencing external references
+        // After DEREFERENCE, the $ref should be replaced with the actual inlined content
         given().when().pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testGetArtifactVersionWithReferences/WithExternalRef")
                 .queryParam("references", "DEREFERENCE")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200).body("openapi", equalTo("3.0.2"))
-                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo(
-                        "GroupsResourceTest:testGetArtifactVersionWithReferences/ReferencedTypes:1:./referenced-types.json#/components/schemas/Widget"));
+                .body("paths.widgets.get.responses.200.content.json.schema.items.title", equalTo("Root Type for Widget"))
+                .body("paths.widgets.get.responses.200.content.json.schema.items.type", equalTo("object"))
+                .body("paths.widgets.get.responses.200.content.json.schema.items.properties.name.type", equalTo("string"))
+                .body("paths.widgets.get.responses.200.content.json.schema.items.properties.description.type", equalTo("string"));
+    }
+
+    /**
+     * Test that verifies the Content-Type header is preserved when using ?references=REWRITE with YAML content.
+     * This test reproduces issue #6712 where YAML AsyncAPI content would be rewritten correctly but served with
+     * mismatched Content-Type header, causing JSON parsing errors.
+     *
+     * This test uses the exact structure from the user's report:
+     * - AsyncAPI 3.0.0 in YAML format
+     * - References to Avro schema files (JSON format)
+     * - Repository: https://github.com/ZenWave360/zenwave-playground/tree/main/examples/asyncapi-shopping-cart/apis
+     */
+    @Test
+    public void testGetArtifactVersionWithReferencesYamlContentType() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String avroSchemaContent = resourceToString("avro/ShoppingCartCreated.avsc");
+        String asyncApiContent = resourceToString("asyncapi-shopping-cart.yml");
+
+        // Create the Avro schema artifact that will be referenced
+        createArtifact(groupId, "testYamlReferences/ShoppingCartCreated", ArtifactType.AVRO,
+                avroSchemaContent, ContentTypes.APPLICATION_JSON);
+
+        // Create the AsyncAPI artifact (YAML) that references the Avro schema
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("./avro/ShoppingCartCreated.avsc").groupId(groupId)
+                .artifactId("testYamlReferences/ShoppingCartCreated").version("1").build());
+        createArtifactWithReferences(groupId, "testYamlReferences/ShoppingCartAPI",
+                ArtifactType.ASYNCAPI, asyncApiContent, ContentTypes.APPLICATION_YAML, refs);
+
+        // Get the content of the artifact preserving external references
+        // This should return YAML with YAML content type
+        String preservedContent = given().when().pathParam("groupId", groupId)
+                .pathParam("artifactId", "testYamlReferences/ShoppingCartAPI")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .contentType(ContentTypes.APPLICATION_YAML)
+                .extract().asString();
+
+        // Verify the preserved content is valid YAML by parsing it
+        try {
+            JsonNode preservedYaml = ContentTypeUtil.parseYaml(ContentHandle.create(preservedContent));
+            Assertions.assertNotNull(preservedYaml, "Preserved content should be valid YAML");
+            Assertions.assertTrue(preservedYaml.has("asyncapi"), "YAML should have 'asyncapi' field");
+            Assertions.assertEquals("3.0.0", preservedYaml.get("asyncapi").asText(),
+                    "Should be AsyncAPI 3.0.0");
+        } catch (IOException e) {
+            Assertions.fail("Failed to parse preserved content as YAML: " + e.getMessage());
+        }
+
+        // Get the content of the artifact rewriting external references
+        // CRITICAL: This should return YAML content with YAML content type (not JSON content type)
+        // Bug #6712: Currently this fails because the response uses artifact.getContentType() instead of
+        // contentToReturn.getContentType(), causing a mismatch between the content format and Content-Type header
+        io.restassured.response.Response rawResponse = given().when().pathParam("groupId", groupId)
+                .pathParam("artifactId", "testYamlReferences/ShoppingCartAPI")
+                .queryParam("references", "REWRITE")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content");
+
+        // Verify the response status
+        Assertions.assertEquals(200, rawResponse.getStatusCode(),
+                "Expected 200 OK but got: " + rawResponse.getStatusCode() + " - " + rawResponse.asString());
+
+        // Verify the Content-Type header is YAML (not JSON)
+        String contentType = rawResponse.getContentType();
+        Assertions.assertNotNull(contentType, "Content-Type header should not be null");
+        Assertions.assertTrue(contentType.contains("yaml") || contentType.contains("yml"),
+                "Content-Type should be YAML but was: " + contentType);
+
+        // Verify the content is valid YAML by parsing it
+        String responseBody = rawResponse.asString();
+        JsonNode yamlNode = null;
+        try {
+            yamlNode = ContentTypeUtil.parseYaml(ContentHandle.create(responseBody));
+            Assertions.assertNotNull(yamlNode, "Response should be valid YAML");
+            Assertions.assertTrue(yamlNode.has("asyncapi"), "YAML should have 'asyncapi' field");
+            Assertions.assertEquals("3.0.0", yamlNode.get("asyncapi").asText(),
+                    "Should be AsyncAPI 3.0.0");
+        } catch (IOException e) {
+            Assertions.fail("Failed to parse response as YAML: " + e.getMessage() + ". Body starts with: "
+                    + responseBody.substring(0, Math.min(100, responseBody.length())));
+        }
+
+        // Verify the reference was rewritten to point to the REST API
+        // Navigate to the $ref field: components -> messages -> ShoppingCartCreatedMessage -> payload -> schema -> $ref
+        JsonNode components = yamlNode.get("components");
+        Assertions.assertNotNull(components, "YAML should have 'components' field");
+
+        JsonNode messages = components.get("messages");
+        Assertions.assertNotNull(messages, "Components should have 'messages' field");
+
+        JsonNode shoppingCartCreated = messages.get("ShoppingCartCreatedMessage");
+        Assertions.assertNotNull(shoppingCartCreated, "Messages should have 'ShoppingCartCreatedMessage' field");
+
+        JsonNode payload = shoppingCartCreated.get("payload");
+        Assertions.assertNotNull(payload, "ShoppingCartCreatedMessage should have 'payload' field");
+
+        JsonNode schema = payload.get("schema");
+        Assertions.assertNotNull(schema, "Payload should have 'schema' field");
+
+        JsonNode ref = schema.get("$ref");
+        Assertions.assertNotNull(ref, "Schema should have '$ref' field");
+
+        String rewrittenRef = ref.asText();
+        Assertions.assertNotNull(rewrittenRef, "Rewritten reference should not be null");
+
+        // Verify the reference was rewritten to a REST API URL
+        Assertions.assertTrue(rewrittenRef.contains("/apis/registry/v3/groups/"),
+                "Reference should be rewritten to REST API URL but was: " + rewrittenRef);
+        Assertions.assertTrue(rewrittenRef.contains("/artifacts/"),
+                "Reference should contain artifact path but was: " + rewrittenRef);
+        Assertions.assertTrue(rewrittenRef.contains("testYamlReferences%2FShoppingCartCreated"),
+                "Reference should point to the Avro artifact but was: " + rewrittenRef);
+        Assertions.assertTrue(rewrittenRef.contains("?references=REWRITE"),
+                "Reference should contain references=REWRITE parameter but was: " + rewrittenRef);
     }
 
 }

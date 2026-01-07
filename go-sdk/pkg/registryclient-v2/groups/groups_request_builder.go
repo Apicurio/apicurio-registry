@@ -77,6 +77,8 @@ func NewGroupsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 
 // Get returns a list of all groups.  This list is paged.
 // returns a GroupSearchResultsable when successful
+// returns a AuthError error when the service returns a 401 status code
+// returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 500 status code
 func (m *GroupsRequestBuilder) Get(ctx context.Context, requestConfiguration *GroupsRequestBuilderGetRequestConfiguration) (idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.GroupSearchResultsable, error) {
 	requestInfo, err := m.ToGetRequestInformation(ctx, requestConfiguration)
@@ -84,6 +86,8 @@ func (m *GroupsRequestBuilder) Get(ctx context.Context, requestConfiguration *Gr
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
+		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"500": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 	}
 	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateGroupSearchResultsFromDiscriminatorValue, errorMapping)
@@ -98,6 +102,8 @@ func (m *GroupsRequestBuilder) Get(ctx context.Context, requestConfiguration *Gr
 
 // Post creates a new group.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group already exist (HTTP error `409`)
 // returns a GroupMetaDataable when successful
+// returns a AuthError error when the service returns a 401 status code
+// returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 409 status code
 // returns a Error error when the service returns a 500 status code
 func (m *GroupsRequestBuilder) Post(ctx context.Context, body idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateGroupMetaDataable, requestConfiguration *GroupsRequestBuilderPostRequestConfiguration) (idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.GroupMetaDataable, error) {
@@ -106,6 +112,8 @@ func (m *GroupsRequestBuilder) Post(ctx context.Context, body idce6df71aec15bcaf
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
+		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"409": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 		"500": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 	}

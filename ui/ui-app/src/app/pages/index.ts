@@ -1,6 +1,7 @@
 export * from "./404";
 export * from "./artifact";
 export * from "./branch";
+export * from "./dashboard";
 export * from "./drafts";
 export * from "./editor";
 export * from "./explore";

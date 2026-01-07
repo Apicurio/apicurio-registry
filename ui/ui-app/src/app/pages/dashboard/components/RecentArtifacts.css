@@ -1,0 +1,70 @@
+.recent-artifacts-card {
+    height: 100%;
+}
+
+.recent-artifacts-card .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+.recent-artifacts-card .empty-state {
+    text-align: center;
+    color: #6a6e73;
+    padding: 32px 16px;
+}
+
+.recent-artifacts-card .artifacts-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.recent-artifacts-card .artifact-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #d2d2d2;
+}
+
+.recent-artifacts-card .artifact-item:last-child {
+    border-bottom: none;
+}
+
+.recent-artifacts-card .artifact-icon {
+    margin-right: 12px;
+    font-size: 20px;
+    color: #0066cc;
+}
+
+.recent-artifacts-card .artifact-info {
+    min-width: 0;
+}
+
+.recent-artifacts-card .artifact-name {
+    font-weight: 500;
+    color: #0066cc;
+    text-decoration: none;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recent-artifacts-card .artifact-name:hover {
+    text-decoration: underline;
+}
+
+.recent-artifacts-card .artifact-meta {
+    font-size: 12px;
+    color: #6a6e73;
+    margin-top: 2px;
+}
+
+.recent-artifacts-card .artifact-meta .separator {
+    margin: 0 4px;
+}
+
+.recent-artifacts-card .artifact-date {
+    font-size: 12px;
+    color: #6a6e73;
+    white-space: nowrap;
+}

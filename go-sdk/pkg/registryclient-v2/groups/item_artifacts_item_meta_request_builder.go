@@ -60,6 +60,8 @@ func NewItemArtifactsItemMetaRequestBuilder(rawUrl string, requestAdapter i2ae41
 
 // Get gets the metadata for an artifact in the registry, based on the latest version. If the latest version of the artifact is marked as `DISABLED`, the next available non-disabled version will be used. The returned metadata includesboth generated (read-only) and editable metadata (such as name and description).This operation can fail for the following reasons:* No artifact with this `artifactId` exists  or all versions are `DISABLED` (HTTP error `404`)* A server error occurred (HTTP error `500`)
 // returns a ArtifactMetaDataable when successful
+// returns a AuthError error when the service returns a 401 status code
+// returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 404 status code
 // returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemMetaRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemArtifactsItemMetaRequestBuilderGetRequestConfiguration) (idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.ArtifactMetaDataable, error) {
@@ -68,6 +70,8 @@ func (m *ItemArtifactsItemMetaRequestBuilder) Get(ctx context.Context, requestCo
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
+		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"404": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 		"500": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 	}
@@ -83,6 +87,8 @@ func (m *ItemArtifactsItemMetaRequestBuilder) Get(ctx context.Context, requestCo
 
 // Post gets the metadata for an artifact that matches the raw content.  Searches the registryfor a version of the given artifact matching the content provided in the body of thePOST.This operation can fail for the following reasons:* Provided content (request body) was empty (HTTP error `400`)* No artifact with the `artifactId` exists (HTTP error `404`)* No artifact version matching the provided content exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 // returns a VersionMetaDataable when successful
+// returns a AuthError error when the service returns a 401 status code
+// returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 404 status code
 // returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemMetaRequestBuilder) Post(ctx context.Context, body idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.ArtifactContentable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPostRequestConfiguration) (idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.VersionMetaDataable, error) {
@@ -91,6 +97,8 @@ func (m *ItemArtifactsItemMetaRequestBuilder) Post(ctx context.Context, body idc
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
+		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"404": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 		"500": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 	}
@@ -105,6 +113,8 @@ func (m *ItemArtifactsItemMetaRequestBuilder) Post(ctx context.Context, body idc
 }
 
 // Put updates the editable parts of the artifact's metadata.  Not all metadata fields canbe updated.  For example, `createdOn` and `createdBy` are both read-only properties.This operation can fail for the following reasons:* No artifact with the `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a AuthError error when the service returns a 401 status code
+// returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 404 status code
 // returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemMetaRequestBuilder) Put(ctx context.Context, body idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.EditableMetaDataable, requestConfiguration *ItemArtifactsItemMetaRequestBuilderPutRequestConfiguration) error {
@@ -113,6 +123,8 @@ func (m *ItemArtifactsItemMetaRequestBuilder) Put(ctx context.Context, body idce
 		return err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
+		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"404": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 		"500": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 	}

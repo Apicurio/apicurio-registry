@@ -74,6 +74,31 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Cache Kiota binary
+        uses: actions/cache@v4
+        id: kiota-cache
+        with:
+          path: ~/.kiota
+          key: kiota-1.28.0-linux-x64
+
+      - name: Download Kiota binary
+        if: steps.kiota-cache.outputs.cache-hit != 'true'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            mkdir -p ~/.kiota
+            curl -L --retry 3 --retry-delay 5 \
+              -o ~/.kiota/kiota-linux-x64.zip \
+              https://github.com/microsoft/kiota/releases/download/v1.28.0/linux-x64.zip
+            unzip -o ~/.kiota/kiota-linux-x64.zip -d ~/.kiota/
+            chmod +x ~/.kiota/kiota
+
+      - name: Add Kiota to PATH
+        run: echo "$HOME/.kiota" >> $GITHUB_PATH
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -145,7 +170,7 @@ jobs:
       - name: Build Registry
         run: |
           cd registry
-          ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dkiota.system=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Registry UI
         working-directory: registry/ui

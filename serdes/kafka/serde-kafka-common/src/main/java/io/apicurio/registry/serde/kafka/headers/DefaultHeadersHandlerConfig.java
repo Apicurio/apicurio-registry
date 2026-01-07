@@ -65,6 +65,26 @@ public class DefaultHeadersHandlerConfig extends SerdeConfig {
         return this.getString(HEADER_VALUE_VERSION_OVERRIDE_NAME);
     }
 
+    public boolean useSchemaFromHeaders() {
+        return this.getBoolean(USE_SCHEMA_FROM_HEADERS);
+    }
+
+    public String getKeySchemaHeader() {
+        return this.getString(HEADER_KEY_SCHEMA_OVERRIDE_NAME);
+    }
+
+    public String getValueSchemaHeader() {
+        return this.getString(HEADER_VALUE_SCHEMA_OVERRIDE_NAME);
+    }
+
+    public String getKeySchemaTypeHeader() {
+        return this.getString(HEADER_KEY_SCHEMA_TYPE_OVERRIDE_NAME);
+    }
+
+    public String getValueSchemaTypeHeader() {
+        return this.getString(HEADER_VALUE_SCHEMA_TYPE_OVERRIDE_NAME);
+    }
+
     @Override
     protected Map<String, ?> getDefaults() {
         Map<String, Object> joint = new HashMap<>(super.getDefaults());
@@ -84,7 +104,11 @@ public class DefaultHeadersHandlerConfig extends SerdeConfig {
             entry(HEADER_VALUE_CONTENT_HASH_OVERRIDE_NAME, HEADER_VALUE_CONTENT_HASH),
             entry(HEADER_VALUE_GROUP_ID_OVERRIDE_NAME, HEADER_VALUE_GROUP_ID),
             entry(HEADER_VALUE_ARTIFACT_ID_OVERRIDE_NAME, HEADER_VALUE_ARTIFACT_ID),
-            entry(HEADER_VALUE_VERSION_OVERRIDE_NAME, HEADER_VALUE_VERSION)
-
+            entry(HEADER_VALUE_VERSION_OVERRIDE_NAME, HEADER_VALUE_VERSION),
+            entry(USE_SCHEMA_FROM_HEADERS, USE_SCHEMA_FROM_HEADERS_DEFAULT),
+            entry(HEADER_KEY_SCHEMA_OVERRIDE_NAME, HEADER_KEY_SCHEMA),
+            entry(HEADER_VALUE_SCHEMA_OVERRIDE_NAME, HEADER_VALUE_SCHEMA),
+            entry(HEADER_KEY_SCHEMA_TYPE_OVERRIDE_NAME, HEADER_KEY_SCHEMA_TYPE),
+            entry(HEADER_VALUE_SCHEMA_TYPE_OVERRIDE_NAME, HEADER_VALUE_SCHEMA_TYPE)
     );
 }

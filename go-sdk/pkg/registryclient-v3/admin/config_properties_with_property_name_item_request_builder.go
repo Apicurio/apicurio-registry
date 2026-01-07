@@ -51,6 +51,8 @@ func NewConfigPropertiesWithPropertyNameItemRequestBuilder(rawUrl string, reques
 }
 
 // Delete resets the value of a single configuration property.  This will return the property toits default value (see external documentation for supported properties and their defaultvalues).This operation may fail for one of the following reasons:* Property not found or not configured (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a ProblemDetails error when the service returns a 401 status code
+// returns a ProblemDetails error when the service returns a 403 status code
 // returns a ProblemDetails error when the service returns a 404 status code
 // returns a ProblemDetails error when the service returns a 500 status code
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Delete(ctx context.Context, requestConfiguration *ConfigPropertiesWithPropertyNameItemRequestBuilderDeleteRequestConfiguration) error {
@@ -59,6 +61,8 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Delete(ctx context.
 		return err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
+		"403": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"404": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"500": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 	}
@@ -71,6 +75,8 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Delete(ctx context.
 
 // Get returns the value of a single configuration property.This operation may fail for one of the following reasons:* Property not found or not configured (HTTP error `404`)* A server error occurred (HTTP error `500`)
 // returns a ConfigurationPropertyable when successful
+// returns a ProblemDetails error when the service returns a 401 status code
+// returns a ProblemDetails error when the service returns a 403 status code
 // returns a ProblemDetails error when the service returns a 404 status code
 // returns a ProblemDetails error when the service returns a 500 status code
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Get(ctx context.Context, requestConfiguration *ConfigPropertiesWithPropertyNameItemRequestBuilderGetRequestConfiguration) (iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.ConfigurationPropertyable, error) {
@@ -79,6 +85,8 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Get(ctx context.Con
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
+		"403": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"404": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"500": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 	}
@@ -93,6 +101,8 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Get(ctx context.Con
 }
 
 // Put updates the value of a single configuration property.This operation may fail for one of the following reasons:* Property not found or not configured (HTTP error `404`)* A server error occurred (HTTP error `500`)
+// returns a ProblemDetails error when the service returns a 401 status code
+// returns a ProblemDetails error when the service returns a 403 status code
 // returns a ProblemDetails error when the service returns a 404 status code
 // returns a ProblemDetails error when the service returns a 500 status code
 func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Put(ctx context.Context, body iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.UpdateConfigurationPropertyable, requestConfiguration *ConfigPropertiesWithPropertyNameItemRequestBuilderPutRequestConfiguration) error {
@@ -101,6 +111,8 @@ func (m *ConfigPropertiesWithPropertyNameItemRequestBuilder) Put(ctx context.Con
 		return err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
+		"403": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"404": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"500": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 	}

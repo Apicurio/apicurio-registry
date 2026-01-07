@@ -146,8 +146,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: 'registry/ui/**/package-lock.json'
 
       - name: Maven Install
         run: |
@@ -289,6 +287,9 @@ jobs:
         with:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Build and Publish Artifact Type Builtins Package
         working-directory: registry/artifact-type-builtins

@@ -796,41 +796,41 @@ The following {registry} configuration options are available for each component 
 |
 |
 |Kafka sql storage sasl token endpoint
+|`apicurio.kafkasql.security.ssl.key.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl key password
+|`apicurio.kafkasql.security.ssl.keystore.location`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore location
+|`apicurio.kafkasql.security.ssl.keystore.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore password
+|`apicurio.kafkasql.security.ssl.keystore.type`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore type
 |`apicurio.kafkasql.security.ssl.truststore.location`
 |`optional<string>`
 |
 |
 |Kafka sql storage ssl truststore location
+|`apicurio.kafkasql.security.ssl.truststore.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl truststore password
 |`apicurio.kafkasql.security.ssl.truststore.type`
 |`optional<string>`
 |
 |
 |Kafka sql storage ssl truststore type
-|`apicurio.kafkasql.security.ssl.truststore.password`
-|`optional<string>`
-|
-|`3.1.0`
-|Kafka sql storage ssl truststore password
-|`apicurio.kafkasql.security.ssl.keystore.location`
-|`optional<string>`
-|
-|`3.1.0`
-|Kafka sql storage ssl keystore location
-|`apicurio.kafkasql.security.ssl.keystore.type`
-|`optional<string>`
-|
-|`3.1.0`
-|Kafka sql storage ssl keystore type
-|`apicurio.kafkasql.security.ssl.keystore.password`
-|`optional<string>`
-|
-|`3.1.0`
-|Kafka sql storage ssl keystore password
-|`apicurio.kafkasql.security.ssl.key.password`
-|`optional<string>`
-|
-|`3.1.0`
-|Kafka sql storage ssl key password
 |`apicurio.kafkasql.snapshot.every.seconds`
 |`string`
 |`86400s`
@@ -850,27 +850,27 @@ The following {registry} configuration options are available for each component 
 |`optional<string>`
 |
 |
-|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.key.password instead. This property will be removed in a future version.
+|Kafka sql storage ssl key password (deprecated, use apicurio.kafkasql.security.ssl.key.password)
 |`apicurio.kafkasql.ssl.keystore.location`
 |`optional<string>`
 |
 |
-|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.keystore.location instead. This property will be removed in a future version.
+|Kafka sql storage ssl keystore location (deprecated, use apicurio.kafkasql.security.ssl.keystore.location)
 |`apicurio.kafkasql.ssl.keystore.password`
 |`optional<string>`
 |
 |
-|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.keystore.password instead. This property will be removed in a future version.
+|Kafka sql storage ssl keystore password (deprecated, use apicurio.kafkasql.security.ssl.keystore.password)
 |`apicurio.kafkasql.ssl.keystore.type`
 |`optional<string>`
 |
 |
-|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.keystore.type instead. This property will be removed in a future version.
+|Kafka sql storage ssl keystore type (deprecated, use apicurio.kafkasql.security.ssl.keystore.type)
 |`apicurio.kafkasql.ssl.truststore.password`
 |`optional<string>`
 |
 |
-|**DEPRECATED** - Use apicurio.kafkasql.security.ssl.truststore.password instead. This property will be removed in a future version.
+|Kafka sql storage ssl truststore password (deprecated, use apicurio.kafkasql.security.ssl.truststore.password)
 |`apicurio.kafkasql.topic`
 |`string`
 |`kafkasql-journal`
@@ -999,6 +999,11 @@ The following {registry} configuration options are available for each component 
 |`apicurio-registry-ui`
 |`3.0.0`
 |The OIDC clientId
+|`apicurio.ui.auth.oidc.load-user-info`
+|`optional<boolean>`
+|
+|`3.1.6`
+|Whether to load user info from the OIDC userinfo endpoint. Defaults to true if not specified. Set to false for OIDC providers like Azure Entra ID where the userinfo endpoint has incompatible audience requirements.
 |`apicurio.ui.auth.oidc.logout-url`
 |`string`
 |`f5`

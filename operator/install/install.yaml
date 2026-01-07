@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
+    app.kubernetes.io/version: 3.1.6
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -933,6 +933,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -1487,6 +1489,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -2047,6 +2051,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -4274,6 +4280,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -4828,6 +4836,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -5388,6 +5398,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -6711,7 +6723,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
+    app.kubernetes.io/version: 3.1.6
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -6723,7 +6735,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
+    app.kubernetes.io/version: 3.1.6
   name: apicurio-registry-operator-clusterrole
 rules:
 - apiGroups:
@@ -6792,7 +6804,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
+    app.kubernetes.io/version: 3.1.6
   name: apicurio-registry-operator-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -6812,8 +6824,8 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
-  name: apicurio-registry-operator-v3.1.5-snapshot
+    app.kubernetes.io/version: 3.1.6
+  name: apicurio-registry-operator-v3.1.6
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -6824,7 +6836,7 @@ spec:
       app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.1.5-SNAPSHOT
+      app.kubernetes.io/version: 3.1.6
   template:
     metadata:
       labels:
@@ -6833,7 +6845,7 @@ spec:
         app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.1.5-SNAPSHOT
+        app.kubernetes.io/version: 3.1.6
     spec:
       containers:
       - env:

@@ -35,6 +35,8 @@ func NewItemArtifactsItemTestRequestBuilder(rawUrl string, requestAdapter i2ae41
 }
 
 // Put tests whether an update to the artifact's content *would* succeed for the provided content.Ultimately, this applies any rules configured for the artifact against the given contentto determine whether the rules would pass or fail, but without actually updating the artifactcontent.The body of the request should be the raw content of the artifact.  This is typically in JSON format for *most* of the supported types, but may be in another format for a few (for example, `PROTOBUF`).The update could fail for a number of reasons including:* Provided content (request body) was empty (HTTP error `400`)* No artifact with the `artifactId` exists (HTTP error `404`)* The new content violates one of the rules configured for the artifact (HTTP error `409`)* The provided artifact type is not recognized (HTTP error `404`)* A server error occurred (HTTP error `500`)When successful, this operation simply returns a *No Content* response.  This responseindicates that the content is valid against the configured content rules for the artifact (or the global rules if no artifact rules are enabled).
+// returns a AuthError error when the service returns a 401 status code
+// returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 404 status code
 // returns a RuleViolationError error when the service returns a 409 status code
 // returns a Error error when the service returns a 500 status code
@@ -44,6 +46,8 @@ func (m *ItemArtifactsItemTestRequestBuilder) Put(ctx context.Context, body []by
 		return err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
+		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"404": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 		"409": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateRuleViolationErrorFromDiscriminatorValue,
 		"500": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,

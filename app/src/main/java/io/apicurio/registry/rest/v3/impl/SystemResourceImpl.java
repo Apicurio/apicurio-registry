@@ -101,6 +101,8 @@ public class SystemResourceImpl implements SystemResource {
             if (!"f5".equals(uiConfig.authOidcLogoutUrl)) {
                 options.put("logoutUrl", uiConfig.authOidcLogoutUrl);
             }
+            // Only include loadUserInfo if explicitly configured
+            uiConfig.loadUserInfo.ifPresent(loadUserInfo -> options.put("loadUserInfo", String.valueOf(loadUserInfo)));
             rval.setOptions(options);
         }
         return rval;

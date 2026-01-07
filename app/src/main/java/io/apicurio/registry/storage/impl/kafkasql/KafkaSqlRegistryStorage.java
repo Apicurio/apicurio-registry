@@ -84,7 +84,7 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @PersistenceTimeoutReadinessApply
 @StorageMetricsApply
 @Logged
-@LookupIfProperty(name = "storage.type", stringValue = "kafkasql")
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBase implements RegistryStorage {
 
     @Inject

@@ -1,6 +1,8 @@
 package io.apicurio.registry.rest.wellknown;
 
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
+import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -8,6 +10,8 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
+import java.util.List;
 
 /**
  * JAX-RS resource for A2A protocol well-known endpoints.
@@ -47,4 +51,29 @@ public interface WellKnownResource {
             @PathParam("groupId") String groupId,
             @PathParam("artifactId") String artifactId,
             @QueryParam("version") String version);
+
+    /**
+     * Search for registered Agent Cards by various criteria.
+     * This enables discovery of agents based on their capabilities and skills.
+     *
+     * @param name filter by agent name (partial match)
+     * @param skill filter by skill ID (can be specified multiple times)
+     * @param capability filter by capability (e.g., "streaming:true")
+     * @param inputMode filter by input mode (e.g., "text", "image")
+     * @param outputMode filter by output mode
+     * @param offset pagination offset
+     * @param limit pagination limit
+     * @return search results containing matching agent cards
+     */
+    @GET
+    @Path("/agents")
+    @Produces(MediaType.APPLICATION_JSON)
+    AgentSearchResults searchAgents(
+            @QueryParam("name") String name,
+            @QueryParam("skill") List<String> skills,
+            @QueryParam("capability") List<String> capabilities,
+            @QueryParam("inputMode") List<String> inputModes,
+            @QueryParam("outputMode") List<String> outputModes,
+            @QueryParam("offset") @DefaultValue("0") Integer offset,
+            @QueryParam("limit") @DefaultValue("20") Integer limit);
 }

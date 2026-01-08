@@ -1,8 +1,12 @@
 package io.apicurio.registry.rest.wellknown;
 
 import io.apicurio.registry.a2a.A2AConfig;
+import io.apicurio.registry.a2a.AgentCardLabelExtractor;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
+import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
+import io.apicurio.registry.a2a.rest.beans.AgentSearchResult;
+import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -16,7 +20,12 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
@@ -29,6 +38,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of the A2A well-known endpoint resource.
@@ -98,6 +113,107 @@ public class WellKnownResourceImpl implements WellKnownResource {
         } catch (ArtifactNotFoundException | VersionNotFoundException e) {
             throw new NotFoundException("Agent Card not found: " + groupId + "/" + artifactId);
         }
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
+            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit) {
+        if (!a2aConfig.isEnabled()) {
+            throw new NotFoundException("A2A support is disabled");
+        }
+
+        Set<SearchFilter> filters = new HashSet<>();
+
+        // Always filter by AGENT_CARD artifact type
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
+
+        // Filter by name if provided
+        if (!StringUtil.isEmpty(name)) {
+            filters.add(SearchFilter.ofName(name));
+        }
+
+        // Filter by skills (stored as labels: a2a.skill.<id>=<name>)
+        if (skills != null && !skills.isEmpty()) {
+            for (String skill : skills) {
+                filters.add(SearchFilter.ofLabel(AgentCardLabelExtractor.LABEL_SKILL_PREFIX + skill));
+            }
+        }
+
+        // Filter by capabilities (stored as labels: a2a.capability.<name>=<value>)
+        if (capabilities != null && !capabilities.isEmpty()) {
+            for (String capability : capabilities) {
+                // Parse capability:value format (e.g., "streaming:true")
+                String[] parts = capability.split(":", 2);
+                String capKey = parts[0];
+                String capValue = parts.length > 1 ? parts[1] : "true";
+                filters.add(SearchFilter.ofLabel(
+                        AgentCardLabelExtractor.LABEL_CAPABILITY_PREFIX + capKey, capValue));
+            }
+        }
+
+        // Filter by input modes
+        if (inputModes != null && !inputModes.isEmpty()) {
+            for (String mode : inputModes) {
+                filters.add(SearchFilter.ofLabel(AgentCardLabelExtractor.LABEL_INPUT_MODE_PREFIX + mode, "true"));
+            }
+        }
+
+        // Filter by output modes
+        if (outputModes != null && !outputModes.isEmpty()) {
+            for (String mode : outputModes) {
+                filters.add(SearchFilter.ofLabel(AgentCardLabelExtractor.LABEL_OUTPUT_MODE_PREFIX + mode, "true"));
+            }
+        }
+
+        // Execute search
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, offset, limit);
+
+        // Convert to agent search results
+        List<AgentSearchResult> agents = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            agents.add(convertToAgentSearchResult(artifact));
+        }
+
+        return AgentSearchResults.builder()
+                .count(results.getCount())
+                .agents(agents)
+                .build();
+    }
+
+    private AgentSearchResult convertToAgentSearchResult(SearchedArtifactDto artifact) {
+        Map<String, String> labels = artifact.getLabels();
+
+        // Extract skills from labels
+        List<String> skills = new ArrayList<>();
+        if (labels != null) {
+            for (Map.Entry<String, String> entry : labels.entrySet()) {
+                if (entry.getKey().startsWith(AgentCardLabelExtractor.LABEL_SKILL_PREFIX)) {
+                    skills.add(entry.getKey().substring(AgentCardLabelExtractor.LABEL_SKILL_PREFIX.length()));
+                }
+            }
+        }
+
+        // Extract capabilities from labels
+        boolean streaming = "true".equals(
+                labels != null ? labels.get(AgentCardLabelExtractor.LABEL_CAPABILITY_PREFIX + "streaming") : null);
+        boolean pushNotifications = "true".equals(
+                labels != null ? labels.get(AgentCardLabelExtractor.LABEL_CAPABILITY_PREFIX + "pushNotifications") : null);
+
+        return AgentSearchResult.builder()
+                .groupId(artifact.getGroupId())
+                .artifactId(artifact.getArtifactId())
+                .name(artifact.getName())
+                .description(artifact.getDescription())
+                .owner(artifact.getOwner())
+                .createdOn(artifact.getCreatedOn().getTime())
+                .skills(skills)
+                .capabilities(AgentCapabilities.builder()
+                        .streaming(streaming)
+                        .pushNotifications(pushNotifications)
+                        .build())
+                .build();
     }
 
     private String getBaseUrl() {

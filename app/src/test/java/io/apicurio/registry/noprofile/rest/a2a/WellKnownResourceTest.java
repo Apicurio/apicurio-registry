@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
@@ -54,7 +55,34 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                         "name": "Test Skill",
                         "description": "A test skill"
                     }
-                ]
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+            """;
+
+    private static final String STREAMING_AGENT_CARD = """
+            {
+                "name": "StreamingAgent",
+                "description": "An agent with streaming capabilities",
+                "version": "2.0.0",
+                "url": "https://example.com/streaming-agent",
+                "capabilities": {
+                    "streaming": true,
+                    "pushNotifications": true
+                },
+                "skills": [
+                    {
+                        "id": "data-processing",
+                        "name": "Data Processing"
+                    },
+                    {
+                        "id": "real-time-analysis",
+                        "name": "Real-time Analysis"
+                    }
+                ],
+                "defaultInputModes": ["text", "image"],
+                "defaultOutputModes": ["text"]
             }
             """;
 
@@ -162,5 +190,74 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .get("/.well-known/agents/{groupId}/{artifactId}")
                 .then()
                 .statusCode(404);
+    }
+
+    @Test
+    public void testSearchAgents() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create two agent cards
+        createAgentCard(groupId, "agent1", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "agent2", STREAMING_AGENT_CARD);
+
+        // Search for all agents (no filters)
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(2))
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testSearchAgentsWithPagination() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create multiple agent cards
+        for (int i = 0; i < 3; i++) {
+            createAgentCard(groupId, "agent-page-" + i, AGENT_CARD_CONTENT);
+        }
+
+        // Search with pagination
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("offset", 0)
+                .queryParam("limit", 2)
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(3))
+                .body("agents", hasSize(2));
+    }
+
+    @Test
+    public void testSearchAgentsEndpointReturnsCorrectStructure() throws Exception {
+        // Test that the search endpoint returns the expected structure
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    private void createAgentCard(String groupId, String artifactId, String content) throws Exception {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(content);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        createArtifact.setFirstVersion(createVersion);
+
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
     }
 }

@@ -4,15 +4,20 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.PodCondition;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.operator.Tags.KAFKA;
+import static io.apicurio.registry.operator.Tags.SLOW;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@Tag(KAFKA)
+@Tag(SLOW)
 public class KafkaSqlITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlITTest.class);

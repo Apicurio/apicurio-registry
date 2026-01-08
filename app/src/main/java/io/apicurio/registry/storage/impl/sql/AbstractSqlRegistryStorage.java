@@ -106,11 +106,10 @@ import io.apicurio.registry.storage.impl.sql.mappers.GroupMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RoleMappingDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.RuleConfigurationDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactWithCountMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedBranchMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupWithCountMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionWithCountMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.VersionStateMapper;
@@ -997,7 +996,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
             StringBuilder where = new StringBuilder();
-            StringBuilder joins = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
 
             // Formulate the WHERE clause for both queries
@@ -1116,18 +1114,19 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(")");
                         break;
                     case labels:
-                        // Use EXISTS subquery for label search (compatible with all databases)
+                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
+                        // Note: convert search to lowercase when searching for labels (case-insensitivity
+                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
-                        where.append(op);
-                        where.append("(SELECT l.* FROM artifact_labels l WHERE l.labelKey = ?");
+                        where.append(
+                                "EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue = ?");
+                            where.append(" AND l.labelValue " + op + " ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });
@@ -1189,17 +1188,23 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Use window function for combined count+data query
-            String artifactsQuerySql = sqlStatements.selectWithCountWindowTemplate("a.*", "artifacts", "a",
-                    joins.toString(), where.toString(), orderByQuery.toString());
+            // Query for the artifacts
+            String artifactsQuerySql = sqlStatements.selectTableTemplate("a.*", "artifacts", "a",
+                    where.toString(), orderByQuery.toString());
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
+
+            String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts", "a",
+                    where.toString());
+            Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(artifactsQuery, idx);
+                binder.bind(countQuery, idx);
                 idx++;
             }
+            // TODO find a better way to swap arguments
             if ("mssql".equals(sqlStatements.dbType())) {
                 artifactsQuery.bind(idx++, offset);
                 artifactsQuery.bind(idx++, limit);
@@ -1208,21 +1213,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 artifactsQuery.bind(idx++, offset);
             }
 
-            // Execute query and extract results with count
-            List<Pair<SearchedArtifactDto, Long>> resultsWithCount = artifactsQuery
-                    .map(SearchedArtifactWithCountMapper.instance).list();
-
-            List<SearchedArtifactDto> artifacts = resultsWithCount.stream()
-                    .map(Pair::getLeft)
-                    .collect(Collectors.toList());
+            // Execute artifact query
+            List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
             limitReturnedLabelsInArtifacts(artifacts);
-
-            // Get count from first result (all rows have same total_count from window function)
-            long count = resultsWithCount.isEmpty() ? 0 : resultsWithCount.get(0).getRight();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
 
             ArtifactSearchResultsDto results = new ArtifactSearchResultsDto();
             results.setArtifacts(artifacts);
-            results.setCount((int) count);
+            results.setCount(count);
             return results;
         });
     }
@@ -1686,7 +1685,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
             StringBuilder selectTemplate = new StringBuilder();
             StringBuilder where = new StringBuilder();
-            StringBuilder joins = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
             StringBuilder limitOffset = new StringBuilder();
 
@@ -1741,18 +1739,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case labels:
-                        // Use EXISTS subquery for label search (compatible with all databases)
+                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
+                        // Note: convert search to lowercase when searching for labels (case-insensitivity
+                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
-                        where.append(op);
-                        where.append("(SELECT l.* FROM version_labels l WHERE l.labelKey = ?");
+                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE l.labelKey " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue = ?");
+                            where.append(" AND l.labelValue " + op + " ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });
@@ -1808,18 +1806,24 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 limitOffset.append(" LIMIT ? OFFSET ?");
             }
 
-            // Use window function for combined count+data query
-            String versionsQuerySql = new StringBuilder(selectTemplate).append(joins).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type, COUNT(*) OVER() AS total_count");
+            // Query for the versions
+            String versionsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
+                    .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");
             Query versionsQuery = handle.createQuery(versionsQuerySql);
+            // Query for the total row count
+            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
+                    .replace("{{selectColumns}}", "count(v.globalId)");
+            Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(versionsQuery, idx);
+                binder.bind(countQuery, idx);
                 idx++;
             }
 
+            // TODO find a better way to swap arguments
             if ("mssql".equals(sqlStatements.dbType())) {
                 versionsQuery.bind(idx++, offset);
                 versionsQuery.bind(idx++, limit);
@@ -1828,21 +1832,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 versionsQuery.bind(idx++, offset);
             }
 
-            // Execute query and extract results with count
-            List<Pair<SearchedVersionDto, Long>> resultsWithCount = versionsQuery
-                    .map(SearchedVersionWithCountMapper.instance).list();
-
-            List<SearchedVersionDto> versions = resultsWithCount.stream()
-                    .map(Pair::getLeft)
-                    .collect(Collectors.toList());
+            // Execute query
+            List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
             limitReturnedLabelsInVersions(versions);
-
-            // Get count from first result (all rows have same total_count from window function)
-            long count = resultsWithCount.isEmpty() ? 0 : resultsWithCount.get(0).getRight();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
 
             VersionSearchResultsDto results = new VersionSearchResultsDto();
             results.setVersions(versions);
-            results.setCount((int) count);
+            results.setCount(count);
             return results;
         });
     }
@@ -2932,7 +2930,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             String op;
 
             StringBuilder where = new StringBuilder();
-            StringBuilder joins = new StringBuilder();
             StringBuilder orderByQuery = new StringBuilder();
 
             // Formulate the WHERE clause for both queries
@@ -2959,18 +2956,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case labels:
-                        // Use EXISTS subquery for label search (compatible with all databases)
+                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
+                        // Note: convert search to lowercase when searching for labels (case-insensitivity
+                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
-                        where.append(op);
-                        where.append("(SELECT l.* FROM group_labels l WHERE l.labelKey = ?");
+                        where.append("EXISTS(SELECT l.* FROM group_labels l WHERE l.labelKey " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue = ?");
+                            where.append(" AND l.labelValue " + op + " ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });
@@ -2995,17 +2992,23 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Use window function for combined count+data query
-            String groupsQuerySql = sqlStatements.selectWithCountWindowTemplate("g.*", "groups", "g",
-                    joins.toString(), where.toString(), orderByQuery.toString());
+            // Query for the group
+            String groupsQuerySql = sqlStatements.selectTableTemplate("*", "groups", "g", where.toString(),
+                    orderByQuery.toString());
             Query groupsQuery = handle.createQuery(groupsQuerySql);
+            // Query for the total row count
+            String countQuerySql = sqlStatements.selectCountTableTemplate("g.groupId", "groups", "g",
+                    where.toString());
+            Query countQuery = handle.createQuery(countQuerySql);
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(groupsQuery, idx);
+                binder.bind(countQuery, idx);
                 idx++;
             }
+            // TODO find a better way to swap arguments
             if ("mssql".equals(sqlStatements.dbType())) {
                 groupsQuery.bind(idx++, offset);
                 groupsQuery.bind(idx++, limit);
@@ -3014,21 +3017,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 groupsQuery.bind(idx++, offset);
             }
 
-            // Execute query and extract results with count
-            List<Pair<SearchedGroupDto, Long>> resultsWithCount = groupsQuery
-                    .map(SearchedGroupWithCountMapper.instance).list();
-
-            List<SearchedGroupDto> groups = resultsWithCount.stream()
-                    .map(Pair::getLeft)
-                    .collect(Collectors.toList());
+            // Execute query
+            List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
             limitReturnedLabelsInGroups(groups);
 
-            // Get count from first result (all rows have same total_count from window function)
-            long count = resultsWithCount.isEmpty() ? 0 : resultsWithCount.get(0).getRight();
+            // Execute count query
+            Integer count = countQuery.mapTo(Integer.class).one();
 
             GroupSearchResultsDto results = new GroupSearchResultsDto();
             results.setGroups(groups);
-            results.setCount((int) count);
+            results.setCount(count);
             return results;
         });
     }

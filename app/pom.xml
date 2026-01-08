@@ -630,6 +630,37 @@
               <includePluginDependencies>true</includePluginDependencies>
             </configuration>
           </execution>
+          <!-- LLM Artifact Types: npm install -->
+          <execution>
+            <id>llm-artifact-types-npm-install</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <executable>npm</executable>
+              <workingDirectory>${project.basedir}/llm-artifact-types-src</workingDirectory>
+              <arguments>
+                <argument>install</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <!-- LLM Artifact Types: npm run build -->
+          <execution>
+            <id>llm-artifact-types-npm-build</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <executable>npm</executable>
+              <workingDirectory>${project.basedir}/llm-artifact-types-src</workingDirectory>
+              <arguments>
+                <argument>run</argument>
+                <argument>build</argument>
+              </arguments>
+            </configuration>
+          </execution>
         </executions>
         <dependencies>
           <dependency>

@@ -1,0 +1,62 @@
+{
+  "includeStandardArtifactTypes": true,
+  "artifactTypes": [
+    {
+      "artifactType": "MODEL_SCHEMA",
+      "name": "Model Schema",
+      "description": "AI/ML model input/output schema definitions and metadata for LLM governance",
+      "contentTypes": [
+        "application/json",
+        "application/x-yaml"
+      ],
+      "scriptLocation": "llm-artifact-types/model-schema-artifact-type.js",
+      "contentAccepter": {
+        "type": "script"
+      },
+      "contentCanonicalizer": {
+        "type": "script"
+      },
+      "contentValidator": {
+        "type": "script"
+      },
+      "compatibilityChecker": {
+        "type": "script"
+      },
+      "contentDereferencer": {
+        "type": "script"
+      },
+      "referenceFinder": {
+        "type": "script"
+      }
+    },
+    {
+      "artifactType": "PROMPT_TEMPLATE",
+      "name": "Prompt Template",
+      "description": "Version-controlled prompt templates with variable schemas for LLMOps",
+      "contentTypes": [
+        "application/x-yaml",
+        "application/json",
+        "text/x-prompt-template"
+      ],
+      "scriptLocation": "llm-artifact-types/prompt-template-artifact-type.js",
+      "contentAccepter": {
+        "type": "script"
+      },
+      "contentCanonicalizer": {
+        "type": "script"
+      },
+      "contentValidator": {
+        "type": "script"
+      },
+      "compatibilityChecker": {
+        "type": "script"
+      },
+      "contentDereferencer": {
+        "type": "script"
+      },
+      "referenceFinder": {
+        "type": "script"
+      }
+    }
+  ]
+}

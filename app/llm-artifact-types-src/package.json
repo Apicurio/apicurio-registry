@@ -1,0 +1,24 @@
+{
+  "name": "llm-artifact-types",
+  "private": false,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "LLM/AI Model Schema artifact types for Apicurio Registry",
+  "dependencies": {
+    "@apicurio/artifact-type-builtins": "^3.1.0",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "cp": "0.2.0",
+    "esbuild": "0.25.11",
+    "rimraf": "6.0.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "clean": "rimraf dist && rimraf ../src/main/resources/llm-artifact-types/*.js",
+    "transpile": "tsc --p ./tsconfig-build.json",
+    "build-model-schema": "esbuild dist/ModelSchemaArtifactType.js --bundle --outfile=../src/main/resources/llm-artifact-types/model-schema-artifact-type.js --format=esm",
+    "build-prompt-template": "esbuild dist/PromptTemplateArtifactType.js --bundle --outfile=../src/main/resources/llm-artifact-types/prompt-template-artifact-type.js --format=esm",
+    "build": "npm run transpile && npm run build-model-schema && npm run build-prompt-template"
+  }
+}

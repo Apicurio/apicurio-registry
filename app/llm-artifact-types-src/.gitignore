@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output (compiled JS goes to src/main/resources)
+dist/
+
+# npm
+package-lock.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

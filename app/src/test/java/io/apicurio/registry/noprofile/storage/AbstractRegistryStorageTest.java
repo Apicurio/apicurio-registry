@@ -983,6 +983,60 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     }
 
     @Test
+    public void testSearchArtifactsWithMultipleLabels() throws Exception {
+        String artifactIdPrefix = "testSearchMultiLabel-";
+
+        // Create artifacts with different label combinations
+        for (int idx = 1; idx <= 10; idx++) {
+            String artifactId = artifactIdPrefix + idx;
+            ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+            Map<String, String> labels = new HashMap<>();
+            labels.put("env", idx <= 5 ? "prod" : "dev");
+            labels.put("team", idx % 2 == 0 ? "platform" : "backend");
+            if (idx == 3 || idx == 4) {
+                labels.put("priority", "high");
+            }
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(artifactId + "-name",
+                    artifactId + "-description", null, labels);
+            storage().createArtifact(
+                    GROUP_ID, artifactId, ArtifactType.OPENAPI, metaData, null, ContentWrapperDto.builder()
+                            .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                    null, Collections.emptyList(), false, false, null).getValue();
+        }
+
+        // Test: Search for artifacts with env=prod (should find 5)
+        Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofLabel("env", "prod"));
+        ArtifactSearchResultsDto results = storage().searchArtifacts(filters, OrderBy.name,
+                OrderDirection.asc, 0, 20);
+        Assertions.assertEquals(5, results.getCount());
+
+        // Test: Search for artifacts with env=prod AND team=platform (should find: 2, 4 - even numbers <= 5)
+        filters = Set.of(SearchFilter.ofLabel("env", "prod"), SearchFilter.ofLabel("team", "platform"));
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 20);
+        Assertions.assertEquals(2, results.getCount());
+
+        // Test: Search for artifacts with env=prod AND team=backend (should find: 1, 3, 5 - odd numbers <= 5)
+        filters = Set.of(SearchFilter.ofLabel("env", "prod"), SearchFilter.ofLabel("team", "backend"));
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 20);
+        Assertions.assertEquals(3, results.getCount());
+
+        // Test: Search for artifacts with priority=high (should find: 3, 4)
+        filters = Collections.singleton(SearchFilter.ofLabel("priority", "high"));
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 20);
+        Assertions.assertEquals(2, results.getCount());
+
+        // Test: Search for artifacts with env=prod AND priority=high (should find: 3, 4)
+        filters = Set.of(SearchFilter.ofLabel("env", "prod"), SearchFilter.ofLabel("priority", "high"));
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 20);
+        Assertions.assertEquals(2, results.getCount());
+
+        // Test: Search for artifacts with label key only (env exists)
+        filters = Collections.singleton(SearchFilter.ofLabel("env"));
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 20);
+        Assertions.assertEquals(10, results.getCount());
+    }
+
+    @Test
     public void testSearchVersions() throws Exception {
         String artifactId = "testSearchVersions-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);

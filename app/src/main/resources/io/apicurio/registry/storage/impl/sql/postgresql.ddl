@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 101);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 102);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -108,3 +108,18 @@ CREATE INDEX IDX_branch_versions_3 ON branch_versions(branchOrder);
 
 CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload JSONB NOT NULL);
 ALTER TABLE outbox ADD PRIMARY KEY (id);
+
+-- Optional: pg_trgm extension for optimized substring searches
+-- Note: Creating the extension requires superuser or create extension privilege.
+-- If the extension is not available, substring searches will still work but
+-- without the GIN trigram index optimization.
+-- To manually enable: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- GIN trigram indexes for substring searches (requires pg_trgm extension)
+-- These indexes significantly improve LIKE '%search%' query performance.
+-- They will only be used if the pg_trgm extension is installed.
+-- CREATE INDEX IDX_artifacts_name_trgm ON artifacts USING GIN (name gin_trgm_ops);
+-- CREATE INDEX IDX_artifacts_description_trgm ON artifacts USING GIN (description gin_trgm_ops);
+-- CREATE INDEX IDX_versions_name_trgm ON versions USING GIN (name gin_trgm_ops);
+-- CREATE INDEX IDX_versions_description_trgm ON versions USING GIN (description gin_trgm_ops);
+-- CREATE INDEX IDX_groups_description_trgm ON groups USING GIN (description gin_trgm_ops);

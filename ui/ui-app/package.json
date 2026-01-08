@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@apicurio/apicurio-registry-sdk": "3.1.7-Dev",
-    "@apicurio/common-ui-components": "2.0.16",
+    "@apicurio/common-ui-components": "2.1.0",
     "@apicurio/data-models": "1.1.33",
     "@microsoft/kiota-abstractions": "1.0.0-preview.99",
     "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.99",
@@ -60,7 +60,7 @@
     "pluralize": "8.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.30.2",
+    "react-router-dom": "6.30.3",
     "use-resize-observer": "9.1.0",
     "yaml": "2.8.2"
   }

@@ -284,7 +284,7 @@
     <version.gmavenplus-plugin>4.2.1</version.gmavenplus-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->
-    <version.org.sonatype.central-publishing-maven-plugin>0.9.0</version.org.sonatype.central-publishing-maven-plugin>
+    <version.org.sonatype.central-publishing-maven-plugin>0.10.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
     <version.puppycrawl>8.45.1</version.puppycrawl>

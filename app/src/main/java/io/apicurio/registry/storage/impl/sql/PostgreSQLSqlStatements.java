@@ -79,18 +79,6 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
                 """;
     }
 
-    // ========== Search Query Optimization ==========
-
-    @Override
-    public boolean supportsTrigramIndexes() {
-        return true;
-    }
-
-    @Override
-    public String getSubstringSearchOperator() {
-        return "ILIKE";
-    }
-
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
      */

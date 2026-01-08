@@ -74,12 +74,6 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     }
 
     @Override
-    public String selectWithCountWindowTemplate(String columns, String tableName, String alias,
-            String joins, String whereClause, String orderBy) {
-        return super.selectWithCountWindowTemplate(columns, "`" + tableName + "`", alias, joins, whereClause, orderBy);
-    }
-
-    @Override
     public String groupsTable() {
         return "`groups`";
     }

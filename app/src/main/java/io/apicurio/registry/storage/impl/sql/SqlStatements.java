@@ -667,49 +667,6 @@ public interface SqlStatements {
     String selectTableTemplate(String columns, String tableName, String alias, String whereClause,
             String orderBy);
 
-    // ========== Search Query Optimization ==========
-
-    /**
-     * Template for paginated search queries with window function for total count.
-     * Returns both results and count in a single query using COUNT(*) OVER().
-     *
-     * @param columns The columns to select
-     * @param tableName The main table name
-     * @param alias The table alias
-     * @param joins Additional JOIN clauses (may be empty)
-     * @param whereClause The WHERE clause
-     * @param orderBy The ORDER BY clause
-     * @return SQL query template with window function count
-     */
-    String selectWithCountWindowTemplate(String columns, String tableName, String alias,
-            String joins, String whereClause, String orderBy);
-
-    /**
-     * Checks if the database supports window functions for combined count queries.
-     * @return true if window functions are supported (default: true for modern databases)
-     */
-    default boolean supportsWindowFunctions() {
-        return true;
-    }
-
-    /**
-     * Checks if the database supports trigram indexes for efficient substring searches.
-     * Only PostgreSQL with pg_trgm extension supports this.
-     * @return true if trigram indexes are supported
-     */
-    default boolean supportsTrigramIndexes() {
-        return false;
-    }
-
-    /**
-     * Gets the LIKE operator optimized for substring searches.
-     * For PostgreSQL, this returns ILIKE for case-insensitive searches.
-     * @return the LIKE operator string
-     */
-    default String getSubstringSearchOperator() {
-        return "LIKE";
-    }
-
     // ========== Database Initialization Locks ==========
 
     /**

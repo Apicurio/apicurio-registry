@@ -125,13 +125,6 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
-    public String selectWithCountWindowTemplate(String columns, String tableName, String alias,
-            String joins, String whereClause, String orderBy) {
-        return "SELECT %s, COUNT(*) OVER() AS total_count FROM %s %s %s %s %s OFFSET ? ROWS FETCH NEXT ? ROWS ONLY".formatted(
-                columns, tableName, alias, joins, whereClause, orderBy);
-    }
-
-    @Override
     public String deleteAllOrphanedContent() {
         return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId )";
     }

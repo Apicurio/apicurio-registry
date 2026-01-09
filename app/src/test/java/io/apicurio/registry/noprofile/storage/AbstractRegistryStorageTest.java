@@ -1034,6 +1034,18 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         filters = Collections.singleton(SearchFilter.ofLabel("env"));
         results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 20);
         Assertions.assertEquals(10, results.getCount());
+
+        // Test: Search for artifacts with negated label (NOT env=prod should find dev artifacts: 6-10)
+        // Note: Need to scope to name prefix to avoid matching artifacts from other tests
+        filters = Set.of(SearchFilter.ofName("testSearchMultiLabel*"), SearchFilter.ofLabel("env", "prod").negated());
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 20);
+        Assertions.assertEquals(5, results.getCount());
+
+        // Test: Search for artifacts that don't have the 'priority' label
+        // Note: Need to scope to name prefix to avoid matching artifacts from other tests
+        filters = Set.of(SearchFilter.ofName("testSearchMultiLabel*"), SearchFilter.ofLabel("priority").negated());
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 20);
+        Assertions.assertEquals(8, results.getCount()); // All except 3 and 4
     }
 
     @Test

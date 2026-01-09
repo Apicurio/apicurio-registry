@@ -1128,19 +1128,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(")");
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
                         // Note: convert search to lowercase when searching for labels (case-insensitivity
                         // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append(
-                                "EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey " + op + " ?");
+                        // Use NOT EXISTS for negated filters to properly exclude artifacts
+                        String existsOp = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+                        where.append(existsOp);
+                        where.append("(SELECT l.* FROM artifact_labels l WHERE l.labelKey = ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
+                            where.append(" AND l.labelValue = ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });
@@ -1813,18 +1814,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
                         // Note: convert search to lowercase when searching for labels (case-insensitivity
                         // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE l.labelKey " + op + " ?");
+                        // Use NOT EXISTS for negated filters to properly exclude versions
+                        String existsOp = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+                        where.append(existsOp);
+                        where.append("(SELECT l.* FROM version_labels l WHERE l.labelKey = ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
+                            where.append(" AND l.labelValue = ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });
@@ -3082,18 +3085,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
                         // Note: convert search to lowercase when searching for labels (case-insensitivity
                         // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.* FROM group_labels l WHERE l.labelKey " + op + " ?");
+                        // Use NOT EXISTS for negated filters to properly exclude groups
+                        String existsOp = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+                        where.append(existsOp);
+                        where.append("(SELECT l.* FROM group_labels l WHERE l.labelKey = ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
+                            where.append(" AND l.labelValue = ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });

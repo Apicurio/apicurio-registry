@@ -1,0 +1,7 @@
+{
+  "name": "TestAgent",
+  "capabilities": {
+    "streaming": "yes",
+    "pushNotifications": "no"
+  }
+}

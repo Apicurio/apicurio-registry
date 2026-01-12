@@ -33,12 +33,17 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static io.apicurio.tests.migration.DataMigrationIT.doNotPreserveIdsImportArtifacts;
 import static io.apicurio.tests.migration.DataMigrationIT.migrateGlobalIds;
 import static io.apicurio.tests.migration.DataMigrationIT.migrateReferencesMap;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MigrationTestsDataInitializer {
+
+    private static final Logger log = LoggerFactory.getLogger(MigrationTestsDataInitializer.class);
 
     public static void initializeMigrateTest(io.apicurio.registry.rest.client.v2.RegistryClient source,
             String registryBaseUrl) throws Exception {
@@ -293,7 +298,7 @@ public class MigrationTestsDataInitializer {
 
             return new ByteArrayInputStream(outputStream.toByteArray());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to generate exported ZIP", e);
         }
         return null;
     }

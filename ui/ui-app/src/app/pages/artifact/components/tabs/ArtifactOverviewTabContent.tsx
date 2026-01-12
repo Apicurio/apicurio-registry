@@ -125,7 +125,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         setLoading(true);
 
         const filters: SearchFilter[] = [
-            { by: FilterBy.groupId, value: props.artifact.groupId! },
+            { by: FilterBy.groupId, value: props.artifact.groupId || "default" },
             { by: FilterBy.artifactId, value: props.artifact.artifactId! }
         ];
 

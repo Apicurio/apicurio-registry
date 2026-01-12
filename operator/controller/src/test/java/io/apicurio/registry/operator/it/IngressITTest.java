@@ -2,12 +2,14 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+import static io.apicurio.registry.operator.Tags.FEATURE;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCellCreate;
@@ -15,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@Tag(FEATURE)
 public class IngressITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(IngressITTest.class);

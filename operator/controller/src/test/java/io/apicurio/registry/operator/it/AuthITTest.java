@@ -5,8 +5,11 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import static io.apicurio.registry.operator.Tags.AUTH;
+import static io.apicurio.registry.operator.Tags.SLOW;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
@@ -14,6 +17,8 @@ import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.g
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
+@Tag(AUTH)
+@Tag(SLOW)
 public class AuthITTest extends BaseAuthITTest {
 
     /**

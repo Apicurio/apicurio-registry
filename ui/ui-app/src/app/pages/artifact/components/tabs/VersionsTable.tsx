@@ -49,9 +49,9 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
 
     const columns: any[] = [
         { index: 0, id: "select", label: "", width: 5, sortable: false },
-        { index: 1, id: "version", label: "Version", width: 35, sortable: true, sortBy: VersionSortByObject.Version },
-        { index: 2, id: "globalId", label: "Global Id", width: 10, sortable: true, sortBy: VersionSortByObject.GlobalId },
-        { index: 3, id: "contentId", label: "Content Id", width: 10, sortable: false },
+        { index: 1, id: "version", label: "Version", width: 50, sortable: true, sortBy: VersionSortByObject.Version },
+        { index: 2, id: "globalId", label: "Global Id", width: 15, sortable: true, sortBy: VersionSortByObject.GlobalId },
+        { index: 3, id: "contentId", label: "Content Id", width: 15, sortable: true },
         { index: 4, id: "createdOn", label: "Created on", width: 15, sortable: true, sortBy: VersionSortByObject.CreatedOn },
     ];
 

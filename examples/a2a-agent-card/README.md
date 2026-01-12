@@ -33,12 +33,16 @@ Apicurio Registry provides enterprise-grade features for managing Agent Cards:
 ### 1. Start Apicurio Registry
 
 ```bash
-# Using docker-compose (recommended)
+# Using docker-compose (recommended - starts both backend and UI)
 docker-compose up -d
 
-# Or run directly
-docker run -it -p 8080:8080 apicurio/apicurio-registry:latest-snapshot
+# Or run backend only
+docker run -it -p 8080:8080 quay.io/apicurio/apicurio-registry:latest-snapshot
 ```
+
+The docker-compose setup starts:
+- **Backend API**: http://localhost:8080/apis/registry/v3
+- **UI**: http://localhost:8888
 
 ### 2. Build and Run the Example
 

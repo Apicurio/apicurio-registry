@@ -4,26 +4,22 @@ version: '3.8'
 # This starts Apicurio Registry with in-memory storage for quick testing
 
 services:
+  # Apicurio Registry Backend API
   apicurio-registry:
-    image: apicurio/apicurio-registry:latest-snapshot
-    container_name: apicurio-registry-a2a-example
+    image: quay.io/apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry-backend
     ports:
       - "8080:8080"
     environment:
-      # Storage configuration (in-memory for examples)
+      # Storage configuration (in-memory H2 for examples)
       APICURIO_STORAGE_KIND: "sql"
       APICURIO_STORAGE_SQL_KIND: "h2"
-
-      # A2A configuration
-      APICURIO_A2A_ENABLED: "true"
-      APICURIO_A2A_AGENT_NAME: "Apicurio Registry"
-      APICURIO_A2A_AGENT_DESCRIPTION: "API and Schema Registry with A2A Agent Card support"
 
       # Logging
       QUARKUS_LOG_LEVEL: "INFO"
       QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
 
-      # CORS (for UI development)
+      # CORS (allow UI and external clients)
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     healthcheck:
@@ -34,12 +30,26 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # Apicurio Registry UI
+  apicurio-registry-ui:
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-ui
+    ports:
+      - "8888:8080"
+    environment:
+      # Point UI to the backend API
+      REGISTRY_API_URL: "http://localhost:8080/apis/registry/v3"
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy
+    restart: unless-stopped
+
 # Usage:
 #   Start:  docker-compose up -d
 #   Stop:   docker-compose down
 #   Logs:   docker-compose logs -f
 #
-# Registry will be available at:
+# Endpoints:
 #   - API: http://localhost:8080/apis/registry/v3
-#   - UI:  http://localhost:8080/ui
+#   - UI:  http://localhost:8888
 #   - A2A Discovery: http://localhost:8080/.well-known/agent.json

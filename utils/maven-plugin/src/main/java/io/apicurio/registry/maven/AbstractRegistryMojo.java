@@ -175,7 +175,8 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         return RegistryClientFactory.create(clientOptions.retry());
     }
 
-    private void configureTrustStore(RegistryClientOptions clientOptions) {
+    // Package-private for testing
+    void configureTrustStore(RegistryClientOptions clientOptions) {
         if (trustStorePath == null || trustStorePath.isEmpty()) {
             return;
         }
@@ -199,7 +200,8 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         }
     }
 
-    private void configureKeyStore(RegistryClientOptions clientOptions) {
+    // Package-private for testing
+    void configureKeyStore(RegistryClientOptions clientOptions) {
         if (keyStorePath == null || keyStorePath.isEmpty()) {
             return;
         }
@@ -228,7 +230,8 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         }
     }
 
-    private String detectStoreType(String path, String explicitType) {
+    // Package-private for testing
+    String detectStoreType(String path, String explicitType) {
         if (explicitType != null && !explicitType.isEmpty()) {
             return explicitType;
         }

@@ -81,3 +81,10 @@ Features include content auto-detection, backward compatibility checking, server
 and model capability search. Includes integration examples for Quarkus + LangChain4j.
 
 See the [llm-artifact-types](llm-artifact-types/) directory for details.
+
+## A2A Agent Card Example
+This example demonstrates how to use Apicurio Registry to manage A2A (Agent-to-Agent) Agent Cards -
+JSON metadata documents that describe AI agents according to the A2A Protocol. The example shows how
+to register, version, and search for AI agent definitions, as well as apply compatibility rules to
+ensure safe evolution of agent capabilities. This is useful for organizations building agentic AI
+applications that need to discover and communicate with each other.

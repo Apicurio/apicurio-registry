@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-examples</artifactId>
+    <version>3.1.7-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-examples-maven-plugin-tls-credentials</artifactId>
+  <packaging>jar</packaging>
+  <name>Apicurio Registry :: Examples :: Maven Plugin TLS and Credentials</name>
+  <description>Example demonstrating TLS and credential configuration for the Apicurio Registry Maven plugin</description>
+
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
+  <build>
+    <plugins>
+      <!--
+        Example 1: Basic TLS with PKCS12 Trust Store
+
+        This configuration demonstrates how to connect to a TLS-enabled registry
+        using a PKCS12 trust store. The trust store contains the CA certificate(s)
+        that signed the registry's server certificate.
+      -->
+      <plugin>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <executions>
+          <execution>
+            <id>register-with-tls-pkcs12</id>
+            <phase>none</phase> <!-- Set to 'generate-sources' to enable -->
+            <goals>
+              <goal>register</goal>
+            </goals>
+            <configuration>
+              <!-- Registry URL using HTTPS -->
+              <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+
+              <!-- TLS Trust Store Configuration (PKCS12 format) -->
+              <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
+              <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
+              <!-- trustStoreType is auto-detected from .p12 extension, but can be explicit: -->
+              <!-- <trustStoreType>PKCS12</trustStoreType> -->
+
+              <artifacts>
+                <artifact>
+                  <groupId>default</groupId>
+                  <artifactId>TlsExampleSchema</artifactId>
+                  <artifactType>AVRO</artifactType>
+                  <file>${project.basedir}/src/main/resources/schemas/greeting.avsc</file>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!--
+      Profile: tls-basic-auth
+
+      Example 2: TLS with Basic Authentication
+      Demonstrates connecting to a TLS-enabled registry with username/password authentication.
+    -->
+    <profile>
+      <id>tls-basic-auth</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <executions>
+              <execution>
+                <id>register-with-tls-basic-auth</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>register</goal>
+                </goals>
+                <configuration>
+                  <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+
+                  <!-- TLS Configuration -->
+                  <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
+                  <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
+
+                  <!-- Basic Authentication -->
+                  <username>${env.REGISTRY_USERNAME}</username>
+                  <password>${env.REGISTRY_PASSWORD}</password>
+
+                  <artifacts>
+                    <artifact>
+                      <groupId>default</groupId>
+                      <artifactId>TlsBasicAuthExample</artifactId>
+                      <artifactType>AVRO</artifactType>
+                      <file>${project.basedir}/src/main/resources/schemas/greeting.avsc</file>
+                    </artifact>
+                  </artifacts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+      Profile: tls-oauth2
+
+      Example 3: TLS with OAuth2/OIDC Authentication
+      Demonstrates connecting to a TLS-enabled registry with OAuth2 client credentials.
+    -->
+    <profile>
+      <id>tls-oauth2</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <executions>
+              <execution>
+                <id>register-with-tls-oauth2</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>register</goal>
+                </goals>
+                <configuration>
+                  <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+
+                  <!-- TLS Configuration -->
+                  <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
+                  <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
+
+                  <!-- OAuth2 Authentication -->
+                  <authServerUrl>https://keycloak.example.com/realms/registry/protocol/openid-connect/token</authServerUrl>
+                  <clientId>${env.CLIENT_ID}</clientId>
+                  <clientSecret>${env.CLIENT_SECRET}</clientSecret>
+                  <clientScope>openid</clientScope>
+
+                  <artifacts>
+                    <artifact>
+                      <groupId>default</groupId>
+                      <artifactId>TlsOAuth2Example</artifactId>
+                      <artifactType>AVRO</artifactType>
+                      <file>${project.basedir}/src/main/resources/schemas/greeting.avsc</file>
+                    </artifact>
+                  </artifacts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+      Profile: mtls
+
+      Example 4: Mutual TLS (mTLS) Authentication
+      Demonstrates connecting to a registry that requires client certificate authentication.
+      Both trust store (for server certificate) and key store (for client certificate) are needed.
+    -->
+    <profile>
+      <id>mtls</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <executions>
+              <execution>
+                <id>register-with-mtls</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>register</goal>
+                </goals>
+                <configuration>
+                  <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+
+                  <!-- TLS Trust Store (to verify server certificate) -->
+                  <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
+                  <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
+
+                  <!-- mTLS Key Store (client certificate for authentication) -->
+                  <keyStorePath>${project.basedir}/certs/client-keystore.p12</keyStorePath>
+                  <keyStorePassword>${env.KEYSTORE_PASSWORD}</keyStorePassword>
+
+                  <artifacts>
+                    <artifact>
+                      <groupId>default</groupId>
+                      <artifactId>MtlsExample</artifactId>
+                      <artifactType>AVRO</artifactType>
+                      <file>${project.basedir}/src/main/resources/schemas/greeting.avsc</file>
+                    </artifact>
+                  </artifacts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+      Profile: tls-pem
+
+      Example 5: TLS with PEM Certificates
+      Demonstrates using PEM-formatted certificates instead of PKCS12/JKS stores.
+    -->
+    <profile>
+      <id>tls-pem</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <executions>
+              <execution>
+                <id>register-with-tls-pem</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>register</goal>
+                </goals>
+                <configuration>
+                  <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+
+                  <!-- TLS with PEM certificate -->
+                  <trustStorePath>${project.basedir}/certs/ca-cert.pem</trustStorePath>
+                  <trustStoreType>PEM</trustStoreType>
+
+                  <artifacts>
+                    <artifact>
+                      <groupId>default</groupId>
+                      <artifactId>TlsPemExample</artifactId>
+                      <artifactType>AVRO</artifactType>
+                      <file>${project.basedir}/src/main/resources/schemas/greeting.avsc</file>
+                    </artifact>
+                  </artifacts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+      Profile: mtls-pem
+
+      Example 6: Mutual TLS with PEM Certificates
+      Demonstrates mTLS using PEM-formatted certificate and key files.
+    -->
+    <profile>
+      <id>mtls-pem</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <executions>
+              <execution>
+                <id>register-with-mtls-pem</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>register</goal>
+                </goals>
+                <configuration>
+                  <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+
+                  <!-- TLS Trust Store (PEM) -->
+                  <trustStorePath>${project.basedir}/certs/ca-cert.pem</trustStorePath>
+                  <trustStoreType>PEM</trustStoreType>
+
+                  <!-- mTLS Key Store (PEM) - requires both certificate and key file -->
+                  <keyStorePath>${project.basedir}/certs/client-cert.pem</keyStorePath>
+                  <keyStorePemKeyPath>${project.basedir}/certs/client-key.pem</keyStorePemKeyPath>
+                  <keyStoreType>PEM</keyStoreType>
+
+                  <artifacts>
+                    <artifact>
+                      <groupId>default</groupId>
+                      <artifactId>MtlsPemExample</artifactId>
+                      <artifactType>AVRO</artifactType>
+                      <file>${project.basedir}/src/main/resources/schemas/greeting.avsc</file>
+                    </artifact>
+                  </artifacts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+      Profile: tls-jks
+
+      Example 7: TLS with JKS Trust Store
+      Demonstrates using Java KeyStore (JKS) format for trust store.
+    -->
+    <profile>
+      <id>tls-jks</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <executions>
+              <execution>
+                <id>register-with-tls-jks</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>register</goal>
+                </goals>
+                <configuration>
+                  <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+
+                  <!-- TLS with JKS trust store -->
+                  <trustStorePath>${project.basedir}/certs/truststore.jks</trustStorePath>
+                  <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
+                  <!-- trustStoreType is auto-detected from .jks extension -->
+
+                  <artifacts>
+                    <artifact>
+                      <groupId>default</groupId>
+                      <artifactId>TlsJksExample</artifactId>
+                      <artifactType>AVRO</artifactType>
+                      <file>${project.basedir}/src/main/resources/schemas/greeting.avsc</file>
+                    </artifact>
+                  </artifacts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+      Profile: dev-trust-all
+
+      Example 8: Development Mode - Trust All Certificates
+      WARNING: This should ONLY be used for development/testing purposes.
+      Never use trustAll in production as it disables certificate validation.
+    -->
+    <profile>
+      <id>dev-trust-all</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <executions>
+              <execution>
+                <id>register-dev-trust-all</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>register</goal>
+                </goals>
+                <configuration>
+                  <registryUrl>https://localhost:8443/apis/registry/v3</registryUrl>
+
+                  <!-- WARNING: Development only - trusts all certificates -->
+                  <trustAll>true</trustAll>
+
+                  <!-- Optional: Disable hostname verification (also dev only) -->
+                  <verifyHostname>false</verifyHostname>
+
+                  <artifacts>
+                    <artifact>
+                      <groupId>default</groupId>
+                      <artifactId>DevTrustAllExample</artifactId>
+                      <artifactType>AVRO</artifactType>
+                      <file>${project.basedir}/src/main/resources/schemas/greeting.avsc</file>
+                    </artifact>
+                  </artifacts>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

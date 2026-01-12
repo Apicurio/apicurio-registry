@@ -70,3 +70,10 @@ use the client.
 This example application showcases an scenario where Apache Avro messages are published to the same
 Kafka topic using different Avro schemas. This example uses the Apicurio Registry serdes classes to serialize
 and deserialize Apache Avro messages using different schemas, even if received in the same Kafka topic.
+
+## A2A Agent Card Example
+This example demonstrates how to use Apicurio Registry to manage A2A (Agent-to-Agent) Agent Cards -
+JSON metadata documents that describe AI agents according to the A2A Protocol. The example shows how
+to register, version, and search for AI agent definitions, as well as apply compatibility rules to
+ensure safe evolution of agent capabilities. This is useful for organizations building agentic AI
+applications that need to discover and communicate with each other.

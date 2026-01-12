@@ -55,6 +55,7 @@
     <module>openshift-template</module>
     <module>mtls-minikube/client</module>
     <module>tools/kafkasql-topic-import</module>
+    <module>a2a-agent-card</module>
   </modules>
 
   <scm>

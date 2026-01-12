@@ -1,0 +1,45 @@
+version: '3.8'
+
+# Docker Compose configuration for running the A2A Agent Card example
+# This starts Apicurio Registry with in-memory storage for quick testing
+
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry-a2a-example
+    ports:
+      - "8080:8080"
+    environment:
+      # Storage configuration (in-memory for examples)
+      APICURIO_STORAGE_KIND: "sql"
+      APICURIO_STORAGE_SQL_KIND: "h2"
+
+      # A2A configuration
+      APICURIO_A2A_ENABLED: "true"
+      APICURIO_A2A_AGENT_NAME: "Apicurio Registry"
+      APICURIO_A2A_AGENT_DESCRIPTION: "API and Schema Registry with A2A Agent Card support"
+
+      # Logging
+      QUARKUS_LOG_LEVEL: "INFO"
+      QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
+
+      # CORS (for UI development)
+      QUARKUS_HTTP_CORS: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+# Usage:
+#   Start:  docker-compose up -d
+#   Stop:   docker-compose down
+#   Logs:   docker-compose logs -f
+#
+# Registry will be available at:
+#   - API: http://localhost:8080/apis/registry/v3
+#   - UI:  http://localhost:8080/ui
+#   - A2A Discovery: http://localhost:8080/.well-known/agent.json

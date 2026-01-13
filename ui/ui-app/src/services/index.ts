@@ -1,4 +1,5 @@
 export * from "./useAdminService";
+export * from "./useAgentService";
 export * from "./useAlertsService";
 export * from "./useAppNavigation";
 export * from "./useConfigService";

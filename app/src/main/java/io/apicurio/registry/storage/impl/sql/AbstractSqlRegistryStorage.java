@@ -115,6 +115,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactWithCountMa
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupWithCountMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionWithCountMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.search.SearchQueryBuilder;
 import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.VersionStateMapper;
 import io.apicurio.registry.storage.importing.DataImporter;
@@ -230,7 +231,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     RestConfig restConfig;
 
     @Inject
-    io.apicurio.registry.storage.impl.sql.search.SearchQueryBuilder searchQueryBuilder;
+    SearchQueryBuilder searchQueryBuilder;
 
     protected SqlStatements sqlStatements() {
         return sqlStatements;

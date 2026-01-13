@@ -1,6 +1,6 @@
 -- *********************************************************************
 -- DDL for the Apicurio Registry - Database: PostgreSQL
--- Upgrade from version 102 to 102
+-- Upgrade from version 101 to 102
 -- Search Query Optimization Phase 1 - Trigram Indexes (Issue #7010)
 -- *********************************************************************
 

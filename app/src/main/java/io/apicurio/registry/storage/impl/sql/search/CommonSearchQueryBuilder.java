@@ -222,10 +222,15 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
                 where.append("a.type ").append(op).append(" ?");
                 binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
-            case artifactId, contentId, globalId, state, version -> {
+            case artifactId, state, version -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("v.").append(filter.getType().name()).append(" ").append(op).append(" ?");
                 binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+            }
+            case contentId, globalId -> {
+                op = filter.isNot() ? "!=" : "=";
+                where.append("v.").append(filter.getType().name()).append(" ").append(op).append(" ?");
+                binders.add((query, idx) -> query.bind(idx, filter.getNumberValue().longValue()));
             }
             case name, description -> {
                 op = filter.isNot() ? "NOT LIKE" : "LIKE";

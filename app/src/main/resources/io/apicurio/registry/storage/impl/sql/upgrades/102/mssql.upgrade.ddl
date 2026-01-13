@@ -1,6 +1,6 @@
 -- *********************************************************************
 -- DDL for the Apicurio Registry - Database: Microsoft SQL Server
--- Upgrade from version 102 to 102
+-- Upgrade from version 101 to 102
 -- Search Query Optimization Phase 1 (Issue #7010)
 -- *********************************************************************
 

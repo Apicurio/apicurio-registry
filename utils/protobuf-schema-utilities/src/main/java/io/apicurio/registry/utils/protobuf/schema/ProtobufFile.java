@@ -225,8 +225,9 @@ public class ProtobufFile {
         Set<Object> reservedFieldSet = new HashSet<>();
         for (ReservedElement reservedElement : messageElement.getReserveds()) {
             for (Object value : reservedElement.getValues()) {
-                if (value instanceof IntRange intRange) {
+                if (value instanceof IntRange) {
                     // Handle Kotlin IntRange from wire-schema library (e.g., "reserved 1 to 2;")
+                    IntRange intRange = (IntRange) value;
                     Range<Integer> range = Range.range(intRange.getStart(), BoundType.CLOSED,
                             intRange.getLast(), BoundType.CLOSED);
                     reservedFieldSet.addAll(ContiguousSet.create(range, DiscreteDomain.integers()));

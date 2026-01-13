@@ -1,0 +1,45 @@
+.agent-card-viewer {
+    height: 100%;
+}
+
+.agent-card-viewer .agent-name {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.agent-card-viewer .agent-description {
+    color: var(--pf-v5-global--Color--200);
+    font-size: 14px;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.agent-card-viewer .agent-basic-info {
+    margin-bottom: 16px;
+}
+
+.agent-card-viewer .agent-url {
+    color: var(--pf-v5-global--link--Color);
+    text-decoration: none;
+    font-family: var(--pf-v5-global--FontFamily--monospace);
+    font-size: 13px;
+}
+
+.agent-card-viewer .agent-url:hover {
+    text-decoration: underline;
+}
+
+.agent-card-viewer .external-link-icon {
+    margin-left: 6px;
+    font-size: 12px;
+}
+
+.agent-card-viewer .provider-url {
+    margin-left: 8px;
+    color: var(--pf-v5-global--link--Color);
+}
+
+.agent-card-viewer .section-divider {
+    margin: 16px 0;
+}

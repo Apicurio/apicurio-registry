@@ -1,4 +1,5 @@
 export * from "./404";
+export * from "./agents";
 export * from "./artifact";
 export * from "./branch";
 export * from "./dashboard";

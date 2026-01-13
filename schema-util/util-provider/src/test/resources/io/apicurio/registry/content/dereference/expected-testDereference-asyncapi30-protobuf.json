@@ -16,11 +16,16 @@
         }
     },
     "components": {
+        "schemas": {
+            "UserProfile": {
+                "schemaFormat": "application/x-protobuf",
+                "schema": "syntax = \"proto3\";\n\npackage com.example;\n\nmessage UserProfile {\n    string user_id = 1;\n    string first_name = 2;\n    string last_name = 3;\n    string email = 4;\n}"
+            }
+        },
         "messages": {
             "ProfileUpdateMessage": {
                 "payload": {
-                    "schemaFormat": "application/x-protobuf",
-                    "schema": "syntax = \"proto3\";\n\npackage com.example;\n\nmessage UserProfile {\n    string user_id = 1;\n    string first_name = 2;\n    string last_name = 3;\n    string email = 4;\n}\n"
+                    "$ref": "#/components/schemas/UserProfile"
                 }
             }
         }

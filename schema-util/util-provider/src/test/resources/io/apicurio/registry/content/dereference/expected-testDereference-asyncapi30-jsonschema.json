@@ -16,6 +16,54 @@
         }
     },
     "components": {
+        "schemas": {
+            "Address": {
+                "schemaFormat": "application/schema+json",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "street": {
+                            "type": "string"
+                        },
+                        "city": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string"
+                        },
+                        "zipCode": {
+                            "type": "string",
+                            "pattern": "^[0-9]{5}$"
+                        }
+                    },
+                    "required": [
+                        "street",
+                        "city",
+                        "state",
+                        "zipCode"
+                    ]
+                }
+            },
+            "Contact": {
+                "schemaFormat": "application/schema+json",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "phone": {
+                            "type": "string",
+                            "pattern": "^\\+?[0-9]{10,15}$"
+                        },
+                        "email": {
+                            "type": "string",
+                            "format": "email"
+                        }
+                    },
+                    "required": [
+                        "email"
+                    ]
+                }
+            }
+        },
         "messages": {
             "CustomerUpdateMessage": {
                 "payload": {
@@ -29,44 +77,10 @@
                             "type": "string"
                         },
                         "address": {
-                            "type": "object",
-                            "required": [
-                                "street",
-                                "city",
-                                "state",
-                                "zipCode"
-                            ],
-                            "properties": {
-                                "street": {
-                                    "type": "string"
-                                },
-                                "city": {
-                                    "type": "string"
-                                },
-                                "state": {
-                                    "type": "string"
-                                },
-                                "zipCode": {
-                                    "type": "string",
-                                    "pattern": "^[0-9]{5}$"
-                                }
-                            }
+                            "$ref": "#/components/schemas/Address"
                         },
                         "contact": {
-                            "type": "object",
-                            "required": [
-                                "email"
-                            ],
-                            "properties": {
-                                "phone": {
-                                    "type": "string",
-                                    "pattern": "^\\+?[0-9]{10,15}$"
-                                },
-                                "email": {
-                                    "type": "string",
-                                    "format": "email"
-                                }
-                            }
+                            "$ref": "#/components/schemas/Contact"
                         }
                     }
                 }

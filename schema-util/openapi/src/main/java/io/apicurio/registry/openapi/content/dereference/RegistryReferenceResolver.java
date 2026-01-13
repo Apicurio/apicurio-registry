@@ -1,5 +1,6 @@
 package io.apicurio.registry.openapi.content.dereference;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.datamodels.Library;
@@ -113,7 +114,6 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                 switch (contentType) {
                     case OPENAPI:
                     case ASYNCAPI:
-                    case JSON_SCHEMA:
                         // For OpenAPI, AsyncAPI, and JSON Schema, parse as Document and resolve the JSON pointer
                         JsonNode node = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
                         Document resolvedRefDoc = Library.readDocument((ObjectNode) node);
@@ -121,12 +121,37 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                         Node resolvedNode = super.resolveRef(ref.getComponent(), resolvedRefDoc).asNode();
                         return ResolvedReference.fromNode(resolvedNode);
 
+                    case JSON_SCHEMA:
+                        // For JSON Schema, return as JSON with appropriate media type
+                        // The dereferencer will wrap it in a Multi-Format Schema Object
+                        JsonNode jsonSchemaNode = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
+
+                        // Parse the reference to extract the JSON pointer component
+                        JsonPointerExternalReference jsonSchemaRef = new JsonPointerExternalReference(reference);
+                        String component = jsonSchemaRef.getComponent();
+
+                        if (component != null && !component.isEmpty()) {
+                            // Resolve the JSON pointer to get the specific schema definition
+                            // Component format is "#/definitions/Address", need to remove the leading '#'
+                            JsonPointer pointer = JsonPointer.compile(component.substring(1));
+                            JsonNode resolvedSchema = jsonSchemaNode.at(pointer);
+
+                            if (!resolvedSchema.isMissingNode() && resolvedSchema.isObject()) {
+                                // Successfully resolved to a specific schema definition
+                                return ResolvedReference.fromJson(resolvedSchema, "application/schema+json");
+                            }
+                            // If resolution failed, fall through to return the whole document
+                        }
+
+                        // No JSON pointer component, or resolution failed - return the whole document
+                        return ResolvedReference.fromJson(jsonSchemaNode, "application/schema+json");
+
                     case AVRO:
                         // For Avro, return as JSON with appropriate media type
                         // The dereferencer will wrap it in a Multi-Format Schema Object
                         JsonNode avroNode = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
                         return ResolvedReference.fromJson(avroNode,
-                                "application/vnd.apache.avro+json;version=1.12.0");
+                                "application/vnd.apache.avro+json");
 
                     case PROTOBUF:
                         // For Protobuf, return as text with appropriate media type

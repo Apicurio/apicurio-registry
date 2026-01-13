@@ -16,29 +16,34 @@
         }
     },
     "components": {
+        "schemas": {
+            "UserEvent": {
+                "schemaFormat": "application/vnd.apache.avro+json",
+                "schema": {
+                    "type": "record",
+                    "name": "UserEvent",
+                    "namespace": "com.example",
+                    "fields": [
+                        {
+                            "name": "userId",
+                            "type": "string"
+                        },
+                        {
+                            "name": "eventType",
+                            "type": "string"
+                        },
+                        {
+                            "name": "timestamp",
+                            "type": "long"
+                        }
+                    ]
+                }
+            }
+        },
         "messages": {
             "UserEventMessage": {
                 "payload": {
-                    "schemaFormat": "application/vnd.apache.avro+json;version=1.12.0",
-                    "schema": {
-                        "type": "record",
-                        "name": "UserEvent",
-                        "namespace": "com.example",
-                        "fields": [
-                            {
-                                "name": "userId",
-                                "type": "string"
-                            },
-                            {
-                                "name": "eventType",
-                                "type": "string"
-                            },
-                            {
-                                "name": "timestamp",
-                                "type": "long"
-                            }
-                        ]
-                    }
+                    "$ref": "#/components/schemas/UserEvent"
                 }
             }
         }

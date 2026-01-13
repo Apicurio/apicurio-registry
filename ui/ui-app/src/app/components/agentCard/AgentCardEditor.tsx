@@ -1,4 +1,4 @@
-import { FunctionComponent, useState, useEffect } from "react";
+import { FunctionComponent, useState } from "react";
 import "./AgentCardEditor.css";
 import {
     Card,
@@ -18,8 +18,7 @@ import {
     Label,
     LabelGroup,
     InputGroup,
-    InputGroupItem,
-    Button
+    InputGroupItem
 } from "@patternfly/react-core";
 import { CapabilityEditor } from "./CapabilityEditor";
 import { SkillEditor } from "./SkillEditor";
@@ -48,8 +47,6 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
     const [inputModeSelectOpen, setInputModeSelectOpen] = useState(false);
     const [outputModeSelectOpen, setOutputModeSelectOpen] = useState(false);
     const [authSchemeSelectOpen, setAuthSchemeSelectOpen] = useState(false);
-    const [newInputMode, setNewInputMode] = useState("");
-    const [newOutputMode, setNewOutputMode] = useState("");
 
     const updateField = <K extends keyof AgentCard>(field: K, value: AgentCard[K]): void => {
         onChange({
@@ -70,7 +67,6 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
         if (!mode || agentCard.defaultInputModes?.includes(mode)) return;
         const modes = [...(agentCard.defaultInputModes || []), mode];
         updateField("defaultInputModes", modes);
-        setNewInputMode("");
     };
 
     const handleRemoveInputMode = (mode: string): void => {
@@ -82,7 +78,6 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
         if (!mode || agentCard.defaultOutputModes?.includes(mode)) return;
         const modes = [...(agentCard.defaultOutputModes || []), mode];
         updateField("defaultOutputModes", modes);
-        setNewOutputMode("");
     };
 
     const handleRemoveOutputMode = (mode: string): void => {

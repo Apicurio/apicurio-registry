@@ -41,6 +41,7 @@ ALTER TABLE group_labels ADD PRIMARY KEY (groupId, labelKey);
 ALTER TABLE group_labels ADD CONSTRAINT FK_glabels_1 FOREIGN KEY (groupId) REFERENCES groups(groupId) ON DELETE CASCADE;
 CREATE INDEX IDX_glabels_1 ON group_labels(labelKey);
 CREATE INDEX IDX_glabels_2 ON group_labels(labelValue);
+CREATE INDEX IDX_glabels_composite ON group_labels(groupId, labelKey, labelValue);
 
 CREATE TABLE group_rules (groupId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE group_rules ADD PRIMARY KEY (groupId, type);
@@ -59,6 +60,7 @@ ALTER TABLE artifact_labels ADD PRIMARY KEY (groupId, artifactId, labelKey);
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
 CREATE INDEX IDX_alabels_1 ON artifact_labels(labelKey);
 CREATE INDEX IDX_alabels_2 ON artifact_labels(labelValue);
+CREATE INDEX IDX_alabels_composite ON artifact_labels(groupId, artifactId, labelKey, labelValue);
 
 CREATE TABLE artifact_rules (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
@@ -87,6 +89,7 @@ ALTER TABLE version_labels ADD PRIMARY KEY (globalId, labelKey);
 ALTER TABLE version_labels ADD CONSTRAINT FK_vlabels_1 FOREIGN KEY (globalId) REFERENCES versions(globalId) ON DELETE CASCADE;
 CREATE INDEX IDX_vlabels_1 ON version_labels(labelKey);
 CREATE INDEX IDX_vlabels_2 ON version_labels(labelValue);
+CREATE INDEX IDX_vlabels_composite ON version_labels(globalId, labelKey, labelValue);
 
 CREATE TABLE version_comments (commentId VARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, cvalue VARCHAR(1024) NOT NULL);
 ALTER TABLE version_comments ADD PRIMARY KEY (commentId);

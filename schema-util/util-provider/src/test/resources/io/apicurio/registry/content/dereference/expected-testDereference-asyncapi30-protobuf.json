@@ -1,0 +1,28 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "Profile Service API",
+        "version": "1.0.0",
+        "description": "API for profile updates with Protobuf schemas"
+    },
+    "channels": {
+        "profileUpdates": {
+            "address": "profile/updates",
+            "messages": {
+                "profileUpdateMessage": {
+                    "$ref": "#/components/messages/ProfileUpdateMessage"
+                }
+            }
+        }
+    },
+    "components": {
+        "messages": {
+            "ProfileUpdateMessage": {
+                "payload": {
+                    "schemaFormat": "application/x-protobuf",
+                    "schema": "syntax = \"proto3\";\n\npackage com.example;\n\nmessage UserProfile {\n    string user_id = 1;\n    string first_name = 2;\n    string last_name = 3;\n    string email = 4;\n}\n"
+                }
+            }
+        }
+    }
+}

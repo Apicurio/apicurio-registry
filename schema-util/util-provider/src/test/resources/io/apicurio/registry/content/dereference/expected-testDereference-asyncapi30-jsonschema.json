@@ -1,0 +1,76 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "Customer Service API",
+        "version": "1.0.0",
+        "description": "API for customer events with JSON Schema references"
+    },
+    "channels": {
+        "customerUpdates": {
+            "address": "customer/updates",
+            "messages": {
+                "customerUpdateMessage": {
+                    "$ref": "#/components/messages/CustomerUpdateMessage"
+                }
+            }
+        }
+    },
+    "components": {
+        "messages": {
+            "CustomerUpdateMessage": {
+                "payload": {
+                    "type": "object",
+                    "required": [
+                        "customerId",
+                        "address"
+                    ],
+                    "properties": {
+                        "customerId": {
+                            "type": "string"
+                        },
+                        "address": {
+                            "type": "object",
+                            "required": [
+                                "street",
+                                "city",
+                                "state",
+                                "zipCode"
+                            ],
+                            "properties": {
+                                "street": {
+                                    "type": "string"
+                                },
+                                "city": {
+                                    "type": "string"
+                                },
+                                "state": {
+                                    "type": "string"
+                                },
+                                "zipCode": {
+                                    "type": "string",
+                                    "pattern": "^[0-9]{5}$"
+                                }
+                            }
+                        },
+                        "contact": {
+                            "type": "object",
+                            "required": [
+                                "email"
+                            ],
+                            "properties": {
+                                "phone": {
+                                    "type": "string",
+                                    "pattern": "^\\+?[0-9]{10,15}$"
+                                },
+                                "email": {
+                                    "type": "string",
+                                    "format": "email"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

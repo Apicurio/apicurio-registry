@@ -1257,7 +1257,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             OrderDirection orderDirection, int offset, int limit) {
         return handles.withHandleNoException(handle -> {
             var searchQuery = searchQueryBuilder.buildSearchQuery(
-                    io.apicurio.registry.storage.impl.sql.search.SearchQueryBuilder.EntityType.ARTIFACT,
+                    SearchQueryBuilder.EntityType.ARTIFACT,
                     filters, orderBy, orderDirection);
 
             Query artifactsQuery = handle.createQuery(searchQuery.sql());
@@ -1931,7 +1931,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             OrderDirection orderDirection, int offset, int limit) {
         return handles.withHandleNoException(handle -> {
             var searchQuery = searchQueryBuilder.buildSearchQuery(
-                    io.apicurio.registry.storage.impl.sql.search.SearchQueryBuilder.EntityType.VERSION,
+                    SearchQueryBuilder.EntityType.VERSION,
                     filters, orderBy, orderDirection);
 
             Query versionsQuery = handle.createQuery(searchQuery.sql());
@@ -3171,7 +3171,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             OrderDirection orderDirection, Integer offset, Integer limit) {
         return handles.withHandleNoException(handle -> {
             var searchQuery = searchQueryBuilder.buildSearchQuery(
-                    io.apicurio.registry.storage.impl.sql.search.SearchQueryBuilder.EntityType.GROUP,
+                    SearchQueryBuilder.EntityType.GROUP,
                     filters, orderBy, orderDirection);
 
             Query groupsQuery = handle.createQuery(searchQuery.sql());

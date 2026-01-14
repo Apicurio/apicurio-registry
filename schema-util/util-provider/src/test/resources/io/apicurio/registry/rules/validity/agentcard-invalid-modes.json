@@ -1,0 +1,5 @@
+{
+  "name": "TestAgent",
+  "defaultInputModes": [123, true, null],
+  "defaultOutputModes": "text"
+}

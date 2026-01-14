@@ -1,0 +1,52 @@
+{
+  "name": "Code Assistant Agent",
+  "description": "An AI-powered code assistant that helps developers write, review, and debug code across multiple programming languages",
+  "version": "1.0.0",
+  "url": "https://api.example.com/agents/code-assistant",
+  "provider": {
+    "organization": "Example AI Labs",
+    "url": "https://example.com"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "code-generation",
+      "name": "Code Generation",
+      "description": "Generate code snippets and complete functions based on natural language descriptions",
+      "tags": ["code", "generation", "programming"],
+      "examples": [
+        "Write a Python function to sort a list",
+        "Create a REST API endpoint in Java"
+      ]
+    },
+    {
+      "id": "code-review",
+      "name": "Code Review",
+      "description": "Review code for bugs, security issues, and best practices",
+      "tags": ["review", "quality", "security"],
+      "examples": [
+        "Review this function for potential bugs",
+        "Check this code for security vulnerabilities"
+      ]
+    },
+    {
+      "id": "debugging",
+      "name": "Debugging Assistance",
+      "description": "Help identify and fix bugs in code",
+      "tags": ["debug", "troubleshooting", "fix"],
+      "examples": [
+        "Why is this function returning null?",
+        "Help me fix this stack trace"
+      ]
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "authentication": {
+    "schemes": ["bearer", "api-key"]
+  },
+  "supportsExtendedAgentCard": false
+}

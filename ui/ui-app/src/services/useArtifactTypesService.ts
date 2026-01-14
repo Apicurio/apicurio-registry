@@ -11,6 +11,7 @@ export class ArtifactTypes {
     public static WSDL = "WSDL";
     public static XSD = "XSD";
     public static XML = "XML";
+    public static AGENT_CARD = "AGENT_CARD";
 
     public static getTitle(type: string): string {
         let title: string = type;
@@ -44,6 +45,9 @@ export class ArtifactTypes {
                 break;
             case "XML":
                 title = "XML";
+                break;
+            case "AGENT_CARD":
+                title = "A2A Agent Card";
                 break;
         }
         return title;
@@ -82,6 +86,9 @@ export class ArtifactTypes {
             case "XML":
                 title = "XML";
                 break;
+            case "AGENT_CARD":
+                title = "Agent Card";
+                break;
         }
         return title;
     }
@@ -118,6 +125,9 @@ export class ArtifactTypes {
                 break;
             case "XML":
                 classes += " xml-icon24";
+                break;
+            case "AGENT_CARD":
+                classes += " agentcard-icon24";
                 break;
             default:
                 classes += " questionmark-icon24";

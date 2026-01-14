@@ -18,6 +18,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
@@ -390,6 +391,11 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
     public GroupMetaData createGroup(CreateGroupMetaData data) {
+        // Validate that the user is not trying to create the reserved "default" group
+        if (new GroupId(data.getId()).isDefaultGroup()) {
+            throw new BadRequestException("The group name 'default' is reserved and cannot be used.");
+        }
+
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder().groupId(data.getId())
                 .description(data.getDescription()).labels(data.getProperties());
 

@@ -33,7 +33,10 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
     public SearchQuery buildSearchQuery(EntityType entityType, Set<SearchFilter> filters,
             OrderBy orderBy, OrderDirection orderDirection) {
 
-        List<SqlStatementVariableBinder> binders = new ArrayList<>();
+        // Separate binder lists for JOIN and WHERE clauses to maintain correct parameter order
+        // since JOINs appear before WHERE in the final SQL
+        List<SqlStatementVariableBinder> joinBinders = new ArrayList<>();
+        List<SqlStatementVariableBinder> whereBinders = new ArrayList<>();
         StringBuilder select = new StringBuilder();
         StringBuilder from = new StringBuilder();
         StringBuilder joins = new StringBuilder();
@@ -64,7 +67,7 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
                         where.append(" AND (");
                     }
 
-                    hasLabelJoin = buildArtifactFilterClause(filter, where, joins, binders, labelJoinCounter) || hasLabelJoin;
+                    hasLabelJoin = buildArtifactFilterClause(filter, where, joins, joinBinders, whereBinders, labelJoinCounter) || hasLabelJoin;
                     where.append(")");
                 }
 
@@ -86,7 +89,7 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
                 where.append(" WHERE (1 = 1)");
                 for (SearchFilter filter : filters) {
                     where.append(" AND (");
-                    hasLabelJoin = buildVersionFilterClause(filter, where, joins, binders, labelJoinCounter) || hasLabelJoin;
+                    hasLabelJoin = buildVersionFilterClause(filter, where, joins, joinBinders, whereBinders, labelJoinCounter) || hasLabelJoin;
                     where.append(")");
                 }
 
@@ -105,7 +108,7 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
                 where.append(" WHERE (1 = 1)");
                 for (SearchFilter filter : filters) {
                     where.append(" AND (");
-                    hasLabelJoin = buildGroupFilterClause(filter, where, joins, binders, labelJoinCounter) || hasLabelJoin;
+                    hasLabelJoin = buildGroupFilterClause(filter, where, joins, joinBinders, whereBinders, labelJoinCounter) || hasLabelJoin;
                     where.append(")");
                 }
 
@@ -128,76 +131,82 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
         sql.append(orderByClause);
         sql.append(getLimitOffsetClause());
 
-        return new SearchQuery(sql.toString(), binders);
+        // Combine binders in correct order: JOIN binders first, then WHERE binders
+        List<SqlStatementVariableBinder> allBinders = new ArrayList<>();
+        allBinders.addAll(joinBinders);
+        allBinders.addAll(whereBinders);
+
+        return new SearchQuery(sql.toString(), allBinders);
     }
 
     /**
      * Builds filter clause for artifact search. Returns true if a label JOIN was added.
      */
     protected boolean buildArtifactFilterClause(SearchFilter filter, StringBuilder where,
-            StringBuilder joins, List<SqlStatementVariableBinder> binders, AtomicInteger labelJoinCounter) {
+            StringBuilder joins, List<SqlStatementVariableBinder> joinBinders,
+            List<SqlStatementVariableBinder> whereBinders, AtomicInteger labelJoinCounter) {
 
         String op;
         switch (filter.getType()) {
             case description -> {
                 op = filter.isNot() ? "NOT LIKE" : "LIKE";
                 where.append("a.description ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
+                whereBinders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
             }
             case name -> {
-                buildNameFilter(filter, where, binders, "a.name", "a.artifactId");
+                buildNameFilter(filter, where, whereBinders, "a.name", "a.artifactId");
             }
             case groupId -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("a.groupId ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, normalizeGroupId(filter.getStringValue())));
+                whereBinders.add((query, idx) -> query.bind(idx, normalizeGroupId(filter.getStringValue())));
             }
             case artifactId -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("a.artifactId ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             case artifactType -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("a.type ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             case contentHash -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId ")
                      .append("WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ")
                      .append("c.contentHash ").append(op).append(" ?)");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             case canonicalHash -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId ")
                      .append("WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ")
                      .append("c.canonicalHash ").append(op).append(" ?)");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             case labels -> {
-                return buildLabelJoinFilter(filter, where, joins, binders, labelJoinCounter,
+                return buildLabelJoinFilter(filter, where, joins, joinBinders, whereBinders, labelJoinCounter,
                         "artifact_labels", "l.groupId = a.groupId AND l.artifactId = a.artifactId");
             }
             case globalId -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId ")
                      .append("AND v.artifactId = a.artifactId AND v.globalId ").append(op).append(" ?)");
-                binders.add((query, idx) -> query.bind(idx, filter.getNumberValue().longValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getNumberValue().longValue()));
             }
             case contentId -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId ")
                      .append("WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ")
                      .append("v.contentId ").append(op).append(" ?)");
-                binders.add((query, idx) -> query.bind(idx, filter.getNumberValue().longValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getNumberValue().longValue()));
             }
             case state -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId ")
                      .append("AND v.artifactId = a.artifactId AND v.state ").append(op).append(" ?)");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             default -> throw new RuntimeException("Filter type not supported: " + filter.getType());
         }
@@ -208,50 +217,51 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
      * Builds filter clause for version search. Returns true if a label JOIN was added.
      */
     protected boolean buildVersionFilterClause(SearchFilter filter, StringBuilder where,
-            StringBuilder joins, List<SqlStatementVariableBinder> binders, AtomicInteger labelJoinCounter) {
+            StringBuilder joins, List<SqlStatementVariableBinder> joinBinders,
+            List<SqlStatementVariableBinder> whereBinders, AtomicInteger labelJoinCounter) {
 
         String op;
         switch (filter.getType()) {
             case groupId -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("a.groupId ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, normalizeGroupId(filter.getStringValue())));
+                whereBinders.add((query, idx) -> query.bind(idx, normalizeGroupId(filter.getStringValue())));
             }
             case artifactType -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("a.type ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             case artifactId, state, version -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("v.").append(filter.getType().name()).append(" ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             case contentId, globalId -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("v.").append(filter.getType().name()).append(" ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, filter.getNumberValue().longValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getNumberValue().longValue()));
             }
             case name, description -> {
                 op = filter.isNot() ? "NOT LIKE" : "LIKE";
                 where.append("v.").append(filter.getType().name()).append(" ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
+                whereBinders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
             }
             case labels -> {
-                return buildLabelJoinFilter(filter, where, joins, binders, labelJoinCounter,
+                return buildLabelJoinFilter(filter, where, joins, joinBinders, whereBinders, labelJoinCounter,
                         "version_labels", "l.globalId = v.globalId");
             }
             case contentHash -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ")
                      .append("c.contentHash ").append(op).append(" ?)");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             case canonicalHash -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("EXISTS(SELECT c.* FROM content c WHERE c.contentId = v.contentId AND ")
                      .append("c.canonicalHash ").append(op).append(" ?)");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             default -> throw new RuntimeException("Filter type not supported: " + filter.getType());
         }
@@ -262,22 +272,23 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
      * Builds filter clause for group search. Returns true if a label JOIN was added.
      */
     protected boolean buildGroupFilterClause(SearchFilter filter, StringBuilder where,
-            StringBuilder joins, List<SqlStatementVariableBinder> binders, AtomicInteger labelJoinCounter) {
+            StringBuilder joins, List<SqlStatementVariableBinder> joinBinders,
+            List<SqlStatementVariableBinder> whereBinders, AtomicInteger labelJoinCounter) {
 
         String op;
         switch (filter.getType()) {
             case description -> {
                 op = filter.isNot() ? "NOT LIKE" : "LIKE";
                 where.append("g.description ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
+                whereBinders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
             }
             case groupId -> {
                 op = filter.isNot() ? "!=" : "=";
                 where.append("g.groupId ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
+                whereBinders.add((query, idx) -> query.bind(idx, filter.getStringValue()));
             }
             case labels -> {
-                return buildLabelJoinFilter(filter, where, joins, binders, labelJoinCounter,
+                return buildLabelJoinFilter(filter, where, joins, joinBinders, whereBinders, labelJoinCounter,
                         "group_labels", "l.groupId = g.groupId");
             }
             default -> throw new RuntimeException("Filter type not supported: " + filter.getType());
@@ -288,10 +299,13 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
     /**
      * Builds a JOIN-based label filter using INNER JOIN for positive filters
      * and LEFT JOIN + IS NULL for NOT filters.
+     * <p>
+     * Note: Label filter parameters go in joinBinders (not whereBinders) because
+     * they appear in the JOIN clause which comes before WHERE in the final SQL.
      */
     protected boolean buildLabelJoinFilter(SearchFilter filter, StringBuilder where, StringBuilder joins,
-            List<SqlStatementVariableBinder> binders, AtomicInteger labelJoinCounter,
-            String labelTable, String joinCondition) {
+            List<SqlStatementVariableBinder> joinBinders, List<SqlStatementVariableBinder> whereBinders,
+            AtomicInteger labelJoinCounter, String labelTable, String joinCondition) {
 
         Pair<String, String> label = filter.getLabelFilterValue();
         String labelKey = label.getKey().toLowerCase();
@@ -302,12 +316,12 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
             joins.append(" LEFT JOIN ").append(labelTable).append(" ").append(alias)
                  .append(" ON ").append(joinCondition.replace("l.", alias + "."))
                  .append(" AND ").append(alias).append(".labelKey = ?");
-            binders.add((query, idx) -> query.bind(idx, labelKey));
+            joinBinders.add((query, idx) -> query.bind(idx, labelKey));
 
             if (label.getValue() != null) {
                 String labelValue = label.getValue().toLowerCase();
                 joins.append(" AND ").append(alias).append(".labelValue = ?");
-                binders.add((query, idx) -> query.bind(idx, labelValue));
+                joinBinders.add((query, idx) -> query.bind(idx, labelValue));
             }
 
             where.append(alias).append(".labelKey IS NULL");
@@ -316,15 +330,16 @@ public class CommonSearchQueryBuilder implements SearchQueryBuilder {
             joins.append(" INNER JOIN ").append(labelTable).append(" ").append(alias)
                  .append(" ON ").append(joinCondition.replace("l.", alias + "."))
                  .append(" AND ").append(alias).append(".labelKey = ?");
-            binders.add((query, idx) -> query.bind(idx, labelKey));
+            joinBinders.add((query, idx) -> query.bind(idx, labelKey));
 
             if (label.getValue() != null) {
                 String labelValue = label.getValue().toLowerCase();
                 joins.append(" AND ").append(alias).append(".labelValue = ?");
-                binders.add((query, idx) -> query.bind(idx, labelValue));
+                joinBinders.add((query, idx) -> query.bind(idx, labelValue));
             }
 
-            where.append("1 = 1");  // Placeholder since the filter is in the JOIN condition
+            // Filter is already applied in the JOIN condition, no additional WHERE needed
+            where.append("1=1");
         }
 
         return true;  // Label JOIN was added

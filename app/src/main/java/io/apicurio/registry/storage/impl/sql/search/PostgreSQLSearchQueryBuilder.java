@@ -41,55 +41,58 @@ public class PostgreSQLSearchQueryBuilder extends CommonSearchQueryBuilder {
 
     @Override
     protected boolean buildArtifactFilterClause(SearchFilter filter, StringBuilder where,
-            StringBuilder joins, List<SqlStatementVariableBinder> binders, AtomicInteger labelJoinCounter) {
+            StringBuilder joins, List<SqlStatementVariableBinder> joinBinders,
+            List<SqlStatementVariableBinder> whereBinders, AtomicInteger labelJoinCounter) {
 
         switch (filter.getType()) {
             case description -> {
                 String op = getLikeOperator(filter.isNot());
                 where.append("a.description ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
+                whereBinders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
                 return false;
             }
             case name -> {
-                buildNameFilter(filter, where, binders, "a.name", "a.artifactId");
+                buildNameFilter(filter, where, whereBinders, "a.name", "a.artifactId");
                 return false;
             }
             default -> {
-                return super.buildArtifactFilterClause(filter, where, joins, binders, labelJoinCounter);
+                return super.buildArtifactFilterClause(filter, where, joins, joinBinders, whereBinders, labelJoinCounter);
             }
         }
     }
 
     @Override
     protected boolean buildVersionFilterClause(SearchFilter filter, StringBuilder where,
-            StringBuilder joins, List<SqlStatementVariableBinder> binders, AtomicInteger labelJoinCounter) {
+            StringBuilder joins, List<SqlStatementVariableBinder> joinBinders,
+            List<SqlStatementVariableBinder> whereBinders, AtomicInteger labelJoinCounter) {
 
         switch (filter.getType()) {
             case name, description -> {
                 String op = getLikeOperator(filter.isNot());
                 where.append("v.").append(filter.getType().name()).append(" ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
+                whereBinders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
                 return false;
             }
             default -> {
-                return super.buildVersionFilterClause(filter, where, joins, binders, labelJoinCounter);
+                return super.buildVersionFilterClause(filter, where, joins, joinBinders, whereBinders, labelJoinCounter);
             }
         }
     }
 
     @Override
     protected boolean buildGroupFilterClause(SearchFilter filter, StringBuilder where,
-            StringBuilder joins, List<SqlStatementVariableBinder> binders, AtomicInteger labelJoinCounter) {
+            StringBuilder joins, List<SqlStatementVariableBinder> joinBinders,
+            List<SqlStatementVariableBinder> whereBinders, AtomicInteger labelJoinCounter) {
 
         switch (filter.getType()) {
             case description -> {
                 String op = getLikeOperator(filter.isNot());
                 where.append("g.description ").append(op).append(" ?");
-                binders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
+                whereBinders.add((query, idx) -> query.bind(idx, "%" + filter.getStringValue() + "%"));
                 return false;
             }
             default -> {
-                return super.buildGroupFilterClause(filter, where, joins, binders, labelJoinCounter);
+                return super.buildGroupFilterClause(filter, where, joins, joinBinders, whereBinders, labelJoinCounter);
             }
         }
     }

@@ -190,4 +190,28 @@ class SearchQueryBuilderTest {
         // Only 1 binder for the key (no value filter)
         assertEquals(1, query.binders().size());
     }
+
+    @Test
+    void testBuildArtifactSearchQuery_nameAndNegatedLabelFilter() {
+        // Test mixed non-label and negated label filters - verifies parameter binding order is correct
+        Set<SearchFilter> filters = new LinkedHashSet<>();
+        filters.add(SearchFilter.ofName("testJoinBasedLabelSearch*"));
+        filters.add(SearchFilter.ofLabel("env", "prod").negated());
+
+        SearchQueryBuilder.SearchQuery query = queryBuilder.buildSearchQuery(
+                SearchQueryBuilder.EntityType.ARTIFACT, filters, OrderBy.name, OrderDirection.asc);
+
+        assertNotNull(query);
+        // Should have LEFT JOIN for negated label
+        assertTrue(query.sql().contains("LEFT JOIN artifact_labels"));
+        assertTrue(query.sql().contains("IS NULL"));
+        // Should have name filter
+        assertTrue(query.sql().contains("a.name"));
+        assertTrue(query.sql().contains("LIKE"));
+        // Should have GROUP BY since there's a label JOIN
+        assertTrue(query.sql().contains("GROUP BY"));
+        // 4 binders: labelKey, labelValue (from JOIN), name LIKE, artifactId LIKE (from WHERE)
+        // JOIN binders come first to match SQL parameter order
+        assertEquals(4, query.binders().size());
+    }
 }

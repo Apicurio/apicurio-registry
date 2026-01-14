@@ -31,7 +31,10 @@ public class SQLServerSearchQueryBuilder extends CommonSearchQueryBuilder {
     public SearchQuery buildSearchQuery(EntityType entityType, Set<SearchFilter> filters,
             OrderBy orderBy, OrderDirection orderDirection) {
 
-        List<SqlStatementVariableBinder> binders = new ArrayList<>();
+        // Separate binder lists for JOIN and WHERE clauses to maintain correct parameter order
+        // since JOINs appear before WHERE in the final SQL
+        List<SqlStatementVariableBinder> joinBinders = new ArrayList<>();
+        List<SqlStatementVariableBinder> whereBinders = new ArrayList<>();
         StringBuilder select = new StringBuilder();
         StringBuilder from = new StringBuilder();
         StringBuilder joins = new StringBuilder();
@@ -62,7 +65,7 @@ public class SQLServerSearchQueryBuilder extends CommonSearchQueryBuilder {
                     } else {
                         where.append(" AND (");
                     }
-                    hasLabelJoin = buildArtifactFilterClause(filter, where, joins, binders, labelJoinCounter) || hasLabelJoin;
+                    hasLabelJoin = buildArtifactFilterClause(filter, where, joins, joinBinders, whereBinders, labelJoinCounter) || hasLabelJoin;
                     where.append(")");
                 }
 
@@ -83,7 +86,7 @@ public class SQLServerSearchQueryBuilder extends CommonSearchQueryBuilder {
                 where.append(" WHERE (1 = 1)");
                 for (SearchFilter filter : filters) {
                     where.append(" AND (");
-                    hasLabelJoin = buildVersionFilterClause(filter, where, joins, binders, labelJoinCounter) || hasLabelJoin;
+                    hasLabelJoin = buildVersionFilterClause(filter, where, joins, joinBinders, whereBinders, labelJoinCounter) || hasLabelJoin;
                     where.append(")");
                 }
 
@@ -101,7 +104,7 @@ public class SQLServerSearchQueryBuilder extends CommonSearchQueryBuilder {
                 where.append(" WHERE (1 = 1)");
                 for (SearchFilter filter : filters) {
                     where.append(" AND (");
-                    hasLabelJoin = buildGroupFilterClause(filter, where, joins, binders, labelJoinCounter) || hasLabelJoin;
+                    hasLabelJoin = buildGroupFilterClause(filter, where, joins, joinBinders, whereBinders, labelJoinCounter) || hasLabelJoin;
                     where.append(")");
                 }
 
@@ -121,6 +124,11 @@ public class SQLServerSearchQueryBuilder extends CommonSearchQueryBuilder {
         sql.append(orderByClause);
         sql.append(getLimitOffsetClause());
 
-        return new SearchQuery(sql.toString(), binders);
+        // Combine binders in correct order: JOIN binders first, then WHERE binders
+        List<SqlStatementVariableBinder> allBinders = new ArrayList<>();
+        allBinders.addAll(joinBinders);
+        allBinders.addAll(whereBinders);
+
+        return new SearchQuery(sql.toString(), allBinders);
     }
 }

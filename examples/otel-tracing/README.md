@@ -255,7 +255,8 @@ To test error scenarios, modify the producer to send invalid data and observe th
 | `quarkus.otel.service.name` | Service name in traces | Application name |
 | `quarkus.otel.exporter.otlp.endpoint` | OTLP collector endpoint | `http://localhost:4317` |
 | `quarkus.otel.traces.sampler` | Sampling strategy | `parentbased_always_on` |
-| `quarkus.otel.instrument.kafka` | Enable Kafka instrumentation | `true` |
+
+**Note:** Kafka instrumentation is automatic when using `quarkus-opentelemetry` with `quarkus-messaging-kafka`.
 
 ### Apicurio Registry Properties
 
@@ -287,9 +288,9 @@ To test error scenarios, modify the producer to send invalid data and observe th
 
 ### Missing trace context in consumer
 
-1. Verify `quarkus.otel.instrument.kafka=true` in both producer and consumer
+1. Ensure both `quarkus-opentelemetry` and `quarkus-messaging-kafka` dependencies are present
 2. Check Kafka message headers for trace context
-3. Ensure OTel instrumentation libraries are on classpath
+3. Verify `quarkus.otel.enabled=true` in both producer and consumer
 
 ## Files Structure
 

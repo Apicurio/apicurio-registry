@@ -128,7 +128,6 @@ services:
       QUARKUS_OTEL_SERVICE_NAME: "greeting-producer"
       QUARKUS_OTEL_TRACES_ENABLED: "true"
       QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_always_on"
-      QUARKUS_OTEL_INSTRUMENT_KAFKA: "true"
     depends_on:
       apicurio-registry:
         condition: service_healthy
@@ -157,7 +156,6 @@ services:
       QUARKUS_OTEL_SERVICE_NAME: "greeting-consumer"
       QUARKUS_OTEL_TRACES_ENABLED: "true"
       QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_always_on"
-      QUARKUS_OTEL_INSTRUMENT_KAFKA: "true"
     depends_on:
       apicurio-registry:
         condition: service_healthy

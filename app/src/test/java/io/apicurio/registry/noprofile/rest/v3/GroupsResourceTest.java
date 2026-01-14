@@ -1867,10 +1867,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .queryParam("references", "DEREFERENCE")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200).body("openapi", equalTo("3.0.2"))
-                .body("paths.widgets.get.responses.200.content.json.schema.items.title", equalTo("Root Type for Widget"))
-                .body("paths.widgets.get.responses.200.content.json.schema.items.type", equalTo("object"))
-                .body("paths.widgets.get.responses.200.content.json.schema.items.properties.name.type", equalTo("string"))
-                .body("paths.widgets.get.responses.200.content.json.schema.items.properties.description.type", equalTo("string"));
+                .body("paths.widgets.get.responses.200.content.json.schema.items.$ref", equalTo("#/components/schemas/Widget"))
+                .body("components.schemas.Widget.title", equalTo("Root Type for Widget"))
+                .body("components.schemas.Widget.type", equalTo("object"))
+                .body("components.schemas.Widget.properties.name.type", equalTo("string"))
+                .body("components.schemas.Widget.properties.description.type", equalTo("string"));
     }
 
     /**

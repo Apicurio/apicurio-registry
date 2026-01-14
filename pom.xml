@@ -313,7 +313,7 @@
     <keycloak.testcontainers.version>3.9.1</keycloak.testcontainers.version>
     <embedded-postgres.version>2.2.0</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
-    <wiremock-jre8.version>3.0.1</wiremock-jre8.version>
+    <wiremock.version>3.13.2</wiremock.version>
     <strimzi-test-container.version>0.113.0</strimzi-test-container.version>
   </properties>
 
@@ -932,9 +932,9 @@
         <version>${keycloak.testcontainers.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.github.tomakehurst</groupId>
-        <artifactId>wiremock-jre8</artifactId>
-        <version>${wiremock-jre8.version}</version>
+        <groupId>org.wiremock</groupId>
+        <artifactId>wiremock</artifactId>
+        <version>${wiremock.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.truth.extensions</groupId>

@@ -225,9 +225,42 @@ openssl pkcs12 -export -in client-cert.pem -inkey client-key.pem \
     -out client-keystore.p12 -passout pass:changeit
 ```
 
+## Running a TLS-Enabled Apicurio Registry
+
+Before running these examples, you need a TLS-enabled Apicurio Registry instance. Here are the available options:
+
+### Option 1: Standalone with Quarkus Configuration
+
+For standalone deployments or local development, Apicurio Registry is a Quarkus application that supports TLS via standard Quarkus HTTP configuration:
+
+```bash
+# Start the registry with TLS enabled using environment variables
+export QUARKUS_HTTP_SSL_PORT=8443
+export QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_FILE=/path/to/keystore.jks
+export QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_PASSWORD=yourpassword
+export QUARKUS_HTTP_INSECURE_REQUESTS=enabled  # or 'disabled' to force HTTPS only
+
+java -jar apicurio-registry-app-*.jar
+```
+
+For comprehensive Quarkus TLS/SSL configuration options, see:
+- [Quarkus HTTP Reference - TLS Configuration](https://quarkus.io/guides/http-reference#ssl)
+
+### Option 2: Local Development with mTLS
+
+For a complete mTLS setup with Minikube, see the [mTLS Minikube Example](../mtls-minikube/) which includes:
+- Automated certificate generation
+- Kubernetes deployment with mTLS
+- Client configuration examples
+
+### Option 3: Kubernetes/OpenShift with the Operator
+
+For production deployments on Kubernetes or OpenShift, the Apicurio Registry Operator provides built-in TLS support. See the operator HTTPS examples in the repository:
+- [Operator HTTPS Templates](../../operator/docs/modules/ROOT/examples/templates/https/) - Examples for edge-terminated and passthrough TLS configurations
+
 ## Running the Examples
 
-1. Set up a TLS-enabled Apicurio Registry instance
+1. Set up a TLS-enabled Apicurio Registry instance (see options above)
 2. Create appropriate certificates and trust stores
 3. Set environment variables for passwords:
    ```bash
@@ -245,6 +278,8 @@ openssl pkcs12 -export -in client-cert.pem -inkey client-key.pem \
 
 ## Related Resources
 
-- [Apicurio Registry Documentation](https://www.apicur.io/registry/docs/)
+- [Apicurio Registry Documentation](https://www.apicur.io/registry/docs/apicurio-registry/3.1.x/)
+- [Apicurio Registry SDK - TLS Configuration](https://www.apicur.io/registry/docs/apicurio-registry/3.1.x/getting-started/assembly-using-the-registry-client.html)
+- [Apicurio Registry Configuration Reference](https://www.apicur.io/registry/docs/apicurio-registry/3.1.x/getting-started/assembly-config-reference.html)
+- [Quarkus HTTP Reference - SSL/TLS](https://quarkus.io/guides/http-reference#ssl)
 - [mTLS Minikube Example](../mtls-minikube/) - Full mTLS setup with Kubernetes
-- [Java SDK Documentation](../../java-sdk/) - Programmatic TLS configuration

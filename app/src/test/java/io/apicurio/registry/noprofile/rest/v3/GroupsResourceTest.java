@@ -10,6 +10,7 @@ import io.apicurio.registry.rest.client.models.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.Comment;
+import io.apicurio.registry.rest.v3.beans.CreateGroup;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
@@ -1985,6 +1986,90 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 "Reference should point to the Avro artifact but was: " + rewrittenRef);
         Assertions.assertTrue(rewrittenRef.contains("?references=REWRITE"),
                 "Reference should contain references=REWRITE parameter but was: " + rewrittenRef);
+    }
+
+    /**
+     * Test that attempting to create a group with reserved names returns 400 Bad Request.
+     * This test validates the fix for issue #7128 where users could create a second "default" group
+     * that would become inaccessible.
+     */
+    @Test
+    public void testCreateReservedGroupName() throws Exception {
+        // Test creating group with "default" (lowercase) - should fail with 400
+        CreateGroup defaultGroup = new CreateGroup();
+        defaultGroup.setGroupId("default");
+        defaultGroup.setDescription("This should not be allowed");
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(defaultGroup)
+            .post("/registry/v3/groups")
+            .then()
+            .statusCode(400);
+
+        // Test creating group with "DEFAULT" (uppercase) - should fail with 400
+        CreateGroup uppercaseDefaultGroup = new CreateGroup();
+        uppercaseDefaultGroup.setGroupId("DEFAULT");
+        uppercaseDefaultGroup.setDescription("This should not be allowed");
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(uppercaseDefaultGroup)
+            .post("/registry/v3/groups")
+            .then()
+            .statusCode(400);
+
+        // Test creating group with "Default" (mixed case) - should fail with 400
+        CreateGroup mixedCaseDefaultGroup = new CreateGroup();
+        mixedCaseDefaultGroup.setGroupId("Default");
+        mixedCaseDefaultGroup.setDescription("This should not be allowed");
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(mixedCaseDefaultGroup)
+            .post("/registry/v3/groups")
+            .then()
+            .statusCode(400);
+
+        // Test creating group with internal representation "__$GROUPID$__" - should fail with 400
+        CreateGroup internalIdGroup = new CreateGroup();
+        internalIdGroup.setGroupId("__$GROUPID$__");
+        internalIdGroup.setDescription("This should not be allowed");
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(internalIdGroup)
+            .post("/registry/v3/groups")
+            .then()
+            .statusCode(400);
+
+        // Test creating group with valid name - should succeed with 201
+        String validGroupId = "testCreateReservedGroupName_" + UUID.randomUUID().toString();
+        CreateGroup validGroup = new CreateGroup();
+        validGroup.setGroupId(validGroupId);
+        validGroup.setDescription("This is a valid group");
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(validGroup)
+            .post("/registry/v3/groups")
+            .then()
+            .statusCode(200)
+            .body("groupId", equalTo(validGroupId))
+            .body("description", equalTo("This is a valid group"));
+
+        // Cleanup: delete the valid group
+        given()
+            .when()
+            .pathParam("groupId", validGroupId)
+            .delete("/registry/v3/groups/{groupId}")
+            .then()
+            .statusCode(204);
     }
 
 }

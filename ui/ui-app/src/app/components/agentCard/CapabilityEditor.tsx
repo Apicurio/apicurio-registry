@@ -41,7 +41,7 @@ export const CapabilityEditor: FunctionComponent<CapabilityEditorProps> = (props
         }
     ];
 
-    const handleChange = (key: string, checked: boolean): void => {
+    const handleChange = (key: keyof AgentCapabilities, checked: boolean): void => {
         const updated = {
             ...capabilities,
             [key]: checked

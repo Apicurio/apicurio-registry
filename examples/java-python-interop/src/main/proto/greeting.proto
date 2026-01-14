@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package io.apicurio.registry.examples.interop;
+
+option java_package = "io.apicurio.registry.examples.interop";
+option java_outer_classname = "GreetingProtos";
+
+// A greeting message used in the Java-Python interoperability example.
+// This message can be serialized/deserialized by both Java and Python clients.
+message Greeting {
+  // The greeting message content
+  string message = 1;
+
+  // The timestamp when the greeting was created (Unix epoch milliseconds)
+  int64 time = 2;
+
+  // The name of the sender
+  string sender = 3;
+
+  // The source language that produced this message (java or python)
+  string source = 4;
+}

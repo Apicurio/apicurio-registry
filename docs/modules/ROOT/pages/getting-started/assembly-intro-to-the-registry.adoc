@@ -377,9 +377,15 @@ The {registry} Maven repository and source code distributions include the Kafka 
 
 These implementations include custom Java classes for each supported message type, for example, `io.apicurio.registry.serde.avro`, which client applications can use to pull schemas from {registry} at runtime for validation.
 
+[discrete]
+==== Python SerDes support
+
+{registry} also provides a Python SerDes library (`apicurio-registry-serdes`) that supports the same schema types and uses a compatible wire format. This enables interoperability between Java and Python applications using the same {registry} instance. See {python-client-serdes} for details.
+
 [role="_additional-resources"]
 .Additional resources
 * {kafka-client-serdes}
+* {python-client-serdes}
 
 
 

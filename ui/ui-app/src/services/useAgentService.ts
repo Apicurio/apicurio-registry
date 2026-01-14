@@ -1,6 +1,7 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { Paging } from "@models/Paging.ts";
+import { createAuthOptions } from "@utils/rest.utils.ts";
 
 /**
  * Agent capabilities structure
@@ -44,6 +45,28 @@ export interface AgentSearchFilters {
     skill?: string;
 }
 
+/**
+ * Gets the base URL for well-known endpoints.
+ * Extracts the base URL from the artifacts URL by removing the /apis/registry/v3 suffix.
+ */
+const getBaseUrl = (config: ConfigService): string => {
+    const artifactsUrl = config.artifactsUrl();
+    // Remove trailing slash if present
+    const url = artifactsUrl.endsWith("/") ? artifactsUrl.slice(0, -1) : artifactsUrl;
+    // Remove /apis/registry/v3 suffix to get base URL
+    const suffix = "/apis/registry/v3";
+    if (url.endsWith(suffix)) {
+        return url.slice(0, -suffix.length);
+    }
+    // Fallback: try to extract just the origin
+    try {
+        const parsed = new URL(url);
+        return parsed.origin;
+    } catch {
+        return window.location.origin;
+    }
+};
+
 const searchAgents = async (
     config: ConfigService,
     auth: AuthService,
@@ -70,17 +93,21 @@ const searchAgents = async (
         params.append("skill", filters.skill);
     }
 
-    const baseUrl = config.apiUrl() || window.location.origin;
+    const baseUrl = getBaseUrl(config);
     const url = `${baseUrl}/.well-known/agents?${params.toString()}`;
 
-    const headers: HeadersInit = {
+    // Get auth headers using the standard pattern
+    const authOptions = await createAuthOptions(auth);
+    const headers: Record<string, string> = {
         "Accept": "application/json"
     };
-
-    // Add auth header if needed
-    const authHeader = auth.getAuthorizationHeader?.();
-    if (authHeader) {
-        headers["Authorization"] = authHeader;
+    // Copy auth headers if present
+    if (authOptions.headers) {
+        Object.entries(authOptions.headers).forEach(([key, value]) => {
+            if (typeof value === "string") {
+                headers[key] = value;
+            }
+        });
     }
 
     const response = await fetch(url, {
@@ -103,16 +130,21 @@ const getAgentCard = async (
 ): Promise<any> => {
     console.debug("[AgentService] Getting agent card: ", groupId, artifactId);
 
-    const baseUrl = config.apiUrl() || window.location.origin;
+    const baseUrl = getBaseUrl(config);
     const url = `${baseUrl}/.well-known/agents/${encodeURIComponent(groupId)}/${encodeURIComponent(artifactId)}`;
 
-    const headers: HeadersInit = {
+    // Get auth headers using the standard pattern
+    const authOptions = await createAuthOptions(auth);
+    const headers: Record<string, string> = {
         "Accept": "application/json"
     };
-
-    const authHeader = auth.getAuthorizationHeader?.();
-    if (authHeader) {
-        headers["Authorization"] = authHeader;
+    // Copy auth headers if present
+    if (authOptions.headers) {
+        Object.entries(authOptions.headers).forEach(([key, value]) => {
+            if (typeof value === "string") {
+                headers[key] = value;
+            }
+        });
     }
 
     const response = await fetch(url, {
@@ -133,16 +165,21 @@ const getRegistryAgentCard = async (
 ): Promise<any> => {
     console.debug("[AgentService] Getting registry agent card");
 
-    const baseUrl = config.apiUrl() || window.location.origin;
+    const baseUrl = getBaseUrl(config);
     const url = `${baseUrl}/.well-known/agent.json`;
 
-    const headers: HeadersInit = {
+    // Get auth headers using the standard pattern
+    const authOptions = await createAuthOptions(auth);
+    const headers: Record<string, string> = {
         "Accept": "application/json"
     };
-
-    const authHeader = auth.getAuthorizationHeader?.();
-    if (authHeader) {
-        headers["Authorization"] = authHeader;
+    // Copy auth headers if present
+    if (authOptions.headers) {
+        Object.entries(authOptions.headers).forEach(([key, value]) => {
+            if (typeof value === "string") {
+                headers[key] = value;
+            }
+        });
     }
 
     const response = await fetch(url, {

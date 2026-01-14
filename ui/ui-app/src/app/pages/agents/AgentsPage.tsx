@@ -125,12 +125,13 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
         search(createFilters(), newPaging);
     };
 
-    const handleCapabilitySelect = (_event: any, value: string | number): void => {
-        setCapabilityFilter(value as string);
+    const handleCapabilitySelect = (_event: React.MouseEvent | undefined, value: string | number | undefined): void => {
+        const selectedValue = value as string || "";
+        setCapabilityFilter(selectedValue);
         setCapabilitySelectOpen(false);
         const filters: AgentSearchFilters = {
             name: nameFilter || undefined,
-            capability: value as string || undefined,
+            capability: selectedValue || undefined,
             skill: skillFilter || undefined
         };
         search(filters, { ...DEFAULT_PAGING });

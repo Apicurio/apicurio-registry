@@ -2962,6 +2962,9 @@
             },
             "description": "The group has been successfully created."
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
@@ -2977,7 +2980,7 @@
         },
         "operationId": "createGroup",
         "summary": "Create a new group",
-        "description": "Creates a new group.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group already exist (HTTP error `409`)\n"
+        "description": "Creates a new group.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group already exist (HTTP error `409`)\n* Invalid group ID (e.g., reserved name 'default') (HTTP error `400`)\n"
       }
     },
     "/groups/{groupId}/artifacts/{artifactId}/meta": {

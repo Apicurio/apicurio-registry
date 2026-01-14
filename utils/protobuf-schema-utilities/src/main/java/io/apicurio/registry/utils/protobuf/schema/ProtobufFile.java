@@ -1,5 +1,6 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
+import com.google.common.collect.BoundType;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Range;
@@ -19,6 +20,7 @@ import com.squareup.wire.schema.internal.parser.ReservedElement;
 import com.squareup.wire.schema.internal.parser.RpcElement;
 import com.squareup.wire.schema.internal.parser.ServiceElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
+import kotlin.ranges.IntRange;
 
 import java.io.File;
 import java.io.IOException;
@@ -223,7 +225,13 @@ public class ProtobufFile {
         Set<Object> reservedFieldSet = new HashSet<>();
         for (ReservedElement reservedElement : messageElement.getReserveds()) {
             for (Object value : reservedElement.getValues()) {
-                if (value instanceof Range) {
+                if (value instanceof IntRange) {
+                    // Handle Kotlin IntRange from wire-schema library (e.g., "reserved 1 to 2;")
+                    IntRange intRange = (IntRange) value;
+                    Range<Integer> range = Range.range(intRange.getStart(), BoundType.CLOSED,
+                            intRange.getLast(), BoundType.CLOSED);
+                    reservedFieldSet.addAll(ContiguousSet.create(range, DiscreteDomain.integers()));
+                } else if (value instanceof Range) {
                     reservedFieldSet.addAll(ContiguousSet.create((Range) value, DiscreteDomain.integers()));
                 } else {
                     reservedFieldSet.add(value);

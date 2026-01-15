@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 100);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 102);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -45,17 +45,25 @@ CREATE TABLE global_rules (
 ALTER TABLE global_rules ADD PRIMARY KEY (type);
 
 CREATE TABLE content (
-    contentId     BIGINT      NOT NULL,
-    canonicalHash VARCHAR(64) NOT NULL,
-    contentHash   VARCHAR(64) NOT NULL,
-    contentType   VARCHAR(64) NOT NULL,
-    content       BLOB        NOT NULL,
-    refs          TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+    contentId   BIGINT       NOT NULL,
+    contentHash VARCHAR(512) NOT NULL,
+    contentType VARCHAR(64)  NOT NULL,
+    content     BLOB         NOT NULL,
+    refs        TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE content ADD PRIMARY KEY (contentId);
 ALTER TABLE content ADD CONSTRAINT UQ_content_1 UNIQUE (contentHash);
-CREATE INDEX IDX_content_1 ON content (canonicalHash);
-CREATE INDEX IDX_content_2 ON content (contentHash);
+
+CREATE TABLE content_hashes (
+    contentId BIGINT       NOT NULL,
+    hashType  VARCHAR(64)  NOT NULL,
+    hashValue VARCHAR(128) NOT NULL,
+    createdOn TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
+ALTER TABLE content_hashes ADD PRIMARY KEY (contentId, hashType);
+ALTER TABLE content_hashes ADD CONSTRAINT FK_content_hashes_1 FOREIGN KEY (contentId) REFERENCES content(contentId) ON DELETE CASCADE;
+CREATE INDEX IDX_content_hashes_1 ON content_hashes (hashValue);
+CREATE INDEX IDX_content_hashes_2 ON content_hashes (hashType, hashValue);
 
 CREATE TABLE content_references (
     contentId  BIGINT       NOT NULL,

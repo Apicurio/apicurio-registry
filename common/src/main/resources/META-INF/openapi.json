@@ -3530,6 +3530,130 @@
         "description": "Returns a paginated list of all versions that match the posted content.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
+    "/search/models": {
+      "summary": "Search for AI/ML model schemas in the registry.",
+      "get": {
+        "tags": [
+          "Search",
+          "AI"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "description": "The number of models to skip before starting to collect the result set.  Defaults to 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "description": "The number of models to return.  Defaults to 20.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "order",
+            "description": "Sort order, ascending (`asc`) or descending (`desc`).",
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder"
+            },
+            "in": "query"
+          },
+          {
+            "name": "orderby",
+            "description": "The field to sort by.  Can be one of:\n\n* `name`\n* `createdOn`\n* `provider`\n* `contextWindow`\n",
+            "schema": {
+              "$ref": "#/components/schemas/ModelSortBy"
+            },
+            "in": "query"
+          },
+          {
+            "name": "provider",
+            "description": "Filter by model provider (e.g., `openai`, `anthropic`, `google`).",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "capability",
+            "description": "Filter by model capabilities. Can be specified multiple times to require all capabilities (e.g., `capability=chat&capability=vision`).",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "minContextWindow",
+            "description": "Filter by minimum context window size (in tokens).",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "maxContextWindow",
+            "description": "Filter by maximum context window size (in tokens).",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "groupId",
+            "description": "Filter by artifact group.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "name",
+            "description": "Filter by model name.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelSearchResults"
+                }
+              }
+            },
+            "description": "On a successful response, returns a result set of AI/ML models - one for each MODEL_SCHEMA artifact in the registry that matches the criteria."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "searchModels",
+        "summary": "Search for AI/ML models",
+        "description": "Returns a paginated list of all MODEL_SCHEMA artifacts that match the provided filter criteria.\nThis endpoint allows querying models by provider, capabilities, and context window size.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
     "/groups/{groupId}/artifacts/{artifactId}/branches/{branchId}/versions": {
       "summary": "Manage the versions in a branch.",
       "get": {
@@ -3924,6 +4048,85 @@
               "COMPATIBILITY",
               "INTEGRITY"
             ],
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render": {
+      "summary": "Render a prompt template artifact by substituting variables.",
+      "post": {
+        "tags": [
+          "Versions",
+          "AI"
+        ],
+        "requestBody": {
+          "description": "The variables to use for rendering the prompt template.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderPromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderPromptResponse"
+                }
+              }
+            },
+            "description": "The rendered prompt template."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "renderPromptTemplate",
+        "summary": "Render a prompt template",
+        "description": "Renders a prompt template artifact by substituting the provided variables into the template.\nThe artifact must be of type `PROMPT_TEMPLATE`. Variables are validated against the template's\nvariable schema before rendering.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* The artifact is not a PROMPT_TEMPLATE (HTTP error `400`)\n* Required variables are missing or have invalid types (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
+          "schema": {
             "type": "string"
           },
           "in": "path",
@@ -5607,6 +5810,224 @@
         ],
         "type": "string"
       },
+      "ModelSortBy": {
+        "description": "Fields available for sorting model search results.",
+        "enum": [
+          "name",
+          "createdOn",
+          "modifiedOn",
+          "provider",
+          "contextWindow"
+        ],
+        "type": "string"
+      },
+      "RenderPromptRequest": {
+        "title": "Root Type for RenderPromptRequest",
+        "description": "Request body for rendering a prompt template with variable substitution.",
+        "required": [
+          "variables"
+        ],
+        "type": "object",
+        "properties": {
+          "variables": {
+            "description": "A map of variable names to their values. These will be substituted into the prompt template.",
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "example": {
+          "variables": {
+            "document": "The quick brown fox jumps over the lazy dog.",
+            "max_words": 100,
+            "style": "concise"
+          }
+        }
+      },
+      "RenderPromptResponse": {
+        "title": "Root Type for RenderPromptResponse",
+        "description": "Response from rendering a prompt template.",
+        "required": [
+          "rendered"
+        ],
+        "type": "object",
+        "properties": {
+          "rendered": {
+            "description": "The rendered prompt with all variables substituted.",
+            "type": "string"
+          },
+          "groupId": {
+            "description": "The group ID of the artifact.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of the artifact that was rendered.",
+            "type": "string"
+          },
+          "validationErrors": {
+            "description": "Any validation errors encountered when validating variables against the template schema.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RenderValidationError"
+            }
+          }
+        },
+        "example": {
+          "rendered": "Style: concise\nMaximum length: 100 words\nDocument: The quick brown fox jumps over the lazy dog.",
+          "groupId": "default",
+          "artifactId": "summarization-v1",
+          "version": "1.2",
+          "validationErrors": []
+        }
+      },
+      "RenderValidationError": {
+        "title": "Root Type for RenderValidationError",
+        "description": "A validation error encountered when validating template variables.",
+        "required": [
+          "variableName",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "variableName": {
+            "description": "The name of the variable that failed validation.",
+            "type": "string"
+          },
+          "message": {
+            "description": "A description of the validation error.",
+            "type": "string"
+          },
+          "expectedType": {
+            "description": "The expected type of the variable.",
+            "type": "string"
+          },
+          "actualType": {
+            "description": "The actual type that was provided.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "variableName": "max_words",
+          "message": "Expected integer but got string",
+          "expectedType": "integer",
+          "actualType": "string"
+        }
+      },
+      "ModelSearchResults": {
+        "title": "Root Type for ModelSearchResults",
+        "description": "Describes the response received when searching for AI/ML model schemas.",
+        "required": [
+          "count",
+          "models"
+        ],
+        "type": "object",
+        "properties": {
+          "models": {
+            "description": "The models returned in the result set.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelInfo"
+            }
+          },
+          "count": {
+            "description": "The total number of models that matched the query (may be more than the number of models in the result set).",
+            "type": "integer"
+          }
+        },
+        "example": {
+          "count": 2,
+          "models": [
+            {
+              "groupId": "ai-models",
+              "artifactId": "gpt-4-turbo",
+              "version": "2024-01",
+              "provider": "openai",
+              "contextWindow": 128000,
+              "capabilities": ["chat", "function_calling", "vision"]
+            }
+          ]
+        }
+      },
+      "ModelInfo": {
+        "title": "Root Type for ModelInfo",
+        "description": "Information about an AI/ML model schema.",
+        "required": [
+          "groupId",
+          "artifactId"
+        ],
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "description": "The group ID of the artifact.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID (model identifier).",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of the model schema.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The display name of the model.",
+            "type": "string"
+          },
+          "description": {
+            "description": "A description of the model.",
+            "type": "string"
+          },
+          "provider": {
+            "description": "The model provider (e.g., openai, anthropic, google).",
+            "type": "string"
+          },
+          "modelId": {
+            "description": "The unique model identifier as defined in the schema.",
+            "type": "string"
+          },
+          "contextWindow": {
+            "description": "The context window size in tokens.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "capabilities": {
+            "description": "The capabilities of the model (e.g., chat, function_calling, vision).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdOn": {
+            "description": "When the model schema was created.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "modifiedOn": {
+            "description": "When the model schema was last modified.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "globalId": {
+            "description": "The global ID of the artifact version.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "example": {
+          "groupId": "ai-models",
+          "artifactId": "gpt-4-turbo",
+          "version": "2024-01",
+          "name": "GPT-4 Turbo",
+          "provider": "openai",
+          "modelId": "gpt-4-turbo",
+          "contextWindow": 128000,
+          "capabilities": ["chat", "function_calling", "vision"],
+          "createdOn": "2024-01-15T10:00:00Z"
+        }
+      },
       "SnapshotMetaData": {
         "title": "Root Type for SnapshotMetaData",
         "description": "",
@@ -6263,6 +6684,10 @@
     {
       "name": "Group rules",
       "description": "Rules can be configured on a per-group basis, allowing for different approaches\nto content evolution for artifacts in the group.  These rules override any global rules\nthat have been configured. This section contains the operations used to manage the\nrules in a single group."
+    },
+    {
+      "name": "AI",
+      "description": "Operations related to AI/ML artifact management, including prompt template rendering, model schema queries, and LLM integration features."
     }
   ],
   "x-codegen": {

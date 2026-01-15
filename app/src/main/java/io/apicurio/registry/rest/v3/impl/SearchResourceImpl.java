@@ -60,6 +60,9 @@ public class SearchResourceImpl implements SearchResource {
     @Inject
     RegistryStorageContentUtils contentUtils;
 
+    @Inject
+    io.apicurio.registry.services.ModelCapabilityService modelCapabilityService;
+
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit,
@@ -365,6 +368,24 @@ public class SearchResourceImpl implements SearchResource {
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.SearchResource#searchModels(java.math.BigInteger,
+     *      java.math.BigInteger, io.apicurio.registry.rest.v3.beans.SortOrder,
+     *      io.apicurio.registry.rest.v3.beans.ModelSortBy, java.lang.String, java.util.List,
+     *      java.lang.Long, java.lang.Long, java.lang.String, java.lang.String)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public io.apicurio.registry.rest.v3.beans.ModelSearchResults searchModels(
+            BigInteger offset, BigInteger limit, SortOrder order,
+            io.apicurio.registry.rest.v3.beans.ModelSortBy orderby, String provider,
+            List<String> capability, Long minContextWindow, Long maxContextWindow,
+            String groupId, String name) {
+
+        return modelCapabilityService.searchModels(offset, limit, order, orderby, provider,
+                capability, minContextWindow, maxContextWindow, groupId, name);
     }
 
     /**

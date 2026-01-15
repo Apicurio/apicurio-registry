@@ -158,6 +158,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     SecurityIdentity securityIdentity;
 
+    @Inject
+    io.apicurio.registry.services.PromptRenderingService promptRenderingService;
+
     public enum RegistryHashAlgorithm {
         SHA256, MD5
     }
@@ -1764,6 +1767,52 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         } catch (Exception e) {
             throw new BadRequestException("Errors downloading the artifact content.", e);
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#renderPromptTemplate(java.lang.String,
+     *      java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.RenderPromptRequest)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public io.apicurio.registry.rest.v3.beans.RenderPromptResponse renderPromptTemplate(
+            String groupId, String artifactId, String versionExpression,
+            io.apicurio.registry.rest.v3.beans.RenderPromptRequest data) {
+
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("versionExpression", versionExpression);
+        requireParameter("data", data);
+        requireParameter("variables", data.getVariables());
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+
+        // Verify the artifact exists and is of type PROMPT_TEMPLATE
+        ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        String artifactType = versionMetaData.getArtifactType();
+        if (!"PROMPT_TEMPLATE".equals(artifactType)) {
+            throw new BadRequestException(
+                    "Artifact type must be PROMPT_TEMPLATE, but was: " + artifactType);
+        }
+
+        // Get the content
+        StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        // Convert variables map
+        @SuppressWarnings("unchecked")
+        Map<String, Object> variables = (Map<String, Object>) data.getVariables();
+
+        // Render the template
+        return promptRenderingService.render(
+                storedArtifact.getContent(),
+                variables,
+                gav.getRawGroupIdWithNull() != null ? gav.getRawGroupIdWithNull() : "default",
+                gav.getRawArtifactId(),
+                gav.getRawVersionId());
     }
 
 }

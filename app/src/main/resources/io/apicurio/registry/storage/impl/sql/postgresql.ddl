@@ -116,13 +116,46 @@ ALTER TABLE outbox ADD PRIMARY KEY (id);
 -- Note: Creating the extension requires superuser or create extension privilege.
 -- If the extension is not available, substring searches will still work but
 -- without the GIN trigram index optimization.
--- To manually enable: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm') THEN
+        BEGIN
+            CREATE EXTENSION pg_trgm;
+            RAISE NOTICE 'pg_trgm extension created successfully';
+        EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'pg_trgm extension could not be created (requires superuser privilege). Trigram indexes will not be available.';
+        END;
+    END IF;
+END
+$$;
 
 -- GIN trigram indexes for substring searches (requires pg_trgm extension)
 -- These indexes significantly improve LIKE '%search%' query performance.
--- They will only be used if the pg_trgm extension is installed.
--- CREATE INDEX IDX_artifacts_name_trgm ON artifacts USING GIN (name gin_trgm_ops);
--- CREATE INDEX IDX_artifacts_description_trgm ON artifacts USING GIN (description gin_trgm_ops);
--- CREATE INDEX IDX_versions_name_trgm ON versions USING GIN (name gin_trgm_ops);
--- CREATE INDEX IDX_versions_description_trgm ON versions USING GIN (description gin_trgm_ops);
--- CREATE INDEX IDX_groups_description_trgm ON groups USING GIN (description gin_trgm_ops);
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_artifacts_name_trgm') THEN
+            CREATE INDEX IDX_artifacts_name_trgm ON artifacts USING GIN (name gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on artifacts.name';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_artifacts_description_trgm') THEN
+            CREATE INDEX IDX_artifacts_description_trgm ON artifacts USING GIN (description gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on artifacts.description';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_versions_name_trgm') THEN
+            CREATE INDEX IDX_versions_name_trgm ON versions USING GIN (name gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on versions.name';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_versions_description_trgm') THEN
+            CREATE INDEX IDX_versions_description_trgm ON versions USING GIN (description gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on versions.description';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_groups_description_trgm') THEN
+            CREATE INDEX IDX_groups_description_trgm ON groups USING GIN (description gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on groups.description';
+        END IF;
+    ELSE
+        RAISE NOTICE 'pg_trgm extension not available. Skipping trigram index creation.';
+    END IF;
+END
+$$;

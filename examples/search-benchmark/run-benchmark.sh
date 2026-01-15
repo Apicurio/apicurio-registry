@@ -185,14 +185,19 @@ echo "=============================================="
 echo ""
 echo "Generating summary..."
 
+# Export variables for Python
+export BENCHMARK_RESULTS_FILE="${RESULTS_FILE}"
+export BENCHMARK_ITERATIONS="${ITERATIONS}"
+
 python3 << 'PYTHON_SCRIPT'
 import csv
-import sys
+import os
 from collections import defaultdict
 
+results_file = os.environ['BENCHMARK_RESULTS_FILE']
 results = defaultdict(lambda: defaultdict(list))
 
-with open("${RESULTS_FILE}", 'r') as f:
+with open(results_file, 'r') as f:
     reader = csv.DictReader(f)
     for row in reader:
         test_name = row['test_name']
@@ -257,14 +262,17 @@ print("\n" + "=" * 80)
 PYTHON_SCRIPT
 
 # Save summary to file
-python3 << PYTHON_SUMMARY > "${SUMMARY_FILE}"
+python3 << 'PYTHON_SUMMARY' > "${SUMMARY_FILE}"
 import csv
+import os
 from collections import defaultdict
 from datetime import datetime
 
+results_file = os.environ['BENCHMARK_RESULTS_FILE']
+iterations = os.environ['BENCHMARK_ITERATIONS']
 results = defaultdict(lambda: defaultdict(list))
 
-with open("${RESULTS_FILE}", 'r') as f:
+with open(results_file, 'r') as f:
     reader = csv.DictReader(f)
     for row in reader:
         test_name = row['test_name']
@@ -274,7 +282,7 @@ with open("${RESULTS_FILE}", 'r') as f:
 
 print("Search Performance Benchmark Summary")
 print(f"Generated: {datetime.now().isoformat()}")
-print(f"Iterations: ${ITERATIONS}")
+print(f"Iterations: {iterations}")
 print("")
 
 for test_name in sorted(results.keys()):

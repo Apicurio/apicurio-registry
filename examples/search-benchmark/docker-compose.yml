@@ -25,6 +25,7 @@ services:
       retries: 5
 
   # PostgreSQL database for optimized registry (current)
+  # Includes pg_trgm extension for trigram search optimization
   postgres-optimized:
     image: postgres:15
     container_name: postgres-optimized
@@ -36,6 +37,7 @@ services:
       - "5433:5432"
     volumes:
       - postgres-optimized-data:/var/lib/postgresql/data
+      - ./init-optimized-db.sql:/docker-entrypoint-initdb.d/init-optimized-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U apicurio -d apicurio-registry"]
       interval: 5s

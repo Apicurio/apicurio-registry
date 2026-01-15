@@ -181,7 +181,9 @@ for ((g=1; g<=NUM_GROUPS; g++)); do
         # Generate artifact details
         domain="${DOMAINS[$((RANDOM % ${#DOMAINS[@]}))]}"
         artifact_id="${domain}-service-api-${artifact_count}"
-        name="${domain^} Service API ${artifact_count}"
+        # Capitalize first letter (compatible with Bash 3)
+        domain_cap="$(echo "${domain}" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')"
+        name="${domain_cap} Service API ${artifact_count}"
         description="API schema for ${domain} service - artifact ${artifact_count} with search optimization testing"
 
         # Generate labels

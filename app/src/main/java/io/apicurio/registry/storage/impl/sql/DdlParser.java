@@ -42,29 +42,51 @@ public class DdlParser {
         String line;
         StringBuilder builder = new StringBuilder();
         boolean isInMultiLineStatement = false;
+        boolean isInDollarQuotedBlock = false;
         while ((line = reader.readLine()) != null) {
             if (line.startsWith("--")) {
                 continue;
             }
-            if (line.trim().isEmpty() && !isInMultiLineStatement) {
+            if (line.trim().isEmpty() && !isInMultiLineStatement && !isInDollarQuotedBlock) {
                 continue;
             }
-            if (line.trim().isEmpty() && isInMultiLineStatement) {
+            if (line.trim().isEmpty() && isInMultiLineStatement && !isInDollarQuotedBlock) {
                 isInMultiLineStatement = false;
             }
-            if (line.endsWith("'") || line.endsWith("(")) {
-                isInMultiLineStatement = true;
+
+            // Handle PostgreSQL DO $$ ... $$ blocks
+            if (line.contains("DO $$") || line.contains("DO$$")) {
+                isInDollarQuotedBlock = true;
             }
-            if (line.startsWith("'") || line.startsWith(")")) {
-                isInMultiLineStatement = false;
+            // Check for end of dollar-quoted block ($$; at end of line)
+            if (isInDollarQuotedBlock && (line.trim().endsWith("$$;") || line.trim().equals("$$"))) {
+                builder.append(line);
+                builder.append("\n");
+                String sqlStatement = builder.toString().trim();
+                if (sqlStatement.endsWith(";")) {
+                    sqlStatement = sqlStatement.substring(0, sqlStatement.length() - 1);
+                }
+                rval.add(sqlStatement);
+                builder = new StringBuilder();
+                isInDollarQuotedBlock = false;
+                continue;
             }
-            if (line.startsWith("CREATE FUNCTION")) {
-                isInMultiLineStatement = true;
+
+            if (!isInDollarQuotedBlock) {
+                if (line.endsWith("'") || line.endsWith("(")) {
+                    isInMultiLineStatement = true;
+                }
+                if (line.startsWith("'") || line.startsWith(")")) {
+                    isInMultiLineStatement = false;
+                }
+                if (line.startsWith("CREATE FUNCTION")) {
+                    isInMultiLineStatement = true;
+                }
             }
             builder.append(line);
             builder.append("\n");
 
-            if (!isInMultiLineStatement) {
+            if (!isInMultiLineStatement && !isInDollarQuotedBlock) {
                 String sqlStatement = builder.toString().trim();
                 if (sqlStatement.endsWith(";")) {
                     sqlStatement = sqlStatement.substring(0, sqlStatement.length() - 1);

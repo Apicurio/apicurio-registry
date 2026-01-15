@@ -16,31 +16,24 @@
 
 package io.apicurio.registry.auth;
 
-import io.apicurio.common.apps.config.Dynamic;
-import io.apicurio.common.apps.config.Info;
 import io.quarkus.arc.Unremovable;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
 import io.quarkus.vertx.http.runtime.security.ChallengeData;
-import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUTH;
 
 /**
  * HTTP authentication mechanism that trusts headers injected by a reverse proxy.
@@ -73,18 +66,48 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUT
  * Enable this mechanism with: apicurio.authn.proxy-header.enabled=true
  *
  * Strict vs Permissive Mode:
- * - apicurio.authn.proxy-header.strict=true (default): Authentication FAILS if headers are missing.
- *   Use this when the proxy is the ONLY authentication method. Provides security by preventing
- *   accidental anonymous access.
+ * --------------------------
+ * Default Mode (Permissive - apicurio.authn.proxy-header.strict=false):
+ * - Missing headers: Falls back to other authentication mechanisms or allows anonymous access
+ * - Use when you want to support both proxy auth and other auth methods
+ * - IMPORTANT: You MUST configure authorization policies to prevent unintended anonymous access:
+ *   * Use apicurio.auth.role-based-authorization=true with role checks, OR
+ *   * Configure Quarkus HTTP auth permission policies, OR
+ *   * Use apicurio.authn.public-paths to explicitly define public endpoints
+ *   Without proper authorization policies, missing headers will result in anonymous access!
  *
- * - apicurio.authn.proxy-header.strict=false: Falls back to other authentication mechanisms if
- *   headers are missing. Use this when you want to support both proxy auth and direct auth
- *   (e.g., during migration or for testing).
+ * Strict Mode (apicurio.authn.proxy-header.strict=true):
+ * - Missing headers: Authentication FAILS with 401 Unauthorized
+ * - Use when the proxy is the ONLY authentication method
+ * - Provides security by preventing accidental anonymous access
+ * - No additional authorization policies required (all requests must have headers)
  *
  * Customize header names:
  * - apicurio.authn.proxy-header.username (default: X-Forwarded-User)
  * - apicurio.authn.proxy-header.email (default: X-Forwarded-Email)
  * - apicurio.authn.proxy-header.groups (default: X-Forwarded-Groups)
+ *
+ * Proxy-Based Authorization:
+ * -------------------------
+ * When apicurio.authn.proxy-header.trust-proxy-authorization=true:
+ * - Registry assumes the proxy has already performed authorization
+ * - All local authorization checks in AuthorizedInterceptor are SKIPPED for proxy-authenticated requests
+ * - The proxy is fully responsible for access control decisions
+ * - This applies ONLY to requests authenticated via proxy headers (verified by ProxyHeaderCredential)
+ *
+ * SECURITY CRITICAL: Only enable this when ALL of these conditions are met:
+ * 1. The proxy performs comprehensive authorization checks before forwarding requests
+ * 2. Direct access to Registry is completely blocked via network isolation
+ * 3. The proxy cannot be bypassed by clients
+ * 4. You trust the proxy to make all authorization decisions
+ *
+ * Without these safeguards, this setting creates CRITICAL SECURITY VULNERABILITIES
+ * where unauthorized users can access protected resources.
+ *
+ * Use Cases:
+ * - OAuth2 Proxy with policy-based access control
+ * - API Gateways performing fine-grained authorization
+ * - Enterprise proxies with centralized access management
  *
  * This mechanism has priority 2, which is higher than AppAuthenticationMechanism (priority 1),
  * so it will be tried first when enabled.
@@ -93,76 +116,54 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUT
 @Priority(2)
 @ApplicationScoped
 @Unremovable
-public class ProxyHeaderAuthenticationMechanism implements HttpAuthenticationMechanism {
+public class ProxyHeaderAuthenticationMechanism extends BaseHttpAuthenticationMechanism {
 
     private static final Logger log = LoggerFactory.getLogger(ProxyHeaderAuthenticationMechanism.class);
-
-    private static final String DEFAULT_USERNAME_HEADER = "X-Forwarded-User";
-    private static final String DEFAULT_EMAIL_HEADER = "X-Forwarded-Email";
-    private static final String DEFAULT_GROUPS_HEADER = "X-Forwarded-Groups";
-
-    @Dynamic(label = "Enable proxy header authentication", description = "When selected, the application trusts user identity from HTTP headers injected by a reverse proxy. SECURITY WARNING: Only enable when behind a trusted proxy with proper network isolation.")
-    @ConfigProperty(name = "apicurio.authn.proxy-header.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable proxy header authentication", availableSince = "3.1.0", registryAvailableSince = "3.1.0.Final", studioAvailableSince = "1.0.0")
-    Supplier<Boolean> proxyHeaderAuthEnabled;
-
-    @Dynamic(label = "Strict mode for proxy header authentication", description = "When enabled, authentication fails if proxy headers are missing (strict mode). When disabled, the system falls back to other authentication mechanisms if headers are missing (permissive mode).")
-    @ConfigProperty(name = "apicurio.authn.proxy-header.strict", defaultValue = "true")
-    @Info(category = CATEGORY_AUTH, description = "Require proxy headers when proxy authentication is enabled", availableSince = "3.1.0", registryAvailableSince = "3.1.0.Final", studioAvailableSince = "1.0.0")
-    Supplier<Boolean> proxyHeaderAuthStrict;
-
-    @ConfigProperty(name = "apicurio.authn.proxy-header.username", defaultValue = DEFAULT_USERNAME_HEADER)
-    @Info(category = CATEGORY_AUTH, description = "Header name for username", availableSince = "3.1.0", registryAvailableSince = "3.1.0.Final", studioAvailableSince = "1.0.0")
-    String usernameHeader;
-
-    @ConfigProperty(name = "apicurio.authn.proxy-header.email", defaultValue = DEFAULT_EMAIL_HEADER)
-    @Info(category = CATEGORY_AUTH, description = "Header name for email", availableSince = "3.1.0", registryAvailableSince = "3.1.0.Final", studioAvailableSince = "1.0.0")
-    String emailHeader;
-
-    @ConfigProperty(name = "apicurio.authn.proxy-header.groups", defaultValue = DEFAULT_GROUPS_HEADER)
-    @Info(category = CATEGORY_AUTH, description = "Header name for groups/roles", availableSince = "3.1.0", registryAvailableSince = "3.1.0.Final", studioAvailableSince = "1.0.0")
-    String groupsHeader;
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context,
             IdentityProviderManager identityProviderManager) {
+        // Skip authentication for public paths
+        if (isPublicPath(context)) {
+            return Uni.createFrom().nullItem();
+        }
 
         // If proxy header auth is not enabled, return null to allow other mechanisms to try
-        if (!proxyHeaderAuthEnabled.get()) {
+        if (!authConfig.proxyHeaderAuthEnabled) {
             return Uni.createFrom().nullItem();
         }
 
         // Extract username from header
-        String username = context.request().getHeader(usernameHeader);
+        String username = context.request().getHeader(authConfig.usernameHeader);
 
         // If username header is not present or empty, handle based on strict mode
         if (username == null || username.trim().isEmpty()) {
-            if (proxyHeaderAuthStrict.get()) {
+            if (authConfig.proxyHeaderAuthStrict.get()) {
                 // STRICT MODE: Fail authentication with 401
                 log.warn(
                         "Proxy header authentication failed (strict mode): {} header is missing or empty. "
                                 + "Request will be rejected. Ensure the proxy is injecting required headers, "
                                 + "or set apicurio.authn.proxy-header.strict=false to allow fallback authentication.",
-                        usernameHeader);
+                        authConfig.usernameHeader);
                 // Return a failed authentication (will trigger 401 response)
                 return Uni.createFrom().failure(
-                        new io.quarkus.security.AuthenticationFailedException(
-                                "Proxy authentication required: " + usernameHeader
+                        new io.quarkus.security.UnauthorizedException(
+                                "Proxy authentication required: " + authConfig.usernameHeader
                                         + " header not found"));
             } else {
                 // PERMISSIVE MODE: Allow fallback to other authentication mechanisms
                 log.debug(
                         "Proxy header authentication skipped (permissive mode): {} header is missing or empty. "
                                 + "Falling back to other authentication mechanisms.",
-                        usernameHeader);
+                        authConfig.usernameHeader);
                 // Return empty to allow other authentication mechanisms to try
                 return Uni.createFrom().nullItem();
             }
         }
 
         // Extract email and groups (optional)
-        String email = context.request().getHeader(emailHeader);
-        String groupsValue = context.request().getHeader(groupsHeader);
+        String email = context.request().getHeader(authConfig.emailHeader);
+        String groupsValue = context.request().getHeader(authConfig.groupsHeader);
 
         // Parse groups from comma-separated string
         Set<String> groups = parseGroups(groupsValue);
@@ -180,7 +181,7 @@ public class ProxyHeaderAuthenticationMechanism implements HttpAuthenticationMec
 
     @Override
     public Uni<ChallengeData> getChallenge(RoutingContext context) {
-        if (proxyHeaderAuthEnabled.get()) {
+        if (authConfig.proxyHeaderAuthEnabled) {
             // Return 401 Unauthorized
             // The proxy should intercept this and redirect to the identity provider
             return Uni.createFrom()
@@ -191,7 +192,7 @@ public class ProxyHeaderAuthenticationMechanism implements HttpAuthenticationMec
 
     @Override
     public Set<Class<? extends AuthenticationRequest>> getCredentialTypes() {
-        if (proxyHeaderAuthEnabled.get()) {
+        if (authConfig.proxyHeaderAuthEnabled) {
             return Collections.singleton(ProxyHeaderAuthenticationRequest.class);
         }
         return Collections.emptySet();
@@ -199,9 +200,9 @@ public class ProxyHeaderAuthenticationMechanism implements HttpAuthenticationMec
 
     @Override
     public Uni<HttpCredentialTransport> getCredentialTransport(RoutingContext context) {
-        if (proxyHeaderAuthEnabled.get()) {
+        if (authConfig.proxyHeaderAuthEnabled) {
             return Uni.createFrom().item(new HttpCredentialTransport(
-                    HttpCredentialTransport.Type.OTHER_HEADER, usernameHeader));
+                    HttpCredentialTransport.Type.OTHER_HEADER, authConfig.usernameHeader));
         }
         return Uni.createFrom().nullItem();
     }

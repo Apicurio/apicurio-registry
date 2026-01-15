@@ -59,8 +59,21 @@ public class AuthorizedInterceptor {
             }
         }
 
+        // If proxy authorization is trusted, skip local authorization checks
+        // This only applies to requests authenticated via proxy headers
+        if (authConfig.proxyHeaderAuthEnabled
+                && authConfig.proxyHeaderTrustProxyAuthorization
+                && securityIdentity != null
+                && !securityIdentity.isAnonymous()
+                && securityIdentity.getCredential(ProxyHeaderCredential.class) != null) {
+
+            log.debug("Trusting proxy authorization for user: {}, skipping local authorization checks",
+                      securityIdentity.getPrincipal().getName());
+            return context.proceed();
+        }
+
         // If authentication is not enabled, just do it.
-        if (!authConfig.oidcAuthEnabled && !authConfig.basicAuthEnabled) {
+        if (!authConfig.oidcAuthEnabled && !authConfig.basicAuthEnabled && !authConfig.proxyHeaderAuthEnabled) {
             return context.proceed();
         }
 

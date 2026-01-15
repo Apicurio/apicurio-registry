@@ -148,10 +148,45 @@ The following {registry} configuration options are available for each component 
 |
 |`2.5.0.Final`
 |Client credentials scope.
+|`apicurio.authn.proxy-header.email`
+|`string`
+|`X-Forwarded-Email`
+|`3.1.7`
+|Header name for email
+|`apicurio.authn.proxy-header.enabled`
+|`boolean`
+|`false`
+|`3.1.7`
+|Enable proxy header authentication
+|`apicurio.authn.proxy-header.groups`
+|`string`
+|`X-Forwarded-Groups`
+|`3.1.7`
+|Header name for groups/roles
+|`apicurio.authn.proxy-header.strict`
+|`boolean [dynamic]`
+|`false`
+|`3.1.7`
+|Require proxy headers when proxy authentication is enabled
+|`apicurio.authn.proxy-header.trust-proxy-authorization`
+|`boolean`
+|`false`
+|`3.1.0.Final`
+|When enabled, authorization checks are skipped and the proxy is trusted to have performed authorization
+|`apicurio.authn.proxy-header.username`
+|`string`
+|`X-Forwarded-User`
+|`3.1.7`
+|Header name for username
+|`apicurio.authn.public-paths`
+|`optional<string>`
+|
+|`3.1.0.Final`
+|Comma-separated list of URL path patterns that should be accessible without authentication (e.g., /health/*,/metrics/*)
 |`quarkus.http.auth.basic`
 |`boolean`
 |`false`
-|`3.0.0`
+|`3.X.X.Final`
 |Enable basic auth
 |`quarkus.oidc.client-id`
 |`string`

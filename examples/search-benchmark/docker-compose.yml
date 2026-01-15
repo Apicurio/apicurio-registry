@@ -1,0 +1,95 @@
+version: '3.8'
+
+# Docker Compose configuration for Search Performance Benchmark
+# Runs two Apicurio Registry instances:
+# - registry-baseline: Version 3.1.6 (before optimizations)
+# - registry-optimized: Current version with search optimizations (issue #7010)
+
+services:
+  # PostgreSQL database for baseline registry (3.1.6)
+  postgres-baseline:
+    image: postgres:15
+    container_name: postgres-baseline
+    environment:
+      POSTGRES_USER: apicurio
+      POSTGRES_PASSWORD: apicurio
+      POSTGRES_DB: apicurio-registry
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-baseline-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apicurio -d apicurio-registry"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL database for optimized registry (current)
+  postgres-optimized:
+    image: postgres:15
+    container_name: postgres-optimized
+    environment:
+      POSTGRES_USER: apicurio
+      POSTGRES_PASSWORD: apicurio
+      POSTGRES_DB: apicurio-registry
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-optimized-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apicurio -d apicurio-registry"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Apicurio Registry 3.1.6 (baseline - before optimizations)
+  registry-baseline:
+    image: quay.io/apicurio/apicurio-registry:3.1.6
+    container_name: registry-baseline
+    environment:
+      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres-baseline:5432/apicurio-registry
+      APICURIO_DATASOURCE_USERNAME: apicurio
+      APICURIO_DATASOURCE_PASSWORD: apicurio
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: postgresql
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-baseline:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Apicurio Registry (optimized - current build with search optimizations)
+  # This uses the locally built image with JOIN-based label filtering
+  registry-optimized:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: registry-optimized
+    environment:
+      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres-optimized:5432/apicurio-registry
+      APICURIO_DATASOURCE_USERNAME: apicurio
+      APICURIO_DATASOURCE_PASSWORD: apicurio
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: postgresql
+      # Enable the optimized search features
+      APICURIO_STORAGE_SQL_SEARCH_USE_JOIN_FOR_LABELS: "true"
+      APICURIO_SEARCH_TRIGRAM_ENABLED: "true"
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres-optimized:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  postgres-baseline-data:
+  postgres-optimized-data:

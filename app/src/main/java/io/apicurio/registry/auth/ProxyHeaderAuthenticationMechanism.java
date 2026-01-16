@@ -16,17 +16,16 @@
 
 package io.apicurio.registry.auth;
 
-import io.quarkus.arc.Unremovable;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
 import io.quarkus.vertx.http.runtime.security.ChallengeData;
+import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.RoutingContext;
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Alternative;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,25 +107,18 @@ import java.util.stream.Collectors;
  * - OAuth2 Proxy with policy-based access control
  * - API Gateways performing fine-grained authorization
  * - Enterprise proxies with centralized access management
- *
- * This mechanism has priority 2, which is higher than AppAuthenticationMechanism (priority 1),
- * so it will be tried first when enabled.
  */
-@Alternative
-@Priority(2)
 @ApplicationScoped
-@Unremovable
-public class ProxyHeaderAuthenticationMechanism extends BaseHttpAuthenticationMechanism {
+public class ProxyHeaderAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     private static final Logger log = LoggerFactory.getLogger(ProxyHeaderAuthenticationMechanism.class);
+
+    @Inject
+    AuthConfig authConfig;
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context,
             IdentityProviderManager identityProviderManager) {
-        // Skip authentication for public paths
-        if (isPublicPath(context)) {
-            return Uni.createFrom().nullItem();
-        }
 
         // If proxy header auth is not enabled, return null to allow other mechanisms to try
         if (!authConfig.proxyHeaderAuthEnabled) {

@@ -77,6 +77,9 @@ public class AppAuthenticationMechanism extends BaseHttpAuthenticationMechanism 
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
 
     @Inject
+    ProxyHeaderAuthenticationMechanism proxyHeaderAuthenticationMechanism;
+
+    @Inject
     AuditLogService auditLog;
 
     @Inject
@@ -115,6 +118,8 @@ public class AppAuthenticationMechanism extends BaseHttpAuthenticationMechanism 
             return basicAuthenticationMechanism;
         } else if (authConfig.oidcAuthEnabled) {
             return oidcAuthenticationMechanism;
+        } else if (authConfig.proxyHeaderAuthEnabled) {
+            return proxyHeaderAuthenticationMechanism;
         } else {
             return null;
         }
@@ -130,6 +135,8 @@ public class AppAuthenticationMechanism extends BaseHttpAuthenticationMechanism 
 
         if (authConfig.basicAuthEnabled) {
             return basicAuthenticationMechanism.authenticate(context, identityProviderManager);
+        } else if (authConfig.proxyHeaderAuthEnabled) {
+            return proxyHeaderAuthenticationMechanism.authenticate(context, identityProviderManager);
         } else if (authConfig.oidcAuthEnabled) {
             setAuditLogger(context);
             if (authConfig.basicClientCredentialsAuthEnabled.get()) {

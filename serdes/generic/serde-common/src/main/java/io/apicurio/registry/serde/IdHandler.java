@@ -22,4 +22,8 @@ public interface IdHandler {
     ArtifactReference readId(ByteBuffer buffer);
 
     int idSize();
+
+    default int idSize(ArtifactReference reference, ByteBuffer buffer) {
+        return idSize();
+    }
 }

@@ -1,0 +1,79 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greeting-producer
+  namespace: otel-tracing-demo
+  labels:
+    app: greeting-producer
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: greeting-producer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greeting-producer
+  namespace: otel-tracing-demo
+  labels:
+    app: greeting-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: greeting-producer
+  template:
+    metadata:
+      labels:
+        app: greeting-producer
+    spec:
+      containers:
+        - name: producer
+          image: apicurio/otel-tracing-producer:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            # Kafka configuration
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "otel-demo-kafka-kafka-bootstrap:9092"
+            # Apicurio Registry configuration
+            - name: APICURIO_REGISTRY_URL
+              value: "http://apicurio-registry:8080/apis/registry/v3"
+            # OpenTelemetry configuration
+            - name: QUARKUS_OTEL_ENABLED
+              value: "true"
+            - name: QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: QUARKUS_OTEL_SERVICE_NAME
+              value: "greeting-producer"
+            - name: QUARKUS_OTEL_TRACES_SAMPLER
+              value: "parentbased_always_on"
+            - name: QUARKUS_OTEL_INSTRUMENT_KAFKA
+              value: "true"
+            - name: DEPLOYMENT_ENV
+              value: "kubernetes"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /greetings/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /greetings/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30

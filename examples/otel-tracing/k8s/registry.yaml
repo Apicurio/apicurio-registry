@@ -1,0 +1,159 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registry-db-credentials
+  namespace: otel-tracing-demo
+type: Opaque
+stringData:
+  username: apicurio
+  password: apicurio
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: otel-tracing-demo
+  labels:
+    app: postgres
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: otel-tracing-demo
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: apicurio-registry
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: registry-db-credentials
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: registry-db-credentials
+                  key: password
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apicurio-registry
+  namespace: otel-tracing-demo
+  labels:
+    app: apicurio-registry
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: apicurio-registry
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apicurio-registry
+  namespace: otel-tracing-demo
+  labels:
+    app: apicurio-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apicurio-registry
+  template:
+    metadata:
+      labels:
+        app: apicurio-registry
+    spec:
+      containers:
+        - name: apicurio-registry
+          image: apicurio/apicurio-registry:latest-snapshot
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APICURIO_STORAGE_KIND
+              value: "sql"
+            - name: APICURIO_STORAGE_SQL_KIND
+              value: "postgresql"
+            - name: APICURIO_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/apicurio-registry"
+            - name: APICURIO_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: registry-db-credentials
+                  key: username
+            - name: APICURIO_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: registry-db-credentials
+                  key: password
+            # OpenTelemetry configuration - enable SDK at runtime
+            - name: QUARKUS_OTEL_SDK_DISABLED
+              value: "false"
+            - name: QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: QUARKUS_OTEL_SERVICE_NAME
+              value: "apicurio-registry"
+            - name: QUARKUS_OTEL_TRACES_SAMPLER_ARG
+              value: "1.0"
+            - name: QUARKUS_OTEL_RESOURCE_ATTRIBUTES
+              value: "service.version=3.0.0,deployment.environment=kubernetes"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30

@@ -628,6 +628,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
     public GroupMetaData createGroup(CreateGroup data) {
+        // Validate that the user is not trying to create the reserved "default" group
+        if (new GroupId(data.getGroupId()).isDefaultGroup()) {
+            throw new BadRequestException("The group name 'default' is reserved and cannot be used.");
+        }
+
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder().groupId(data.getGroupId())
                 .description(data.getDescription()).labels(data.getLabels());
 

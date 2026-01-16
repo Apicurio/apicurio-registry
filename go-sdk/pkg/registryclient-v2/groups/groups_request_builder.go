@@ -100,8 +100,9 @@ func (m *GroupsRequestBuilder) Get(ctx context.Context, requestConfiguration *Gr
 	return res.(idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.GroupSearchResultsable), nil
 }
 
-// Post creates a new group.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group already exist (HTTP error `409`)
+// Post creates a new group.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group already exist (HTTP error `409`)* Invalid group ID (e.g., reserved name 'default') (HTTP error `400`)
 // returns a GroupMetaDataable when successful
+// returns a Error error when the service returns a 400 status code
 // returns a AuthError error when the service returns a 401 status code
 // returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 409 status code
@@ -112,6 +113,7 @@ func (m *GroupsRequestBuilder) Post(ctx context.Context, body idce6df71aec15bcaf
 		return nil, err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
+		"400": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"409": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
@@ -142,7 +144,7 @@ func (m *GroupsRequestBuilder) ToGetRequestInformation(ctx context.Context, requ
 	return requestInfo, nil
 }
 
-// ToPostRequestInformation creates a new group.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group already exist (HTTP error `409`)
+// ToPostRequestInformation creates a new group.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group already exist (HTTP error `409`)* Invalid group ID (e.g., reserved name 'default') (HTTP error `400`)
 // returns a *RequestInformation when successful
 func (m *GroupsRequestBuilder) ToPostRequestInformation(ctx context.Context, body idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateGroupMetaDataable, requestConfiguration *GroupsRequestBuilderPostRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.POST, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)

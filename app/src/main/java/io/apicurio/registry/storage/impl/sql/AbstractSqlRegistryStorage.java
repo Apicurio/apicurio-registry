@@ -2347,6 +2347,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void createGroup(GroupMetaDataDto group)
             throws GroupAlreadyExistsException, RegistryStorageException {
+        // Prevent creation of groups with the internal default group ID representation
+        if (RegistryContentUtils.NULL_GROUP_ID.equals(group.getGroupId())) {
+            throw new RegistryStorageException("Invalid group ID: '" + RegistryContentUtils.NULL_GROUP_ID
+                    + "' is a reserved internal identifier.");
+        }
+
         try {
             handles.withHandle(handle -> {
                 // Ensure modifiedBy is set (default to owner if not provided)

@@ -67,8 +67,8 @@ public class EnvironmentVariables {
 
     // OpenTelemetry related environment variables
     public static final String QUARKUS_OTEL_METRICS_ENABLED = "QUARKUS_OTEL_METRICS_ENABLED";
-    public static final String QUARKUS_OTEL_LOGGING_ENABLED = "QUARKUS_OTEL_LOGGING_ENABLED";
-    public static final String QUARKUS_OTEL_TRACING_ENABLED = "QUARKUS_OTEL_TRACING_ENABLED";
+    public static final String QUARKUS_OTEL_LOGS_ENABLED = "QUARKUS_OTEL_LOGS_ENABLED";
+    public static final String QUARKUS_OTEL_TRACES_ENABLED = "QUARKUS_OTEL_TRACES_ENABLED";
 
     public static final String QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT = "QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT";
     public static final String QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL = "QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL";

@@ -43,19 +43,19 @@ public class OTel {
 
         log.info("Configuring OpenTelemetry observability");
 
-        // Enable OpenTelemetry Metrics, Logging, and Tracing
+        // Enable OpenTelemetry Metrics, Logs, and Traces
         addEnvVar(envVars, new EnvVarBuilder()
                 .withName(QUARKUS_OTEL_METRICS_ENABLED)
                 .withValue("true")
                 .build());
 
         addEnvVar(envVars, new EnvVarBuilder()
-                .withName(QUARKUS_OTEL_LOGGING_ENABLED)
+                .withName(QUARKUS_OTEL_LOGS_ENABLED)
                 .withValue("true")
                 .build());
 
         addEnvVar(envVars, new EnvVarBuilder()
-                .withName(QUARKUS_OTEL_TRACING_ENABLED)
+                .withName(QUARKUS_OTEL_TRACES_ENABLED)
                 .withValue("true")
                 .build());
 

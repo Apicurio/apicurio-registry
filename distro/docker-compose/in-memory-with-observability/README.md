@@ -58,21 +58,25 @@ Grafana is pre-configured with Prometheus and Jaeger datasources:
 
 ### Environment Variables
 
+Apicurio Registry is built with OpenTelemetry support, but individual telemetry signals are disabled by default. Use these environment variables to enable and configure them:
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `QUARKUS_OTEL_ENABLED` | Enable/disable OpenTelemetry | `true` |
-| `QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint | `http://jaeger:4317` |
-| `QUARKUS_OTEL_TRACES_SAMPLER` | Sampling strategy | `parentbased_always_on` |
-| `QUARKUS_OTEL_TRACES_SAMPLER_ARG` | Sampler ratio (for traceidratio) | `1.0` |
-| `QUARKUS_OTEL_METRICS_ENABLED` | Enable metrics via OTel | `true` |
-| `QUARKUS_LOG_CONSOLE_JSON` | Enable JSON logging with trace context | `true` |
+| `QUARKUS_OTEL_TRACES_ENABLED` | Enable distributed tracing | `false` |
+| `QUARKUS_OTEL_METRICS_ENABLED` | Enable metrics export via OTLP | `false` |
+| `QUARKUS_OTEL_LOGS_ENABLED` | Enable log export via OTLP | `false` |
+| `QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint | `http://localhost:4317` |
+| `QUARKUS_OTEL_TRACES_SAMPLER` | Sampling strategy | `parentbased_traceidratio` |
+| `QUARKUS_OTEL_TRACES_SAMPLER_ARG` | Sampler ratio (0.0 to 1.0) | `0.1` |
+| `QUARKUS_LOG_CONSOLE_JSON` | Enable JSON logging with trace context | `false` |
 
 ### Production Recommendations
 
 For production deployments:
 
-1. Use sampling to reduce trace volume:
+1. Enable only the signals you need and use sampling to reduce trace volume:
    ```yaml
+   QUARKUS_OTEL_TRACES_ENABLED: "true"
    QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_traceidratio"
    QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"  # 10% sampling
    ```

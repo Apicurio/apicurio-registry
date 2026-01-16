@@ -81,6 +81,7 @@
     <module>java-sdk</module>
     <module>java-sdk-v2</module>
     <module>mcp</module>
+    <module>langchain4j-integration</module>
     <module>operator</module>
     <module>schema-resolver</module>
     <module>serdes/generic/serde-common-avro</module>

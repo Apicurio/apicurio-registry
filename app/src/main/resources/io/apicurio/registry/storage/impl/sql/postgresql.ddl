@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 101);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 102);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -41,6 +41,7 @@ ALTER TABLE group_labels ADD PRIMARY KEY (groupId, labelKey);
 ALTER TABLE group_labels ADD CONSTRAINT FK_glabels_1 FOREIGN KEY (groupId) REFERENCES groups(groupId) ON DELETE CASCADE;
 CREATE INDEX IDX_glabels_1 ON group_labels(labelKey);
 CREATE INDEX IDX_glabels_2 ON group_labels(labelValue);
+CREATE INDEX IDX_glabels_composite ON group_labels(groupId, labelKey, labelValue);
 
 CREATE TABLE group_rules (groupId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE group_rules ADD PRIMARY KEY (groupId, type);
@@ -59,6 +60,7 @@ ALTER TABLE artifact_labels ADD PRIMARY KEY (groupId, artifactId, labelKey);
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
 CREATE INDEX IDX_alabels_1 ON artifact_labels(labelKey);
 CREATE INDEX IDX_alabels_2 ON artifact_labels(labelValue);
+CREATE INDEX IDX_alabels_composite ON artifact_labels(groupId, artifactId, labelKey, labelValue);
 
 CREATE TABLE artifact_rules (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
@@ -87,6 +89,7 @@ ALTER TABLE version_labels ADD PRIMARY KEY (globalId, labelKey);
 ALTER TABLE version_labels ADD CONSTRAINT FK_vlabels_1 FOREIGN KEY (globalId) REFERENCES versions(globalId) ON DELETE CASCADE;
 CREATE INDEX IDX_vlabels_1 ON version_labels(labelKey);
 CREATE INDEX IDX_vlabels_2 ON version_labels(labelValue);
+CREATE INDEX IDX_vlabels_composite ON version_labels(globalId, labelKey, labelValue);
 
 CREATE TABLE version_comments (commentId VARCHAR(128) NOT NULL, globalId BIGINT NOT NULL, owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, cvalue VARCHAR(1024) NOT NULL);
 ALTER TABLE version_comments ADD PRIMARY KEY (commentId);
@@ -108,3 +111,51 @@ CREATE INDEX IDX_branch_versions_3 ON branch_versions(branchOrder);
 
 CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload JSONB NOT NULL);
 ALTER TABLE outbox ADD PRIMARY KEY (id);
+
+-- Optional: pg_trgm extension for optimized substring searches
+-- Note: Creating the extension requires superuser or create extension privilege.
+-- If the extension is not available, substring searches will still work but
+-- without the GIN trigram index optimization.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm') THEN
+        BEGIN
+            CREATE EXTENSION pg_trgm;
+            RAISE NOTICE 'pg_trgm extension created successfully';
+        EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'pg_trgm extension could not be created (requires superuser privilege). Trigram indexes will not be available.';
+        END;
+    END IF;
+END
+$$;
+
+-- GIN trigram indexes for substring searches (requires pg_trgm extension)
+-- These indexes significantly improve LIKE '%search%' query performance.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_artifacts_name_trgm') THEN
+            CREATE INDEX IDX_artifacts_name_trgm ON artifacts USING GIN (name gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on artifacts.name';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_artifacts_description_trgm') THEN
+            CREATE INDEX IDX_artifacts_description_trgm ON artifacts USING GIN (description gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on artifacts.description';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_versions_name_trgm') THEN
+            CREATE INDEX IDX_versions_name_trgm ON versions USING GIN (name gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on versions.name';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_versions_description_trgm') THEN
+            CREATE INDEX IDX_versions_description_trgm ON versions USING GIN (description gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on versions.description';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_groups_description_trgm') THEN
+            CREATE INDEX IDX_groups_description_trgm ON groups USING GIN (description gin_trgm_ops);
+            RAISE NOTICE 'Created trigram index on groups.description';
+        END IF;
+    ELSE
+        RAISE NOTICE 'pg_trgm extension not available. Skipping trigram index creation.';
+    END IF;
+END
+$$;

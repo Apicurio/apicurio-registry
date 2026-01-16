@@ -1,5 +1,5 @@
 -- *********************************************************************
--- DDL for the Apicurio Registry - Database: postgresql
+-- DDL for the Apicurio Registry - Database: MySQL
 -- Upgrade Script from 100 to 101
 -- *********************************************************************
 

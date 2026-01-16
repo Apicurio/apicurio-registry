@@ -57,6 +57,7 @@ import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedBranchDto;
 import io.apicurio.registry.storage.dto.SearchedGroupDto;
@@ -110,7 +111,11 @@ import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedBranchMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactWithCountMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedGroupWithCountMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionWithCountMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.search.SearchQueryBuilder;
 import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.VersionStateMapper;
 import io.apicurio.registry.storage.importing.DataImporter;
@@ -226,6 +231,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     RestConfig restConfig;
 
     @Inject
+    SearchQueryBuilder searchQueryBuilder;
 
     protected SqlStatements sqlStatements() {
         return sqlStatements;
@@ -247,6 +253,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @ConfigProperty(name = "apicurio.storage.enable-automatic-group-creation", defaultValue = "true")
     @Info(category = CATEGORY_STORAGE, description = "Enable automatic creation of group when creating an artifact", availableSince = "3.0.15")
     boolean enableAutomaticGroupCreation;
+
+    @ConfigProperty(name = "apicurio.storage.sql.search.use-join-for-labels", defaultValue = "false")
+    @Info(category = CATEGORY_STORAGE, description = "Use JOIN-based label filtering instead of EXISTS subqueries for potentially better performance with complex label searches", availableSince = "3.1.7")
+    boolean useJoinForLabels;
 
     @Inject
     Event<SqlStorageEvent> sqlStorageEvent;
@@ -992,6 +1002,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, int offset, int limit) {
+        // Use SearchQueryBuilder when JOIN-based label search is enabled
+        if (useJoinForLabels && hasLabelFilter(filters)) {
+            return searchArtifactsWithJoin(filters, orderBy, orderDirection, offset, limit);
+        }
+
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
@@ -1114,19 +1129,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         where.append(")");
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
                         // Note: convert search to lowercase when searching for labels (case-insensitivity
                         // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append(
-                                "EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey " + op + " ?");
+                        // Use NOT EXISTS for negated filters to properly exclude artifacts
+                        String existsOp = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+                        where.append(existsOp);
+                        where.append("(SELECT l.* FROM artifact_labels l WHERE l.labelKey = ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
+                            where.append(" AND l.labelValue = ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });
@@ -1222,6 +1238,60 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             ArtifactSearchResultsDto results = new ArtifactSearchResultsDto();
             results.setArtifacts(artifacts);
             results.setCount(count);
+            return results;
+        });
+    }
+
+    /**
+     * Checks if any of the filters is a label filter.
+     */
+    private boolean hasLabelFilter(Set<SearchFilter> filters) {
+        return filters.stream().anyMatch(f -> f.getType() == SearchFilterType.labels);
+    }
+
+    /**
+     * Searches for artifacts using JOIN-based label filtering.
+     * This method uses the SearchQueryBuilder for database-specific query construction.
+     */
+    private ArtifactSearchResultsDto searchArtifactsWithJoin(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) {
+        return handles.withHandleNoException(handle -> {
+            var searchQuery = searchQueryBuilder.buildSearchQuery(
+                    SearchQueryBuilder.EntityType.ARTIFACT,
+                    filters, orderBy, orderDirection);
+
+            Query artifactsQuery = handle.createQuery(searchQuery.sql());
+
+            // Bind all query parameters from the builder
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : searchQuery.binders()) {
+                binder.bind(artifactsQuery, idx);
+                idx++;
+            }
+
+            // Bind limit and offset
+            if ("mssql".equals(sqlStatements.dbType())) {
+                artifactsQuery.bind(idx++, offset);
+                artifactsQuery.bind(idx++, limit);
+            } else {
+                artifactsQuery.bind(idx++, limit);
+                artifactsQuery.bind(idx++, offset);
+            }
+
+            // Execute query and extract results with count
+            List<Pair<SearchedArtifactDto, Long>> resultsWithCount = artifactsQuery
+                    .map(SearchedArtifactWithCountMapper.instance).list();
+
+            List<SearchedArtifactDto> artifacts = resultsWithCount.stream()
+                    .map(Pair::getLeft)
+                    .collect(Collectors.toList());
+            limitReturnedLabelsInArtifacts(artifacts);
+
+            long count = resultsWithCount.isEmpty() ? 0 : resultsWithCount.get(0).getRight();
+
+            ArtifactSearchResultsDto results = new ArtifactSearchResultsDto();
+            results.setArtifacts(artifacts);
+            results.setCount((int) count);
             return results;
         });
     }
@@ -1679,6 +1749,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
 
         log.debug("Searching for versions");
+
+        // Use SearchQueryBuilder when JOIN-based label search is enabled
+        if (useJoinForLabels && hasLabelFilter(filters)) {
+            return searchVersionsWithJoin(filters, orderBy, orderDirection, offset, limit);
+        }
+
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
             String op;
@@ -1739,18 +1815,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
                         // Note: convert search to lowercase when searching for labels (case-insensitivity
                         // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE l.labelKey " + op + " ?");
+                        // Use NOT EXISTS for negated filters to properly exclude versions
+                        String existsOp = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+                        where.append(existsOp);
+                        where.append("(SELECT l.* FROM version_labels l WHERE l.labelKey = ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
+                            where.append(" AND l.labelValue = ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });
@@ -1841,6 +1919,53 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             VersionSearchResultsDto results = new VersionSearchResultsDto();
             results.setVersions(versions);
             results.setCount(count);
+            return results;
+        });
+    }
+
+    /**
+     * Searches for versions using JOIN-based label filtering.
+     * This method uses the SearchQueryBuilder for database-specific query construction.
+     */
+    private VersionSearchResultsDto searchVersionsWithJoin(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) {
+        return handles.withHandleNoException(handle -> {
+            var searchQuery = searchQueryBuilder.buildSearchQuery(
+                    SearchQueryBuilder.EntityType.VERSION,
+                    filters, orderBy, orderDirection);
+
+            Query versionsQuery = handle.createQuery(searchQuery.sql());
+
+            // Bind all query parameters from the builder
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : searchQuery.binders()) {
+                binder.bind(versionsQuery, idx);
+                idx++;
+            }
+
+            // Bind limit and offset
+            if ("mssql".equals(sqlStatements.dbType())) {
+                versionsQuery.bind(idx++, offset);
+                versionsQuery.bind(idx++, limit);
+            } else {
+                versionsQuery.bind(idx++, limit);
+                versionsQuery.bind(idx++, offset);
+            }
+
+            // Execute query and extract results with count
+            List<Pair<SearchedVersionDto, Long>> resultsWithCount = versionsQuery
+                    .map(SearchedVersionWithCountMapper.instance).list();
+
+            List<SearchedVersionDto> versions = resultsWithCount.stream()
+                    .map(Pair::getLeft)
+                    .collect(Collectors.toList());
+            limitReturnedLabelsInVersions(versions);
+
+            long count = resultsWithCount.isEmpty() ? 0 : resultsWithCount.get(0).getRight();
+
+            VersionSearchResultsDto results = new VersionSearchResultsDto();
+            results.setVersions(versions);
+            results.setCount((int) count);
             return results;
         });
     }
@@ -2931,6 +3056,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, Integer offset, Integer limit) {
+        // Use SearchQueryBuilder when JOIN-based label search is enabled
+        if (useJoinForLabels && hasLabelFilter(filters)) {
+            return searchGroupsWithJoin(filters, orderBy, orderDirection, offset, limit);
+        }
+
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
             String op;
@@ -2962,18 +3092,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
                         // Note: convert search to lowercase when searching for labels (case-insensitivity
                         // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.* FROM group_labels l WHERE l.labelKey " + op + " ?");
+                        // Use NOT EXISTS for negated filters to properly exclude groups
+                        String existsOp = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+                        where.append(existsOp);
+                        where.append("(SELECT l.* FROM group_labels l WHERE l.labelKey = ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, labelKey);
                         });
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
+                            where.append(" AND l.labelValue = ?");
                             binders.add((query, idx) -> {
                                 query.bind(idx, labelValue);
                             });
@@ -3033,6 +3165,53 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             GroupSearchResultsDto results = new GroupSearchResultsDto();
             results.setGroups(groups);
             results.setCount(count);
+            return results;
+        });
+    }
+
+    /**
+     * Searches for groups using JOIN-based label filtering.
+     * This method uses the SearchQueryBuilder for database-specific query construction.
+     */
+    private GroupSearchResultsDto searchGroupsWithJoin(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, Integer offset, Integer limit) {
+        return handles.withHandleNoException(handle -> {
+            var searchQuery = searchQueryBuilder.buildSearchQuery(
+                    SearchQueryBuilder.EntityType.GROUP,
+                    filters, orderBy, orderDirection);
+
+            Query groupsQuery = handle.createQuery(searchQuery.sql());
+
+            // Bind all query parameters from the builder
+            int idx = 0;
+            for (SqlStatementVariableBinder binder : searchQuery.binders()) {
+                binder.bind(groupsQuery, idx);
+                idx++;
+            }
+
+            // Bind limit and offset
+            if ("mssql".equals(sqlStatements.dbType())) {
+                groupsQuery.bind(idx++, offset);
+                groupsQuery.bind(idx++, limit);
+            } else {
+                groupsQuery.bind(idx++, limit);
+                groupsQuery.bind(idx++, offset);
+            }
+
+            // Execute query and extract results with count
+            List<Pair<SearchedGroupDto, Long>> resultsWithCount = groupsQuery
+                    .map(SearchedGroupWithCountMapper.instance).list();
+
+            List<SearchedGroupDto> groups = resultsWithCount.stream()
+                    .map(Pair::getLeft)
+                    .collect(Collectors.toList());
+            limitReturnedLabelsInGroups(groups);
+
+            long count = resultsWithCount.isEmpty() ? 0 : resultsWithCount.get(0).getRight();
+
+            GroupSearchResultsDto results = new GroupSearchResultsDto();
+            results.setGroups(groups);
+            results.setCount((int) count);
             return results;
         });
     }

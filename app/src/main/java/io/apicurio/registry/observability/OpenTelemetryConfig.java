@@ -17,9 +17,13 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_OBS
 @Singleton
 public class OpenTelemetryConfig {
 
-    @ConfigProperty(name = "quarkus.otel.enabled", defaultValue = "false")
+    @ConfigProperty(name = "quarkus.otel.enabled", defaultValue = "true")
     @Info(category = CATEGORY_OBSERVABILITY, description = "Enable or disable OpenTelemetry for distributed tracing, metrics export via OTLP, and log correlation. When enabled, {registry} exports telemetry data to an OpenTelemetry collector.", availableSince = "3.1.7")
     boolean otelEnabled;
+
+    @ConfigProperty(name = "quarkus.otel.sdk.disabled", defaultValue = "true")
+    @Info(category = CATEGORY_OBSERVABILITY, description = "Disable the OpenTelemetry SDK at runtime. Set to `false` to enable OpenTelemetry. This is the primary runtime control for enabling/disabling all telemetry signals.", availableSince = "3.1.7")
+    boolean otelSdkDisabled;
 
     @ConfigProperty(name = "quarkus.otel.service.name", defaultValue = "apicurio-registry")
     @Info(category = CATEGORY_OBSERVABILITY, description = "The logical service name for this {registry} instance. This name appears in traces and metrics exported to the OpenTelemetry collector.", availableSince = "3.1.7")
@@ -34,7 +38,7 @@ public class OpenTelemetryConfig {
     String otelExporterProtocol;
 
     @ConfigProperty(name = "quarkus.otel.traces.enabled", defaultValue = "true")
-    @Info(category = CATEGORY_OBSERVABILITY, description = "Enable or disable distributed tracing. When enabled, {registry} creates spans for REST API requests and storage operations.", availableSince = "3.1.7")
+    @Info(category = CATEGORY_OBSERVABILITY, description = "BUILD-TIME property to enable distributed tracing instrumentation. When enabled, {registry} creates spans for REST API requests and storage operations. Use `quarkus.otel.sdk.disabled` to control tracing at runtime.", availableSince = "3.1.7")
     boolean otelTracesEnabled;
 
     @ConfigProperty(name = "quarkus.otel.traces.sampler", defaultValue = "parentbased_always_on")
@@ -46,11 +50,11 @@ public class OpenTelemetryConfig {
     String otelTracesSamplerArg;
 
     @ConfigProperty(name = "quarkus.otel.metrics.enabled", defaultValue = "true")
-    @Info(category = CATEGORY_OBSERVABILITY, description = "Enable or disable exporting metrics via OpenTelemetry. This works alongside existing Prometheus metrics export.", availableSince = "3.1.7")
+    @Info(category = CATEGORY_OBSERVABILITY, description = "BUILD-TIME property to enable metrics export via OpenTelemetry. This works alongside existing Prometheus metrics export. Use `quarkus.otel.sdk.disabled` to control metrics at runtime.", availableSince = "3.1.7")
     boolean otelMetricsEnabled;
 
-    @ConfigProperty(name = "quarkus.otel.logs.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_OBSERVABILITY, description = "Enable or disable exporting logs via OpenTelemetry. When enabled along with JSON logging, trace context is automatically included in log entries.", availableSince = "3.1.7")
+    @ConfigProperty(name = "quarkus.otel.logs.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_OBSERVABILITY, description = "BUILD-TIME property to enable log export via OpenTelemetry. When enabled along with JSON logging, trace context is automatically included in log entries. Use `quarkus.otel.sdk.disabled` to control log export at runtime.", availableSince = "3.1.7")
     boolean otelLogsEnabled;
 
     @ConfigProperty(name = "quarkus.otel.resource.attributes", defaultValue = "")

@@ -15,9 +15,7 @@ services:
       apicurio.rest.deletion.artifact-version.enabled: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
       # OpenTelemetry Configuration
-      QUARKUS_OTEL_TRACES_ENABLED: "true"
-      QUARKUS_OTEL_METRICS_ENABLED: "true"
-      QUARKUS_OTEL_LOGS_ENABLED: "false"
+      QUARKUS_OTEL_SDK_DISABLED: "false"
       QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
       QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_always_on"

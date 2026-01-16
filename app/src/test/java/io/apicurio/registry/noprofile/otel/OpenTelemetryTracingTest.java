@@ -49,9 +49,8 @@ class OpenTelemetryTracingTest extends AbstractResourceTestBase {
         public Map<String, String> getConfigOverrides() {
             return Map.of(
                     "quarkus.otel.enabled", "true",
-                    "quarkus.otel.traces.enabled", "true",
-                    "quarkus.otel.metrics.enabled", "false",
-                    "quarkus.otel.logs.enabled", "false",
+                    // Enable OTEL SDK at runtime (signals are already enabled at build-time)
+                    "quarkus.otel.sdk.disabled", "false",
                     "quarkus.otel.traces.sampler", "always_on",
                     // Use NONE exporter for tests - spans are still created but not exported
                     "quarkus.otel.traces.exporter", "none"

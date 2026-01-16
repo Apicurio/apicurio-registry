@@ -23,11 +23,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
-# Default values
+# Default values - 10k artifacts meets acceptance criteria for large datasets
 SKIP_BUILD=false
-NUM_ARTIFACTS=500
+NUM_ARTIFACTS=10000
 NUM_LABELS=5
 ITERATIONS=50
+PARALLEL_JOBS=10
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -44,13 +45,18 @@ while [[ $# -gt 0 ]]; do
             ITERATIONS="$2"
             shift 2
             ;;
+        --parallel)
+            PARALLEL_JOBS="$2"
+            shift 2
+            ;;
         --help)
             echo "Usage: $0 [options]"
             echo ""
             echo "Options:"
             echo "  --skip-build       Skip building the optimized registry image"
-            echo "  --num-artifacts N  Number of artifacts to create (default: 500)"
+            echo "  --num-artifacts N  Number of artifacts to create (default: 10000)"
             echo "  --iterations N     Number of benchmark iterations (default: 50)"
+            echo "  --parallel N       Number of parallel seeding jobs (default: 10)"
             echo "  --help             Show this help message"
             exit 0
             ;;
@@ -66,6 +72,7 @@ echo "Search Performance Benchmark - Full Run"
 echo "=============================================="
 echo "Skip build: ${SKIP_BUILD}"
 echo "Artifacts: ${NUM_ARTIFACTS}"
+echo "Parallel jobs: ${PARALLEL_JOBS}"
 echo "Benchmark iterations: ${ITERATIONS}"
 echo "=============================================="
 
@@ -129,11 +136,11 @@ echo "Step 3: Seeding test data..."
 echo "----------------------------------------------"
 
 echo "Seeding baseline registry (3.1.6)..."
-./seed-data.sh http://localhost:8080 ${NUM_ARTIFACTS} ${NUM_LABELS}
+./seed-data.sh http://localhost:8080 ${NUM_ARTIFACTS} ${NUM_LABELS} 10 3 ${PARALLEL_JOBS}
 
 echo ""
 echo "Seeding optimized registry (current)..."
-./seed-data.sh http://localhost:8081 ${NUM_ARTIFACTS} ${NUM_LABELS}
+./seed-data.sh http://localhost:8081 ${NUM_ARTIFACTS} ${NUM_LABELS} 10 3 ${PARALLEL_JOBS}
 
 # Step 4: Run benchmarks
 echo ""

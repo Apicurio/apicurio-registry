@@ -166,9 +166,9 @@ run_test "group_and_label_search" "/apis/registry/v3/search/artifacts?groupId=be
 
 # =============================================================================
 # Test 10: Large result set
-# Tests pagination performance with larger limits
+# Tests pagination performance with larger limits (1000 results for 10k dataset)
 # =============================================================================
-run_test "large_result_set" "/apis/registry/v3/search/artifacts?limit=500"
+run_test "large_result_set" "/apis/registry/v3/search/artifacts?limit=1000"
 
 # =============================================================================
 # Test 11: Version search with labels

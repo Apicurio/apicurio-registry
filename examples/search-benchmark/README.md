@@ -54,13 +54,16 @@ chmod +x *.sh
 
 ```bash
 # Run with custom parameters
-./run-all.sh --num-artifacts 1000 --iterations 100
+./run-all.sh --num-artifacts 5000 --iterations 100 --parallel 20
 
 # Available options:
 #   --skip-build       Skip building the registry image
-#   --num-artifacts N  Number of test artifacts to create (default: 500)
+#   --num-artifacts N  Number of test artifacts to create (default: 10000)
 #   --iterations N     Number of benchmark iterations per test (default: 50)
+#   --parallel N       Number of parallel seeding jobs (default: 10)
 ```
+
+**Note:** The default of 10,000 artifacts meets the acceptance criteria for testing with large datasets (10k+ artifacts). For quicker test runs, use `--num-artifacts 1000`.
 
 ## Manual Steps
 
@@ -79,14 +82,14 @@ This starts:
 ### 2. Seed test data
 
 ```bash
-# Seed baseline registry
-./seed-data.sh http://localhost:8080 500 5
+# Seed baseline registry (10k artifacts with 10 parallel jobs)
+./seed-data.sh http://localhost:8080 10000 5 10 3 10
 
 # Seed optimized registry
-./seed-data.sh http://localhost:8081 500 5
+./seed-data.sh http://localhost:8081 10000 5 10 3 10
 ```
 
-Parameters: `<registry-url> <num-artifacts> <labels-per-artifact>`
+Parameters: `<registry-url> <num-artifacts> <labels-per-artifact> <num-groups> <num-versions> <parallel-jobs>`
 
 ### 3. Run benchmarks
 
@@ -127,7 +130,7 @@ The benchmark runs the following search scenarios:
 | `three_label_filter` | Filter by three labels (AND) | Multi-JOIN optimization |
 | `name_and_label_search` | Combined name + label filter | Combined optimizations |
 | `group_and_label_search` | Group filter with label | JOIN optimization |
-| `large_result_set` | Large pagination (500 results) | Window function count |
+| `large_result_set` | Large pagination (1000 results) | Window function count |
 | `version_search_with_label` | Version search | All optimizations |
 
 ## Expected Results
@@ -173,7 +176,14 @@ docker compose logs registry-optimized
 
 Reduce the number of artifacts:
 ```bash
-./run-all.sh --num-artifacts 200
+./run-all.sh --num-artifacts 1000
+```
+
+### Seeding is slow
+
+Increase parallel jobs (default 10):
+```bash
+./run-all.sh --parallel 20
 ```
 
 ## Files

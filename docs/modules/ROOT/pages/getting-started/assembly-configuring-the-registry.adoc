@@ -67,7 +67,9 @@ Configure the following environment variable:
 [role="_abstract"]
 You can configure {registry} to export telemetry data using OpenTelemetry (OTel) for comprehensive observability. This includes distributed tracing, metrics export via OTLP protocol, and log correlation with trace context.
 
-{registry} is built with OpenTelemetry support, but individual telemetry signals (traces, metrics, logs) are disabled by default. When enabled, {registry} exports telemetry data to an OpenTelemetry-compatible collector such as Jaeger, Grafana Tempo, or the OpenTelemetry Collector.
+{registry} is built with OpenTelemetry support and all telemetry signals (traces, metrics, logs) are enabled at build time. However, the OpenTelemetry SDK is disabled by default at runtime. When enabled, {registry} exports telemetry data to an OpenTelemetry-compatible collector such as Jaeger, Grafana Tempo, or the OpenTelemetry Collector.
+
+IMPORTANT: The individual signal properties (`QUARKUS_OTEL_TRACES_ENABLED`, `QUARKUS_OTEL_METRICS_ENABLED`, `QUARKUS_OTEL_LOGS_ENABLED`) are build-time properties and cannot be changed at runtime. All signals are already enabled in the {registry} build. Use `QUARKUS_OTEL_SDK_DISABLED=false` to enable telemetry at runtime.
 
 .Prerequisites
 * You have already installed {registry}.
@@ -78,37 +80,23 @@ You can configure {registry} to export telemetry data using OpenTelemetry (OTel)
 
 To enable OpenTelemetry observability, configure the following environment variables:
 
-.Environment variables for enabling OpenTelemetry signals
+.Environment variables for enabling OpenTelemetry
 [.table-expandable,width="100%",cols="4,6",options="header"]
 |===
 |Environment Variable
 |Description
-|`QUARKUS_OTEL_TRACES_ENABLED`
-|Set to `true` to enable distributed tracing. Default is `false`.
-|`QUARKUS_OTEL_METRICS_ENABLED`
-|Set to `true` to enable metrics export via OTLP. Default is `false`.
-|`QUARKUS_OTEL_LOGS_ENABLED`
-|Set to `true` to enable log export via OTLP. Default is `false`.
+|`QUARKUS_OTEL_SDK_DISABLED`
+|Set to `false` to enable the OpenTelemetry SDK and all telemetry signals. Default is `true` (disabled).
 |`QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT`
 |The endpoint URL of your OpenTelemetry collector. For example, `http://jaeger:4317` for gRPC or `http://jaeger:4318` for HTTP.
 |===
 
-.Example: Enabling tracing with Jaeger
+.Example: Enabling OpenTelemetry with Jaeger
 [source,yaml]
 ----
 environment:
-  QUARKUS_OTEL_TRACES_ENABLED: "true"
+  QUARKUS_OTEL_SDK_DISABLED: "false"
   QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
-----
-
-.Example: Enabling all telemetry signals
-[source,yaml]
-----
-environment:
-  QUARKUS_OTEL_TRACES_ENABLED: "true"
-  QUARKUS_OTEL_METRICS_ENABLED: "true"
-  QUARKUS_OTEL_LOGS_ENABLED: "true"
-  QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
 ----
 
 [discrete]
@@ -131,7 +119,7 @@ In production environments, you should configure trace sampling to reduce overhe
 [source,yaml]
 ----
 environment:
-  QUARKUS_OTEL_TRACES_ENABLED: "true"
+  QUARKUS_OTEL_SDK_DISABLED: "false"
   QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
   QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_traceidratio"
   QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"

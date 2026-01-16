@@ -16,111 +16,59 @@
 
 package io.apicurio.registry.examples.otel.producer;
 
-import io.apicurio.registry.examples.otel.Greeting;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Scope;
-import io.smallrye.reactive.messaging.kafka.Record;
+import java.util.Properties;
+import java.util.UUID;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.eclipse.microprofile.reactive.messaging.Emitter;
-import org.jboss.logging.Logger;
 
-import java.util.concurrent.CompletionStage;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import io.apicurio.registry.examples.otel.Greeting;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.config.SerdeConfig;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.kafkaclients.v2_6.KafkaTelemetry;
 
 /**
- * Producer service that sends Greeting messages to Kafka with OpenTelemetry tracing.
- *
- * This class demonstrates:
- * - Automatic trace context propagation to Kafka messages
- * - Custom span creation for business logic
- * - Schema registration with Apicurio Registry via the Avro serializer
+ * Creates Kafka producers for sending Greeting messages with Apicurio Registry.
+ * Uses OpenTelemetry instrumentation for trace context propagation.
  */
 @ApplicationScoped
 public class GreetingProducer {
 
-    private static final Logger LOG = Logger.getLogger(GreetingProducer.class);
+    @ConfigProperty(name = "kafka.bootstrap.servers")
+    String bootstrapServers;
+
+    @ConfigProperty(name = "apicurio.registry.url")
+    String registryUrl;
 
     @Inject
-    Tracer tracer;
+    OpenTelemetry openTelemetry;
 
-    @Inject
-    @Channel("greetings-out")
-    Emitter<Record<String, Greeting>> greetingsEmitter;
+    public Producer<String, Greeting> createProducer(String clientId) {
+        Properties props = new Properties();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, clientId != null ? clientId : UUID.randomUUID().toString());
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
+        props.put(SerdeConfig.REGISTRY_URL, registryUrl);
+        props.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, true);
 
-    /**
-     * Sends a greeting message to Kafka.
-     *
-     * The trace context is automatically propagated to Kafka headers by the
-     * OpenTelemetry instrumentation. The Avro serializer automatically registers
-     * the schema with Apicurio Registry on first use.
-     *
-     * @param name The name to greet
-     * @return CompletionStage that completes when the message is acknowledged
-     */
-    public CompletionStage<Void> sendGreeting(String name) {
-        // Create a custom span for the business logic
-        Span span = tracer.spanBuilder("create-greeting")
-                .setAttribute("greeting.name", name)
-                .startSpan();
-
-        try (Scope scope = span.makeCurrent()) {
-            // Get the current trace ID for logging correlation
-            String traceId = Span.current().getSpanContext().getTraceId();
-
-            // Create the greeting message
-            Greeting greeting = Greeting.newBuilder()
-                    .setMessage("Hello, " + name + "!")
-                    .setTimestamp(System.currentTimeMillis())
-                    .setSource("greeting-producer")
-                    .setTraceId(traceId)
-                    .build();
-
-            LOG.infof("Sending greeting: %s (traceId: %s)", greeting.getMessage(), traceId);
-
-            // Add event to the span
-            span.addEvent("greeting-created");
-
-            // Use the name as the Kafka message key for partitioning
-            String key = name.toLowerCase().replaceAll("\\s+", "-");
-
-            // Send the message - trace context is automatically propagated
-            return greetingsEmitter.send(Record.of(key, greeting))
-                    .thenAccept(v -> {
-                        span.addEvent("greeting-sent");
-                        LOG.infof("Greeting sent successfully for: %s", name);
-                    })
-                    .exceptionally(throwable -> {
-                        span.recordException(throwable);
-                        LOG.errorf(throwable, "Failed to send greeting for: %s", name);
-                        throw new RuntimeException("Failed to send greeting", throwable);
-                    });
-        } finally {
-            span.end();
-        }
+        // Create instrumented producer for trace context propagation
+        KafkaTelemetry kafkaTelemetry = KafkaTelemetry.create(openTelemetry);
+        KafkaProducer<String, Greeting> producer = new KafkaProducer<>(props);
+        return kafkaTelemetry.wrap(producer);
     }
 
-    /**
-     * Sends multiple greeting messages for load testing.
-     *
-     * @param baseName The base name to use for greetings
-     * @param count The number of messages to send
-     */
-    public void sendMultipleGreetings(String baseName, int count) {
-        Span span = tracer.spanBuilder("send-batch-greetings")
-                .setAttribute("batch.size", count)
-                .setAttribute("batch.baseName", baseName)
-                .startSpan();
-
-        try (Scope scope = span.makeCurrent()) {
-            for (int i = 1; i <= count; i++) {
-                String name = baseName + " #" + i;
-                sendGreeting(name);
-            }
-            span.addEvent("batch-complete");
-        } finally {
-            span.end();
-        }
+    public void send(Producer<String, Greeting> producer, Greeting greeting, String topic, String key) {
+        producer.send(new ProducerRecord<>(topic, key, greeting));
+        producer.flush();
     }
 }

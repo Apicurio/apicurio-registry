@@ -125,21 +125,17 @@ spec:
                 secretKeyRef:
                   name: registry-db-credentials
                   key: password
-            # OpenTelemetry configuration
-            - name: QUARKUS_OTEL_ENABLED
-              value: "true"
+            # OpenTelemetry configuration - enable SDK at runtime
+            - name: QUARKUS_OTEL_SDK_DISABLED
+              value: "false"
             - name: QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector:4317"
             - name: QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL
               value: "grpc"
             - name: QUARKUS_OTEL_SERVICE_NAME
               value: "apicurio-registry"
-            - name: QUARKUS_OTEL_TRACES_ENABLED
-              value: "true"
-            - name: QUARKUS_OTEL_TRACES_SAMPLER
-              value: "parentbased_always_on"
-            - name: QUARKUS_OTEL_METRICS_ENABLED
-              value: "true"
+            - name: QUARKUS_OTEL_TRACES_SAMPLER_ARG
+              value: "1.0"
             - name: QUARKUS_OTEL_RESOURCE_ATTRIBUTES
               value: "service.version=3.0.0,deployment.environment=kubernetes"
           resources:

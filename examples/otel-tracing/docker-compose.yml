@@ -33,6 +33,7 @@ services:
   # Zookeeper for Kafka
   zookeeper:
     image: quay.io/strimzi/kafka:0.39.0-kafka-3.6.1
+    platform: linux/amd64
     container_name: zookeeper
     command: [
       "sh", "-c",
@@ -46,6 +47,7 @@ services:
   # Kafka Broker (Strimzi image)
   kafka:
     image: quay.io/strimzi/kafka:0.39.0-kafka-3.6.1
+    platform: linux/amd64
     container_name: kafka
     command: [
       "sh", "-c",
@@ -69,7 +71,7 @@ services:
     image: postgres:15
     container_name: postgres
     ports:
-      - "5432:5432"
+      - "5434:5432"
     environment:
       POSTGRES_DB: apicurio-registry
       POSTGRES_USER: apicurio
@@ -78,11 +80,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   # Apicurio Registry with OpenTelemetry enabled
+  # NOTE: Requires a build that includes OTEL fixes (PR #7148)
   apicurio-registry:
     image: apicurio/apicurio-registry:latest-snapshot
+    platform: linux/amd64
     container_name: apicurio-registry
     ports:
-      - "8080:8080"
+      - "8083:8080"
     environment:
       # Storage configuration
       APICURIO_STORAGE_KIND: "sql"
@@ -90,14 +94,13 @@ services:
       APICURIO_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/apicurio-registry"
       APICURIO_DATASOURCE_USERNAME: "apicurio"
       APICURIO_DATASOURCE_PASSWORD: "apicurio"
-      # OpenTelemetry configuration
-      QUARKUS_OTEL_ENABLED: "true"
+      # OpenTelemetry configuration - enable SDK at runtime
+      QUARKUS_OTEL_SDK_DISABLED: "false"
       QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
       QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       QUARKUS_OTEL_SERVICE_NAME: "apicurio-registry"
-      QUARKUS_OTEL_TRACES_ENABLED: "true"
-      QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_always_on"
-      QUARKUS_OTEL_METRICS_ENABLED: "true"
+      # Set sampler arg to 1.0 for 100% sampling in demo
+      QUARKUS_OTEL_TRACES_SAMPLER_ARG: "1.0"
       QUARKUS_OTEL_RESOURCE_ATTRIBUTES: "service.version=3.0.0,deployment.environment=docker"
     depends_on:
       - postgres
@@ -115,19 +118,16 @@ services:
       dockerfile: Dockerfile
     container_name: producer
     ports:
-      - "8081:8080"
+      - "8084:8080"
     environment:
       # Kafka configuration
       KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
       # Apicurio Registry configuration
       APICURIO_REGISTRY_URL: "http://apicurio-registry:8080/apis/registry/v3"
-      # OpenTelemetry configuration
-      QUARKUS_OTEL_ENABLED: "true"
+      # OpenTelemetry configuration (tracing enabled at build-time in producer app)
       QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
       QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       QUARKUS_OTEL_SERVICE_NAME: "greeting-producer"
-      QUARKUS_OTEL_TRACES_ENABLED: "true"
-      QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_always_on"
     depends_on:
       apicurio-registry:
         condition: service_healthy
@@ -143,19 +143,16 @@ services:
       dockerfile: Dockerfile
     container_name: consumer
     ports:
-      - "8082:8080"
+      - "8085:8080"
     environment:
       # Kafka configuration
       KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
       # Apicurio Registry configuration
       APICURIO_REGISTRY_URL: "http://apicurio-registry:8080/apis/registry/v3"
-      # OpenTelemetry configuration
-      QUARKUS_OTEL_ENABLED: "true"
+      # OpenTelemetry configuration (tracing enabled at build-time in consumer app)
       QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
       QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       QUARKUS_OTEL_SERVICE_NAME: "greeting-consumer"
-      QUARKUS_OTEL_TRACES_ENABLED: "true"
-      QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_always_on"
     depends_on:
       apicurio-registry:
         condition: service_healthy

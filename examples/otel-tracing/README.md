@@ -80,22 +80,22 @@ docker compose ps
 ### 3. Access the services
 
 - **Jaeger UI**: http://localhost:16686
-- **Apicurio Registry**: http://localhost:8080
-- **Producer API**: http://localhost:8081
-- **Consumer Stats**: http://localhost:8082
+- **Apicurio Registry**: http://localhost:8083
+- **Producer API**: http://localhost:8084
+- **Consumer API**: http://localhost:8085
 
 ### 4. Generate traces
 
 Send a greeting message:
 
 ```bash
-curl -X POST "http://localhost:8081/greetings?name=World"
+curl -X POST "http://localhost:8084/greetings?name=World"
 ```
 
-Send multiple messages:
+Consume a greeting message:
 
 ```bash
-curl -X POST "http://localhost:8081/greetings/batch?baseName=Test&count=10"
+curl "http://localhost:8085/consumer/greetings"
 ```
 
 ### 5. View traces in Jaeger
@@ -111,6 +111,132 @@ Open http://localhost:16686 in your browser and:
 ```bash
 docker compose down -v
 ```
+
+## Verifying the Setup Works
+
+This section provides comprehensive verification steps to ensure distributed tracing is working correctly.
+
+### Verification Scripts
+
+The `scripts/` directory contains ready-to-use verification scripts:
+
+| Script | Description |
+|--------|-------------|
+| `scripts/smoke-test.sh` | Quick health check and basic message test |
+| `scripts/verify-tracing.sh` | Comprehensive tracing verification |
+| `scripts/test-scenarios.sh` | Test different tracing scenarios |
+
+### Quick Smoke Test
+
+```bash
+# Run the quick smoke test
+./scripts/smoke-test.sh
+```
+
+This script checks service health and sends a test message. Expected output includes `traceId` fields (32-character hex strings).
+
+### Comprehensive Verification
+
+```bash
+# Run full verification with Jaeger checks
+./scripts/verify-tracing.sh
+
+# Verbose mode for debugging
+./scripts/verify-tracing.sh --verbose
+
+# Skip Jaeger verification (if Jaeger not accessible)
+./scripts/verify-tracing.sh --skip-jaeger
+```
+
+The verification script checks:
+- Service health (Registry, Producer, Consumer)
+- Producer trace generation
+- Consumer background consumer status
+- Message consumption and trace correlation
+- Jaeger trace indexing
+- Error tracing
+
+### Testing Different Scenarios
+
+Run individual or all test scenarios:
+
+```bash
+# Run all scenarios
+./scripts/test-scenarios.sh all
+
+# Or run specific scenarios:
+./scripts/test-scenarios.sh basic      # Basic message flow
+./scripts/test-scenarios.sh batch      # Batch operations
+./scripts/test-scenarios.sh detailed   # Custom spans and events
+./scripts/test-scenarios.sh error      # Error tracing
+./scripts/test-scenarios.sh baggage    # Baggage propagation
+```
+
+### Manual Testing
+
+You can also test manually using curl:
+
+```bash
+# Basic message flow
+curl -X POST "http://localhost:8084/greetings?name=Alice"
+curl "http://localhost:8085/consumer/greetings"
+
+# Batch operations
+curl -X POST "http://localhost:8084/greetings/batch?baseName=User&count=10"
+curl "http://localhost:8085/consumer/greetings/batch?count=5"
+
+# Detailed tracing with custom spans
+curl -X POST "http://localhost:8084/greetings/detailed?name=Bob&priority=high&tenantId=acme-corp"
+curl -X POST "http://localhost:8085/consumer/greetings/process"
+
+# Error tracing
+curl -X POST "http://localhost:8084/greetings/invalid?errorType=validation"
+
+# Baggage propagation
+curl -X POST "http://localhost:8084/greetings?name=Charlie&tenantId=tenant-123"
+curl "http://localhost:8085/consumer/greetings"
+```
+
+### Observability Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /greetings/health` | Producer health check |
+| `GET /greetings/trace-info` | Current trace context info |
+| `GET /consumer/health` | Consumer health with queue stats |
+| `GET /consumer/stats` | Detailed consumer statistics |
+| `GET /consumer/trace-info` | Current trace context with baggage |
+
+### What to Look for in Jaeger
+
+1. **Service Discovery**: All three services should appear in the Service dropdown:
+   - `greeting-producer`
+   - `greeting-consumer`
+   - `apicurio-registry`
+
+2. **Trace Structure**: A complete trace should show:
+   - HTTP request span (producer REST endpoint)
+   - Custom `create-greeting` span
+   - Kafka producer span
+   - Kafka consumer span (in background consumer)
+   - `process-greeting-message` span with Kafka metadata
+
+3. **Span Attributes**: Look for:
+   - `kafka.topic`, `kafka.partition`, `kafka.offset`
+   - `greeting.recipient`, `greeting.source`
+   - `tenant.id` (when baggage is used)
+   - `error.type` (on error spans)
+
+4. **Events**: Spans should contain events like:
+   - `greeting-created`
+   - `greeting-sent-to-kafka`
+   - `message-stored`
+   - `validation-completed`
+
+5. **Error Traces**: Error spans show:
+   - Red color indicating error status
+   - Exception details in span logs
+   - `error.handled` event attributes
 
 ## Kubernetes Deployment
 
@@ -200,19 +326,64 @@ When the producer or consumer communicates with Apicurio Registry:
 
 ### Custom Spans
 
-Both applications demonstrate creating custom spans for business logic:
+Both applications demonstrate multiple approaches to creating custom spans:
+
+#### Using @WithSpan Annotation (Declarative)
 
 ```java
-Span span = tracer.spanBuilder("create-greeting")
-        .setAttribute("greeting.name", name)
+@WithSpan("create-greeting")
+private Greeting createGreeting(
+        @SpanAttribute("greeting.recipient") String name,
+        @SpanAttribute("greeting.trace_id") String traceId) {
+
+    Span.current().setAttribute("greeting.source", "greeting-producer");
+    Span.current().addEvent("greeting-object-created");
+    // Business logic here
+    return greeting;
+}
+```
+
+#### Using Tracer API (Programmatic)
+
+```java
+Span processSpan = tracer.spanBuilder("process-detailed-greeting")
+        .setSpanKind(SpanKind.INTERNAL)
+        .setAttribute("greeting.recipient", name)
+        .setAttribute("greeting.priority", priority)
         .startSpan();
 
-try (Scope scope = span.makeCurrent()) {
+try (Scope scope = processSpan.makeCurrent()) {
+    processSpan.addEvent("validation-started");
     // Business logic here
-    span.addEvent("greeting-created");
+    processSpan.addEvent("validation-completed");
+    processSpan.setStatus(StatusCode.OK);
 } finally {
-    span.end();
+    processSpan.end();
 }
+```
+
+### Baggage Propagation
+
+Baggage allows passing context (like tenant ID) across service boundaries:
+
+```java
+// Producer: Set baggage
+if (tenantId != null) {
+    Baggage.current().toBuilder()
+            .put("tenant.id", tenantId)
+            .build().makeCurrent();
+    Span.current().setAttribute("tenant.id", tenantId);
+}
+
+// Consumer: Extract baggage
+String tenantId = Baggage.current().getEntryValue("tenant.id");
+```
+
+Test baggage propagation:
+```bash
+curl -X POST "http://localhost:8084/greetings?name=Test&tenantId=acme-corp"
+curl "http://localhost:8085/consumer/greetings"
+# Response includes: "tenantId": "acme-corp"
 ```
 
 ## Sampling Strategies
@@ -237,26 +408,59 @@ QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"  # 10% sampling
 
 ## Error Scenario Tracing
 
-The consumer demonstrates error handling with trace context:
+The producer includes a dedicated error endpoint for demonstrating error tracing:
 
-1. Validation failures are recorded as span events
-2. Exceptions are captured with `span.recordException()`
-3. Error status is propagated through the trace
+```bash
+# Test different error types
+curl -X POST "http://localhost:8084/greetings/invalid?errorType=validation"
+curl -X POST "http://localhost:8084/greetings/invalid?errorType=schema"
+curl -X POST "http://localhost:8084/greetings/invalid?errorType=kafka"
+```
 
-To test error scenarios, modify the producer to send invalid data and observe the error traces in Jaeger.
+Error handling with trace context:
+
+```java
+// Create a child span for the failed operation
+Span errorSpan = tracer.spanBuilder("process-invalid-greeting")
+        .setSpanKind(SpanKind.INTERNAL)
+        .setAttribute("error.type", errorType)
+        .startSpan();
+
+try (Scope scope = errorSpan.makeCurrent()) {
+    // Record the exception in the span
+    errorSpan.recordException(exception);
+    errorSpan.setStatus(StatusCode.ERROR, errorMessage);
+    errorSpan.addEvent("error-handled", Attributes.builder()
+            .put("error.handled", true)
+            .put("error.recovery.action", "returned-error-response")
+            .build());
+} finally {
+    errorSpan.end();
+}
+```
+
+In Jaeger, error traces appear with:
+- Red color indicating error status
+- Exception stack traces in span logs
+- Custom error attributes and events
 
 ## Configuration Reference
 
 ### OpenTelemetry Properties
 
+Apicurio Registry is built with all OpenTelemetry signals enabled (traces, metrics, logs), but the OTel SDK is disabled by default at runtime. Enable OTel by setting `QUARKUS_OTEL_SDK_DISABLED=false`.
+
 | Property | Description | Default |
 |----------|-------------|---------|
-| `quarkus.otel.enabled` | Enable/disable OTel | `true` |
+| `quarkus.otel.sdk.disabled` | Disable/enable OTel SDK at runtime | `true` |
 | `quarkus.otel.service.name` | Service name in traces | Application name |
 | `quarkus.otel.exporter.otlp.endpoint` | OTLP collector endpoint | `http://localhost:4317` |
-| `quarkus.otel.traces.sampler` | Sampling strategy | `parentbased_always_on` |
+| `quarkus.otel.exporter.otlp.protocol` | OTLP protocol (grpc or http/protobuf) | `grpc` |
+| `quarkus.otel.traces.sampler.arg` | Sampler ratio (0.0 to 1.0) | `0.1` |
 
-**Note:** Kafka instrumentation is automatic when using `quarkus-opentelemetry` with `quarkus-messaging-kafka`.
+**Note:** Signal properties (`traces.enabled`, `metrics.enabled`, `logs.enabled`) are BUILD-TIME properties and cannot be changed at runtime. Use `quarkus.otel.sdk.disabled` for runtime control.
+
+**Note:** Kafka instrumentation is automatic when using `quarkus-opentelemetry` with `quarkus-kafka-client`.
 
 ### Apicurio Registry Properties
 
@@ -272,11 +476,11 @@ To test error scenarios, modify the producer to send invalid data and observe th
 
 1. Check OTel Collector logs: `docker compose logs otel-collector`
 2. Verify OTLP endpoint configuration
-3. Ensure `quarkus.otel.enabled=true`
+3. Ensure `QUARKUS_OTEL_SDK_DISABLED=false` is set for Apicurio Registry
 
 ### Schema registration failures
 
-1. Check Apicurio Registry is running: `curl http://localhost:8080/health`
+1. Check Apicurio Registry is running: `curl http://localhost:8083/health`
 2. Verify Registry URL in application configuration
 3. Check network connectivity between services
 
@@ -288,9 +492,9 @@ To test error scenarios, modify the producer to send invalid data and observe th
 
 ### Missing trace context in consumer
 
-1. Ensure both `quarkus-opentelemetry` and `quarkus-messaging-kafka` dependencies are present
+1. Ensure both `quarkus-opentelemetry` and `quarkus-kafka-client` dependencies are present
 2. Check Kafka message headers for trace context
-3. Verify `quarkus.otel.enabled=true` in both producer and consumer
+3. Verify OTel is enabled in both producer and consumer (check application.properties has `quarkus.otel.traces.enabled=true`)
 
 ## Files Structure
 
@@ -300,18 +504,28 @@ otel-tracing/
 ├── otel-collector-config.yaml   # OTel Collector configuration
 ├── pom.xml                      # Parent POM
 ├── README.md                    # This file
+├── scripts/                     # Verification and test scripts
+│   ├── smoke-test.sh            # Quick health check and basic test
+│   ├── verify-tracing.sh        # Comprehensive tracing verification
+│   └── test-scenarios.sh        # Test different tracing scenarios
 ├── producer/                    # Producer application
 │   ├── pom.xml
 │   ├── Dockerfile
 │   └── src/main/
 │       ├── avro/greeting.avsc   # Avro schema
-│       ├── java/.../producer/   # Java source files
+│       ├── java/.../producer/
+│       │   ├── GreetingProducer.java    # Kafka producer with OTel wrapping
+│       │   └── GreetingResource.java    # REST endpoints with custom spans
 │       └── resources/application.properties
 ├── consumer/                    # Consumer application
 │   ├── pom.xml
 │   ├── Dockerfile
 │   └── src/main/
-│       ├── java/.../consumer/   # Java source files
+│       ├── avro/greeting.avsc   # Avro schema (copy from producer)
+│       ├── java/.../consumer/
+│       │   ├── GreetingConsumer.java      # Kafka consumer factory
+│       │   ├── GreetingMessageStore.java  # Background consumer with tracing
+│       │   └── ConsumerResource.java      # REST endpoints with statistics
 │       └── resources/application.properties
 └── k8s/                         # Kubernetes manifests
     ├── kustomization.yaml
@@ -323,6 +537,30 @@ otel-tracing/
     ├── producer.yaml
     └── consumer.yaml
 ```
+
+## API Reference
+
+### Producer Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/greetings?name=X&tenantId=Y` | Send a greeting with optional tenant context |
+| POST | `/greetings/batch?baseName=X&count=N` | Send multiple greetings |
+| POST | `/greetings/detailed?name=X&priority=Y&tenantId=Z` | Send with detailed span attributes |
+| POST | `/greetings/invalid?errorType=X` | Simulate errors (validation/schema/kafka) |
+| GET | `/greetings/health` | Health check |
+| GET | `/greetings/trace-info` | Current trace context and baggage |
+
+### Consumer Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/consumer/greetings` | Consume a single greeting |
+| GET | `/consumer/greetings/batch?count=N` | Consume multiple greetings |
+| POST | `/consumer/greetings/process` | Consume and process with business logic spans |
+| GET | `/consumer/stats` | Consumer statistics (received, processed, queue size) |
+| GET | `/consumer/health` | Health check with consumer status |
+| GET | `/consumer/trace-info` | Current trace context and baggage |
 
 ## Related Documentation
 

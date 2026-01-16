@@ -16,6 +16,7 @@
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>
     <quarkus.version>3.27.0</quarkus.version>
+    <avro.version>1.12.0</avro.version>
     <compiler-plugin.version>3.13.0</compiler-plugin.version>
     <surefire-plugin.version>3.5.2</surefire-plugin.version>
   </properties>
@@ -53,38 +54,53 @@
       <artifactId>quarkus-opentelemetry</artifactId>
     </dependency>
 
-    <!-- Kafka with Reactive Messaging -->
+    <!-- OpenTelemetry Kafka instrumentation for trace propagation -->
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-messaging-kafka</artifactId>
+      <groupId>io.opentelemetry.instrumentation</groupId>
+      <artifactId>opentelemetry-kafka-clients-2.6</artifactId>
     </dependency>
 
-    <!-- Apicurio Registry Avro via Quarkus extension (required by Quarkus Kafka processor) -->
+    <!-- Kafka Client -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-kafka-client</artifactId>
+    </dependency>
+
+    <!-- Quarkus Apicurio Registry Avro extension (local build with v3 support) -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-apicurio-registry-avro</artifactId>
-      <exclusions>
-        <!-- Exclude the old 2.x client bundled with Quarkus -->
-        <exclusion>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-client</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-serdes-avro-serde</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-common</artifactId>
-        </exclusion>
-      </exclusions>
+      <version>999-SNAPSHOT</version>
     </dependency>
 
-    <!-- Replace with the project's own 3.x serde -->
+    <!-- Force use of local 999-SNAPSHOT common module with v3 support -->
     <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
-      <version>${project.version}</version>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-apicurio-registry-common</artifactId>
+      <version>999-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-apicurio-registry-common-deployment</artifactId>
+      <version>999-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-apicurio-registry-avro-deployment</artifactId>
+      <version>999-SNAPSHOT</version>
+    </dependency>
+
+    <!-- Kiota HTTP adapter for Vert.x (required by Registry client) -->
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-vertx</artifactId>
+    </dependency>
+
+    <!-- Avro -->
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+      <version>${avro.version}</version>
     </dependency>
 
     <!-- Health check -->

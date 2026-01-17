@@ -8,6 +8,7 @@ import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUTH;
@@ -15,21 +16,60 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUT
 @Singleton
 public class AuthConfig {
 
+    private static final String DEFAULT_USERNAME_HEADER = "X-Forwarded-User";
+    private static final String DEFAULT_EMAIL_HEADER = "X-Forwarded-Email";
+    private static final String DEFAULT_GROUPS_HEADER = "X-Forwarded-Groups";
+
     @Inject
     Logger log;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable auth", availableSince = "0.1.18", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Enable auth", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
     boolean oidcAuthEnabled;
 
+    // back to fake auth and use another property
     @Dynamic(label = "HTTP basic authentication", description = "When selected, users are permitted to authenticate using HTTP basic authentication (in addition to OAuth).", requires = "apicurio.authn.enabled=true")
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable basic auth client credentials", availableSince = "0.1.18", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Enable basic auth client credentials", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
     Supplier<Boolean> basicClientCredentialsAuthEnabled;
 
     @ConfigProperty(name = "quarkus.http.auth.basic", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable basic auth", availableSince = "1.1.x", registryAvailableSince = "3.0.0", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Enable basic auth", availableSince = "1.1.X-SNAPSHOT", registryAvailableSince = "3.X.X.Final", studioAvailableSince = "1.0.0")
     boolean basicAuthEnabled;
+
+    // TODO: Add suffix?
+    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration", defaultValue = "10")
+    @Info(category = CATEGORY_AUTH, description = "Default client credentials token expiration time in minutes.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.2.6.Final", studioAvailableSince = "1.0.0")
+    Integer accessTokenExpiration;
+
+    // TODO: Add suffix?
+    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration-offset", defaultValue = "10")
+    @Info(category = CATEGORY_AUTH, description = "Client credentials token expiration offset from JWT expiration, in seconds.", availableSince = "0.2.7", registryAvailableSince = "2.5.9.Final", studioAvailableSince = "1.0.0")
+    Integer accessTokenExpirationOffset;
+
+    @ConfigProperty(name = "apicurio.authn.basic.scope")
+    @Info(category = CATEGORY_AUTH, description = "Client credentials scope.", availableSince = "0.1.21-SNAPSHOT", registryAvailableSince = "2.5.0.Final", studioAvailableSince = "1.0.0")
+    Optional<String> scope;
+
+    @ConfigProperty(name = "apicurio.authn.audit.log.prefix", defaultValue = "audit")
+    @Info(category = CATEGORY_AUTH, description = "Prefix used for application audit logging.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.2.6", studioAvailableSince = "1.0.0")
+    String auditLogPrefix;
+
+    @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
+    @Info(category = CATEGORY_AUTH, description = "Authentication server endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    String authServerUrl;
+
+    @ConfigProperty(name = "quarkus.oidc.token-path", defaultValue = "/protocol/openid-connect/token/")
+    @Info(category = CATEGORY_AUTH, description = "Authentication server token endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    String oidcTokenPath;
+
+    @ConfigProperty(name = "quarkus.oidc.client-secret")
+    @Info(category = CATEGORY_AUTH, description = "Client secret used by the server for authentication.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    Optional<String> clientSecret;
+
+    @ConfigProperty(name = "quarkus.oidc.client-id", defaultValue = "")
+    @Info(category = CATEGORY_AUTH, description = "Client identifier used by the server for authentication.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
+    String clientId;
 
     @ConfigProperty(name = "apicurio.auth.role-based-authorization", defaultValue = "false")
     @Info(category = CATEGORY_AUTH, description = "Enable role based authorization", availableSince = "2.1.0.Final")
@@ -101,11 +141,32 @@ public class AuthConfig {
     @Info(category = CATEGORY_AUTH, description = "Auth admin override user name", availableSince = "3.0.0")
     String adminOverrideUser;
 
+    @ConfigProperty(name = "apicurio.authn.proxy-header.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable proxy header authentication", availableSince = "3.1.7")
+    boolean proxyHeaderAuthEnabled;
+
+    @ConfigProperty(name = "apicurio.authn.proxy-header.username", defaultValue = DEFAULT_USERNAME_HEADER)
+    @Info(category = CATEGORY_AUTH, description = "Header name for username", availableSince = "3.1.7")
+    String usernameHeader;
+
+    @ConfigProperty(name = "apicurio.authn.proxy-header.email", defaultValue = DEFAULT_EMAIL_HEADER)
+    @Info(category = CATEGORY_AUTH, description = "Header name for email", availableSince = "3.1.7")
+    String emailHeader;
+
+    @ConfigProperty(name = "apicurio.authn.proxy-header.groups", defaultValue = DEFAULT_GROUPS_HEADER)
+    @Info(category = CATEGORY_AUTH, description = "Header name for groups/roles", availableSince = "3.1.7")
+    String groupsHeader;
+
+    @ConfigProperty(name = "apicurio.authn.proxy-header.trust-proxy-authorization", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "When enabled, authorization checks are skipped and the proxy is trusted to have performed authorization", availableSince = "3.1.0", registryAvailableSince = "3.1.0.Final", studioAvailableSince = "1.0.0")
+    boolean proxyHeaderTrustProxyAuthorization;
+
     @PostConstruct
     void onConstruct() {
         log.debug("===============================");
         log.debug("OIDC Auth Enabled: " + oidcAuthEnabled);
         log.debug("Basic Auth Enabled: " + basicAuthEnabled);
+        log.debug("Proxy Auth Enabled: " + proxyHeaderAuthEnabled);
         log.debug("Anonymous Read Access Enabled: " + anonymousReadAccessEnabled);
         log.debug("Authenticated Read Access Enabled: " + authenticatedReadAccessEnabled);
         log.debug("RBAC Enabled: " + roleBasedAuthorizationEnabled);

@@ -70,6 +70,7 @@
 
   <modules>
     <module>app</module>
+    <module>cli</module>
     <module>common</module>
     <module>config-index/definitions</module>
     <module>config-index/deployment</module>
@@ -196,7 +197,10 @@
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
     <!-- Picocli -->
-    <picocli.version>4.6.3</picocli.version>
+    <picocli.version>4.7.7</picocli.version>
+
+    <!-- Logging -->
+    <log4j.version>2.25.3</log4j.version>
 
     <!-- Confluent API / client -->
     <confluent.version>8.0.0</confluent.version>
@@ -753,6 +757,35 @@
         <groupId>com.fasterxml.jackson.dataformat</groupId>
         <artifactId>jackson-dataformat-yaml</artifactId>
         <version>${jackson-dataformat-yaml.version}</version>
+      </dependency>
+
+      <!-- Logging -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+
+      <!-- Picocli -->
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli-shell-jline3</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli-codegen</artifactId>
+        <version>${picocli.version}</version>
       </dependency>
 
       <dependency>

@@ -1,0 +1,7 @@
+{
+  "config": {
+    "acr.update.check.enabled": "true",
+    "acr.update.repo.url": "https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli"
+  },
+  "context": {}
+}

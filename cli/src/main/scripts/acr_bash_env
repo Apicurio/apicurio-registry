@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+export ACR_HOME="{{ACR_HOME}}"
+
+source "$ACR_HOME/acr_bash_completions"

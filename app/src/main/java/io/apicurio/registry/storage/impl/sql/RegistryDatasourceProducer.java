@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.sql;
 import io.agroal.api.AgroalDataSource;
 import io.apicurio.common.apps.config.Info;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import jakarta.ws.rs.Produces;
@@ -24,19 +25,19 @@ public class RegistryDatasourceProducer {
 
     @Inject
     @Named("h2")
-    AgroalDataSource h2Datasource;
+    Instance<AgroalDataSource> h2Datasource;
 
     @Inject
     @Named("postgresql")
-    AgroalDataSource postgresqlDatasource;
+    Instance<AgroalDataSource> postgresqlDatasource;
 
     @Inject
     @Named("mysql")
-    AgroalDataSource mysqlDatasource;
+    Instance<AgroalDataSource> mysqlDatasource;
 
     @Inject
     @Named("mssql")
-    AgroalDataSource mssqlDatasource;
+    Instance<AgroalDataSource> mssqlDatasource;
 
     @Produces
     @ApplicationScoped
@@ -50,16 +51,16 @@ public class RegistryDatasourceProducer {
 
         switch (databaseKind) {
             case h2 -> {
-                return h2Datasource;
+                return h2Datasource.get();
             }
             case postgresql -> {
-                return postgresqlDatasource;
+                return postgresqlDatasource.get();
             }
             case mysql -> {
-                return mysqlDatasource;
+                return mysqlDatasource.get();
             }
             case mssql -> {
-                return mssqlDatasource;
+                return mssqlDatasource.get();
             }
             default -> throw new IllegalStateException(
                     String.format("unrecognized database type: %s", databaseKind.name()));

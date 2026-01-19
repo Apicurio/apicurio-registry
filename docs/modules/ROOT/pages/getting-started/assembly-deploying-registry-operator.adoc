@@ -1,0 +1,791 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="deploying-registry-operator_{context}"]
+= Deploying {registry} using the Operator
+
+[role="_abstract"]
+This chapter explains how to deploy and configure {registry} instances using the {operator} on
+{kubernetes}:
+
+* xref:operator-overview_{context}[]
+* xref:deploying-registry-inmemory_{context}[]
+* xref:deploying-registry-postgresql_{context}[]
+* xref:deploying-registry-mysql_{context}[]
+* xref:deploying-registry-kafkasql_{context}[]
+* xref:configuring-registry-authentication_{context}[]
+* xref:configuring-registry-ingress_{context}[]
+* xref:configuring-registry-features_{context}[]
+* xref:configuring-registry-ui-component_{context}[]
+* xref:advanced-registry-configuration_{context}[]
+
+.Prerequisites
+* {installing-the-registry-openshift}
+
+//INCLUDES
+
+[id="operator-overview_{context}"]
+== Understanding {operator} deployment
+
+The {operator} installs the `ApicurioRegistry3` custom resource defintion (CRD). You use the `ApicurioRegistry3`  CR  to deploy and manage {registry} instances on {kubernetes}. The custom resource allows you to declaratively configure all aspects of your {registry} deployment,
+including storage, authentication, networking, and component-specific settings.
+
+NOTE: Additional `ApicurioRegistry3` custom resource examples can be found in the https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/controller/src/test/resources/k8s/examples[{registry} upstream repository].
+
+=== Custom resource structure
+
+The `ApicurioRegistry3` custom resource is organized into two main components:
+
+* `spec.app` - Configures the {registry-app}
+* `spec.ui` - Configures the {registry-ui}
+
+Each component can be independently configured with its own settings for replicas, ingress, environment variables,
+and pod specifications.
+
+=== Storage options
+
+{registry} supports three storage options:
+
+* *In-memory* (default) - Stores data in memory. Suitable for development and testing only. Data is lost when
+the pod restarts.
+* *PostgreSQL* - Stores data in a PostgreSQL database. Suitable for production deployments.
+* *MySQL* - Stores data in a MySQL database. Suitable for production deployments.
+* *KafkaSQL* - Stores data in Apache Kafka topics with an in-memory cache. Suitable for production deployments
+when configured with persistent Kafka storage.
+
+IMPORTANT: The default in-memory storage is not suitable for production environments.
+
+[id="deploying-registry-inmemory_{context}"]
+== Deploying {registry} with in-memory storage
+
+This section shows how to deploy a basic {registry} instance using in-memory storage. This configuration is
+suitable for development and testing environments only.
+
+.Prerequisites
+* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
+
+.Procedure
+
+. In the {kubernetes} web console, log in using an account with cluster administrator privileges.
+
+. Change to the {kubernetes-namespace} in which the {operator} is installed. For example, from the
+*Project* drop-down, select `my-project`.
+
+. Click *Installed Operators* > *{registry}* > *ApicurioRegistry3* > *Create ApicurioRegistry3*.
+
+. Paste in the following custom resource definition:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry
+spec:
+  app:
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
++
+NOTE: Replace the `host` values with appropriate hostnames for your environment. Currently, {operator} only creates simple HTTP Ingresses. To enable TLS, you must create your own Ingress or Route resources with TLS configuration.
+
+. Click *Create* and wait for the {registry} deployment to be created.
+
+. Click *Networking* > *Ingresses* (or *Routes*) to access the route for the {registry} web console.
+
+.Verification
+
+* Access the {registry} web console using the configured hostname and verify that the UI loads successfully.
+
+[id="deploying-registry-postgresql_{context}"]
+== Deploying {registry} with PostgreSQL storage
+
+This section explains how to deploy {registry} with PostgreSQL database storage. This configuration is suitable
+for production environments.
+
+.Prerequisites
+* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
+* You must have a PostgreSQL database available with a database created for {registry}.
+* You must have created a Kubernetes Secret containing the PostgreSQL database password.
+
+.Procedure
+
+. Create a Secret containing the database password:
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgresql-credentials
+type: Opaque
+stringData:
+  password: your-database-password
+----
+
+. In the {kubernetes} web console, click *Installed Operators* > *{registry}* > *ApicurioRegistry3* >
+*Create ApicurioRegistry3*.
+
+. Paste in the following custom resource definition, adjusting the values for your environment:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-postgresql
+spec:
+  app:
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: jdbc:postgresql://postgresql.my-project.svc:5432/registry
+          username: registry_user
+          password:
+            name: postgresql-credentials
+            key: password
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
++
+NOTE: Update the `url` to match your PostgreSQL service name, namespace, port, and database name. Update the
+`username` to match your database user.
+
+. Click *Create* and wait for the {registry} deployment to be created.
+
+.Verification
+
+* Access the {registry} web console and create a test artifact to verify that data is being persisted to
+the database.
+* Restart the {registry} pod and verify that the artifact still exists, confirming that data is persisted.
+
+[role="_additional-resources"]
+.Additional resources
+
+* For information on PostgreSQL Operators available on OpenShift, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#installing-postgresql-operatorhub_{context}[Installing a PostgreSQL database from the OpenShift OperatorHub]
+in {installing-the-registry-storage-openshift}.
+
+[id="deploying-registry-mysql_{context}"]
+== Deploying {registry} with MySQL storage
+
+This section explains how to deploy {registry} with MySQL database storage. This configuration is suitable
+for production environments.
+
+.Prerequisites
+* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
+* You must have a MySQL database available with a database created for {registry}.
+* You must have created a Kubernetes Secret containing the MySQL database password.
+
+.Procedure
+
+. Create a Secret containing the database password:
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-credentials
+type: Opaque
+stringData:
+  password: your-database-password
+----
+
+. In the {kubernetes} web console, click *Installed Operators* > *{registry}* > *ApicurioRegistry3* >
+*Create ApicurioRegistry3*.
+
+. Paste in the following custom resource definition, adjusting the values for your environment:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-mysql
+spec:
+  app:
+    storage:
+      type: mysql
+      sql:
+        dataSource:
+          url: jdbc:mysql://mysql.my-project.svc:3306/registry
+          username: registry_user
+          password:
+            name: mysql-credentials
+            key: password
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
++
+NOTE: Update the `url` to match your MySQL service name, namespace, port, and database name. Update the
+`username` to match your database user.
+
+. Click *Create* and wait for the {registry} deployment to be created.
+
+.Verification
+
+* Access the {registry} web console and create a test artifact to verify that data is being persisted to
+the database.
+* Restart the {registry} pod and verify that the artifact still exists, confirming that data is persisted.
+
+[id="deploying-registry-kafkasql_{context}"]
+== Deploying {registry} with KafkaSQL storage
+
+This section explains how to deploy {registry} with KafkaSQL storage. KafkaSQL uses Apache Kafka as the primary
+data store with an in-memory H2 database for caching. This configuration is suitable for production environments
+when using persistent Kafka storage.
+
+.Prerequisites
+* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
+* You must have a Kafka cluster available. For OpenShift, see {installing-the-registry-storage-openshift}.
+
+.Procedure
+
+. Obtain the Kafka bootstrap servers address from your Kafka cluster. For example, with {kafka-streams}:
+`my-cluster-kafka-bootstrap.my-project.svc:9092`
+
+. In the {kubernetes} web console, click *Installed Operators* > *{registry}* > *ApicurioRegistry3* >
+*Create ApicurioRegistry3*.
+
+. Paste in the following custom resource definition, adjusting the `bootstrapServers` value:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-kafkasql
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9092
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
+
+. Click *Create* and wait for the {registry} deployment to be created.
+
+. If using {kafka-streams}, configure the Kafka topic that {registry} uses (named `kafkasql-journal` by default)
+with delete cleanup policy and infinite retention:
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: kafkasql-journal
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: -1
+    retention.bytes: -1
+----
++
+WARNING: You must configure the Kafka topic used by {registry} with `cleanup.policy: delete` and infinite retention
+(`retention.ms: -1` and `retention.bytes: -1`), otherwise data loss might occur.
+
+.Verification
+
+* Access the {registry} web console and create a test artifact to verify that data is being persisted to Kafka.
+* Restart the {registry} pod and verify that the artifact still exists after the cache is rebuilt from Kafka.
+
+=== Configuring KafkaSQL with TLS
+
+When your Kafka cluster requires TLS encryption, you can configure {registry} to connect securely:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-kafkasql-tls
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9093
+        tls:
+          truststoreSecretRef:
+            name: kafka-cluster-ca-cert
+            key: ca.p12
+          truststorePasswordSecretRef:
+            name: kafka-cluster-ca-cert
+            key: ca.password
+    ingress:
+      host: registry.example.com
+----
+
+NOTE: The Secret containing the Kafka cluster CA certificate must be in PKCS12 format.
+
+=== Configuring KafkaSQL with SASL authentication
+
+When your Kafka cluster requires SASL authentication (such as SCRAM-SHA-512), you can configure {registry}
+accordingly:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-kafkasql-sasl
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9093
+        auth:
+          mechanism: SCRAM-SHA-512
+          usernameSecretRef:
+            name: kafka-credentials
+            key: username
+          passwordSecretRef:
+            name: kafka-credentials
+            key: password
+    ingress:
+      host: registry.example.com
+----
+
+[role="_additional-resources"]
+.Additional resources
+
+* For more information on Kafka storage configuration, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#setting-up-kafka-streams-storage_{context}[Configuring {registry} with Kafka storage on OpenShift]
+in {installing-the-registry-storage-openshift}.
+
+[id="configuring-registry-authentication_{context}"]
+== Configuring authentication and authorization
+
+This section explains how to configure {registry} with OIDC authentication and role-based authorization using
+an identity provider such as {keycloak}.
+
+.Prerequisites
+* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have already deployed {registry}. See xref:deploying-registry-inmemory_{context}[].
+* You must have an OIDC identity provider configured with appropriate clients for {registry}.
+
+.Procedure
+
+. Configure two clients in your identity provider:
+** Backend API client (e.g., `registry-client-api`) - Used by the {registry-app}.
+** UI client (e.g., `registry-client-ui`) - Used by the {registry-ui}.
+
+. Update your `ApicurioRegistry3` custom resource to enable authentication:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry
+spec:
+  app:
+    auth:
+      enabled: true
+      appClientId: registry-client-api
+      uiClientId: registry-client-ui
+      authServerUrl: https://keycloak.example.com/realms/registry
+      redirectUri: https://registry-ui.example.com
+      logoutUrl: https://registry-ui.example.com
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
+
+. To enable role-based authorization, add the `authz` configuration:
++
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      enabled: true
+      appClientId: registry-client-api
+      uiClientId: registry-client-ui
+      authServerUrl: https://keycloak.example.com/realms/registry
+      redirectUri: https://registry-ui.example.com
+      logoutUrl: https://registry-ui.example.com
+      authz:
+        enabled: true
+        ownerOnlyEnabled: true
+        roles:
+          source: token
+          admin: sr-admin
+          developer: sr-developer
+          readOnly: sr-readonly
+    ingress:
+      host: registry.example.com
+----
+
+. To enable admin override functionality:
++
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      authz:
+        enabled: true
+        ownerOnlyEnabled: true
+        adminOverride:
+          enabled: true
+          from: token
+          type: role
+          role: sr-admin
+----
+
+. To allow anonymous read-only access:
++
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      enabled: true
+      anonymousReadsEnabled: true
+      appClientId: registry-client-api
+      # ... other auth settings
+----
+
+.Verification
+
+* Access the {registry} web console and verify that you are redirected to the identity provider login page.
+* Log in with different users having different roles and verify that authorization is enforced correctly.
+
+=== Configuring basic authentication for client credentials
+
+To enable HTTP basic authentication for client credentials flow (useful for service accounts):
+
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      enabled: true
+      appClientId: registry-client-api
+      authServerUrl: https://keycloak.example.com/realms/registry
+      basicAuth:
+        enabled: true
+        cacheExpiration: 25m
+----
+
+=== Configuring TLS for OIDC connections
+
+When your identity provider uses custom certificates, configure TLS verification:
+
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      enabled: true
+      appClientId: registry-client-api
+      authServerUrl: https://keycloak.example.com/realms/registry
+      tls:
+        tlsVerificationType: all
+        truststoreSecretRef:
+          name: keycloak-ca-cert
+          key: ca.p12
+        truststorePasswordSecretRef:
+          name: keycloak-ca-cert
+          key: ca.password
+----
+
+NOTE: Set `tlsVerificationType` to `none` to disable TLS verification (not recommended for production).
+
+[role="_additional-resources"]
+.Additional resources
+
+* For more information on {registry} security configuration, see
+{registry-name-full} security in xref:getting-started/assembly-configuring-registry-security.adoc[].
+
+[id="configuring-registry-ingress_{context}"]
+== Configuring Ingress and networking
+
+This section explains how to configure Ingress resources and networking for {registry} components.
+
+=== Configuring Ingress hostname and class
+
+You can specify the Ingress hostname and IngressClass for each component:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry
+spec:
+  app:
+    ingress:
+      host: registry-api.example.com
+      ingressClassName: nginx
+      annotations:
+        nginx.org/proxy-connect-timeout: "30s"
+  ui:
+    ingress:
+      host: registry-ui.example.com
+      ingressClassName: nginx
+      annotations:
+        nginx.org/proxy-connect-timeout: "30s"
+----
+
+=== Disabling operator-managed Ingress
+
+If you want to manage Ingress resources manually:
+
+[source,yaml]
+----
+spec:
+  app:
+    ingress:
+      enabled: false
+  ui:
+    ingress:
+      enabled: false
+----
+
+NOTE: When Ingress is disabled, you must create your own Ingress or Route resources to expose the {registry}
+services.
+
+=== Configuring NetworkPolicy
+
+The operator creates NetworkPolicy resources by default. To manage NetworkPolicy manually:
+
+[source,yaml]
+----
+spec:
+  app:
+    networkPolicy:
+      enabled: false
+  ui:
+    networkPolicy:
+      enabled: false
+----
+
+[id="configuring-registry-features_{context}"]
+== Configuring {registry} features
+
+This section explains how to enable optional features in {registry}.
+
+=== Enabling resource deletion
+
+By default, artifacts and groups in {registry} are immutable and cannot be deleted. To enable deletion:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry
+spec:
+  app:
+    features:
+      resourceDeleteEnabled: true
+----
+
+=== Enabling artifact version mutability
+
+By default, artifact versions are immutable once created. To allow draft versions to be mutable:
+
+[source,yaml]
+----
+spec:
+  app:
+    features:
+      versionMutabilityEnabled: true
+----
+
+NOTE: Enabling version mutability also unlocks Studio functionality in the {registry} UI.
+
+[id="configuring-registry-ui-component_{context}"]
+== Configuring the UI component
+
+This section explains how to configure the {registry} web console component.
+
+=== Disabling the UI component
+
+If you only need the REST API and don't want to deploy the UI:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry
+spec:
+  app:
+    ingress:
+      host: registry.example.com
+  ui:
+    enabled: false
+----
+
+=== Configuring UI environment variables
+
+You can configure the UI with environment variables:
+
+[source,yaml]
+----
+spec:
+  ui:
+    env:
+      - name: REGISTRY_API_URL
+        value: https://registry.example.com/apis/registry/v3
+    ingress:
+      host: registry-ui.example.com
+----
+
+[id="advanced-registry-configuration_{context}"]
+== Advanced configuration
+
+This section covers advanced configuration options for {registry}.
+
+=== Configuring replicas
+
+You can configure the number of replicas for each component:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry
+spec:
+  app:
+    replicas: 3
+    ingress:
+      host: registry.example.com
+  ui:
+    replicas: 2
+    ingress:
+      host: registry-ui.example.com
+----
+
+=== Configuring PodDisruptionBudget
+
+The operator creates PodDisruptionBudget resources by default. To manage PodDisruptionBudget manually:
+
+[source,yaml]
+----
+spec:
+  app:
+    podDisruptionBudget:
+      enabled: false
+  ui:
+    podDisruptionBudget:
+      enabled: false
+----
+
+=== Configuring environment variables
+
+You can add custom environment variables to {registry} components:
+
+[source,yaml]
+----
+spec:
+  app:
+    env:
+      - name: QUARKUS_LOG_LEVEL
+        value: DEBUG
+      - name: CUSTOM_CONFIG
+        valueFrom:
+          configMapKeyRef:
+            name: my-config
+            key: custom.value
+----
+
+IMPORTANT: *Order of evaluation:* The environment variables defined in the `env` field override any environment variables set by the operator. This allows you to customize configuration and provide workarounds in case of bugs while still benefiting from operator-managed settings. You should not use the custom PodTemplateSpec method described below to set environment variables.
+
+=== Using PodTemplateSpec for advanced customization
+
+For advanced pod configuration, you can provide a custom PodTemplateSpec:
+
+[source,yaml]
+----
+spec:
+  app:
+    podTemplateSpec:
+      metadata:
+        labels:
+          custom-label: custom-value
+        annotations:
+          custom-annotation: custom-value
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "500m"
+              limits:
+                memory: "1Gi"
+                cpu: "1000m"
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - apicurio-registry
+                  topologyKey: kubernetes.io/hostname
+----
+
+To customize the component container (for example, to set resource requests/limits), you must specify the container name as follows:
+
+* `apicurio-registry-app` for the {registry-app}.
+* `apicurio-registry-ui` for the {registry-ui}.
+
+However, you can also add additional containers to the pod if needed.
+
+IMPORTANT: *Order of evaluation:* The operator first extends the provided PodTemplateSpec with default values and then applies additional configuration based on other fields in the `ApicurioRegistry3` CR. Therefore, other configuration fields might override settings in the PodTemplateSpec.
+
+=== Configuring TLS for the application
+
+To configure TLS certificates for the {registry} application:
+
+[source,yaml]
+----
+spec:
+  app:
+    tls:
+      keystoreSecretRef:
+        name: registry-tls
+        key: keystore.p12
+      keystorePasswordSecretRef:
+        name: registry-tls
+        key: keystore.password
+----
+
+[role="_additional-resources"]
+.Additional resources
+
+* For the complete configuration reference, see xref:getting-started/assembly-operator-config-reference.adoc[].
+* For more information on configuring {registry}, see {registry-overview}.

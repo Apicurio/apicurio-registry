@@ -2,6 +2,8 @@ package io.apicurio.registry;
 
 import com.microsoft.kiota.ApiException;
 import com.microsoft.kiota.RequestAdapter;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -13,15 +15,17 @@ import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
-import io.apicurio.registry.rest.v3.V3ApiUtil;
+import io.apicurio.registry.rest.v3.impl.V3ApiUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.ProblemDetailsWatcher;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
@@ -33,6 +37,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -57,20 +62,39 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_XML = "application/xml";
 
     public String registryApiBaseUrl;
+    protected String registryV2ApiUrl;
     protected String registryV3ApiUrl;
+    protected io.apicurio.registry.rest.client.v2.RegistryClient clientV2;
     protected RegistryClient clientV3;
     protected RestService confluentClient;
 
     protected Vertx vertx;
+
+    /**
+     * Test watcher that prints detailed information about ProblemDetails and RuleViolationProblemDetails
+     * exceptions using reflection to handle JUnit classloading issues.
+     */
+    @RegisterExtension
+    protected ProblemDetailsWatcher problemDetailsWatcher = new ProblemDetailsWatcher();
 
     @BeforeAll
     protected void beforeAll() throws Exception {
         vertx = Vertx.vertx();
         String serverUrl = "http://localhost:%s/apis";
         registryApiBaseUrl = String.format(serverUrl, testPort);
+        registryV2ApiUrl = registryApiBaseUrl + "/registry/v2";
         registryV3ApiUrl = registryApiBaseUrl + "/registry/v3";
+        clientV2 = createRestClientV2(vertx);
         clientV3 = createRestClientV3(vertx);
         confluentClient = buildConfluentClient();
+    }
+
+    public io.apicurio.registry.rest.client.v2.RegistryClient getClientV2() {
+        return clientV2;
+    }
+
+    public RegistryClient getClientV3() {
+        return clientV3;
     }
 
     @AfterAll
@@ -82,11 +106,17 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return new RestService("http://localhost:" + testPort + "/apis/ccompat/v7");
     }
 
-    protected RegistryClient createRestClientV3(Vertx vertx) {
+    protected io.apicurio.registry.rest.client.v2.RegistryClient createRestClientV2(Vertx vertx) {
         RequestAdapter anonymousAdapter = new VertXRequestAdapter(vertx);
-        anonymousAdapter.setBaseUrl(registryV3ApiUrl);
-        var client = new RegistryClient(anonymousAdapter);
+        anonymousAdapter.setBaseUrl(registryV2ApiUrl);
+        var client = new io.apicurio.registry.rest.client.v2.RegistryClient(anonymousAdapter);
         return client;
+    }
+
+    protected RegistryClient createRestClientV3(Vertx vertx) {
+        return RegistryClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV3ApiUrl)
+                .vertx(vertx));
     }
 
     @BeforeEach
@@ -349,20 +379,44 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected void assertNotFound(Exception exception) {
-        Assertions.assertEquals(ProblemDetails.class, exception.getClass());
-        Assertions.assertEquals(404, ((ApiException) exception).getResponseStatusCode());
+        if (exception.getClass().equals(ProblemDetails.class)) {
+            Assertions.assertEquals(404, ((ProblemDetails) exception).getResponseStatusCode());
+        } else if (exception.getClass().equals(RestClientException.class)) {
+            Assertions.assertEquals(404, ((RestClientException) exception).getStatus());
+        } else {
+            Assertions.fail("Unexpected exception type.", exception);
+        }
     }
 
     protected void assertForbidden(Exception exception) {
-        Assertions.assertEquals(ApiException.class, exception.getClass());
-        Assertions.assertEquals(403, ((ApiException) exception).getResponseStatusCode());
+        if (exception.getClass().equals(io.apicurio.registry.rest.client.models.ProblemDetails.class)) {
+            // Kiota maps 403 errors to ProblemDetails
+            io.apicurio.registry.rest.client.models.ProblemDetails problemDetails =
+                (io.apicurio.registry.rest.client.models.ProblemDetails) exception;
+            Assertions.assertEquals(403, problemDetails.getStatus());
+            Assertions.assertNotNull(problemDetails.getTitle());
+            Assertions.assertNotNull(problemDetails.getName());
+        } else if (exception.getClass().equals(ApiException.class)) {
+            Assertions.assertEquals(403, ((ApiException) exception).getResponseStatusCode());
+        } else if (exception.getClass().equals(RestClientException.class)) {
+            Assertions.assertEquals(403, ((RestClientException) exception).getStatus());
+        } else {
+            Assertions.fail("Unexpected exception type: " + exception.getClass().getName(), exception);
+        }
     }
 
     protected void assertNotAuthorized(Exception exception) {
         if (exception instanceof NotAuthorizedException) {
             // thrown by the token provider adapter
+        } else if (exception.getClass().equals(io.apicurio.registry.rest.client.models.ProblemDetails.class)) {
+            // Kiota maps 401 errors to ProblemDetails
+            io.apicurio.registry.rest.client.models.ProblemDetails problemDetails =
+                (io.apicurio.registry.rest.client.models.ProblemDetails) exception;
+            Assertions.assertEquals(401, problemDetails.getStatus());
+            Assertions.assertNotNull(problemDetails.getTitle());
+            Assertions.assertNotNull(problemDetails.getName());
         } else {
-            // mapped by Kiota
+            // Fallback for generic ApiException
             Assertions.assertEquals(ApiException.class, exception.getClass());
             Assertions.assertEquals(401, ((ApiException) exception).getResponseStatusCode());
         }

@@ -1,0 +1,17 @@
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterCatalog
+metadata:
+  name: apicurio-registry-operator-catalog
+  labels:
+    app: apicurio-registry-operator-catalog
+    app.kubernetes.io/name: apicurio-registry-operator-catalog
+    app.kubernetes.io/version: ${PLACEHOLDER_VERSION}
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/part-of: apicurio-registry
+spec:
+  priority: -1000000  # Intentional for development and testing.
+  source:
+    type: Image
+    image:
+      pollIntervalMinutes: 1  # Intentional for development and testing.
+      ref: ${PLACEHOLDER_CATALOG_IMAGE}

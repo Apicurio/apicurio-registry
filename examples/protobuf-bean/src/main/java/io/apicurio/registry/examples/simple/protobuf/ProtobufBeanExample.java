@@ -16,15 +16,15 @@
 
 package io.apicurio.registry.examples.simple.protobuf;
 
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.examples.AddressBookProtos;
 import io.apicurio.registry.examples.AddressBookProtos.AddressBook;
 import io.apicurio.registry.examples.AddressBookProtos.Person;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaDeserializer;
 import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.apicurio.registry.utils.IoUtil;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -127,9 +127,7 @@ public class ProtobufBeanExample {
         }
 
         Vertx vertx = Vertx.vertx();
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-        vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
-        RegistryClient client = new RegistryClient(vertXRequestAdapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(REGISTRY_URL, vertx));
         System.out.println("The artifact created in Apicurio Registry is: ");
         // because the default ArtifactResolverStrategy is TopicIdStrategy the artifactId is in the form of
         // topicName-value

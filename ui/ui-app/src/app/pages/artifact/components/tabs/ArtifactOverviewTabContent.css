@@ -1,0 +1,43 @@
+
+.artifact-overview-tab-content {
+    padding: 22px;
+    background-color: rgb(240,240,240);
+}
+
+.artifact-overview-tab-content .artifact-basics {
+}
+
+.artifact-overview-tab-content .artifact-versions {
+}
+
+.artifact-overview-tab-content .title-and-type {
+    padding: 20px;
+    border-bottom: 1px solid #ccc;
+}
+
+.artifact-overview-tab-content .title-and-type .type {
+}
+
+.artifact-overview-tab-content .title-and-type .title {
+    color: #333;
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 24px;
+}
+
+.artifact-overview-tab-content .artifact-basics .metaData {
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.artifact-overview-tab-content .artifact-basics .actions {
+}
+
+.artifact-overview-tab-content .artifact-versions .version-list {
+    padding: 20px;
+}
+
+.artifact-overview-tab-content .btn-header-create-version {
+    margin-top: -6px;
+    margin-bottom: -6px;
+}

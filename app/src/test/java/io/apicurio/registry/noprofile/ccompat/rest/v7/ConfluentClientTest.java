@@ -3,7 +3,7 @@ package io.apicurio.registry.noprofile.ccompat.rest.v7;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
 import io.apicurio.registry.model.GroupId;
-import io.apicurio.registry.rest.Headers;
+import io.apicurio.registry.rest.headers.Headers;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.support.HealthUtils;
@@ -1804,5 +1804,102 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
 
         executorService.shutdown();
         assertTrue(executorService.awaitTermination(10, TimeUnit.SECONDS));
+    }
+
+    /**
+     * Test for issue #6972: Schema Field Order Impacts Response from Apicurio Registry v7 ccompat API
+     *
+     * This test verifies that schema lookup works correctly regardless of JSON property ordering
+     * within Avro field definitions. According to the JSON specification, object property order
+     * is not semantically significant, so schemas with different property orders should be
+     * treated as equivalent.
+     *
+     * The test reproduces the exact scenario from the issue:
+     * 1. Register a schema with "default" before "doc"
+     * 2. Look up the schema using the same property order - should succeed
+     * 3. Look up the schema with "doc" before "default" - should also succeed (but currently fails)
+     */
+    @Test
+    public void testSchemaLookupWithDifferentFieldPropertyOrder() throws Exception {
+        final String subject = "a.b.c.schema_1";
+
+        // Original schema from the issue with "default" before "doc"
+        String schemaWithDefaultFirst = """
+                {
+                    "type": "record",
+                    "name": "schema_1",
+                    "namespace": "a.b.c",
+                    "fields": [
+                        {
+                            "name": "order",
+                            "type": ["null", "string"],
+                            "default": null,
+                            "doc": "description for order field"
+                        },
+                        {
+                            "name": "matters",
+                            "type": "string",
+                            "doc": "Whereas it should not"
+                        }
+                    ]
+                }
+                """;
+
+        // Same schema but with "doc" before "default" in the first field
+        String schemaWithDocFirst = """
+                {
+                    "type": "record",
+                    "name": "schema_1",
+                    "namespace": "a.b.c",
+                    "fields": [
+                        {
+                            "name": "order",
+                            "type": ["null", "string"],
+                            "doc": "description for order field",
+                            "default": null
+                        },
+                        {
+                            "name": "matters",
+                            "type": "string",
+                            "doc": "Whereas it should not"
+                        }
+                    ]
+                }
+                """;
+
+        // Step 1: Register the schema with default before doc (using normalize=false)
+        RegisterSchemaRequest registerRequest = new RegisterSchemaRequest();
+        registerRequest.setSchema(schemaWithDefaultFirst);
+        int schemaId = confluentClient.registerSchema(registerRequest, subject, false).getId();
+
+        // Step 2: Lookup with the exact same property order - this should work
+        RegisterSchemaRequest lookupRequest1 = new RegisterSchemaRequest();
+        lookupRequest1.setSchema(schemaWithDefaultFirst);
+        io.confluent.kafka.schemaregistry.client.rest.entities.Schema foundSchema1 =
+                confluentClient.lookUpSubjectVersion(RestService.DEFAULT_REQUEST_PROPERTIES,
+                        lookupRequest1, subject, false, false);
+        assertEquals(1, foundSchema1.getVersion().intValue(),
+                "Lookup with same property order should find version 1");
+        assertEquals(schemaId, foundSchema1.getId().intValue(),
+                "Lookup with same property order should return the same schema ID");
+
+        // Step 3: Lookup with different property order (doc before default) - this should also work
+        // but currently fails with 404 error code 40403
+        RegisterSchemaRequest lookupRequest2 = new RegisterSchemaRequest();
+        lookupRequest2.setSchema(schemaWithDocFirst);
+        io.confluent.kafka.schemaregistry.client.rest.entities.Schema foundSchema2 =
+                confluentClient.lookUpSubjectVersion(RestService.DEFAULT_REQUEST_PROPERTIES,
+                        lookupRequest2, subject, true, false);
+        assertEquals(1, foundSchema2.getVersion().intValue(),
+                "Lookup with different property order should still find version 1");
+        assertEquals(schemaId, foundSchema2.getId().intValue(),
+                "Lookup with different property order should return the same schema ID");
+
+        // Verify both schemas are semantically equivalent using Avro's parser
+        Schema.Parser parser = new Schema.Parser();
+        Schema avroSchema1 = parser.parse(schemaWithDefaultFirst);
+        Schema avroSchema2 = parser.parse(schemaWithDocFirst);
+        assertEquals(avroSchema1.toString(), avroSchema2.toString(),
+                "Both schemas should be semantically equivalent according to Avro");
     }
 }

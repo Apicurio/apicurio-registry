@@ -2,18 +2,20 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Map;
 
 /**
  * An implementation of the Kafka Serializer for JSON Schema use-cases. This serializer assumes that the
@@ -31,26 +33,26 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         super();
     }
 
-    public JsonSchemaSerializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
-            SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(client, artifactResolverStrategy, schemaResolver);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade,
+                                ArtifactReferenceResolverStrategy<JsonSchema, T> artifactResolverStrategy,
+                                SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(clientFacade, artifactResolverStrategy, schemaResolver);
     }
 
-    public JsonSchemaSerializer(RegistryClient client) {
-        super(client);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
-    public JsonSchemaSerializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(client, schemaResolver);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
     public JsonSchemaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }
 
-    public JsonSchemaSerializer(RegistryClient client, Boolean validationEnabled) {
-        this(client);
+    public JsonSchemaSerializer(RegistryClientFacade clientFacade, Boolean validationEnabled) {
+        this(clientFacade);
         this.validationEnabled = validationEnabled;
     }
 
@@ -75,6 +77,19 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
         return parser;
     }
 
+    /**
+     * For JSON Schema, caching by class is safe for POJOs/Beans where the schema
+     * is derived from the class structure. Exclude dynamic types like Map and JsonNode
+     * where the schema could potentially vary per instance.
+     */
+    @Override
+    protected Object getSchemaCacheKey(T data) {
+        if (data instanceof Map || data instanceof JsonNode) {
+            return null;
+        }
+        return data.getClass();
+    }
+
     public boolean isValidationEnabled() {
         return validationEnabled != null && validationEnabled;
     }
@@ -91,17 +106,24 @@ public class JsonSchemaSerializer<T> extends AbstractSerializer<JsonSchema, T> {
     }
 
     /**
+     * Serializes the data to JSON format and optionally validates it against the schema.
+     * When validation is enabled, the data is converted to JsonNode once and validated
+     * before serialization, avoiding redundant parsing.
+     *
      * @see io.apicurio.registry.serde.AbstractSerializer#serializeData(io.apicurio.registry.resolver.ParsedSchema,
      *      java.lang.Object, java.io.OutputStream)
      */
     @Override
     public void serializeData(ParsedSchema<JsonSchema> schema, T data, OutputStream out) throws IOException {
-        final byte[] dataBytes = mapper.writeValueAsBytes(data);
-
         if (isValidationEnabled()) {
-            JsonSchemaValidationUtil.validateDataWithSchema(schema, dataBytes, mapper);
+            // Convert to JsonNode for validation to avoid serializing and then parsing back
+            JsonNode jsonNode = mapper.valueToTree(data);
+            JsonSchemaValidationUtil.validateDataWithSchema(schema, jsonNode);
+            // Serialize the validated JsonNode
+            mapper.writeValue(out, jsonNode);
+        } else {
+            // When validation is disabled, serialize directly
+            mapper.writeValue(out, data);
         }
-
-        out.write(dataBytes);
     }
 }

@@ -1,0 +1,19 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-mysql
+spec:
+  app:
+    storage:
+      type: mysql
+      sql:
+        dataSource:
+          url: jdbc:mysql://example-mysql-database:3306/apicurio
+          username: username
+          password:
+            name: example-mysql-database-password
+    ingress:
+      host: example-mysql-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-mysql-ui.apps.cluster.example

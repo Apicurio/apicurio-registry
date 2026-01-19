@@ -1,0 +1,243 @@
+name: Release SDKs (All Languages)
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag name'
+        required: true
+      sdks:
+        description: 'SDKs to release (comma-separated: python,go,typescript,all)'
+        required: true
+        default: 'all'
+  release:
+    types: [released, prereleased]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RELEASE_VERSION: ${{ github.event.release.name }}
+  BRANCH: ${{ github.event.release.target_commitish }}
+
+jobs:
+  # Prepare release details
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-22.04
+    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
+    outputs:
+      release-version: ${{ steps.version.outputs.version }}
+      release-python: ${{ steps.sdks.outputs.python }}
+      release-go: ${{ steps.sdks.outputs.go }}
+      release-typescript: ${{ steps.sdks.outputs.typescript }}
+    steps:
+      - name: Fetch Release Details
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          touch release.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${{ github.event.inputs.tag }} > release.json
+          echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+
+      - name: Set version output
+        id: version
+        run: echo "version=${{ env.RELEASE_VERSION }}" >> $GITHUB_OUTPUT
+
+      - name: Determine SDKs to release
+        id: sdks
+        run: |
+          SDKS="${{ github.event.inputs.sdks || 'all' }}"
+          if [[ "$SDKS" == "all" ]] || [[ "$SDKS" == *"python"* ]]; then
+            echo "python=true" >> $GITHUB_OUTPUT
+          else
+            echo "python=false" >> $GITHUB_OUTPUT
+          fi
+          if [[ "$SDKS" == "all" ]] || [[ "$SDKS" == *"go"* ]]; then
+            echo "go=true" >> $GITHUB_OUTPUT
+          else
+            echo "go=false" >> $GITHUB_OUTPUT
+          fi
+          if [[ "$SDKS" == "all" ]] || [[ "$SDKS" == *"typescript"* ]]; then
+            echo "typescript=true" >> $GITHUB_OUTPUT
+          else
+            echo "typescript=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Python SDK Release
+  release-python-sdk:
+    name: Release Python SDK
+    runs-on: ubuntu-22.04
+    needs: prepare
+    if: needs.prepare.outputs.release-python == 'true'
+    timeout-minutes: 30
+    steps:
+      - name: Download Source Code
+        run: |
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
+
+      - name: Verify Project Version
+        run: |
+          cd registry
+          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
+            echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${{ needs.prepare.outputs.release-version }}'"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
+
+      - name: Build Package
+        working-directory: registry/python-sdk
+        run: poetry build
+
+      - name: Publish to PyPI
+        working-directory: registry/python-sdk
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: make publish
+
+      - name: Notify on completion
+        if: always()
+        run: |
+          MESSAGE="Python SDK release for ${{ needs.prepare.outputs.release-version }} completed with status: ${{ job.status }}"
+          echo "$MESSAGE"
+
+  # Go SDK Release
+  release-go-sdk:
+    name: Release Go SDK
+    runs-on: ubuntu-22.04
+    needs: prepare
+    if: needs.prepare.outputs.release-go == 'true'
+    timeout-minutes: 30
+    steps:
+      - name: Download Source Code
+        run: |
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
+
+      - name: Verify Project Version
+        run: |
+          cd registry
+          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
+            echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${{ needs.prepare.outputs.release-version }}'"
+            exit 1
+          fi
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: false
+
+      - name: Release Go SDK
+        working-directory: registry
+        run: |
+          git tag "v${{ needs.prepare.outputs.release-version }}"
+          git tag "go-sdk/v${{ needs.prepare.outputs.release-version }}"
+          git push origin "v${{ needs.prepare.outputs.release-version }}"
+          git push origin "go-sdk/v${{ needs.prepare.outputs.release-version }}"
+
+          # Retry up to 5 times with increasing sleep intervals.
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          SUCCESS=false
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
+            if GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry/go-sdk/v3@v${{ needs.prepare.outputs.release-version }}"; then
+              SUCCESS=true
+              echo "Successfully verified Go module."
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                SLEEP_TIME=$((RETRY_COUNT * 10))
+                echo "Failed. Retrying in $SLEEP_TIME seconds..."
+                sleep $SLEEP_TIME
+              fi
+            fi
+          done
+
+          if [ "$SUCCESS" = false ]; then
+            echo "ERROR: Failed to verify Go module after $MAX_RETRIES attempts."
+            exit 1
+          fi
+
+      - name: Notify on completion
+        if: always()
+        run: |
+          MESSAGE="Go SDK release for ${{ needs.prepare.outputs.release-version }} completed with status: ${{ job.status }}"
+          echo "$MESSAGE"
+
+  # TypeScript SDK Release
+  release-typescript-sdk:
+    name: Release TypeScript SDK
+    runs-on: ubuntu-22.04
+    needs: prepare
+    if: needs.prepare.outputs.release-typescript == 'true'
+    timeout-minutes: 15
+    steps:
+      - name: Download Source Code
+        run: |
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
+
+      - name: Verify Project Version
+        run: |
+          cd registry
+          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
+            echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${{ needs.prepare.outputs.release-version }}'"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Release Typescript SDK
+        working-directory: registry/typescript-sdk
+        run: |
+          npm install
+          npm run generate-sources
+          npm run build
+
+      - name: Publish to npmjs.com
+        working-directory: registry/typescript-sdk
+        run: npm publish --access public
+
+      - name: Notify on completion
+        if: always()
+        run: |
+          MESSAGE="TypeScript SDK release for ${{ needs.prepare.outputs.release-version }} completed with status: ${{ job.status }}"
+          echo "$MESSAGE"
+
+  # Consolidated Slack Notification (using reusable workflow)
+  notify-slack:
+    name: Slack Notification
+    needs: [prepare, release-python-sdk, release-go-sdk, release-typescript-sdk]
+    if: always()
+    uses: ./.github/workflows/reusable-notify-slack.yaml
+    with:
+      workflow-name: ${{ github.workflow }}
+      job-name: 'sdk-releases'
+      job-status: ${{ (needs.release-python-sdk.result == 'failure' || needs.release-go-sdk.result == 'failure' || needs.release-typescript-sdk.result == 'failure') && 'failure' || 'success' }}
+    secrets:
+      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

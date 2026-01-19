@@ -5,7 +5,8 @@
 ** xref:getting-started/assembly-installing-registry-docker.adoc[]
 ** xref:getting-started/assembly-installing-registry-openshift.adoc[]
 ** xref:getting-started/assembly-installing-registry-storage-openshift.adoc[]
-** link:https://www.apicur.io/registry/docs/apicurio-registry-operator/1.0.0/index.html[Apicurio Registry Operator documentation]
+** xref:getting-started/assembly-deploying-registry-operator.adoc[]
+** xref:getting-started/assembly-registry-high-availability.adoc[]
 * Migration
 ** xref:getting-started/assembly-migrating-registry-v2-v3.adoc[]
 * Configuration
@@ -27,3 +28,4 @@ endif::[]
 ** xref:getting-started/assembly-artifact-reference.adoc[]
 ** xref:getting-started/assembly-rule-reference.adoc[]
 ** xref:getting-started/assembly-config-reference.adoc[]
+** xref:getting-started/assembly-operator-config-reference.adoc[]

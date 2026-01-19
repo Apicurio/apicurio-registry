@@ -1,0 +1,86 @@
+name: Integration Tests
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '17'
+      image-tag:
+        type: string
+        required: true
+        description: 'Docker image tag to test'
+
+jobs:
+  integration-tests:
+    name: Integration Tests (${{ matrix.storage }}-${{ matrix.profile }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        storage: [h2, postgresql, kafkasql]
+        profile: [ci, auth, migration]
+        include:
+          - storage: h2
+            profile: debezium-all
+          - storage: kafkasql
+            profile: kafkasql-snapshotting
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
+          minikube: 'true'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ inputs.image-tag }}'
+
+      - name: Set storage-specific variables
+        id: storage-vars
+        run: |
+          case "${{ matrix.storage }}" in
+            h2)
+              echo "remote-profile=remote-mem" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-in-memory-image" >> $GITHUB_OUTPUT
+              ;;
+            postgresql)
+              echo "remote-profile=remote-sql" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-sql-image" >> $GITHUB_OUTPUT
+              ;;
+            kafkasql)
+              echo "remote-profile=remote-kafka" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-kafkasql-image" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Run Integration Tests
+        run: |
+          ./mvnw verify -am --no-transfer-progress \
+            -Pintegration-tests \
+            -P${{ matrix.profile }} \
+            -P${{ steps.storage-vars.outputs.remote-profile }} \
+            -D${{ steps.storage-vars.outputs.image-prop }}=apicurio/apicurio-registry:${{ inputs.image-tag }} \
+            -pl integration-tests \
+            -Dmaven.javadoc.skip=true
+
+      - name: Collect logs
+        if: failure()
+        run: sh ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-logs-${{ matrix.storage }}-${{ matrix.profile }}
+          path: artifacts

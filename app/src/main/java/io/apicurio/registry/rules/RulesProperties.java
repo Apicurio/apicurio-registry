@@ -6,10 +6,10 @@ import io.apicurio.registry.types.RuleType;
 import java.util.Set;
 
 /**
- * A service used to retrieve the default global rules that have been set via registry.rules.global
+ * A service used to retrieve the default global rules that have been set via apicurio.rules.global
  * configuration properties. E.g.: <code>
- * %prod.registry.rules.global.compatibility=BACKWARDS
- * %prod.registry.rules.global.validity=FULL
+ * %prod.apicurio.rules.global.compatibility=BACKWARDS
+ * %prod.apicurio.rules.global.validity=FULL
  * </code>
  */
 public interface RulesProperties {

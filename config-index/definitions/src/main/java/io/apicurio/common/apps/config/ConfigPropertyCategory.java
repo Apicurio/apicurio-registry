@@ -8,18 +8,21 @@ public enum ConfigPropertyCategory {
     CATEGORY_CCOMPAT("ccompat"),
     CATEGORY_DOWNLOAD("download"),
     CATEGORY_GITOPS("gitops"),
-    CATEGORY_HEALTH("health"),
+    CATEGORY_HEALTH("health"), // TODO: Merge with CATEGORY_OBSERVABILITY.
     /**
      * Properties that belong to this category will not show up in the documentation.
      */
     CATEGORY_HIDDEN("hidden"),
     CATEGORY_IMPORT("import"),
     CATEGORY_LIMITS("limits"),
+    CATEGORY_LOG("log"),
+    CATEGORY_OBSERVABILITY("observability"),
     CATEGORY_REDIRECTS("redirects"),
     CATEGORY_REST("rest"),
     CATEGORY_SEMVER("semver"),
     CATEGORY_STORAGE("storage"),
     CATEGORY_SYSTEM("system"),
+    CATEGORY_TYPES("types"),
     CATEGORY_UI("ui");
 
     private final String value;

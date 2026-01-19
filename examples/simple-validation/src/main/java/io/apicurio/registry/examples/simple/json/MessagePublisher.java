@@ -16,67 +16,50 @@
 
 package io.apicurio.registry.examples.simple.json;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import io.apicurio.rest.client.JdkHttpClientProvider;
-import io.apicurio.rest.client.error.ApicurioRestClientException;
-import io.apicurio.rest.client.error.RestClientErrorHandler;
-import io.apicurio.rest.client.request.Operation;
-import io.apicurio.rest.client.request.Request;
-import io.apicurio.rest.client.request.Request.RequestBuilder;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
 import org.json.JSONObject;
 
-import java.io.InputStream;
-import java.util.Collections;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 /**
  * @author eric.wittmann@gmail.com
  */
-@SuppressWarnings("unchecked")
 public class MessagePublisher {
-    private static final ApicurioHttpClient httpClient;
+    private static final HttpClient httpClient;
+    private static final String BROKER_URL = "http://localhost:12345";
 
     static {
-        httpClient = new JdkHttpClientProvider().create("http://localhost:12345", Collections.EMPTY_MAP, null,
-                new RestClientErrorHandler() {
-                    @Override
-                    @SuppressWarnings("serial")
-                    public ApicurioRestClientException parseInputSerializingError(
-                            JsonProcessingException ex) {
-                        return new ApicurioRestClientException(ex.getMessage()) {
-                        };
-                    }
-
-                    @Override
-                    @SuppressWarnings("serial")
-                    public ApicurioRestClientException parseError(Exception ex) {
-                        return new ApicurioRestClientException(ex.getMessage()) {
-                        };
-                    }
-
-                    @Override
-                    @SuppressWarnings("serial")
-                    public ApicurioRestClientException handleErrorResponse(InputStream body, int statusCode) {
-                        return new ApicurioRestClientException("Error with code: " + statusCode) {
-                        };
-                    }
-                });
+        httpClient = HttpClient.newHttpClient();
     }
 
     /**
-     * @param message
+     * Publishes a message to the mock broker.
+     *
+     * @param message the message to publish
      */
-    @SuppressWarnings({ "rawtypes" })
     public void publishMessage(MessageBean message) {
-        JSONObject messageObj = new JSONObject(message);
-        String data = messageObj.toString();
-        Request request = new RequestBuilder().operation(Operation.POST).data(data)
-                .responseType(new TypeReference<Void>() {
-                }).build();
-        httpClient.sendRequest(request);
+        try {
+            JSONObject messageObj = new JSONObject(message);
+            String data = messageObj.toString();
 
-        System.out.println("Produced message: " + message);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BROKER_URL))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(data))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                System.out.println("Produced message: " + message);
+            } else {
+                System.err.println("Failed to publish message. Status: " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.err.println("Error publishing message: " + e.getMessage());
+        }
     }
 
 }

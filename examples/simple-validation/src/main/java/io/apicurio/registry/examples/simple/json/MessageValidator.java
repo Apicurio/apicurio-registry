@@ -16,9 +16,9 @@
 
 package io.apicurio.registry.examples.simple.json;
 
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.kiota.http.vertx.VertXRequestAdapter;
-import io.vertx.core.Vertx;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
 import org.everit.json.schema.loader.SchemaLoader;
@@ -40,21 +40,23 @@ public class MessageValidator {
     /**
      * Constructor.
      *
-     * @param registryUrl
-     * @param group
-     * @param artifactId
+     * @param registryUrl the URL of the Apicurio Registry
+     * @param group the artifact group ID
+     * @param artifactId the artifact ID
      */
-    public MessageValidator(Vertx vertx, String registryUrl, String group, String artifactId) {
+    public MessageValidator(String registryUrl, String group, String artifactId) {
         this.group = group;
         this.artifactId = artifactId;
 
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-        vertXRequestAdapter.setBaseUrl(registryUrl);
-        this.client = new RegistryClient(vertXRequestAdapter);
+        this.client = RegistryClientFactory.create(RegistryClientOptions.create(registryUrl));
     }
 
     /**
-     * @param message
+     * Validates a message against the JSON Schema from the registry.
+     *
+     * @param message the message to validate
+     * @throws IOException if there's an error fetching the schema
+     * @throws ValidationException if the message doesn't match the schema
      */
     public void validate(MessageBean message) throws IOException, ValidationException {
         JSONObject jsonSchema;

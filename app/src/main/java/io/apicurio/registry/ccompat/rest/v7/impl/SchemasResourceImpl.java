@@ -15,57 +15,88 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.VersionState;
-import io.apicurio.registry.util.ArtifactTypeUtil;
+import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SchemasResourceImpl extends AbstractResource implements SchemasResource {
 
+    @Inject
+    SchemaFormatService formatService;
+
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public Schema getSchemaById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
-        String contentType;
         List<ArtifactReferenceDto> references;
+        String artifactType;
         if (cconfig.legacyIdModeEnabled.get()) {
             StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(id.longValue());
             contentHandle = artifactVersion.getContent();
-            contentType = artifactVersion.getContentType();
             references = artifactVersion.getReferences();
-        }
-        else {
+            ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
+            artifactType = vmd.getArtifactType();
+        } else {
             ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
             contentHandle = contentWrapper.getContent();
-            contentType = contentWrapper.getContentType();
             references = contentWrapper.getReferences();
+            List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
+            if (versions == null || versions.isEmpty()) {
+                //the contentId points to an orphaned content
+                throw new ArtifactNotFoundException("ContentId: " + id);
+            }
+            artifactType = versions.get(0).getArtifactType();
         }
-        TypedContent typedContent = TypedContent.create(contentHandle, contentType);
-        return converter.convert(contentHandle,
-                ArtifactTypeUtil.determineArtifactType(typedContent, null, RegistryContentUtils
-                        .recursivelyResolveReferences(references, storage::getContentByReference), factory),
-                references);
+
+        // Apply format transformation if requested
+        if (format != null && !format.isBlank()) {
+            Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(references);
+            contentHandle = formatService.applyFormat(contentHandle, artifactType, format,
+                    resolvedReferences);
+        }
+
+        return converter.convert(contentHandle, artifactType, references);
     }
 
     @Override
     public String getSchemaContentById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
+        List<ArtifactReferenceDto> references;
+        String artifactType;
         if (cconfig.legacyIdModeEnabled.get()) {
             StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(id.longValue());
             contentHandle = artifactVersion.getContent();
-        }
-        else {
+            references = artifactVersion.getReferences();
+            ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
+            artifactType = vmd.getArtifactType();
+        } else {
             ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
             contentHandle = contentWrapper.getContent();
+            references = contentWrapper.getReferences();
+            List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
+            if (versions == null || versions.isEmpty()) {
+                //the contentId points to an orphaned content
+                throw new ArtifactNotFoundException("ContentId: " + id);
+            }
+            artifactType = versions.get(0).getArtifactType();
+        }
+
+        // Apply format transformation if requested
+        if (format != null && !format.trim().isEmpty()) {
+            Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(references);
+            contentHandle = formatService.applyFormat(contentHandle, artifactType, format,
+                    resolvedReferences);
         }
 
         return contentHandle.content();

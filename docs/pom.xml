@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.10-SNAPSHOT</version>
+    <version>3.1.7-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -64,6 +64,7 @@
   </developers>
 
   <modules>
+    <module>config-generator</module>
     <module>rest-api</module>
   </modules>
 
@@ -91,43 +92,5 @@
     </dependency>
   </dependencies>
 
-  <profiles>
-    <profile>
-      <id>docs-generation</id>
-      <activation>
-        <property>
-          <name>!skipDocsGen</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>dev.jbang</groupId>
-            <artifactId>jbang-maven-plugin</artifactId>
-            <version>0.0.8</version>
-            <inherited>false</inherited>
-            <executions>
-              <execution>
-                <id>run</id>
-                <goals>
-                  <goal>run</goal>
-                </goals>
-                <phase>process-resources</phase>
-                <configuration>
-                  <jbangargs>-cp "${projectRoot}/config-index/definitions/target/classes"</jbangargs>
-                  <script>${project.basedir}/generateAllConfigPartial.java</script>
-                  <args>
-                    <arg>${project.version}</arg>
-                    <arg>${project.basedir}</arg>
-                    <arg>${project.version}</arg>
-                  </args>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 
 </project>

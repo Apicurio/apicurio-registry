@@ -36,7 +36,7 @@ spec:
             - name: APICURIO_REST_DELETION_GROUP_ENABLED
               value: "true"
           image: registry-image
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
             httpGet:

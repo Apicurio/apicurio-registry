@@ -1,11 +1,24 @@
 package io.apicurio.registry.maven;
 
 import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
+import io.apicurio.registry.types.ArtifactType;
 
 import java.io.File;
 import java.util.List;
 
 public class RegisterArtifact {
+
+    public List<File> getProtoPaths() {
+        return protoPaths;
+    }
+
+    public void setProtoPaths(List<File> protoPaths) {
+        this.protoPaths = protoPaths;
+    }
+
+    public enum AvroAutoRefsNamingStrategy {
+        INHERIT_PARENT_GROUP, USE_AVRO_NAMESPACE
+    }
 
     private String groupId;
     private String artifactId;
@@ -15,11 +28,13 @@ public class RegisterArtifact {
     private IfArtifactExists ifExists;
     private Boolean canonicalize;
     private Boolean minify;
-    private Boolean analyzeDirectory;
     private Boolean autoRefs;
+    private AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy;
+    private Boolean isDraft;
     private String contentType;
     private List<RegisterArtifactReference> references;
     private List<ExistingReference> existingReferences;
+    private List<File> protoPaths;
 
     /**
      * Constructor.
@@ -167,20 +182,37 @@ public class RegisterArtifact {
         this.references = references;
     }
 
-    public Boolean getAnalyzeDirectory() {
-        return analyzeDirectory;
-    }
-
-    public void setAnalyzeDirectory(Boolean analyzeDirectory) {
-        this.analyzeDirectory = analyzeDirectory;
-    }
-
     public Boolean getAutoRefs() {
         return autoRefs;
     }
 
     public void setAutoRefs(Boolean autoRefs) {
         this.autoRefs = autoRefs;
+    }
+
+    public AvroAutoRefsNamingStrategy getAvroAutoRefsNamingStrategy() {
+        if(Boolean.TRUE.equals(autoRefs) && avroAutoRefsNamingStrategy == null) {
+            if(ArtifactType.AVRO.equals(artifactType)) {
+                return AvroAutoRefsNamingStrategy.USE_AVRO_NAMESPACE;
+            }
+            if(ArtifactType.ASYNCAPI.equals(artifactType)) {
+                return AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP;
+            }
+            return AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP;
+        }
+        return avroAutoRefsNamingStrategy;
+    }
+
+    public void setAvroAutoRefsNamingStrategy(AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy) {
+        this.avroAutoRefsNamingStrategy = avroAutoRefsNamingStrategy;
+    }
+
+    public Boolean getIsDraft() {
+        return isDraft;
+    }
+
+    public void setIsDraft(Boolean isDraft) {
+       this.isDraft = isDraft;
     }
 
     public List<ExistingReference> getExistingReferences() {

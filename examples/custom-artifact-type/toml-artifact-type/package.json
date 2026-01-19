@@ -1,0 +1,22 @@
+{
+  "name": "toml-artifact-type",
+  "private": false,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Custom TOML artifact type for Apicurio Registry",
+  "dependencies": {
+    "@apicurio/artifact-type-builtins": "^3.1.0"
+  },
+  "devDependencies": {
+    "cp": "0.2.0",
+    "esbuild": "0.25.11",
+    "rimraf": "6.0.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "transpile": "tsc --p ./tsconfig-build.json",
+    "build-library": "esbuild dist/TomlArtifactType.js --bundle --outfile=dist/toml-artifact-type.js --format=esm",
+    "build": "npm run transpile && npm run build-library"
+  }
+}

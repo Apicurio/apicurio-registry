@@ -1,0 +1,204 @@
+import React, { FunctionComponent, useState } from "react";
+import "./VersionOverviewTabContent.css";
+import "@app/styles/empty.css";
+import { ArtifactTypeIcon, IfAuth, IfFeature, VersionStateBadge } from "@app/components";
+import {
+    Button,
+    Card,
+    CardBody,
+    DescriptionList,
+    DescriptionListDescription,
+    DescriptionListGroup,
+    DescriptionListTerm,
+    Drawer,
+    DrawerContent,
+    DrawerContentBody,
+    DrawerHead,
+    DrawerPanelContent,
+    Flex,
+    FlexItem,
+    Label,
+    Truncate
+} from "@patternfly/react-core";
+import { PencilAltIcon } from "@patternfly/react-icons";
+import { FromNow, If } from "@apicurio/common-ui-components";
+import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
+import { labelsToAny } from "@utils/rest.utils.ts";
+import { VersionComments } from "@app/pages";
+
+/**
+ * Properties
+ */
+export type VersionOverviewTabContentProps = {
+    artifact: ArtifactMetaData;
+    version: VersionMetaData;
+    onEditMetaData: () => void;
+    onChangeState: () => void;
+};
+
+/**
+ * Models the content of the Version Info (overview) tab.
+ */
+export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabContentProps> = (props: VersionOverviewTabContentProps) => {
+    const [isExpanded] = useState(true);
+
+    const drawerRef: any = React.useRef<HTMLDivElement>();
+
+    const description = (): string => {
+        return props.version.description || "No description";
+    };
+
+    const artifactName = (): string => {
+        return props.version.name || "No name";
+    };
+
+    const labels: any = labelsToAny(props.version.labels);
+
+    const panelContent = (
+        <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
+            <DrawerHead hasNoPadding={true}>
+                <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
+                    <div className="version-basics">
+                        <div className="title-and-type">
+                            <Flex>
+                                <FlexItem className="title">Version metadata</FlexItem>
+                                <FlexItem className="actions" align={{ default: "alignRight" }}>
+                                    <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                                        <IfFeature feature="readOnly" isNot={true}>
+                                            <Button id="edit-action"
+                                                data-testid="version-btn-edit"
+                                                onClick={props.onEditMetaData}
+                                                style={{ padding: "0" }}
+                                                variant="link"><PencilAltIcon/>{" "}Edit</Button>
+                                        </IfFeature>
+                                    </IfAuth>
+                                </FlexItem>
+                            </Flex>
+                        </div>
+                        <DescriptionList className="metaData" isCompact={true}>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Name</DescriptionListTerm>
+                                <DescriptionListDescription
+                                    data-testid="version-details-name"
+                                    className={!props.version.name ? "empty-state-text" : ""}
+                                >
+                                    {artifactName()}
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Description</DescriptionListTerm>
+                                <DescriptionListDescription
+                                    data-testid="version-details-description"
+                                    className={!props.version.description ? "empty-state-text" : ""}
+                                >
+                                    {description()}
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Type</DescriptionListTerm>
+                                <DescriptionListDescription data-testid="version-details-type">
+                                    <ArtifactTypeIcon artifactType={props.artifact.artifactType!} />
+                                    <span style={{ marginLeft: "3px" }}>{props.artifact.artifactType}</span>
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Status</DescriptionListTerm>
+                                <DescriptionListDescription data-testid="version-details-state">
+                                    <Flex>
+                                        <FlexItem>
+                                            <VersionStateBadge version={props.version} showEnabled={true} />
+                                        </FlexItem>
+                                        <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                                            <IfFeature feature="readOnly" isNot={true}>
+                                                <FlexItem>
+                                                    <Button
+                                                        id="change-state-action"
+                                                        data-testid="version-btn-change-state"
+                                                        onClick={props.onChangeState}
+                                                        style={{ padding: "0", marginLeft: "10px" }}
+                                                        variant="link"
+                                                    >Change</Button>
+                                                </FlexItem>
+                                            </IfFeature>
+                                        </IfAuth>
+                                    </Flex>
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Created</DescriptionListTerm>
+                                <DescriptionListDescription data-testid="version-details-created-on">
+                                    <FromNow date={props.version.createdOn}/>
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <If condition={props.version.owner !== undefined && props.version.owner !== ""}>
+                                <DescriptionListGroup>
+                                    <DescriptionListTerm>Owner</DescriptionListTerm>
+                                    <DescriptionListDescription data-testid="version-details-created-by">
+                                        <span>{props.version.owner}</span>
+                                    </DescriptionListDescription>
+                                </DescriptionListGroup>
+                            </If>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Modified</DescriptionListTerm>
+                                <DescriptionListDescription data-testid="version-details-modified-on">
+                                    <FromNow date={props.version.modifiedOn}/>
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Global ID</DescriptionListTerm>
+                                <DescriptionListDescription
+                                    data-testid="version-details-global-id">{props.version.globalId}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Content ID</DescriptionListTerm>
+                                <DescriptionListDescription
+                                    data-testid="version-details-content-id">{props.version.contentId}</DescriptionListDescription>
+                            </DescriptionListGroup>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Labels</DescriptionListTerm>
+                                {!labels || !Object.keys(labels).length ?
+                                    <DescriptionListDescription data-testid="version-details-labels"
+                                        className="empty-state-text">No
+                                        labels</DescriptionListDescription> :
+                                    <DescriptionListDescription
+                                        data-testid="version-details-labels">{Object.entries(labels).map(([key, value]) =>
+                                            <Label key={`label-${key}`} color="purple"
+                                                style={{ marginBottom: "2px", marginRight: "5px" }}>
+                                                <Truncate className="label-truncate" content={`${key}=${value}`}/>
+                                            </Label>
+                                        )}</DescriptionListDescription>
+                                }
+                            </DescriptionListGroup>
+                        </DescriptionList>
+                    </div>
+                </span>
+            </DrawerHead>
+        </DrawerPanelContent>
+    );
+
+    const drawerContent = (
+        <div className="version-comments">
+            <div className="title-and-type">
+                <Flex>
+                    <FlexItem className="title">Comments</FlexItem>
+                </Flex>
+            </div>
+            <VersionComments version={props.version} />
+        </div>
+    );
+
+    return (
+        <div className="version-overview-tab-content">
+            <Card>
+                <CardBody style={{ padding: "0" }}>
+                    <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
+                        <DrawerContent panelContent={panelContent}>
+                            <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
+                        </DrawerContent>
+                    </Drawer>
+                </CardBody>
+            </Card>
+        </div>
+    );
+
+};

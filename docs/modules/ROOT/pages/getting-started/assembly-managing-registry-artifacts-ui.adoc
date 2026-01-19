@@ -36,7 +36,7 @@ When you access the {registry} web console in your browser, some initial configu
 
 * URL for core {registry} server REST API v3
 
-Typically the {registry} operator will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
+Typically the {operator} will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
 
 .Procedure
 Configure the following environment variables to override the default URL:
@@ -273,7 +273,12 @@ For example, this feature is useful if the *Artifact owner-only authorization* o
 
 NOTE: The *Artifact owner-only authorization* setting and the artifact *Owner* field are displayed _only if_ authentication was enabled when the {registry} was deployed. For more details, see
 
+ifdef::apicurio-registry[]
 xref:../getting-started/assembly-configuring-the-registry.adoc[].
+endif::[] 
+ifdef::rh-service-registry[]
+link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
+endif::[] 
 
 .Prerequisites
 
@@ -298,8 +303,12 @@ xref:../getting-started/assembly-configuring-the-registry.adoc[].
 
 [role="_additional-resources"]
 .Additional resources
+ifdef::apicurio-registry[]
 * xref:../getting-started/assembly-configuring-the-registry.adoc[]
-
+endif::[] 
+ifdef::rh-service-registry[]
+* link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
+endif::[] 
 
 
 // Metadata created by nebel

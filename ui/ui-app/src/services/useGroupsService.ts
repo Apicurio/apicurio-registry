@@ -1,7 +1,7 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { getRegistryClient } from "@utils/rest.utils.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
-import { Paging } from "@models/paging.model.ts";
+import { Paging } from "@models/Paging.ts";
 import {
     AddVersionToBranch,
     ArtifactMetaData,
@@ -18,12 +18,15 @@ import {
     EditableGroupMetaData,
     EditableVersionMetaData,
     GroupMetaData, NewComment, ReferenceType, ReferenceTypeObject, ReplaceBranchVersions,
+    ReferenceGraph,
+    ReferenceGraphDirection,
     Rule,
     RuleType,
     SortOrder,
     VersionMetaData,
     VersionSearchResults,
-    VersionSortBy
+    VersionSortBy,
+    VersionState
 } from "@sdk/lib/generated-client/models";
 
 
@@ -45,6 +48,17 @@ const createGroup = async (config: ConfigService, auth: AuthService, data: Creat
 
 const getGroupMetaData = async (config: ConfigService, auth: AuthService, groupId: string): Promise<GroupMetaData> => {
     groupId = normalizeGroupId(groupId);
+    if (groupId === "default") {
+        return Promise.resolve({
+            groupId: "default",
+            description: "The default group.",
+            createdOn: null,
+            owner: null,
+            labels: null,
+            modifiedOn: null,
+            modifiedBy: null
+        });
+    }
     return getRegistryClient(config, auth).groups.byGroupId(groupId).get().then(v => v!);
 };
 
@@ -84,6 +98,9 @@ const deleteGroup = async (config: ConfigService, auth: AuthService, groupId: st
 
 const getGroupRules = async (config: ConfigService, auth: AuthService, groupId: string|null): Promise<Rule[]> => {
     groupId = normalizeGroupId(groupId);
+    if (groupId === "default") {
+        return Promise.resolve([]);
+    }
 
     console.info("[GroupsService] Getting the list of rules for group: ", groupId);
     return getRegistryClient(config, auth).groups.byGroupId(groupId).rules.get().then(ruleTypes => {
@@ -152,6 +169,30 @@ const getArtifactReferences = async (config: ConfigService, auth: AuthService, g
     return getRegistryClient(config, auth).ids.globalIds.byGlobalId(globalId).references.get({
         queryParameters: queryParams
     }).then(v => v!);
+};
+
+const getArtifactVersionReferencesGraph = async (
+    config: ConfigService,
+    auth: AuthService,
+    groupId: string | null,
+    artifactId: string,
+    version: string,
+    direction?: ReferenceGraphDirection,
+    depth?: number
+): Promise<ReferenceGraph> => {
+    groupId = normalizeGroupId(groupId);
+    const versionExpression: string = (version === "latest") ? "branch=latest" : version;
+    const queryParams: any = {};
+    if (direction) {
+        queryParams.direction = direction;
+    }
+    if (depth !== undefined) {
+        queryParams.depth = depth;
+    }
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId)
+        .versions.byVersionExpression(versionExpression).references.graph.get({
+            queryParameters: queryParams
+        }).then(v => v!);
 };
 
 const getLatestArtifact = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<string> => {
@@ -362,6 +403,13 @@ const deleteArtifactVersion = async (config: ConfigService, auth: AuthService, g
         .versions.byVersionExpression(version).delete();
 };
 
+const updateArtifactVersionState = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, state: VersionState): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+    console.info("[GroupsService] Updating version state: ", groupId, artifactId, version, state);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId)
+        .versions.byVersionExpression(version).state.put({ state });
+};
+
 const normalizeGroupId = (groupId: string|null): string => {
     return groupId || "default";
 };
@@ -383,6 +431,7 @@ export interface GroupsService {
     createArtifact(groupId: string|null, data: CreateArtifact): Promise<CreateArtifactResponse>;
     getArtifactMetaData(groupId: string|null, artifactId: string): Promise<ArtifactMetaData>;
     getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]>;
+    getArtifactVersionReferencesGraph(groupId: string|null, artifactId: string, version: string, direction?: ReferenceGraphDirection, depth?: number): Promise<ReferenceGraph>;
     getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]>;
     getLatestArtifact(groupId: string|null, artifactId: string): Promise<string>;
     updateArtifactMetaData(groupId: string|null, artifactId: string, metaData: EditableArtifactMetaData): Promise<void>;
@@ -399,6 +448,7 @@ export interface GroupsService {
     getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
     updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void>;
+    updateArtifactVersionState(groupId: string|null, artifactId: string, version: string, state: VersionState): Promise<void>;
     deleteArtifactVersion(groupId: string|null, artifactId: string, version: string): Promise<void>;
 
     getArtifactVersionComments(groupId: string|null, artifactId: string, version: string): Promise<Comment[]>;
@@ -466,6 +516,9 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         getArtifactReferences(globalId: number, refType: ReferenceType): Promise<ArtifactReference[]> {
             return getArtifactReferences(config, auth, globalId, refType);
         },
+        getArtifactVersionReferencesGraph(groupId: string|null, artifactId: string, version: string, direction?: ReferenceGraphDirection, depth?: number): Promise<ReferenceGraph> {
+            return getArtifactVersionReferencesGraph(config, auth, groupId, artifactId, version, direction, depth);
+        },
         getArtifactRules(groupId: string|null, artifactId: string): Promise<Rule[]> {
             return getArtifactRules(config, auth, groupId, artifactId);
         },
@@ -509,6 +562,9 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         },
         updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void> {
             return updateArtifactVersionMetaData(config, auth, groupId, artifactId, version, metaData);
+        },
+        updateArtifactVersionState(groupId: string|null, artifactId: string, version: string, state: VersionState): Promise<void> {
+            return updateArtifactVersionState(config, auth, groupId, artifactId, version, state);
         },
         deleteArtifactVersion(groupId: string|null, artifactId: string, version: string): Promise<void> {
             return deleteArtifactVersion(config, auth, groupId, artifactId, version);

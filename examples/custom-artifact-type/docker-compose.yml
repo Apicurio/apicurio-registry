@@ -1,0 +1,40 @@
+---
+version: '3.8'
+
+services:
+  # Apicurio Registry with custom artifact type support
+  # Uses in-memory storage (default) for simplicity
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: custom-artifact-type-registry
+    ports:
+      - "8080:8080"
+    environment:
+      # Custom artifact types configuration
+      APICURIO_ARTIFACT_TYPES_CONFIG_FILE: "/custom-artifact-types/artifact-types-config.json"
+
+      # Logging
+      QUARKUS_LOG_LEVEL: "INFO"
+      APICURIO_LOG_LEVEL: "DEBUG"
+    volumes:
+      # Mount the custom artifact types configuration and JavaScript library
+      - ./artifact-types-config.json:/custom-artifact-types/artifact-types-config.json:ro
+      - ./toml-artifact-type/dist:/custom-artifact-types/dist:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Apicurio Registry UI
+  apicurio-registry-ui:
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: custom-artifact-type-registry-ui
+    ports:
+      - "8888:8080"
+    environment:
+      REGISTRY_API_URL: "http://localhost:8080/apis/registry/v3"
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy

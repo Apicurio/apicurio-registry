@@ -1,6 +1,11 @@
 export * from "./404";
+export * from "./artifact";
 export * from "./branch";
+export * from "./dashboard";
+export * from "./drafts";
+export * from "./editor";
 export * from "./explore";
+export * from "./search";
 export * from "./group";
 export * from "./version";
 export * from "./settings";
@@ -12,4 +17,5 @@ export * from "./PageError";
 export * from "./PageErrorHandler";
 export * from "./PageErrorType";
 export * from "./PageProperties";
+export * from "./Pages";
 export * from "./toPageError";

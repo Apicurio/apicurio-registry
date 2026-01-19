@@ -3,7 +3,8 @@ package io.apicurio.registry.content.dereference;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
-import io.apicurio.registry.content.refs.JsonSchemaReferenceFinder;
+import io.apicurio.registry.json.content.dereference.JsonSchemaDereferencer;
+import io.apicurio.registry.json.content.refs.JsonSchemaReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 import io.apicurio.registry.types.ContentTypes;
@@ -164,5 +165,89 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         Set<ExternalReference> externalReferences = finder.findExternalReferences(modifiedContent);
         Assertions.assertTrue(externalReferences
                 .contains(new JsonPointerExternalReference("https://www.example.org/schemas/customer.json")));
+    }
+
+    /**
+     * Test that dereferencing works when the schema is missing the $id property.
+     * This verifies the fix for issue #6944 where missing $id caused NullPointerException.
+     */
+    @Test
+    public void testDereferenceWithoutId() {
+        TypedContent content = TypedContent.create(
+                resourceToContentHandle("schema-without-id.json"),
+                ContentTypes.APPLICATION_JSON);
+        JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
+
+        Map<String, TypedContent> resolvedReferences = new LinkedHashMap<>();
+        resolvedReferences.put("simple-address.json", TypedContent.create(
+                resourceToContentHandle("simple-address.json"), ContentTypes.APPLICATION_JSON));
+
+        // Should not throw NullPointerException
+        TypedContent modifiedContent = dereferencer.dereference(content, resolvedReferences);
+
+        Assertions.assertNotNull(modifiedContent);
+        Assertions.assertNotNull(modifiedContent.getContent());
+        String dereferencedContent = modifiedContent.getContent().content();
+        Assertions.assertTrue(dereferencedContent.contains("\"type\" : \"object\""));
+        // Verify the reference was dereferenced - should contain address properties
+        Assertions.assertTrue(dereferencedContent.contains("\"street\""));
+        Assertions.assertTrue(dereferencedContent.contains("\"city\""));
+    }
+
+    /**
+     * Test that dereferencing works when the schema is missing the $schema property.
+     * This verifies the fix for issue #6944 where missing $schema caused NullPointerException.
+     */
+    @Test
+    public void testDereferenceWithoutSchema() {
+        TypedContent content = TypedContent.create(
+                resourceToContentHandle("schema-without-schema.json"),
+                ContentTypes.APPLICATION_JSON);
+        JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
+
+        Map<String, TypedContent> resolvedReferences = new LinkedHashMap<>();
+        resolvedReferences.put("simple-address.json", TypedContent.create(
+                resourceToContentHandle("simple-address.json"), ContentTypes.APPLICATION_JSON));
+
+        // Should not throw NullPointerException
+        TypedContent modifiedContent = dereferencer.dereference(content, resolvedReferences);
+
+        Assertions.assertNotNull(modifiedContent);
+        Assertions.assertNotNull(modifiedContent.getContent());
+        String dereferencedContent = modifiedContent.getContent().content();
+        Assertions.assertTrue(dereferencedContent.contains("\"type\" : \"object\""));
+        // Verify the reference was dereferenced - should contain address properties
+        Assertions.assertTrue(dereferencedContent.contains("\"street\""));
+        Assertions.assertTrue(dereferencedContent.contains("\"zipCode\""));
+        // Verify the $id was preserved from the original schema
+        Assertions.assertTrue(dereferencedContent.contains("\"$id\" : \"https://example.com/my-schema\""));
+    }
+
+    /**
+     * Test that dereferencing works when the schema is missing both $id and $schema properties.
+     * This verifies the fix for issue #6944 where missing properties caused NullPointerException.
+     */
+    @Test
+    public void testDereferenceWithoutIdOrSchema() {
+        TypedContent content = TypedContent.create(
+                resourceToContentHandle("schema-without-id-or-schema.json"),
+                ContentTypes.APPLICATION_JSON);
+        JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
+
+        Map<String, TypedContent> resolvedReferences = new LinkedHashMap<>();
+        resolvedReferences.put("simple-address.json", TypedContent.create(
+                resourceToContentHandle("simple-address.json"), ContentTypes.APPLICATION_JSON));
+
+        // Should not throw NullPointerException
+        TypedContent modifiedContent = dereferencer.dereference(content, resolvedReferences);
+
+        Assertions.assertNotNull(modifiedContent);
+        Assertions.assertNotNull(modifiedContent.getContent());
+        String dereferencedContent = modifiedContent.getContent().content();
+        Assertions.assertTrue(dereferencedContent.contains("\"type\" : \"object\""));
+        // Verify the reference was dereferenced - should contain address properties
+        Assertions.assertTrue(dereferencedContent.contains("\"street\""));
+        Assertions.assertTrue(dereferencedContent.contains("\"city\""));
+        Assertions.assertTrue(dereferencedContent.contains("\"zipCode\""));
     }
 }

@@ -1,0 +1,25 @@
+.stats-card {
+    min-width: 200px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .stats-icon {
+    font-size: 32px;
+    color: #0066cc;
+    margin-right: 16px;
+}
+
+.stats-card .stats-value {
+    flex-grow: 1;
+}
+
+.stats-card .stats-value .value-number {
+    font-size: 36px;
+    font-weight: 600;
+    color: #151515;
+}

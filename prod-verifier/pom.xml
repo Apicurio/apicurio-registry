@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.10-SNAPSHOT</version>
+    <version>3.1.7-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>apicurio-registry-prod-verifier</artifactId>
@@ -49,7 +49,8 @@
             <phase>package</phase>
             <configuration>
               <directories>
-                <param>${projectRoot}/app/target/lib</param>
+                <param>${projectRoot}/app/target/quarkus-app/lib/boot</param>
+                <param>${projectRoot}/app/target/quarkus-app/lib/main</param>
                 <param>${projectRoot}/operator/controller/target/quarkus-app/lib/boot</param>
                 <param>${projectRoot}/operator/controller/target/quarkus-app/lib/main</param>
               </directories>

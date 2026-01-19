@@ -51,7 +51,14 @@
         "**/pom.xml"
       ],
       "matchPackageNames": [
-        "io.quarkus:*"
+        "io.quarkus:*",
+        "io.quarkus.platform:*",
+        "io.javaoperatorsdk:*",
+        "io.quarkiverse.mcp:*",
+        "com.fasterxml.jackson.core:*",
+        "com.fasterxml.jackson.dataformat:*",
+        "com.fasterxml.jackson.datatype:*",
+        "org.slf4j:*"
       ],
       "enabled": true,
       "matchUpdateTypes": [
@@ -68,7 +75,14 @@
         "**/pom.xml"
       ],
       "matchPackageNames": [
-        "io.quarkus:*"
+        "io.quarkus:*",
+        "io.quarkus.platform:*",
+        "io.javaoperatorsdk:*",
+        "io.quarkiverse.mcp:*",
+        "com.fasterxml.jackson.core:*",
+        "com.fasterxml.jackson.dataformat:*",
+        "com.fasterxml.jackson.datatype:*",
+        "org.slf4j:*"
       ],
       "enabled": false,
       "matchUpdateTypes": [
@@ -236,10 +250,32 @@
       ]
     },
     {
+      "groupName": "Dependencies: UI Editors (Patch)",
+      "matchFileNames": [
+        "ui/ui-editors/**"
+      ],
+      "enabled": true,
+      "matchUpdateTypes": [
+        "patch"
+      ]
+    },
+    {
+      "groupName": "Dependencies: UI Editors (Minor)",
+      "matchFileNames": [
+        "ui/ui-editors/**"
+      ],
+      "enabled": false,
+      "matchUpdateTypes": [
+        "minor"
+      ]
+    },
+    {
       "groupName": "Dependencies: Typescript Version (Temporary)",
       "matchFileNames": [
         "ui/ui-app/**",
-        "ui/ui-editors/**"
+        "ui/ui-editors/**",
+        "ui/ui-docs/**",
+        "typescript-sdk/**"
       ],
       "enabled": false,
       "matchPackageNames": [
@@ -250,6 +286,19 @@
       "groupName": "Dependencies: UI App (Major)",
       "matchFileNames": [
         "ui/ui-app/**"
+      ],
+      "enabled": true,
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "schedule": [
+        "* 0 15 * *"
+      ]
+    },
+    {
+      "groupName": "Dependencies: UI Editors (Major)",
+      "matchFileNames": [
+        "ui/ui-editors/**"
       ],
       "enabled": true,
       "matchUpdateTypes": [

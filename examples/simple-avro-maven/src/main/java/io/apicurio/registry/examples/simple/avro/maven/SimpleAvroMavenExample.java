@@ -17,12 +17,12 @@
 package io.apicurio.registry.examples.simple.avro.maven;
 
 import com.microsoft.kiota.ApiException;
-import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.v2.beans.IfExists;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -86,10 +86,7 @@ public class SimpleAvroMavenExample {
 
         // Get the schema from the registry so we can use it to create GenericData.Records later
         Vertx vertx = Vertx.vertx();
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-        vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
-
-        RegistryClient client = new RegistryClient(vertXRequestAdapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(REGISTRY_URL, vertx));
 
         String schemaData = null;
         try (InputStream latestArtifact = client.groups().byGroupId("default").artifacts()

@@ -3,11 +3,12 @@ package io.apicurio.registry.services.http;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
+import io.apicurio.registry.rest.v2.beans.AuthError;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.RuleViolationCause;
 import io.apicurio.registry.rest.v2.beans.RuleViolationError;
-import io.apicurio.registry.rules.RuleViolation;
-import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.violation.RuleViolation;
+import io.apicurio.registry.rules.violation.RuleViolationException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
@@ -75,8 +76,16 @@ public class CoreV2RegistryExceptionMapperService {
             builder = Response.status(code);
         }
 
-        Error error = toError(t, code);
+        Object error = (code == 401 || code == 403) ? toAuthError(t, code) : toError(t, code);
         return builder.entity(error).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    private Object toAuthError(Throwable t, int code) {
+        AuthError error = new AuthError();
+        error.setStatus(code);
+        error.setTitle(t.getLocalizedMessage());
+        error.setName(t.getClass().getSimpleName());
+        return error;
     }
 
     private Error toError(Throwable t, int code) {

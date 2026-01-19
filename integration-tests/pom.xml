@@ -4,13 +4,14 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.10-SNAPSHOT</version>
+    <version>3.1.7-SNAPSHOT</version>
   </parent>
   <artifactId>apicurio-registry-integration-tests</artifactId>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
     <skipTests>true</skipTests>
+    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
     <quarkus.http.test-host>localhost</quarkus.http.test-host>
     <quarkus.http.test-port>0</quarkus.http.test-port>
     <groups/>
@@ -60,9 +61,7 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-utils-kafka</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
+      <artifactId>apicurio-registry-distro-connect-converter</artifactId>
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
@@ -122,6 +121,27 @@
     </dependency>
     <dependency>
       <groupId>io.confluent</groupId>
+      <artifactId>kafka-protobuf-serializer</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-json-schema-serializer</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.validation</groupId>
+      <artifactId>validation-api</artifactId>
+      <version>2.0.1.Final</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.confluent</groupId>
       <artifactId>kafka-connect-avro-converter</artifactId>
       <scope>test</scope>
     </dependency>
@@ -133,6 +153,11 @@
     <dependency>
       <groupId>io.zonky.test</groupId>
       <artifactId>embedded-postgres</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -191,6 +216,30 @@
             <goals>
               <goal>build</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack-debezium-converters</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>io.apicurio</groupId>
+                  <artifactId>apicurio-registry-distro-connect-converter</artifactId>
+                  <version>${project.version}</version>
+                  <type>tar.gz</type>
+                  <outputDirectory>${project.build.directory}/debezium-converters</outputDirectory>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -278,6 +327,10 @@
                 <configuration>
                   <properties>
                     <property>
+                      <name>quarkus.http.test-scheme</name>
+                      <value>${quarkus.http.test-scheme}</value>
+                    </property>
+                    <property>
                       <name>quarkus.http.test-host</name>
                       <value>${quarkus.http.test-host}</value>
                     </property>
@@ -314,6 +367,7 @@
                     <registry-in-memory-image>quay.io/apicurio/apicurio-registry:latest-snapshot</registry-in-memory-image>
                     <deployInMemory>true</deployInMemory>
                     <cluster.tests>true</cluster.tests>
+                    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
                     <quarkus.http.test-host>localhost</quarkus.http.test-host>
                     <quarkus.http.test-port>8080</quarkus.http.test-port>
                   </systemPropertyVariables>
@@ -344,6 +398,7 @@
                     <registry-kafkasql-image>quay.io/apicurio/apicurio-registry:latest-snapshot</registry-kafkasql-image>
                     <cluster.tests>true</cluster.tests>
                     <deployKafka>true</deployKafka>
+                    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
                     <quarkus.http.test-host>localhost</quarkus.http.test-host>
                     <quarkus.http.test-port>8080</quarkus.http.test-port>
                   </systemPropertyVariables>
@@ -374,6 +429,7 @@
                     <registry-sql-image>quay.io/apicurio/apicurio-registry:latest-snapshot</registry-sql-image>
                     <cluster.tests>true</cluster.tests>
                     <deploySql>true</deploySql>
+                    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
                     <quarkus.http.test-host>localhost</quarkus.http.test-host>
                     <quarkus.http.test-port>8080</quarkus.http.test-port>
                   </systemPropertyVariables>
@@ -441,6 +497,37 @@
         <skipTests>false</skipTests>
       </properties>
     </profile>
+
+    <!-- Combined profile for running ALL Debezium tests in one Maven execution (CI optimization) -->
+    <profile>
+      <id>debezium-all</id>
+      <properties>
+        <!-- Run all Debezium test groups in a single execution -->
+        <groups>debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot</groups>
+        <skipTests>false</skipTests>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <!-- Deploy all Debezium infrastructure at once -->
+                    <deployAllDebezium>true</deployAllDebezium>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <profile>
       <id>kafkasql-snapshotting</id>
       <properties>

@@ -2,14 +2,17 @@ package io.apicurio.registry.operator.it;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.operator.Tags.OLM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@Tag(OLM)
 public class SmokeOLMITTest extends OLMITBase {
 
     private static final Logger log = LoggerFactory.getLogger(SmokeOLMITTest.class);

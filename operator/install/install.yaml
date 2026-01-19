@@ -4,9 +4,10 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.0.10-SNAPSHOT
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -262,6 +263,14 @@ spec:
                           granular level (e.g. only allow deleting artifact versions) using ENV variables.  This
                           option enables deletes for all three resource types.
                         type: boolean
+                      versionMutabilityEnabled:
+                        description: |-
+                          Apicurio Registry backend 'artifact version mutability' feature.
+                          If the value is true, the application will be configured to allow Artifact Versions in
+                          DRAFT state to be mutable, meaning their content can be changed. By default, artifact
+                          version content is immutable and cannot be modified once created. Enabling this feature
+                          also unlocks Studio functionality in the Apicurio Registry UI.
+                        type: boolean
                     type: object
                   host:
                     description: 'DEPRECATED: Use the `(component).ingress.host` field
@@ -316,6 +325,36 @@ spec:
 
                           Set this to 'false' if you want to create your own custom NetworkPolicy.
                         type: boolean
+                    type: object
+                  otel:
+                    description: |
+                      Configure OpenTelemetry observability for Apicurio Registry.
+                      When enabled, Registry exports distributed traces and metrics to an OpenTelemetry collector.
+                    properties:
+                      enabled:
+                        description: |-
+                          Enable OpenTelemetry for distributed tracing, metrics export via OTLP, and log correlation.
+                          When enabled, Apicurio Registry exports telemetry data to an OpenTelemetry collector.
+                          Default is false.
+                        type: boolean
+                      endpoint:
+                        description: |-
+                          The endpoint URL of the OpenTelemetry collector.
+                          Supports both gRPC (typically port 4317) and HTTP (typically port 4318) protocols.
+                          Example: http://jaeger:4317 or http://otel-collector:4317
+                        type: string
+                      protocol:
+                        description: |-
+                          The protocol to use for exporting telemetry data.
+                          Valid values are 'grpc' or 'http/protobuf'. Default is 'grpc'.
+                        type: string
+                      traceSamplingRatio:
+                        description: |-
+                          The sampling ratio for traces when using ratio-based sampling.
+                          Value between 0.0 and 1.0. A value of 0.1 means 10% of traces are sampled.
+                          When set, uses 'parentbased_traceidratio' sampler. When not set, uses 'parentbased_always_on'.
+                          Recommended to set a value (e.g., 0.1) for production deployments.
+                        type: number
                     type: object
                   podDisruptionBudget:
                     description: |
@@ -924,6 +963,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -1081,6 +1122,8 @@ spec:
                                       items:
                                         properties:
                                           name:
+                                            type: string
+                                          request:
                                             type: string
                                         type: object
                                       type: array
@@ -1476,6 +1519,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -1633,6 +1678,8 @@ spec:
                                       items:
                                         properties:
                                           name:
+                                            type: string
+                                          request:
                                             type: string
                                         type: object
                                       type: array
@@ -2034,6 +2081,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -2191,6 +2240,8 @@ spec:
                                       items:
                                         properties:
                                           name:
+                                            type: string
+                                          request:
                                             type: string
                                         type: object
                                       type: array
@@ -2415,15 +2466,38 @@ spec:
                               properties:
                                 name:
                                   type: string
-                                source:
-                                  properties:
-                                    resourceClaimName:
-                                      type: string
-                                    resourceClaimTemplateName:
-                                      type: string
-                                  type: object
+                                resourceClaimName:
+                                  type: string
+                                resourceClaimTemplateName:
+                                  type: string
                               type: object
                             type: array
+                          resources:
+                            properties:
+                              claims:
+                                items:
+                                  properties:
+                                    name:
+                                      type: string
+                                    request:
+                                      type: string
+                                  type: object
+                                type: array
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
+                            type: object
                           restartPolicy:
                             type: string
                           runtimeClassName:
@@ -2456,6 +2530,8 @@ spec:
                                 type: boolean
                               runAsUser:
                                 type: integer
+                              seLinuxChangePolicy:
+                                type: string
                               seLinuxOptions:
                                 properties:
                                   level:
@@ -2478,6 +2554,8 @@ spec:
                                 items:
                                   type: integer
                                 type: array
+                              supplementalGroupsPolicy:
+                                type: string
                               sysctls:
                                 items:
                                   properties:
@@ -2945,6 +3023,13 @@ spec:
                                     path:
                                       type: string
                                     type:
+                                      type: string
+                                  type: object
+                                image:
+                                  properties:
+                                    pullPolicy:
+                                      type: string
+                                    reference:
                                       type: string
                                   type: object
                                 iscsi:
@@ -3439,12 +3524,14 @@ spec:
                           Configure type of storage that Apicurio Registry backend (app) will use:
 
                             * <empty> - in-memory storage.
-                            * `postgresql` - Postgresql storage type, must be further configured using the `app.storage.sql` field.
+                            * `postgresql` - PostgreSQL storage type, must be further configured using the `app.storage.sql` field.
+                            * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
                             * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
 
                           IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.
                         enum:
                         - kafkasql
+                        - mysql
                         - postgresql
                         type: string
                     type: object
@@ -4223,6 +4310,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -4380,6 +4469,8 @@ spec:
                                       items:
                                         properties:
                                           name:
+                                            type: string
+                                          request:
                                             type: string
                                         type: object
                                       type: array
@@ -4775,6 +4866,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -4932,6 +5025,8 @@ spec:
                                       items:
                                         properties:
                                           name:
+                                            type: string
+                                          request:
                                             type: string
                                         type: object
                                       type: array
@@ -5333,6 +5428,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -5490,6 +5587,8 @@ spec:
                                       items:
                                         properties:
                                           name:
+                                            type: string
+                                          request:
                                             type: string
                                         type: object
                                       type: array
@@ -5714,15 +5813,38 @@ spec:
                               properties:
                                 name:
                                   type: string
-                                source:
-                                  properties:
-                                    resourceClaimName:
-                                      type: string
-                                    resourceClaimTemplateName:
-                                      type: string
-                                  type: object
+                                resourceClaimName:
+                                  type: string
+                                resourceClaimTemplateName:
+                                  type: string
                               type: object
                             type: array
+                          resources:
+                            properties:
+                              claims:
+                                items:
+                                  properties:
+                                    name:
+                                      type: string
+                                    request:
+                                      type: string
+                                  type: object
+                                type: array
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  x-kubernetes-int-or-string: true
+                                type: object
+                            type: object
                           restartPolicy:
                             type: string
                           runtimeClassName:
@@ -5755,6 +5877,8 @@ spec:
                                 type: boolean
                               runAsUser:
                                 type: integer
+                              seLinuxChangePolicy:
+                                type: string
                               seLinuxOptions:
                                 properties:
                                   level:
@@ -5777,6 +5901,8 @@ spec:
                                 items:
                                   type: integer
                                 type: array
+                              supplementalGroupsPolicy:
+                                type: string
                               sysctls:
                                 items:
                                   properties:
@@ -6246,6 +6372,13 @@ spec:
                                     type:
                                       type: string
                                   type: object
+                                image:
+                                  properties:
+                                    pullPolicy:
+                                      type: string
+                                    reference:
+                                      type: string
+                                  type: object
                                 iscsi:
                                   properties:
                                     chapAuthDiscovery:
@@ -6601,6 +6734,8 @@ spec:
                   type: object
                 type: array
               observedGeneration:
+                description: The latest generation of the ApicurioRegistry3 resource
+                  that this status has been updated for.
                 type: integer
             type: object
         type: object
@@ -6615,9 +6750,10 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.0.10-SNAPSHOT
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -6626,9 +6762,10 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.0.10-SNAPSHOT
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
   name: apicurio-registry-operator-clusterrole
 rules:
 - apiGroups:
@@ -6660,6 +6797,8 @@ rules:
   - '*'
 - apiGroups:
   - apiextensions.k8s.io
+  resourceNames:
+  - apicurioregistries3.registry.apicur.io
   resources:
   - customresourcedefinitions
   verbs:
@@ -6682,9 +6821,9 @@ rules:
   resources:
   - secrets
   verbs:
-  - list
-  - get
   - create
+  - get
+  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -6692,9 +6831,10 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.0.10-SNAPSHOT
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
   name: apicurio-registry-operator-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -6711,10 +6851,11 @@ metadata:
   labels:
     app: apicurio-registry-operator
     app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.0.10-SNAPSHOT
-  name: apicurio-registry-operator-v3.0.10-snapshot
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
+  name: apicurio-registry-operator-v3.1.7-snapshot
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -6722,17 +6863,19 @@ spec:
     matchLabels:
       app: apicurio-registry-operator
       app.kubernetes.io/component: operator
+      app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.0.10-SNAPSHOT
+      app.kubernetes.io/version: 3.1.7-SNAPSHOT
   template:
     metadata:
       labels:
         app: apicurio-registry-operator
         app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.0.10-SNAPSHOT
+        app.kubernetes.io/version: 3.1.7-SNAPSHOT
     spec:
       containers:
       - env:

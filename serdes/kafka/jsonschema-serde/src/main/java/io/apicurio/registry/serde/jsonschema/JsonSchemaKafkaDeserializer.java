@@ -2,11 +2,11 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.serde.KafkaDeserializer;
-import io.apicurio.registry.serde.headers.MessageTypeSerdeHeaders;
+import io.apicurio.registry.serde.kafka.KafkaDeserializer;
+import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
 import org.apache.kafka.common.header.Headers;
 
 import java.util.HashMap;
@@ -20,22 +20,22 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
         super(new JsonSchemaDeserializer<>());
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClient client) {
-        super(new JsonSchemaDeserializer<>(client));
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade) {
+        super(new JsonSchemaDeserializer<>(clientFacade));
     }
 
     public JsonSchemaKafkaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(new JsonSchemaDeserializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaDeserializer<>(client, schemaResolver));
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaDeserializer<>(clientFacade, schemaResolver));
     }
 
-    public JsonSchemaKafkaDeserializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
-            SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaDeserializer<>(client, schemaResolver, strategy));
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade,
+                                       ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
+                                       SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(new JsonSchemaDeserializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @SuppressWarnings("unchecked")

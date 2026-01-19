@@ -63,8 +63,6 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 * link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
 * link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}]
 
-
-
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
@@ -160,7 +158,9 @@ WARNING: You must configure the Kafka topic used by {registry} (named `kafkasql-
 [role="_additional-resources"]
 .Additional resources
 
+ifdef::apicurio-registry[]
 * For more details on installing Strimzi and on creating Kafka clusters and topics, see https://strimzi.io/docs/overview/latest/
+endif::[]
 
 
 // Metadata created by nebel

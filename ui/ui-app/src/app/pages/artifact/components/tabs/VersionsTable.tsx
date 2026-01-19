@@ -1,10 +1,11 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
+import "./VersionsTable.css";
 import { Link } from "react-router-dom";
 import { SortByDirection, ThProps } from "@patternfly/react-table";
 import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { shash } from "@utils/string.utils.ts";
-import { ArtifactDescription } from "@app/components";
+import { ArtifactDescription, VersionStateBadge } from "@app/components";
 import {
     ArtifactMetaData,
     SearchedVersion,
@@ -14,7 +15,7 @@ import {
     VersionSortByObject
 } from "@sdk/lib/generated-client/models";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { Flex, FlexItem, Label } from "@patternfly/react-core";
+import { Checkbox, Flex, FlexItem } from "@patternfly/react-core";
 import { UserService, useUserService } from "@services/useUserService.ts";
 
 export type VersionsTableProps = {
@@ -22,10 +23,13 @@ export type VersionsTableProps = {
     versions: SearchedVersion[];
     sortBy: VersionSortBy;
     sortOrder: SortOrder;
+    selectedVersions: SearchedVersion[];
     onSort: (by: VersionSortBy, order: SortOrder) => void;
     onView: (version: SearchedVersion) => void;
     onAddToBranch: (version: SearchedVersion) => void;
     onDelete: (version: SearchedVersion) => void;
+    onEditDraft: (version: SearchedVersion) => void;
+    onSelectVersion: (version: SearchedVersion, isSelected: boolean) => void;
 }
 type VersionAction = {
     label: string;
@@ -45,48 +49,60 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
     const user: UserService = useUserService();
 
     const columns: any[] = [
-        { index: 0, id: "version", label: "Version", width: 40, sortable: true, sortBy: VersionSortByObject.Version },
-        { index: 1, id: "globalId", label: "Global Id", width: 10, sortable: true, sortBy: VersionSortByObject.GlobalId },
-        { index: 2, id: "contentId", label: "Content Id", width: 10, sortable: false },
+        { index: 0, id: "version", label: "Version", width: 55, sortable: true, sortBy: VersionSortByObject.Version },
+        { index: 1, id: "globalId", label: "Global Id", width: 15, sortable: true, sortBy: VersionSortByObject.GlobalId },
+        { index: 2, id: "contentId", label: "Content Id", width: 15, sortable: true },
         { index: 3, id: "createdOn", label: "Created on", width: 15, sortable: true, sortBy: VersionSortByObject.CreatedOn },
     ];
 
+    const isVersionSelected = (version: SearchedVersion): boolean => {
+        return props.selectedVersions.some(v => v.version === version.version);
+    };
+
+    const handleCheckboxChange = (version: SearchedVersion, isChecked: boolean): void => {
+        props.onSelectVersion(version, isChecked);
+    };
+
     const renderColumnData = (column: SearchedVersion, colIndex: number): React.ReactNode => {
-        // Name.
+        // Version name with checkbox.
         if (colIndex === 0) {
             const groupId: string = encodeURIComponent(props.artifact.groupId || "default");
             const artifactId: string = encodeURIComponent(props.artifact.artifactId!);
             const version: string = encodeURIComponent(column.version!);
+            const isDisabled = props.selectedVersions.length >= 2 && !isVersionSelected(column);
             return (
-                <div>
-                    <Flex>
-                        <FlexItem>
-                            <Link className="version-title"
-                                style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
-                                to={appNavigation.createLink(`/explore/${groupId}/${artifactId}/versions/${version}`)}
-                            >
-                                <span>{ column.version }</span>
-                                <If condition={column.name != "" && column.name !== undefined && column.name !== null}>
-                                    <span style={{ marginLeft: "10px" }}>({column.name})</span>
-                                </If>
-                            </Link>
-                        </FlexItem>
-                        <FlexItem>
-                            <If condition={column.state === "DRAFT"}>
-                                <Label color="grey">Draft</Label>
-                            </If>
-                            <If condition={column.state === "DEPRECATED"}>
-                                <Label color="orange">Deprecated</Label>
-                            </If>
-                            <If condition={column.state === "DISABLED"}>
-                                <Label color="red">Disabled</Label>
-                            </If>
-                        </FlexItem>
-                    </Flex>
-                    <ArtifactDescription className="version-description" style={{ overflow: "hidden", textOverflow: "hidden", whiteSpace: "nowrap", fontSize: "14px" }}
-                        description={column.description}
-                        truncate={true} />
-                </div>
+                <Flex>
+                    <FlexItem>
+                        <Flex>
+                            <FlexItem>
+                                <Checkbox
+                                    id={`select-version-${shash(column.version!)}`}
+                                    isChecked={isVersionSelected(column)}
+                                    isDisabled={isDisabled}
+                                    onChange={(_event, checked) => handleCheckboxChange(column, checked)}
+                                    aria-label={`Select version ${column.version}`}
+                                />
+                            </FlexItem>
+                            <FlexItem>
+                                <Link className="version-title"
+                                    style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
+                                    to={appNavigation.createLink(`/explore/${groupId}/${artifactId}/versions/${version}`)}
+                                >
+                                    <span>{ column.version }</span>
+                                    <If condition={column.name != "" && column.name !== undefined && column.name !== null}>
+                                        <span style={{ marginLeft: "10px" }}>({column.name})</span>
+                                    </If>
+                                </Link>
+                            </FlexItem>
+                            <FlexItem>
+                                <VersionStateBadge version={column} />
+                            </FlexItem>
+                        </Flex>
+                        <ArtifactDescription className="version-description" style={{ overflow: "hidden", textOverflow: "hidden", whiteSpace: "nowrap", fontSize: "14px" }}
+                            description={column.description}
+                            truncate={true} />
+                    </FlexItem>
+                </Flex>
             );
         }
         // Global id.
@@ -95,7 +111,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                 <span>{ column.globalId }</span>
             );
         }
-        // Global id.
+        // Content id.
         if (colIndex === 2) {
             return (
                 <span>{ column.contentId }</span>
@@ -116,6 +132,12 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
             { label: "View version", onClick: () => props.onView(version), testId: `view-version-${vhash}` },
         ];
         if (!config.featureReadOnly() && user.isUserDeveloper(props.artifact.owner)) {
+            if (config.featureDraftMutability() && version.state === "DRAFT") {
+                actions.push(
+                    { label: "Edit draft", onClick: () => props.onEditDraft(version), testId: `edit-draft-${vhash}` },
+                );
+            }
+
             actions.push(
                 { label: "Add to branch", onClick: () => props.onAddToBranch(version), testId: `add-to-branch-version-${vhash}` },
             );

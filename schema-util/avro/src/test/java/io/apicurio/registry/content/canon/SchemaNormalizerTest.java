@@ -1,5 +1,6 @@
 package io.apicurio.registry.content.canon;
 
+import io.apicurio.registry.avro.content.canon.EnhancedAvroContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -266,6 +267,28 @@ class SchemaNormalizerTest {
                 normalizedSchemas.get(1).getContent().content());
         assertEquals(Schema.parseJsonToObject(normalizedSchemas.get(0).getContent().content()),
                 Schema.parseJsonToObject(normalizedSchemas.get(1).getContent().content()));
+    }
+
+    /**
+     * Test for issue #7023: Stackoverflow error with normalized self referencing AVRO schema.
+     * This test verifies that a self-referencing schema with a map type does not cause
+     * infinite recursion during normalization.
+     */
+    @Test
+    void parseSchema_selfReferencingMapSchema() throws Exception {
+        // given a schema that has a map field whose values reference the same type
+        final String schemaWithSelfRefMap = getSchemaFromResource("avro/simple/schema-self-ref-map.avsc");
+        assertNotNull(schemaWithSelfRefMap);
+
+        // the schema should be parsed without infinite recursion
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        final TypedContent parsed = canonicalizer.canonicalize(toTypedContent(schemaWithSelfRefMap),
+                new HashMap<>());
+
+        // verify the result is not null and contains the expected structure
+        assertNotNull(parsed);
+        assertNotNull(parsed.getContent());
+        assertNotNull(parsed.getContent().content());
     }
 
     @Test

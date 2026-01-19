@@ -1,0 +1,8 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Blank API",
+    "description": "This is a simple API descriptor.",
+    "version": "1.0.0"
+  }
+}

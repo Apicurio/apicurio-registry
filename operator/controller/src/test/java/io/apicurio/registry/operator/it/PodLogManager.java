@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 
 public class PodLogManager {
@@ -33,9 +32,9 @@ public class PodLogManager {
         return id.getNamespace().orElse("default");
     }
 
+    // TODO: Support pod restarts.
     public void startPodLog(ResourceID podID) {
-        k8sClient.pods().inNamespace(getNamespace(podID)).withName(podID.getName()).waitUntilReady(60,
-                SECONDS);
+        // TODO: Handle pod restarts/redeployments.
         new Thread(() -> {
             StringBuilder chunk = new StringBuilder();
             try (
@@ -70,6 +69,10 @@ public class PodLogManager {
                 activePodLogMap.remove(podID);
             }
         }).start();
+    }
+
+    public boolean isActive(ResourceID podID) {
+        return activePodLogMap.containsKey(podID);
     }
 
     public void stopAndWait() {

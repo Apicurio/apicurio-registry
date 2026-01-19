@@ -1,0 +1,212 @@
+name: Reusable Docker Build and Push
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: 'Docker image name (without registry prefix)'
+        required: true
+        type: string
+      dockerfile:
+        description: 'Path to Dockerfile'
+        required: true
+        type: string
+      context:
+        description: 'Docker build context path'
+        required: true
+        type: string
+      platforms:
+        description: 'Target platforms for multi-arch build'
+        required: false
+        type: string
+        default: 'linux/amd64,linux/arm64,linux/s390x,linux/ppc64le'
+      tag:
+        description: 'Image tag'
+        required: false
+        type: string
+        default: 'latest-snapshot'
+      additional-tags:
+        description: 'Additional tags (comma-separated, e.g., "latest,1.0.0")'
+        required: false
+        type: string
+        default: ''
+      push-to-dockerhub:
+        description: 'Push to DockerHub'
+        required: false
+        type: boolean
+        default: true
+      push-to-quay:
+        description: 'Push to Quay.io'
+        required: false
+        type: boolean
+        default: true
+      download-artifact:
+        description: 'Name of artifact to download before build (optional)'
+        required: false
+        type: string
+        default: ''
+      artifact-path:
+        description: 'Path to extract artifact to (default: current directory)'
+        required: false
+        type: string
+        default: '.'
+      java-version:
+        description: 'Java version for Maven build (if maven-build is true)'
+        required: false
+        type: string
+        default: '17'
+      maven-build:
+        description: 'Run Maven build before Docker build'
+        required: false
+        type: boolean
+        default: false
+      maven-args:
+        description: 'Maven arguments for build'
+        required: false
+        type: string
+        default: 'clean package -Pprod -DskipTests --no-transfer-progress'
+      npm-build:
+        description: 'Run npm build before Docker build'
+        required: false
+        type: boolean
+        default: false
+      npm-build-dir:
+        description: 'Directory to run npm build in'
+        required: false
+        type: string
+        default: '.'
+      node-version:
+        description: 'Node.js version for npm build (if npm-build is true)'
+        required: false
+        type: string
+        default: '20'
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_PASSWORD:
+        required: false
+      QUAY_USERNAME:
+        required: false
+      QUAY_PASSWORD:
+        required: false
+
+jobs:
+  docker-build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        if: inputs.download-artifact != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.download-artifact }}
+          path: ${{ inputs.artifact-path }}
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        if: inputs.maven-build
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Maven Build
+        if: inputs.maven-build
+        run: ./mvnw ${{ inputs.maven-args }}
+
+      - name: Set up Node.js ${{ inputs.node-version }}
+        if: inputs.npm-build
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+          cache-dependency-path: '${{ inputs.npm-build-dir }}/**/package-lock.json'
+
+      - name: NPM Install
+        if: inputs.npm-build
+        working-directory: ${{ inputs.npm-build-dir }}
+        run: npm install
+
+      - name: NPM Build
+        if: inputs.npm-build
+        working-directory: ${{ inputs.npm-build-dir }}
+        run: npm run build
+
+      - name: NPM Package
+        if: inputs.npm-build
+        working-directory: ${{ inputs.npm-build-dir }}
+        run: npm run package
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub Registry
+        if: inputs.push-to-dockerhub
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      - name: Login to Quay.io Registry
+        if: inputs.push-to-quay
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+
+      - name: Build tags list
+        id: tags
+        run: |
+          TAGS=""
+
+          # Add primary tag
+          if [ "${{ inputs.push-to-dockerhub }}" == "true" ]; then
+            TAGS="docker.io/${{ inputs.image-name }}:${{ inputs.tag }}"
+          fi
+          if [ "${{ inputs.push-to-quay }}" == "true" ]; then
+            if [ -n "$TAGS" ]; then
+              TAGS="$TAGS,quay.io/${{ inputs.image-name }}:${{ inputs.tag }}"
+            else
+              TAGS="quay.io/${{ inputs.image-name }}:${{ inputs.tag }}"
+            fi
+          fi
+
+          # Add additional tags
+          if [ -n "${{ inputs.additional-tags }}" ]; then
+            IFS=',' read -ra EXTRA_TAGS <<< "${{ inputs.additional-tags }}"
+            for extra_tag in "${EXTRA_TAGS[@]}"; do
+              extra_tag=$(echo "$extra_tag" | xargs)  # trim whitespace
+              if [ "${{ inputs.push-to-dockerhub }}" == "true" ]; then
+                TAGS="$TAGS,docker.io/${{ inputs.image-name }}:$extra_tag"
+              fi
+              if [ "${{ inputs.push-to-quay }}" == "true" ]; then
+                TAGS="$TAGS,quay.io/${{ inputs.image-name }}:$extra_tag"
+              fi
+            done
+          fi
+
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Multi-arch Image
+        uses: nick-fields/retry@v3
+        env:
+          DOCKER_TAGS: ${{ steps.tags.outputs.tags }}
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            # Convert comma-separated tags to --tag arguments
+            TAG_ARGS=""
+            IFS=',' read -ra TAGS <<< "$DOCKER_TAGS"
+            for tag in "${TAGS[@]}"; do
+              TAG_ARGS="$TAG_ARGS --tag $tag"
+            done
+
+            docker buildx build \
+              --push \
+              --file ${{ inputs.dockerfile }} \
+              --platform ${{ inputs.platforms }} \
+              $TAG_ARGS \
+              ${{ inputs.context }}

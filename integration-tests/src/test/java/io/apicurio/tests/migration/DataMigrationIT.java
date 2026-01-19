@@ -1,6 +1,7 @@
 package io.apicurio.tests.migration;
 
-import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.types.RuleType;
@@ -23,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.apicurio.registry.utils.tests.TestUtils.getRegistryV2ApiUrl;
 import static io.apicurio.tests.migration.MigrationTestsDataInitializer.matchesReferencesV2V3;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
@@ -51,9 +51,8 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
     @Test
     public void migrate() throws Exception {
         Vertx vertx = Vertx.vertx();
-        var adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(ApicurioRegistryBaseIT.getRegistryV3ApiUrl());
-        RegistryClient dest = new RegistryClient(adapter);
+        var dest = RegistryClientFactory.create(
+                RegistryClientOptions.create(ApicurioRegistryBaseIT.getRegistryV3ApiUrl(), vertx).retry());
 
         given().when().contentType("application/zip").body(migrateDataToImport)
                 .post("/apis/registry/v2/admin/import").then().statusCode(204).body(anything());
@@ -94,7 +93,7 @@ public class DataMigrationIT extends ApicurioRegistryBaseIT {
             String registryBaseUrl = startRegistryApplication(
                     "quay.io/apicurio/apicurio-registry-mem:latest-release");
             var adapter = new VertXRequestAdapter(vertx);
-            adapter.setBaseUrl(getRegistryV2ApiUrl());
+            adapter.setBaseUrl(TestUtils.getRegistryV2ApiUrl());
             io.apicurio.registry.rest.client.v2.RegistryClient source = new io.apicurio.registry.rest.client.v2.RegistryClient(
                     adapter);
 

@@ -7,8 +7,10 @@ import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.types.RegistryException;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.control.ActivateRequestContext;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
@@ -17,15 +19,18 @@ import org.slf4j.Logger;
 import java.util.Optional;
 import java.util.UUID;
 
+import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.REQUEST_ID_HEADER;
+
 @ApplicationScoped
 @Logged
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlSink {
 
     @Inject
     Logger log;
 
     @Inject
-    KafkaSqlCoordinator coordinator;
+    Instance<KafkaSqlCoordinator> coordinator;
 
     @Inject
     SqlRegistryStorage sqlStore;
@@ -52,14 +57,16 @@ public class KafkaSqlSink {
                     record.value() != null ? record.value().toString() : "",
                     result != null ? result.toString() : "");
             log.debug("Kafka message successfully processed. Notifying listeners of response.");
-            coordinator.notifyResponse(requestId, result);
-        } catch (RegistryException e) {
-            log.debug("Registry exception detected: {}", e.getMessage());
-            coordinator.notifyResponse(requestId, e);
+            coordinator.get().notifyResponse(requestId, result);
+        } catch (RuntimeException e) {
+            // Pass RuntimeException (including RegistryException) directly without wrapping
+            // to preserve the original exception type for proper handling by exception mappers.
+            log.debug("Runtime exception detected: {}", e.getMessage());
+            coordinator.get().notifyResponse(requestId, e);
         } catch (Throwable e) {
+            // Wrap checked exceptions and Errors in RegistryException
             log.debug("Unexpected exception detected: {}", e.getMessage());
-            coordinator.notifyResponse(requestId, new RegistryException(e)); // TODO: Any exception (no
-                                                                             // wrapping)
+            coordinator.get().notifyResponse(requestId, new RegistryException(e));
         }
     }
 
@@ -69,7 +76,7 @@ public class KafkaSqlSink {
      * @param record
      */
     private UUID extractUuid(ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
-        return Optional.ofNullable(record.headers().headers("req")).map(Iterable::iterator).map(it -> {
+        return Optional.ofNullable(record.headers().headers(REQUEST_ID_HEADER)).map(Iterable::iterator).map(it -> {
             return it.hasNext() ? it.next() : null;
         }).map(Header::value).map(String::new).map(UUID::fromString).orElse(null);
     }

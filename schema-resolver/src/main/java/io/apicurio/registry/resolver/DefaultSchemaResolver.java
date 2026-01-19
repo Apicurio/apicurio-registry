@@ -1,25 +1,24 @@
 package io.apicurio.registry.resolver;
 
+import io.apicurio.registry.resolver.cache.ContentWithReferences;
+import io.apicurio.registry.resolver.client.RegistryArtifactReference;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.*;
-import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of {@link SchemaResolver}
@@ -29,6 +28,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean autoCreateArtifact;
     private String autoCreateBehavior;
     private boolean findLatest;
+    private boolean canonicalize;
 
     private static final Logger logger = Logger.getLogger(DefaultSchemaResolver.class.getSimpleName());
 
@@ -36,8 +36,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         super();
     }
 
-    public DefaultSchemaResolver(RegistryClient client) {
-        this.client = client;
+    public DefaultSchemaResolver(RegistryClientFacade clientFacade) {
+        this.clientFacade = clientFacade;
     }
 
     /**
@@ -50,7 +50,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
     /**
      * @see io.apicurio.registry.resolver.AbstractSchemaResolver#configure(java.util.Map,
-     *      io.apicurio.registry.resolver.SchemaParser)
+     * io.apicurio.registry.resolver.SchemaParser)
      */
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
@@ -63,6 +63,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         this.autoCreateArtifact = config.autoRegisterArtifact();
         this.autoCreateBehavior = config.autoRegisterArtifactIfExists();
         this.findLatest = config.findLatest();
+        this.canonicalize = config.isCanonicalize();
     }
 
     /**
@@ -70,20 +71,40 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
      */
     @Override
     public SchemaLookupResult<S> resolveSchema(Record<T> data) {
-        Objects.requireNonNull(data);
-        Objects.requireNonNull(data.payload());
+        requireNonNull(data);
+        requireNonNull(data.payload());
 
         ParsedSchema<S> parsedSchema;
-        if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
+
+        // Check if an explicit schema is provided in the metadata (e.g., from headers)
+        String explicitSchemaContent = data.metadata().explicitSchemaContent();
+        if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
+            // Use the explicit schema from headers instead of inferring from data
+            parsedSchema = parseExplicitSchema(explicitSchemaContent);
+            logger.info("Using explicit schema from headers instead of inferring from data");
+        } else if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
             parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
         } else {
             parsedSchema = null;
         }
 
         final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
-
         return getSchemaFromCache(artifactReference)
                 .orElseGet(() -> getSchemaFromRegistry(parsedSchema, data, artifactReference));
+    }
+
+    /**
+     * Parses an explicit schema provided as a string (e.g., from message headers).
+     *
+     * @param schemaContent the raw schema content as a string
+     * @return the parsed schema
+     */
+    private ParsedSchema<S> parseExplicitSchema(String schemaContent) {
+        byte[] schemaBytes = schemaContent.getBytes(StandardCharsets.UTF_8);
+        S parsed = schemaParser.parseSchema(schemaBytes, Map.of());
+        return new ParsedSchemaImpl<S>()
+                .setParsedSchema(parsed)
+                .setRawSchema(schemaBytes);
     }
 
     private Optional<SchemaLookupResult<S>> getSchemaFromCache(ArtifactReference artifactReference) {
@@ -105,28 +126,33 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> getSchemaFromRegistry(ParsedSchema<S> parsedSchema, Record<T> data,
-            ArtifactReference artifactReference) {
-
+                                                        ArtifactReference artifactReference) {
         if (autoCreateArtifact) {
 
-            if (schemaParser.supportsExtractSchemaFromData()) {
+            // Check if we have an explicit schema or can extract from data
+            if (parsedSchema != null || schemaParser.supportsExtractSchemaFromData()) {
 
                 if (parsedSchema == null) {
-                    parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                    // Check for explicit schema from headers first
+                    String explicitSchemaContent = data.metadata().explicitSchemaContent();
+                    if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
+                        parsedSchema = parseExplicitSchema(explicitSchemaContent);
+                    } else {
+                        parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                    }
                 }
 
+                List<SchemaLookupResult<S>> schemaLookupResults = List.of();
                 if (parsedSchema.hasReferences()) {
                     // List of references lookup, to be used to create the references for the artifact
-                    final List<SchemaLookupResult<S>> schemaLookupResults = handleArtifactReferences(data,
-                            parsedSchema);
-                    return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
-                } else {
-                    return handleAutoCreateArtifact(parsedSchema, artifactReference);
+                    schemaLookupResults = handleArtifactReferences(data, parsedSchema);
                 }
+                return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
+
             } else if (config.getExplicitSchemaLocation() != null
                     && schemaParser.supportsGetSchemaFromLocation()) {
                 parsedSchema = schemaParser.getSchemaFromLocation(config.getExplicitSchemaLocation());
-                return handleAutoCreateArtifact(parsedSchema, artifactReference);
+                return handleAutoCreateArtifact(parsedSchema, artifactReference, List.of());
             }
         }
 
@@ -135,9 +161,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                     artifactReference.getArtifactId(), artifactReference.getVersion());
         }
 
-        if (schemaParser.supportsExtractSchemaFromData()) {
+        if (parsedSchema != null || schemaParser.supportsExtractSchemaFromData()) {
             if (parsedSchema == null) {
-                parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                // Check for explicit schema from headers first
+                String explicitSchemaContent = data.metadata().explicitSchemaContent();
+                if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
+                    parsedSchema = parseExplicitSchema(explicitSchemaContent);
+                } else {
+                    parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                }
             }
             return handleResolveSchemaByContent(parsedSchema, artifactReference);
         }
@@ -147,27 +179,23 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data,
-            ParsedSchema<S> parsedSchema) {
+                                                                 ParsedSchema<S> parsedSchema) {
         final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
 
         for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
 
             List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
 
-            if (nestedReferences.isEmpty()) {
-                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data,
-                        referencedSchema, true, referencedSchema.referenceName())));
-            } else {
-                referencesLookup.add(handleAutoCreateArtifact(referencedSchema, resolveArtifactReference(data,
-                        referencedSchema, true, referencedSchema.referenceName()), nestedReferences));
-            }
+            referencesLookup.add(handleAutoCreateArtifact(referencedSchema,
+                    resolveArtifactReference(data, referencedSchema, true, referencedSchema.referenceName()),
+                    nestedReferences));
         }
         return referencesLookup;
     }
 
     /**
      * @see io.apicurio.registry.resolver.SchemaResolver#resolveSchemaByArtifactReference
-     *      (io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
+     * (io.apicurio.registry.resolver.strategy.ArtifactReferenceImpl)
      */
     @Override
     public SchemaLookupResult<S> resolveSchemaByArtifactReference(ArtifactReference reference) {
@@ -190,7 +218,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> resolveSchemaByCoordinates(String groupId, String artifactId,
-            String version) {
+                                                             String version) {
         if (artifactId == null) {
             throw new IllegalStateException("artifactId cannot be null");
         }
@@ -206,25 +234,19 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             // it's impossible to retrieve more info about the artifact with only the contentId, and that's ok
             // for this case
-            InputStream rawSchema = null;
             ParsedSchemaImpl<S> ps = null;
-            try {
-                rawSchema = client.ids().contentIds().byContentId(contentIdKey).get();
+            String rawSchema = this.clientFacade.getSchemaByContentId(contentIdKey);
 
-                // Get the artifact references
-                final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client
-                        .ids().contentIds().byContentId(contentId).references().get();
-                // If there are any references for the schema being parsed, resolve them before parsing the
-                // schema
-                final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
+            // Get the artifact references
+            final List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByContentId(contentId);
+            // If there are any references for the schema being parsed, resolve them before parsing the
+            // schema
+            final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
-                byte[] schema = rawSchema.readAllBytes();
-                S parsed = schemaParser.parseSchema(schema, resolvedReferences);
+            byte[] schema = rawSchema.getBytes(StandardCharsets.UTF_8);
+            S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
-                ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
             return result.contentId(contentIdKey).parsedSchema(ps).build();
@@ -235,18 +257,16 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         return schemaCache.getByContentHash(contentHash, contentHashKey -> {
             // it's impossible to retrieve more info about the artifact with only the contentHash, and that's
             // ok for this case
-            InputStream rawSchema = null;
             ParsedSchemaImpl<S> ps = null;
 
-            rawSchema = client.ids().contentHashes().byContentHash(contentHashKey).get();
+            String rawSchema = this.clientFacade.getSchemaByContentHash(contentHashKey);
 
             // Get the artifact references
-            final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client
-                    .ids().contentHashes().byContentHash(contentHashKey).references().get();
+            final List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByContentHash(contentHashKey);
             // If there are any references for the schema being parsed, resolve them before parsing the schema
             final Map<String, ParsedSchema<S>> resolvedReferences = resolveReferences(artifactReferences);
 
-            byte[] schema = IoUtil.toBytes(rawSchema);
+            byte[] schema = rawSchema.getBytes(StandardCharsets.UTF_8);
             S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
             ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
@@ -257,175 +277,63 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     /**
-     * Search by content may not work for some usecases of our Serdes implementations. For example when
+     * Search by content may not work for some use cases of our Serdes implementations. For example when
      * serializing protobuf messages, the schema inferred from the data may not be equal to the .proto file
      * schema uploaded in the registry.
      */
     private SchemaLookupResult<S> handleResolveSchemaByContent(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference) {
+                                                               final ArtifactReference artifactReference) {
 
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
-
+        return schemaCache.getByContent(ContentWithReferences.builder().content(rawSchemaString).build(), contentKey -> {
             logger.info(String.format("Retrieving schema content using string: %s", rawSchemaString));
 
-            InputStream is = new ByteArrayInputStream(contentKey.getBytes(StandardCharsets.UTF_8));
-            String at = schemaParser.artifactType();
-            String ct = toContentType(at);
-            VersionSearchResults results = client.search().versions().post(is, ct, config -> {
-                config.queryParameters.groupId = artifactReference.getGroupId() == null ? "default"
-                    : artifactReference.getGroupId();
-                config.queryParameters.artifactId = artifactReference.getArtifactId();
-                config.queryParameters.canonical = true;
-                config.queryParameters.artifactType = at;
-                config.queryParameters.orderby = VersionSortBy.GlobalId;
-                config.queryParameters.order = SortOrder.Desc;
-            });
+            String artifactType = schemaParser.artifactType();
 
-            if (results.getCount() == 0) {
-                is = new ByteArrayInputStream(contentKey.getBytes(StandardCharsets.UTF_8));
-                results = client.search().versions().post(is, ct, config -> {
-                    config.queryParameters.groupId = artifactReference.getGroupId() == null ? "default"
-                        : artifactReference.getGroupId();
-                    config.queryParameters.artifactId = artifactReference.getArtifactId();
-                    config.queryParameters.canonical = false;
-                    config.queryParameters.artifactType = at;
-                    config.queryParameters.orderby = VersionSortBy.GlobalId;
-                    config.queryParameters.order = SortOrder.Desc;
-                });
-
-                if (results.getCount() == 0) {
-                    throw new RuntimeException(
-                            String.format("Could not resolve artifact reference by content: %s",
-                                    rawSchemaString) + "&" + artifactReference);
-                }
+            List<RegistryVersionCoordinates> versions = this.clientFacade.searchVersionsByContent(rawSchemaString,
+                    artifactType, artifactReference, canonicalize);
+            if (versions.isEmpty()) {
+                throw new RuntimeException(
+                        String.format("Could not resolve artifact reference by content: %s",
+                                rawSchemaString) + "&" + artifactReference);
             }
 
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            loadFromSearchedVersion(results.getVersions().get(0), result);
-
-            result.parsedSchema(parsedSchema);
-
-            return result.build();
+            return loadFromVersionCoordinates(versions.get(0), parsedSchema);
         });
     }
 
     private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference) {
-        String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
-
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
-            CreateArtifact createArtifact = new CreateArtifact();
-            createArtifact.setArtifactId(artifactReference.getArtifactId());
-            createArtifact.setArtifactType(schemaParser.artifactType());
-
-            CreateVersion version = new CreateVersion();
-            version.setVersion(artifactReference.getVersion());
-            createArtifact.setFirstVersion(version);
-
-            VersionContent vc = new VersionContent();
-            vc.setContent(rawSchemaString);
-            vc.setContentType(toContentType(schemaParser.artifactType()));
-            version.setContent(vc);
-
-            CreateArtifactResponse car = client.groups().byGroupId(
-                    artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId())
-                    .artifacts().post(createArtifact, config -> {
-                        config.queryParameters.ifExists = IfArtifactExists.forValue(this.autoCreateBehavior);
-                        config.queryParameters.canonical = false;
-                    });
-
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            loadFromMetaData(car.getVersion(), result);
-
-            result.parsedSchema(parsedSchema);
-
-            return result.build();
-        });
-    }
-
-    private SchemaLookupResult<S> handleAutoCreateArtifact(ParsedSchema<S> parsedSchema,
-            final ArtifactReference artifactReference, List<SchemaLookupResult<S>> referenceLookups) {
+                                                           final ArtifactReference artifactReference, List<SchemaLookupResult<S>> referenceLookups) {
+        requireNonNull(referenceLookups);
 
         String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
 
-        final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = parseReferences(
-                referenceLookups);
+        var references = referenceLookups.stream()
+                .map(SchemaLookupResult::toArtifactReference)
+                .collect(Collectors.toSet());
 
-        return schemaCache.getByContent(rawSchemaString, contentKey -> {
-            CreateArtifact createArtifact = new CreateArtifact();
-            createArtifact.setArtifactId(artifactReference.getArtifactId());
-            createArtifact.setArtifactType(schemaParser.artifactType());
+        var key = ContentWithReferences.builder()
+                .content(rawSchemaString)
+                .references(references)
+                .build();
 
-            CreateVersion version = new CreateVersion();
-            version.setVersion(artifactReference.getVersion());
-            createArtifact.setFirstVersion(version);
+        return schemaCache.getByContent(key, contentKey -> {
+            String artifactType = schemaParser.artifactType();
+            String groupId = artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId();
+            String artifactId = artifactReference.getArtifactId();
+            String version = artifactReference.getVersion();
+            String autoCreate = this.autoCreateBehavior;
 
-            VersionContent vc = new VersionContent();
-            vc.setContent(rawSchemaString);
-            vc.setContentType(toContentType(schemaParser.artifactType()));
-            vc.setReferences(artifactReferences);
-            version.setContent(vc);
+            var clientReferences = referenceLookups.stream()
+                    .map(RegistryArtifactReference::fromSchemaLookupResult)
+                    .collect(Collectors.toSet());
 
-            CreateArtifactResponse car = client.groups().byGroupId(
-                    artifactReference.getGroupId() == null ? "default" : artifactReference.getGroupId())
-                    .artifacts().post(createArtifact, config -> {
-                        config.queryParameters.ifExists = IfArtifactExists.forValue(this.autoCreateBehavior);
-                        config.queryParameters.canonical = false;
-                    });
+            RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
+                    version, autoCreate, canonicalize, rawSchemaString, clientReferences);
 
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            loadFromMetaData(car.getVersion(), result);
-
-            result.parsedSchema(parsedSchema);
-
-            return result.build();
+            return loadFromVersionCoordinates(versionCoordinates, parsedSchema);
         });
-    }
-
-    private String toContentType(String artifactType) {
-        if (ArtifactType.AVRO.equals(artifactType)) {
-            return ContentTypes.APPLICATION_JSON;
-        } else if (ArtifactType.JSON.equals(artifactType)) {
-            return ContentTypes.APPLICATION_JSON;
-        } else if (ArtifactType.PROTOBUF.equals(artifactType)) {
-            return ContentTypes.APPLICATION_PROTOBUF;
-        } else if (ArtifactType.KCONNECT.equals(artifactType)) {
-            return ContentTypes.APPLICATION_JSON;
-        } else if (ArtifactType.OPENAPI.equals(artifactType)) {
-            return ContentTypes.APPLICATION_JSON;
-        } else if (ArtifactType.ASYNCAPI.equals(artifactType)) {
-            return ContentTypes.APPLICATION_JSON;
-        } else if (ArtifactType.WSDL.equals(artifactType)) {
-            return ContentTypes.APPLICATION_XML;
-        } else if (ArtifactType.XSD.equals(artifactType)) {
-            return ContentTypes.APPLICATION_XML;
-        } else if (ArtifactType.XML.equals(artifactType)) {
-            return ContentTypes.APPLICATION_XML;
-        } else if (ArtifactType.GRAPHQL.equals(artifactType)) {
-            return ContentTypes.APPLICATION_GRAPHQL;
-        }
-        throw new IllegalArgumentException("Artifact type not supported: " + artifactType);
-    }
-
-    private List<io.apicurio.registry.rest.client.models.ArtifactReference> parseReferences(
-            List<SchemaLookupResult<S>> referenceLookups) {
-        final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = new ArrayList<>();
-
-        referenceLookups.forEach(referenceLookup -> {
-            io.apicurio.registry.rest.client.models.ArtifactReference artifactReferenceLookup = new io.apicurio.registry.rest.client.models.ArtifactReference();
-            artifactReferenceLookup.setArtifactId(referenceLookup.getArtifactId());
-            artifactReferenceLookup.setGroupId(referenceLookup.getGroupId());
-            artifactReferenceLookup.setName(referenceLookup.getParsedSchema().referenceName());
-            artifactReferenceLookup.setVersion(referenceLookup.getVersion());
-            artifactReferences.add(artifactReferenceLookup);
-        });
-
-        return artifactReferences;
     }
 
     private SchemaLookupResult<S> resolveSchemaByArtifactCoordinatesCached(
@@ -454,43 +362,26 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     }
 
     private SchemaLookupResult<S> resolveByCoordinates(String groupId, String artifactId, String version) {
-        SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
         // TODO if getArtifactVersion returns the artifact version and globalid in the headers we can reduce
         // this to only one http call
 
-        if (version == null) {
-            version = "branch=latest";
-        }
+        // Get the version metadata (globalId, contentId, etc)
+        RegistryVersionCoordinates versionCoordinates = this.clientFacade.getVersionCoordinatesByGAV(groupId, artifactId, version);
 
-        S parsed = null;
-        byte[] schema = null;
-        Long gid;
-        VersionMetaData metadata = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
-                .versions().byVersionExpression(version).get();
-        loadFromMetaData(metadata, result);
-        gid = metadata.getGlobalId();
-
-        InputStream rawSchema;
+        // Get the schema string (either dereferenced or not based on config)
+        String schemaString = this.clientFacade.getSchemaByGlobalId(versionCoordinates.getGlobalId(), resolveDereferenced);
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
-        if (resolveDereferenced) {
-            rawSchema = client.ids().globalIds().byGlobalId(gid).get(config -> {
-                assert config.queryParameters != null;
-                config.queryParameters.references = HandleReferencesType.DEREFERENCE;
-            });
-        } else {
-            rawSchema = client.ids().globalIds().byGlobalId(gid).get();
-            // Get the artifact references
-            final List<io.apicurio.registry.rest.client.models.ArtifactReference> artifactReferences = client
-                    .ids().globalIds().byGlobalId(gid).references().get();
+        // If resolving dereference, we need to also fetch and resolve the references
+        if (!resolveDereferenced) {
+            List<RegistryArtifactReference> artifactReferences = this.clientFacade.getReferencesByGlobalId(versionCoordinates.getGlobalId());
             // If there are any references for the schema being parsed, resolve them before parsing the schema
             resolvedReferences = resolveReferences(artifactReferences);
         }
 
-        schema = IoUtil.toBytes(rawSchema);
-        parsed = schemaParser.parseSchema(schema, resolvedReferences);
+        byte[] schema = schemaString.getBytes(StandardCharsets.UTF_8);
+        S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
-        result.parsedSchema(new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema));
-
-        return result.build();
+        ParsedSchemaImpl<S> parsedSchema = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
+        return loadFromVersionCoordinates(versionCoordinates, parsedSchema);
     }
 }

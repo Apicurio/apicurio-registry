@@ -1,7 +1,6 @@
 package io.apicurio.registry.serde.jsonschema;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,11 +8,12 @@ import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -34,25 +34,25 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
         super();
     }
 
-    public JsonSchemaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(client, schemaResolver);
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistryClient client) {
-        super(client);
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public JsonSchemaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistryClient client, SchemaResolver<JsonSchema, T> schemaResolver,
-            ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
-        super(client, strategy, schemaResolver);
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver,
+                                  ArtifactReferenceResolverStrategy<JsonSchema, T> strategy) {
+        super(clientFacade, strategy, schemaResolver);
     }
 
-    public JsonSchemaDeserializer(RegistryClient client, Boolean validationEnabled) {
-        this(client);
+    public JsonSchemaDeserializer(RegistryClientFacade clientFacade, Boolean validationEnabled) {
+        this(clientFacade);
         this.validationEnabled = validationEnabled;
     }
 
@@ -104,25 +104,15 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
     }
 
     private T internalReadData(ParsedSchema<JsonSchema> schema, ByteBuffer buffer, int start, int length) {
-        byte[] data = new byte[length];
-        System.arraycopy(buffer.array(), start, data, 0, length);
-
         try {
-            JsonParser parser = mapper.getFactory().createParser(data);
-
-            if (isValidationEnabled()) {
-                JsonSchemaValidationUtil.validateDataWithSchema(schema, data, mapper);
-            }
-
-            Class<T> messageType = null;
-
+            // Figure out the Class to use (the message type) for deserialization.  This may end up
+            // being null, in which case a Jackson Node will be returned.
+            Class<T> messageType;
             if (this.specificReturnClass != null) {
                 messageType = this.specificReturnClass;
             } else {
-                JsonNode jsonSchema = mapper.readTree(schema.getRawSchema());
-
                 String javaType = null;
-                JsonNode javaTypeNode = jsonSchema.get("javaType");
+                JsonNode javaTypeNode = schema.getParsedSchema().getSchemaNode().get("javaType");
                 if (javaTypeNode != null && !javaTypeNode.isNull()) {
                     javaType = javaTypeNode.textValue();
                 }
@@ -132,14 +122,27 @@ public class JsonSchemaDeserializer<T> extends AbstractDeserializer<JsonSchema, 
                 messageType = javaType == null ? null : Utils.loadClass(javaType);
             }
 
+            // Parse the data into a Node once
+            ByteBuffer slice = buffer.duplicate();
+            slice.position(start);
+            slice.limit(start + length);
+            JsonNode jsonNode = mapper.readTree(new ByteBufferInputStream(slice));
+
+            // Validate the data (if enabled)
+            if (isValidationEnabled()) {
+                JsonSchemaValidationUtil.validateDataWithSchema(schema, jsonNode);
+            }
+
+            // Convert to specific Java class (messageType) if we have one configured
             if (messageType == null) {
                 // TODO maybe warn there is no message type and the deserializer will return a JsonNode
-                return mapper.readTree(parser);
+                return (T) jsonNode;
             } else {
-                return mapper.readValue(parser, messageType);
+                return mapper.treeToValue(jsonNode, messageType);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
+
 }

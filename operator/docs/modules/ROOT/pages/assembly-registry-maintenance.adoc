@@ -21,6 +21,7 @@ This chapter explains how to configure and manage your {registry} deployment:
 //include::partial$proc-manage-environment-variables.adoc[leveloffset=+1]
 //include::partial$ref-liveness-and-readiness.adoc[leveloffset=+1]
 include::partial$ref-registry-pod-template-spec.adoc[leveloffset=+1]
+include::partial$proc-registry-observability-otel.adoc[leveloffset=+1]
 //include::partial$proc-registry-https-in-cluster.adoc[leveloffset=+1]
 //include::partial$proc-registry-https-outside-cluster.adoc[leveloffset=+1]
 //include::partial$proc-registry-sql-backup.adoc[leveloffset=+1]

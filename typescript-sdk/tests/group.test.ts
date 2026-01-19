@@ -1,5 +1,5 @@
-import { createTestClient, generateGroupId } from "./test.utils.ts";
-import { CreateGroup, type GroupMetaData } from "../lib/generated-client/models";
+import { createTestClient, generateGroupId } from "./test.utils.js";
+import { CreateGroup, type GroupMetaData } from "../lib/generated-client/models/index.js";
 import { expect, test } from "vitest";
 
 test("Group", async () => {

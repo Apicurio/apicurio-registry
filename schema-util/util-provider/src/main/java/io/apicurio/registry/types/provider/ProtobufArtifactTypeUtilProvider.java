@@ -1,55 +1,41 @@
 package io.apicurio.registry.types.provider;
 
-import com.google.protobuf.DescriptorProtos;
-import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.ContentAccepter;
+import io.apicurio.registry.protobuf.content.ProtobufContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.content.canon.ProtobufContentCanonicalizer;
+import io.apicurio.registry.protobuf.content.canon.ProtobufContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
-import io.apicurio.registry.content.dereference.ProtobufDereferencer;
+import io.apicurio.registry.protobuf.content.dereference.ProtobufDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
-import io.apicurio.registry.content.refs.ProtobufReferenceFinder;
+import io.apicurio.registry.protobuf.content.refs.ProtobufReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.ProtobufCompatibilityChecker;
+import io.apicurio.registry.protobuf.rules.compatibility.ProtobufCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
-import io.apicurio.registry.rules.validity.ProtobufContentValidator;
+import io.apicurio.registry.protobuf.rules.validity.ProtobufContentValidator;
 import io.apicurio.registry.types.ArtifactType;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
+import io.apicurio.registry.types.ContentTypes;
 
-import java.util.Base64;
-import java.util.Map;
+import java.util.Set;
 
 public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
-    @Override
-    public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        try {
-            String contentType = content.getContentType();
-            if (contentType != null && !contentType.toLowerCase().contains("proto")) {
-                return false;
-            }
-            ProtobufFile.toProtoFileElement(content.getContent().content());
-            return true;
-        } catch (Exception e) {
-            try {
-                // Attempt to parse binary FileDescriptorProto
-                byte[] bytes = Base64.getDecoder().decode(content.getContent().content());
-                FileDescriptorUtils
-                        .fileDescriptorToProtoFile(DescriptorProtos.FileDescriptorProto.parseFrom(bytes));
-                return true;
-            } catch (Exception pe) {
-                // Doesn't seem to be protobuf
-            }
-        }
-        return false;
-    }
 
     @Override
     public String getArtifactType() {
         return ArtifactType.PROTOBUF;
+    }
+
+    @Override
+    public Set<String> getContentTypes() {
+        return Set.of(ContentTypes.APPLICATION_PROTOBUF);
+    }
+
+    @Override
+    public ContentAccepter createContentAccepter() {
+        return new ProtobufContentAccepter();
     }
 
     @Override
@@ -73,12 +59,12 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     }
 
     @Override
-    public ContentDereferencer getContentDereferencer() {
+    public ContentDereferencer createContentDereferencer() {
         return new ProtobufDereferencer();
     }
 
     @Override
-    public ReferenceFinder getReferenceFinder() {
+    public ReferenceFinder createReferenceFinder() {
         return new ProtobufReferenceFinder();
     }
 

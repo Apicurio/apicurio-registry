@@ -1,0 +1,36 @@
+{
+    "name": "@apicurio/artifact-type-builtins",
+    "private": false,
+    "version": "3.1.7-Dev",
+    "type": "module",
+    "description": "Built-in functions and TypeScript type definitions for creating custom artifact types in Apicurio Registry",
+    "main": "lib/ArtifactTypeScriptProvider_Builtins.mjs",
+    "types": "lib/ArtifactTypeScriptProvider_Builtins.d.ts",
+    "files": [
+        "lib"
+    ],
+    "scripts": {
+        "clean": "rimraf lib",
+        "copy-generated": "mkdir -p lib && cp ../app/target/classes/META-INF/quickjs4j/ArtifactTypeScriptProvider_Builtins.d.ts lib/ && cp ../app/target/classes/META-INF/quickjs4j/ArtifactTypeScriptProvider_Builtins.mjs lib/",
+        "build": "npm run clean && npm run copy-generated",
+        "prepublishOnly": "test -f lib/ArtifactTypeScriptProvider_Builtins.d.ts && test -f lib/ArtifactTypeScriptProvider_Builtins.mjs || (echo 'Error: Generated files not found. Run npm run build first.' && exit 1)"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Apicurio/apicurio-registry",
+        "directory": "artifact-type-builtins"
+    },
+    "keywords": [
+        "apicurio",
+        "registry",
+        "artifact-type",
+        "custom-artifact-type",
+        "typescript",
+        "quickjs"
+    ],
+    "author": "Apicurio",
+    "license": "Apache-2.0",
+    "devDependencies": {
+        "rimraf": "6.1.2"
+    }
+}

@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Apicurio Registry API [v3]",
-    "version": "3.0.x",
+    "version": "3.1.x",
     "description": "Apicurio Registry is a datastore for standard event schemas and API designs. Apicurio Registry enables developers to manage and share the structure of their data using a REST interface. For example, client applications can dynamically push or pull the latest updates to or from the registry without needing to redeploy. Apicurio Registry also enables developers to create rules that govern how registry content can evolve over time. For example, this includes rules for content validation and version compatibility.\n\nThe Apicurio Registry REST API enables client applications to manage the artifacts in the registry. This API provides create, read, update, and delete operations for schema and API artifacts, rules, versions, and metadata. \n\nThe supported artifact types include:\n- Apache Avro schema\n- AsyncAPI specification\n- Google protocol buffers\n- GraphQL schema\n- JSON Schema\n- Kafka Connect schema\n- OpenAPI specification\n- Web Services Description Language\n- XML Schema Definition\n\n\n**Important**: The Apicurio Registry REST API is available from `https://MY-REGISTRY-URL/apis/registry/v3` by default. Therefore you must prefix all API operation paths with `/apis/registry/v3` in this case. For example: `/apis/registry/v3/ids/globalIds/{globalId}`.\n",
     "contact": {
       "name": "Apicurio",
@@ -48,6 +48,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getContentByGlobalId",
@@ -90,6 +96,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listGlobalRules",
@@ -123,6 +135,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createGlobalRule",
@@ -140,6 +158,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteAllGlobalRules",
@@ -170,6 +194,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getGlobalRuleConfig",
@@ -207,6 +237,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateGlobalRuleConfig",
@@ -227,6 +263,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteGlobalRule",
@@ -399,6 +441,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchArtifacts",
@@ -499,6 +547,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchArtifactsByContent",
@@ -540,6 +594,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "exportData",
@@ -601,6 +661,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "importData",
@@ -633,6 +699,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionMetaData",
@@ -665,6 +737,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactVersionMetaData",
@@ -690,6 +768,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactVersion",
@@ -751,6 +835,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listArtifactRules",
@@ -786,6 +876,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createArtifactRule",
@@ -805,6 +901,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactRules",
@@ -854,6 +956,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactRuleConfig",
@@ -890,6 +998,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactRuleConfig",
@@ -909,6 +1023,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactRule",
@@ -972,6 +1092,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getRoleMapping",
@@ -1001,6 +1127,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateRoleMapping",
@@ -1020,6 +1152,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteRoleMapping",
@@ -1057,6 +1195,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getCurrentUserInfo",
@@ -1082,6 +1226,12 @@
               }
             },
             "description": "A list containing all the references for the artifact with the given content id."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "referencesByContentId",
@@ -1119,6 +1269,12 @@
               }
             },
             "description": "A list containing all the references for the artifact with the given global id."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "referencesByGlobalId",
@@ -1174,6 +1330,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionReferences",
@@ -1219,6 +1381,94 @@
         }
       ]
     },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/references/graph": {
+      "summary": "Get a graph representation of artifact references.",
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceGraph"
+                }
+              }
+            },
+            "description": "A graph representation of all artifact references."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getArtifactVersionReferencesGraph",
+        "summary": "Get artifact version references as a graph",
+        "description": "Retrieves a graph representation of all references for a single version of an artifact. The graph includes nodes representing artifacts, edges representing references between them, and metadata about the graph structure including cycle detection.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "description": "An expression resolvable to a specific version ID within the given group and artifact.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "direction",
+          "description": "The direction of references to include in the graph. Can be OUTBOUND (artifacts this version references), INBOUND (artifacts that reference this version), or BOTH. Defaults to OUTBOUND.",
+          "schema": {
+            "$ref": "#/components/schemas/ReferenceGraphDirection"
+          },
+          "in": "query",
+          "required": false
+        },
+        {
+          "name": "depth",
+          "description": "The maximum depth of the reference graph to traverse. Can be 1, 2, 3, or 0 for unlimited. Defaults to 3.",
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 3
+          },
+          "in": "query",
+          "required": false
+        }
+      ]
+    },
     "/admin/config/properties": {
       "summary": "Manage configuration properties.",
       "get": {
@@ -1241,6 +1491,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listConfigProperties",
@@ -1270,6 +1526,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getConfigProperty",
@@ -1299,6 +1561,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateConfigProperty",
@@ -1318,6 +1586,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "resetConfigProperty",
@@ -1387,8 +1661,17 @@
             },
             "description": "On a successful response, returns a bounded set of artifacts."
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listArtifactsInGroup",
@@ -1450,6 +1733,9 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "409": {
             "$ref": "#/components/responses/RuleViolationConflict"
           },
@@ -1458,11 +1744,17 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createArtifact",
         "summary": "Create artifact",
-        "description": "Creates a new artifact.  The body of the request should be a `CreateArtifact` \nobject, which includes the metadata of the new artifact and, optionally, the \nmetadata and content of the first version.\n\nIf the artifact type is not provided, the registry attempts to figure out what \nkind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAn artifact will be created using the unique artifact ID that can optionally be \nprovided in the request body.  If not provided in the request, the server will\ngenerate a unique ID for the artifact.  It is typically recommended that callers\nprovide the ID, because it is typically a meaningful identifier, and as such\nfor most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `CREATE_VERSION` - server creates a new version of the existing artifact and returns it\n* `FIND_OR_CREATE_VERSION` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An invalid version number was used for the optional included first version (HTTP error `400`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nNote that if the `dryRun` query parameter is set to `true`, then this operation\nwill not actually make any changes.  Instead it will succeed or fail based on \nwhether it **would have worked**.  Use this option to, for example, check if an\nartifact is valid or if a new version passes configured compatibility checks."
+        "description": "Creates a new artifact.  The body of the request should be a `CreateArtifact` \nobject, which includes the metadata of the new artifact and, optionally, the \nmetadata and content of the first version.\n\nIf the artifact type is not provided, the registry attempts to figure out what \nkind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAn artifact will be created using the unique artifact ID that can optionally be \nprovided in the request body.  If not provided in the request, the server will\ngenerate a unique ID for the artifact.  It is typically recommended that callers\nprovide the ID, because it is typically a meaningful identifier, and as such\nfor most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `CREATE_VERSION` - server creates a new version of the existing artifact and returns it\n* `FIND_OR_CREATE_VERSION` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An invalid version number was used for the optional included first version (HTTP error `400`)\n* The group does not exist and automatic-group-creation is not enabled (HTTP error `404`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nNote that if the `dryRun` query parameter is set to `true`, then this operation\nwill not actually make any changes.  Instead it will succeed or fail based on \nwhether it **would have worked**.  Use this option to, for example, check if an\nartifact is valid or if a new version passes configured compatibility checks."
       },
       "delete": {
         "tags": [
@@ -1474,6 +1766,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactsInGroup",
@@ -1545,6 +1843,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listGroups",
@@ -1576,16 +1880,25 @@
             },
             "description": "The group has been successfully created."
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createGroup",
         "summary": "Create a new group",
-        "description": "Creates a new group.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group already exist (HTTP error `409`)\n"
+        "description": "Creates a new group.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n* The group already exist (HTTP error `409`)\n* Invalid group ID (e.g., reserved name 'default') (HTTP error `400`)\n"
       }
     },
     "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/comments": {
@@ -1616,6 +1929,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionComments",
@@ -1655,6 +1974,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "addArtifactVersionComment",
@@ -1719,6 +2044,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactVersionComment",
@@ -1741,6 +2072,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifactVersionComment",
@@ -1828,6 +2165,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listBranches",
@@ -1867,6 +2210,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createBranch",
@@ -1942,16 +2291,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VersionSearchResults"
-                },
-                "examples": {
-                  "All Versions": {
-                    "value": [
-                      5,
-                      6,
-                      10,
-                      103
-                    ]
-                  }
                 }
               }
             },
@@ -1962,6 +2301,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listArtifactVersions",
@@ -2018,6 +2363,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createArtifactVersion",
@@ -2067,6 +2418,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getBranchMetaData",
@@ -2096,6 +2453,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateBranchMetaData",
@@ -2118,6 +2481,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteBranch",
@@ -2199,6 +2568,12 @@
               }
             },
             "description": "A list containing all the references for the artifact with the given content hash."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "referencesByContentHash",
@@ -2232,6 +2607,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getContentByHash",
@@ -2265,6 +2646,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getContentById",
@@ -2306,6 +2693,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getGroupById",
@@ -2336,6 +2729,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateGroupById",
@@ -2358,6 +2757,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteGroupById",
@@ -2413,6 +2818,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listRoleMappings",
@@ -2439,6 +2850,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createRoleMapping",
@@ -2469,6 +2886,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listArtifactTypes",
@@ -2497,6 +2920,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "triggerSnapshot",
@@ -2526,6 +2955,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactMetaData",
@@ -2556,6 +2991,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactMetaData",
@@ -2578,6 +3019,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteArtifact",
@@ -2633,6 +3080,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionContent",
@@ -2669,6 +3122,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactVersionContent",
@@ -2790,6 +3249,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchGroups",
@@ -2941,6 +3406,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchVersions",
@@ -3049,6 +3520,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "searchVersionsByContent",
@@ -3098,6 +3575,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listBranchVersions",
@@ -3128,6 +3611,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "replaceBranchVersions",
@@ -3161,6 +3650,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "addVersionToBranch",
@@ -3222,6 +3717,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "listGroupRules",
@@ -3257,6 +3758,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "createGroupRule",
@@ -3276,6 +3783,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteGroupRules",
@@ -3316,6 +3829,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getGroupRuleConfig",
@@ -3352,6 +3871,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateGroupRuleConfig",
@@ -3371,6 +3896,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "deleteGroupRule",
@@ -3425,6 +3956,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "getArtifactVersionState",
@@ -3471,6 +4008,12 @@
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "operationId": "updateArtifactVersionState",
@@ -4261,7 +4804,6 @@
       "SearchedGroup": {
         "description": "Models a single group from the result set returned when searching for groups.",
         "required": [
-          "description",
           "owner",
           "createdOn",
           "groupId",
@@ -4316,12 +4858,10 @@
         "description": "",
         "required": [
           "groupId",
-          "description",
           "owner",
           "createdOn",
           "modifiedBy",
-          "modifiedOn",
-          "labels"
+          "modifiedOn"
         ],
         "type": "object",
         "properties": {
@@ -4617,6 +5157,9 @@
               },
               "oaiDocsUrl": {
                 "type": "string"
+              },
+              "editorsUrl": {
+                "type": "string"
               }
             }
           },
@@ -4670,7 +5213,8 @@
           "ui": {
             "contextPath": "/",
             "navPrefixPath": "/",
-            "oaiDocsUrl": "https://registry.apicur.io/docs"
+            "oaiDocsUrl": "https://registry.apicur.io/docs",
+            "editorsUrl": "https://registry.apicur.io/editors"
           },
           "auth": {
             "type": "oidc",
@@ -4782,12 +5326,16 @@
           },
           "oaiDocsUrl": {
             "type": "string"
+          },
+          "editorsUrl": {
+            "type": "string"
           }
         },
         "example": {
           "contextPath": "/",
           "navPrefixPath": "/",
-          "oaiDocsUrl": "https://registry.apicur.io/docs"
+          "oaiDocsUrl": "https://registry.apicur.io/docs",
+          "editorsUrl": "https://registry.apicur.io/editors"
         }
       },
       "Labels": {
@@ -5271,6 +5819,202 @@
         "example": {
           "state": "ENABLED"
         }
+      },
+      "ReferenceGraphDirection": {
+        "description": "The direction of references to include in the graph.",
+        "enum": [
+          "OUTBOUND",
+          "INBOUND",
+          "BOTH"
+        ],
+        "type": "string",
+        "example": "\"OUTBOUND\"",
+        "x-codegen-package": "io.apicurio.registry.types"
+      },
+      "ReferenceGraphNode": {
+        "title": "Root Type for ReferenceGraphNode",
+        "description": "A node in the reference graph representing an artifact version.",
+        "required": [
+          "id",
+          "groupId",
+          "artifactId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "A unique identifier for this node within the graph.",
+            "type": "string"
+          },
+          "groupId": {
+            "description": "The group ID of the artifact.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of the artifact.",
+            "type": "string"
+          },
+          "artifactType": {
+            "description": "The type of the artifact.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the artifact version.",
+            "type": "string"
+          },
+          "isRoot": {
+            "description": "Whether this node is the root node of the graph.",
+            "type": "boolean"
+          },
+          "isCycleNode": {
+            "description": "Whether this node is part of a circular reference.",
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "id": "node-1",
+          "groupId": "mygroup",
+          "artifactId": "my-artifact",
+          "version": "1.0",
+          "artifactType": "PROTOBUF",
+          "name": "My Artifact",
+          "isRoot": false,
+          "isCycleNode": false
+        }
+      },
+      "ReferenceGraphEdge": {
+        "title": "Root Type for ReferenceGraphEdge",
+        "description": "An edge in the reference graph representing a reference from one artifact to another.",
+        "required": [
+          "sourceNodeId",
+          "targetNodeId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceNodeId": {
+            "description": "The ID of the source node (the artifact that has the reference).",
+            "type": "string"
+          },
+          "targetNodeId": {
+            "description": "The ID of the target node (the artifact being referenced).",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the reference as defined in the source artifact.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "sourceNodeId": "node-1",
+          "targetNodeId": "node-2",
+          "name": "sample.proto"
+        }
+      },
+      "ReferenceGraphMetadata": {
+        "title": "Root Type for ReferenceGraphMetadata",
+        "description": "Metadata about the reference graph.",
+        "type": "object",
+        "properties": {
+          "totalNodes": {
+            "description": "The total number of nodes in the graph.",
+            "type": "integer"
+          },
+          "totalEdges": {
+            "description": "The total number of edges in the graph.",
+            "type": "integer"
+          },
+          "maxDepth": {
+            "description": "The maximum depth reached in the graph.",
+            "type": "integer"
+          },
+          "hasCycles": {
+            "description": "Whether the graph contains circular references.",
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "totalNodes": 5,
+          "totalEdges": 4,
+          "maxDepth": 3,
+          "hasCycles": false
+        }
+      },
+      "ReferenceGraph": {
+        "title": "Root Type for ReferenceGraph",
+        "description": "A graph representation of artifact references.",
+        "required": [
+          "root",
+          "nodes",
+          "edges",
+          "metadata"
+        ],
+        "type": "object",
+        "properties": {
+          "root": {
+            "description": "The root node of the graph (the artifact for which references were requested).",
+            "$ref": "#/components/schemas/ReferenceGraphNode"
+          },
+          "nodes": {
+            "description": "All nodes in the graph, including the root.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReferenceGraphNode"
+            }
+          },
+          "edges": {
+            "description": "All edges (references) in the graph.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReferenceGraphEdge"
+            }
+          },
+          "metadata": {
+            "description": "Metadata about the graph structure.",
+            "$ref": "#/components/schemas/ReferenceGraphMetadata"
+          }
+        },
+        "example": {
+          "root": {
+            "id": "root",
+            "groupId": "mygroup",
+            "artifactId": "my-artifact",
+            "version": "1.0",
+            "isRoot": true
+          },
+          "nodes": [
+            {
+              "id": "root",
+              "groupId": "mygroup",
+              "artifactId": "my-artifact",
+              "version": "1.0",
+              "isRoot": true
+            },
+            {
+              "id": "node-1",
+              "groupId": "mygroup",
+              "artifactId": "referenced-artifact",
+              "version": "2.0",
+              "isRoot": false
+            }
+          ],
+          "edges": [
+            {
+              "sourceNodeId": "root",
+              "targetNodeId": "node-1",
+              "name": "common.proto"
+            }
+          ],
+          "metadata": {
+            "totalNodes": 2,
+            "totalEdges": 1,
+            "maxDepth": 1,
+            "hasCycles": false
+          }
+        }
       }
     },
     "responses": {
@@ -5414,7 +6158,6 @@
         "description": "The content of one version of one artifact."
       },
       "UnprocessableEntity": {
-        "description": "The artifact content is not valid for one of the following reasons:\n* Schema validation failed\n* References could not be validated\n* Required references are missing",
         "content": {
           "application/json": {
             "schema": {
@@ -5430,7 +6173,48 @@
               }
             }
           }
-        }
+        },
+        "description": "The artifact content is not valid for one of the following reasons:\n* Schema validation failed\n* References could not be validated\n* Required references are missing"
+      },
+      "Unauthorized": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "UnauthorizedExample": {
+                "value": {
+                  "detail": "UnauthorizedException: User is not authenticated.",
+                  "title": "User is not authenticated.",
+                  "status": 401,
+                  "name": "UnauthorizedException"
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `401` error indicating authentication is required."
+      },
+      "Forbidden": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "ForbiddenExample": {
+                "value": {
+                  "detail": "ForbiddenException: User is not authorized to perform this operation.",
+                  "title": "User is not authorized to perform this operation.",
+                  "status": 403,
+                  "name": "ForbiddenException"
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response for all operations that can return a `403` error indicating the user is authenticated but not authorized."
       }
     }
   },

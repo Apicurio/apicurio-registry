@@ -23,17 +23,14 @@ jobs:
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
 
-      - name: Configure env. variables 1
-        run: |
-          echo "UUID=$(uuidgen)" >> $GITHUB_ENV
-
       # We need tho push the bundle image because opm always pulls; the catalog image because OLM
       # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
-      - name: Configure env. variables 2
+      - name: Configure env. variables
         run: |
-          echo "IMAGE=ttl.sh/apicurio-registry-3-operator-$UUID:8h" >> $GITHUB_ENV
-          echo "BUNDLE_IMAGE=ttl.sh/apicurio-registry-3-operator-bundle-$UUID:8h" >> $GITHUB_ENV
-          echo "CATALOG_IMAGE=ttl.sh/apicurio-registry-3-operator-catalog-$UUID:8h" >> $GITHUB_ENV
+          echo "REGISTRY_APP_IMAGE=ttl.sh/apicurio-registry-${{ github.sha }}:8h" >> $GITHUB_ENV
+          echo "IMAGE=ttl.sh/apicurio-registry-3-operator-${{ github.sha }}:8h" >> $GITHUB_ENV
+          echo "BUNDLE_IMAGE=ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h" >> $GITHUB_ENV
+          echo "CATALOG_IMAGE=ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h" >> $GITHUB_ENV
 
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v4
@@ -45,15 +42,23 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - uses: ./.github/workflows/composite/setup-minikube
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      # We need to build the operand image as well as the operator, otherwise the tests would not reflect changes in the current PR.
+      - name: Build
+        run: mvn -B clean package -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip
 
-      - name: Build only
-        if: github.event_name != 'push'
-        working-directory: operator
+      - name: Build temporary operand image
         run: |
-          make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true build
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+        with:
+          # Do not use the "docker" driver, it is causing port-forwarding errors. I have no clue why :(
+          # TODO: I might've been wrong, check this again later.
+          driver: 'none'
+          ingress-enable: 'true'
+          olm-enable: 'true'
+          olm-v1-enable: 'true'
+          start-args: '--alsologtostderr --v=2' # Debug
 
       - name: Build and run local tests on Minikube
         # Speed up the PR check by running both local and remote tests on push to main,
@@ -79,16 +84,22 @@ jobs:
         run: |
           make catalog
 
-      - name: Run remote and OLM tests on Minikube
+      - name: Run remote and OLM v1 tests on Minikube
         working-directory: operator
         run: |
-          make BUILD_OPTS=--no-transfer-progress test-remote-all
+          make BUILD_OPTS="--no-transfer-progress -Dtest.operator.olm-version=1" test-remote-all
+
+      - name: Run OLM v0 smoke tests on Minikube
+        working-directory: operator
+        run: |
+          make BUILD_OPTS="--no-transfer-progress -Dgroups=OLM" test-remote-all
 
       - name: Update install file
         working-directory: operator
         run: |
           # We need to remove unset the variables to generate a clean install file.
           # See https://github.com/actions/runner/issues/1126
+          unset REGISTRY_APP_IMAGE
           unset IMAGE
           unset BUNDLE_IMAGE
           unset CATALOG_IMAGE
@@ -106,24 +117,24 @@ jobs:
 
       # Uncomment if you need to debug the tests:
 
-#      - name: Install debug tools on failure
-#        if: failure()
-#        run: |
-#          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-#          echo >> /home/runner/.bashrc
-#          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
-#          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-#          brew install derailed/k9s/k9s
-#          . ~/.bashrc
-#          # Run tests e.g.:
-#          # make BUILD_OPTS=--no-transfer-progress test-remote-all &> 1.log &
-#          # tail -f 1.log
-#
-#      - name: Setup tmate session on failure
-#        if: failure()
-#        uses: mxschmitt/action-tmate@v3
-#        with:
-#          limit-access-to-actor: true
+  #      - name: Install debug tools on failure
+  #        if: failure()
+  #        run: |
+  #          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  #          echo >> /home/runner/.bashrc
+  #          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
+  #          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  #          brew install derailed/k9s/k9s
+  #          . ~/.bashrc
+  #          # Run tests e.g.:
+  #          # make BUILD_OPTS=--no-transfer-progress test-remote-all &> 1.log &
+  #          # tail -f 1.log
+  #
+  #      - name: Setup tmate session on failure
+  #        if: failure()
+  #        uses: mxschmitt/action-tmate@v3
+  #        with:
+  #          limit-access-to-actor: true
 
   operator-publish:
     name: Publish Operator
@@ -174,20 +185,16 @@ jobs:
         run: |
           make catalog
 
-      - name: Slack Notification (Always)
-        if: always()
-        run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}"
-
-      - name: Slack Notification (Error)
-        if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_ERROR_WEBHOOK }}"
+  # Slack notification using reusable workflow
+  notify-slack:
+    name: Slack Notification
+    needs: operator-publish
+    if: always() && github.event_name == 'push'
+    uses: ./.github/workflows/reusable-notify-slack.yaml
+    with:
+      workflow-name: ${{ github.workflow }}
+      job-name: 'operator-publish'
+      job-status: ${{ needs.operator-publish.result }}
+    secrets:
+      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

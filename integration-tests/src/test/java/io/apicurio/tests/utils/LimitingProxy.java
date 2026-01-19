@@ -13,6 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 
+import static io.apicurio.registry.utils.ConcurrentUtil.blockOn;
+import static io.apicurio.registry.utils.ConcurrentUtil.toJavaFuture;
+
 public abstract class LimitingProxy {
 
     private static final Object LOCK = new Object();
@@ -64,9 +67,9 @@ public abstract class LimitingProxy {
 
     public void stop() {
         if (server != null) {
-            server.close();
+            blockOn(toJavaFuture(server.close()));
         }
-        vertx.close();
+        blockOn(toJavaFuture(vertx.close()));
     }
 
     abstract protected boolean allowed();
@@ -88,7 +91,25 @@ public abstract class LimitingProxy {
 
         req.pause();
 
-        client.request(req.method(), destinationPort, destinationHost, req.uri())
+        // Extract path from URI - handle both absolute and relative URIs
+        String requestUri = req.uri();
+        String path = requestUri;
+
+        // If URI is absolute (common when using a proxy), extract just the path
+        if (requestUri.startsWith("http://") || requestUri.startsWith("https://")) {
+            try {
+                java.net.URI uri = java.net.URI.create(requestUri);
+                path = uri.getRawPath();
+                if (uri.getRawQuery() != null) {
+                    path += "?" + uri.getRawQuery();
+                }
+                logger.debug("Parsed absolute URI {} to path {}", requestUri, path);
+            } catch (Exception e) {
+                logger.error("Error parsing URI: {}", requestUri, e);
+            }
+        }
+
+        client.request(req.method(), destinationPort, destinationHost, path)
                 .onSuccess(clientReq -> executeProxy(clientReq, req))
                 .onFailure(throwable -> logger.error("Error found creating request", throwable));
     }

@@ -197,12 +197,12 @@ The Maven property `-DskipOperatorTests=false` is used to explicitly enable the 
 
 Available configuration options:
 
-| Option                          | Type                      | Default value | Description                                                                                                                                             |
-|---------------------------------|---------------------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| test.operator.deployment        | `local` / `remote`        | `local`       | Specifies the way that the operator is deployed for testing.                                                                                            |
-| test.operator.ingress-skip      | `true` / `false`          | `false`       | Skip testing of Ingresses. Useful when testing on clusters without an Ingress controller or without an accessible base hostname.                        |
-| test.operator.ingress-host      | string                    | -             | Used when testing Ingresses. For some clusters, you might need to provide the base hostname from where the applications on your cluster are accessible. |
-| test.operator.cleanup           | `true` / `false`          | `true`        | Clean test namespaces from the cluster after the tests finish.                                                                                          |
+| Option                        | Type               | Default value | Description                                                                                                                                             |
+|-------------------------------|--------------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| test.operator.deployment-type | `local` / `remote` | `local`       | Specifies the way that the operator is deployed for testing.                                                                                            |
+| test.operator.ingress-skip    | `true` / `false`   | `false`       | Skip testing of Ingresses. Useful when testing on clusters without an Ingress controller or without an accessible base hostname.                        |
+| test.operator.ingress-host    | string             | -             | Used when testing Ingresses. For some clusters, you might need to provide the base hostname from where the applications on your cluster are accessible. |
+| test.operator.cleanup-enabled | `true` / `false`   | `true`        | Clean test namespaces from the cluster after the tests finish.                                                                                          |
 
 ### Remote Tests
 
@@ -226,21 +226,25 @@ Available configuration options:
    ```shell
    make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
    ```
+   alternatively, if you want to enable remote debugging:
+   ```shell
+   make INSTALL_FILE=controller/target/test-install.yaml DEBUG=true dist-install-file
+   ```
 
 5. Run:
    ```shell
-   mvn verify -pl controller -am -DskipOperatorTests=false -Dtest.operator.deployment=remote
+   mvn verify -pl controller -am -DskipOperatorTests=false -Dtest.operator.deployment-type=remote
    ```
 
 *NOTE: Running `mvn clean` will delete controller/target/test-install.yaml, so it has to be run before step 3, if needed.*
 
 Configuration options for the remote tests are same as those for the local tests, but the following options are additionally available:
 
-| Option                          | Type                      | Default value                                                 | Description                                                                                                                                                                                                                                                                       |
-|---------------------------------|---------------------------|---------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| test.operator.deployment-target | `kubernetes` / `minikube` | `kubernetes`                                                  | Modify the deployment for the given cluster type. *NOTE: This should only be necessary for minikube with a shared docker daemon, but the OLM tests still require the bundle and catalog images to be pushed to a remote registry. Please report to us if you find out otherwise.* |
-| test.operator.install-file      | string                    | `${projectRoot}/operator/controller/target/test-install.yaml` | The install file that is used to deploy the operator for testing, must be generated before testing. *NOTE: More information about the install file are below in the __Distribution and Release__ section.*                                                                        |
-                                                                                |
+| Option                             | Type                      | Default value                                                 | Description                                                                                                                                                                                                                                                                       |
+|------------------------------------|---------------------------|---------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| test.operator.deployment-target    | `kubernetes` / `minikube` | `kubernetes`                                                  | Modify the deployment for the given cluster type. *NOTE: This should only be necessary for minikube with a shared docker daemon, but the OLM tests still require the bundle and catalog images to be pushed to a remote registry. Please report to us if you find out otherwise.* |
+| test.operator.install-file         | string                    | `${projectRoot}/operator/controller/target/test-install.yaml` | The install file that is used to deploy the operator for testing, must be generated before testing. *NOTE: More information about the install file are below in the __Distribution and Release__ section.*                                                                        |
+| test.operator.remote-debug-enabled | boolean                   | `false`                                                       | Whether to enable remote debugging for the operator. Debugger can be attached to the local port `15005`. Test install file **must** have been generated with debugging support.                                                                                                   |
 
 ### Remote Tests with OLM Tests
 
@@ -266,7 +270,7 @@ OLM tests are similar to the remote tests in that the operator is deployed into 
 4. Run:
    ```shell
    make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
-   mvn verify -DskipOperatorTests=false -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(make VAR=CATALOG_IMAGE variable-get)
+   mvn verify -DskipOperatorTests=false -Dtest.operator.deployment-type=remote -Dtest.operator.catalog-image=$(make VAR=CATALOG_IMAGE variable-get)
    ```
    or
    ```shell
@@ -274,11 +278,29 @@ OLM tests are similar to the remote tests in that the operator is deployed into 
    ```
    for convenience.
 
+*NOTE: Use `-pl olm-tests -am` or `BUILD_OPTS="-pl olm-tests -am"` to only run the OLM tests.*
+
 Configuration options for the remote + OLM tests are same as those for the remote tests, but the following options are additionally available:
 
-| Option                      | Type             | Default value | Description                                                             |
-|-----------------------------|------------------|---------------|-------------------------------------------------------------------------|
-| test.operator.catalog-image | string           | -             | Catalog image that is used to deploy the operator for testing with OLM. |
+| Option                      | Type       | Default value | Description                                                                                   |
+|-----------------------------|------------|---------------|-----------------------------------------------------------------------------------------------|
+| test.operator.catalog-image | string     | -             | Catalog image that is used to deploy the operator for testing with OLM.                       |
+| test.operator.olm-version   | `0` or `1` | `0`           | Use OLM v0 resources or OLM v1 resources to deploy the "subscription" (or cluster extension). |
+
+#### How To: Debug a remote test in Intellij Idea
+
+This quick guide will show you how to debug a single test in remote mode in Idea:
+
+1. (Optional) Build and push your operator image using the steps described earlier.
+2. Generate the test install file (also described above).
+   - If you want to use the snapshot operator image from upstream, pass `IMAGE_TAG=latest-snapshot` when generating the test install file.
+3. Run the test from the editor - click on the green "run" symbol, and then e.g. `Debug 'smoke()'`.
+4. Wait until the debug panel shows up, and then stop the test.
+5. Pin the test tab, so it is not removed.
+6. Open the run configuration by clicking on `⋮` and then `Modify run configuration...`.
+7. Enter the following after the `-ea`: `-Dtest.operator.deployment-type=remote -Dtest.operator.ingress-host=apps.cluster.example`.
+   - Modify the ingress host to point to your cluster.
+8. Re-run the test.
 
 ## Distribution and Release
 
@@ -412,10 +434,11 @@ make catalog-subscription-deploy # Same here.
 
 Available options:
 
-| Option            | Type   | Default value | Description                                                                                                                       |
-|-------------------|--------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| NAMESPACE         | string | `default`     | Namespace to which the operator will be deployed.                                                                                 |
-| CATALOG_NAMESPACE | string | `olm`         | Namespace to which the catalog will be deployed. Usually `olm` for Minikube/Kubernetes and `openshift-marketplace` for OpenShift. |
+| Option            | Type       | Default value | Description                                                                                                                       |
+|-------------------|------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| OLM_VERSION       | `0` or `1` | `0`           | Use OLM v0 resources or OLM v1 resources to deploy the "subscription" (or cluster extension).                                     |
+| NAMESPACE         | string     | `default`     | Namespace to which the operator will be deployed.                                                                                 |
+| CATALOG_NAMESPACE | string     | `olm`         | Namespace to which the catalog will be deployed. Usually `olm` for Minikube/Kubernetes and `openshift-marketplace` for OpenShift. |
 
 ## Notes
 

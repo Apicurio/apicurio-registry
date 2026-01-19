@@ -5,12 +5,11 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.Objects;
-
-import static org.junit.Assert.assertTrue;
 
 public class AvroGenericRecordSchemaFactory {
 
@@ -26,7 +25,7 @@ public class AvroGenericRecordSchemaFactory {
         this.namespace = namespace;
         this.recordName = recordName;
         this.schemaKeys = schemaKeys;
-        assertTrue(this.schemaKeys.size() > 0);
+        Assertions.assertTrue(this.schemaKeys.size() > 0);
         generateSchema();
     }
 
@@ -35,7 +34,7 @@ public class AvroGenericRecordSchemaFactory {
         Objects.requireNonNull(schemaKeys);
         this.recordName = recordName;
         this.schemaKeys = schemaKeys;
-        assertTrue(this.schemaKeys.size() > 0);
+        Assertions.assertTrue(this.schemaKeys.size() > 0);
         generateSchema();
     }
 
@@ -43,7 +42,7 @@ public class AvroGenericRecordSchemaFactory {
         Objects.requireNonNull(schemaKeys);
         this.recordName = TestUtils.generateSubject();
         this.schemaKeys = schemaKeys;
-        assertTrue(this.schemaKeys.size() > 0);
+        Assertions.assertTrue(this.schemaKeys.size() > 0);
         generateSchema();
     }
 

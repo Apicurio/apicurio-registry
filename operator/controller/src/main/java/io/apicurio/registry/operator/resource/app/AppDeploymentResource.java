@@ -10,7 +10,8 @@ import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
-import io.apicurio.registry.operator.feat.PostgresSql;
+import io.apicurio.registry.operator.feat.OTel;
+import io.apicurio.registry.operator.feat.SqlStorage;
 import io.apicurio.registry.operator.feat.TLS;
 import io.apicurio.registry.operator.feat.security.Auth;
 import io.apicurio.registry.operator.status.ReadyConditionManager;
@@ -31,15 +32,16 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
-import static io.apicurio.registry.operator.resource.LabelDiscriminators.AppDeploymentDiscriminator;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_KEY;
+import static io.apicurio.registry.operator.utils.Mapper.copy;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
-@KubernetesDependent(resourceDiscriminator = AppDeploymentDiscriminator.class)
+@KubernetesDependent
 public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deployment, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(AppDeploymentResource.class);
@@ -49,7 +51,8 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     }
 
     @Override
-    protected Deployment desired(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+    protected Deployment desired(ApicurioRegistry3 _primary, Context<ApicurioRegistry3> context) {
+        var primary = copy(_primary);
         StatusManager.get(primary).getConditionManager(ReadyConditionManager.class).recordIsActive(APP_DEPLOYMENT_KEY);
         var deployment = APP_DEPLOYMENT_KEY.getFactory().apply(primary);
 
@@ -80,6 +83,16 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
             addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_DELETION_GROUP_ENABLED).withValue("true").build());
         }
 
+        // Enable version mutability if configured in the CR
+        boolean versionMutabilityEnabled = Optional.ofNullable(primary.getSpec().getApp())
+                .map(AppSpec::getFeatures)
+                .map(AppFeaturesSpec::getVersionMutabilityEnabled)
+                .orElse(Boolean.FALSE);
+
+        if (versionMutabilityEnabled) {
+            addEnvVar(envVars, new EnvVarBuilder().withName(EnvironmentVariables.APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED).withValue("true").build());
+        }
+
         boolean authEnabled = Optional.ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getAuth)
@@ -99,11 +112,15 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         // Configure the TLS env vars
         TLS.configureTLS(primary, deployment, REGISTRY_APP_CONTAINER_NAME, envVars);
 
-        // Configure the storage (Postgresql or KafkaSql).
+        // Configure OpenTelemetry observability
+        ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getOtel)
+                .ifPresent(otelSpec -> OTel.configureOTel(otelSpec, envVars));
+
+        // Configure the storage (PostgreSQL, MySQL, or KafkaSQL).
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
                 .map(StorageSpec::getType).ifPresent(storageType -> {
                     switch (storageType) {
-                        case POSTGRESQL -> PostgresSql.configureDatasource(primary, envVars);
+                        case POSTGRESQL, MYSQL -> SqlStorage.configureDatasource(primary, envVars);
                         case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, deployment, envVars);
                     }
                 });
@@ -150,6 +167,14 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                 "Container %s not found in Deployment %s".formatted(name, ResourceID.fromResource(d)));
     }
 
+    public static Stream<Container> getContainersFromPTS(PodTemplateSpec pts) {
+        requireNonNull(pts);
+        if (pts.getSpec() != null && pts.getSpec().getContainers() != null) {
+            return pts.getSpec().getContainers().stream();
+        }
+        return Stream.empty();
+    }
+
     /**
      * Get container with a given name from the given PTS.
      *
@@ -158,14 +183,6 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
     public static Container getContainerFromPodTemplateSpec(PodTemplateSpec pts, String name) {
         requireNonNull(pts);
         requireNonNull(name);
-        if (pts.getSpec() != null && pts.getSpec().getContainers() != null) {
-            for (var c : pts.getSpec().getContainers()) {
-                if (name.equals(c.getName())) {
-                    return c;
-                }
-            }
-        }
-        return null;
+        return getContainersFromPTS(pts).filter(c -> name.equals(c.getName())).findFirst().orElse(null);
     }
-
 }

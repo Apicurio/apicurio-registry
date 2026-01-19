@@ -1,7 +1,6 @@
 package io.apicurio.registry.rbac;
 
 import com.microsoft.kiota.ApiException;
-import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
@@ -46,12 +45,10 @@ import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -611,7 +608,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         // Execution
         ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.name = root;
+            config.queryParameters.name = root + "*";
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.orderby = ArtifactSortBy.Name;
@@ -639,7 +636,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         // Execution
         // Check the search results still include the DISABLED artifacts
         results = clientV3.search().artifacts().get(config -> {
-            config.queryParameters.name = root;
+            config.queryParameters.name = root + "*";
             config.queryParameters.offset = 0;
             config.queryParameters.limit = 10;
             config.queryParameters.orderby = ArtifactSortBy.Name;
@@ -813,7 +810,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             ArtifactSearchResults ascResults = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.name = "Testorder";
+                config.queryParameters.name = "*Testorder*";
                 config.queryParameters.groupId = groupId;
                 config.queryParameters.orderby = ArtifactSortBy.Name;
                 config.queryParameters.order = SortOrder.Asc;
@@ -831,7 +828,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             ArtifactSearchResults descResults = clientV3.search().artifacts().get(config -> {
                 config.queryParameters.offset = 0;
                 config.queryParameters.limit = 10;
-                config.queryParameters.name = "Testorder";
+                config.queryParameters.name = "*Testorder*";
                 config.queryParameters.groupId = groupId;
                 config.queryParameters.orderby = ArtifactSortBy.Name;
                 config.queryParameters.order = SortOrder.Desc;
@@ -1261,7 +1258,6 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     @Test
-    @DisabledIfEnvironmentVariable(named = AbstractRegistryTestBase.CURRENT_ENV, matches = AbstractRegistryTestBase.CURRENT_ENV_MAS_REGEX)
     public void testDefaultGroup() throws Exception {
         String artifactId1 = "testDefaultGroup-" + UUID.randomUUID().toString();
         createArtifact(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId1);
@@ -1353,7 +1349,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         return created;
     }
 
-    private @NotNull VersionMetaData createOpenAPIArtifact(String groupId, String artifactId)
+    private VersionMetaData createOpenAPIArtifact(String groupId, String artifactId)
             throws Exception {
         CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
                 ARTIFACT_OPENAPI_JSON_CONTENT, ContentTypes.APPLICATION_JSON);

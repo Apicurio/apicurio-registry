@@ -2,7 +2,7 @@ package io.apicurio.registry.metrics.health.readiness;
 
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessCheck;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Default;
 import jakarta.inject.Inject;

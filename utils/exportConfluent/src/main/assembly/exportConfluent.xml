@@ -16,12 +16,14 @@
         <include>LICENSE*</include>
       </includes>
     </fileSet>
+    <!-- Quarkus fast-jar layout -->
     <fileSet>
-      <directory>${project.basedir}/target</directory>
+      <directory>${project.basedir}/target/quarkus-app</directory>
+      <outputDirectory>/quarkus-app</outputDirectory>
+      <filtered>false</filtered>
       <includes>
-        <include>${project.name}-${project.version}.jar</include>
+        <include>**/*</include>
       </includes>
-      <outputDirectory>/</outputDirectory>
     </fileSet>
   </fileSets>
 </assembly>

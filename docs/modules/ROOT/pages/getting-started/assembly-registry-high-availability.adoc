@@ -1,0 +1,579 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="registry-high-availability_{context}"]
+= Deploying {registry} for high availability
+
+[role="_abstract"]
+This chapter explains how to configure {registry} for high availability in a single {kubernetes} cluster:
+
+* xref:ha-architecture-overview_{context}[]
+* xref:ha-application-scaling_{context}[]
+* xref:ha-sql-storage_{context}[]
+* xref:ha-kafkasql-storage_{context}[]
+* xref:ha-monitoring_{context}[]
+* xref:ha-rolling-updates_{context}[]
+* xref:ha-backup-restore_{context}[]
+
+.Prerequisites
+* {installing-the-registry-openshift}
+
+//INCLUDES
+
+[id="ha-architecture-overview_{context}"]
+== High availability architecture overview
+
+A highly available {registry} deployment consists of the following components:
+
+* *Application (backend) pods* - Multiple stateless replicas that process REST API requests. These pods can
+scale horizontally and are distributed across cluster nodes for fault tolerance.
+
+* *UI pods* - Multiple stateless replicas serving the web console (static files). Typically fewer replicas are
+needed compared to the backend.
+
+* *Storage layer* - The stateful component requiring HA configuration. Strategy depends on whether you use SQL
+database or KafkaSQL storage.
+
+The application and UI components are stateless and can be scaled horizontally. High availability is achieved
+by running multiple replicas distributed across failure domains (availability zones) and implementing a highly
+available storage layer.
+
+[id="ha-application-scaling_{context}"]
+== Configuring application component high availability
+
+The {registry} backend and UI components are stateless and can scale horizontally to provide high availability
+and increased throughput.
+
+=== Configuring multiple replicas
+
+Configure the number of replicas for each component in the `ApicurioRegistry3` custom resource:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-ha
+spec:
+  app:
+    replicas: 3
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: jdbc:postgresql://postgresql-ha.my-project.svc:5432/registry
+          username: registry_user
+          password:
+            name: postgresql-credentials
+            key: password
+    ingress:
+      host: registry.example.com
+  ui:
+    replicas: 2
+    ingress:
+      host: registry-ui.example.com
+----
+
+IMPORTANT: Running multiple replicas requires a production-ready storage backend (PostgreSQL, MySQL, or KafkaSQL
+with persistent Kafka). Do not use in-memory storage with multiple replicas.
+
+=== Distributing pods across nodes
+
+To ensure high availability, distribute {registry} pods across different nodes and availability zones:
+
+[source,yaml]
+----
+spec:
+  app:
+    replicas: 3
+    podTemplateSpec:
+      spec:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      app: example-registry
+                      app.kubernetes.io/component: app
+                      app.kubernetes.io/part-of: apicurio-registry
+                  topologyKey: kubernetes.io/hostname
+              - weight: 50
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      app: example-registry
+                      app.kubernetes.io/component: app
+                      app.kubernetes.io/part-of: apicurio-registry
+                  topologyKey: topology.kubernetes.io/zone
+----
+
+This configuration spreads pods across different nodes (hostname) and availability zones when possible.
+
+=== Configuring resource requests and limits
+
+Set appropriate resource requests and limits to ensure pod scheduling and prevent resource contention:
+
+[source,yaml]
+----
+spec:
+  app:
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "500m"
+              limits:
+                memory: "1Gi"
+                cpu: "1000m"
+----
+
+=== Configuring PodDisruptionBudget
+
+Ensure minimum availability during voluntary disruptions such as node drains or cluster upgrades. The operator
+creates a PodDisruptionBudget with `maxUnavailable: 1` by default, but you can customize it by creating your own:
+
+[source,yaml]
+----
+spec:
+  app:
+    replicas: 3
+    podDisruptionBudget:
+      enabled: false
+----
+
+[source,yaml]
+----
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+    name: example-registry-app-poddisruptionbudget
+spec:
+    minAvailable: 1
+    selector:
+      matchLabels:
+        app: example-registry
+        app.kubernetes.io/component: app
+        app.kubernetes.io/part-of: apicurio-registry
+----
+
+[id="ha-sql-storage_{context}"]
+== Configuring SQL database storage for high availability
+
+When using PostgreSQL or MySQL storage, high availability depends on your database configuration. The database
+must be configured with replication and automatic failover.
+
+NOTE: MySQL storage is not yet supported by the operator and requires manual configuration using environment variables.
+
+=== Database high availability options
+
+Consider these database HA strategies:
+
+* *PostgreSQL with streaming replication* - Primary-replica configuration with automatic failover using tools
+like Patroni, CloudNativePG, or Crunchy PostgreSQL Operator
+* *PostgreSQL with synchronous replication* - Ensures zero data loss but may impact performance
+* *MySQL with Group Replication* - Multi-primary or single-primary mode with automatic failover
+* *Managed database services* - Cloud provider managed databases (RDS, Cloud SQL, Azure Database) with built-in HA
+
+=== Configuring connection pool for failover
+
+Configure the Agroal connection pool to handle database failover gracefully. Add these environment variables
+to the `app` component:
+
+[source,yaml]
+----
+spec:
+  app:
+    env:
+      # Connection pool sizing
+      - name: APICURIO_DATASOURCE_JDBC_INITIAL-SIZE
+        value: "10"
+      - name: APICURIO_DATASOURCE_JDBC_MIN-SIZE
+        value: "10"
+      - name: APICURIO_DATASOURCE_JDBC_MAX-SIZE
+        value: "50"
+
+      # Connection acquisition timeout (5 seconds)
+      - name: QUARKUS_DATASOURCE_JDBC_ACQUISITION-TIMEOUT
+        value: "5S"
+
+      # Background validation to detect stale connections (every 2 minutes)
+      - name: QUARKUS_DATASOURCE_JDBC_BACKGROUND-VALIDATION-INTERVAL
+        value: "2M"
+
+      # Foreground validation before use (every 1 minute)
+      - name: QUARKUS_DATASOURCE_JDBC_FOREGROUND-VALIDATION-INTERVAL
+        value: "1M"
+
+      # Maximum connection lifetime (30 minutes)
+      - name: QUARKUS_DATASOURCE_JDBC_MAX-LIFETIME
+        value: "30M"
+----
+
+These settings ensure that:
+
+* Connections are validated regularly to detect database failovers
+* Stale connections are removed and recreated
+* Connection acquisition times out rather than hanging indefinitely
+
+=== Example: PostgreSQL with CloudNativePG
+
+When using the CloudNativePG operator for PostgreSQL HA:
+
+[source,yaml]
+----
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: registry-db-cluster
+spec:
+  instances: 3
+  storage:
+    size: 20Gi
+    storageClass: standard
+  postgresql:
+    parameters:
+      max_connections: "200"
+  backup:
+    barmanObjectStore:
+      # Configure backup storage
+----
+
+Then reference the cluster in your `ApicurioRegistry3` CR:
+
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: jdbc:postgresql://registry-db-cluster-rw:5432/app
+          username: app
+          password:
+            name: registry-db-cluster-app
+            key: password
+----
+
+[id="ha-kafkasql-storage_{context}"]
+== Configuring KafkaSQL storage for high availability
+
+When using KafkaSQL storage, high availability depends on the Kafka cluster configuration. Each {registry}
+replica independently consumes all messages from the Kafka journal topic.
+
+=== Kafka cluster high availability
+
+Configure your Kafka cluster for high availability:
+
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: registry-kafka
+spec:
+  kafka:
+    version: 3.5.0
+    replicas: 3
+    config:
+      # Replication settings for HA
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+    storage:
+      type: persistent-claim
+      size: 100Gi
+  zookeeper:
+    replicas: 3
+    storage:
+      type: persistent-claim
+      size: 10Gi
+----
+
+Key configuration for HA:
+
+* *Kafka replicas: 3* - Provides fault tolerance for broker failures
+* *Replication factor: 3* - Each partition has 3 copies
+* *min.insync.replicas: 2* - Requires at least 2 replicas to acknowledge writes
+
+=== KafkaSQL topic configuration
+
+{registry} uses three Kafka topics for various purposes:
+
+* *Journal topic* - Stores all changes to the registry data. Named `kafkasql-journal` by default and is the most important topic for data durability.
+* *Snapshots topic* - Stores periodic snapshots of the registry state for faster startup, if the snapshotting feature is used. It's named `kafkasql-snapshots` by default and should be configured with similar replication settings as the journal topic.
+* *Events topic* - Stores events to support Kafka-based Registry eventing feature. Named `registry-events` by default, its configuration depends on your event processing needs. *Currently, {registry} sends messages to only 1 partition of this topic.*
+
+Configure the Kafka topics used by {registry} with appropriate replication:
+
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: kafkasql-journal
+  labels:
+    strimzi.io/cluster: registry-kafka
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    min.insync.replicas: 2
+    retention.ms: -1  # Infinite retention
+    retention.bytes: -1  # Infinite retention
+----
+
+WARNING: The journal topic and the snapshots topic must use `cleanup.policy: delete` with infinite retention (`retention.ms: -1` and `retention.bytes: -1`) to prevent accidental data loss. As of the latest version, {registry} will check these settings on startup and refuse to start if they are not configured correctly.
+
+{registry} automatically creates the journal, snapshots, and events topics on startup by default, if they do not exist. While this is not recommended in a high-availability production scenario, if you want the topics to be created automatically, the following environment variables provide the equivalent configuration:
+
+[source,bash]
+----
+APICURIO_KAFKASQL_TOPIC_PARTITIONS=3
+APICURIO_KAFKASQL_TOPIC_REPLICATION_FACTOR=3
+APICURIO_KAFKASQL_TOPIC_MIN_INSYNC_REPLICAS=2
+APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_PARTITIONS=3
+APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_REPLICATION_FACTOR=3
+APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_MIN_INSYNC_REPLICAS=2
+----
+
+=== Consumer behavior with multiple replicas
+
+When running multiple {registry} replicas with KafkaSQL storage:
+
+* Each replica uses a unique consumer group ID (automatically generated using UUID)
+* Each replica independently consumes all messages from the journal topic
+* There is no consumer group rebalancing between replicas
+* All replicas build the same in-memory state from the Kafka topic
+
+This design ensures that:
+
+* New replicas can be added without affecting existing replicas
+* Pod restarts only affect the restarting pod, not others
+* Each replica maintains a consistent view of the data
+
+[id="ha-monitoring_{context}"]
+== Monitoring high availability deployments
+
+{registry} exposes Prometheus metrics for monitoring application health and performance.
+
+=== Enabling metrics
+
+Metrics are enabled by default. Access the metrics endpoint at `/q/metrics`.
+
+=== Key metrics to monitor
+
+Monitor these metrics for HA deployments:
+
+* *REST API metrics:*
+** `http_server_requests_seconds` - Request latency
+** `http_server_active_requests` - Concurrent requests
+** `http_server_requests_total` - Total request count
+
+* *Storage metrics:*
+** `apicurio_storage_operation_seconds` - Storage operation latency
+** `apicurio_storage_concurrent_operations` - Concurrent storage operations
+** `apicurio_storage_operation_total` - Total storage operations
+
+* *Health check metrics:*
+** Readiness probe: `/q/health/ready`
+** Liveness probe: `/q/health/live`
+
+* *JVM metrics:*
+** `jvm_memory_used_bytes` - Memory usage
+** `jvm_gc_pause_seconds` - Garbage collection pauses
+
+=== Configuring ServiceMonitor for Prometheus Operator
+
+If using the Prometheus Operator, create a ServiceMonitor to scrape metrics:
+
+[source,yaml]
+----
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: apicurio-registry-metrics
+  labels:
+    app: apicurio-registry
+spec:
+  selector:
+    matchLabels:
+      app: apicurio-registry
+  endpoints:
+    - port: http
+      path: /q/metrics
+      interval: 30s
+----
+
+=== Alerting recommendations
+
+Configure alerts for:
+
+* Pod restarts or crash loops
+* High error rates (5xx responses)
+* Storage operation timeouts
+* Database connection pool exhaustion
+* Kafka consumer lag (for KafkaSQL storage)
+
+[id="ha-rolling-updates_{context}"]
+== Performing rolling updates
+
+When updating {registry} to a new version, use rolling updates to minimize downtime.
+
+=== Rolling update strategy
+
+The operator performs rolling updates automatically when you update the `ApicurioRegistry3` CR. The default
+strategy ensures:
+
+* Pods are updated one at a time
+* Each new pod must pass readiness checks before the next pod is updated
+* PodDisruptionBudget prevents too many pods being unavailable
+
+=== Updating {registry} version
+
+{registry} and {operator} are versioned together. To update {registry} to a new version, update {operator}, which will automatically update the application.
+
+For production environments, we strongly recommend using Operator Lifecycle Manager (OLM) with manual install plan confirmation enabled. This prevents automatic updates from occurring immediately when a new version becomes available, giving you time to review release notes and prepare for the update.
+
+If you need to update the application without updating {operator} (*not recommended* except as a workaround for critical issues), you can override the application image in your pod template:
+
+[source,yaml]
+----
+spec:
+  app:
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            image: quay.io/apicurio/apicurio-registry:3.1.0
+----
+
+=== Safe update practices
+
+Follow these practices for safe updates:
+
+* *Test in non-production first* - Validate the new version in a test environment
+* *Monitor during rollout* - Watch metrics and logs during the update
+* *Maintain minimum replicas* - Keep at least 2 replicas to ensure availability during updates
+* *Review release notes* - Check for breaking changes or migration steps
+
+IMPORTANT: For patch releases (e.g., 3.1.0 to 3.1.1), rolling updates typically complete without issues. For major or minor version updates, always review the migration guide.
+
+[id="ha-backup-restore_{context}"]
+== Backup and restore procedures
+
+Regular backups are essential for disaster recovery and data protection.
+
+=== SQL database backup
+
+For SQL storage (PostgreSQL or MySQL), backup strategies depend on your database setup:
+
+==== PostgreSQL backup options
+
+* *pg_dump logical backups:*
++
+[source,bash]
+----
+pg_dump -h postgresql-host -U registry_user -d registry > registry-backup.sql
+----
+
+* *Continuous archiving with WAL* - For point-in-time recovery
+* *Operator-managed backups* - If using CloudNativePG or Crunchy PostgreSQL Operator:
++
+[source,yaml]
+----
+spec:
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://my-backups/registry-db
+      s3Credentials:
+        accessKeyId:
+          name: backup-credentials
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: backup-credentials
+          key: ACCESS_SECRET_KEY
+      wal:
+        compression: gzip
+    retentionPolicy: "30d"
+----
+
+==== MySQL backup options
+
+* *mysqldump logical backups:*
++
+[source,bash]
+----
+mysqldump -h mysql-host -u registry_user -p registry > registry-backup.sql
+----
+
+* *Binary backups* - Using tools like Percona XtraBackup or MySQL Enterprise Backup
+
+==== Restoring from SQL backup
+
+To restore from a logical backup:
+
+[source,bash]
+----
+# PostgreSQL
+psql -h postgresql-host -U registry_user -d registry < registry-backup.sql
+
+# MySQL
+mysql -h mysql-host -u registry_user -p registry < registry-backup.sql
+----
+
+=== KafkaSQL storage backup
+
+For KafkaSQL storage, back up the Kafka journal topic and snapshots topic.
+
+==== Backing up Kafka topics
+
+Use Kafka's MirrorMaker 2 or {kafka-streams} Mirror Maker for topic replication (recommended):
+
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: registry-backup-mirror
+spec:
+  version: 3.5.0
+  replicas: 1
+  connectCluster: "backup-cluster"
+  clusters:
+    - alias: "source-cluster"
+      bootstrapServers: registry-kafka-bootstrap:9092
+    - alias: "backup-cluster"
+      bootstrapServers: backup-kafka-bootstrap:9092
+  mirrors:
+    - sourceCluster: "source-cluster"
+      targetCluster: "backup-cluster"
+      topicsPattern: "kafkasql-.*"
+      groupsPattern: ".*"
+----
+
+Alternatively, export and import topics using Kafka's console consumer or CLI tools like `kcat`/`kafkacat`. Since the topics might contain binary data, which might be affected by text file encoding, make sure they are exported correctly when using CLI tools. See our xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[] guide for more details.
+
+=== Testing backup and restore
+
+Regularly test your backup and restore procedures:
+
+. Create a test {registry} deployment in a separate namespace
+. Restore from backup to the test deployment
+. Verify that all artifacts and metadata are present
+. Test API functionality to ensure data integrity
+
+[role="_additional-resources"]
+.Additional resources
+
+* For more information on {registry} configuration, see xref:getting-started/assembly-deploying-registry-operator.adoc[].
+* For Kafka HA configuration with {kafka-streams}, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
+* For health checks and metrics, see the
+link:/q/health[Health UI] and link:/q/metrics[Metrics endpoint] in your {registry} deployment.

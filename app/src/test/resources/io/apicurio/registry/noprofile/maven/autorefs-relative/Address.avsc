@@ -1,0 +1,20 @@
+{
+  "namespace": "com.example.trade",
+  "type": "record",
+  "name": "Address",
+  "doc": "Address information",
+  "fields": [
+    {
+      "name": "street",
+      "type": "string"
+    },
+    {
+      "name": "city",
+      "type": "string"
+    },
+    {
+      "name": "country",
+      "type": "string"
+    }
+  ]
+}

@@ -16,10 +16,7 @@
       <useTransitiveFiltering>true</useTransitiveFiltering>
       <excludes>
         <!-- Exclude dependencies of Kafka APIs, since they will be available in the runtime -->
-        <exclude>org.apache.kafka:kafka-clients:*</exclude>
-        <exclude>org.apache.kafka:connect-api:*</exclude>
-        <exclude>org.apache.kafka:connect-json:*</exclude>
-        <exclude>com.fasterxml.jackson:*</exclude>
+
         <exclude>org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:*</exclude>
       </excludes>
     </dependencySet>
@@ -31,12 +28,7 @@
       <useTransitiveDependencies>true</useTransitiveDependencies>
       <excludes>
         <!-- Exclude dependencies of Kafka APIs, since they will be available in the runtime -->
-        <exclude>org.apache.kafka:kafka-clients:*</exclude>
-        <exclude>org.apache.kafka:connect-api:*</exclude>
-        <!-- Connect JSON needs to be kept due to classloading conflicts of Jackson data mapper
-        <exclude>org.apache.kafka:connect-json:*</exclude>
-        <exclude>com.fasterxml.jackson:*:*</exclude>
-        -->
+
         <exclude>org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:*</exclude>
       </excludes>
     </dependencySet>

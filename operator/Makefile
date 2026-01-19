@@ -37,7 +37,7 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.0.9
+PREVIOUS_PACKAGE_VERSION ?= 3.1.6
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 CHANNELS ?= 3.x
@@ -64,6 +64,9 @@ CATALOG_IMAGE_NAME ?= $(IMAGE_NAME)-catalog
 CATALOG_IMAGE_TAG ?= $(LC_VERSION)
 CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(CATALOG_IMAGE_TAG)
 ADDITIONAL_CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(ADDITIONAL_CATALOG_IMAGE_TAG)
+
+OLM_VERSION ?= 0
+OLM_DEPLOY_DIR ?= $(CATALOG_DIR)/../olmv$(OLM_VERSION)
 
 ### Install
 
@@ -245,7 +248,7 @@ ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
 else
 	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
 endif
-	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
+	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment-type=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
 
 .PHONY: image-build
@@ -275,19 +278,24 @@ image: image-build image-push ## TODO
 .PHONY: deploy
 deploy: ## Deploy the Operator to a cluster using kubectl
 	kubectl create namespace $(NAMESPACE) || true
-	kubectl kustomize controller/src/main/deploy/install | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	kubectl kustomize controller/src/main/deploy/install/default | envsubst | kubectl -n $(NAMESPACE) apply -f -
 
 
 .PHONY: undeploy
 undeploy: ## TODO
-	kubectl kustomize controller/src/main/deploy/install | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	kubectl kustomize controller/src/main/deploy/install/default | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
 
 
 .PHONY: dist-install-file
 dist-install-file: ## TODO
 	mkdir -p $(dir $(INSTALL_FILE))
+ifeq ($(DEBUG),true)
 	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
-	kubectl kustomize controller/src/main/deploy/install | envsubst >$(INSTALL_FILE)
+	kubectl kustomize controller/src/main/deploy/install/debug | envsubst >$(INSTALL_FILE)
+else
+	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
+	kubectl kustomize controller/src/main/deploy/install/default | envsubst >$(INSTALL_FILE)
+endif
 
 
 .PHONY: dist
@@ -397,25 +405,59 @@ catalog: catalog-build catalog-image-build catalog-image-push ## TODO
 .PHONY: catalog-deploy
 catalog-deploy: ## TODO
 	kubectl create namespace $(CATALOG_NAMESPACE) || true
-	cat $(CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) apply -f -
+ifeq ($(OLM_VERSION),0)
+	cat $(OLM_DEPLOY_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) apply -f -
+else ifeq ($(OLM_VERSION),1)
+	cat $(OLM_DEPLOY_DIR)/cluster-catalog.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) apply -f -
+else
+	$(error Invalid value of variable OLM_VERSION=$(OLM_VERSION))
+endif
 
 
 .PHONY: catalog-undeploy
 catalog-undeploy: ## TODO
-	cat $(CATALOG_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f - || true
+ifeq ($(OLM_VERSION),0)
+	cat $(OLM_DEPLOY_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f - || true
+else ifeq ($(OLM_VERSION),1)
+	cat $(OLM_DEPLOY_DIR)/cluster-catalog.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f - || true
+else
+	$(error Invalid value of variable OLM_VERSION=$(OLM_VERSION))
+endif
 
 
 .PHONY: catalog-subscription-deploy
 catalog-subscription-deploy: ## TODO
 	kubectl create namespace $(NAMESPACE) || true
-	cat $(CATALOG_DIR)/operator-group.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
-	cat $(CATALOG_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+ifeq ($(OLM_VERSION),0)
+	cat $(OLM_DEPLOY_DIR)/operator-group.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	cat $(OLM_DEPLOY_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+else ifeq ($(OLM_VERSION),1)
+	cat $(OLM_DEPLOY_DIR)/service-account.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	cat $(OLM_DEPLOY_DIR)/cluster-role.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	cat $(OLM_DEPLOY_DIR)/cluster-role-binding.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	#cat $(OLM_DEPLOY_DIR)/role.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	#cat $(OLM_DEPLOY_DIR)/role-binding.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	cat $(OLM_DEPLOY_DIR)/cluster-extension.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+else
+	$(error Invalid value of variable OLM_VERSION=$(OLM_VERSION))
+endif
 
 
 .PHONY: catalog-subscription-undeploy
 catalog-subscription-undeploy: ## TODO
-	cat $(CATALOG_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
-	cat $(CATALOG_DIR)/operator-group.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+ifeq ($(OLM_VERSION),0)
+	cat $(OLM_DEPLOY_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	cat $(OLM_DEPLOY_DIR)/operator-group.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+else ifeq ($(OLM_VERSION),1)
+	cat $(OLM_DEPLOY_DIR)/cluster-extension.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	#cat $(OLM_DEPLOY_DIR)/role-binding.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	#cat $(OLM_DEPLOY_DIR)/role.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	cat $(OLM_DEPLOY_DIR)/cluster-role-binding.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	cat $(OLM_DEPLOY_DIR)/cluster-role.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	cat $(OLM_DEPLOY_DIR)/service-account.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+else
+	$(error Invalid value of variable OLM_VERSION=$(OLM_VERSION))
+endif
 	kubectl -n $(NAMESPACE) delete clusterserviceversion $(PACKAGE) || true
 
 

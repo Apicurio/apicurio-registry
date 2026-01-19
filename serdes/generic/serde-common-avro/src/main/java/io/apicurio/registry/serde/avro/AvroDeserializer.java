@@ -3,16 +3,16 @@ package io.apicurio.registry.serde.avro;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
@@ -30,21 +30,21 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
         super();
     }
 
-    public AvroDeserializer(RegistryClient client) {
-        super(client);
+    public AvroDeserializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public AvroDeserializer(SchemaResolver<Schema, U> schemaResolver) {
         super(schemaResolver);
     }
 
-    public AvroDeserializer(RegistryClient client, SchemaResolver<Schema, U> schemaResolver) {
-        super(client, schemaResolver);
+    public AvroDeserializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public AvroDeserializer(RegistryClient client, ArtifactReferenceResolverStrategy<Schema, U> strategy,
-            SchemaResolver<Schema, U> schemaResolver) {
-        super(client, strategy, schemaResolver);
+    public AvroDeserializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<Schema, U> strategy,
+                            SchemaResolver<Schema, U> schemaResolver) {
+        super(clientFacade, strategy, schemaResolver);
     }
 
     @SuppressWarnings("rawtypes")
@@ -82,11 +82,12 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
         try {
             DatumReader<U> reader = avroDatumProvider.createDatumReader(schema.getParsedSchema());
             if (encoding == AvroEncoding.JSON) {
-                // copy the data into a new byte[]
-                byte[] msgData = new byte[length];
-                System.arraycopy(buffer.array(), start, msgData, 0, length);
+                // Create a ByteBuffer slice to avoid copying data
+                ByteBuffer slice = buffer.duplicate();
+                slice.position(start);
+                slice.limit(start + length);
                 return reader.read(null, decoderFactory.jsonDecoder(schema.getParsedSchema(),
-                        new ByteArrayInputStream(msgData)));
+                        new ByteBufferInputStream(slice)));
             } else {
                 return reader.read(null, decoderFactory.binaryDecoder(buffer.array(), start, length, null));
             }

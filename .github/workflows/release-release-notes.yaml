@@ -1,0 +1,88 @@
+name: Release Release Notes
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag name'
+        required: true
+  release:
+    types: [ released, prereleased ]
+
+
+env:
+  # The values are extracted from the github.event context,
+  # which is only available when the workflow gets triggered by a release event.
+  RELEASE_VERSION: ${{ github.event.release.name }}
+  BRANCH: ${{ github.event.release.target_commitish }}
+
+
+jobs:
+  generate-release-notes:
+    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Fetch Release Details
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          touch release.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${{ github.event.inputs.tag }} > release.json
+          echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+
+      - name: Generate Release Notes from Milestone Issues
+        run: |
+          MILESTONE="${RELEASE_VERSION}"
+
+          # Get all closed issues for this milestone
+          gh issue list \
+            --repo ${GITHUB_REPOSITORY} \
+            --milestone "${MILESTONE}" \
+            --state closed \
+            --limit 1000 \
+            --json number,title,labels \
+            > issues.json
+
+          # Generate release notes
+          cat > release_notes.md << 'EOF'
+          ## What's Changed
+
+          EOF
+
+          # Extract bugs
+          echo "### Bug Fixes" >> release_notes.md
+          jq -r '.[] | select(.labels[]?.name == "type/bug") | "* \(.title) (#\(.number))"' issues.json >> release_notes.md
+          echo "" >> release_notes.md
+
+          # Extract enhancements
+          echo "### Enhancements" >> release_notes.md
+          jq -r '.[] | select(.labels[]?.name == "type/enhancement") | "* \(.title) (#\(.number))"' issues.json >> release_notes.md
+          echo "" >> release_notes.md
+
+          # Extract other issues (not tagged as bug or enhancement)
+          echo "### Other Changes" >> release_notes.md
+          jq -r '.[] | select(all(.labels[]?.name; . != "type/bug" and . != "type/enhancement")) | "* \(.title) (#\(.number))"' issues.json >> release_notes.md
+          echo "" >> release_notes.md
+
+          # Update the GitHub release with the generated notes
+          gh release edit ${RELEASE_VERSION} \
+            --repo ${GITHUB_REPOSITORY} \
+            --notes-file release_notes.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Slack Notification (Always)
+        if: always()
+        run: |
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+
+      - name: Slack Notification (Error)
+        if: failure()
+        run: |
+          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}

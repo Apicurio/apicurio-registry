@@ -10,11 +10,12 @@ import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.limits.LimitExceededException;
+import io.apicurio.registry.rest.InvalidParameterValueException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
-import io.apicurio.registry.rules.RuleViolationException;
-import io.apicurio.registry.rules.UnprocessableSchemaException;
+import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.storage.error.AlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
@@ -31,7 +32,6 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
-import io.apicurio.registry.storage.error.LogConfigurationNotFoundException;
 import io.apicurio.registry.storage.error.NotAllowedException;
 import io.apicurio.registry.storage.error.NotFoundException;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
@@ -59,6 +59,7 @@ import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 
 @Singleton
@@ -99,12 +100,14 @@ public class HttpStatusCodeMap {
         map.put(InvalidPropertyValueException.class, HTTP_BAD_REQUEST);
         map.put(io.apicurio.registry.rest.ConflictException.class, HTTP_CONFLICT);
         map.put(LimitExceededException.class, HTTP_CONFLICT);
-        map.put(LogConfigurationNotFoundException.class, HTTP_NOT_FOUND);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidParameterValueException.class, HTTP_BAD_REQUEST);
         map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the
         // latter for authx only.
         map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
+        map.put(io.quarkus.security.UnauthorizedException.class, HTTP_UNAUTHORIZED);
+        map.put(io.quarkus.security.ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
         map.put(ReadOnlyStorageException.class, HTTP_CONFLICT);
         map.put(ReferenceExistsException.class, HTTP_UNPROCESSABLE_ENTITY);

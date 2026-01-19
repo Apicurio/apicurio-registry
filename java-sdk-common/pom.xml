@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry</artifactId>
+    <version>3.1.7-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-java-sdk-common</artifactId>
+
+  <name>apicurio-registry-java-sdk-common</name>
+  <description>Shared code for Apicurio Registry Java SDK v2 and v3</description>
+
+  <properties>
+    <projectRoot>${project.basedir}/..</projectRoot>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.microsoft.kiota</groupId>
+      <artifactId>microsoft-kiota-abstractions</artifactId>
+      <version>${kiota.libs.version}</version>
+    </dependency>
+    <!-- HTTP Adapters - jdk optional, this allows users to exclude vertx and use the jdk http client -->
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-vertx</artifactId>
+      <version>${kiota.community.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-jdk</artifactId>
+      <version>${kiota.community.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-auth-oauth2</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.microprofile.config</groupId>
+      <artifactId>microprofile-config-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <!-- Test only -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-serialization-jackson</artifactId>
+      <version>${kiota.community.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

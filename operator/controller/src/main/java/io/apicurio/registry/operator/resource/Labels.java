@@ -15,8 +15,8 @@ public final class Labels {
                 "app", primary.getMetadata().getName(),
                 "app.kubernetes.io/name", "apicurio-registry",
                 "app.kubernetes.io/component", component,
-                "app.kubernetes.io/instance", primary.getMetadata().getName(),
-                "app.kubernetes.io/part-of", "apicurio-registry"
+                "app.kubernetes.io/part-of", "apicurio-registry",
+                "app.kubernetes.io/instance", primary.getMetadata().getName()
         );
     }
 
@@ -25,14 +25,21 @@ public final class Labels {
                 "app", "apicurio-registry-operator",
                 "app.kubernetes.io/name", "apicurio-registry-operator",
                 "app.kubernetes.io/component", "operator",
-                "app.kubernetes.io/instance", "apicurio-registry-operator",
-                "app.kubernetes.io/part-of", "apicurio-registry"
+                "app.kubernetes.io/part-of", "apicurio-registry",
+                "app.kubernetes.io/instance", "apicurio-registry-operator"
         );
     }
 
     public static Map<String, String> getMinimalOperatorSelectorLabels() {
         return Map.of(
                 "app", "apicurio-registry-operator"
+        );
+    }
+
+    public static Map<String, String> getOperatorManagedLabels() {
+        return Map.of(
+                "app.kubernetes.io/managed-by", "apicurio-registry-operator",
+                "app.apicurio-registry-operator.io/managed", "true"
         );
     }
 }

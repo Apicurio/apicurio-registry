@@ -1,0 +1,39 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "Customer Service API",
+        "version": "1.0.0",
+        "description": "API for customer events with JSON Schema references"
+    },
+    "channels": {
+        "customerUpdates": {
+            "address": "customer/updates",
+            "messages": {
+                "customerUpdateMessage": {
+                    "$ref": "#/components/messages/CustomerUpdateMessage"
+                }
+            }
+        }
+    },
+    "components": {
+        "messages": {
+            "CustomerUpdateMessage": {
+                "payload": {
+                    "type": "object",
+                    "properties": {
+                        "customerId": {
+                            "type": "string"
+                        },
+                        "address": {
+                            "$ref": "http://schemas.example.org/common-schemas.json#/definitions/Address"
+                        },
+                        "contact": {
+                            "$ref": "http://schemas.example.org/common-schemas.json#/definitions/Contact"
+                        }
+                    },
+                    "required": ["customerId", "address"]
+                }
+            }
+        }
+    }
+}

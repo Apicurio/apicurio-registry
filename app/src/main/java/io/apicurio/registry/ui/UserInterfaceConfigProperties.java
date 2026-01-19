@@ -4,6 +4,8 @@ import io.apicurio.common.apps.config.Info;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.util.Optional;
+
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_UI;
 
 @Singleton
@@ -18,12 +20,15 @@ public class UserInterfaceConfigProperties {
     @ConfigProperty(name = "apicurio.ui.docsUrl", defaultValue = "/docs/")
     @Info(category = CATEGORY_UI, description = "URL of the Documentation component", availableSince = "3.0.0")
     public String docsUrl;
+    @ConfigProperty(name = "apicurio.ui.editorsUrl", defaultValue = "/editors/")
+    @Info(category = CATEGORY_UI, description = "URL of the Editors component", availableSince = "3.1.0")
+    public String editorsUrl;
 
-    @ConfigProperty(name = "quarkus.oidc.auth-server-url")
+    @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
     public String authOidcUrl;
-    @ConfigProperty(name = "apicurio.ui.auth.oidc.redirect-uri", defaultValue = "/")
+    @ConfigProperty(name = "apicurio.ui.auth.oidc.redirect-uri")
     @Info(category = CATEGORY_UI, description = "The OIDC redirectUri", availableSince = "3.0.0")
-    public String authOidcRedirectUri;
+    public Optional<String> authOidcRedirectUri;
     @ConfigProperty(name = "apicurio.ui.auth.oidc.client-id", defaultValue = "apicurio-registry-ui")
     @Info(category = CATEGORY_UI, description = "The OIDC clientId", availableSince = "3.0.0")
     public String authOidcClientId;
@@ -44,5 +49,9 @@ public class UserInterfaceConfigProperties {
     @ConfigProperty(name = "apicurio.ui.auth.oidc.scope", defaultValue = "openid profile email")
     @Info(category = CATEGORY_UI, description = "UI auth OIDC scope value", availableSince = "3.0.8")
     public String scope;
+
+    @ConfigProperty(name = "apicurio.ui.auth.oidc.load-user-info")
+    @Info(category = CATEGORY_UI, description = "Whether to load user info from the OIDC userinfo endpoint. Defaults to true if not specified. Set to false for OIDC providers like Azure Entra ID where the userinfo endpoint has incompatible audience requirements.", availableSince = "3.1.6")
+    public Optional<Boolean> loadUserInfo;
 
 }

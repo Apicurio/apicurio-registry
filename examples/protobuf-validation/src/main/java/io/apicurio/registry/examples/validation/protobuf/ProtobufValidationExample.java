@@ -16,7 +16,8 @@
 
 package io.apicurio.registry.examples.validation.protobuf;
 
-import io.apicurio.registry.client.auth.VertXAuthFactory;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -32,7 +33,6 @@ import io.apicurio.schema.validation.protobuf.ProtobufRecord;
 import io.apicurio.schema.validation.protobuf.ProtobufValidationResult;
 import io.apicurio.schema.validation.protobuf.ProtobufValidator;
 import io.apicurio.schema.validation.protobuf.ref.MessageExampleOuterClass.MessageExample;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 
 import java.nio.charset.StandardCharsets;
@@ -146,14 +146,10 @@ public class ProtobufValidationExample {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv(SchemaResolverConfig.AUTH_CLIENT_ID);
             final String authSecret = System.getenv(SchemaResolverConfig.AUTH_CLIENT_SECRET);
-            var adapter = new VertXRequestAdapter(
-                    VertXAuthFactory.buildOIDCWebClient(vertx, tokenEndpoint, authClient, authSecret));
-            adapter.setBaseUrl(registryUrl);
-            return new RegistryClient(adapter);
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx)
+                    .oauth2(tokenEndpoint, authClient, authSecret));
         } else {
-            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-            vertXRequestAdapter.setBaseUrl(registryUrl);
-            return new RegistryClient(vertXRequestAdapter);
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx));
         }
     }
 

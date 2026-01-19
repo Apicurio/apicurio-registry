@@ -170,7 +170,7 @@ The following {registry} configuration options are available for each component 
 |Enable auth
 |`quarkus.oidc.token-path`
 |`string`
-|
+|`/protocol/openid-connect/token/`
 |`2.1.0.Final`
 |Authentication server token endpoint.
 |===
@@ -487,6 +487,128 @@ The following {registry} configuration options are available for each component 
 |Storage metrics cache max size.
 |===
 
+== log
+.log configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.log.level`
+|`string [dynamic]`
+|`INFO`
+|`3.1.0`
+|Dynamic log level for Apicurio Registry
+|===
+
+== observability
+.observability configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.metrics.rest.enabled`
+|`boolean`
+|`true`
+|`3.1.1`
+|        Enable collecting metrics about REST API requests.
+
+|`apicurio.metrics.rest.explicit-status-codes-list`
+|`list<string>`
+|`401`
+|`3.1.1`
+|        Only the general category of the HTTP status code is added as a tag/label on REST API request metrics,
+        e.g. `1xx`, `2xx`, ...         If you are interested in metrics for a specific status code, e.g. 401 for authentication errors,
+        this property allows you to specify a list of such codes.         Each request will be counted only once, i.e. either as the specific status code or in the general category. 
+|`apicurio.metrics.rest.method-tag-enabled`
+|`boolean`
+|`true`
+|`3.1.1`
+|        Add the HTTP method tag/label on REST API request metrics.         You might disable this tag to reduce metrics cardinality.
+
+|`apicurio.metrics.rest.path-filter-pattern`
+|`string`
+|`/apis/.*`
+|`3.1.1`
+|        Only requests with a path matching this pattern (Java syntax) will be considered for metrics collection.         The pattern is applied to the request path only,
+        e.g. `curl 'http://localhost:8080/apis/registry/v3/groups/default/artifacts?offset=42&limit=10'`
+        will be matched against `/apis/registry/v3/groups/default/artifacts`.
+
+|`apicurio.metrics.rest.path-tag-enabled`
+|`boolean`
+|`true`
+|`3.1.1`
+|        Add the unsubstituted path tag/label on REST API request metrics,
+        e.g. `/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`.         You might disable this tag to reduce metrics cardinality.         When an unsubstituted REST API resource path could not be determined,
+        the tag value will be `(unspecified)`.
+
+|`quarkus.otel.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|Enable or disable OpenTelemetry for distributed tracing, metrics export via OTLP, and log correlation. When enabled, {registry} exports telemetry data to an OpenTelemetry collector.
+|`quarkus.otel.exporter.otlp.endpoint`
+|`string`
+|`http://localhost:4317`
+|`3.1.7`
+|The endpoint URL of the OpenTelemetry collector. Supports both gRPC (port 4317) and HTTP (port 4318) protocols.
+|`quarkus.otel.exporter.otlp.protocol`
+|`string`
+|`grpc`
+|`3.1.7`
+|The protocol to use for exporting telemetry data. Valid values are `grpc` or `http/protobuf`.
+|`quarkus.otel.instrument.kafka`
+|`boolean`
+|`true`
+|`3.1.7`
+|Enable or disable automatic tracing instrumentation for Kafka operations. Useful for tracing in KafkaSQL storage deployments.
+|`quarkus.otel.logs.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|BUILD-TIME property to enable log export via OpenTelemetry. When enabled along with JSON logging, trace context is automatically included in log entries. Use `quarkus.otel.sdk.disabled` to control log export at runtime.
+|`quarkus.otel.metrics.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|BUILD-TIME property to enable metrics export via OpenTelemetry. This works alongside existing Prometheus metrics export. Use `quarkus.otel.sdk.disabled` to control metrics at runtime.
+|`quarkus.otel.resource.attributes`
+|`string`
+|
+|`3.1.7`
+|Additional resource attributes to include in telemetry data, specified as comma-separated key=value pairs. Example: `service.version=3.0.0,deployment.environment=production`
+|`quarkus.otel.sdk.disabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|Disable the OpenTelemetry SDK at runtime. Set to `false` to enable OpenTelemetry. This is the primary runtime control for enabling/disabling all telemetry signals.
+|`quarkus.otel.service.name`
+|`string`
+|`apicurio-registry`
+|`3.1.7`
+|The logical service name for this {registry} instance. This name appears in traces and metrics exported to the OpenTelemetry collector.
+|`quarkus.otel.traces.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|BUILD-TIME property to enable distributed tracing instrumentation. When enabled, {registry} creates spans for REST API requests and storage operations. Use `quarkus.otel.sdk.disabled` to control tracing at runtime.
+|`quarkus.otel.traces.sampler`
+|`string`
+|`parentbased_always_on`
+|`3.1.7`
+|The sampling strategy for traces. Use `parentbased_always_on` for development or `parentbased_traceidratio` for production to reduce overhead.
+|`quarkus.otel.traces.sampler.arg`
+|`string`
+|`1.0`
+|`3.1.7`
+|The sampling ratio when using `parentbased_traceidratio` sampler. A value of `0.1` means 10% of traces are sampled.
+|===
+
 == redirects
 .redirects configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -674,6 +796,11 @@ The following {registry} configuration options are available for each component 
 |`registry-events`
 |
 |Storage event topic
+|`apicurio.events.kafka.topic.*`
+|`map<string, string>`
+|
+|`3.1.3`
+|Kafka sql events topic properties. There is an optional Registry-specific configuration property: 'replication.factor'. IMPORTANT: As a temporary compatibility measure, configuration properties for this topic are also inherited from 'apicurio.kafkasql.topic' unless explicitly overridden by this property. This will be removed in a next minor version.
 |`apicurio.kafkasql.bootstrap.servers`
 |`string`
 |
@@ -688,12 +815,12 @@ The following {registry} configuration options are available for each component 
 |`integer`
 |`5000`
 |
-|Kafka sql storage consumer poll timeout
+|Kafka sql storage consumer poll timeout in milliseconds
 |`apicurio.kafkasql.coordinator.response-timeout`
 |`integer`
 |`30000`
 |
-|Kafka sql storage coordinator response timeout
+|Kafka sql storage coordinator response timeout in milliseconds
 |`apicurio.kafkasql.security.protocol`
 |`optional<string>`
 |
@@ -729,11 +856,36 @@ The following {registry} configuration options are available for each component 
 |
 |
 |Kafka sql storage sasl token endpoint
+|`apicurio.kafkasql.security.ssl.key.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl key password
+|`apicurio.kafkasql.security.ssl.keystore.location`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore location
+|`apicurio.kafkasql.security.ssl.keystore.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore password
+|`apicurio.kafkasql.security.ssl.keystore.type`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl keystore type
 |`apicurio.kafkasql.security.ssl.truststore.location`
 |`optional<string>`
 |
 |
 |Kafka sql storage ssl truststore location
+|`apicurio.kafkasql.security.ssl.truststore.password`
+|`optional<string>`
+|
+|
+|Kafka sql storage ssl truststore password
 |`apicurio.kafkasql.security.ssl.truststore.type`
 |`optional<string>`
 |
@@ -748,37 +900,52 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`kafkasql-snapshots`
 |`3.0.0`
-|Kafka sql storage topic name
+|Kafka sql snapshots topic name
+|`apicurio.kafkasql.snapshots.topic.*`
+|`map<string, string>`
+|
+|`3.1.3`
+|Kafka sql snapshots topic properties. There are two optional Registry-specific configuration properties: 'partitions' and 'replication.factor'. IMPORTANT: As a temporary compatibility measure, configuration properties for this topic are also inherited from 'apicurio.kafkasql.topic' unless explicitly overridden by this property. This will be removed in a next minor version.
 |`apicurio.kafkasql.ssl.key.password`
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl key password
+|Kafka sql storage ssl key password (deprecated, use apicurio.kafkasql.security.ssl.key.password)
 |`apicurio.kafkasql.ssl.keystore.location`
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl keystore location
+|Kafka sql storage ssl keystore location (deprecated, use apicurio.kafkasql.security.ssl.keystore.location)
 |`apicurio.kafkasql.ssl.keystore.password`
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl keystore password
+|Kafka sql storage ssl keystore password (deprecated, use apicurio.kafkasql.security.ssl.keystore.password)
 |`apicurio.kafkasql.ssl.keystore.type`
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl keystore type
+|Kafka sql storage ssl keystore type (deprecated, use apicurio.kafkasql.security.ssl.keystore.type)
 |`apicurio.kafkasql.ssl.truststore.password`
 |`optional<string>`
 |
 |
-|Kafka sql storage ssl truststore password
+|Kafka sql storage ssl truststore password (deprecated, use apicurio.kafkasql.security.ssl.truststore.password)
 |`apicurio.kafkasql.topic`
 |`string`
 |`kafkasql-journal`
 |
 |Kafka sql storage topic name
+|`apicurio.kafkasql.topic-configuration-verification-override-enabled`
+|`boolean`
+|`false`
+|`3.1.3`
+|When using KafkaSQL storage, Apicurio Registry verifies that the topic configuration will not cause accidental data loss or corruption. Setting this property to true will partially disable this verification for *all* Apicurio Registry topics. Specifically, 'retention.ms=-1' is not enforced to support automatic cleanup when Apicurio Registry snapshotting feature is used. In this case, snapshots have to be made more frequently than messages are deleted. IMPORTANT: We might change which topics and which verification checks are affected by this configuration property in the future.
+|`apicurio.kafkasql.topic.*`
+|`map<string, string>`
+|
+|
+|Kafka sql storage topic properties. There are two optional Registry-specific configuration properties: 'partitions' and 'replication.factor'.
 |`apicurio.kafkasql.topic.auto-create`
 |`boolean`
 |`true`
@@ -794,6 +961,11 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.0.0.Final`
 |SQL init
+|`apicurio.storage.enable-automatic-group-creation`
+|`boolean`
+|`true`
+|`3.0.15`
+|Enable automatic creation of group when creating an artifact
 |`apicurio.storage.kind`
 |`string`
 |
@@ -802,7 +974,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
 |`false`
-|`2.5.0.Final`
+|`3.0.0`
 |Enable Registry storage read-only mode
 |`apicurio.storage.snapshot.location`
 |`string`
@@ -852,6 +1024,22 @@ The following {registry} configuration options are available for each component 
 |
 |===
 
+== types
+.types configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.artifact-types.config-file`
+|`string`
+|`/tmp/apicurio-registry-artifact-types.json`
+|`3.1.0`
+|Path to a configuration file containing a list of supported artifact types.
+|===
+
 == ui
 .ui configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -861,19 +1049,29 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.app.context-path`
+|`string`
+|`/`
+|`3.1.0`
+|Context path for application (useful when behind a proxy)
 |`apicurio.ui.auth.oidc.client-id`
 |`string`
 |`apicurio-registry-ui`
 |`3.0.0`
 |The OIDC clientId
+|`apicurio.ui.auth.oidc.load-user-info`
+|`optional<boolean>`
+|
+|`3.1.6`
+|Whether to load user info from the OIDC userinfo endpoint. Defaults to true if not specified. Set to false for OIDC providers like Azure Entra ID where the userinfo endpoint has incompatible audience requirements.
 |`apicurio.ui.auth.oidc.logout-url`
 |`string`
 |`f5`
 |`3.0.0`
 |The OIDC logout URL
 |`apicurio.ui.auth.oidc.redirect-uri`
-|`string`
-|`/`
+|`optional<string>`
+|
 |`3.0.0`
 |The OIDC redirectUri
 |`apicurio.ui.auth.oidc.scope`
@@ -891,6 +1089,11 @@ The following {registry} configuration options are available for each component 
 |`/docs/`
 |`3.0.0`
 |URL of the Documentation component
+|`apicurio.ui.editorsUrl`
+|`string`
+|`/editors/`
+|`3.1.0`
+|URL of the Editors component
 |`apicurio.ui.features.breadcrumbs`
 |`string`
 |`true`
@@ -1040,6 +1243,11 @@ The following {registry} configuration options are available for each component 
 |`apicurio.limits.config.cache.check-period`
 |`unknown`
 |`30000`
+|
+|
+|`apicurio.log.level.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
 |
 |
 |`apicurio.logconfigjob.delayed`

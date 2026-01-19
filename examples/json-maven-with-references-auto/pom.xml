@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-examples</artifactId>
-    <version>3.0.10-SNAPSHOT</version>
+    <version>3.1.7-SNAPSHOT</version>
   </parent>
 
   <artifactId>apicurio-registry-examples-json-maven-with-references-auto</artifactId>
@@ -38,7 +38,6 @@
                   <file>${project.basedir}/src/main/resources/schemas/FLIStockAdjustment.json</file>
                   <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                   <canonicalize>true</canonicalize>
-                  <analyzeDirectory>true</analyzeDirectory>
                   <autoRefs>true</autoRefs>
                 </artifact>
               </artifacts>

@@ -1,5 +1,7 @@
 package io.apicurio.registry.noprofile.rest.v3.impexp;
 
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rbac.AdminResourceTest;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -10,7 +12,6 @@ import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 
 import java.util.UUID;
@@ -25,10 +26,9 @@ public class ExportLoader {
             + "        \"description\": \"An example API design using OpenAPI.\"\r\n" + "    }\r\n" + "}";
 
     public static void main(String[] args) throws Exception {
+        String registryV3ApiUrl = "http://localhost:8080/apis/registry/v3";
         Vertx vertx = Vertx.vertx();
-        var adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl("http://localhost:8080/apis/registry/v3");
-        RegistryClient client = new RegistryClient(adapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx).retry());
         try {
             for (int idx = 0; idx < 1000; idx++) {
                 System.out.println("Iteration: " + idx);

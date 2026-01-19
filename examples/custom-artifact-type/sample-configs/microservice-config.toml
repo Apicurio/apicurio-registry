@@ -1,0 +1,22 @@
+# Microservice configuration example with references
+# This demonstrates the reference resolution feature
+
+[service]
+name = "user-service"
+version = "2.0.0"
+environment = "production"
+
+[endpoints]
+api = "/api/v2/users"
+health = "/health"
+metrics = "/metrics"
+
+# Example of external reference (would be resolved by the ContentDereferencer)
+[secrets]
+# @include "secrets/db-credentials.toml"
+database_password = "placeholder"
+
+[features]
+rate_limiting = true
+authentication = true
+audit_logging = true

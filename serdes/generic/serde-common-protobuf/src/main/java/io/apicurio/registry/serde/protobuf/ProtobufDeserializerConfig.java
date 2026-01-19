@@ -2,7 +2,6 @@ package io.apicurio.registry.serde.protobuf;
 
 import io.apicurio.registry.serde.config.SerdeConfig;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,5 +45,16 @@ public class ProtobufDeserializerConfig extends SerdeConfig {
         return joint;
     }
 
-    private static final Map<String, ?> DEFAULTS = Collections.emptyMap();
+    public boolean readTypeRef() {
+        return this.getBoolean(READ_TYPE_REF);
+    }
+
+    public boolean readIndexes() {
+        return this.getBoolean(READ_INDEXES);
+    }
+
+    private static final Map<String, ?> DEFAULTS = Map.of(
+            READ_TYPE_REF, READ_TYPE_REF_DEFAULT,
+            READ_INDEXES, READ_INDEXES_DEFAULT
+    );
 }

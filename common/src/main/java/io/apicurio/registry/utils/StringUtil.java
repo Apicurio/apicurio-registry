@@ -32,4 +32,27 @@ public class StringUtil {
             return value;
         }
     }
+
+    /**
+     * Converts a byte array to a readable string representation, showing printable ASCII characters
+     * where possible and hex codes for non-printable bytes.
+     */
+    public static String toReadableString(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return "[]";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (byte b : bytes) {
+            // Check if byte is a printable ASCII character (space to tilde: 32-126)
+            if (b >= 32 && b <= 126) {
+                sb.append((char) b);
+            } else {
+                // Show as hex for non-printable bytes
+                sb.append(String.format("\\%02X", b & 0xFF));
+            }
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 }

@@ -21,11 +21,12 @@ import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
 import io.javaoperatorsdk.operator.api.reconciler.DeleteControl;
-import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusHandler;
 import io.javaoperatorsdk.operator.api.reconciler.ErrorStatusUpdateControl;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
+import io.javaoperatorsdk.operator.api.reconciler.Workflow;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
+import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +47,10 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_NETWORK_POLICY_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_POD_DISRUPTION_BUDGET_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
+import static io.apicurio.registry.operator.status.OperatorErrorConditionManager.shouldIgnoreException;
+import static io.apicurio.registry.operator.utils.Mapper.copy;
 
-@ControllerConfiguration(
+@Workflow(
         dependents = {
                 // ===== Registry App
                 @Dependent(
@@ -108,14 +111,16 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
                 )
         }
 )
-// TODO: When renaming, do not forget to update application.properties (until we have a test for this).
-public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>,
-        ErrorStatusHandler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {
+@ControllerConfiguration(
+        name = "apicurioregistry3reconciler"
+)
+public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(ApicurioRegistry3Reconciler.class);
 
     public UpdateControl<ApicurioRegistry3> reconcile(ApicurioRegistry3 primary,
                                                       Context<ApicurioRegistry3> context) {
+        primary = copy(primary);
 
         log.trace("Reconciling Apicurio Registry: {}", primary);
 
@@ -126,7 +131,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
         update = SqlCRUpdater.update(primary, context) || update;
         update = KafkaSqlCRUpdater.update(primary) || update;
         if (update) {
-            return UpdateControl.updateResource(primary);
+            return UpdateControl.patchResource(primary);
         }
 
         return UpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
@@ -135,8 +140,14 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
     @Override
     public ErrorStatusUpdateControl<ApicurioRegistry3> updateErrorStatus(ApicurioRegistry3 primary,
                                                                          Context<ApicurioRegistry3> context, Exception ex) {
+        if (shouldIgnoreException(ex)) {
+            log.warn("Exception was thrown during reconciliation of Apicurio Registry {}, but can be ignored: {}: {}",
+                    ResourceID.fromResource(primary), ex.getClass().getCanonicalName(), ex.getMessage());
+        } else {
+            log.error("Exception was thrown during reconciliation of Apicurio Registry %s".formatted(ResourceID.fromResource(primary)), ex);
+        }
         StatusManager.get(primary).getConditionManager(OperatorErrorConditionManager.class).recordException(ex);
-        return ErrorStatusUpdateControl.updateStatus(StatusManager.get(primary).applyStatus(primary, context));
+        return ErrorStatusUpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
     }
 
     @Override

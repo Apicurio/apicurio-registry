@@ -9,6 +9,7 @@ public class OptionsParser {
 
     private String url = null;
     private boolean inSecure = false;
+    private String outputFile = "confluent-schema-registry-export.zip";
     private Map<String, Object> clientProps = new HashMap<>();
 
     public OptionsParser(String[] args) {
@@ -21,6 +22,11 @@ public class OptionsParser {
             String arg = args[i];
             if (arg.equals("--insecure")) {
                 inSecure = true;
+            } else if (arg.equals("--output") || arg.equals("-o")) {
+                if (i + 1 < args.length) {
+                    outputFile = args[i + 1];
+                    i++; // Skip the next argument since we consumed it
+                }
             } else if (arg.equals("--client-props")) {
                 String[] clientconf = Arrays.copyOfRange(args, i + 1, args.length);
                 clientProps = Arrays.stream(clientconf).map(keyvalue -> keyvalue.split("="))
@@ -37,6 +43,10 @@ public class OptionsParser {
 
     public boolean isInSecure() {
         return inSecure;
+    }
+
+    public String getOutputFile() {
+        return outputFile;
     }
 
     public Map<String, Object> getClientProps() {

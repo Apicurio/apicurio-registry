@@ -3,15 +3,16 @@ package io.apicurio.registry.serde.avro;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import org.apache.avro.Schema;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.specific.SpecificRecord;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -29,22 +30,22 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
         super();
     }
 
-    public AvroSerializer(RegistryClient client) {
-        super(client);
+    public AvroSerializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public AvroSerializer(SchemaResolver<Schema, U> schemaResolver) {
         super(schemaResolver);
     }
 
-    public AvroSerializer(RegistryClient client, SchemaResolver<Schema, U> schemaResolver) {
-        super(client, schemaResolver);
+    public AvroSerializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public AvroSerializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<Schema, U> artifactResolverStrategy,
-            SchemaResolver<Schema, U> schemaResolver) {
-        super(client, artifactResolverStrategy, schemaResolver);
+    public AvroSerializer(RegistryClientFacade clientFacade,
+                          ArtifactReferenceResolverStrategy<Schema, U> artifactResolverStrategy,
+                          SchemaResolver<Schema, U> schemaResolver) {
+        super(clientFacade, artifactResolverStrategy, schemaResolver);
     }
 
     private AvroSerializer<U> setAvroDatumProvider(AvroDatumProvider<U> avroDatumProvider) {
@@ -83,6 +84,22 @@ public class AvroSerializer<U> extends AbstractSerializer<Schema, U> {
     @Override
     public SchemaParser<Schema, U> schemaParser() {
         return parser;
+    }
+
+    /**
+     * For Avro SpecificRecord, the schema is tied to the class, so we use the class as cache key.
+     * For GenericRecord/GenericContainer, caching by Schema is not safe because:
+     * 1. Schema.hashCode() is based only on type and props (name, namespace), not on fields
+     * 2. This causes hash collisions for evolved schemas with the same name but different fields
+     * 3. Schema evolution tests fail when the wrong cached result is returned
+     */
+    @Override
+    protected Object getSchemaCacheKey(U data) {
+        if (data instanceof SpecificRecord) {
+            return data.getClass();
+        }
+        // Don't cache GenericRecord - schema evolution scenarios require fresh resolution
+        return null;
     }
 
     /**

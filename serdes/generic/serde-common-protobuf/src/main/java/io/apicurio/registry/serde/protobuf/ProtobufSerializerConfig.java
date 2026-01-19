@@ -22,6 +22,14 @@ public class ProtobufSerializerConfig extends SerdeConfig {
         return this.getBoolean(VALIDATION_ENABLED);
     }
 
+    public boolean sendTypeRef() {
+        return this.getBoolean(SEND_TYPE_REF);
+    }
+
+    public boolean sendIndexes() {
+        return this.getBoolean(SEND_INDEXES);
+    }
+
     @Override
     protected Map<String, ?> getDefaults() {
         Map<String, Object> joint = new HashMap<>(super.getDefaults());
@@ -29,6 +37,10 @@ public class ProtobufSerializerConfig extends SerdeConfig {
         return joint;
     }
 
-    private static final Map<String, ?> DEFAULTS = Map.of(VALIDATION_ENABLED, VALIDATION_ENABLED_DEFAULT);
+    private static final Map<String, ?> DEFAULTS = Map.of(
+            VALIDATION_ENABLED, VALIDATION_ENABLED_DEFAULT,
+            SEND_TYPE_REF, SEND_TYPE_REF_DEFAULT,
+            SEND_INDEXES, SEND_INDEXES_DEFAULT
+    );
 
 }

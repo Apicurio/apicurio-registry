@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.10-SNAPSHOT</version>
+    <version>3.1.7-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -88,7 +88,7 @@
       <plugin>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-codegen-maven-plugin</artifactId>
-        <version>1.1.1.Final</version>
+        <version>${version.apicurio-codegen-plugin}</version>
         <executions>
           <execution>
             <id>generate-api-v3</id>
@@ -99,6 +99,8 @@
             <configuration>
               <projectSettings>
                 <javaPackage>io.apicurio.registry.rest.v3</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi.json</inputSpec>
             </configuration>
@@ -112,8 +114,25 @@
             <configuration>
               <projectSettings>
                 <javaPackage>io.apicurio.registry.rest.v2</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources/META-INF/openapi-v2.json</inputSpec>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-artifact-type-webhooks</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <projectSettings>
+                <javaPackage>io.apicurio.registry.types.webhooks</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
+              </projectSettings>
+              <inputSpec>${project.basedir}/src/main/resources/META-INF/artifact-type-webhooks.json</inputSpec>
             </configuration>
           </execution>
         </executions>
@@ -121,7 +140,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.6.0</version>
+        <version>${version.build.helper.maven.plugin}</version>
         <executions>
           <execution>
             <id>addSource</id>

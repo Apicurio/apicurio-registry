@@ -4,16 +4,17 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
+import static io.apicurio.registry.operator.Tags.FEATURE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@Tag(FEATURE)
 public class OperatorConfigITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(OperatorConfigITTest.class);
@@ -32,30 +33,18 @@ public class OperatorConfigITTest extends ITBase {
         client.resource(registry).create();
 
         // TODO: Use PodLogManager
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-            var operatorPods = client.pods()
-                    .withLabels(Map.of(
-                            "app.kubernetes.io/name", "apicurio-registry-operator",
-                            "app.kubernetes.io/component", "operator",
-                            "app.kubernetes.io/part-of", "apicurio-registry"))
-                    .list().getItems();
-            assertThat(operatorPods).hasSize(1);
-            String log = client.pods().withName(operatorPods.get(0).getMetadata().getName()).getLog();
+        await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var operatorPod = waitOnOperatorPodReady();
+            String log = client.pods().withName(operatorPod.getMetadata().getName()).getLog();
             assertThat(log).contains("No operator ConfigMap found.");
             // Create the ConfigMap and restart the pod
             client.resource(configMap).create();
-            client.resource(operatorPods.get(0)).delete();
+            client.resource(operatorPod).delete();
         });
 
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-            var operatorPods = client.pods()
-                    .withLabels(Map.of(
-                            "app.kubernetes.io/name", "apicurio-registry-operator",
-                            "app.kubernetes.io/component", "operator",
-                            "app.kubernetes.io/part-of", "apicurio-registry"))
-                    .list().getItems();
-            assertThat(operatorPods).hasSize(1);
-            String log = client.pods().withName(operatorPods.get(0).getMetadata().getName()).getLog();
+        await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var operatorPod = waitOnOperatorPodReady();
+            String log = client.pods().withName(operatorPod.getMetadata().getName()).getLog();
             assertThat(log).contains("Operator ConfigMap found, loaded 2 configuration options.");
         });
     }

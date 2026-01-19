@@ -1,0 +1,44 @@
+name: Reusable Slack Notification
+
+on:
+  workflow_call:
+    inputs:
+      workflow-name:
+        description: 'Name of the workflow for notification'
+        required: true
+        type: string
+      job-name:
+        description: 'Name of the job for notification'
+        required: true
+        type: string
+      job-status:
+        description: 'Status of the job (success, failure, cancelled)'
+        required: true
+        type: string
+    secrets:
+      SLACK_NOTIFICATION_WEBHOOK:
+        required: true
+      SLACK_ERROR_WEBHOOK:
+        required: true
+
+jobs:
+  notify:
+    name: Send Slack Notification
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Slack Notification
+        run: |
+          MESSAGE="'${{ inputs.workflow-name }}/${{ inputs.job-name }}' job completed with status: ${{ inputs.job-status }}"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ inputs.workflow-name }}\", \"status\": \"${{ inputs.job-status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+
+          # Always send to notification webhook
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+
+          # Also send to error webhook if failed
+          if [ "${{ inputs.job-status }}" == "failure" ]; then
+            ERROR_MESSAGE="'${{ inputs.workflow-name }}/${{ inputs.job-name }}' job FAILED!"
+            ERROR_PAYLOAD="{\"workflow\": \"${{ inputs.workflow-name }}\", \"status\": \"${{ inputs.job-status }}\", \"message\": \"$ERROR_MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+            curl -X POST -H "Content-Type: application/json" -d "$ERROR_PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
+          fi

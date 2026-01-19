@@ -14,6 +14,10 @@ public class AvroSerde<T> implements Serde<T> {
     final private Serializer<T> serializer;
     final private Deserializer<T> deserializer;
 
+    public AvroSerde() {
+        this(new AvroKafkaSerializer<>(), new AvroKafkaDeserializer<>());
+    }
+
     protected AvroSerde(Serializer<T> serializer, Deserializer<T> deserializer) {
         this.serializer = serializer;
         this.deserializer = deserializer;

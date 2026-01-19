@@ -25,11 +25,13 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,6 +48,8 @@ import java.util.zip.ZipFile;
 
 @QuarkusTest
 public class ImportExportTest extends AbstractResourceTestBase {
+
+    private static final Logger log = LoggerFactory.getLogger(ImportExportTest.class);
 
     @Inject
     @Current
@@ -334,17 +338,17 @@ public class ImportExportTest extends AbstractResourceTestBase {
     }
 
     private static void listFiles(File tempFile) {
-        System.out.println("--- Export ZIP File Listing ---");
+        log.debug("--- Export ZIP File Listing ---");
         try (ZipFile zipFile = new ZipFile(tempFile)) {
             Enumeration<? extends ZipEntry> entries = zipFile.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
-                System.out.println(entry.getName());
+                log.debug(entry.getName());
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.warn("Failed to list ZIP file entries", e);
         }
-        System.out.println("--- Export ZIP File Listing ---");
+        log.debug("--- Export ZIP File Listing ---");
     }
 
 }

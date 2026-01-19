@@ -1,0 +1,89 @@
+name: Release Milestones
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag name'
+        required: true
+  release:
+    types: [released, prereleased]
+
+
+env:
+  # The values are extracted from the github.event context,
+  # which is only available when the workflow gets triggered by a release event.
+  RELEASE_VERSION: ${{ github.event.release.name }}
+
+
+jobs:
+  manage-milestones:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Fetch Release Details
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          touch release.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${{ github.event.inputs.tag }} > release.json
+          echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
+
+      - name: Manage Milestones
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ACCESS_TOKEN }}
+          script: |
+            const releaseVersion = process.env.RELEASE_VERSION;
+
+            // Extract major, minor, and patch from release version (handles versions like 3.0.1 or 3.0.1-RC1)
+            const versionParts = releaseVersion.split(/[.-]/);
+            const major = versionParts[0];
+            const minor = versionParts[1];
+            const patch = parseInt(versionParts[2]);
+
+            // Calculate next version
+            const nextPatch = patch + 1;
+            const nextVersion = `${major}.${minor}.${nextPatch}`;
+
+            console.log(`Managing milestones for release ${releaseVersion}`);
+            console.log(`Will close milestone: ${releaseVersion}`);
+            console.log(`Will create milestone: ${nextVersion}`);
+
+            // Get all open milestones
+            const { data: milestones } = await github.rest.issues.listMilestones({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+
+            // Find and close the current release milestone
+            const currentMilestone = milestones.find(m => m.title === releaseVersion);
+            if (currentMilestone) {
+              console.log(`Closing milestone ${releaseVersion} (number: ${currentMilestone.number})`);
+              await github.rest.issues.updateMilestone({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                milestone_number: currentMilestone.number,
+                state: 'closed'
+              });
+            } else {
+              console.log(`Milestone ${releaseVersion} not found, skipping closure`);
+            }
+
+            // Check if next milestone already exists
+            const allMilestones = await github.rest.issues.listMilestones({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all'
+            });
+
+            const nextMilestoneExists = allMilestones.data.find(m => m.title === nextVersion);
+
+            if (nextMilestoneExists) {
+              console.log(`Milestone ${nextVersion} already exists (number: ${nextMilestoneExists.number})`);
+            } else {
+              console.log(`Creating milestone ${nextVersion}`);
+              await github.rest.issues.createMilestone({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: nextVersion
+              });
+            }

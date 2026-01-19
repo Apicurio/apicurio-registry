@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://schemas.example.org/common-schemas.json",
+    "definitions": {
+        "Address": {
+            "type": "object",
+            "properties": {
+                "street": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "zipCode": {
+                    "type": "string",
+                    "pattern": "^[0-9]{5}$"
+                }
+            },
+            "required": ["street", "city", "state", "zipCode"]
+        },
+        "Contact": {
+            "type": "object",
+            "properties": {
+                "phone": {
+                    "type": "string",
+                    "pattern": "^\\+?[0-9]{10,15}$"
+                },
+                "email": {
+                    "type": "string",
+                    "format": "email"
+                }
+            },
+            "required": ["email"]
+        }
+    }
+}

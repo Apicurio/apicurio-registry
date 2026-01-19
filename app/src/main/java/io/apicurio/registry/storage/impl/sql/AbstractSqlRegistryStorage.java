@@ -25,6 +25,7 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
@@ -96,6 +97,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.CommentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.DatabaseLockMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.DynamicConfigPropertyDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
@@ -175,9 +177,8 @@ import static java.util.stream.Collectors.toList;
  */
 public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
-    private static int DB_VERSION = Integer
-            .valueOf(IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version")))
-            .intValue();
+    private static final int DB_VERSION = Integer
+            .parseInt(IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version")));
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -243,6 +244,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Info(category = CATEGORY_STORAGE, description = "Storage event topic")
     String eventsTopic;
 
+    @ConfigProperty(name = "apicurio.storage.enable-automatic-group-creation", defaultValue = "true")
+    @Info(category = CATEGORY_STORAGE, description = "Enable automatic creation of group when creating an artifact", availableSince = "3.0.15")
+    boolean enableAutomaticGroupCreation;
+
     @Inject
     Event<SqlStorageEvent> sqlStorageEvent;
 
@@ -271,16 +276,29 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         handles.withHandleNoException((handle) -> {
             if (initDB) {
-                if (!isDatabaseInitializedRaw(handle)) {
-                    log.info("Database not initialized.");
-                    initializeDatabaseRaw(handle);
-                } else {
-                    log.info("Database was already initialized, skipping.");
-                }
+                // Acquire database lock to prevent race conditions when multiple replicas
+                // attempt to initialize or upgrade the database simultaneously
+                log.info("Acquiring database initialization lock...");
+                handle.createQuery(this.sqlStatements.acquireInitLock()).map(DatabaseLockMapper.instance).one();
+                log.info("Database initialization lock acquired.");
 
-                if (!isDatabaseCurrentRaw(handle)) {
-                    log.info("Old database version detected, upgrading.");
-                    upgradeDatabaseRaw(handle);
+                try {
+                    if (!isDatabaseInitializedRaw(handle)) {
+                        log.info("Database not initialized.");
+                        initializeDatabaseRaw(handle);
+                    } else {
+                        log.info("Database was already initialized, skipping.");
+                    }
+
+                    if (!isDatabaseCurrentRaw(handle)) {
+                        log.info("Old database version detected, upgrading.");
+                        upgradeDatabaseRaw(handle);
+                    }
+                } finally {
+                    // Always release the lock, even if initialization or upgrade fails
+                    log.info("Releasing database initialization lock...");
+                    handle.createQuery(this.sqlStatements.releaseInitLock()).map(DatabaseLockMapper.instance).one();
+                    log.info("Database initialization lock released.");
                 }
             } else {
                 if (!isDatabaseInitializedRaw(handle)) {
@@ -535,9 +553,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         // Create the group if it doesn't exist yet.
         if (groupId != null && !isGroupExists(groupId)) {
-            // Only create group metadata for non-default groups.
-            ensureGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
-                    .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
+            if (enableAutomaticGroupCreation) {
+                // Only create group metadata for non-default groups.
+                ensureGroup(GroupMetaDataDto.builder().groupId(groupId).createdOn(createdOn.getTime())
+                        .modifiedOn(createdOn.getTime()).owner(owner).modifiedBy(owner).build());
+            } else {
+                throw new GroupNotFoundException(groupId);
+            }
         }
 
         // Ensure the content exists. If this is a dryRun, or if the create fails, this
@@ -741,6 +763,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
         List<ArtifactReferenceDto> references = contentDto.getReferences();
+
+        // Deduplicate references to handle cases where callers (like Avro converters)
+        // may send duplicate references for nested schemas. This must be done BEFORE
+        // calculating content hashes to ensure consistency.
+        if (references != null && !references.isEmpty()) {
+            references = references.stream()
+                    .distinct()
+                    .collect(Collectors.toList());
+        }
+
         TypedContent content = TypedContent.create(contentDto.getContent(), contentDto.getContentType());
         String contentHash;
         String canonicalContentHash;
@@ -789,19 +821,24 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     private void ensureContent(TypedContent content, String contentHash, String canonicalContentHash,
             List<ArtifactReferenceDto> references, String referencesSerialized) {
+
         handles.withHandleNoException(handle -> {
-            byte[] contentBytes = content.getContent().bytes();
 
             // Insert the content into the content table.
-            String sql = sqlStatements.insertContent();
             long contentId = nextContentIdRaw(handle);
 
             try {
-                handle.createUpdate(sql).bind(0, contentId).bind(1, canonicalContentHash).bind(2, contentHash)
-                        .bind(3, content.getContentType()).bind(4, contentBytes).bind(5, referencesSerialized)
+                handle.createUpdate(sqlStatements.insertContent())
+                        .bind(0, contentId)
+                        .bind(1, canonicalContentHash)
+                        .bind(2, contentHash)
+                        .bind(3, content.getContentType())
+                        .bind(4, content.getContent().bytes())
+                        .bind(5, referencesSerialized)
                         .execute();
             } catch (Exception e) {
                 if (sqlStatements.isPrimaryKeyViolation(e)) {
+                    log.debug("Content with content hash {} already exists: {}", contentHash, content);
                     return;
                 } else {
                     throw e;
@@ -809,25 +846,31 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
 
             // If we get here, then the content was inserted and we need to insert the references.
-            insertReferencesRaw(handle, contentId, references);
+            insertReferencesRaw(contentId, references);
         });
     }
 
-    private void insertReferencesRaw(Handle handle, Long contentId, List<ArtifactReferenceDto> references) {
+    private void insertReferencesRaw(Long contentId, List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty()) {
-            references.forEach(reference -> {
-                try {
-                    handle.createUpdate(sqlStatements.insertContentReference()).bind(0, contentId)
-                            .bind(1, normalizeGroupId(reference.getGroupId()))
-                            .bind(2, reference.getArtifactId()).bind(3, reference.getVersion())
-                            .bind(4, reference.getName()).execute();
-                } catch (Exception e) {
-                    if (sqlStatements.isPrimaryKeyViolation(e)) {
-                        // Do nothing, the reference already exist, only needed for H2
-                    } else {
-                        throw e;
+            handles.withHandleNoException(handle -> {
+                references.forEach(reference -> {
+                    try {
+                        handle.createUpdate(sqlStatements.insertContentReference())
+                                .bind(0, contentId)
+                                .bind(1, normalizeGroupId(reference.getGroupId()))
+                                .bind(2, reference.getArtifactId())
+                                .bind(3, reference.getVersion())
+                                .bind(4, reference.getName())
+                                .execute();
+                    } catch (Exception e) {
+                        if (sqlStatements.isPrimaryKeyViolation(e)) {
+                            // We have to fail the transaction because the content hash would otherwise be invalid (duplicate references).
+                            throw new ConflictException("Duplicate reference found: " + reference);
+                        } else {
+                            throw e;
+                        }
                     }
-                }
+                });
             });
         }
     }
@@ -976,14 +1019,58 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         });
                         break;
                     case name:
-                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
-                        where.append("a.name " + op + " ? OR a.artifactId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, "%" + filter.getStringValue() + "%");
-                        });
+                        String nameValue = filter.getStringValue();
+                        boolean startsWithWildcard = nameValue.startsWith("*");
+                        boolean endsWithWildcard = nameValue.endsWith("*");
+
+                        // Remove wildcards from the value
+                        String searchValue = nameValue;
+                        if (startsWithWildcard) {
+                            searchValue = searchValue.substring(1);
+                        }
+                        if (endsWithWildcard) {
+                            searchValue = searchValue.substring(0, searchValue.length() - 1);
+                        }
+
+                        // Determine operator based on wildcards
+                        if (startsWithWildcard || endsWithWildcard) {
+                            op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                            where.append("a.name " + op + " ? OR a.artifactId " + op + " ?");
+
+                            // Add wildcards to SQL pattern based on user input
+                            String finalSearchValue = searchValue;
+                            binders.add((query, idx) -> {
+                                String pattern = finalSearchValue;
+                                if (startsWithWildcard) {
+                                    pattern = "%" + pattern;
+                                }
+                                if (endsWithWildcard) {
+                                    pattern = pattern + "%";
+                                }
+                                query.bind(idx, pattern);
+                            });
+                            binders.add((query, idx) -> {
+                                String pattern = finalSearchValue;
+                                if (startsWithWildcard) {
+                                    pattern = "%" + pattern;
+                                }
+                                if (endsWithWildcard) {
+                                    pattern = pattern + "%";
+                                }
+                                query.bind(idx, pattern);
+                            });
+                        } else {
+                            // Exact match - no wildcards
+                            op = filter.isNot() ? "!=" : "=";
+                            where.append("(a.name " + op + " ? OR a.artifactId " + op + " ?)");
+                            String finalSearchValue = searchValue;
+                            binders.add((query, idx) -> {
+                                query.bind(idx, finalSearchValue);
+                            });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, finalSearchValue);
+                            });
+                        }
                         break;
                     case groupId:
                         op = filter.isNot() ? "!=" : "=";
@@ -2260,8 +2347,28 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void createGroup(GroupMetaDataDto group)
             throws GroupAlreadyExistsException, RegistryStorageException {
+        // Prevent creation of groups with the internal default group ID representation
+        if (RegistryContentUtils.NULL_GROUP_ID.equals(group.getGroupId())) {
+            throw new RegistryStorageException("Invalid group ID: '" + RegistryContentUtils.NULL_GROUP_ID
+                    + "' is a reserved internal identifier.");
+        }
+
         try {
             handles.withHandle(handle -> {
+                // Ensure modifiedBy is set (default to owner if not provided)
+                String modifiedBy = group.getModifiedBy();
+                if (modifiedBy == null || modifiedBy.isEmpty()) {
+                    modifiedBy = group.getOwner();
+                }
+
+                // Ensure modifiedOn is set (default to createdOn if not provided)
+                Date modifiedOn;
+                if (group.getModifiedOn() == 0) {
+                    modifiedOn = group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn());
+                } else {
+                    modifiedOn = new Date(group.getModifiedOn());
+                }
+
                 // Insert a row into the groups table
                 handle.createUpdate(sqlStatements.insertGroup()).bind(0, group.getGroupId())
                         .bind(1, group.getDescription()).bind(2, group.getArtifactsType())
@@ -2269,8 +2376,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         // TODO io.apicurio.registry.storage.dto.GroupMetaDataDto should not use raw numeric
                         // timestamps
                         .bind(4, group.getCreatedOn() == 0 ? new Date() : new Date(group.getCreatedOn()))
-                        .bind(5, group.getModifiedBy())
-                        .bind(6, group.getModifiedOn() == 0 ? new Date() : new Date(group.getModifiedOn()))
+                        .bind(5, modifiedBy)
+                        .bind(6, modifiedOn)
                         .bind(7, RegistryContentUtils.serializeLabels(group.getLabels())).execute();
 
                 // Insert new labels into the "group_labels" table
@@ -2383,7 +2490,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * NOTE: Does not export the manifest file TODO
+     * Called to export all data in the Registry out to e.g. a .zip file.  Called by the
+     * DataExporter class when exporting all Registry data.
      */
     @Override
     public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
@@ -3170,8 +3278,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(1, entity.canonicalHash).bind(2, entity.contentHash).bind(3, entity.contentType)
                         .bind(4, entity.contentBytes).bind(5, entity.serializedReferences).execute();
 
-                insertReferencesRaw(handle, entity.contentId,
-                        RegistryContentUtils.deserializeReferences(entity.serializedReferences));
+                insertReferencesRaw(entity.contentId, RegistryContentUtils.deserializeReferences(entity.serializedReferences));
             } else {
                 throw new ContentAlreadyExistsException(entity.contentId);
             }

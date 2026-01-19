@@ -4,19 +4,20 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
-import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.config.IdOption;
-import io.apicurio.registry.serde.config.KafkaSerdeConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
-import io.apicurio.registry.serde.headers.KafkaSerdeHeaders;
+import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;
+import io.apicurio.registry.serde.kafka.headers.KafkaSerdeHeaders;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaParser;
@@ -32,7 +33,13 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.kiota.http.vertx.VertXRequestAdapter;
+import io.confluent.kafka.schemaregistry.SchemaProvider;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
@@ -40,14 +47,15 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.everit.json.schema.ValidationException;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -57,19 +65,13 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
-public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
+public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
-    private RegistryClient restClient;
+    @ParameterizedTest(name = "testJsonSchemaSerde [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerde(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
 
-    @BeforeEach
-    public void createIsolatedClient() {
-        var adapter = new VertXRequestAdapter(vertx);
-        adapter.setBaseUrl(TestUtils.getRegistryV3ApiUrl(testPort));
-        restClient = new RegistryClient(adapter);
-    }
-
-    @Test
-    public void testJsonSchemaSerde() throws Exception {
         InputStream jsonSchema = getClass()
                 .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
@@ -82,8 +84,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -126,15 +128,18 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @Test
-    public void testJsonSchemaSerdeAutoRegister() throws Exception {
+    @ParameterizedTest(name = "testJsonSchemaSerdeAutoRegister [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeAutoRegister(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
         Person person = new Person("Carles", "Arnal", 30);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -175,8 +180,11 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @Test
-    public void testJsonSchemaSerdeHeaders() throws Exception {
+    @ParameterizedTest(name = "testJsonSchemaSerdeHeaders [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeHeaders(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
         InputStream jsonSchema = getClass()
                 .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
         Assertions.assertNotNull(jsonSchema);
@@ -189,8 +197,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -225,8 +233,10 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
     }
 
-    @Test
-    public void testJsonSchemaSerdeMagicByte() throws Exception {
+    @ParameterizedTest(name = "testJsonSchemaSerdeMagicByte [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeMagicByte(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
 
         InputStream jsonSchema = getClass()
                 .getResourceAsStream("/io/apicurio/registry/util/json-schema-with-java-type.json");
@@ -240,8 +250,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -269,8 +279,11 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @Test
-    public void testJsonSchemaSerdeWithReferences() throws Exception {
+    @ParameterizedTest(name = "testJsonSchemaSerdeWithReferences [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeWithReferences(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
         InputStream citySchema = getClass().getResourceAsStream("/io/apicurio/registry/util/city1.json");
         InputStream citizenSchema = getClass()
                 .getResourceAsStream("/io/apicurio/registry/util/citizen1.json");
@@ -340,8 +353,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -417,8 +430,11 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @Test
-    public void testJsonSchemaSerdeWithReferencesDeserializerDereferenced() throws Exception {
+    @ParameterizedTest(name = "testJsonSchemaSerdeWithReferencesDeserializerDereferenced [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeWithReferencesDeserializerDereferenced(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
         InputStream citySchema = getClass().getResourceAsStream("/io/apicurio/registry/util/city1.json");
         InputStream citizenSchema = getClass()
                 .getResourceAsStream("/io/apicurio/registry/util/citizen1.json");
@@ -488,8 +504,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -564,8 +580,11 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @Test
-    public void testWithReferencesDeserializerDereferencedComplexUsecase() throws Exception {
+    @ParameterizedTest(name = "testWithReferencesDeserializerDereferencedComplexUsecase [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testWithReferencesDeserializerDereferencedComplexUsecase(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
         InputStream citySchema = getClass()
                 .getResourceAsStream("/io/apicurio/registry/util/types/city/city.json");
         InputStream citizenSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/citizen.json");
@@ -666,8 +685,8 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(restClient);
-            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(restClient)) {
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -731,8 +750,16 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         }
     }
 
-    @Test
-    public void complexObjectValidation() throws Exception {
+    @ParameterizedTest(name = "complexObjectValidation [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void complexObjectValidation(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        String sample_address_json = TestUtils.generateArtifactId("sample.address.json");
+        String sample_email_json = TestUtils.generateArtifactId("sample.email.json");
+        String sample_phone_json = TestUtils.generateArtifactId("sample.phone.json");
+        String sample_account_json = TestUtils.generateArtifactId("sample.account.json");
+
         final String version = "8";
 
         RegistryClient client = clientV3;
@@ -752,7 +779,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(phone);
 
         String schemaContent = new String(address.readAllBytes(), StandardCharsets.UTF_8);
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact("sample.address.json",
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(sample_address_json,
                 ArtifactType.JSON, schemaContent, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion(version);
         final VersionMetaData amdAddress = client.groups().byGroupId("GLOBAL").artifacts()
@@ -763,7 +790,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         createArtifact.getFirstVersion().getContent()
                 .setContent(new String(email.readAllBytes(), StandardCharsets.UTF_8));
-        createArtifact.setArtifactId("sample.email.json");
+        createArtifact.setArtifactId(sample_email_json);
         final VersionMetaData amdEmail = client.groups().byGroupId("GLOBAL").artifacts()
                 .post(createArtifact, config -> {
                     config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
@@ -772,7 +799,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
 
         createArtifact.getFirstVersion().getContent()
                 .setContent(new String(phone.readAllBytes(), StandardCharsets.UTF_8));
-        createArtifact.setArtifactId("sample.phone.json");
+        createArtifact.setArtifactId(sample_phone_json);
         final VersionMetaData amdPhone = client.groups().byGroupId("GLOBAL").artifacts()
                 .post(createArtifact, config -> {
                     config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
@@ -806,7 +833,7 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         createArtifact.getFirstVersion().getContent()
                 .setContent(new String(account.readAllBytes(), StandardCharsets.UTF_8));
         createArtifact.getFirstVersion().getContent().setReferences(artifactReferences);
-        createArtifact.setArtifactId("sample.account.json");
+        createArtifact.setArtifactId(sample_account_json);
         client.groups().byGroupId("GLOBAL").artifacts().post(createArtifact, config -> {
             config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
             config.queryParameters.canonical = false;
@@ -821,13 +848,13 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
         JsonNode validationFor = objectMapper.readTree(data);
 
         VersionMetaData global = client.groups().byGroupId("GLOBAL").artifacts()
-                .byArtifactId("sample.account.json").versions().byVersionExpression("branch=latest").get();
-        // client.getArtifactMetaData("GLOBAL", "sample.account.json");
+                .byArtifactId(sample_account_json).versions().byVersionExpression("branch=latest").get();
+        // client.getArtifactMetaData("GLOBAL", sample_account_json);
         io.apicurio.registry.resolver.strategy.ArtifactReference artifactReference = io.apicurio.registry.resolver.strategy.ArtifactReference
                 .builder().globalId(global.getGlobalId()).groupId("GLOBAL")// .version("4")
-                .artifactId("sample.account.json").build();
+                .artifactId(sample_account_json).build();
 
-        SchemaResolver<JsonSchema, Object> sr = new DefaultSchemaResolver<>(client);
+        SchemaResolver<JsonSchema, Object> sr = new DefaultSchemaResolver<>(clientFacade);
         Map<String, String> configs = new HashMap<>();
         configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT, DefaultSchemaResolver.class.getName());
         configs.put(SerdeConfig.CHECK_PERIOD_MS, "600000");
@@ -846,4 +873,111 @@ public class JsonSchemaSerdeTest extends AbstractResourceTestBase {
             System.out.println(e.getAllMessages());
         }
     }
+
+    private String getSchemaRegistryUrl() {
+        return "http://localhost:" + testPort + "/apis/ccompat/v7";
+    }
+
+    private SchemaRegistryClient buildSchemaRegistryClient() {
+        final List<SchemaProvider> schemaProviders = Arrays.asList(new JsonSchemaProvider(),
+                new AvroSchemaProvider(), new ProtobufSchemaProvider());
+        return new CachedSchemaRegistryClient(getSchemaRegistryUrl(), 3, schemaProviders, Map.of());
+    }
+
+    @ParameterizedTest(name = "complexObjectValidation [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeMixed(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+        SchemaRegistryClient confluentClient = buildSchemaRegistryClient();
+
+        // Load the schema
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+
+        // Register the schema in the registry
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON);
+
+        // Create the payload to serialize/deserialize
+        Person person = new Person("Clark", "Kent", 31);
+
+        // Create the Apicurio serializer and the Confluent deserializer
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<Person>(clientFacade);
+             Deserializer<Person> deserializer = new KafkaJsonSchemaDeserializer<Person>(confluentClient)) {
+
+            // Configure the serializer
+            Map<String, Object> serializerConfig = new HashMap<>();
+            serializerConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            serializerConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            serializer.configure(serializerConfig, false);
+
+            // Configure the deserializer
+            Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.put("schema.registry.url", getSchemaRegistryUrl());
+            deserializerConfig.put("json.value.type", Person.class.getName());
+            deserializer.configure(deserializerConfig, false);
+
+            // Serialize the Person to bytes
+            byte[] bytes = serializer.serialize(artifactId, person);
+
+            // Deserialize the bytes back to a Person
+            Person deserializedPerson = deserializer.deserialize(artifactId, bytes);
+
+            // Assert that the deserialize worked
+            Assertions.assertEquals("Clark", deserializedPerson.getFirstName());
+            Assertions.assertEquals("Kent", deserializedPerson.getLastName());
+            Assertions.assertEquals(31, deserializedPerson.getAge());
+        }
+    }
+
+    /**
+     * Tests the specificReturnClass feature of JsonSchemaDeserializer.
+     * This allows specifying the Java class to deserialize to via configuration,
+     * which is useful when the schema doesn't have a javaType field.
+     */
+    @ParameterizedTest(name = "testJsonSchemaSerdeSpecificReturnClass [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaSerdeSpecificReturnClass(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        // Load a schema WITHOUT javaType field
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON);
+
+        Person person = new Person("Diana", "Prince", 28);
+
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            serializer.configure(config, false);
+
+            // Configure deserializer with specificReturnClass
+            Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.put(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, Person.class.getName());
+            deserializer.configure(deserializerConfig, false);
+
+            byte[] bytes = serializer.serialize(artifactId, person);
+
+            // Deserialize using the specificReturnClass configuration
+            person = deserializer.deserialize(artifactId, bytes);
+
+            Assertions.assertEquals("Diana", person.getFirstName());
+            Assertions.assertEquals("Prince", person.getLastName());
+            Assertions.assertEquals(28, person.getAge());
+        }
+    }
+
 }

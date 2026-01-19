@@ -42,15 +42,15 @@ public class KafkaSql {
                                 env);
 
                         if (sslConfigured) {
-                            log.info("KafkaSQL storage with TLS security configured.");
+                            log.debug("KafkaSQL storage with TLS security configured.");
                         }
 
                         if (oAuthConfigured) {
-                            log.info("KafkaSQL storage with Oauth security configured.");
+                            log.debug("KafkaSQL storage with Oauth security configured.");
                         }
 
                         // Set the security protocol
-                         if (sslConfigured) {
+                        if (sslConfigured) {
                             if (oAuthConfigured) {
                                 addEnvVar(env, KAFKASQL_SECURITY_PROTOCOL, "SASL_SSL");
                             } else {

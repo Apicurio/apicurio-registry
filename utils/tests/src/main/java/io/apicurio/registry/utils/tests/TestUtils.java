@@ -212,7 +212,7 @@ public class TestUtils {
                 onTimeout.run();
                 TimeoutException exception = new TimeoutException(
                         "Timeout after " + timeoutMs + " ms waiting for " + description);
-                exception.printStackTrace();
+                log.warn("Timeout waiting for: {}", description, exception);
                 throw exception;
             }
             long sleepTime = Math.min(pollIntervalMs, timeLeft);
@@ -266,8 +266,16 @@ public class TestUtils {
         return UUID.randomUUID().toString();
     }
 
+    public static String generateArtifactId(String prefix) {
+        return prefix + "-" + generateArtifactId();
+    }
+
     public static String generateGroupId() {
         return UUID.randomUUID().toString();
+    }
+
+    public static String generateGroupId(String prefix) {
+        return prefix + "-" + generateGroupId();
     }
 
     public static String generateAvroName() {
@@ -276,6 +284,14 @@ public class TestUtils {
 
     public static String generateAvroNS() {
         return "ns_" + generateArtifactId().replace("-", "_");
+    }
+
+    public static CreateArtifact clientCreateArtifact(String artifactId, String artifactType) {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(artifactType);
+        createArtifact.setFirstVersion(new CreateVersion());
+        return createArtifact;
     }
 
     public static CreateArtifact clientCreateArtifact(String artifactId, String artifactType, String content,
@@ -416,8 +432,10 @@ public class TestUtils {
                         ((io.apicurio.registry.rest.client.models.ProblemDetails) ex).getName(),
                         () -> "ex: " + ex);
                 Assertions.assertEquals(expectedCode, errorCodeExtractor.apply(ex));
-            } else {
+            } else if (ex instanceof ApiException) {
                 Assertions.assertEquals(expectedCode, ((ApiException) ex).getResponseStatusCode());
+            } else {
+                Assertions.fail("Unexpected exception type (expected a client exception)", ex);
             }
         }
     }
@@ -476,6 +494,24 @@ public class TestUtils {
             line = reader.readLine();
         }
         return builder.toString();
+    }
+
+    /**
+     * Returns the root cause of a Throwable by traversing the exception chain.
+     * If the throwable has no cause, returns the throwable itself.
+     *
+     * @param throwable the throwable to find the root cause of
+     * @return the root cause throwable
+     */
+    public static Throwable getRootCause(Throwable throwable) {
+        if (throwable == null) {
+            return null;
+        }
+        Throwable rootCause = throwable;
+        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+            rootCause = rootCause.getCause();
+        }
+        return rootCause;
     }
 
 }

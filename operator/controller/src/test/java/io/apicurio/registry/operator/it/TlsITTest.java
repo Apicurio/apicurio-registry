@@ -10,11 +10,13 @@ import io.fabric8.kubernetes.client.utils.Serialization;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.util.List;
 
+import static io.apicurio.registry.operator.Tags.FEATURE;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static io.restassured.RestAssured.given;
@@ -22,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@Tag(FEATURE)
 public class TlsITTest extends ITBase {
 
     @BeforeAll
@@ -101,7 +104,7 @@ public class TlsITTest extends ITBase {
         });
 
         int appServicePort = portForwardManager
-                .startPortForward(registry.getMetadata().getName() + "-app-service", 8443);
+                .startServicePortForward(registry.getMetadata().getName() + "-app-service", 8443);
 
         await().ignoreExceptions().until(() -> {
             given().relaxedHTTPSValidation("TLS").get(new URI("https://localhost:" + appServicePort + "/apis/registry/v3/system/info"))
@@ -174,7 +177,7 @@ public class TlsITTest extends ITBase {
         });
 
         int appServicePortInsecure = portForwardManager
-                .startPortForward(registry.getMetadata().getName() + "-app-service", 8080);
+                .startServicePortForward(registry.getMetadata().getName() + "-app-service", 8080);
 
         await().ignoreExceptions().until(() -> {
             given().get(new URI("http://localhost:" + appServicePortInsecure + "/apis/registry/v3/system/info"))
@@ -182,10 +185,10 @@ public class TlsITTest extends ITBase {
             return true;
         });
 
-        portForwardManager.stop();
+        portForwardManager.stop(appServicePortInsecure);
 
         int appServicePort = portForwardManager
-                .startPortForward(registry.getMetadata().getName() + "-app-service", 8443);
+                .startServicePortForward(registry.getMetadata().getName() + "-app-service", 8443);
 
         await().ignoreExceptions().until(() -> {
             given().relaxedHTTPSValidation("TLS").get(new URI("https://localhost:" + appServicePort + "/apis/registry/v3/system/info"))

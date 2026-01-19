@@ -5,41 +5,107 @@ on:
       release-version:
         description: Version being released
         required: true
-      snapshot-version:
-        description: Next snapshot version
-        required: true
       branch:
         description: Branch to release from
         required: true
         default: main
+      notice:
+        type: boolean
+        description: I will notify jsenko if the operator release workflow fails!
+
 jobs:
   release:
     runs-on: ubuntu-22.04
-    if: github.repository_owner == 'Apicurio'
     env:
       IS_PRE_RELEASE: false
+      MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+    if: github.repository_owner == 'Apicurio'
     steps:
+
+      - name: Check
+        run: |
+          if [ "${{ inputs.notice }}" != "true" ]; then
+            echo "Error: You must check the notice checkbox to proceed with the release!"
+            exit 1
+          fi
+
+      - name: Calculate Next Version
+        run: |
+          RELEASE_VERSION="${{ github.event.inputs.release-version }}"
+
+          # Extract major, minor, and patch from release version (handles versions like 3.0.1 or 3.0.1-RC1)
+          MAJOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $1}')
+          MINOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $2}')
+          PATCH=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $3}')
+
+          # Increment patch version
+          NEXT_PATCH=$((PATCH + 1))
+
+          # Create next version
+          NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+
+          # Create snapshot version
+          SNAPSHOT_VERSION="${NEXT_VERSION}-SNAPSHOT"
+
+          # Calculate derived versions for release
+          RELEASE_DOCS_VERSION="${MAJOR}.${MINOR}.x"
+          RELEASE_UI_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+          # Calculate derived versions for snapshot (next development cycle)
+          SNAPSHOT_DOCS_VERSION="${MAJOR}.${MINOR}.x"
+          SNAPSHOT_UI_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}-Dev"
+
+          echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
+          echo "SNAPSHOT_VERSION=${SNAPSHOT_VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_DOCS_VERSION=${RELEASE_DOCS_VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_UI_VERSION=${RELEASE_UI_VERSION}" >> $GITHUB_ENV
+          echo "SNAPSHOT_DOCS_VERSION=${SNAPSHOT_DOCS_VERSION}" >> $GITHUB_ENV
+          echo "SNAPSHOT_UI_VERSION=${SNAPSHOT_UI_VERSION}" >> $GITHUB_ENV
+
       - name: Log Metadata
         run: |
           echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
-          echo "Next Snapshot version will be ${{ github.event.inputs.snapshot-version }}"
+          echo "Next version will be ${{ env.NEXT_VERSION }}"
+          echo "Next Snapshot version will be ${{ env.SNAPSHOT_VERSION }}"
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Cache Kiota binary
+        uses: actions/cache@v4
+        id: kiota-cache
+        with:
+          path: ~/.kiota
+          key: kiota-1.28.0-linux-x64
+
+      - name: Download Kiota binary
+        if: steps.kiota-cache.outputs.cache-hit != 'true'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            mkdir -p ~/.kiota
+            curl -L --retry 3 --retry-delay 5 \
+              -o ~/.kiota/kiota-linux-x64.zip \
+              https://github.com/microsoft/kiota/releases/download/v1.28.0/linux-x64.zip
+            unzip -o ~/.kiota/kiota-linux-x64.zip -d ~/.kiota/
+            chmod +x ~/.kiota/kiota
+
+      - name: Add Kiota to PATH
+        run: echo "$HOME/.kiota" >> $GITHUB_PATH
+
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Set up json CLI
         run: npm install -g json
-
-      - name: Set up Gren
-        run: npm install -g github-release-notes
 
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
@@ -65,36 +131,46 @@ jobs:
           cd registry
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
-          # take only the major and minor versions from release-version and then append .x.
-          DOCS_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '[.-]' '{print $1"."$2".x"}')
-          
-          sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
+          sed -i  "s/version\:\s.*/version: \'${{ env.RELEASE_DOCS_VERSION }}\'/g" docs/antora.yml
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # TODO: Operator docs
 
-          # take only the major, minor and patch
-          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
-          sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
+          sed -i "s/^version.*/version \= \"${{ env.RELEASE_UI_VERSION }}\"/" python-sdk/pyproject.toml
 
-          # take only the major, minor and patch
-          UI_VERSION=$(echo "${{ github.event.inputs.release-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
-          cd ui
-          npm version $UI_VERSION --allow-same-version
-          cd ui-app
-          npm version $UI_VERSION --allow-same-version
-          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"$UI_VERSION\""
-          cd ../ui-docs
-          npm version $UI_VERSION --allow-same-version
-          cd ../tests
-          npm version $UI_VERSION --allow-same-version
-          cd ../../typescript-sdk
-          npm version $UI_VERSION --allow-same-version
+          pushd ui
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          popd
 
-      - name: Build Registry (All Variants)
+          pushd ui/ui-app
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"${{ env.RELEASE_UI_VERSION }}\""
+          popd
+
+          pushd ui/ui-docs
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd ui/ui-editors
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd ui/tests
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd typescript-sdk
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd artifact-type-builtins
+          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
+          popd
+
+      - name: Build Registry
         run: |
           cd registry
-          ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
+          ./mvnw clean package --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dkiota.system=true -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Registry UI
         working-directory: registry/ui
@@ -142,49 +218,54 @@ jobs:
           target_commitish: ${{ github.event.inputs.branch }}
           prerelease: ${{ env.IS_PRE_RELEASE }}
           files: |
-            registry/distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.tar.gz
+            registry/distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.*
 
-      - name: Generate Release Notes
+      - name: Update Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |
           cd registry
-          gren release --token=${{ secrets.GITHUB_TOKEN }} --override
+          mvn versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
 
-      - name: Update Snapshot Version ${{ github.event.inputs.snapshot-version}}
-        run: |
-          cd registry
-          mvn versions:set -DnewVersion=${{ github.event.inputs.snapshot-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
-
-          # take only the major and minor versions from snapshot-version and then append .x.
-          DOCS_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2".x"}')
-
-          sed -i  "s/version\:\s.*/version: \'${DOCS_VERSION}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${DOCS_VERSION}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
+          sed -i  "s/version\:\s.*/version: \'${{ env.SNAPSHOT_DOCS_VERSION }}\'/g" docs/antora.yml
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.SNAPSHOT_DOCS_VERSION }}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
 
           # TODO: Operator docs
 
-          # take only the major, minor and patch
-          PYTHON_SDK_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}')
-          sed -i "s/^version.*/version \= \"${PYTHON_SDK_VERSION}\"/" python-sdk/pyproject.toml
+          sed -i "s/^version.*/version \= \"${{ env.NEXT_VERSION }}\"/" python-sdk/pyproject.toml
 
-          # take only the major, minor and patch
-          UI_VERSION=$(echo "${{ github.event.inputs.snapshot-version}}" | awk -F '[.-]' '{print $1"."$2"."$3}-Dev')
-          cd ui
-          npm version $UI_VERSION --allow-same-version
-          cd ui-app
-          npm version $UI_VERSION --allow-same-version
-          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"$UI_VERSION\""
-          cd ../ui-docs
-          npm version $UI_VERSION --allow-same-version
-          cd ../tests
-          npm version $UI_VERSION --allow-same-version
-          cd ../../typescript-sdk
-          npm version $UI_VERSION --allow-same-version
+          pushd ui
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          popd
 
-      - name: Commit Snapshot Version ${{ github.event.inputs.snapshot-version}}
+          pushd ui/ui-app
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          json -I -f package.json -e "this.dependencies[\"@apicurio/apicurio-registry-sdk\"]=\"${{ env.SNAPSHOT_UI_VERSION }}\""
+          popd
+
+          pushd ui/ui-docs
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd ui/ui-editors
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd ui/tests
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd typescript-sdk
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          popd
+
+          pushd artifact-type-builtins
+          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
+          popd
+
+      - name: Commit Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |
           cd registry
           git add .
-          git commit -m "Automated update to next Snapshot Version: ${{ github.event.inputs.snapshot-version}}"
+          git commit -m "Automated update to next Snapshot Version: ${{ env.SNAPSHOT_VERSION }}"
           git push
 
       - name: Slack Notification (Always)
@@ -204,9 +285,3 @@ jobs:
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
-
-      - name: Setup tmate session on failure
-        if: failure()
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true

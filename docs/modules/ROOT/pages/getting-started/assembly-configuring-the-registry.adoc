@@ -4,9 +4,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Configuring your {registry} deployment
 
 [role="_abstract"]
-This chapter explains how to set important configuration options for your {registry} deployment. This includes features such as the {registry} web console, logging, and health checks:
+This chapter explains how to set important configuration options for your {registry} deployment. This includes features such as the {registry} web console, logging, health checks, and observability:
 
 * xref:configuring-registry-ui_{context}[]
+* xref:configuring-registry-observability_{context}[]
 * xref:configuring-liveness-readiness-probes_{context}[]
 * xref:registry-liveness-env-vars_{context}[]
 
@@ -32,7 +33,7 @@ When you access the {registry} web console in your browser, some initial configu
 
 * URL for core {registry} server REST API v3
 
-Typically the {registry} operator will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
+Typically the {operator} will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
 
 .Procedure
 Configure the following environment variables to override the default URL:
@@ -59,6 +60,114 @@ Configure the following environment variable:
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="configuring-registry-observability_{context}"]
+== Configuring {registry} observability with OpenTelemetry
+
+[role="_abstract"]
+You can configure {registry} to export telemetry data using OpenTelemetry (OTel) for comprehensive observability. This includes distributed tracing, metrics export via OTLP protocol, and log correlation with trace context.
+
+{registry} is built with OpenTelemetry support and all telemetry signals (traces, metrics, logs) are enabled at build time. However, the OpenTelemetry SDK is disabled by default at runtime. When enabled, {registry} exports telemetry data to an OpenTelemetry-compatible collector such as Jaeger, Grafana Tempo, or the OpenTelemetry Collector.
+
+IMPORTANT: The individual signal properties (`QUARKUS_OTEL_TRACES_ENABLED`, `QUARKUS_OTEL_METRICS_ENABLED`, `QUARKUS_OTEL_LOGS_ENABLED`) are build-time properties and cannot be changed at runtime. All signals are already enabled in the {registry} build. Use `QUARKUS_OTEL_SDK_DISABLED=false` to enable telemetry at runtime.
+
+.Prerequisites
+* You have already installed {registry}.
+* You have an OpenTelemetry-compatible backend available (for example, Jaeger, Grafana Tempo, or OpenTelemetry Collector).
+
+[discrete]
+=== Enabling OpenTelemetry
+
+To enable OpenTelemetry observability, configure the following environment variables:
+
+.Environment variables for enabling OpenTelemetry
+[.table-expandable,width="100%",cols="4,6",options="header"]
+|===
+|Environment Variable
+|Description
+|`QUARKUS_OTEL_SDK_DISABLED`
+|Set to `false` to enable the OpenTelemetry SDK and all telemetry signals. Default is `true` (disabled).
+|`QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT`
+|The endpoint URL of your OpenTelemetry collector. For example, `http://jaeger:4317` for gRPC or `http://jaeger:4318` for HTTP.
+|===
+
+.Example: Enabling OpenTelemetry with Jaeger
+[source,yaml]
+----
+environment:
+  QUARKUS_OTEL_SDK_DISABLED: "false"
+  QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
+----
+
+[discrete]
+=== Configuring trace sampling for production
+
+In production environments, you should configure trace sampling to reduce overhead and control the volume of trace data:
+
+.Environment variables for trace sampling
+[.table-expandable,width="100%",cols="4,6",options="header"]
+|===
+|Environment Variable
+|Description
+|`QUARKUS_OTEL_TRACES_SAMPLER`
+|The sampling strategy. Use `parentbased_traceidratio` for production.
+|`QUARKUS_OTEL_TRACES_SAMPLER_ARG`
+|The sampling ratio (0.0 to 1.0). A value of `0.1` samples 10% of traces.
+|===
+
+.Example: Production sampling configuration (10% of traces)
+[source,yaml]
+----
+environment:
+  QUARKUS_OTEL_SDK_DISABLED: "false"
+  QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+  QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_traceidratio"
+  QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"
+----
+
+[discrete]
+=== Configuring structured logging with trace context
+
+When using JSON logging format, {registry} automatically includes trace context (trace ID and span ID) in log entries. This enables correlation between logs and traces.
+
+.Example: Enabling structured logging with trace context
+[source,yaml]
+----
+environment:
+  QUARKUS_OTEL_TRACES_ENABLED: "true"
+  QUARKUS_LOG_CONSOLE_JSON: "true"
+----
+
+[discrete]
+=== OpenTelemetry features in {registry}
+
+When OpenTelemetry is enabled, {registry} provides the following observability features:
+
+* *Distributed tracing*: All REST API requests are automatically traced with spans containing request details, path parameters, and Apicurio-specific attributes such as `groupId`, `artifactId`, and `version`.
+
+* *Storage layer tracing*: All storage operations create child spans, enabling you to trace the complete request flow from REST API to database.
+
+* *Kafka tracing*: When using KafkaSQL storage, Kafka operations are automatically traced with context propagation.
+
+* *Custom metrics*: OpenTelemetry metrics for artifact operations, schema validations, and search requests are exported alongside existing Prometheus metrics.
+
+* *Log correlation*: When JSON logging is enabled, trace context is automatically injected into log entries for easy correlation.
+
+[discrete]
+=== Backwards compatibility
+
+OpenTelemetry support is fully backwards compatible:
+
+* The existing Prometheus metrics endpoint (`/q/metrics`) remains available and unchanged.
+* Health check endpoints (`/q/health/*`) continue to work as before.
+* All existing Micrometer-based metrics continue to function.
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://opentelemetry.io/docs/[OpenTelemetry Documentation]
+* link:https://quarkus.io/guides/opentelemetry[Quarkus OpenTelemetry Guide]
+* link:https://www.jaegertracing.io/docs/[Jaeger Documentation]
+
 
 [id="configuring-liveness-readiness-probes_{context}"]
 

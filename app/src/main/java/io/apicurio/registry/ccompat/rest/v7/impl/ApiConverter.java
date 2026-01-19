@@ -35,11 +35,17 @@ public class ApiConverter {
         Schema schema = new Schema();
         schema.setId(convertUnsigned(cconfig.legacyIdModeEnabled.get() ? storedArtifact.getGlobalId()
                 : storedArtifact.getContentId()).intValue());
-        schema.setSchemaType(artifactType);
+        // Only set schemaType if it's not AVRO (AVRO is the default, so omit it for Confluent compatibility)
+        if (artifactType != null && !artifactType.equalsIgnoreCase("AVRO")) {
+            schema.setSchemaType(artifactType);
+        }
         schema.setSubject(subject);
         schema.setVersion(convertUnsigned(storedArtifact.getVersionOrder()).intValue());
         schema.setSchema(storedArtifact.getContent().content());
-        schema.setReferences(storedArtifact.getReferences().stream().map(this::convert).collect(Collectors.toList()));
+        List<SchemaReference> refs = storedArtifact.getReferences().stream().map(this::convert).collect(Collectors.toList());
+        // Only set refs if there are some - if not then set to "null" so the 'references' property
+        // is not included in the JSON response
+        schema.setReferences(refs.isEmpty() ? null : refs);
         return schema;
     }
 
@@ -47,8 +53,14 @@ public class ApiConverter {
                           List<ArtifactReferenceDto> references) {
         Schema schema = new Schema();
         schema.setSchema(content.content());
-        schema.setSchemaType(artifactType);
-        schema.setReferences(references.stream().map(this::convert).collect(Collectors.toList()));
+        // Only set schemaType if it's not AVRO (AVRO is the default, so omit it for Confluent compatibility)
+        if (artifactType != null && !artifactType.equalsIgnoreCase("AVRO")) {
+            schema.setSchemaType(artifactType);
+        }
+        List<SchemaReference> refs = references.stream().map(this::convert).collect(Collectors.toList());
+        // Only set refs if there are some - if not then set to "null" so the 'references' property
+        // is not included in the JSON response
+        schema.setReferences(refs.isEmpty() ? null : refs);
         return schema;
     }
 

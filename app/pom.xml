@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.0.10-SNAPSHOT</version>
+    <version>3.1.7-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -42,6 +42,13 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-config-index</artifactId>
+    </dependency>
+
+    <dependency>
+      <!-- TODO: Create a parent pom.xml for the extension, otherwise Maven can't resolve module build order properly. -->
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-config-index-deployment</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -85,6 +92,10 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-opentelemetry</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -150,6 +161,22 @@
     </dependency>
 
     <!-- Third Party Libraries -->
+    <dependency>
+      <groupId>io.roastedroot</groupId>
+      <artifactId>quickjs4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.roastedroot</groupId>
+      <artifactId>quickjs4j-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.roastedroot</groupId>
+      <artifactId>quickjs4j-processor</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkiverse.quickjs4j</groupId>
+      <artifactId>quarkus-quickjs4j</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
@@ -262,6 +289,16 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-jdk</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-vertx</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
       <scope>test</scope>
@@ -288,15 +325,23 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-utils-kafka</artifactId>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>strimzi-test-container</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-slf4j-impl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.github.dasniko</groupId>
@@ -325,6 +370,28 @@
       <artifactId>awaitility</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>raml-test-micro-service</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-testing</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -348,7 +415,68 @@
         <directory>src/test/resources-unfiltered</directory>
       </testResource>
     </testResources>
+
+    <pluginManagement>
+      <plugins>
+
+      <plugin>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-maven-plugin</artifactId>
+        <version>${project.version}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>1.7.1</version>
+      </plugin>
+
+      <plugin>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-codegen-maven-plugin</artifactId>
+        <version>${version.apicurio-codegen-plugin}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>${version.build.helper.maven.plugin}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>${proto-plugin.version}</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro-maven-plugin</artifactId>
+        <version>${avro.version}</version>
+      </plugin>
+
+      </plugins>
+    </pluginManagement>
+
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+            <path>
+              <groupId>io.quarkiverse.quickjs4j</groupId>
+              <artifactId>quarkus-quickjs4j</artifactId>
+              <version>${quarkus-quickjs4j.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>io.quarkus</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
@@ -367,9 +495,11 @@
           <skipExec>${skipTests}</skipExec>
           <skipTests>${skipAppTests}</skipTests>
           <groups>${groups}</groups>
-          <systemProperties>
+          <forkCount>1</forkCount>
+          <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-          </systemProperties>
+            <org.jboss.logging.provider>jboss</org.jboss.logging.provider>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
       <plugin>
@@ -476,7 +606,6 @@
       <plugin>
         <groupId>kr.motd.maven</groupId>
         <artifactId>os-maven-plugin</artifactId>
-        <version>1.7.1</version>
         <executions>
           <execution>
             <goals>
@@ -489,7 +618,6 @@
       <plugin>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-codegen-maven-plugin</artifactId>
-        <version>1.1.1.Final</version>
         <executions>
           <execution>
             <id>generate-api-ccompat-v3</id>
@@ -500,6 +628,8 @@
             <configuration>
               <projectSettings>
                 <javaPackage>io.apicurio.registry.ccompat.rest.v7</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/ccompat/v7/openapi.json</inputSpec>
             </configuration>
@@ -508,8 +638,39 @@
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-reflection-registry</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <mainClass>io.apicurio.registry.utils.reflectgen.ReflectionRegistryGenerator</mainClass>
+              <arguments>
+                <argument>${project.basedir}/target/generated-sources/reflection/io/apicurio/registry/ApicurioRegisterForReflection.java</argument>
+              </arguments>
+              <includePluginDependencies>true</includePluginDependencies>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-utils-reflectgen</artifactId>
+            <version>${project.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-data-models</artifactId>
+            <version>${apicurio-data-models.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.6.0</version>
         <executions>
           <execution>
             <id>addSource</id>
@@ -520,6 +681,7 @@
             <configuration>
               <sources>
                 <source>${project.basedir}/target/generated-sources/jaxrs</source>
+                <source>${project.basedir}/target/generated-sources/reflection</source>
               </sources>
             </configuration>
           </execution>
@@ -529,7 +691,6 @@
       <plugin>
         <groupId>org.xolstice.maven.plugins</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
-        <version>${proto-plugin.version}</version>
         <extensions>true</extensions>
         <executions>
           <execution>
@@ -549,7 +710,6 @@
       <plugin>
         <groupId>org.apache.avro</groupId>
         <artifactId>avro-maven-plugin</artifactId>
-        <version>${avro.version}</version>
         <executions>
           <execution>
             <goals>

@@ -1,5 +1,7 @@
 package io.apicurio.registry.examples.references;
 
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.examples.references.model.Citizen;
 import io.apicurio.registry.examples.references.model.City;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -14,7 +16,6 @@ import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
 import io.apicurio.registry.serde.strategy.SimpleTopicIdStrategy;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -32,8 +33,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
-
-import static io.apicurio.registry.client.auth.VertXAuthFactory.buildOIDCWebClient;
 
 public class JsonSerdeReferencesExample {
     private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
@@ -252,14 +251,10 @@ public class JsonSerdeReferencesExample {
         if (tokenEndpoint != null) {
             final String authClient = System.getenv(SerdeConfig.AUTH_CLIENT_ID);
             final String authSecret = System.getenv(SerdeConfig.AUTH_CLIENT_SECRET);
-            var adapter = new VertXRequestAdapter(
-                    buildOIDCWebClient(vertx, tokenEndpoint, authClient, authSecret));
-            adapter.setBaseUrl(registryUrl);
-            return new RegistryClient(adapter);
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx)
+                    .oauth2(tokenEndpoint, authClient, authSecret));
         } else {
-            VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-            vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
-            return new RegistryClient(vertXRequestAdapter);
+            return RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx));
         }
     }
 }

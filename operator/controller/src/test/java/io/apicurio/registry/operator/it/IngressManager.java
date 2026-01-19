@@ -31,9 +31,13 @@ public class IngressManager {
         }
     }
 
-    public String getIngressHost(String prefix) {
+    public String getIngressHost(String namespace, String prefix) {
         var rand = UUID.randomUUID().toString().substring(0, 6);
         return prefix + "." + rand + "." + namespace + getBaseIngressHost().map(v -> "." + v).orElse("");
+    }
+
+    public String getIngressHost(String prefix) {
+        return getIngressHost(namespace, prefix);
     }
 
     private static boolean isSkipIngress() {

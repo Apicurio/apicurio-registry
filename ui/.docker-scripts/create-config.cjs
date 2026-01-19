@@ -11,6 +11,7 @@ const REGISTRY_API_URL=process.env["REGISTRY_API_URL"] || "http://localhost:8080
 const CONTEXT_PATH=process.env["REGISTRY_CONTEXT_PATH"];
 const NAV_PREFIX_PATH=process.env["REGISTRY_NAV_PREFIX_PATH"];
 const DOCS_URL=process.env["REGISTRY_DOCS_URL"];
+const EDITORS_URL=process.env["REGISTRY_EDITORS_URL"];
 
 const AUTH_TYPE=process.env["REGISTRY_AUTH_TYPE"];
 const AUTH_RBAC_ENABLED=process.env["REGISTRY_AUTH_RBAC_ENABLED"];
@@ -20,6 +21,9 @@ const AUTH_CLIENT_ID=process.env["REGISTRY_AUTH_CLIENT_ID"];
 const AUTH_CLIENT_SCOPES=process.env["REGISTRY_AUTH_CLIENT_SCOPES"];
 const AUTH_REDIRECT_URL=process.env["REGISTRY_AUTH_REDIRECT_URL"];
 const AUTH_LOGOUT_URL=process.env["REGISTRY_AUTH_LOGOUT_URL"];
+const AUTH_LOAD_USER_INFO=process.env["REGISTRY_AUTH_LOAD_USER_INFO"];
+const AUTH_TOKEN_TYPE=process.env["REGISTRY_AUTH_TOKEN_TYPE"];
+const AUTH_LOG_TOKENS=process.env["REGISTRY_AUTH_LOG_TOKENS"];
 
 const FEATURE_READ_ONLY=process.env["REGISTRY_FEATURE_READ_ONLY"];
 const FEATURE_BREADCRUMBS=process.env["REGISTRY_FEATURE_BREADCRUMBS"];
@@ -51,6 +55,9 @@ if (NAV_PREFIX_PATH) {
 if (DOCS_URL) {
     CONFIG.ui.oaiDocsUrl = DOCS_URL;
 }
+if (EDITORS_URL) {
+    CONFIG.ui.editorsUrl = EDITORS_URL;
+}
 
 
 // Configure auth
@@ -80,6 +87,15 @@ if (AUTH_TYPE === "oidc") {
     }
     if (AUTH_LOGOUT_URL) {
         CONFIG.auth.options.logoutUrl = AUTH_LOGOUT_URL;
+    }
+    if (AUTH_LOAD_USER_INFO) {
+        CONFIG.auth.options.loadUserInfo = AUTH_LOAD_USER_INFO === "true";
+    }
+    if (AUTH_TOKEN_TYPE) {
+        CONFIG.auth.options.tokenType = AUTH_TOKEN_TYPE;
+    }
+    if (AUTH_LOG_TOKENS) {
+        CONFIG.auth.options.logTokens = AUTH_LOG_TOKENS;
     }
 }
 

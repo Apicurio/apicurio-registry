@@ -1,0 +1,906 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="operator-config-reference_{context}"]
+= {operator} configuration reference
+
+[role="_abstract"]
+This chapter provides a complete reference for configuring {registry} instances using the `ApicurioRegistry3`
+custom resource.
+
+* xref:operator-cr-structure_{context}[]
+* xref:operator-app-spec-reference_{context}[]
+* xref:operator-ui-spec-reference_{context}[]
+* xref:operator-storage-reference_{context}[]
+* xref:operator-auth-reference_{context}[]
+* xref:operator-ingress-reference_{context}[]
+
+//INCLUDES
+
+[id="operator-cr-structure_{context}"]
+== ApicurioRegistry3 custom resource structure
+
+The `ApicurioRegistry3` custom resource defines the desired state of a {registry} instance. The resource is
+organized into two main sections under `spec`:
+
+[source,yaml,subs="attributes"]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry
+spec:
+  app:
+    # Configuration for the {registry-app}.
+  ui:
+    # Configuration for the {registry-ui}.
+----
+
+[id="operator-app-spec-reference_{context}"]
+== {registry-app} configuration reference
+
+The `spec.app` section configures the backend component, which provides the REST API.
+
+=== Common component fields
+
+The following fields are available for both `spec.app` and `spec.ui` components:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`replicas`
+|Number of pod replicas for the component
+|Integer
+|`1`
+
+|`env`
+|List of environment variables to pass to the component's container
+|Array of EnvVar
+|`[]`
+
+|`ingress`
+|Ingress configuration for the component
+|<<IngressSpec>>
+|See xref:operator-ingress-reference_{context}[]
+
+|`podTemplateSpec`
+|Custom PodTemplateSpec for advanced pod configuration
+|PodTemplateSpec
+|Operator-generated defaults
+
+|`podDisruptionBudget`
+|PodDisruptionBudget configuration
+|PodDisruptionSpec
+|`{ enabled: true }`
+
+|`networkPolicy`
+|NetworkPolicy configuration
+|NetworkPolicySpec
+|`{ enabled: true }`
+
+|`host` _(deprecated)_
+|Use `ingress.host` instead
+|String
+|`""`
+|===
+
+=== Application-specific fields
+
+The following fields are specific to `spec.app`:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`storage`
+|Storage configuration for the backend
+|<<StorageSpec>>
+|See xref:operator-storage-reference_{context}[]
+
+|`features`
+|Feature flags for the backend
+|<<AppFeaturesSpec>>
+|See below
+
+|`auth`
+|Authentication and authorization configuration
+|<<AuthSpec>>
+|See xref:operator-auth-reference_{context}[]
+
+|`tls`
+|TLS configuration for the application
+|<<TLSSpec>>
+|See below
+|===
+
+=== AppFeaturesSpec
+
+Configure optional features for {registry}:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`resourceDeleteEnabled`
+|Allow deletion of groups, artifacts, and artifact versions. By default, resources in {registry} are
+immutable.
+|Boolean
+|`false`
+
+|`versionMutabilityEnabled`
+|Allow artifact versions in DRAFT state to be mutable. Enabling this also unlocks Studio functionality in the UI.
+|Boolean
+|`false`
+|===
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    features:
+      resourceDeleteEnabled: true
+      versionMutabilityEnabled: true
+----
+
+=== TLSSpec
+
+Configure TLS certificates for the application:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`keystoreSecretRef`
+|Reference to a Secret containing the keystore (PKCS12 format). Default key: `keystore.p12`
+|<<SecretKeyRef>>
+|None
+
+|`keystorePasswordSecretRef`
+|Reference to a Secret containing the keystore password. Default key: `password`
+|<<SecretKeyRef>>
+|None
+|===
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    tls:
+      keystoreSecretRef:
+        name: registry-tls
+        key: keystore.p12
+      keystorePasswordSecretRef:
+        name: registry-tls
+        key: keystore.password
+----
+
+[id="operator-ui-spec-reference_{context}"]
+== UI component configuration reference
+
+The `spec.ui` section configures the {registry} web console component.
+
+=== UI-specific fields
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`enabled`
+|Whether the operator should deploy the UI component
+|Boolean
+|`true`
+|===
+
+The UI component also supports all common component fields listed in
+xref:operator-app-spec-reference_{context}[].
+
+Example:
+[source,yaml]
+----
+spec:
+  ui:
+    enabled: true
+    replicas: 2
+    env:
+      - name: REGISTRY_API_URL
+        value: https://registry-api.example.com/apis/registry/v3
+    ingress:
+      host: registry-ui.example.com
+----
+
+[id="operator-storage-reference_{context}"]
+== Storage configuration reference
+
+The `spec.app.storage` section configures the storage backend for {registry}.
+
+=== StorageSpec
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`type`
+|Storage type: `<empty>` (in-memory), `postgresql`, or `kafkasql`
+|String
+|`""` (in-memory)
+
+|`sql`
+|SQL database configuration. Required when `type` is `postgresql`
+|<<SqlSpec>>
+|None
+
+|`kafkasql`
+|KafkaSQL storage configuration. Required when `type` is `kafkasql`
+|<<KafkaSqlSpec>>
+|None
+|===
+
+IMPORTANT: The default in-memory storage is not suitable for production environments.
+
+=== SqlSpec
+
+Configure SQL database storage (PostgreSQL or MySQL):
+
+[cols="1,2,1",options="header"]
+|===
+|Field
+|Description
+|Type
+
+|`dataSource`
+|Data source configuration
+|<<DataSourceSpec>>
+|===
+
+=== DataSourceSpec
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`url`
+|JDBC connection URL. Example: `jdbc:postgresql://postgresql.my-ns.svc:5432/registry`
+|String
+|None
+
+|`username`
+|Database username
+|String
+|None
+
+|`password`
+|Reference to a Secret containing the database password. Default key: `password`
+|<<SecretKeyRef>>
+|None
+|===
+
+Example for PostgreSQL:
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: jdbc:postgresql://postgresql.my-project.svc:5432/registry
+          username: registry_user
+          password:
+            name: postgresql-credentials
+            key: password
+----
+
+Example for MySQL:
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: mysql
+      sql:
+        dataSource:
+          url: jdbc:mysql://mysql.my-project.svc:3306/registry
+          username: registry_user
+          password:
+            name: mysql-credentials
+            key: password
+----
+
+=== KafkaSqlSpec
+
+Configure KafkaSQL storage:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`bootstrapServers`
+|Kafka bootstrap servers address. Required for KafkaSQL storage.
+|String
+|None
+
+|`tls`
+|TLS configuration for connecting to Kafka
+|<<KafkaSqlTLSSpec>>
+|None
+
+|`auth`
+|Authentication configuration for connecting to Kafka
+|<<KafkaSqlAuthSpec>>
+|None
+|===
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9092
+----
+
+=== KafkaSqlTLSSpec
+
+Configure TLS for KafkaSQL storage:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`truststoreSecretRef`
+|Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
+|<<SecretKeyRef>>
+|None
+
+|`truststorePasswordSecretRef`
+|Reference to a Secret containing the truststore password. Default key: `ca.password`
+|<<SecretKeyRef>>
+|None
+|===
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9093
+        tls:
+          truststoreSecretRef:
+            name: kafka-cluster-ca-cert
+            key: ca.p12
+          truststorePasswordSecretRef:
+            name: kafka-cluster-ca-cert
+            key: ca.password
+----
+
+=== KafkaSqlAuthSpec
+
+Configure SASL OAuth authentication for KafkaSQL storage:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`enabled`
+|Enables SASL OAuth authentication. Must be set to `true` for other auth fields to have effect.
+|Boolean
+|`false`
+
+|`mechanism`
+|SASL mechanism. Use `OAUTHBEARER` for OAuth authentication.
+|String
+|None
+
+|`clientIdRef`
+|Reference to a Secret containing the OAuth client ID. Default key: `clientId`
+|<<SecretKeyRef>>
+|None
+
+|`clientSecretRef`
+|Reference to a Secret containing the OAuth client secret. Default key: `clientSecret`
+|<<SecretKeyRef>>
+|None
+
+|`tokenEndpoint`
+|OAuth token endpoint URI
+|String
+|None
+
+|`loginHandlerClass`
+|The login callback handler class for OAuth authentication
+|String
+|None
+|===
+
+Example with OAuth:
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9093
+        auth:
+          enabled: true
+          mechanism: OAUTHBEARER
+          clientIdRef:
+            name: kafka-oauth-credentials
+            key: clientId
+          clientSecretRef:
+            name: kafka-oauth-credentials
+            key: clientSecret
+          tokenEndpoint: https://identity-server.example.com/token
+          loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+----
+
+NOTE: The operator provides first-class support for OAuth (OAUTHBEARER) authentication. For other SASL mechanisms
+such as SCRAM-SHA-512 or PLAIN, you can use custom environment variables via the `spec.app.env` field to configure
+the Kafka client properties directly. See the xref:getting-started/assembly-config-reference.adoc[] for available
+`apicurio.kafkasql.*` configuration properties.
+
+[id="operator-auth-reference_{context}"]
+== Authentication and authorization configuration reference
+
+The `spec.app.auth` section configures OIDC authentication and role-based authorization.
+
+=== AuthSpec
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`enabled`
+|Enable authentication
+|Boolean
+|`false`
+
+|`appClientId`
+|OIDC client ID for the backend application
+|String
+|None
+
+|`uiClientId`
+|OIDC client ID for the UI application
+|String
+|None
+
+|`authServerUrl`
+|URL of the identity server (OIDC issuer)
+|String
+|None
+
+|`redirectUri`
+|Redirect URI after successful authentication
+|String
+|None
+
+|`logoutUrl`
+|Redirect URI after logout
+|String
+|None
+
+|`anonymousReadsEnabled`
+|Allow anonymous users to make read-only calls to the REST API
+|Boolean
+|`false`
+
+|`authz`
+|Authorization configuration
+|<<AuthzSpec>>
+|See below
+
+|`basicAuth`
+|Client credentials basic authentication configuration
+|<<BasicAuthSpec>>
+|See below
+
+|`tls`
+|TLS configuration for OIDC connections
+|<<AuthTLSSpec>>
+|See below
+|===
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      enabled: true
+      appClientId: registry-client-api
+      uiClientId: registry-client-ui
+      authServerUrl: https://keycloak.example.com/realms/registry
+      redirectUri: https://registry-ui.example.com
+      logoutUrl: https://registry-ui.example.com
+      anonymousReadsEnabled: false
+----
+
+=== AuthzSpec
+
+Configure role-based authorization:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`enabled`
+|Enable role-based authorization
+|Boolean
+|`false`
+
+|`ownerOnlyEnabled`
+|When enabled, only the user who created an artifact can modify or delete it
+|Boolean
+|`false`
+
+|`groupAccessEnabled`
+|When enabled with owner-only authorization, only the user who created an artifact group has write access
+|Boolean
+|`false`
+
+|`readAccessEnabled`
+|When enabled, grants at least read-only access to all authenticated users in the organization
+|Boolean
+|`false`
+
+|`roles`
+|Role configuration
+|<<AuthzRolesSpec>>
+|See below
+
+|`adminOverride`
+|Admin override configuration
+|<<AdminOverrideSpec>>
+|See below
+|===
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      authz:
+        enabled: true
+        ownerOnlyEnabled: true
+        groupAccessEnabled: false
+        readAccessEnabled: true
+        roles:
+          source: token
+          admin: sr-admin
+          developer: sr-developer
+          readOnly: sr-readonly
+----
+
+=== AuthzRolesSpec
+
+Configure authorization roles:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`source`
+|Role source. Use `token` to extract roles from the authentication token
+|String
+|None
+
+|`admin`
+|Name of the admin role
+|String
+|None
+
+|`developer`
+|Name of the developer role
+|String
+|None
+
+|`readOnly`
+|Name of the read-only role
+|String
+|None
+|===
+
+=== AdminOverrideSpec
+
+Configure admin override functionality:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`enabled`
+|Enable admin override
+|Boolean
+|`false`
+
+|`from`
+|Where to look for admin override information. Only `token` is currently supported
+|String
+|None
+
+|`type`
+|Type of information used to determine admin status: `role` or `claim`
+|String
+|None
+
+|`role`
+|Name of the role that indicates admin status (when `type` is `role`)
+|String
+|None
+
+|`claimName`
+|Name of the JWT claim to use for admin override (when `type` is `claim`)
+|String
+|None
+
+|`claimValue`
+|Required value of the JWT claim (when `type` is `claim`)
+|String
+|None
+|===
+
+Example using role-based admin override:
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      authz:
+        enabled: true
+        adminOverride:
+          enabled: true
+          from: token
+          type: role
+          role: sr-admin
+----
+
+Example using claim-based admin override:
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      authz:
+        enabled: true
+        adminOverride:
+          enabled: true
+          from: token
+          type: claim
+          claimName: org-admin
+          claimValue: "true"
+----
+
+=== BasicAuthSpec
+
+Configure basic authentication for client credentials:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`enabled`
+|Enable client credentials basic authentication
+|Boolean
+|`false`
+
+|`cacheExpiration`
+|Token cache expiration time (e.g., `25m`, `1h`)
+|String
+|None
+|===
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      basicAuth:
+        enabled: true
+        cacheExpiration: 25m
+----
+
+=== AuthTLSSpec
+
+Configure TLS for OIDC connections:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`tlsVerificationType`
+|TLS verification type: `all`, `none`
+|String
+|`all`
+
+|`truststoreSecretRef`
+|Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
+|<<SecretKeyRef>>
+|None
+
+|`truststorePasswordSecretRef`
+|Reference to a Secret containing the truststore password. Default key: `ca.password`
+|<<SecretKeyRef>>
+|None
+|===
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    auth:
+      tls:
+        tlsVerificationType: all
+        truststoreSecretRef:
+          name: keycloak-ca-cert
+          key: ca.p12
+        truststorePasswordSecretRef:
+          name: keycloak-ca-cert
+          key: ca.password
+----
+
+[id="operator-ingress-reference_{context}"]
+== Ingress configuration reference
+
+The `ingress` section is available for both `spec.app` and `spec.ui` components.
+
+=== IngressSpec
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`enabled`
+|Whether the operator should manage an Ingress resource. Set to `false` to create your own Ingress
+|Boolean
+|`true`
+
+|`host`
+|Hostname for the Ingress. If empty, the operator will not create an Ingress resource
+|String
+|`""`
+
+|`ingressClassName`
+|IngressClass to use for the Ingress resource
+|String
+|None
+
+|`annotations`
+|Additional annotations for the Ingress resource
+|Map[String]String
+|`{}`
+|===
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    ingress:
+      host: registry-api.example.com
+      ingressClassName: nginx
+      annotations:
+        nginx.org/proxy-connect-timeout: "30s"
+  ui:
+    ingress:
+      host: registry-ui.example.com
+      ingressClassName: nginx
+      annotations:
+        nginx.org/proxy-connect-timeout: "30s"
+----
+
+=== SecretKeyRef
+
+Many configuration fields use `SecretKeyRef` to reference Kubernetes Secrets:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`name`
+|Name of the Secret
+|String
+|Required
+
+|`key`
+|Key within the Secret containing the target data
+|String
+|Field-specific default (e.g., `password`, `ca.p12`)
+|===
+
+Example:
+[source,yaml]
+----
+password:
+  name: db-credentials
+  key: db-password
+----
+
+== For Developers
+
+Java model classes for the `ApicurioRegistry3` custom resource are available as a Maven artifact:
+
+[source,xml,subs="attributes+"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-operator-model</artifactId>
+    <version>{registry-release}</version>
+</dependency>
+----
+
+and can be used with the link:https://github.com/fabric8io/kubernetes-client[Fabric8 Kubernetes Client library] to programmatically create and manage {operator} resources.
+
+[role="_additional-resources"]
+.Additional resources
+
+* For deployment examples, see xref:getting-started/assembly-deploying-registry-operator.adoc[].
+* For Kubernetes PodTemplateSpec documentation, see
+https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplateSpec
+* For Kubernetes EnvVar documentation, see
+https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core
+* You can also explore the link:https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/model/src/main/java/io/apicurio/registry/operator/api/v1[{operator} Java model source code in GitHub]

@@ -1,9 +1,12 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
+import com.google.common.collect.BoundType;
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Range;
 import com.google.common.io.Files;
+import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.squareup.wire.Syntax;
 import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.EnumConstantElement;
@@ -17,15 +20,12 @@ import com.squareup.wire.schema.internal.parser.ReservedElement;
 import com.squareup.wire.schema.internal.parser.RpcElement;
 import com.squareup.wire.schema.internal.parser.ServiceElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
+import kotlin.ranges.IntRange;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Indexed representation of the data resulting from parsing a single .proto protobuf schema file, used mainly
@@ -72,8 +72,20 @@ public class ProtobufFile {
     }
 
     public static ProtoFileElement toProtoFileElement(String data) {
-        ProtoParser parser = new ProtoParser(Location.get(""), data.toCharArray());
-        return parser.readProtoFile();
+        try {
+            ProtoParser parser = new ProtoParser(Location.get(""), data.toCharArray());
+            return parser.readProtoFile();
+        } catch (Exception e) {
+            // Exctracted from AbstractResource.java, lines 138-149.
+            byte[] decodedBytes = Base64.getDecoder().decode(data);
+            DescriptorProtos.FileDescriptorProto descriptorProto = null;
+            try {
+                descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+            } catch (InvalidProtocolBufferException ex) {
+                throw new RuntimeException(ex);
+            }
+            return FileDescriptorUtils.fileDescriptorToProtoFile(descriptorProto);
+        }
     }
 
     public String getPackageName() {
@@ -213,7 +225,13 @@ public class ProtobufFile {
         Set<Object> reservedFieldSet = new HashSet<>();
         for (ReservedElement reservedElement : messageElement.getReserveds()) {
             for (Object value : reservedElement.getValues()) {
-                if (value instanceof Range) {
+                if (value instanceof IntRange) {
+                    // Handle Kotlin IntRange from wire-schema library (e.g., "reserved 1 to 2;")
+                    IntRange intRange = (IntRange) value;
+                    Range<Integer> range = Range.range(intRange.getStart(), BoundType.CLOSED,
+                            intRange.getLast(), BoundType.CLOSED);
+                    reservedFieldSet.addAll(ContiguousSet.create(range, DiscreteDomain.integers()));
+                } else if (value instanceof Range) {
                     reservedFieldSet.addAll(ContiguousSet.create((Range) value, DiscreteDomain.integers()));
                 } else {
                     reservedFieldSet.add(value);
@@ -245,9 +263,8 @@ public class ProtobufFile {
             }
         }
 
-        if (!fieldTypeMap.isEmpty()) {
-            fieldMap.put(scope + messageElement.getName(), fieldTypeMap);
-        }
+        // Always add to fieldMap, even if empty, so that empty messages can be found during type resolution
+        fieldMap.put(scope + messageElement.getName(), fieldTypeMap);
         if (!mapMap.isEmpty()) {
             this.mapMap.put(scope + messageElement.getName(), mapMap);
         }
@@ -268,15 +285,14 @@ public class ProtobufFile {
             }
         }
 
-        if (!fieldKeySet.isEmpty()) {
-            nonReservedFields.put(scope + messageElement.getName(), fieldKeySet);
-        }
+        // Always add to nonReservedFields, even if empty, for type existence checking
+        nonReservedFields.put(scope + messageElement.getName(), fieldKeySet);
 
         for (TypeElement typeElement : messageElement.getNestedTypes()) {
             if (typeElement instanceof MessageElement) {
-                processMessageElement(messageElement.getName() + ".", (MessageElement) typeElement);
+                processMessageElement(scope + messageElement.getName() + ".", (MessageElement) typeElement);
             } else if (typeElement instanceof EnumElement) {
-                processEnumElement(messageElement.getName() + ".", (EnumElement) typeElement);
+                processEnumElement(scope + messageElement.getName() + ".", (EnumElement) typeElement);
             }
         }
     }

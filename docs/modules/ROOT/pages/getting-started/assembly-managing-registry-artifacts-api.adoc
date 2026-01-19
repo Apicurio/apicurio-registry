@@ -266,8 +266,6 @@ $ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
 	}
 }'
 ----
-+
-* For artifact references, you must specify the custom content type of `application/create.extended+json`, which extends the `application/json` content type.
 
 . Verify that the response includes the expected JSON body to confirm that the artifact was created with the reference. For example:
 +

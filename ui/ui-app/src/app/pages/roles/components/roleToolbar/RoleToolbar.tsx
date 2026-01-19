@@ -14,7 +14,7 @@ import {
 } from "@patternfly/react-core";
 import { SearchIcon, SortAlphaDownAltIcon, SortAlphaDownIcon } from "@patternfly/react-icons";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
-import { Paging } from "@models/paging.model.ts";
+import { Paging } from "@models/Paging.ts";
 import { RoleMapping, RoleTypeObject } from "@sdk/lib/generated-client/models";
 
 

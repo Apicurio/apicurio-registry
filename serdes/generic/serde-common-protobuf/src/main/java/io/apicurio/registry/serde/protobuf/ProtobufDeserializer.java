@@ -8,15 +8,15 @@ import com.google.protobuf.Message;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
+import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -36,24 +36,32 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
     private Method specificReturnClassParseMethod;
     private boolean deriveClass;
     private String messageTypeName;
+    private boolean readTypeRef = true;
+    private boolean readIndexes = false;
 
     private final Map<String, Method> parseMethodsCache = new ConcurrentHashMap<>();
+
+    /**
+     * Cache for derived class names from Descriptor.
+     * The mapping from Descriptor to class name is deterministic and can be cached.
+     */
+    private final Map<String, String> derivedClassNameCache = new ConcurrentHashMap<>();
 
     public ProtobufDeserializer() {
         super();
     }
 
-    public ProtobufDeserializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(client, schemaResolver);
+    public ProtobufDeserializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public ProtobufDeserializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
-        super(client, strategy, schemaResolver);
+    public ProtobufDeserializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver,
+                                ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+        super(clientFacade, strategy, schemaResolver);
     }
 
-    public ProtobufDeserializer(RegistryClient client) {
-        super(client);
+    public ProtobufDeserializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public ProtobufDeserializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
@@ -84,7 +92,8 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         }
 
         deriveClass = config.deriveClass();
-
+        readTypeRef = config.readTypeRef();
+        readIndexes = config.readIndexes();
     }
 
     @Override
@@ -105,26 +114,49 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
     protected U internalReadData(ParsedSchema<ProtobufSchema> schema, ByteBuffer buff, int start,
             int length) {
         try {
-            byte[] bytes = new byte[length];
-            System.arraycopy(buff.array(), start, bytes, 0, length);
+            // Create a ByteBuffer slice to avoid copying data
+            ByteBuffer slice = buff.duplicate();
+            slice.position(start);
+            slice.limit(start + length);
 
-            ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+            InputStream is = new ByteBufferInputStream(slice);
+
+            // Fast path: if messageTypeName is a Java class name (contains '.'),
+            // we can skip Ref parsing and use invokeParseMethod directly.
+            // Note: indexes and Ref may still be written to the stream, so we must skip them.
+            if (messageTypeName != null && messageTypeName.contains(".")) {
+                if (readIndexes) {
+                    MessageIndexesUtil.readFrom(is);
+                }
+                if (readTypeRef) {
+                    skipDelimitedMessage(is);
+                }
+                return invokeParseMethod(is, messageTypeName);
+            }
 
             Descriptor descriptor = null;
 
             if (messageTypeName != null) {
                 descriptor = schema.getParsedSchema().getFileDescriptor()
                         .findMessageTypeByName(messageTypeName);
-
             }
 
-            if (descriptor == null) {
+            if (readIndexes) {
+                // Read the message index list from the buffer.  Currently we do not use it for anything,
+                // but this may be necessary for interoperability with Confluent.
+                MessageIndexesUtil.readFrom(is);
+            }
+
+            if (readTypeRef && descriptor == null) {
                 try {
                     Ref ref = Ref.parseDelimitedFrom(is);
                     descriptor = schema.getParsedSchema().getFileDescriptor()
                             .findMessageTypeByName(ref.getName());
                 } catch (IOException e) {
-                    is = new ByteArrayInputStream(bytes);
+                    // Reset the stream by creating a new ByteBufferInputStream from a fresh slice
+                    slice.position(start);
+                    slice.limit(start + length);
+                    is = new ByteBufferInputStream(slice);
                     // use the first message type found
                     descriptor = schema.getParsedSchema().getFileDescriptor().getMessageTypes().get(0);
                 }
@@ -178,8 +210,17 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         }
     }
 
-    // TODO refactor
+    /**
+     * Derives the Java class name from a Protobuf Descriptor.
+     * Results are cached since the mapping is deterministic for a given Descriptor.
+     */
     public String deriveClassFromDescriptor(Descriptor des) {
+        // Use the descriptor's full name as cache key
+        String cacheKey = des.getFullName();
+        return derivedClassNameCache.computeIfAbsent(cacheKey, key -> computeClassName(des));
+    }
+
+    private String computeClassName(Descriptor des) {
         Descriptor descriptor = des;
         FileDescriptor fd = descriptor.getFile();
         DescriptorProtos.FileOptions o = fd.getOptions();
@@ -205,6 +246,51 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         String d1 = (!outer.isEmpty() || inner.length() != 0 ? "." : "");
         String d2 = (!outer.isEmpty() && inner.length() != 0 ? "$" : "");
         return p + d1 + outer + d2 + inner;
+    }
+
+    /**
+     * Skips a length-delimited protobuf message in the stream without parsing it.
+     * This is more efficient than parsing and discarding when we don't need the content.
+     */
+    private void skipDelimitedMessage(InputStream is) throws IOException {
+        // Read the varint length prefix
+        int length = readRawVarint32(is);
+        if (length > 0) {
+            // Skip that many bytes
+            long skipped = is.skip(length);
+            // If skip didn't work (some streams don't support it), read the bytes
+            while (skipped < length) {
+                int read = is.read();
+                if (read < 0) break;
+                skipped++;
+            }
+        }
+    }
+
+    /**
+     * Reads a varint32 from the input stream (same algorithm as protobuf uses).
+     */
+    private int readRawVarint32(InputStream is) throws IOException {
+        int result = 0;
+        int shift = 0;
+        while (shift < 32) {
+            int b = is.read();
+            if (b < 0) {
+                return result; // End of stream
+            }
+            result |= (b & 0x7F) << shift;
+            if ((b & 0x80) == 0) {
+                return result;
+            }
+            shift += 7;
+        }
+        // Discard remaining bytes for malformed varints
+        while (true) {
+            int b = is.read();
+            if (b < 0 || (b & 0x80) == 0) {
+                return result;
+            }
+        }
     }
 
 }

@@ -5,9 +5,9 @@ import io.apicurio.registry.protobuf.ProtobufDifference;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
+import io.apicurio.registry.protobuf.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
@@ -16,40 +16,84 @@ import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ProtobufSerializer<U extends Message> extends AbstractSerializer<ProtobufSchema, U> {
+
+    /**
+     * Maximum number of entries in each cache.
+     * Prevents unbounded memory growth in long-running applications.
+     */
+    private static final int MAX_CACHE_SIZE = 1000;
 
     private Boolean validationEnabled;
     private ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     private boolean writeRef = true;
+    private boolean writeIndexes = false;
+
+    /**
+     * Cache for Ref objects per message type name.
+     * Ref objects are immutable and can be safely reused.
+     * Uses LRU eviction to prevent unbounded growth.
+     */
+    private final Map<String, Ref> refCache = createBoundedCache(MAX_CACHE_SIZE);
+
+    /**
+     * Cache for validation results. Key is composed of schema contentHash + message type name.
+     * If validation passed once for a schema+message type combination, it will always pass.
+     * Uses LRU eviction to prevent unbounded growth.
+     */
+    private final Map<String, Boolean> validationCache = createBoundedCache(MAX_CACHE_SIZE);
+
+    /**
+     * Cache for message indexes keyed by schema + message type.
+     * The indexes depend on both the schema structure and the message type.
+     * Uses LRU eviction to prevent unbounded growth.
+     */
+    private final Map<String, List<Integer>> indexCache = createBoundedCache(MAX_CACHE_SIZE);
+
+    /**
+     * Creates a thread-safe bounded LRU cache.
+     * When the cache exceeds maxSize, the least recently accessed entry is removed.
+     */
+    private static <K, V> Map<K, V> createBoundedCache(int maxSize) {
+        return Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+                return size() > maxSize;
+            }
+        });
+    }
 
     public ProtobufSerializer() {
         super();
     }
 
-    public ProtobufSerializer(RegistryClient client,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
-            SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(client, artifactResolverStrategy, schemaResolver);
+    public ProtobufSerializer(RegistryClientFacade clientFacade,
+                              ArtifactReferenceResolverStrategy<ProtobufSchema, U> artifactResolverStrategy,
+                              SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(clientFacade, artifactResolverStrategy, schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClient client) {
-        super(client);
+    public ProtobufSerializer(RegistryClientFacade clientFacade) {
+        super(clientFacade);
     }
 
     public ProtobufSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(client, schemaResolver);
+    public ProtobufSerializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(clientFacade, schemaResolver);
     }
 
-    public ProtobufSerializer(RegistryClient client, SchemaResolver<ProtobufSchema, U> schemaResolver,
-            ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
-        super(client, strategy, schemaResolver);
+    public ProtobufSerializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver,
+                              ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy) {
+        super(clientFacade, strategy, schemaResolver);
     }
 
     @Override
@@ -58,6 +102,8 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
         super.configure(config, isKey);
 
         validationEnabled = config.validationEnabled();
+        writeRef = config.sendTypeRef();
+        writeIndexes = config.sendIndexes();
     }
 
     /**
@@ -69,33 +115,84 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
     }
 
     /**
+     * For Protobuf, all Message types are generated classes with schema tied to the class.
+     * Caching by class is always safe.
+     */
+    @Override
+    protected Object getSchemaCacheKey(U data) {
+        return data.getClass();
+    }
+
+    /**
      * @see io.apicurio.registry.serde.AbstractSerializer#serializeData(io.apicurio.registry.resolver.ParsedSchema,
      *      java.lang.Object, java.io.OutputStream)
      */
     @Override
     public void serializeData(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out)
             throws IOException {
+        String messageTypeName = data.getDescriptorForType().getName();
+
         if (validationEnabled) {
+            // Create a cache key from schema identity and message type
+            String validationKey = getValidationCacheKey(schema, messageTypeName);
 
-            if (schema.getParsedSchema() != null && schema.getParsedSchema().getFileDescriptor()
-                    .findMessageTypeByName(data.getDescriptorForType().getName()) == null) {
-                throw new IllegalStateException("Missing message type "
-                        + data.getDescriptorForType().getName() + " in the protobuf schema");
+            // Check if we've already validated this combination
+            Boolean cachedResult = validationCache.get(validationKey);
+            if (cachedResult == null) {
+                // Perform validation
+                if (schema.getParsedSchema() != null && schema.getParsedSchema().getFileDescriptor()
+                        .findMessageTypeByName(messageTypeName) == null) {
+                    throw new IllegalStateException("Missing message type "
+                            + messageTypeName + " in the protobuf schema");
+                }
+
+                List<ProtobufDifference> diffs = validate(schema, data);
+                if (!diffs.isEmpty()) {
+                    throw new IllegalStateException(
+                            "The data to send is not compatible with the schema. " + diffs);
+                }
+
+                // Cache successful validation
+                validationCache.put(validationKey, Boolean.TRUE);
             }
-
-            List<ProtobufDifference> diffs = validate(schema, data);
-            if (!diffs.isEmpty()) {
-                throw new IllegalStateException(
-                        "The data to send is not compatible with the schema. " + diffs);
-            }
-
         }
+
         if (writeRef) {
-            Ref ref = Ref.newBuilder().setName(data.getDescriptorForType().getName()).build();
-            ref.writeDelimitedTo(out);
+            writeRef(messageTypeName, out);
+        }
+        if (writeIndexes) {
+            writeIndexes(schema, data, out);
         }
 
         data.writeTo(out);
+    }
+
+    private void writeRef(String messageTypeName, OutputStream out) throws IOException {
+        // Use cached Ref object - Ref is immutable so safe to reuse
+        Ref ref = refCache.computeIfAbsent(messageTypeName,
+                name -> Ref.newBuilder().setName(name).build());
+        ref.writeDelimitedTo(out);
+    }
+
+    private String getValidationCacheKey(ParsedSchema<ProtobufSchema> schema, String messageTypeName) {
+        // Use the schema's file descriptor name + message type as the cache key
+        // This is stable for a given schema version
+        String schemaId = schema.getParsedSchema().getFileDescriptor().getFullName();
+        return schemaId + ":" + messageTypeName;
+    }
+
+    private <U extends Message> void writeIndexes(ParsedSchema<ProtobufSchema> schema, U data, OutputStream out) throws IOException {
+        // Cache key must include both schema and message type since indexes depend on schema structure
+        String cacheKey = getIndexCacheKey(schema, data.getDescriptorForType().getFullName());
+        List<Integer> indexes = indexCache.computeIfAbsent(cacheKey,
+                k -> MessageIndexesUtil.getMessageIndexes(schema, data));
+        MessageIndexesUtil.writeTo(indexes, out);
+    }
+
+    private String getIndexCacheKey(ParsedSchema<ProtobufSchema> schema, String messageFullName) {
+        // Use schema's file descriptor full name + message full name as cache key
+        String schemaId = schema.getParsedSchema().getFileDescriptor().getFullName();
+        return schemaId + ":" + messageFullName;
     }
 
     public void setWriteRef(boolean writeRef) {
@@ -103,11 +200,15 @@ public class ProtobufSerializer<U extends Message> extends AbstractSerializer<Pr
     }
 
     private List<ProtobufDifference> validate(ParsedSchema<ProtobufSchema> schemaFromRegistry, U data) {
+        // Schema from the registry
         ProtobufFile fileBefore = schemaFromRegistry.getParsedSchema().getProtobufFile();
+        // Schema from protobuf generated class
         ProtobufFile fileAfter = new ProtobufFile(
                 parser.toProtoFileElement(data.getDescriptorForType().getFile()));
+
+        // Check for differences
         ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
                 fileAfter);
-        return checker.findDifferences();
+        return checker.findDifferences(false);
     }
 }

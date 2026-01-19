@@ -21,11 +21,9 @@ ifndef::service-registry-downstream[]
 :apicurio-registry:
 :registry: Apicurio Registry
 :registry-name-full: Apicurio Registry
-:registry-version: 3.0
-:registry-release: 3.0.0
+:registry-version: 3.1
+:registry-release: 3.1.0
 :registry-docker-version: latest-release 
-:registry-v1: 1.3
-:registry-v1-release: 1.3.2.Final
 :registry-v2: 2.6.3
 :operator-version: 1.1.0-v2.4.12.final
 :kafka-streams: Strimzi
@@ -43,11 +41,10 @@ ifdef::service-registry-downstream[]
 :rh-service-registry:
 :org-name: Red Hat
 :prodnamefull: {org-name} Integration
-:registry-name-full: Service Registry
-:registry: Service Registry
-:registry-version: 3.0
-:registry-release: 3.0.0-redhat-00001
-:registry-v1-release: 1.3.2.Final-redhat-00002
+:registry-name-full: Red Hat build of Apicurio Registry
+:registry: Apicurio Registry
+:registry-version: 3.1
+:registry-release: 3.1.0-redhat-00001
 :operator-version: 1.2.0.redhat.x
 :kafka-streams: AMQ Streams
 :registry-streams-version: 2.6
@@ -59,13 +56,6 @@ ifdef::service-registry-downstream[]
 :kubernetes-client: oc
 :kubernetes-namespace: project
 
-ifdef::RHAF[]
-:prodnamefull: {org-name} Application Foundations
-:registry-name-full: Red Hat build of Apicurio Registry
-:registry: Apicurio Registry
-:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?product=rhboar&downloadType=distributions
-endif::[]
-
 endif::[]
 
 //common
@@ -75,6 +65,14 @@ endif::[]
 :registry-ocp-version: 4.14
 :registry-db-version: 15
 :registry-url: \http://MY_REGISTRY_UI_URL/
+:operator: {registry} Operator
+:operator-full: {registry-name-full} Operator
+// Both upstream version and the tag name that can be used in GitHub links.
+:upstream-version-tag: 3.1.0
+
+// Naming conventions for repeated phrases
+:registry-app: {registry} backend (REST API) component
+:registry-ui: {registry} web console component
 
 //integration products
 :amq-version: 2.5

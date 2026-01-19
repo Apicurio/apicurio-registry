@@ -16,13 +16,14 @@
 
 package io.apicurio.registry.examples;
 
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.VersionContent;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.vertx.core.Vertx;
 
 import java.util.UUID;
@@ -36,9 +37,7 @@ public class RegistryLoader {
         String registryUrl = "http://localhost:8080/apis/registry/v3";
 
         Vertx vertx = Vertx.vertx();
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-        vertXRequestAdapter.setBaseUrl(registryUrl);
-        RegistryClient client = new RegistryClient(vertXRequestAdapter);
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryUrl, vertx));
 
         String simpleAvro = """
                 {

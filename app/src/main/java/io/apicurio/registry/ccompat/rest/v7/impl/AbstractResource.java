@@ -10,7 +10,7 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleApplicationType;
-import io.apicurio.registry.rules.RuleViolationException;
+import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
@@ -28,7 +28,7 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.types.Current;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -245,8 +245,7 @@ public abstract class AbstractResource {
     protected Map<String, TypedContent> resolveReferences(List<SchemaReference> references) {
         Map<String, TypedContent> resolvedReferences = Collections.emptyMap();
         if (references != null && !references.isEmpty()) {
-            // Transform the given references into dtos and set the contentId, this will also detect if any of
-            // the passed references does not exist.
+            // Transform the given references into dtos.
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream().map(schemaReference -> {
                 final ArtifactReferenceDto artifactReferenceDto = new ArtifactReferenceDto();
                 artifactReferenceDto.setArtifactId(schemaReference.getSubject());
@@ -256,10 +255,19 @@ public abstract class AbstractResource {
                 return artifactReferenceDto;
             }).collect(Collectors.toList());
 
+            resolvedReferences = resolveReferenceDtos(referencesAsDtos);
+        }
+
+        return resolvedReferences;
+    }
+
+    protected Map<String, TypedContent> resolveReferenceDtos(List<ArtifactReferenceDto> referencesAsDtos) {
+        Map<String, TypedContent> resolvedReferences = Collections.emptyMap();
+        if (referencesAsDtos != null && !referencesAsDtos.isEmpty()) {
             resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos,
                     storage::getContentByReference);
 
-            if (references.size() > resolvedReferences.size()) {
+            if (referencesAsDtos.size() > resolvedReferences.size()) {
                 // There are unresolvable references, which is not allowed.
                 throw new UnprocessableEntityException("Unresolved reference");
             }

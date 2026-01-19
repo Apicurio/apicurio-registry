@@ -6,8 +6,8 @@ import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
-import io.apicurio.registry.types.Current;
-import io.apicurio.registry.types.Raw;
+import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.cdi.Raw;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
@@ -38,12 +38,15 @@ public class RegistryStorageProducer {
 
     private RegistryStorage cachedRaw;
 
+    // Use Instance<> for lazy lookup to avoid instantiating beans that are not needed
+    // based on the configured storage type. Combined with @LookupIfProperty on each
+    // storage implementation, this ensures only the required storage beans are created.
     @Inject
-    KafkaSqlRegistryStorage kafkaSqlRegistryStorage;
+    Instance<KafkaSqlRegistryStorage> kafkaSqlRegistryStorage;
     @Inject
-    SqlRegistryStorage sqlRegistryStorage;
+    Instance<SqlRegistryStorage> sqlRegistryStorage;
     @Inject
-    GitOpsRegistryStorage gitOpsRegistryStorage;
+    Instance<GitOpsRegistryStorage> gitOpsRegistryStorage;
 
     @Produces
     @ApplicationScoped
@@ -83,11 +86,11 @@ public class RegistryStorageProducer {
     public RegistryStorage raw() {
         if (cachedRaw == null) {
             if ("kafkasql".equals(registryStorageType)) {
-                cachedRaw = kafkaSqlRegistryStorage;
+                cachedRaw = kafkaSqlRegistryStorage.get();
             } else if ("gitops".equals(registryStorageType)) {
-                cachedRaw = gitOpsRegistryStorage;
+                cachedRaw = gitOpsRegistryStorage.get();
             } else if ("sql".equals(registryStorageType)) {
-                cachedRaw = sqlRegistryStorage;
+                cachedRaw = sqlRegistryStorage.get();
             } else {
                 throw new IllegalStateException(String
                         .format("No Registry storage variant defined for value %s", registryStorageType));

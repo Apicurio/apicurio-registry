@@ -57,6 +57,10 @@
               <distributions>
                 <param>${projectRoot}/distro/connect-converter/target/apicurio-kafka-connect-converter-${project.version}.zip</param>
               </distributions>
+              <ignoreFiles>
+                  <!-- Exempt kotlin-stdlib for now -->
+                  <ignoreFile>*kotlin-stdlib-*.jar</ignoreFile>
+              </ignoreFiles>
             </configuration>
           </execution>
         </executions>

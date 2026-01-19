@@ -1802,9 +1802,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-        // Convert variables map
-        @SuppressWarnings("unchecked")
-        Map<String, Object> variables = (Map<String, Object>) data.getVariables();
+        // Convert variables map - Variables bean uses additionalProperties for dynamic keys
+        Map<String, Object> variables = data.getVariables().getAdditionalProperties();
 
         // Render the template
         return promptRenderingService.render(

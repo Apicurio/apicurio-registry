@@ -17,7 +17,6 @@
 package io.apicurio.registry.examples.otel.producer;
 
 import io.apicurio.registry.examples.otel.Greeting;
-import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
@@ -61,29 +60,16 @@ public class GreetingResource {
      * Send a single greeting message.
      *
      * Example: POST /greetings?name=World
-     * Example with tenant: POST /greetings?name=World&tenantId=acme-corp
      *
      * @param name The name to greet (default: "World")
-     * @param tenantId Optional tenant ID for baggage propagation demo
      * @return Response with trace information
      */
     @POST
     @Produces(MediaType.APPLICATION_JSON)
-    public Response sendGreeting(
-            @QueryParam("name") @DefaultValue("World") String name,
-            @QueryParam("tenantId") String tenantId) {
+    public Response sendGreeting(@QueryParam("name") @DefaultValue("World") String name) {
 
         String traceId = Span.current().getSpanContext().getTraceId();
         LOG.infof("Received request to send greeting for: %s (traceId: %s)", name, traceId);
-
-        // Demonstrate baggage propagation - tenant ID flows across service boundaries
-        if (tenantId != null && !tenantId.isEmpty()) {
-            Baggage.current().toBuilder()
-                    .put("tenant.id", tenantId)
-                    .build().makeCurrent();
-            Span.current().setAttribute("tenant.id", tenantId);
-            LOG.infof("Set baggage tenant.id=%s", tenantId);
-        }
 
         // Create a custom span for business logic
         Greeting greeting = createGreeting(name, traceId);
@@ -104,7 +90,6 @@ public class GreetingResource {
                         "status", "accepted",
                         "name", name,
                         "traceId", traceId,
-                        "tenantId", tenantId != null ? tenantId : "none",
                         "message", "Greeting message queued for delivery"
                 ))
                 .build();
@@ -204,12 +189,10 @@ public class GreetingResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response traceInfo() {
         Span currentSpan = Span.current();
-        String tenantId = Baggage.current().getEntryValue("tenant.id");
         return Response.ok(Map.of(
                 "traceId", currentSpan.getSpanContext().getTraceId(),
                 "spanId", currentSpan.getSpanContext().getSpanId(),
-                "sampled", currentSpan.getSpanContext().isSampled(),
-                "baggageTenantId", tenantId != null ? tenantId : "none"
+                "sampled", currentSpan.getSpanContext().isSampled()
         )).build();
     }
 
@@ -293,8 +276,7 @@ public class GreetingResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response sendDetailedGreeting(
             @QueryParam("name") @DefaultValue("World") String name,
-            @QueryParam("priority") @DefaultValue("normal") String priority,
-            @QueryParam("tenantId") String tenantId) {
+            @QueryParam("priority") @DefaultValue("normal") String priority) {
 
         String traceId = Span.current().getSpanContext().getTraceId();
 
@@ -307,14 +289,6 @@ public class GreetingResource {
                 .startSpan();
 
         try (Scope scope = processSpan.makeCurrent()) {
-            // Set baggage if tenant provided
-            if (tenantId != null && !tenantId.isEmpty()) {
-                Baggage.current().toBuilder()
-                        .put("tenant.id", tenantId)
-                        .build().makeCurrent();
-                processSpan.setAttribute("tenant.id", tenantId);
-            }
-
             processSpan.addEvent("validation-started");
 
             // Simulate validation

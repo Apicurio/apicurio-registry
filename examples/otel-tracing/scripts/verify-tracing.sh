@@ -146,12 +146,11 @@ echo ""
 log_info "Step 2: Testing producer trace generation..."
 echo ""
 
-PRODUCER_RESPONSE=$(curl -s -X POST "$PRODUCER_URL/greetings?name=VerifyTest&tenantId=test-tenant")
+PRODUCER_RESPONSE=$(curl -s -X POST "$PRODUCER_URL/greetings?name=VerifyTest")
 log_verbose "Producer response: $PRODUCER_RESPONSE"
 
 PRODUCER_TRACE_ID=$(echo "$PRODUCER_RESPONSE" | jq -r '.traceId // empty')
 PRODUCER_STATUS=$(echo "$PRODUCER_RESPONSE" | jq -r '.status // empty')
-PRODUCER_TENANT=$(echo "$PRODUCER_RESPONSE" | jq -r '.tenantId // empty')
 
 if [ -n "$PRODUCER_TRACE_ID" ] && verify_trace_id "$PRODUCER_TRACE_ID"; then
     log_success "Producer generated valid trace ID: $PRODUCER_TRACE_ID"
@@ -163,12 +162,6 @@ if [ "$PRODUCER_STATUS" = "accepted" ]; then
     log_success "Producer accepted message"
 else
     log_error "Producer did not accept message (status: $PRODUCER_STATUS)"
-fi
-
-if [ "$PRODUCER_TENANT" = "test-tenant" ]; then
-    log_success "Producer captured tenant ID in baggage"
-else
-    log_warning "Producer tenant ID not captured (got: $PRODUCER_TENANT)"
 fi
 
 echo ""
@@ -219,7 +212,6 @@ else
     EXTRACTED_TRACE_ID=$(echo "$CONSUME_RESPONSE" | jq -r '.extractedTraceId // empty')
     KAFKA_PARTITION=$(echo "$CONSUME_RESPONSE" | jq -r '.kafkaPartition // empty')
     KAFKA_OFFSET=$(echo "$CONSUME_RESPONSE" | jq -r '.kafkaOffset // empty')
-    CONSUMED_TENANT=$(echo "$CONSUME_RESPONSE" | jq -r '.tenantId // empty')
 
     if [ -n "$CONSUMED_MESSAGE" ]; then
         log_success "Message consumed: $CONSUMED_MESSAGE"
@@ -243,12 +235,6 @@ else
         log_success "Kafka metadata captured: partition=$KAFKA_PARTITION, offset=$KAFKA_OFFSET"
     else
         log_warning "Kafka metadata not captured"
-    fi
-
-    if [ "$CONSUMED_TENANT" = "test-tenant" ]; then
-        log_success "Baggage propagated: tenantId=$CONSUMED_TENANT"
-    else
-        log_verbose "Tenant ID in consumed message: $CONSUMED_TENANT"
     fi
 fi
 

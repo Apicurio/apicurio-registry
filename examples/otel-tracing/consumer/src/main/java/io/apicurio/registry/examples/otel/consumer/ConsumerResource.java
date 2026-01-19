@@ -17,7 +17,6 @@
 package io.apicurio.registry.examples.otel.consumer;
 
 import io.apicurio.registry.examples.otel.Greeting;
-import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
@@ -51,7 +50,6 @@ import java.util.Optional;
  * This resource demonstrates:
  * - Consuming from a background consumer (realistic pattern)
  * - Custom span creation with detailed attributes
- * - Baggage extraction from producer
  * - Trace statistics and observability endpoints
  */
 @Path("/consumer")
@@ -177,13 +175,6 @@ public class ConsumerResource {
             String transformed = transformGreeting(greeting);
             processSpan.addEvent("transformation-completed");
 
-            // Step 3: Extract tenant from baggage (if present)
-            String tenantId = msg.getTenantId();
-            if (tenantId != null) {
-                processSpan.setAttribute("tenant.id", tenantId);
-                processSpan.addEvent("tenant-context-applied");
-            }
-
             processSpan.setStatus(StatusCode.OK);
 
             return Response.ok(Map.of(
@@ -194,8 +185,7 @@ public class ConsumerResource {
                     "kafkaOffset", msg.getOffset(),
                     "originalTraceId", greeting.getTraceId() != null ? greeting.getTraceId().toString() : "unknown",
                     "extractedTraceId", msg.getExtractedTraceId(),
-                    "currentTraceId", traceId,
-                    "tenantId", tenantId != null ? tenantId : "none"
+                    "currentTraceId", traceId
             )).build();
 
         } catch (Exception e) {
@@ -257,7 +247,6 @@ public class ConsumerResource {
         response.put("originalTraceId", greeting.getTraceId() != null ? greeting.getTraceId().toString() : "unknown");
         response.put("extractedTraceId", received.getExtractedTraceId());
         response.put("currentTraceId", traceId);
-        response.put("tenantId", received.getTenantId() != null ? received.getTenantId() : "none");
 
         return Response.ok(response).build();
     }
@@ -273,7 +262,6 @@ public class ConsumerResource {
         map.put("kafkaOffset", received.getOffset());
         map.put("originalTraceId", greeting.getTraceId() != null ? greeting.getTraceId().toString() : "unknown");
         map.put("extractedTraceId", received.getExtractedTraceId());
-        map.put("tenantId", received.getTenantId() != null ? received.getTenantId() : "none");
         return map;
     }
 
@@ -327,13 +315,10 @@ public class ConsumerResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response traceInfo() {
         Span currentSpan = Span.current();
-        String tenantId = Baggage.current().getEntryValue("tenant.id");
-
         return Response.ok(Map.of(
                 "traceId", currentSpan.getSpanContext().getTraceId(),
                 "spanId", currentSpan.getSpanContext().getSpanId(),
-                "sampled", currentSpan.getSpanContext().isSampled(),
-                "baggageTenantId", tenantId != null ? tenantId : "none"
+                "sampled", currentSpan.getSpanContext().isSampled()
         )).build();
     }
 }

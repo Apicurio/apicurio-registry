@@ -17,7 +17,6 @@
 package io.apicurio.registry.examples.otel.consumer;
 
 import io.apicurio.registry.examples.otel.Greeting;
-import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
@@ -83,17 +82,15 @@ public class GreetingMessageStore {
         private final String key;
         private final long receivedTimestamp;
         private final String extractedTraceId;
-        private final String tenantId;
 
         public ReceivedGreeting(Greeting greeting, int partition, long offset, String key,
-                                String extractedTraceId, String tenantId) {
+                                String extractedTraceId) {
             this.greeting = greeting;
             this.partition = partition;
             this.offset = offset;
             this.key = key;
             this.receivedTimestamp = System.currentTimeMillis();
             this.extractedTraceId = extractedTraceId;
-            this.tenantId = tenantId;
         }
 
         public Greeting getGreeting() { return greeting; }
@@ -102,7 +99,6 @@ public class GreetingMessageStore {
         public String getKey() { return key; }
         public long getReceivedTimestamp() { return receivedTimestamp; }
         public String getExtractedTraceId() { return extractedTraceId; }
-        public String getTenantId() { return tenantId; }
     }
 
     @PostConstruct
@@ -196,12 +192,6 @@ public class GreetingMessageStore {
         try (Scope scope = processSpan.makeCurrent()) {
             Greeting greeting = record.value();
 
-            // Extract baggage (tenant ID if set by producer)
-            String tenantId = Baggage.current().getEntryValue("tenant.id");
-            if (tenantId != null) {
-                processSpan.setAttribute("tenant.id", tenantId);
-            }
-
             // Add greeting-specific attributes
             processSpan.setAttribute("greeting.source", greeting.getSource().toString());
             processSpan.setAttribute("greeting.original_trace_id",
@@ -216,8 +206,7 @@ public class GreetingMessageStore {
                     record.partition(),
                     record.offset(),
                     record.key(),
-                    currentTraceId,
-                    tenantId
+                    currentTraceId
             );
             messages.offer(received);
             totalReceived.incrementAndGet();

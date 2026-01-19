@@ -62,45 +62,16 @@
 
     <!-- Kafka Client -->
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-kafka-client</artifactId>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>3.5.0</version>
     </dependency>
 
-    <!-- Quarkus Apicurio Registry Avro extension (local build with v3 support) -->
+    <!-- Apicurio Registry Avro Serde -->
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-apicurio-registry-avro</artifactId>
-      <version>999-SNAPSHOT</version>
-    </dependency>
-
-    <!-- Force use of local 999-SNAPSHOT common module with v3 support -->
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-apicurio-registry-common</artifactId>
-      <version>999-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-apicurio-registry-common-deployment</artifactId>
-      <version>999-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-apicurio-registry-avro-deployment</artifactId>
-      <version>999-SNAPSHOT</version>
-    </dependency>
-
-    <!-- Kiota HTTP adapter for Vert.x (required by Registry client) -->
-    <dependency>
-      <groupId>io.kiota</groupId>
-      <artifactId>kiota-http-vertx</artifactId>
-    </dependency>
-
-    <!-- Avro -->
-    <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
-      <version>${avro.version}</version>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <!-- Health check -->
@@ -124,6 +95,24 @@
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro-maven-plugin</artifactId>
+        <version>${avro.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>schema</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <stringType>String</stringType>
+              <sourceDirectory>${project.basedir}/src/main/avro</sourceDirectory>
+              <outputDirectory>${project.build.directory}/generated-sources/avro</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>io.quarkus.platform</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>

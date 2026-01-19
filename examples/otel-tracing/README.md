@@ -164,12 +164,12 @@ Run individual or all test scenarios:
 # Run all scenarios
 ./scripts/test-scenarios.sh all
 
+
 # Or run specific scenarios:
 ./scripts/test-scenarios.sh basic      # Basic message flow
 ./scripts/test-scenarios.sh batch      # Batch operations
 ./scripts/test-scenarios.sh detailed   # Custom spans and events
 ./scripts/test-scenarios.sh error      # Error tracing
-./scripts/test-scenarios.sh baggage    # Baggage propagation
 ```
 
 ### Manual Testing
@@ -186,15 +186,11 @@ curl -X POST "http://localhost:8084/greetings/batch?baseName=User&count=10"
 curl "http://localhost:8085/consumer/greetings/batch?count=5"
 
 # Detailed tracing with custom spans
-curl -X POST "http://localhost:8084/greetings/detailed?name=Bob&priority=high&tenantId=acme-corp"
+curl -X POST "http://localhost:8084/greetings/detailed?name=Bob&priority=high"
 curl -X POST "http://localhost:8085/consumer/greetings/process"
 
 # Error tracing
 curl -X POST "http://localhost:8084/greetings/invalid?errorType=validation"
-
-# Baggage propagation
-curl -X POST "http://localhost:8084/greetings?name=Charlie&tenantId=tenant-123"
-curl "http://localhost:8085/consumer/greetings"
 ```
 
 ### Observability Endpoints
@@ -205,7 +201,7 @@ curl "http://localhost:8085/consumer/greetings"
 | `GET /greetings/trace-info` | Current trace context info |
 | `GET /consumer/health` | Consumer health with queue stats |
 | `GET /consumer/stats` | Detailed consumer statistics |
-| `GET /consumer/trace-info` | Current trace context with baggage |
+| `GET /consumer/trace-info` | Current trace context info |
 
 ### What to Look for in Jaeger
 
@@ -224,7 +220,6 @@ curl "http://localhost:8085/consumer/greetings"
 3. **Span Attributes**: Look for:
    - `kafka.topic`, `kafka.partition`, `kafka.offset`
    - `greeting.recipient`, `greeting.source`
-   - `tenant.id` (when baggage is used)
    - `error.type` (on error spans)
 
 4. **Events**: Spans should contain events like:
@@ -360,30 +355,6 @@ try (Scope scope = processSpan.makeCurrent()) {
 } finally {
     processSpan.end();
 }
-```
-
-### Baggage Propagation
-
-Baggage allows passing context (like tenant ID) across service boundaries:
-
-```java
-// Producer: Set baggage
-if (tenantId != null) {
-    Baggage.current().toBuilder()
-            .put("tenant.id", tenantId)
-            .build().makeCurrent();
-    Span.current().setAttribute("tenant.id", tenantId);
-}
-
-// Consumer: Extract baggage
-String tenantId = Baggage.current().getEntryValue("tenant.id");
-```
-
-Test baggage propagation:
-```bash
-curl -X POST "http://localhost:8084/greetings?name=Test&tenantId=acme-corp"
-curl "http://localhost:8085/consumer/greetings"
-# Response includes: "tenantId": "acme-corp"
 ```
 
 ## Sampling Strategies
@@ -544,12 +515,12 @@ otel-tracing/
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/greetings?name=X&tenantId=Y` | Send a greeting with optional tenant context |
+| POST | `/greetings?name=X` | Send a greeting message |
 | POST | `/greetings/batch?baseName=X&count=N` | Send multiple greetings |
-| POST | `/greetings/detailed?name=X&priority=Y&tenantId=Z` | Send with detailed span attributes |
+| POST | `/greetings/detailed?name=X&priority=Y` | Send with detailed span attributes |
 | POST | `/greetings/invalid?errorType=X` | Simulate errors (validation/schema/kafka) |
 | GET | `/greetings/health` | Health check |
-| GET | `/greetings/trace-info` | Current trace context and baggage |
+| GET | `/greetings/trace-info` | Current trace context |
 
 ### Consumer Endpoints
 
@@ -560,7 +531,7 @@ otel-tracing/
 | POST | `/consumer/greetings/process` | Consume and process with business logic spans |
 | GET | `/consumer/stats` | Consumer statistics (received, processed, queue size) |
 | GET | `/consumer/health` | Health check with consumer status |
-| GET | `/consumer/trace-info` | Current trace context and baggage |
+| GET | `/consumer/trace-info` | Current trace context |
 
 ## Related Documentation
 

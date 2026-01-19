@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: otel-tracing-demo
+  labels:
+    app.kubernetes.io/name: otel-tracing-demo
+    app.kubernetes.io/part-of: apicurio-registry-examples

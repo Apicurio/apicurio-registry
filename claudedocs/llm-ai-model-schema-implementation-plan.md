@@ -1,5 +1,7 @@
 # LLM/AI Model Schema Support Implementation Plan
 
+> **Status:** ✅ COMPLETE - Core implementation finished. See [gh-issue-6997-proposal.md](./gh-issue-6997-proposal.md) for extended features (SDK integrations, REST endpoints).
+
 **Issue**: [#6997 - LLM/AI Model Schema Support](https://github.com/Apicurio/apicurio-registry/issues/6997)
 **Branch**: `feature/6997-llm-ai-model-schema-support`
 **Worktree**: `/Users/carlesarnal/IdeaProjects/apicurio-registry-6997`
@@ -312,30 +314,26 @@ The example README explains that these types are built-in and demonstrates usage
 ### Registry Core Files
 
 **TypeScript Sources** (`app/src/main/resources-unfiltered/llm-artifact-types/`):
-- [ ] `package.json`
-- [ ] `tsconfig.json`
-- [ ] `tsconfig-build.json`
-- [ ] `src/ModelSchemaArtifactType.ts`
-- [ ] `src/PromptTemplateArtifactType.ts`
+- N/A - TypeScript sources compiled externally; only compiled bundles are included in repo
 
 **Compiled Resources** (`app/src/main/resources/llm-artifact-types/`):
-- [ ] `model-schema-artifact-type.js`
-- [ ] `prompt-template-artifact-type.js`
-- [ ] `default-artifact-types-config.json`
+- [x] `model-schema-artifact-type.js` ✅
+- [x] `prompt-template-artifact-type.js` ✅
+- [x] `default-artifact-types-config.json` ✅
 
 **Java Modifications**:
-- [ ] `app/src/main/java/.../ArtifactTypeUtilProviderImpl.java` (load from classpath)
-- [ ] `app/src/main/java/.../ScriptInterfaceUtils.java` (classpath loading support)
+- [x] `app/src/main/java/.../ArtifactTypeUtilProviderImpl.java` (load from classpath) ✅
+- [x] `app/src/main/java/.../ScriptInterfaceUtils.java` (classpath loading support) ✅
 
 ### Example Files (`examples/llm-artifact-types/`)
 
-- [ ] `README.md`
-- [ ] `demo.sh`
-- [ ] `docker-compose.yml`
-- [ ] `sample-schemas/gpt4-model-schema.json`
-- [ ] `sample-schemas/claude-model-schema.json`
-- [ ] `sample-schemas/summarization-prompt.yaml`
-- [ ] `sample-schemas/qa-prompt.yaml`
+- [x] `README.md` ✅
+- [x] `demo.sh` ✅
+- [x] `docker-compose.yml` ✅
+- [x] `sample-schemas/gpt4-model-schema.json` ✅
+- [x] `sample-schemas/claude-model-schema.json` ✅
+- [x] `sample-schemas/summarization-prompt.yaml` ✅
+- [x] `sample-schemas/qa-prompt.yaml` ✅
 
 ---
 

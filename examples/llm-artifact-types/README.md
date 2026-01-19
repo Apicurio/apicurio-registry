@@ -202,9 +202,179 @@ To stop and remove the containers:
 docker compose down
 ```
 
+## SDK Integrations
+
+### Python SDK
+
+Install with LLM support:
+
+```bash
+pip install apicurioregistrysdk[llm]
+```
+
+**Using PromptRegistry:**
+
+```python
+from apicurioregistrysdk.llm import PromptRegistry
+
+# Initialize registry
+registry = PromptRegistry("http://localhost:8080", group_id="default")
+
+# Fetch versioned prompt template
+prompt = await registry.get_prompt_async("summarization-v1", version="1.0")
+
+# Render with variables
+rendered = prompt.render(document="...", style="concise", max_words=200)
+
+# Server-side rendering with validation
+rendered = await registry.render_server_side_async("summarization-v1", {
+    "document": "...",
+    "style": "concise"
+})
+```
+
+**Using ModelRegistry:**
+
+```python
+from apicurioregistrysdk.llm import ModelRegistry
+
+registry = ModelRegistry("http://localhost:8080")
+
+# Search by capabilities
+results = await registry.search_async(
+    capabilities=["vision", "tool_use"],
+    provider="openai",
+    min_context_window=100000
+)
+
+# Compare models
+comparison = await registry.compare_models_async(["gpt-4-turbo", "claude-3-opus"])
+```
+
+**LangChain Integration:**
+
+```python
+from apicurioregistrysdk.llm.langchain import ApicurioPromptTemplate
+
+prompt = ApicurioPromptTemplate(
+    registry_url="http://localhost:8080",
+    artifact_id="summarization-v1"
+)
+result = prompt.format(document="...", style="concise")
+```
+
+### Java SDK (Quarkus + LangChain4j)
+
+Add the dependency:
+
+```xml
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-langchain4j</artifactId>
+    <version>${apicurio.version}</version>
+</dependency>
+```
+
+**Using with CDI:**
+
+```java
+@Inject
+ApicurioPromptRegistry promptRegistry;
+
+@Inject
+ChatLanguageModel model;
+
+public String chat(String question) {
+    // Fetch versioned prompt from registry
+    PromptTemplate template = promptRegistry.getPrompt("qa-assistant", "1.2");
+
+    // Apply variables and get rendered prompt
+    Prompt prompt = template.apply(Map.of(
+        "question", question,
+        "context", getContext()
+    ));
+
+    // Send to LLM
+    return model.generate(prompt.text());
+}
+```
+
+**Configuration (application.properties):**
+
+```properties
+apicurio.registry.url=http://localhost:8080
+apicurio.registry.default-group=default
+```
+
+## REST API Endpoints
+
+### Render Prompt Template
+
+Server-side variable substitution with validation:
+
+```bash
+POST /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render
+
+# Example
+curl -X POST http://localhost:8080/apis/registry/v3/groups/default/artifacts/summarization-v1/versions/branch=latest/render \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": {
+      "document": "The quick brown fox...",
+      "style": "concise",
+      "max_words": 100
+    }
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "rendered": "Style: concise\nMaximum length: 100 words\nDocument: The quick brown fox...",
+  "groupId": "default",
+  "artifactId": "summarization-v1",
+  "version": "1.0",
+  "validationErrors": []
+}
+```
+
+### Search Models
+
+Query MODEL_SCHEMA artifacts by capabilities:
+
+```bash
+GET /apis/registry/v3/search/models?capability=function_calling&provider=openai&minContextWindow=100000
+
+# Example
+curl "http://localhost:8080/apis/registry/v3/search/models?capability=vision&provider=openai"
+```
+
+**Response:**
+
+```json
+{
+  "count": 1,
+  "models": [
+    {
+      "groupId": "ai-models",
+      "artifactId": "gpt-4-turbo",
+      "version": "2024-01",
+      "name": "GPT-4 Turbo",
+      "provider": "openai",
+      "contextWindow": 128000,
+      "capabilities": ["chat", "function_calling", "vision"],
+      "modelId": "gpt-4-turbo"
+    }
+  ]
+}
+```
+
 ## References
 
 - [Apicurio Registry Documentation](https://www.apicur.io/registry/)
 - [Custom Artifact Types Blog Post](https://www.apicur.io/blog/2025/10/27/custom-artifact-types)
 - [Model Cards for Model Reporting](https://arxiv.org/abs/1810.03993)
 - [Prompt Engineering Best Practices](https://platform.openai.com/docs/guides/prompt-engineering)
+- [LangChain4j Documentation](https://docs.langchain4j.dev/)
+- [LangChain Python Documentation](https://python.langchain.com/)

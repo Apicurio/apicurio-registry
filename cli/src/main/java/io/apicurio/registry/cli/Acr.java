@@ -1,12 +1,9 @@
 package io.apicurio.registry.cli;
 
-import io.apicurio.registry.cli.services.Update;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.eclipse.microprofile.config.ConfigProvider;
-import org.semver4j.Semver;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.ParseResult;
@@ -66,19 +63,6 @@ public final class Acr {
             Configurator.reconfigure(URI.create("log4j2-verbose.xml"));
             // I don't know why this only works for the root logger... TODO: Investigate
             log.debug("Verbose logging enabled.");
-        }
-        if (ConfigProvider.getConfig().getOptionalValue("acr.home", String.class).isPresent()
-                && ConfigProvider.getConfig().getValue("acr.update.check.enabled", Boolean.class)) {
-            var latest = Semver.coerce(Update.getInstance().getLatestVersion());
-            if (latest == null) {
-                log.warn("Could not determine the latest version of the CLI.");
-            } else {
-                var current = Semver.parse(ConfigProvider.getConfig().getValue("version", String.class));
-                if (current.isLowerThan(latest)) {
-                    System.err.println("A newer version of the Apicurio Registry CLI is available. " +
-                            "Run `acr update` to update to version '{}' or `export ACR_UPDATE_CHECK_ENABLED=false` to disable this message.");
-                }
-            }
         }
         return new RunLast().execute(parseResult); // Delegate to the default execution strategy...
     }

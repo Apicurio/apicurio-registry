@@ -127,7 +127,7 @@ public abstract class AbstractCLITest {
     protected void executeAndAssertFailure(String... command) {
         int exitCode = cmd.execute(command);
         assertThat(exitCode)
-                .as(withCliOutput("Command '" + String.join(" ", command) + "' should exit with code 0"))
+                .as(withCliOutput("Command '" + String.join(" ", command) + "' should NOT exit with code 0"))
                 .isNotEqualTo(0);
     }
 

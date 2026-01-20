@@ -16,6 +16,16 @@ To install the Apicurio Registry CLI:
 3. You can run the CLI directly using `./acr`, or install it for the local user first (recommended):
 
    1. Run `./acr install` to install the CLI. This will install the CLI files to default locations (`$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`), update the `~/.bashrc` file, and configure bash completions. Global installation is not supported yet.
+4. If you do not have an instance of Apicurio Registry running, you use Docker:
+
+   ```bash
+   # Backend
+   docker run --rm -it -p 8080:8080 -e APICURIO_REST_DELETION_GROUP_ENABLED=true \
+     quay.io/apicurio/apicurio-registry:latest-snapshot
+   # UI
+   docker run --rm -it -p 8888:8080 quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+   ```
+
 
 [//]: # (### Update)
 
@@ -140,3 +150,14 @@ These options work with most commands:
 - `1` - Application error
 - `2` - Input validation error
 - `3` - Apicurio Registry server error
+
+## Development
+
+### Guidelines
+
+- Suggested reading: [Command Line Interface Guidelines](https://clig.dev)
+- Use [picocli features](https://picocli.info/) where possible (e.g., for parsing, validation, help generation, etc.).
+- Use hierarchical *command* → *sub-command* structure to organize commands logically.
+- Use `STDOUT` and `STDERR` appropriately. Use `STDERR` for logging and error messages, and `STDOUT` for command output. When outputting machine-readable formats (e.g. JSON), ensure that only the relevant data is printed to STDOUT, so that it can be easily piped to other tools.
+- Default options should work for basic use cases. For example, the CLI uses `--no-switch-current` instead of `--switch-current` when creating a new context, because we expect that users would want to use the context they just added in most cases.
+- Prefer long option names (e.g., `--output-type`) but add short options (e.g., `-o`) for frequently used parameters to improve usability. There is a limit to how many short options can be added.

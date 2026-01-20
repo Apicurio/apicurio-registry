@@ -85,7 +85,7 @@ public class InstallCommand extends AbstractCommand {
         FileUtils.createLink(binPath.resolve("acr_bash_env"), homePath.resolve("acr_bash_env"));
 
         // Update .bashrc
-        // TODO: `.bashrc` does not exist on MacOS by default, support `.zshrc`. Same for the completions.
+        // TODO: `.bashrc` does not exist on macOS by default, support `.zshrc`. Same for the completions.
         var bashrcPath = userHomePath.resolve(".bashrc");
         if (Files.exists(bashrcPath)) {
             // Append "source (binPath)/acr_bash_env" to .bashrc if not already present

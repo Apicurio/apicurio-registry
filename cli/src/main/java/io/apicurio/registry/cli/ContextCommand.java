@@ -24,17 +24,17 @@ public class ContextCommand extends AbstractCommand {
     @Override
     public void run(OutputBuffer output) throws Exception {
         output.writeStdOutChunk(out -> {
-            var currenContext = Config.getInstance().read().getCurrentContext();
-            if (isBlank(currenContext)) {
+            var currentContext = Config.getInstance().read().getCurrentContext();
+            if (isBlank(currentContext)) {
                 out.append("No current context is set.");
             } else {
-                out.append("Current context is '").append(currenContext).append("'.");
+                out.append("Current context is '").append(currentContext).append("'.");
             }
             out.append('\n');
             var table = new TableBuilder();
             table.addColumns("ID", "Registry URL");
             Config.getInstance().read().getContext().forEach((id, context) -> {
-                table.addRow(id + (Objects.equals(id, currenContext) ? "*" : ""), context.getRegistryUrl());
+                table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl());
             });
             table.print(out);
         });

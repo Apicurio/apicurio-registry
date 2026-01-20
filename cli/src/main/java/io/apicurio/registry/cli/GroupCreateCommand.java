@@ -62,9 +62,10 @@ public class GroupCreateCommand extends AbstractCommand {
         }
         try {
             var group = convert(Client.getInstance().getRegistryClient().groups().post(newGroup));
-            output.writeStdErrChunk(out -> {
-                out.append("Group '").append(group.getGroupId()).append("' created successfully.\n");
-            });
+            switch (outputType.getOutputType()) {
+                case json -> output.writeStdErrChunk(out -> successMessage(out, group.getGroupId()));
+                case table -> output.writeStdOutChunk(out -> successMessage(out, group.getGroupId()));
+            }
             printGroup(output, group, outputType);
         } catch (ProblemDetails ex) {
             output.writeStdErrChunk(err -> {
@@ -76,5 +77,9 @@ public class GroupCreateCommand extends AbstractCommand {
             });
             exitQuietServerError();
         }
+    }
+
+    private static void successMessage(StringBuilder out, String groupId) {
+        out.append("Group '").append(groupId).append("' created successfully.\n");
     }
 }

@@ -36,15 +36,15 @@ public final class Client {
     }
 
     public RegistryClient getRegistryClient() {
-        var currenContext = Config.getInstance().read();
-        if (isBlank(currenContext.getCurrentContext())) {
+        var currentContext = Config.getInstance().read();
+        if (isBlank(currentContext.getCurrentContext())) {
             throw new CliException("No current context is set. " +
                     "Run `acr context set <context>` " +
                     "or `acr context add example http://localhost:8080`.", APPLICATION_ERROR_RETURN_CODE);
         } else {
             if (registryClient == null) {
                 try {
-                    var uri = new URI(currenContext.getContext().get(currenContext.getCurrentContext()).getRegistryUrl());
+                    var uri = new URI(currentContext.getContext().get(currentContext.getCurrentContext()).getRegistryUrl());
                     if (uri.getPath() == null) {
                         uri = uri.resolve("/apis/registry/v3");
                     }

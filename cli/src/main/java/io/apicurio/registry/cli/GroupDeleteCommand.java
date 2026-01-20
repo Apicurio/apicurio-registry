@@ -11,8 +11,10 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
+import static java.util.Optional.ofNullable;
 
 @Command(
         name = "delete",
@@ -48,9 +50,14 @@ public class GroupDeleteCommand extends AbstractCommand {
                 r.queryParameters.orderby = ArtifactSortBy.ArtifactId;
                 r.queryParameters.order = SortOrder.Asc;
             });
-
-            var artifactCount = artifacts.getCount();
-            if (artifactCount != null && artifactCount > 0 && !force) {
+            //noinspection ConstantConditions
+            var artifactCount = ofNullable(artifacts.getCount()).orElseThrow(
+                    () -> new CliException(
+                            "Invalid response from server. Unable to determine artifact count for group '" + groupId + "'.",
+                            APPLICATION_ERROR_RETURN_CODE
+                    )
+            );
+            if (artifactCount > 0 && !force) {
                 throw new CliException(
                         "Group '" + groupId + "' is not empty (contains " + artifactCount + " artifact(s)). " +
                                 "Use --force to delete the group and all its artifacts.",
@@ -63,7 +70,7 @@ public class GroupDeleteCommand extends AbstractCommand {
 
             output.writeStdOutChunk(out -> {
                 out.append("Group '").append(groupId).append("' deleted successfully");
-                if (artifactCount != null && artifactCount > 0) {
+                if (artifactCount > 0) {
                     out.append(" (including ").append(artifactCount).append(" artifact(s))");
                 }
                 out.append(".\n");

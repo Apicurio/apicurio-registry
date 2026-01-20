@@ -19,8 +19,8 @@
         <projectRoot>${project.basedir}/..</projectRoot>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <langchain4j.version>0.36.2</langchain4j.version>
-        <quarkus-langchain4j.version>0.23.0</quarkus-langchain4j.version>
+        <langchain4j.version>1.9.1</langchain4j.version>
+        <quarkus-langchain4j.version>1.5.0</quarkus-langchain4j.version>
     </properties>
 
     <dependencies>

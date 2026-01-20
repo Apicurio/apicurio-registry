@@ -17,9 +17,9 @@
 package io.apicurio.registry.langchain4j;
 
 import io.apicurio.registry.rest.client.RegistryClient;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * CDI producer for RegistryClient instances.
@@ -30,7 +30,7 @@ import jakarta.inject.Inject;
  *
  * @author Carles Arnal
  */
-@ApplicationScoped
+@Singleton
 public class RegistryClientProducer {
 
     @Inject
@@ -42,7 +42,7 @@ public class RegistryClientProducer {
      * @return a configured RegistryClient
      */
     @Produces
-    @ApplicationScoped
+    @Singleton
     public RegistryClient registryClient() {
         return RegistryClientFactory.create(config);
     }

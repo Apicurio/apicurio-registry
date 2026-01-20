@@ -1,9 +1,9 @@
 package io.apicurio.registry.demo;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.input.Prompt;
-import dev.langchain4j.model.input.PromptTemplate;
 import io.apicurio.registry.langchain4j.ApicurioPromptRegistry;
+import io.apicurio.registry.langchain4j.ApicurioPromptTemplate;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -45,7 +45,7 @@ public class ChatResource {
     ApicurioPromptRegistry promptRegistry;
 
     @Inject
-    ChatLanguageModel chatModel;
+    ChatModel chatModel;
 
     /**
      * Health check endpoint.
@@ -66,7 +66,7 @@ public class ChatResource {
     @Path("/summarize")
     public SummarizeResponse summarize(SummarizeRequest request) {
         // Fetch the versioned prompt template from Apicurio Registry
-        PromptTemplate template = promptRegistry.getPrompt("summarization-v1");
+        ApicurioPromptTemplate template = promptRegistry.getPrompt("summarization-v1");
 
         // Apply variables to the template
         Prompt prompt = template.apply(Map.of(
@@ -76,7 +76,7 @@ public class ChatResource {
         ));
 
         // Send to LLM and get response
-        String response = chatModel.generate(prompt.text());
+        String response = chatModel.chat(prompt.text());
 
         return new SummarizeResponse(
             response,
@@ -95,7 +95,7 @@ public class ChatResource {
             SummarizeRequest request) {
 
         // Fetch specific version from registry
-        PromptTemplate template = promptRegistry.getPrompt("summarization-v1", version);
+        ApicurioPromptTemplate template = promptRegistry.getPrompt("summarization-v1", version);
 
         Prompt prompt = template.apply(Map.of(
             "document", request.document(),
@@ -103,7 +103,7 @@ public class ChatResource {
             "max_words", request.maxWords() != null ? request.maxWords() : 200
         ));
 
-        String response = chatModel.generate(prompt.text());
+        String response = chatModel.chat(prompt.text());
 
         return new SummarizeResponse(response, "summarization-v1", version);
     }
@@ -115,14 +115,14 @@ public class ChatResource {
     @Path("/ask")
     public AskResponse ask(@QueryParam("question") String question) {
         // Fetch the QA prompt template
-        PromptTemplate template = promptRegistry.getPrompt("qa-prompt");
+        ApicurioPromptTemplate template = promptRegistry.getPrompt("qa-prompt");
 
         Prompt prompt = template.apply(Map.of(
             "question", question,
             "context", "Apicurio Registry is a schema registry for managing API artifacts."
         ));
 
-        String response = chatModel.generate(prompt.text());
+        String response = chatModel.chat(prompt.text());
 
         return new AskResponse(question, response);
     }
@@ -133,7 +133,7 @@ public class ChatResource {
     @POST
     @Path("/preview")
     public PreviewResponse preview(PreviewRequest request) {
-        PromptTemplate template = promptRegistry.getPrompt(
+        ApicurioPromptTemplate template = promptRegistry.getPrompt(
             request.artifactId(),
             request.version()
         );

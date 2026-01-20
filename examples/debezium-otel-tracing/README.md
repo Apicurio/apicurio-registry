@@ -10,20 +10,21 @@ This example demonstrates end-to-end distributed tracing with Debezium Change Da
 │  (Quarkus)      │     │   (CDC source)  │     │    Connect      │
 └────────┬────────┘     └─────────────────┘     └────────┬────────┘
          │                                               │
+         │                                               │
          │              ┌─────────────────┐              │
          │              │     Kafka       │◀─────────────┘
          │              │   (Strimzi)     │
          │              └────────┬────────┘
          │                       │
-         │              ┌────────▼────────┐
-         │              │  CDC Consumer   │
-         │              │   (Quarkus)     │
-         │              └────────┬────────┘
+         │              ┌────────▼────────┐     ┌─────────────────┐
+         │              │  CDC Consumer   │────▶│    Apicurio     │
+         │              │   (Quarkus)     │     │    Registry     │
+         │              └────────┬────────┘     └─────────────────┘
          │                       │
          └───────┬───────────────┘
                  │
          ┌───────▼───────┐     ┌─────────────────┐
-         │   OpenTelemetry│────▶│     Jaeger      │
+         │  OpenTelemetry │────▶│     Jaeger      │
          │   Collector    │     │  (Visualization)│
          └───────────────┘     └─────────────────┘
 ```

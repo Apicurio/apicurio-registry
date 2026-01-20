@@ -42,3 +42,7 @@ __pycache__
 # Generated Repository Index
 PROJECT_INDEX.md
 PROJECT_INDEX.json
+
+# Claude
+.claude
+

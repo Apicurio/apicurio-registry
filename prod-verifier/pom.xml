@@ -49,13 +49,18 @@
             <phase>package</phase>
             <configuration>
               <directories>
-                <param>${projectRoot}/app/target/lib</param>
+                <param>${projectRoot}/app/target/quarkus-app/lib/boot</param>
+                <param>${projectRoot}/app/target/quarkus-app/lib/main</param>
                 <param>${projectRoot}/operator/controller/target/quarkus-app/lib/boot</param>
                 <param>${projectRoot}/operator/controller/target/quarkus-app/lib/main</param>
               </directories>
               <distributions>
                 <param>${projectRoot}/distro/connect-converter/target/apicurio-kafka-connect-converter-${project.version}.zip</param>
               </distributions>
+              <ignoreFiles>
+                  <!-- Exempt kotlin-stdlib for now -->
+                  <ignoreFile>*kotlin-stdlib-*.jar</ignoreFile>
+              </ignoreFiles>
             </configuration>
           </execution>
         </executions>

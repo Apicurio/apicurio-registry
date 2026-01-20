@@ -43,10 +43,11 @@ public class OTel {
 
         log.info("Configuring OpenTelemetry observability");
 
-        // Enable OpenTelemetry
+        // Enable OpenTelemetry by setting SDK disabled to false
+        // NOTE: Individual signal properties are build-time only and already enabled
         addEnvVar(envVars, new EnvVarBuilder()
-                .withName(QUARKUS_OTEL_ENABLED)
-                .withValue("true")
+                .withName(QUARKUS_OTEL_SDK_DISABLED)
+                .withValue("false")
                 .build());
 
         // Configure OTLP endpoint

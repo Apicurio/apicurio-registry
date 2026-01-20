@@ -54,7 +54,9 @@
     <module>docker-compose</module>
     <module>openshift-template</module>
     <module>mtls-minikube/client</module>
+    <module>maven-plugin-tls-credentials</module>
     <module>tools/kafkasql-topic-import</module>
+    <module>otel-tracing</module>
   </modules>
 
   <scm>

@@ -1,4 +1,5 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
+import "./VersionsTable.css";
 import { Link } from "react-router-dom";
 import { SortByDirection, ThProps } from "@patternfly/react-table";
 import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
@@ -48,11 +49,10 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
     const user: UserService = useUserService();
 
     const columns: any[] = [
-        { index: 0, id: "select", label: "", width: 5, sortable: false },
-        { index: 1, id: "version", label: "Version", width: 35, sortable: true, sortBy: VersionSortByObject.Version },
-        { index: 2, id: "globalId", label: "Global Id", width: 10, sortable: true, sortBy: VersionSortByObject.GlobalId },
-        { index: 3, id: "contentId", label: "Content Id", width: 10, sortable: false },
-        { index: 4, id: "createdOn", label: "Created on", width: 15, sortable: true, sortBy: VersionSortByObject.CreatedOn },
+        { index: 0, id: "version", label: "Version", width: 55, sortable: true, sortBy: VersionSortByObject.Version },
+        { index: 1, id: "globalId", label: "Global Id", width: 15, sortable: true, sortBy: VersionSortByObject.GlobalId },
+        { index: 2, id: "contentId", label: "Content Id", width: 15, sortable: true },
+        { index: 3, id: "createdOn", label: "Created on", width: 15, sortable: true, sortBy: VersionSortByObject.CreatedOn },
     ];
 
     const isVersionSelected = (version: SearchedVersion): boolean => {
@@ -64,62 +64,61 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
     };
 
     const renderColumnData = (column: SearchedVersion, colIndex: number): React.ReactNode => {
-        // Checkbox for selection.
+        // Version name with checkbox.
         if (colIndex === 0) {
-            const isDisabled = props.selectedVersions.length >= 2 && !isVersionSelected(column);
-            return (
-                <Checkbox
-                    id={`select-version-${shash(column.version!)}`}
-                    isChecked={isVersionSelected(column)}
-                    isDisabled={isDisabled}
-                    onChange={(_event, checked) => handleCheckboxChange(column, checked)}
-                    aria-label={`Select version ${column.version}`}
-                />
-            );
-        }
-        // Version name.
-        if (colIndex === 1) {
             const groupId: string = encodeURIComponent(props.artifact.groupId || "default");
             const artifactId: string = encodeURIComponent(props.artifact.artifactId!);
             const version: string = encodeURIComponent(column.version!);
+            const isDisabled = props.selectedVersions.length >= 2 && !isVersionSelected(column);
             return (
-                <div>
-                    <Flex>
-                        <FlexItem>
-                            <Link className="version-title"
-                                style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
-                                to={appNavigation.createLink(`/explore/${groupId}/${artifactId}/versions/${version}`)}
-                            >
-                                <span>{ column.version }</span>
-                                <If condition={column.name != "" && column.name !== undefined && column.name !== null}>
-                                    <span style={{ marginLeft: "10px" }}>({column.name})</span>
-                                </If>
-                            </Link>
-                        </FlexItem>
-                        <FlexItem>
-                            <VersionStateBadge version={column} />
-                        </FlexItem>
-                    </Flex>
-                    <ArtifactDescription className="version-description" style={{ overflow: "hidden", textOverflow: "hidden", whiteSpace: "nowrap", fontSize: "14px" }}
-                        description={column.description}
-                        truncate={true} />
-                </div>
+                <Flex>
+                    <FlexItem>
+                        <Flex>
+                            <FlexItem>
+                                <Checkbox
+                                    id={`select-version-${shash(column.version!)}`}
+                                    isChecked={isVersionSelected(column)}
+                                    isDisabled={isDisabled}
+                                    onChange={(_event, checked) => handleCheckboxChange(column, checked)}
+                                    aria-label={`Select version ${column.version}`}
+                                />
+                            </FlexItem>
+                            <FlexItem>
+                                <Link className="version-title"
+                                    style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
+                                    to={appNavigation.createLink(`/explore/${groupId}/${artifactId}/versions/${version}`)}
+                                >
+                                    <span>{ column.version }</span>
+                                    <If condition={column.name != "" && column.name !== undefined && column.name !== null}>
+                                        <span style={{ marginLeft: "10px" }}>({column.name})</span>
+                                    </If>
+                                </Link>
+                            </FlexItem>
+                            <FlexItem>
+                                <VersionStateBadge version={column} />
+                            </FlexItem>
+                        </Flex>
+                        <ArtifactDescription className="version-description" style={{ overflow: "hidden", textOverflow: "hidden", whiteSpace: "nowrap", fontSize: "14px" }}
+                            description={column.description}
+                            truncate={true} />
+                    </FlexItem>
+                </Flex>
             );
         }
         // Global id.
-        if (colIndex === 2) {
+        if (colIndex === 1) {
             return (
                 <span>{ column.globalId }</span>
             );
         }
         // Content id.
-        if (colIndex === 3) {
+        if (colIndex === 2) {
             return (
                 <span>{ column.contentId }</span>
             );
         }
         // Created on.
-        if (colIndex === 4) {
+        if (colIndex === 3) {
             return (
                 <FromNow date={column.createdOn} />
             );
@@ -170,13 +169,13 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
 
     useEffect(() => {
         if (props.sortBy === VersionSortByObject.Version) {
-            setSortByIndex(1);
+            setSortByIndex(0);
         }
         if (props.sortBy === VersionSortByObject.GlobalId) {
-            setSortByIndex(2);
+            setSortByIndex(1);
         }
         if (props.sortBy === VersionSortByObject.CreatedOn) {
-            setSortByIndex(4);
+            setSortByIndex(3);
         }
     }, [props.sortBy]);
 

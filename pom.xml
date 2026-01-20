@@ -70,6 +70,7 @@
 
   <modules>
     <module>app</module>
+    <module>cli</module>
     <module>common</module>
     <module>config-index/definitions</module>
     <module>config-index/deployment</module>
@@ -189,14 +190,17 @@
     <okio.version>3.16.4</okio.version>
     <kotlin-stdlib.version>2.3.0</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
-    <protobuf.version>4.33.2</protobuf.version>
+    <protobuf.version>4.33.4</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.63.2</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.64.1</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
     <!-- Picocli -->
-    <picocli.version>4.6.3</picocli.version>
+    <picocli.version>4.7.7</picocli.version>
+
+    <!-- Logging -->
+    <log4j.version>2.25.3</log4j.version>
 
     <!-- Confluent API / client -->
     <confluent.version>8.0.0</confluent.version>
@@ -214,7 +218,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.2.9</apicurio-data-models.version>
+    <apicurio-data-models.version>2.3.1</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>
@@ -243,7 +247,7 @@
     <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
     <quickjs4j.version>0.0.13</quickjs4j.version>
 
-    <nats.version>2.24.1</nats.version>
+    <nats.version>2.25.1</nats.version>
     <snakeyaml.version>2.5</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
     <jgit.version>7.5.0.202512021534-r</jgit.version>
@@ -313,7 +317,7 @@
     <keycloak.testcontainers.version>3.9.1</keycloak.testcontainers.version>
     <embedded-postgres.version>2.2.0</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
-    <wiremock-jre8.version>3.0.1</wiremock-jre8.version>
+    <wiremock.version>3.13.2</wiremock.version>
     <strimzi-test-container.version>0.113.0</strimzi-test-container.version>
   </properties>
 
@@ -755,6 +759,35 @@
         <version>${jackson-dataformat-yaml.version}</version>
       </dependency>
 
+      <!-- Logging -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+
+      <!-- Picocli -->
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli-shell-jline3</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli-codegen</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>io.quarkiverse.quickjs4j</groupId>
         <artifactId>quarkus-quickjs4j</artifactId>
@@ -932,9 +965,9 @@
         <version>${keycloak.testcontainers.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.github.tomakehurst</groupId>
-        <artifactId>wiremock-jre8</artifactId>
-        <version>${wiremock-jre8.version}</version>
+        <groupId>org.wiremock</groupId>
+        <artifactId>wiremock</artifactId>
+        <version>${wiremock.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.truth.extensions</groupId>

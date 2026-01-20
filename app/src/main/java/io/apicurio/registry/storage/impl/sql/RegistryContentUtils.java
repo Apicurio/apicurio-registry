@@ -30,7 +30,7 @@ public class RegistryContentUtils {
 
     private static final Logger log = LoggerFactory.getLogger(RegistryContentUtils.class);
 
-    private static final String NULL_GROUP_ID = "__$GROUPID$__";
+    static final String NULL_GROUP_ID = "__$GROUPID$__";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

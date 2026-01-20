@@ -66,6 +66,23 @@ When OpenTelemetry is enabled, {registry} provides the following observability f
 
 * *Log correlation*: When JSON logging is enabled, trace context is automatically injected into log entries for easy correlation.
 
+.Performance considerations
+OpenTelemetry instrumentation adds a small performance overhead. With all telemetry signals enabled at 100% sampling, the measured impact is:
+
+* *Latency increase*: 1-9% depending on operation type (approximately 0.05-0.35ms per request)
+* *Throughput decrease*: 1-7% depending on operation type
+* *Average overhead*: approximately 4-6% with 100% sampling
+
+With the recommended 10% sampling ratio (`spec.app.otel.traceSamplingRatio: 0.1`), the overhead is reduced to less than 1%. OpenTelemetry is disabled by default to avoid any overhead for users who do not require observability features.
+
+To reproduce these benchmarks, see the `OpenTelemetryPerformanceTest` and `OpenTelemetryPerformanceEnabledTest` classes in the `app` module, or run:
+
+[source,shell]
+----
+./mvnw test -pl app -Dtest=OpenTelemetryPerformanceTest -DOpenTelemetryPerformanceTest=enabled
+./mvnw test -pl app -Dtest=OpenTelemetryPerformanceEnabledTest -DOpenTelemetryPerformanceTest=enabled
+----
+
 .Backwards compatibility
 OpenTelemetry support is fully backwards compatible:
 

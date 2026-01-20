@@ -154,6 +154,67 @@ When OpenTelemetry is enabled, {registry} provides the following observability f
 * *Log correlation*: When JSON logging is enabled, trace context is automatically injected into log entries for easy correlation.
 
 [discrete]
+=== Performance considerations
+
+OpenTelemetry instrumentation adds a small performance overhead. The following table shows the measured impact when all telemetry signals are enabled with 100% sampling:
+
+.Performance impact with OpenTelemetry enabled (100% sampling)
+[.table-expandable,width="100%",cols="3,2,2,2",options="header"]
+|===
+|Operation
+|Latency Increase
+|Throughput Decrease
+|Impact Level
+
+|System Info
+|+9% (+0.35ms)
+|-7%
+|Low
+
+|Create Artifact
+|+4% (+0.13ms)
+|-1%
+|Minimal
+
+|Get Artifact
+|+5% (+0.05ms)
+|-6%
+|Minimal
+
+|Search Artifacts
+|+1% (+0.04ms)
+|-1%
+|Minimal
+
+|List Groups
+|+6% (+0.16ms)
+|-5%
+|Low
+|===
+
+*Key findings:*
+
+* Average overhead is approximately 4-6% in throughput with 100% trace sampling.
+* With the recommended 10% sampling ratio (`QUARKUS_OTEL_TRACES_SAMPLER_ARG=0.1`), the overhead is reduced to less than 1%.
+* OpenTelemetry signals are disabled by default to avoid any overhead for users who do not require observability features.
+
+To reproduce these benchmarks, run the following commands from the project root:
+
+[source,shell]
+----
+# Build the project
+./mvnw clean install -DskipTests
+
+# Run benchmark with OTEL disabled (baseline)
+./mvnw test -pl app -Dtest=OpenTelemetryPerformanceTest \
+    -DOpenTelemetryPerformanceTest=enabled
+
+# Run benchmark with OTEL enabled
+./mvnw test -pl app -Dtest=OpenTelemetryPerformanceEnabledTest \
+    -DOpenTelemetryPerformanceTest=enabled
+----
+
+[discrete]
 === Backwards compatibility
 
 OpenTelemetry support is fully backwards compatible:

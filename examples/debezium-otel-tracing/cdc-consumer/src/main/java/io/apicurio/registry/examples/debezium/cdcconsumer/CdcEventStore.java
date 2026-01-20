@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.examples.debezium.cdcconsumer;
 
+import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -26,6 +28,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -61,6 +64,9 @@ public class CdcEventStore {
     @ConfigProperty(name = "kafka.bootstrap.servers")
     String bootstrapServers;
 
+    @ConfigProperty(name = "apicurio.registry.url")
+    String registryUrl;
+
     @Inject
     OpenTelemetry openTelemetry;
 
@@ -73,7 +79,7 @@ public class CdcEventStore {
     private final AtomicLong totalProcessed = new AtomicLong(0);
 
     private ExecutorService executor;
-    private Consumer<String, String> consumer;
+    private Consumer<String, GenericRecord> consumer;
 
     /**
      * Wrapper class for CDC events with tracing metadata.
@@ -164,9 +170,9 @@ public class CdcEventStore {
 
             while (running.get()) {
                 try {
-                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(1000));
+                    ConsumerRecords<String, GenericRecord> records = consumer.poll(Duration.ofMillis(1000));
 
-                    for (ConsumerRecord<String, String> record : records) {
+                    for (ConsumerRecord<String, GenericRecord> record : records) {
                         processRecord(record);
                     }
                 } catch (org.apache.kafka.common.errors.WakeupException e) {
@@ -190,24 +196,27 @@ public class CdcEventStore {
         }
     }
 
-    private Consumer<String, String> createConsumer() {
+    private Consumer<String, GenericRecord> createConsumer() {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "cdc-consumer-group");
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, UUID.randomUUID().toString());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
 
+        // Apicurio Registry configuration
+        props.put(SerdeConfig.REGISTRY_URL, registryUrl);
+
         // Create instrumented consumer for trace context extraction
         KafkaTelemetry kafkaTelemetry = KafkaTelemetry.create(openTelemetry);
-        KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(props);
+        KafkaConsumer<String, GenericRecord> kafkaConsumer = new KafkaConsumer<>(props);
         return kafkaTelemetry.wrap(kafkaConsumer);
     }
 
-    private void processRecord(ConsumerRecord<String, String> record) {
+    private void processRecord(ConsumerRecord<String, GenericRecord> record) {
         Span processSpan = tracer.spanBuilder("process-cdc-event")
                 .setSpanKind(SpanKind.INTERNAL)
                 .setAttribute("kafka.topic", record.topic())
@@ -218,17 +227,27 @@ public class CdcEventStore {
         try (Scope scope = processSpan.makeCurrent()) {
             String currentTraceId = Span.current().getSpanContext().getTraceId();
 
-            // Parse operation type from Debezium payload
-            String operation = parseOperation(record.value());
+            GenericRecord value = record.value();
+            String valueStr = value != null ? value.toString() : "null";
+
+            // Extract operation and trace_id from Avro record
+            String operation = extractOperation(value);
+            String storedTraceId = extractTraceId(value);
+
+            // If we found a trace_id stored in the record, log it for correlation
+            if (storedTraceId != null) {
+                processSpan.setAttribute("cdc.stored_trace_id", storedTraceId);
+                LOG.infof("Found stored trace_id in CDC record: %s", storedTraceId);
+            }
 
             CdcEvent event = new CdcEvent(
                     record.key(),
-                    record.value(),
+                    valueStr,
                     operation,
                     record.partition(),
                     record.offset(),
                     record.timestamp(),
-                    currentTraceId
+                    storedTraceId != null ? storedTraceId : currentTraceId
             );
 
             events.offer(event);
@@ -237,22 +256,47 @@ public class CdcEventStore {
             processSpan.setAttribute("cdc.operation", operation);
             processSpan.addEvent("cdc-event-stored");
 
-            LOG.infof("CDC event received: operation=%s, partition=%d, offset=%d (traceId: %s)",
-                    operation, record.partition(), record.offset(), currentTraceId);
+            LOG.infof("CDC event received: operation=%s, partition=%d, offset=%d (traceId: %s, storedTraceId: %s)",
+                    operation, record.partition(), record.offset(), currentTraceId, storedTraceId);
 
         } finally {
             processSpan.end();
         }
     }
 
-    private String parseOperation(String value) {
-        // Simple parsing of Debezium operation from JSON
-        if (value == null) return "unknown";
-        if (value.contains("\"op\":\"c\"")) return "CREATE";
-        if (value.contains("\"op\":\"u\"")) return "UPDATE";
-        if (value.contains("\"op\":\"d\"")) return "DELETE";
-        if (value.contains("\"op\":\"r\"")) return "READ";
+    private String extractOperation(GenericRecord record) {
+        if (record == null) return "unknown";
+        try {
+            // Debezium unwrapped records have __op field, or we check the envelope
+            Object op = record.get("__op");
+            if (op != null) {
+                String opStr = op.toString();
+                return switch (opStr) {
+                    case "c" -> "CREATE";
+                    case "u" -> "UPDATE";
+                    case "d" -> "DELETE";
+                    case "r" -> "READ";
+                    default -> opStr;
+                };
+            }
+        } catch (Exception e) {
+            LOG.debug("Could not extract operation from record", e);
+        }
         return "unknown";
+    }
+
+    private String extractTraceId(GenericRecord record) {
+        if (record == null) return null;
+        try {
+            // The trace_id is stored in the orders table and should be in the Avro record
+            Object traceId = record.get("trace_id");
+            if (traceId != null) {
+                return traceId.toString();
+            }
+        } catch (Exception e) {
+            LOG.debug("Could not extract trace_id from record", e);
+        }
+        return null;
     }
 
     public Optional<CdcEvent> poll() {

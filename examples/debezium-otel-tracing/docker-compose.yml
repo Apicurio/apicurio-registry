@@ -121,7 +121,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Debezium Kafka Connect with OpenTelemetry
+  # Debezium Kafka Connect with OpenTelemetry and Apicurio Registry
   debezium-connect:
     image: quay.io/debezium/connect:2.5
     container_name: debezium-connect
@@ -133,6 +133,8 @@ services:
       CONFIG_STORAGE_TOPIC: connect_configs
       OFFSET_STORAGE_TOPIC: connect_offsets
       STATUS_STORAGE_TOPIC: connect_statuses
+      # Enable Apicurio Registry converters
+      ENABLE_APICURIO_CONVERTERS: "true"
       # Enable OpenTelemetry
       ENABLE_OTEL: "true"
       OTEL_SERVICE_NAME: "debezium-connect"
@@ -140,10 +142,11 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
       OTEL_PROPAGATORS: "tracecontext,baggage"
       OTEL_TRACES_SAMPLER: "always_on"
-      # Converters for schema management
+      # Apicurio Registry Avro converter
       KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
-      VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      VALUE_CONVERTER_SCHEMAS_ENABLE: "true"
+      VALUE_CONVERTER: "io.apicurio.registry.utils.converter.AvroConverter"
+      VALUE_CONVERTER_APICURIO_REGISTRY_URL: "http://apicurio-registry:8080/apis/registry/v3"
+      VALUE_CONVERTER_APICURIO_REGISTRY_AUTO_REGISTER: "true"
     depends_on:
       kafka:
         condition: service_started

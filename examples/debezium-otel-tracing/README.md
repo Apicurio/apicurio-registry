@@ -2,6 +2,18 @@
 
 This example demonstrates end-to-end distributed tracing with Debezium Change Data Capture (CDC), showing how traces flow from an application writing to a database, through Debezium capturing changes, to schema registration in Apicurio Registry, and finally to a consumer processing CDC events.
 
+## Why This Matters
+
+In microservices architectures using CDC, debugging issues across services is challenging because:
+- Database writes and CDC events are typically disconnected in traces
+- Schema registry interactions appear as separate, unrelated requests
+- There's no single view showing the complete data flow
+
+This example provides **full observability** of the CDC pipeline, making it easy to:
+- Debug latency issues across the entire flow
+- Identify which component is causing delays
+- Correlate application requests with their downstream CDC effects
+
 ## Key Feature: Complete Trace Propagation
 
 This example solves a common challenge with Debezium and OpenTelemetry: ensuring that **all HTTP calls** made during CDC processing (including schema registration to Apicurio Registry) appear in the same distributed trace as the original database write.
@@ -33,13 +45,16 @@ See the related Debezium issue: https://github.com/debezium/dbz/issues/1557
          │              │   (Quarkus)     │
          │              └────────┬────────┘
          │                       │
-         └───────┬───────────────┘
+         └───────────────────────┘
                  │
-         ┌───────▼───────┐     ┌─────────────────┐
+                 ▼ (all services send traces)
+         ┌───────────────┐     ┌─────────────────┐
          │  OpenTelemetry │────▶│     Jaeger      │
          │   Collector    │     │  (Visualization)│
          └───────────────┘     └─────────────────┘
 ```
+
+All services (Order Service, Debezium Server, Apicurio Registry, CDC Consumer) are configured to send traces to the OpenTelemetry Collector, which exports them to Jaeger for visualization.
 
 ## Components
 
@@ -64,8 +79,9 @@ See the related Debezium issue: https://github.com/debezium/dbz/issues/1557
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Java 17 and Maven
+- Docker 20.10+ and Docker Compose v2.0+
+- Java 17+ and Maven 3.8+
+- ~4GB available RAM for all containers
 
 ## Quick Start
 
@@ -84,11 +100,13 @@ mvn clean package -DskipTests
 docker compose up -d --build
 ```
 
-Wait for all services to be healthy:
+Wait for all services to be healthy (typically 2-3 minutes on first run):
 
 ```bash
 docker compose ps
 ```
+
+All services should show "healthy" or "running" status before proceeding.
 
 ### 3. Verify setup
 
@@ -116,7 +134,19 @@ curl -X POST http://localhost:8084/orders \
     "quantity": 2,
     "price": 49.99
   }'
+```
 
+Example response:
+```json
+{
+  "id": 1,
+  "status": "created",
+  "traceId": "a1b2c3d4e5f67890a1b2c3d4e5f67890",
+  "message": "Order created and will be captured by Debezium CDC"
+}
+```
+
+```bash
 # Wait for CDC propagation
 sleep 3
 
@@ -137,6 +167,28 @@ Open http://localhost:16686 and:
 docker compose down -v
 ```
 
+> **Note**: The `-v` flag removes volumes, which cleans up the PostgreSQL replication slot. This is recommended when restarting the example to avoid slot conflicts.
+
+## Expected Trace Structure
+
+A successful order creation should produce a trace with approximately 20+ spans across all services:
+
+```
+order-service: POST /orders
+├── create-order-entity (database insert)
+│
+└── debezium-server: debezium-cdc-orders (custom OTEL SMT)
+    ├── POST apicurio-registry/apis/registry/v2/... (schema registration)
+    │   └── apicurio-registry: createArtifact
+    ├── Kafka producer send
+    │
+    └── cdc-consumer: process-cdc-event
+        └── GET apicurio-registry/apis/registry/v3/... (schema lookup)
+            └── apicurio-registry: getContentByGlobalId
+```
+
+The key indicator of success is seeing the `POST` to Apicurio Registry (schema registration) appearing as a **child span** under `debezium-server`, not as a separate disconnected trace.
+
 ## Testing Scenarios
 
 ### Basic Order Flow
@@ -149,7 +201,19 @@ curl -X POST http://localhost:8084/orders \
 
 # Check CDC consumer stats
 curl http://localhost:8085/cdc/stats
+```
 
+Example stats response:
+```json
+{
+  "totalReceived": 1,
+  "totalProcessed": 0,
+  "queueSize": 1,
+  "consumerRunning": true
+}
+```
+
+```bash
 # Get CDC events
 curl http://localhost:8085/cdc/events
 ```
@@ -286,6 +350,20 @@ debezium.transforms.oteltracing.tracing.span.context.field=tracingspancontext
    ```bash
    docker compose logs debezium-server | grep "OtelActivateTracingSpan"
    ```
+
+### Restarting the example
+
+If restarting after a previous run, clean up volumes to avoid replication slot conflicts:
+
+```bash
+docker compose down -v  # -v removes volumes including replication slot state
+```
+
+If you see errors about the replication slot already existing, manually drop it:
+
+```bash
+docker compose exec postgres-orders psql -U orderuser -d orders -c "SELECT pg_drop_replication_slot('orders_slot');"
+```
 
 ## Related Documentation
 

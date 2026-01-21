@@ -33,40 +33,45 @@ public class InstallCommand extends AbstractCommand {
         var currentPath = Config.getInstance().getAcrCurrentHomePath();
         log.debug("Current home path: {}", currentPath);
 
-        // Location of the CLI home directory, set only if the CLI is already installed
-        var home = System.getenv("ACR_HOME");
-        log.debug("ACR_HOME={}", home);
-        var homePath = Path.of(home).normalize().toAbsolutePath();
-
         // Default home directory, where the CLI should be installed
         var installDir = System.getenv("ACR_INSTALL_PATH");
+        if (isBlank(installDir)) {
+            throw new CliException("Environment variable ACR_INSTALL_PATH is not set.", VALIDATION_ERROR_RETURN_CODE);
+        }
         log.debug("ACR_INSTALL_PATH={}", installDir);
         var installDirPath = Paths.get(installDir).normalize().toAbsolutePath();
 
-        // Check if the home directory exists, and if not, use the install path.
-        if (isBlank(home) || !Files.exists(homePath)) {
-            if (isBlank(installDir)) {
-                throw new CliException("Installation path is not set. Please set the ACR_INSTALL_PATH environment variable " +
-                        "to the desired installation directory.", VALIDATION_ERROR_RETURN_CODE);
+        // Location of the CLI home directory, set only if the CLI is already installed
+        var cliHome = System.getenv("ACR_HOME");
+        log.debug("ACR_HOME={}", cliHome);
+        Path cliHomePath = null;
+        if (!isBlank(cliHome)) {
+            cliHomePath = Path.of(cliHome).normalize().toAbsolutePath();
+            if (!Files.exists(cliHomePath)) {
+                cliHomePath = null;
             }
+        }
+
+        // Path to CLI home directory is not set or is invalid, use default install dir
+        if (cliHomePath == null) {
             Files.createDirectories(installDirPath);
             log.debug("Created directory: {}", installDirPath);
-            homePath = installDirPath;
+            cliHomePath = installDirPath;
         }
 
         // Copy files:
-        Files.copy(currentPath.resolve("acr"), homePath.resolve("acr"), REPLACE_EXISTING);
-        Files.copy(currentPath.resolve("acr.jar"), homePath.resolve("acr.jar"), REPLACE_EXISTING);
-        Files.copy(currentPath.resolve("acr_bash_completions"), homePath.resolve("acr_bash_completions"), REPLACE_EXISTING);
-        Files.copy(currentPath.resolve("acr_bash_env"), homePath.resolve("acr_bash_env"), REPLACE_EXISTING);
-        Files.copy(currentPath.resolve("README.md"), homePath.resolve("README.md"), REPLACE_EXISTING);
+        Files.copy(currentPath.resolve("acr"), cliHomePath.resolve("acr"), REPLACE_EXISTING);
+        Files.copy(currentPath.resolve("acr.jar"), cliHomePath.resolve("acr.jar"), REPLACE_EXISTING);
+        Files.copy(currentPath.resolve("acr_bash_completions"), cliHomePath.resolve("acr_bash_completions"), REPLACE_EXISTING);
+        Files.copy(currentPath.resolve("acr_bash_env"), cliHomePath.resolve("acr_bash_env"), REPLACE_EXISTING);
+        Files.copy(currentPath.resolve("README.md"), cliHomePath.resolve("README.md"), REPLACE_EXISTING);
         // `config.json` is intentionally not copied if it exists to preserve user settings
-        if (!Files.exists(homePath.resolve("config.json"))) {
-            Files.copy(currentPath.resolve("config.json"), homePath.resolve("config.json"));
+        if (!Files.exists(cliHomePath.resolve("config.json"))) {
+            Files.copy(currentPath.resolve("config.json"), cliHomePath.resolve("config.json"));
         }
 
         // Set ACR_HOME
-        FileUtils.replaceInFile(homePath.resolve("acr_bash_env"), "{{ACR_HOME}}", homePath.toAbsolutePath().toString());
+        FileUtils.replaceInFile(cliHomePath.resolve("acr_bash_env"), "{{ACR_HOME}}", cliHomePath.toAbsolutePath().toString());
 
         var userHome = System.getenv("HOME");
         if (isBlank(userHome)) {
@@ -81,8 +86,8 @@ public class InstallCommand extends AbstractCommand {
                     "Make sure your system is configured to look for executable files in this directory.");
         }
 
-        FileUtils.createLink(binPath.resolve("acr"), homePath.resolve("acr"));
-        FileUtils.createLink(binPath.resolve("acr_bash_env"), homePath.resolve("acr_bash_env"));
+        FileUtils.createLink(binPath.resolve("acr"), cliHomePath.resolve("acr"));
+        FileUtils.createLink(binPath.resolve("acr_bash_env"), cliHomePath.resolve("acr_bash_env"));
 
         // Update .bashrc
         // TODO: `.bashrc` does not exist on macOS by default, support `.zshrc`. Same for the completions.

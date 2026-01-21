@@ -14,7 +14,7 @@ NC='\033[0m'
 
 ORDER_SERVICE_URL="${ORDER_SERVICE_URL:-http://localhost:8084}"
 CDC_CONSUMER_URL="${CDC_CONSUMER_URL:-http://localhost:8085}"
-CONNECT_URL="${CONNECT_URL:-http://localhost:8083}"
+DEBEZIUM_URL="${DEBEZIUM_URL:-http://localhost:8083}"
 JAEGER_URL="${JAEGER_URL:-http://localhost:16686}"
 
 TESTS_PASSED=0
@@ -60,10 +60,10 @@ else
     log_error "CDC Consumer is not responding"
 fi
 
-if curl -s -f "$CONNECT_URL/" > /dev/null 2>&1; then
-    log_success "Kafka Connect is healthy"
+if curl -s -f "$DEBEZIUM_URL/q/health/ready" > /dev/null 2>&1; then
+    log_success "Debezium Server is healthy"
 else
-    log_error "Kafka Connect is not responding"
+    log_error "Debezium Server is not responding"
 fi
 
 echo ""
@@ -194,14 +194,14 @@ if [ "$TESTS_FAILED" -eq 0 ]; then
     echo -e "${GREEN}All verifications passed!${NC}"
     echo ""
     echo "View traces at: $JAEGER_URL"
-    echo "  - Look for services: order-service, debezium-connect, cdc-consumer"
+    echo "  - Look for services: order-service, debezium-server, cdc-consumer"
     exit 0
 else
     echo -e "${YELLOW}Some verifications had issues.${NC}"
     echo ""
     echo "Troubleshooting:"
-    echo "  1. Check connector status: curl $CONNECT_URL/connectors/orders-connector/status"
-    echo "  2. Check Kafka Connect logs: docker compose logs debezium-connect"
+    echo "  1. Check Debezium Server health: curl $DEBEZIUM_URL/q/health"
+    echo "  2. Check Debezium Server logs: docker compose logs debezium-server"
     echo "  3. Check CDC Consumer logs: docker compose logs cdc-consumer"
     exit 1
 fi

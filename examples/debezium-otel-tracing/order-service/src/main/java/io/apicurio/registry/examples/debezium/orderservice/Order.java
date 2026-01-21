@@ -57,6 +57,9 @@ public class Order extends PanacheEntityBase {
     @Column(name = "trace_id")
     public String traceId;
 
+    @Column(name = "tracingspancontext", columnDefinition = "TEXT")
+    public String tracingspancontext;
+
     @Column(name = "created_at")
     public Instant createdAt;
 

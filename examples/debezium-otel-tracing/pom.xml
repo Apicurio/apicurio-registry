@@ -18,6 +18,7 @@
   </properties>
 
   <modules>
+    <module>debezium-converter</module>
     <module>order-service</module>
     <module>cdc-consumer</module>
   </modules>

@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS orders (
     quantity INTEGER NOT NULL DEFAULT 1,
     price DECIMAL(10, 2) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    trace_id VARCHAR(64),  -- Store trace ID for correlation
+    trace_id VARCHAR(64),  -- Store trace ID for correlation (human readable)
+    tracingspancontext TEXT,  -- Serialized OpenTelemetry context for Debezium trace propagation
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

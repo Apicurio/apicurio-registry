@@ -16,12 +16,16 @@
 
 package io.apicurio.registry.examples.debezium.cdcconsumer;
 
-import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.TraceFlags;
+import io.opentelemetry.api.trace.TraceState;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.kafkaclients.v2_6.KafkaTelemetry;
 import jakarta.annotation.PostConstruct;
@@ -34,10 +38,14 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -72,6 +80,10 @@ public class CdcEventStore {
 
     @Inject
     Tracer tracer;
+
+    @Inject
+    @RestClient
+    RegistryClient registryClient;
 
     private final ConcurrentLinkedQueue<CdcEvent> events = new ConcurrentLinkedQueue<>();
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -209,6 +221,9 @@ public class CdcEventStore {
 
         // Apicurio Registry configuration
         props.put(SerdeConfig.REGISTRY_URL, registryUrl);
+        // Enable header-based schema lookup (Debezium writes globalId to headers)
+        props.put("apicurio.registry.headers.enabled", "true");
+        props.put(SerdeConfig.USE_ID, "globalId");
 
         // Create instrumented consumer for trace context extraction
         KafkaTelemetry kafkaTelemetry = KafkaTelemetry.create(openTelemetry);
@@ -217,22 +232,50 @@ public class CdcEventStore {
     }
 
     private void processRecord(ConsumerRecord<String, GenericRecord> record) {
-        Span processSpan = tracer.spanBuilder("process-cdc-event")
-                .setSpanKind(SpanKind.INTERNAL)
+        GenericRecord value = record.value();
+
+        // Extract the tracingspancontext to link back to the original trace
+        String tracingSpanContext = extractTracingSpanContext(value);
+        SpanContext parentSpanContext = parseTraceparent(tracingSpanContext);
+
+        // Create span as a child of the original order-service span if we have valid context
+        var spanBuilder = tracer.spanBuilder("process-cdc-event")
+                .setSpanKind(SpanKind.CONSUMER)
                 .setAttribute("kafka.topic", record.topic())
                 .setAttribute("kafka.partition", record.partition())
-                .setAttribute("kafka.offset", record.offset())
-                .startSpan();
+                .setAttribute("kafka.offset", record.offset());
+
+        if (parentSpanContext != null && parentSpanContext.isValid()) {
+            // Create span as child of the extracted parent context
+            Context parentContext = Context.current().with(Span.wrap(parentSpanContext));
+            spanBuilder.setParent(parentContext);
+        }
+
+        Span processSpan = spanBuilder.startSpan();
 
         try (Scope scope = processSpan.makeCurrent()) {
             String currentTraceId = Span.current().getSpanContext().getTraceId();
 
-            GenericRecord value = record.value();
             String valueStr = value != null ? value.toString() : "null";
 
             // Extract operation and trace_id from Avro record
             String operation = extractOperation(value);
             String storedTraceId = extractTraceId(value);
+
+            // Extract globalId from headers and fetch artifact metadata from registry
+            // This HTTP call is traced by Quarkus REST Client + OpenTelemetry
+            Long globalId = extractGlobalIdFromHeaders(record.headers());
+            if (globalId != null) {
+                try {
+                    Map<String, Object> metadata = registryClient.getArtifactMetaDataByGlobalId(globalId);
+                    String artifactId = metadata.get("artifactId") != null ? metadata.get("artifactId").toString() : "unknown";
+                    processSpan.setAttribute("registry.artifactId", artifactId);
+                    processSpan.setAttribute("registry.globalId", globalId);
+                    LOG.debugf("Fetched schema metadata for globalId=%d, artifactId=%s", globalId, artifactId);
+                } catch (Exception e) {
+                    LOG.debugf("Could not fetch artifact metadata for globalId=%d: %s", globalId, e.getMessage());
+                }
+            }
 
             // If we found a trace_id stored in the record, log it for correlation
             if (storedTraceId != null) {
@@ -262,6 +305,19 @@ public class CdcEventStore {
         } finally {
             processSpan.end();
         }
+    }
+
+    /**
+     * Extract the globalId from Kafka headers.
+     * Debezium/Apicurio writes the schema ID to 'apicurio.value.globalId' header.
+     */
+    private Long extractGlobalIdFromHeaders(Headers headers) {
+        if (headers == null) return null;
+        Header header = headers.lastHeader("apicurio.value.globalId");
+        if (header != null && header.value() != null && header.value().length == 8) {
+            return ByteBuffer.wrap(header.value()).getLong();
+        }
+        return null;
     }
 
     private String extractOperation(GenericRecord record) {
@@ -297,6 +353,88 @@ public class CdcEventStore {
             LOG.debug("Could not extract trace_id from record", e);
         }
         return null;
+    }
+
+    /**
+     * Extract the tracingspancontext field from the Avro record.
+     * This contains the W3C trace context from the order-service.
+     */
+    private String extractTracingSpanContext(GenericRecord record) {
+        if (record == null) return null;
+        try {
+            Object ctx = record.get("tracingspancontext");
+            if (ctx != null) {
+                return ctx.toString();
+            }
+        } catch (Exception e) {
+            LOG.debug("Could not extract tracingspancontext from record", e);
+        }
+        return null;
+    }
+
+    /**
+     * Parse W3C traceparent from Properties format or key=value format.
+     * Format: traceparent=00-{traceId}-{spanId}-{flags}
+     * Returns a SpanContext that can be used as a parent for the current span.
+     */
+    private SpanContext parseTraceparent(String tracingSpanContext) {
+        if (tracingSpanContext == null || tracingSpanContext.isEmpty()) {
+            return null;
+        }
+        try {
+            // Parse Properties format (key=value lines) or comma-separated format
+            String traceparent = null;
+
+            // Split by newlines for Properties format, or by comma for inline format
+            String[] lines = tracingSpanContext.contains("\n")
+                    ? tracingSpanContext.split("\n")
+                    : tracingSpanContext.split(",");
+
+            for (String line : lines) {
+                String trimmed = line.trim();
+                // Skip comment lines in Properties format
+                if (trimmed.startsWith("#") || trimmed.isEmpty()) {
+                    continue;
+                }
+                if (trimmed.startsWith("traceparent=")) {
+                    traceparent = trimmed.substring("traceparent=".length());
+                    break;
+                }
+            }
+
+            if (traceparent == null) {
+                return null;
+            }
+
+            // Format: 00-{traceId}-{spanId}-{flags}
+            String[] parts = traceparent.split("-");
+            if (parts.length < 4) {
+                LOG.debugf("Invalid traceparent format: %s", traceparent);
+                return null;
+            }
+
+            String version = parts[0];
+            String traceId = parts[1];
+            String spanId = parts[2];
+            String flags = parts[3];
+
+            if (!"00".equals(version) || traceId.length() != 32 || spanId.length() != 16) {
+                LOG.debugf("Invalid traceparent values: version=%s, traceId=%s, spanId=%s", version, traceId, spanId);
+                return null;
+            }
+
+            TraceFlags traceFlags = "01".equals(flags) ? TraceFlags.getSampled() : TraceFlags.getDefault();
+
+            return SpanContext.createFromRemoteParent(
+                    traceId,
+                    spanId,
+                    traceFlags,
+                    TraceState.getDefault()
+            );
+        } catch (Exception e) {
+            LOG.debugf("Failed to parse traceparent: %s - %s", tracingSpanContext, e.getMessage());
+            return null;
+        }
     }
 
     public Optional<CdcEvent> poll() {

@@ -121,32 +121,25 @@ services:
       timeout: 5s
       retries: 5
 
-  # Debezium Kafka Connect with OpenTelemetry and Apicurio Registry
-  debezium-connect:
-    image: quay.io/debezium/connect:2.5
-    container_name: debezium-connect
+  # Debezium Server with OpenTelemetry Java Agent for full HTTP instrumentation
+  # Using custom image with OTEL agent and custom converter for tracing Apicurio Registry HTTP calls
+  debezium-server:
+    build:
+      context: .
+      dockerfile: debezium-server/Dockerfile
+    container_name: debezium-server
     ports:
-      - "8083:8083"
+      - "8083:8080"
+    volumes:
+      - ./debezium-server/application.properties:/debezium/config/application.properties:ro
     environment:
-      BOOTSTRAP_SERVERS: kafka:29092
-      GROUP_ID: debezium-connect-group
-      CONFIG_STORAGE_TOPIC: connect_configs
-      OFFSET_STORAGE_TOPIC: connect_offsets
-      STATUS_STORAGE_TOPIC: connect_statuses
-      # Enable Apicurio Registry converters
-      ENABLE_APICURIO_CONVERTERS: "true"
-      # Enable OpenTelemetry
-      ENABLE_OTEL: "true"
-      OTEL_SERVICE_NAME: "debezium-connect"
-      OTEL_TRACES_EXPORTER: "otlp"
+      # OpenTelemetry Java Agent configuration
+      OTEL_SERVICE_NAME: "debezium-server"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
-      OTEL_PROPAGATORS: "tracecontext,baggage"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_TRACES_SAMPLER: "always_on"
-      # Apicurio Registry Avro converter
-      KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
-      VALUE_CONVERTER: "io.apicurio.registry.utils.converter.AvroConverter"
-      VALUE_CONVERTER_APICURIO_REGISTRY_URL: "http://apicurio-registry:8080/apis/registry/v3"
-      VALUE_CONVERTER_APICURIO_REGISTRY_AUTO_REGISTER: "true"
+      # Disable Quarkus native OTEL to avoid conflicts with Java Agent
+      QUARKUS_OTEL_SDK_DISABLED: "true"
     depends_on:
       kafka:
         condition: service_started
@@ -157,7 +150,7 @@ services:
       apicurio-registry:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/q/health/ready"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -182,7 +175,7 @@ services:
         condition: service_started
       otel-collector:
         condition: service_started
-      debezium-connect:
+      debezium-server:
         condition: service_healthy
 
   # CDC Consumer - Consumes CDC events from Kafka
@@ -196,13 +189,14 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
       APICURIO_REGISTRY_URL: "http://apicurio-registry:8080/apis/registry/v3"
+      APICURIO_REGISTRY_BASE_URL: "http://apicurio-registry:8080"
       QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
       QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       QUARKUS_OTEL_SERVICE_NAME: "cdc-consumer"
     depends_on:
       apicurio-registry:
         condition: service_healthy
-      debezium-connect:
+      debezium-server:
         condition: service_healthy
       kafka:
         condition: service_started

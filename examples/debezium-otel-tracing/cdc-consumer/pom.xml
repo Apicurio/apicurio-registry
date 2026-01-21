@@ -73,6 +73,16 @@
       <artifactId>opentelemetry-kafka-clients-2.6</artifactId>
     </dependency>
 
+    <!-- Quarkus REST Client (auto-instrumented with OpenTelemetry) -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client-jackson</artifactId>
+    </dependency>
+
     <!-- Health check -->
     <dependency>
       <groupId>io.quarkus</groupId>

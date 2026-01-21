@@ -20,7 +20,11 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
+import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.inject.Inject;
@@ -38,10 +42,12 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
 
+import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * REST endpoint for managing orders.
@@ -101,9 +107,26 @@ public class OrderResource {
         order.quantity = request.quantity != null ? request.quantity : 1;
         order.price = request.price != null ? request.price : BigDecimal.ZERO;
         order.traceId = traceId;
+        order.tracingspancontext = serializeSpanContext();
         order.persist();
 
         return order;
+    }
+
+    /**
+     * Serialize the current span context to Properties format.
+     * Debezium's ActivateTracingSpan SMT expects a serialized java.util.Properties instance.
+     */
+    private String serializeSpanContext() {
+        Properties props = new Properties();
+        TextMapPropagator propagator = GlobalOpenTelemetry.getPropagators().getTextMapPropagator();
+        TextMapSetter<Properties> setter = Properties::setProperty;
+        propagator.inject(Context.current(), props, setter);
+
+        // Write properties without the date comment line
+        StringWriter writer = new StringWriter();
+        props.forEach((key, value) -> writer.write(key + "=" + value + "\n"));
+        return writer.toString();
     }
 
     /**
@@ -132,6 +155,7 @@ public class OrderResource {
         String previousStatus = order.status;
         order.status = status;
         order.updatedAt = Instant.now();
+        order.tracingspancontext = serializeSpanContext();
 
         Span.current().setAttribute("order.id", id);
         Span.current().setAttribute("order.previous_status", previousStatus);
@@ -196,6 +220,7 @@ public class OrderResource {
                 .startSpan();
 
         try (Scope scope = batchSpan.makeCurrent()) {
+            String spanContext = serializeSpanContext();
             for (int i = 1; i <= count; i++) {
                 Order order = new Order();
                 order.customerName = "Batch Customer #" + i;
@@ -203,6 +228,7 @@ public class OrderResource {
                 order.quantity = i;
                 order.price = new BigDecimal("19.99").multiply(new BigDecimal(i));
                 order.traceId = traceId;
+                order.tracingspancontext = spanContext;
                 order.persist();
 
                 batchSpan.addEvent("order-created", io.opentelemetry.api.common.Attributes.builder()

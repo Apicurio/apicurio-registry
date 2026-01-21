@@ -62,8 +62,8 @@ public final class FileUtils {
                 Files.createSymbolicLink(linkPath, targetPath);
                 log.debug("Created symbolic link: {} -> {}", linkPath, targetPath);
             }
-        } catch (IOException e) {
-            throw new CliException("Failed to create symbolic link: " + linkPath,
+        } catch (IOException ex) {
+            throw new CliException("Failed to create symbolic link: " + linkPath, ex,
                     APPLICATION_ERROR_RETURN_CODE);
         }
     }

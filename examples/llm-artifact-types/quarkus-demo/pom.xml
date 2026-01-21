@@ -47,10 +47,10 @@
             <artifactId>quarkus-arc</artifactId>
         </dependency>
 
-        <!-- Quarkus LangChain4j -->
+        <!-- Quarkus LangChain4j with Ollama -->
         <dependency>
             <groupId>io.quarkiverse.langchain4j</groupId>
-            <artifactId>quarkus-langchain4j-openai</artifactId>
+            <artifactId>quarkus-langchain4j-ollama</artifactId>
             <version>1.5.0</version>
         </dependency>
 

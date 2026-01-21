@@ -265,14 +265,32 @@ result = prompt.format(document="...", style="concise")
 
 ### Java SDK (Quarkus + LangChain4j)
 
-Add the dependency:
+Add the dependencies:
 
 ```xml
+<!-- Apicurio Registry LangChain4j Integration -->
 <dependency>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-langchain4j</artifactId>
     <version>${apicurio.version}</version>
 </dependency>
+
+<!-- LLM Provider (choose one) -->
+<!-- Option 1: Ollama (free, local) - Recommended for development -->
+<dependency>
+    <groupId>io.quarkiverse.langchain4j</groupId>
+    <artifactId>quarkus-langchain4j-ollama</artifactId>
+    <version>1.5.0</version>
+</dependency>
+
+<!-- Option 2: OpenAI (paid API) -->
+<!--
+<dependency>
+    <groupId>io.quarkiverse.langchain4j</groupId>
+    <artifactId>quarkus-langchain4j-openai</artifactId>
+    <version>1.5.0</version>
+</dependency>
+-->
 ```
 
 **Using with CDI:**
@@ -282,11 +300,11 @@ Add the dependency:
 ApicurioPromptRegistry promptRegistry;
 
 @Inject
-ChatLanguageModel model;
+ChatModel chatModel;  // Automatically configured by quarkus-langchain4j
 
 public String chat(String question) {
     // Fetch versioned prompt from registry
-    PromptTemplate template = promptRegistry.getPrompt("qa-assistant", "1.2");
+    ApicurioPromptTemplate template = promptRegistry.getPrompt("qa-assistant", "1.2");
 
     // Apply variables and get rendered prompt
     Prompt prompt = template.apply(Map.of(
@@ -295,16 +313,38 @@ public String chat(String question) {
     ));
 
     // Send to LLM
-    return model.generate(prompt.text());
+    return chatModel.chat(prompt.text());
 }
 ```
 
 **Configuration (application.properties):**
 
 ```properties
+# Registry connection
 apicurio.registry.url=http://localhost:8080
 apicurio.registry.default-group=default
+
+# Ollama configuration (free, local LLM) - Recommended
+quarkus.langchain4j.ollama.base-url=http://localhost:11434
+quarkus.langchain4j.ollama.chat-model.model-id=llama3.2
+quarkus.langchain4j.ollama.timeout=120s
+
+# OR OpenAI configuration (requires API key and credits)
+# quarkus.langchain4j.openai.api-key=${OPENAI_API_KEY}
+# quarkus.langchain4j.openai.chat-model.model-name=gpt-4o
 ```
+
+**Running Ollama locally:**
+
+```bash
+# macOS
+brew install ollama && brew services start ollama && ollama pull llama3.2
+
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh && ollama serve & && ollama pull llama3.2
+```
+
+See the [quarkus-demo](./quarkus-demo/) directory for a complete working example.
 
 ## REST API Endpoints
 

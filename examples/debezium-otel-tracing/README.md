@@ -1,6 +1,14 @@
 # Debezium CDC with OpenTelemetry Distributed Tracing
 
-This example demonstrates end-to-end distributed tracing with Debezium Change Data Capture (CDC), showing how traces flow from an application writing to a database, through Debezium capturing changes, and finally to a consumer processing CDC events.
+This example demonstrates end-to-end distributed tracing with Debezium Change Data Capture (CDC), showing how traces flow from an application writing to a database, through Debezium capturing changes, to schema registration in Apicurio Registry, and finally to a consumer processing CDC events.
+
+## Key Feature: Complete Trace Propagation
+
+This example solves a common challenge with Debezium and OpenTelemetry: ensuring that **all HTTP calls** made during CDC processing (including schema registration to Apicurio Registry) appear in the same distributed trace as the original database write.
+
+This is achieved through a custom OpenTelemetry SMT (`OtelActivateTracingSpan`) that keeps the trace context active during format conversion, allowing the OTEL Java Agent to automatically instrument HTTP calls to the schema registry.
+
+See the related Debezium issue: https://github.com/debezium/dbz/issues/1557
 
 ## Architecture
 
@@ -12,7 +20,7 @@ This example demonstrates end-to-end distributed tracing with Debezium Change Da
                                                    │                           │
 ┌─────────────────┐     ┌─────────────────┐     ┌──┴──────────────┐            │
 │  Order Service  │────▶│   PostgreSQL    │────▶│    Debezium     │            │
-│  (Quarkus)      │     │   (CDC source)  │     │    Connect      │            │
+│  (Quarkus)      │     │   (CDC source)  │     │    Server       │            │
 └────────┬────────┘     └─────────────────┘     └────────┬────────┘            │
          │                                               │                     │
          │              ┌─────────────────┐              │                     │
@@ -37,19 +45,22 @@ This example demonstrates end-to-end distributed tracing with Debezium Change Da
 
 - **Order Service**: Quarkus application that creates/updates orders in PostgreSQL with OpenTelemetry tracing
 - **PostgreSQL (orders)**: Source database with CDC enabled (Debezium's postgres image with logical replication)
-- **Debezium Connect**: Kafka Connect with Debezium PostgreSQL connector and OpenTelemetry enabled
+- **Debezium Server**: Standalone Debezium deployment with OpenTelemetry Java Agent and custom OTEL SMT
 - **Kafka**: Message broker for CDC events (Strimzi image)
-- **Apicurio Registry**: Schema registry for Avro schemas
+- **Apicurio Registry**: Schema registry for Avro schemas with OpenTelemetry enabled
 - **CDC Consumer**: Quarkus application that consumes CDC events from Kafka
 - **OpenTelemetry Collector**: Collects and exports traces to Jaeger
 - **Jaeger**: Distributed tracing visualization
 
 ## Trace Flow
 
-1. **Order Service** creates an order in PostgreSQL, storing the trace ID in the order record
-2. **Debezium** captures the database change and publishes a CDC event to Kafka with trace context
-3. **CDC Consumer** receives the event, extracting and correlating the trace context
-4. All spans are collected and visible in **Jaeger**
+1. **Order Service** creates an order in PostgreSQL, storing the W3C trace context in a `tracingspancontext` column
+2. **Debezium Server** captures the database change via the custom `OtelActivateTracingSpan` SMT which:
+   - Extracts the trace context from the record
+   - Activates an OpenTelemetry span that remains active during format conversion
+3. **Avro format converter** serializes the event and registers the schema with Apicurio Registry (HTTP call is traced)
+4. **CDC Consumer** receives the event, deserializes using schema from Registry, and processes it
+5. All spans are collected and visible in **Jaeger** under the same trace ID
 
 ## Prerequisites
 
@@ -63,21 +74,14 @@ This example demonstrates end-to-end distributed tracing with Debezium Change Da
 ```bash
 cd examples/debezium-otel-tracing
 
-# Build order-service
-cd order-service
+# Build all modules (order-service, cdc-consumer, debezium-converter)
 mvn clean package -DskipTests
-cd ..
-
-# Build cdc-consumer
-cd cdc-consumer
-mvn clean package -DskipTests
-cd ..
 ```
 
 ### 2. Start the infrastructure
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 Wait for all services to be healthy:
@@ -86,18 +90,10 @@ Wait for all services to be healthy:
 docker compose ps
 ```
 
-### 3. Register the Debezium connector
+### 3. Verify setup
 
 ```bash
 ./scripts/setup.sh
-```
-
-Or manually:
-
-```bash
-curl -X POST http://localhost:8083/connectors \
-  -H "Content-Type: application/json" \
-  -d @register-connector.json
 ```
 
 ### 4. Access the services
@@ -105,7 +101,7 @@ curl -X POST http://localhost:8083/connectors \
 - **Jaeger UI**: http://localhost:16686
 - **Order Service**: http://localhost:8084
 - **CDC Consumer**: http://localhost:8085
-- **Kafka Connect**: http://localhost:8083
+- **Debezium Server**: http://localhost:8083
 - **Apicurio Registry**: http://localhost:8086
 
 ### 5. Create an order and observe the trace
@@ -131,9 +127,9 @@ curl http://localhost:8085/cdc/events
 ### 6. View traces in Jaeger
 
 Open http://localhost:16686 and:
-1. Select service: `order-service`, `debezium-connect`, or `cdc-consumer`
+1. Select service: `order-service`, `debezium-server`, `apicurio-registry`, or `cdc-consumer`
 2. Click "Find Traces"
-3. Observe the trace spanning from order creation through CDC to consumer
+3. Observe the trace spanning from order creation through CDC to consumer, **including schema registration**
 
 ### 7. Stop the environment
 
@@ -184,7 +180,7 @@ Run the verification script:
 ```
 
 This checks:
-- Service health (Order Service, CDC Consumer, Kafka Connect)
+- Service health (Order Service, CDC Consumer, Debezium Server)
 - Order creation with trace ID
 - CDC event propagation
 - Trace correlation in events
@@ -194,33 +190,35 @@ This checks:
 
 ### Services
 - `order-service`: HTTP requests and database operations
-- `debezium-connect`: CDC capture and Kafka producer spans
+- `debezium-server`: CDC capture, custom OTEL SMT spans, and schema registration HTTP calls
+- `apicurio-registry`: Schema storage operations
 - `cdc-consumer`: Kafka consumer and event processing spans
+
+### Key Observation
+
+In the trace, you should see HTTP POST/GET calls to `apicurio-registry` appearing as child spans under the `debezium-server` service. This confirms that schema registration is properly traced as part of the CDC flow.
 
 ### Span Attributes
 - `order.id`, `order.product`, `order.quantity`
 - `cdc.operation` (CREATE, UPDATE, DELETE)
 - `kafka.topic`, `kafka.partition`, `kafka.offset`
+- `http.method`, `http.url` (for registry calls)
 
-### Trace Correlation
-The trace ID stored in the order's `trace_id` column should correlate with:
-- The original HTTP request span
-- The Debezium CDC event span
-- The consumer processing span
+## Custom OTEL SMT
 
-## Debezium OpenTelemetry Configuration
+The `debezium-converter` module contains `OtelActivateTracingSpan`, a custom Single Message Transform that:
 
-Debezium Connect is configured with OpenTelemetry via environment variables:
+1. Extracts W3C trace context from the `tracingspancontext` field in CDC records
+2. Creates an OpenTelemetry span as a child of the extracted trace
+3. **Keeps the span scope active** (unlike Debezium's built-in SMT) so that downstream HTTP calls inherit the context
 
-```yaml
-ENABLE_OTEL: "true"
-OTEL_SERVICE_NAME: "debezium-connect"
-OTEL_TRACES_EXPORTER: "otlp"
-OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
-OTEL_PROPAGATORS: "tracecontext,baggage"
+Configuration in `debezium-server/application.properties`:
+```properties
+debezium.transforms=oteltracing,unwrap
+debezium.transforms.oteltracing.type=io.apicurio.registry.examples.debezium.converter.OtelActivateTracingSpan
+debezium.transforms.oteltracing.tracing.operation.name=debezium-cdc-orders
+debezium.transforms.oteltracing.tracing.span.context.field=tracingspancontext
 ```
-
-The `ActivateTracingSpan` SMT (Single Message Transform) is configured in the connector to create trace spans for each CDC event.
 
 ## API Reference
 
@@ -250,14 +248,14 @@ The `ActivateTracingSpan` SMT (Single Message Transform) is configured in the co
 
 ### No CDC events appearing
 
-1. Check connector status:
+1. Check Debezium Server health:
    ```bash
-   curl http://localhost:8083/connectors/orders-connector/status
+   curl http://localhost:8083/q/health
    ```
 
-2. Check Kafka Connect logs:
+2. Check Debezium Server logs:
    ```bash
-   docker compose logs debezium-connect
+   docker compose logs debezium-server
    ```
 
 3. Verify PostgreSQL replication:
@@ -277,16 +275,16 @@ The `ActivateTracingSpan` SMT (Single Message Transform) is configured in the co
    docker compose logs order-service | grep -i trace
    ```
 
-### Connector failing to start
+### Schema registration not in trace
 
-1. Check for existing replication slot:
+1. Verify OTEL Java Agent is loaded:
    ```bash
-   docker compose exec postgres-orders psql -U orderuser -d orders -c "SELECT pg_drop_replication_slot('orders_slot');"
+   docker compose logs debezium-server | grep "opentelemetry-javaagent"
    ```
 
-2. Restart the connector:
+2. Check that the custom SMT is being used:
    ```bash
-   curl -X POST http://localhost:8083/connectors/orders-connector/restart
+   docker compose logs debezium-server | grep "OtelActivateTracingSpan"
    ```
 
 ## Related Documentation
@@ -294,10 +292,4 @@ The `ActivateTracingSpan` SMT (Single Message Transform) is configured in the co
 - [Debezium Distributed Tracing](https://debezium.io/documentation/reference/stable/integrations/tracing.html)
 - [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
 - [Apicurio Registry Documentation](https://www.apicur.io/registry/docs/)
-- [Strimzi Documentation](https://strimzi.io/documentation/)
-
-## Sources
-
-- [Debezium Distributed Tracing Documentation](https://debezium.io/documentation/reference/stable/integrations/tracing.html)
-- [Debezium Blog: Distributed Tracing](https://debezium.io/blog/2020/12/16/distributed-tracing-with-debezium/)
-- [Debezium 3.1.0.Beta1 Release Notes](https://debezium.io/blog/2025/03/13/debezium-3-1-beta1-released/)
+- [Debezium Issue: OTEL span context not active during format conversion](https://github.com/debezium/dbz/issues/1557)

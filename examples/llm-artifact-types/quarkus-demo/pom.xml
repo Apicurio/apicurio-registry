@@ -54,6 +54,19 @@
             <version>1.5.0</version>
         </dependency>
 
+        <!-- Easy RAG for document ingestion and retrieval -->
+        <dependency>
+            <groupId>io.quarkiverse.langchain4j</groupId>
+            <artifactId>quarkus-langchain4j-easy-rag</artifactId>
+            <version>1.5.0</version>
+        </dependency>
+
+        <!-- Websockets for streaming chat -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-websockets-next</artifactId>
+        </dependency>
+
         <!-- Apicurio Registry LangChain4j Integration -->
         <dependency>
             <groupId>io.apicurio</groupId>

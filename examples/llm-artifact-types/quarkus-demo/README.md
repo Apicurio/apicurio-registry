@@ -2,6 +2,13 @@
 
 This demo application shows how to integrate Apicurio Registry with Quarkus and LangChain4j for managing versioned prompts in LLM applications.
 
+## Features
+
+- **Prompt Registry Integration**: Fetch and use versioned prompt templates from Apicurio Registry
+- **Support Chat with RAG**: Production-ready support assistant that answers questions about Apicurio Registry using documentation
+- **Conversation Memory**: Session-based chat with context preservation across messages
+- **Multiple LLM Providers**: Works with Ollama (free, local), OpenAI, Anthropic, and more
+
 ## Prerequisites
 
 1. **Java 17+** and **Maven 3.8+**
@@ -180,11 +187,75 @@ curl -X POST http://localhost:8081/chat/preview \
 curl -X POST http://localhost:8081/chat/cache/clear
 ```
 
+## Support Chat API (RAG-powered)
+
+The support chat provides an AI-powered assistant that answers questions about Apicurio Registry
+using RAG (Retrieval Augmented Generation) with the official documentation.
+
+### Create a Chat Session
+
+```bash
+curl -X POST http://localhost:8081/support/session
+# Response: {"sessionId":"abc123...","message":"Session created...","totalActiveSessions":1}
+```
+
+### Send a Message (with Session)
+
+Maintains conversation history for contextual follow-up questions:
+
+```bash
+# Ask a question
+curl -X POST http://localhost:8081/support/chat/{sessionId} \
+  -H "Content-Type: application/json" \
+  -d '{"message": "How do I install Apicurio Registry using Docker?"}'
+
+# Follow-up question (uses conversation context)
+curl -X POST http://localhost:8081/support/chat/{sessionId} \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What storage backends are supported?"}'
+```
+
+### Quick Chat (Stateless)
+
+For simple one-off questions without session management:
+
+```bash
+curl -X POST http://localhost:8081/support/ask \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What artifact types does Apicurio Registry support?"}'
+```
+
+### Get Session Info
+
+```bash
+curl http://localhost:8081/support/session/{sessionId}
+# Response: {"sessionId":"...","createdAt":...,"lastActivityAt":...,"messageCount":5}
+```
+
+### End a Session
+
+```bash
+curl -X DELETE http://localhost:8081/support/session/{sessionId}
+```
+
+### Health Check
+
+```bash
+curl http://localhost:8081/support/health
+# Response: {"status":"UP","service":"Apicurio Support Chat","activeSessions":"1"}
+```
+
 ## Code Structure
 
 ```
 src/main/java/io/apicurio/registry/demo/
-└── ChatResource.java      # REST endpoints demonstrating registry integration
+├── ChatResource.java           # Prompt registry integration endpoints
+├── ApicurioSupportAssistant.java  # AI Service with RAG and conversation memory
+└── SupportChatResource.java    # Support chat REST endpoints
+
+src/main/resources/
+├── application.properties      # Configuration for Ollama, RAG, etc.
+└── docs/                       # Apicurio documentation for RAG ingestion
 ```
 
 ## Key Concepts
@@ -233,10 +304,35 @@ quarkus.langchain4j.ollama.base-url=http://localhost:11434
 quarkus.langchain4j.ollama.chat-model.model-id=llama3.2
 quarkus.langchain4j.ollama.timeout=120s
 
+# Easy RAG configuration (document ingestion for support chat)
+quarkus.langchain4j.easy-rag.path=src/main/resources/docs
+quarkus.langchain4j.easy-rag.max-segment-size=500
+quarkus.langchain4j.easy-rag.max-overlap-size=100
+quarkus.langchain4j.easy-rag.max-results=5
+
 # OR OpenAI configuration (requires API key)
 # quarkus.langchain4j.openai.api-key=${OPENAI_API_KEY}
 # quarkus.langchain4j.openai.chat-model.model-name=gpt-4o
 ```
+
+### Creating an AI Service with RAG
+
+```java
+@RegisterAiService
+public interface ApicurioSupportAssistant {
+
+    @SystemMessage("""
+        You are a helpful support assistant for Apicurio Registry...
+        """)
+    String chat(@MemoryId String sessionId, @UserMessage String userMessage);
+}
+```
+
+Key annotations:
+- `@RegisterAiService`: Registers the interface as an AI service with automatic RAG retrieval
+- `@SystemMessage`: Defines the system prompt with instructions for the assistant
+- `@MemoryId`: Enables conversation memory per session
+- `@UserMessage`: Marks the user's input message
 
 ## Using Different LLM Providers
 

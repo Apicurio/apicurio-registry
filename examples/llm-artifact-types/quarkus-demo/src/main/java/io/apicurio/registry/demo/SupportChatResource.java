@@ -66,6 +66,9 @@ public class SupportChatResource {
     @Inject
     RegistryClient registryClient;
 
+    @Inject
+    DocumentIngestionService documentIngestionService;
+
     // Track active sessions
     private final Map<String, SessionInfo> activeSessions = new ConcurrentHashMap<>();
 
@@ -79,6 +82,7 @@ public class SupportChatResource {
     @GET
     @Path("/health")
     public Map<String, Object> health() {
+        DocumentIngestionService.IngestionStatus ragStatus = documentIngestionService.getStatus();
         return Map.of(
             "status", "UP",
             "service", "Apicurio Registry Support Chat",
@@ -86,10 +90,25 @@ public class SupportChatResource {
                 "PROMPT_TEMPLATE integration",
                 "MODEL_SCHEMA search",
                 "Conversation memory",
-                "Versioned prompts"
+                "Versioned prompts",
+                "RAG with web documentation"
             ),
-            "activeSessions", activeSessions.size()
+            "activeSessions", activeSessions.size(),
+            "rag", Map.of(
+                "status", ragStatus.complete() ? "ready" : "ingesting",
+                "documentsIngested", ragStatus.ingested(),
+                "totalDocuments", ragStatus.total()
+            )
         );
+    }
+
+    /**
+     * Get RAG ingestion status.
+     */
+    @GET
+    @Path("/rag/status")
+    public DocumentIngestionService.IngestionStatus getRagStatus() {
+        return documentIngestionService.getStatus();
     }
 
     // =========================================================================

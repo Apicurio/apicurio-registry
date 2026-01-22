@@ -54,6 +54,20 @@
             <version>1.5.0</version>
         </dependency>
 
+        <!-- Easy RAG for document ingestion -->
+        <dependency>
+            <groupId>io.quarkiverse.langchain4j</groupId>
+            <artifactId>quarkus-langchain4j-easy-rag</artifactId>
+            <version>1.5.0</version>
+        </dependency>
+
+        <!-- JSoup for HTML parsing -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.18.3</version>
+        </dependency>
+
         <!-- Apicurio Registry LangChain4j Integration -->
         <dependency>
             <groupId>io.apicurio</groupId>

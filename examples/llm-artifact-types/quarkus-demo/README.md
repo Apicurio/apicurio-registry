@@ -11,6 +11,7 @@ This demo application demonstrates how to integrate Apicurio Registry with Quark
 | **Variable substitution** | Dynamic prompt rendering with `{{variable}}` syntax |
 | **Versioned prompts** | Fetching specific prompt versions from registry |
 | **Conversation memory** | Session-based chat with context preservation |
+| **RAG with Web Docs** | Automatic ingestion of Apicurio Registry documentation from web |
 
 ## Prerequisites
 
@@ -26,11 +27,13 @@ This demo application demonstrates how to integrate Apicurio Registry with Quark
 3. **Ollama** (default, free local LLM):
    ```bash
    # macOS
-   brew install ollama && brew services start ollama && ollama pull llama3.2
+   brew install ollama && brew services start ollama && ollama pull llama3.2 && ollama pull nomic-embed-text
 
    # Linux
-   curl -fsSL https://ollama.com/install.sh | sh && ollama serve & && ollama pull llama3.2
+   curl -fsSL https://ollama.com/install.sh | sh && ollama serve & && ollama pull llama3.2 && ollama pull nomic-embed-text
    ```
+
+   Note: `nomic-embed-text` is required for RAG embeddings.
 
 ## Running the Demo
 
@@ -125,15 +128,23 @@ curl "http://localhost:8081/support/models/compare?model=gpt-4-turbo&model=claud
 curl http://localhost:8081/support/history/{sessionId}
 ```
 
+### RAG Status
+
+```bash
+# Check RAG ingestion status
+curl http://localhost:8081/support/rag/status
+```
+
 ## Code Structure
 
 ```
 src/main/java/io/apicurio/registry/demo/
-├── ApicurioSupportService.java   # Service using registry prompts
-└── SupportChatResource.java      # REST endpoints
+├── ApicurioSupportService.java     # Service using registry prompts + RAG
+├── DocumentIngestionService.java   # Web docs RAG ingestion at startup
+└── SupportChatResource.java        # REST endpoints
 
 src/main/resources/
-└── application.properties        # Configuration
+└── application.properties          # Configuration
 ```
 
 ## How It Works
@@ -188,6 +199,30 @@ Prompt prompt = chatTemplate.apply(Map.of(
 ));
 ```
 
+### 4. RAG with Web Documentation
+
+At startup, the service fetches Apicurio Registry documentation from the web and ingests it for RAG:
+
+```java
+@ApplicationScoped
+public class DocumentIngestionService {
+
+    @Inject
+    EmbeddingStore<TextSegment> embeddingStore;
+
+    @Inject
+    EmbeddingModel embeddingModel;
+
+    void onStartup(@Observes StartupEvent event) {
+        // Fetch docs from https://www.apicur.io/registry/docs/
+        // Parse HTML, extract content, ingest into embedding store
+        CompletableFuture.runAsync(this::ingestDocumentation);
+    }
+}
+```
+
+The RAG retriever is used to augment chat responses with relevant documentation:
+
 ## Configuration
 
 ```properties
@@ -200,6 +235,9 @@ apicurio.registry.cache-enabled=true
 quarkus.langchain4j.ollama.base-url=http://localhost:11434
 quarkus.langchain4j.ollama.chat-model.model-id=llama3.2
 quarkus.langchain4j.ollama.timeout=120s
+
+# RAG embeddings
+quarkus.langchain4j.ollama.embedding-model.model-id=nomic-embed-text
 ```
 
 ## Using OpenAI Instead of Ollama

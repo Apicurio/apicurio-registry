@@ -1,9 +1,17 @@
 package io.apicurio.registry.demo;
 
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.input.Prompt;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
+import dev.langchain4j.rag.content.Content;
+import dev.langchain4j.rag.query.Query;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.apicurio.registry.langchain4j.ApicurioPromptRegistry;
 import io.apicurio.registry.langchain4j.ApicurioPromptTemplate;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -11,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Support service for Apicurio Registry that demonstrates LLM artifact type integration.
@@ -38,8 +47,27 @@ public class ApicurioSupportService {
     @Inject
     ChatModel chatModel;
 
+    @Inject
+    EmbeddingStore<TextSegment> embeddingStore;
+
+    @Inject
+    EmbeddingModel embeddingModel;
+
+    private ContentRetriever contentRetriever;
+
     // Conversation memory per session
     private final Map<String, List<ConversationTurn>> conversationMemory = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    void init() {
+        // Initialize the content retriever for RAG
+        contentRetriever = EmbeddingStoreContentRetriever.builder()
+            .embeddingStore(embeddingStore)
+            .embeddingModel(embeddingModel)
+            .maxResults(5)
+            .minScore(0.6)
+            .build();
+    }
 
     /**
      * Get the system prompt from the registry.
@@ -92,12 +120,19 @@ public class ApicurioSupportService {
         // Build conversation history
         String conversationHistory = buildConversationHistory(sessionId);
 
+        // Retrieve relevant documentation using RAG
+        String relevantDocs = retrieveRelevantDocumentation(question);
+
         // Get the chat prompt template from registry
         ApicurioPromptTemplate chatTemplate = promptRegistry.getPrompt(CHAT_PROMPT_ARTIFACT, chatPromptVersion);
 
+        // Build additional context with RAG results
+        String additionalContext = relevantDocs.isEmpty() ? "" :
+            "\n\n## Relevant Documentation\n" + relevantDocs;
+
         // Render with variables
         Prompt prompt = chatTemplate.apply(Map.of(
-            "system_prompt", systemPrompt,
+            "system_prompt", systemPrompt + additionalContext,
             "question", question,
             "conversation_history", conversationHistory,
             "include_examples", true
@@ -110,6 +145,36 @@ public class ApicurioSupportService {
         addToConversationMemory(sessionId, question, response);
 
         return response;
+    }
+
+    /**
+     * Retrieve relevant documentation from the embedding store using RAG.
+     *
+     * @param question the user's question
+     * @return relevant documentation snippets
+     */
+    private String retrieveRelevantDocumentation(String question) {
+        try {
+            List<Content> contents = contentRetriever.retrieve(Query.from(question));
+            if (contents.isEmpty()) {
+                return "";
+            }
+
+            return contents.stream()
+                .map(content -> {
+                    String source = content.textSegment().metadata().getString("source");
+                    String text = content.textSegment().text();
+                    // Truncate long texts
+                    if (text.length() > 1000) {
+                        text = text.substring(0, 1000) + "...";
+                    }
+                    return "From " + (source != null ? source : "documentation") + ":\n" + text;
+                })
+                .collect(Collectors.joining("\n\n---\n\n"));
+        } catch (Exception e) {
+            // RAG is optional - if it fails, continue without it
+            return "";
+        }
     }
 
     /**

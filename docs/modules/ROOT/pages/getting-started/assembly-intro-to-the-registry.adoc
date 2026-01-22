@@ -46,6 +46,8 @@ endif::[]
 
 * Multiple payload formats for standard event schema and API specifications such as Apache Avro, JSON Schema, Google Protobuf, AsyncAPI, OpenAPI, and more.
 
+* AI/ML artifact types for LLMOps: MODEL_SCHEMA for model input/output contracts and PROMPT_TEMPLATE for version-controlled prompts with variable schemas.
+
 * Pluggable {registry} storage options for storing content in Apache Kafka or PostgreSQL database.
 
 * Rules for content validation, compatibility, and integrity to govern how {registry} content evolves over time.
@@ -439,6 +441,7 @@ These applications demonstrate use cases such as the following examples:
 * Event-driven architecture with Debezium
 * Google Protobuf Kafka SerDes
 * JSON Schema Kafka SerDes
+* LLM/AI model schemas and prompt templates
 * REST clients
 
 [role="_additional-resources"]

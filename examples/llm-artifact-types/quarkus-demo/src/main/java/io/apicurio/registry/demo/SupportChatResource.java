@@ -2,6 +2,9 @@ package io.apicurio.registry.demo;
 
 import io.apicurio.registry.langchain4j.ApicurioPromptRegistry;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ModelInfo;
+import io.apicurio.registry.rest.client.models.ModelSearchResults;
+import io.apicurio.registry.rest.client.search.modelsrequests.ModelsRequestBuilder;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -311,56 +314,67 @@ public class SupportChatResource {
             @QueryParam("maxContextWindow") Long maxContextWindow,
             @QueryParam("limit") Integer limit) {
 
-        // Build search URL and call registry
-        // Note: In a real implementation, use the registry client's searchModels method
-        StringBuilder searchInfo = new StringBuilder();
-        searchInfo.append("Searching MODEL_SCHEMA artifacts with filters: ");
+        // Call the registry's model search API
+        ModelSearchResults results = registryClient.search().models().get(config -> {
+            ModelsRequestBuilder.GetQueryParameters params = config.queryParameters;
+            if (capabilities != null && !capabilities.isEmpty()) {
+                params.capability = capabilities.toArray(new String[0]);
+            }
+            if (provider != null) {
+                params.provider = provider;
+            }
+            if (minContextWindow != null) {
+                params.minContextWindow = minContextWindow;
+            }
+            if (maxContextWindow != null) {
+                params.maxContextWindow = maxContextWindow;
+            }
+            if (limit != null) {
+                params.limit = limit;
+            }
+        });
 
-        if (capabilities != null && !capabilities.isEmpty()) {
-            searchInfo.append("capabilities=").append(capabilities).append(" ");
-        }
-        if (provider != null) {
-            searchInfo.append("provider=").append(provider).append(" ");
-        }
-        if (minContextWindow != null) {
-            searchInfo.append("minContextWindow=").append(minContextWindow).append(" ");
-        }
-        if (maxContextWindow != null) {
-            searchInfo.append("maxContextWindow=").append(maxContextWindow).append(" ");
+        // Convert to response format
+        List<ModelSummary> models = List.of();
+        if (results != null && results.getModels() != null) {
+            models = results.getModels().stream()
+                .map(m -> new ModelSummary(
+                    m.getModelId(),
+                    m.getProvider(),
+                    m.getCapabilities() != null ? m.getCapabilities() : List.of(),
+                    m.getContextWindow()
+                ))
+                .toList();
         }
 
-        // For the demo, return information about how to use the model search
         return new ModelSearchResponse(
-            searchInfo.toString().trim(),
-            "Use the registry API directly: GET /apis/registry/v3/search/models",
-            List.of(
-                new ModelSummary("gpt-4-turbo", "openai", List.of("chat", "function_calling", "vision"), 128000L),
-                new ModelSummary("claude-3-opus", "anthropic", List.of("chat", "vision", "tool_use"), 200000L)
-            ),
-            "These are sample models. Create MODEL_SCHEMA artifacts in the registry to see real results."
+            results != null ? results.getCount() : 0,
+            models
         );
     }
 
     /**
-     * Compare AI models by their schemas.
+     * Get details of a specific model by artifact ID.
      */
     @GET
-    @Path("/models/compare")
-    public ModelCompareResponse compareModels(
-            @QueryParam("model") List<String> modelIds) {
+    @Path("/models/{artifactId}")
+    public ModelSummary getModel(@PathParam("artifactId") String artifactId) {
+        // Search for the specific model
+        ModelSearchResults results = registryClient.search().models().get(config -> {
+            config.queryParameters.name = artifactId;
+            config.queryParameters.limit = 1;
+        });
 
-        if (modelIds == null || modelIds.size() < 2) {
-            throw new jakarta.ws.rs.BadRequestException(
-                "Provide at least 2 model IDs to compare: ?model=gpt-4-turbo&model=claude-3-opus"
-            );
+        if (results == null || results.getModels() == null || results.getModels().isEmpty()) {
+            throw new jakarta.ws.rs.NotFoundException("Model not found: " + artifactId);
         }
 
-        return new ModelCompareResponse(
-            modelIds,
-            "Model comparison based on MODEL_SCHEMA artifacts",
-            Map.of(
-                "recommendation", "Use the registry to store MODEL_SCHEMA artifacts for each model, then compare their capabilities, context windows, and pricing."
-            )
+        ModelInfo model = results.getModels().get(0);
+        return new ModelSummary(
+            model.getModelId(),
+            model.getProvider(),
+            model.getCapabilities() != null ? model.getCapabilities() : List.of(),
+            model.getContextWindow()
         );
     }
 
@@ -429,10 +443,8 @@ public class SupportChatResource {
     ) {}
 
     public record ModelSearchResponse(
-        String searchInfo,
-        String apiEndpoint,
-        List<ModelSummary> sampleModels,
-        String note
+        int count,
+        List<ModelSummary> models
     ) {}
 
     public record ModelSummary(
@@ -442,11 +454,6 @@ public class SupportChatResource {
         Long contextWindow
     ) {}
 
-    public record ModelCompareResponse(
-        List<String> modelIds,
-        String description,
-        Map<String, String> details
-    ) {}
 
     // Session tracking
     public static class SessionInfo {

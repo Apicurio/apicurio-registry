@@ -191,8 +191,8 @@ The `sample-schemas/` directory contains example artifacts:
 
 - `gpt4-model-schema.json` - OpenAI GPT-4 Turbo model schema
 - `claude-model-schema.json` - Anthropic Claude 3 Opus model schema
-- `summarization-prompt.yaml` - Document summarization prompt template
-- `qa-prompt.yaml` - Question & Answer RAG prompt template
+- `apicurio-support-system-prompt.yaml` - System prompt for support chatbot
+- `apicurio-support-chat-prompt.yaml` - Chat prompt template
 
 ## Cleanup
 
@@ -283,7 +283,7 @@ brew install ollama && brew services start ollama && ollama pull llama3.2
 curl -fsSL https://ollama.com/install.sh | sh && ollama serve & && ollama pull llama3.2
 ```
 
-See the [quarkus-demo](./quarkus-demo/) directory for a complete working example.
+For a complete working example with RAG and Kubernetes deployment, see the [Apicurio Registry Support Chat](https://github.com/carlesarnal/apicurio-registry-support-chat) project.
 
 ## REST API Endpoints
 

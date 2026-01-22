@@ -282,6 +282,7 @@
                 Powered by: <strong>PROMPT_TEMPLATE</strong> + <strong>MODEL_SCHEMA</strong> + <strong>RAG</strong>
             </div>
             <div>
+                <a href="#" onclick="endSession(); return false;">New Session</a> |
                 <a href="/support/health" target="_blank">Health</a> |
                 <a href="/support/rag/status" target="_blank">RAG Status</a> |
                 <a href="/support/models" target="_blank">Models</a>
@@ -294,9 +295,35 @@
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
 
-        // Check service status on load
+        let sessionId = null;
+
+        // Initialize session and check status on load
+        initSession();
         checkStatus();
         setInterval(checkStatus, 30000);
+
+        async function initSession() {
+            try {
+                const response = await fetch('/support/session', { method: 'POST' });
+                const data = await response.json();
+                sessionId = data.sessionId;
+                console.log('Session created:', sessionId);
+                addMessage(`Session started. Your conversation history will be preserved.`, 'system');
+            } catch (error) {
+                console.error('Failed to create session:', error);
+                addMessage('Failed to create session. Using stateless mode.', 'system');
+            }
+        }
+
+        async function endSession() {
+            if (sessionId) {
+                try {
+                    await fetch(`/support/session/${sessionId}`, { method: 'DELETE' });
+                } catch (e) {}
+            }
+            messagesDiv.innerHTML = '<div class="message system">Welcome! Ask me anything about Apicurio Registry - installation, configuration, APIs, and more.</div>';
+            await initSession();
+        }
 
         async function checkStatus() {
             try {
@@ -351,7 +378,12 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
             try {
-                const response = await fetch('/support/ask', {
+                // Use session chat if available, fallback to stateless
+                const endpoint = sessionId
+                    ? `/support/chat/${sessionId}`
+                    : '/support/ask';
+
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message })

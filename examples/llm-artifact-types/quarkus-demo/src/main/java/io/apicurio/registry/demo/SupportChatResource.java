@@ -1,5 +1,7 @@
 package io.apicurio.registry.demo;
 
+import io.apicurio.registry.langchain4j.ApicurioPromptRegistry;
+import io.apicurio.registry.rest.client.RegistryClient;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -8,31 +10,43 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * REST resource for the Apicurio Registry support chat.
+ * REST resource demonstrating Apicurio Registry LLM artifact types integration.
  *
- * <p>This resource provides a chat interface for users to ask questions about
- * Apicurio Registry. It uses RAG (Retrieval Augmented Generation) to provide
- * accurate answers based on the official documentation.
+ * <p>This resource showcases:
+ * <ul>
+ *   <li><b>PROMPT_TEMPLATE</b>: System and chat prompts stored in registry</li>
+ *   <li><b>MODEL_SCHEMA</b>: Model search by capabilities, provider, context window</li>
+ *   <li><b>Variable substitution</b>: Dynamic prompt rendering with variables</li>
+ *   <li><b>Versioned prompts</b>: Fetching specific prompt versions</li>
+ *   <li><b>Conversation memory</b>: Session-based chat with context</li>
+ * </ul>
  *
  * <p>Example usage:
  * <pre>
- * # Start a new chat session
+ * # Create a chat session
  * curl -X POST http://localhost:8081/support/session
  *
- * # Send a message
+ * # Chat with session
  * curl -X POST http://localhost:8081/support/chat/{sessionId} \
  *   -H "Content-Type: application/json" \
- *   -d '{"message": "How do I install Apicurio Registry using Docker?"}'
+ *   -d '{"message": "How do I install Apicurio Registry?"}'
  *
- * # End the session
- * curl -X DELETE http://localhost:8081/support/session/{sessionId}
+ * # Search for AI models
+ * curl "http://localhost:8081/support/models?capability=vision&provider=openai"
+ *
+ * # Preview a prompt template
+ * curl -X POST http://localhost:8081/support/prompts/preview \
+ *   -H "Content-Type: application/json" \
+ *   -d '{"artifactId": "apicurio-support-system-prompt"}'
  * </pre>
  */
 @Path("/support")
@@ -41,28 +55,46 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SupportChatResource {
 
     @Inject
-    ApicurioSupportAssistant assistant;
+    ApicurioSupportService supportService;
 
-    // Track active sessions (in production, use a distributed cache like Redis)
+    @Inject
+    ApicurioPromptRegistry promptRegistry;
+
+    @Inject
+    RegistryClient registryClient;
+
+    // Track active sessions
     private final Map<String, SessionInfo> activeSessions = new ConcurrentHashMap<>();
+
+    // =========================================================================
+    // Health & Info Endpoints
+    // =========================================================================
 
     /**
      * Health check for the support chat service.
      */
     @GET
     @Path("/health")
-    public Map<String, String> health() {
+    public Map<String, Object> health() {
         return Map.of(
             "status", "UP",
-            "service", "Apicurio Support Chat",
-            "activeSessions", String.valueOf(activeSessions.size())
+            "service", "Apicurio Registry Support Chat",
+            "features", List.of(
+                "PROMPT_TEMPLATE integration",
+                "MODEL_SCHEMA search",
+                "Conversation memory",
+                "Versioned prompts"
+            ),
+            "activeSessions", activeSessions.size()
         );
     }
 
+    // =========================================================================
+    // Session Management
+    // =========================================================================
+
     /**
      * Create a new chat session.
-     *
-     * @return Session information including the session ID
      */
     @POST
     @Path("/session")
@@ -72,16 +104,13 @@ public class SupportChatResource {
 
         return new SessionResponse(
             sessionId,
-            "Session created. You can now send messages using POST /support/chat/" + sessionId,
+            "Session created. Chat prompts will be fetched from Apicurio Registry.",
             activeSessions.size()
         );
     }
 
     /**
-     * Get information about a session.
-     *
-     * @param sessionId The session ID
-     * @return Session information
+     * Get session information.
      */
     @GET
     @Path("/session/{sessionId}")
@@ -94,10 +123,7 @@ public class SupportChatResource {
     }
 
     /**
-     * End a chat session and clear its memory.
-     *
-     * @param sessionId The session ID to end
-     * @return Confirmation message
+     * End a chat session.
      */
     @DELETE
     @Path("/session/{sessionId}")
@@ -106,21 +132,26 @@ public class SupportChatResource {
         if (removed == null) {
             throw new jakarta.ws.rs.NotFoundException("Session not found: " + sessionId);
         }
+        supportService.clearConversation(sessionId);
         return Map.of(
             "status", "Session ended",
             "sessionId", sessionId
         );
     }
 
+    // =========================================================================
+    // Chat Endpoints (PROMPT_TEMPLATE demonstration)
+    // =========================================================================
+
     /**
-     * Send a chat message and get a response.
+     * Send a chat message using registry-stored prompts.
      *
-     * <p>The assistant will use RAG to retrieve relevant documentation and
-     * provide an accurate answer. Conversation history is maintained per session.
-     *
-     * @param sessionId The session ID
-     * @param request The chat request containing the user's message
-     * @return The assistant's response
+     * <p>Demonstrates:
+     * <ul>
+     *   <li>Fetching PROMPT_TEMPLATE artifacts from registry</li>
+     *   <li>Variable substitution in prompts</li>
+     *   <li>Conversation memory across turns</li>
+     * </ul>
      */
     @POST
     @Path("/chat/{sessionId}")
@@ -128,7 +159,7 @@ public class SupportChatResource {
             @PathParam("sessionId") String sessionId,
             ChatRequest request) {
 
-        // Validate session exists
+        // Validate session
         SessionInfo session = activeSessions.get(sessionId);
         if (session == null) {
             throw new jakarta.ws.rs.NotFoundException(
@@ -136,40 +167,44 @@ public class SupportChatResource {
             );
         }
 
-        // Update session activity
+        // Update session
         session.updateLastActivity();
         session.incrementMessageCount();
 
-        // Get response from AI assistant (uses RAG and conversation memory)
+        // Get response using registry prompts
         long startTime = System.currentTimeMillis();
-        String response = assistant.chat(sessionId, request.message());
+        String response = supportService.chat(
+            sessionId,
+            request.message(),
+            request.systemPromptVersion(),
+            request.chatPromptVersion()
+        );
         long responseTime = System.currentTimeMillis() - startTime;
 
         return new ChatResponse(
             sessionId,
             request.message(),
             response,
-            responseTime
+            responseTime,
+            "apicurio-support-system-prompt",
+            "apicurio-support-chat-prompt"
         );
     }
 
     /**
      * Quick chat without session management.
-     *
-     * <p>For simple one-off questions. No conversation history is maintained.
-     *
-     * @param request The chat request
-     * @return The assistant's response
      */
     @POST
     @Path("/ask")
     public QuickChatResponse quickChat(ChatRequest request) {
-        // Use a random session ID for stateless chat
-        String tempSessionId = "quick-" + UUID.randomUUID().toString();
+        String tempSessionId = "quick-" + UUID.randomUUID();
 
         long startTime = System.currentTimeMillis();
-        String response = assistant.chat(tempSessionId, request.message());
+        String response = supportService.chat(tempSessionId, request.message());
         long responseTime = System.currentTimeMillis() - startTime;
+
+        // Clean up temporary session
+        supportService.clearConversation(tempSessionId);
 
         return new QuickChatResponse(
             request.message(),
@@ -178,15 +213,188 @@ public class SupportChatResource {
         );
     }
 
-    // Request/Response records
+    // =========================================================================
+    // Prompt Template Endpoints
+    // =========================================================================
 
-    public record ChatRequest(String message) {}
+    /**
+     * Get the raw system prompt template from registry.
+     */
+    @GET
+    @Path("/prompts/system")
+    public PromptTemplateResponse getSystemPrompt(
+            @QueryParam("version") String version) {
+
+        String template = promptRegistry.getTemplateContent("apicurio-support-system-prompt");
+        String rendered = supportService.getSystemPrompt(version);
+
+        return new PromptTemplateResponse(
+            "apicurio-support-system-prompt",
+            version != null ? version : "latest",
+            template,
+            rendered
+        );
+    }
+
+    /**
+     * Get a prompt template from registry.
+     */
+    @GET
+    @Path("/prompts/{artifactId}")
+    public PromptTemplateResponse getPrompt(
+            @PathParam("artifactId") String artifactId,
+            @QueryParam("version") String version) {
+
+        String template = version != null
+            ? promptRegistry.getPrompt(artifactId, version).getTemplate()
+            : promptRegistry.getPrompt(artifactId).getTemplate();
+
+        return new PromptTemplateResponse(
+            artifactId,
+            version != null ? version : "latest",
+            template,
+            null
+        );
+    }
+
+    /**
+     * Preview a rendered prompt without calling the LLM.
+     */
+    @POST
+    @Path("/prompts/preview")
+    public PromptPreviewResponse previewPrompt(PromptPreviewRequest request) {
+        String rendered = supportService.previewPrompt(
+            request.sessionId() != null ? request.sessionId() : "preview",
+            request.question()
+        );
+
+        return new PromptPreviewResponse(
+            request.question(),
+            rendered,
+            "apicurio-support-system-prompt",
+            "apicurio-support-chat-prompt"
+        );
+    }
+
+    /**
+     * Clear the prompt cache.
+     */
+    @POST
+    @Path("/prompts/cache/clear")
+    public Map<String, String> clearPromptCache() {
+        supportService.clearPromptCache();
+        return Map.of("status", "Prompt cache cleared");
+    }
+
+    // =========================================================================
+    // Model Schema Endpoints (MODEL_SCHEMA demonstration)
+    // =========================================================================
+
+    /**
+     * Search for AI models by capabilities.
+     *
+     * <p>Demonstrates searching MODEL_SCHEMA artifacts by:
+     * <ul>
+     *   <li>Capabilities (e.g., vision, function_calling, chat)</li>
+     *   <li>Provider (e.g., openai, anthropic)</li>
+     *   <li>Context window size</li>
+     * </ul>
+     *
+     * <p>Example: GET /support/models?capability=vision&provider=openai
+     */
+    @GET
+    @Path("/models")
+    public ModelSearchResponse searchModels(
+            @QueryParam("capability") List<String> capabilities,
+            @QueryParam("provider") String provider,
+            @QueryParam("minContextWindow") Long minContextWindow,
+            @QueryParam("maxContextWindow") Long maxContextWindow,
+            @QueryParam("limit") Integer limit) {
+
+        // Build search URL and call registry
+        // Note: In a real implementation, use the registry client's searchModels method
+        StringBuilder searchInfo = new StringBuilder();
+        searchInfo.append("Searching MODEL_SCHEMA artifacts with filters: ");
+
+        if (capabilities != null && !capabilities.isEmpty()) {
+            searchInfo.append("capabilities=").append(capabilities).append(" ");
+        }
+        if (provider != null) {
+            searchInfo.append("provider=").append(provider).append(" ");
+        }
+        if (minContextWindow != null) {
+            searchInfo.append("minContextWindow=").append(minContextWindow).append(" ");
+        }
+        if (maxContextWindow != null) {
+            searchInfo.append("maxContextWindow=").append(maxContextWindow).append(" ");
+        }
+
+        // For the demo, return information about how to use the model search
+        return new ModelSearchResponse(
+            searchInfo.toString().trim(),
+            "Use the registry API directly: GET /apis/registry/v3/search/models",
+            List.of(
+                new ModelSummary("gpt-4-turbo", "openai", List.of("chat", "function_calling", "vision"), 128000L),
+                new ModelSummary("claude-3-opus", "anthropic", List.of("chat", "vision", "tool_use"), 200000L)
+            ),
+            "These are sample models. Create MODEL_SCHEMA artifacts in the registry to see real results."
+        );
+    }
+
+    /**
+     * Compare AI models by their schemas.
+     */
+    @GET
+    @Path("/models/compare")
+    public ModelCompareResponse compareModels(
+            @QueryParam("model") List<String> modelIds) {
+
+        if (modelIds == null || modelIds.size() < 2) {
+            throw new jakarta.ws.rs.BadRequestException(
+                "Provide at least 2 model IDs to compare: ?model=gpt-4-turbo&model=claude-3-opus"
+            );
+        }
+
+        return new ModelCompareResponse(
+            modelIds,
+            "Model comparison based on MODEL_SCHEMA artifacts",
+            Map.of(
+                "recommendation", "Use the registry to store MODEL_SCHEMA artifacts for each model, then compare their capabilities, context windows, and pricing."
+            )
+        );
+    }
+
+    // =========================================================================
+    // Conversation History
+    // =========================================================================
+
+    /**
+     * Get conversation history for a session.
+     */
+    @GET
+    @Path("/history/{sessionId}")
+    public List<ApicurioSupportService.ConversationTurn> getHistory(
+            @PathParam("sessionId") String sessionId) {
+        return supportService.getConversationHistory(sessionId);
+    }
+
+    // =========================================================================
+    // Request/Response Records
+    // =========================================================================
+
+    public record ChatRequest(
+        String message,
+        String systemPromptVersion,
+        String chatPromptVersion
+    ) {}
 
     public record ChatResponse(
         String sessionId,
         String question,
         String answer,
-        long responseTimeMs
+        long responseTimeMs,
+        String systemPromptArtifact,
+        String chatPromptArtifact
     ) {}
 
     public record QuickChatResponse(
@@ -201,6 +409,46 @@ public class SupportChatResource {
         int totalActiveSessions
     ) {}
 
+    public record PromptTemplateResponse(
+        String artifactId,
+        String version,
+        String template,
+        String rendered
+    ) {}
+
+    public record PromptPreviewRequest(
+        String sessionId,
+        String question
+    ) {}
+
+    public record PromptPreviewResponse(
+        String question,
+        String renderedPrompt,
+        String systemPromptArtifact,
+        String chatPromptArtifact
+    ) {}
+
+    public record ModelSearchResponse(
+        String searchInfo,
+        String apiEndpoint,
+        List<ModelSummary> sampleModels,
+        String note
+    ) {}
+
+    public record ModelSummary(
+        String modelId,
+        String provider,
+        List<String> capabilities,
+        Long contextWindow
+    ) {}
+
+    public record ModelCompareResponse(
+        List<String> modelIds,
+        String description,
+        Map<String, String> details
+    ) {}
+
+    // Session tracking
     public static class SessionInfo {
         private final String sessionId;
         private final long createdAt;

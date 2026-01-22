@@ -202,68 +202,7 @@ To stop and remove the containers:
 docker compose down
 ```
 
-## SDK Integrations
-
-### Python SDK
-
-Install with LLM support:
-
-```bash
-pip install apicurioregistrysdk[llm]
-```
-
-**Using PromptRegistry:**
-
-```python
-from apicurioregistrysdk.llm import PromptRegistry
-
-# Initialize registry
-registry = PromptRegistry("http://localhost:8080", group_id="default")
-
-# Fetch versioned prompt template
-prompt = await registry.get_prompt_async("summarization-v1", version="1.0")
-
-# Render with variables
-rendered = prompt.render(document="...", style="concise", max_words=200)
-
-# Server-side rendering with validation
-rendered = await registry.render_server_side_async("summarization-v1", {
-    "document": "...",
-    "style": "concise"
-})
-```
-
-**Using ModelRegistry:**
-
-```python
-from apicurioregistrysdk.llm import ModelRegistry
-
-registry = ModelRegistry("http://localhost:8080")
-
-# Search by capabilities
-results = await registry.search_async(
-    capabilities=["vision", "tool_use"],
-    provider="openai",
-    min_context_window=100000
-)
-
-# Compare models
-comparison = await registry.compare_models_async(["gpt-4-turbo", "claude-3-opus"])
-```
-
-**LangChain Integration:**
-
-```python
-from apicurioregistrysdk.llm.langchain import ApicurioPromptTemplate
-
-prompt = ApicurioPromptTemplate(
-    registry_url="http://localhost:8080",
-    artifact_id="summarization-v1"
-)
-result = prompt.format(document="...", style="concise")
-```
-
-### Java SDK (Quarkus + LangChain4j)
+## SDK Integration (Quarkus + LangChain4j)
 
 Add the dependencies:
 
@@ -417,4 +356,4 @@ curl "http://localhost:8080/apis/registry/v3/search/models?capability=vision&pro
 - [Model Cards for Model Reporting](https://arxiv.org/abs/1810.03993)
 - [Prompt Engineering Best Practices](https://platform.openai.com/docs/guides/prompt-engineering)
 - [LangChain4j Documentation](https://docs.langchain4j.dev/)
-- [LangChain Python Documentation](https://python.langchain.com/)
+- [Quarkus LangChain4j Extension](https://docs.quarkiverse.io/quarkus-langchain4j/dev/)

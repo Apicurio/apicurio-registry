@@ -422,6 +422,138 @@ echo ""
 read -p "Press Enter to continue..."
 echo ""
 
+# Step 10: Create support chat prompts for the Quarkus demo
+echo "10. Creating support chat prompts for Quarkus demo..."
+echo ""
+echo "   Creating apicurio-support-system-prompt (PROMPT_TEMPLATE)..."
+
+SUPPORT_SYSTEM_PROMPT='$schema: https://apicur.io/schemas/prompt-template/v1
+templateId: apicurio-support-system-prompt
+name: Apicurio Registry Support Assistant - System Prompt
+description: System prompt for the Apicurio Registry support assistant chatbot
+version: "1.0"
+
+template: |
+  You are a helpful support assistant for Apicurio Registry, an open-source schema and API registry.
+
+  ## Your Role
+  - Answer questions about Apicurio Registry features, configuration, deployment, and usage
+  - Guide users through common tasks like installing, configuring, and using the registry
+  - Help troubleshoot common issues
+  - Explain concepts like schema validation, artifact types, versioning, and compatibility rules
+
+  ## Guidelines
+  - Be concise but thorough in your answers
+  - If you are not sure about something, say so rather than making up information
+  - When relevant, mention specific configuration properties, API endpoints, or CLI commands
+  - Use markdown formatting for code snippets, lists, and emphasis
+
+  ## Key Topics You Can Help With
+  - Installation (Docker, Kubernetes, standalone)
+  - Configuration (storage backends, security, logging)
+  - Artifact types: {{supported_artifact_types}}
+  - Schema validation and compatibility rules
+  - REST API usage (v3)
+  - Client SDKs (Java, Python)
+  - Kafka integration (SerDes)
+  - Security and authentication (OIDC, RBAC)
+  - High availability and scaling
+
+variables:
+  supported_artifact_types:
+    type: string
+    default: "AVRO, PROTOBUF, JSON, OPENAPI, ASYNCAPI, GRAPHQL, KCONNECT, WSDL, XSD, XML, PROMPT_TEMPLATE, MODEL_SCHEMA"
+    description: Comma-separated list of supported artifact types
+  additional_context:
+    type: string
+    required: false
+    description: Optional additional context to include in the system prompt
+
+metadata:
+  author: apicurio-team
+  createdAt: "2025-01-21"
+  tags: [support, chatbot, system-prompt, apicurio-registry]
+  recommendedModels: [llama3.2, gpt-4-turbo, claude-3-sonnet]'
+
+curl -s -X POST "$REGISTRY_URL/groups/default/artifacts" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"artifactId\": \"apicurio-support-system-prompt\",
+    \"artifactType\": \"PROMPT_TEMPLATE\",
+    \"firstVersion\": {
+      \"version\": \"1.0.0\",
+      \"content\": {
+        \"content\": $(echo "$SUPPORT_SYSTEM_PROMPT" | jq -Rs .),
+        \"contentType\": \"application/x-yaml\"
+      }
+    }
+  }" | jq '.'
+
+echo ""
+echo "   Creating apicurio-support-chat-prompt (PROMPT_TEMPLATE)..."
+
+SUPPORT_CHAT_PROMPT='$schema: https://apicur.io/schemas/prompt-template/v1
+templateId: apicurio-support-chat-prompt
+name: Apicurio Registry Support Chat - User Message Prompt
+description: Template for formatting user questions in the support chat
+version: "1.0"
+
+template: |
+  {{system_prompt}}
+
+  ## Current Question
+  User: {{question}}
+
+  ## Instructions
+  Please provide a helpful, accurate answer based on your knowledge of Apicurio Registry.
+  Include relevant code examples or configuration snippets where appropriate.
+
+  Assistant:
+
+variables:
+  system_prompt:
+    type: string
+    required: true
+    description: The rendered system prompt from apicurio-support-system-prompt
+  question:
+    type: string
+    required: true
+    description: The current question from the user
+  conversation_history:
+    type: string
+    required: false
+    description: Previous conversation turns for context
+  include_examples:
+    type: boolean
+    default: true
+    description: Whether to include code examples in responses
+
+metadata:
+  author: apicurio-team
+  createdAt: "2025-01-21"
+  tags: [support, chatbot, user-prompt, conversation]
+  recommendedModels: [llama3.2, gpt-4-turbo, claude-3-sonnet]'
+
+curl -s -X POST "$REGISTRY_URL/groups/default/artifacts" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"artifactId\": \"apicurio-support-chat-prompt\",
+    \"artifactType\": \"PROMPT_TEMPLATE\",
+    \"firstVersion\": {
+      \"version\": \"1.0.0\",
+      \"content\": {
+        \"content\": $(echo "$SUPPORT_CHAT_PROMPT" | jq -Rs .),
+        \"contentType\": \"application/x-yaml\"
+      }
+    }
+  }" | jq '.'
+
+echo ""
+echo "   Support chat prompts created in 'default' group."
+echo ""
+read -p "Press Enter to continue..."
+echo ""
+
 # Summary
 echo "=================================================="
 echo "Demo Complete!"
@@ -434,8 +566,14 @@ echo "  - Content auto-detection (ContentAccepter)"
 echo "  - MODEL_SCHEMA backward compatibility checking"
 echo "  - PROMPT_TEMPLATE variable validation"
 echo "  - Version management"
+echo "  - Support chat prompts for Quarkus demo"
 echo ""
 echo "You can explore the registry using:"
 echo "  - Web UI:  http://localhost:8888"
 echo "  - API:     http://localhost:8080/apis/registry/v3"
+echo ""
+echo "To run the Quarkus support chat demo:"
+echo "  cd quarkus-demo"
+echo "  mvn quarkus:dev"
+echo "  # Then visit http://localhost:8081/support/health"
 echo ""

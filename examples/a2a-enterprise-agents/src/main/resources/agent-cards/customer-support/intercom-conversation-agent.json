@@ -1,0 +1,77 @@
+{
+  "name": "Intercom Conversation AI",
+  "description": "Real-time conversational AI agent for Intercom that handles live chat, proactive outreach, and customer engagement across web and mobile platforms",
+  "version": "3.1.0",
+  "url": "https://api.intercom.io/ai-agents/conversation",
+  "provider": {
+    "organization": "Intercom Inc.",
+    "url": "https://www.intercom.com"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true
+  },
+  "skills": [
+    {
+      "id": "live-chat-response",
+      "name": "Live Chat Response",
+      "description": "Provide instant responses to customer inquiries in live chat with context-aware, personalized messaging",
+      "tags": ["chat", "real-time", "conversation", "engagement"],
+      "examples": [
+        "Respond to: 'How do I upgrade my plan?'",
+        "Handle greeting and initial qualification",
+        "Continue conversation about pricing inquiry"
+      ]
+    },
+    {
+      "id": "intent-recognition",
+      "name": "Intent Recognition",
+      "description": "Identify customer intent from messages to route to appropriate workflows or human agents",
+      "tags": ["intent", "nlp", "classification", "routing"],
+      "examples": [
+        "Detect intent: 'I want to cancel my subscription'",
+        "Classify: Is this sales inquiry or support issue?",
+        "Identify purchasing intent signals"
+      ]
+    },
+    {
+      "id": "proactive-outreach",
+      "name": "Proactive Customer Outreach",
+      "description": "Initiate personalized outreach based on user behavior, page visits, and engagement patterns",
+      "tags": ["proactive", "engagement", "behavioral", "marketing"],
+      "examples": [
+        "Trigger message for user on pricing page for 5+ minutes",
+        "Send onboarding tip based on feature usage",
+        "Offer assistance to user showing confusion signals"
+      ]
+    },
+    {
+      "id": "handoff-orchestration",
+      "name": "Human Handoff Orchestration",
+      "description": "Seamlessly transfer conversations to human agents with full context and conversation summary",
+      "tags": ["handoff", "transfer", "context", "human-in-loop"],
+      "examples": [
+        "Transfer to sales team with qualification data",
+        "Escalate to tier-2 support with issue summary",
+        "Hand off to billing specialist with context"
+      ]
+    },
+    {
+      "id": "multilingual-support",
+      "name": "Multilingual Conversation",
+      "description": "Detect customer language and respond in their preferred language across 40+ supported languages",
+      "tags": ["multilingual", "translation", "i18n", "localization"],
+      "examples": [
+        "Detect language and respond appropriately",
+        "Translate conversation for agent handoff",
+        "Handle code-switching in conversations"
+      ]
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "authentication": {
+    "schemes": ["bearer", "oauth2"]
+  },
+  "supportsExtendedAgentCard": true
+}

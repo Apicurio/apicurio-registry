@@ -59,6 +59,7 @@
     <module>otel-tracing</module>
     <module>debezium-otel-tracing</module>
     <module>a2a-agent-card</module>
+    <module>a2a-enterprise-agents</module>
   </modules>
 
   <scm>

@@ -4,6 +4,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.error.ContentAlreadyExistsException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -26,8 +27,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
+import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
 
 /**
  * Repository handling content operations in the SQL storage layer.
@@ -44,6 +49,12 @@ public class SqlContentRepository {
 
     @Inject
     HandleFactory handles;
+
+    @Inject
+    SqlSequenceRepository sequenceRepository;
+
+    @Inject
+    RegistryStorageContentUtils utils;
 
     /**
      * Get content by contentId.
@@ -354,5 +365,89 @@ public class SqlContentRepository {
                     .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
                     .map(ArtifactReferenceDtoMapper.instance).list();
         });
+    }
+
+    // ==================== CONTENT CREATION ====================
+
+    /**
+     * Make sure the content exists in the database (try to insert it). Regardless of whether it already
+     * existed or not, return the contentId of the content in the DB.
+     */
+    public Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
+        List<ArtifactReferenceDto> references = contentDto.getReferences();
+
+        // Deduplicate references to handle cases where callers (like Avro converters)
+        // may send duplicate references for nested schemas. This must be done BEFORE
+        // calculating content hashes to ensure consistency.
+        if (references != null && !references.isEmpty()) {
+            references = references.stream()
+                    .distinct()
+                    .collect(Collectors.toList());
+        }
+
+        TypedContent content = TypedContent.create(contentDto.getContent(), contentDto.getContentType());
+        String contentHash;
+        String canonicalContentHash;
+        String serializedReferences;
+
+        // Need to create the content hash and canonical content hash. If the content is DRAFT
+        // content, then do NOT calculate those hashes because we don't want DRAFT content to
+        // be looked up by those hashes.
+        if (isDraft) {
+            contentHash = "draft:" + UUID.randomUUID().toString();
+            canonicalContentHash = "draft:" + UUID.randomUUID().toString();
+            serializedReferences = null;
+        } else if (notEmpty(references)) {
+            final List<ArtifactReferenceDto> finalReferences = references;
+            Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver = (refs) -> {
+                return handles.withHandle(handle -> {
+                    return resolveReferencesRaw(handle, refs);
+                });
+            };
+            contentHash = utils.getContentHash(content, finalReferences);
+            canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, finalReferences,
+                    referenceResolver);
+            serializedReferences = RegistryContentUtils.serializeReferences(finalReferences);
+        } else {
+            contentHash = utils.getContentHash(content, null);
+            canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, null, null);
+            serializedReferences = null;
+        }
+
+        // Ensure the content is in the DB.
+        final String finalContentHash = contentHash;
+        final String finalCanonicalContentHash = canonicalContentHash;
+        final String finalSerializedReferences = serializedReferences;
+        final List<ArtifactReferenceDto> finalReferences = references;
+
+        handles.withHandleNoException(handle -> {
+            long contentId = sequenceRepository.nextContentIdRaw(handle);
+
+            try {
+                handle.createUpdate(sqlStatements.insertContent())
+                        .bind(0, contentId)
+                        .bind(1, finalCanonicalContentHash)
+                        .bind(2, finalContentHash)
+                        .bind(3, content.getContentType())
+                        .bind(4, content.getContent().bytes())
+                        .bind(5, finalSerializedReferences)
+                        .execute();
+            } catch (Exception e) {
+                if (sqlStatements.isPrimaryKeyViolation(e)) {
+                    log.debug("Content with content hash {} already exists: {}", finalContentHash, content);
+                    return null;
+                } else {
+                    throw e;
+                }
+            }
+
+            // If we get here, then the content was inserted and we need to insert the references.
+            insertReferencesRaw(handle, contentId, finalReferences);
+            return null;
+        });
+
+        // Get the contentId using the unique contentHash.
+        Optional<Long> contentId = contentIdFromHash(contentHash);
+        return contentId.orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
     }
 }

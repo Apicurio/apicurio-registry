@@ -11,7 +11,6 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
-import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.semver.SemVerConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -56,6 +55,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.mappers.DatabaseLockMapper;
 import io.apicurio.registry.storage.impl.sql.repositories.SqlArtifactRepository;
 import io.apicurio.registry.storage.impl.sql.repositories.SqlBranchRepository;
+import io.apicurio.registry.storage.impl.sql.repositories.SqlCleanupRepository;
 import io.apicurio.registry.storage.impl.sql.repositories.SqlCommentRepository;
 import io.apicurio.registry.storage.impl.sql.repositories.SqlConfigRepository;
 import io.apicurio.registry.storage.impl.sql.repositories.SqlDownloadRepository;
@@ -101,13 +101,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
-import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.notEmpty;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
 
 /**
@@ -226,6 +223,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     SqlEventRepository eventRepository;
+
+    @Inject
+    SqlCleanupRepository cleanupRepository;
 
     private volatile boolean isReady = false;
     private volatile Instant isAliveLastCheck = Instant.MIN;
@@ -584,122 +584,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 metaData, owner, createdOn, contentId, branches, isDraft);
     }
 
-    /**
-     * Make sure the content exists in the database (try to insert it). Regardless of whether it already
-     * existed or not, return the contentId of the content in the DB.
-     */
     private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
-        List<ArtifactReferenceDto> references = contentDto.getReferences();
-
-        // Deduplicate references to handle cases where callers (like Avro converters)
-        // may send duplicate references for nested schemas. This must be done BEFORE
-        // calculating content hashes to ensure consistency.
-        if (references != null && !references.isEmpty()) {
-            references = references.stream()
-                    .distinct()
-                    .collect(Collectors.toList());
-        }
-
-        TypedContent content = TypedContent.create(contentDto.getContent(), contentDto.getContentType());
-        String contentHash;
-        String canonicalContentHash;
-        String serializedReferences;
-
-        // Need to create the content hash and canonical content hash. If the content is DRAFT
-        // content, then do NOT calculate those hashes because we don't want DRAFT content to
-        // be looked up by those hashes.
-        //
-        // So we have three different paths to calculate the hashes:
-        // 1. If DRAFT state
-        // 2. If the content has references
-        // 3. If the content has no references
-
-        if (isDraft) {
-            contentHash = "draft:" + UUID.randomUUID().toString();
-            canonicalContentHash = "draft:" + UUID.randomUUID().toString();
-            serializedReferences = null;
-        } else if (notEmpty(references)) {
-            Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver = (refs) -> {
-                return handles.withHandle(handle -> {
-                    return resolveReferencesRaw(handle, refs);
-                });
-            };
-            contentHash = utils.getContentHash(content, references);
-            canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, references,
-                    referenceResolver);
-            serializedReferences = RegistryContentUtils.serializeReferences(references);
-        } else {
-            contentHash = utils.getContentHash(content, null);
-            canonicalContentHash = utils.getCanonicalContentHash(content, artifactType, null, null);
-            serializedReferences = null;
-        }
-
-        // Ensure the content is in the DB.
-        ensureContent(content, contentHash, canonicalContentHash, references, serializedReferences);
-
-        // Get the contentId using the unique contentHash.
-        Optional<Long> contentId = contentIdFromHash(contentHash);
-        return contentId.orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
-    }
-
-    /**
-     * Store the content in the database and return the content ID of the new row. If the content already
-     * exists, just return the content ID of the existing row.
-     */
-    private void ensureContent(TypedContent content, String contentHash, String canonicalContentHash,
-            List<ArtifactReferenceDto> references, String referencesSerialized) {
-
-        handles.withHandleNoException(handle -> {
-
-            // Insert the content into the content table.
-            long contentId = nextContentIdRaw(handle);
-
-            try {
-                handle.createUpdate(sqlStatements.insertContent())
-                        .bind(0, contentId)
-                        .bind(1, canonicalContentHash)
-                        .bind(2, contentHash)
-                        .bind(3, content.getContentType())
-                        .bind(4, content.getContent().bytes())
-                        .bind(5, referencesSerialized)
-                        .execute();
-            } catch (Exception e) {
-                if (sqlStatements.isPrimaryKeyViolation(e)) {
-                    log.debug("Content with content hash {} already exists: {}", contentHash, content);
-                    return;
-                } else {
-                    throw e;
-                }
-            }
-
-            // If we get here, then the content was inserted and we need to insert the references.
-            insertReferencesRaw(contentId, references);
-        });
-    }
-
-    private void insertReferencesRaw(Long contentId, List<ArtifactReferenceDto> references) {
-        if (references != null && !references.isEmpty()) {
-            handles.withHandleNoException(handle -> {
-                references.forEach(reference -> {
-                    try {
-                        handle.createUpdate(sqlStatements.insertContentReference())
-                                .bind(0, contentId)
-                                .bind(1, normalizeGroupId(reference.getGroupId()))
-                                .bind(2, reference.getArtifactId())
-                                .bind(3, reference.getVersion())
-                                .bind(4, reference.getName())
-                                .execute();
-                    } catch (Exception e) {
-                        if (sqlStatements.isPrimaryKeyViolation(e)) {
-                            // We have to fail the transaction because the content hash would otherwise be invalid (duplicate references).
-                            throw new ConflictException("Duplicate reference found: " + reference);
-                        } else {
-                            throw e;
-                        }
-                    }
-                });
-            });
-        }
+        return contentRepository.ensureContentAndGetId(artifactType, contentDto, isDraft);
     }
 
     @Override
@@ -1192,51 +1078,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void deleteAllUserData() {
-        log.debug("Deleting all user data");
-
-        deleteGlobalRules();
-
-        handles.withHandleNoException(handle -> {
-            // Delete all artifacts and related data
-
-            handle.createUpdate(sqlStatements.deleteAllContentReferences()).execute();
-
-            handle.createUpdate(sqlStatements.deleteVersionLabelsByAll()).execute();
-
-            handle.createUpdate(sqlStatements.deleteAllVersionComments()).execute();
-
-            handle.createUpdate(sqlStatements.deleteAllBranchVersions()).execute();
-
-            handle.createUpdate(sqlStatements.deleteAllBranches()).execute();
-
-            handle.createUpdate(sqlStatements.deleteAllVersions()).execute();
-
-            handle.createUpdate(sqlStatements.deleteAllArtifactRules()).execute();
-
-            handle.createUpdate(sqlStatements.deleteAllArtifacts()).execute();
-
-            // Delete all groups
-            handle.createUpdate(sqlStatements.deleteAllGroups()).execute();
-
-            // Delete all role mappings
-            handle.createUpdate(sqlStatements.deleteAllRoleMappings()).execute();
-
-            // Delete all content
-            handle.createUpdate(sqlStatements.deleteAllContent()).execute();
-
-            // Delete all config properties
-            handle.createUpdate(sqlStatements.deleteAllConfigProperties()).execute();
-
-            // TODO Do we need to delete comments?
-
-            return null;
-        });
-
-    }
-
-    private Map<String, TypedContent> resolveReferencesRaw(Handle handle,
-            List<ArtifactReferenceDto> references) {
-        return contentRepository.resolveReferencesRaw(handle, references);
+        cleanupRepository.deleteAllUserData();
     }
 
     @Override
@@ -1354,26 +1196,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return sequenceRepository.nextContentId();
     }
 
-    private long nextContentIdRaw(Handle handle) {
-        return sequenceRepository.nextContentIdRaw(handle);
-    }
-
     @Override
     public long nextGlobalId() {
         return sequenceRepository.nextGlobalId();
     }
 
-    private long nextGlobalIdRaw(Handle handle) {
-        return sequenceRepository.nextGlobalIdRaw(handle);
-    }
-
     @Override
     public long nextCommentId() {
         return sequenceRepository.nextCommentId();
-    }
-
-    private long nextCommentIdRaw(Handle handle) {
-        return sequenceRepository.nextCommentIdRaw(handle);
     }
 
     @Override

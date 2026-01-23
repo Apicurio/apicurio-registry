@@ -397,14 +397,6 @@ public class SqlVersionRepository {
     }
 
     /**
-     * Get GAV by globalId using an existing handle.
-     */
-    public GAV getGAVByGlobalIdRaw(Handle handle, long globalId) {
-        return handle.createQuery(sqlStatements.selectGAVByGlobalId()).bind(0, globalId)
-                .map(GAVMapper.instance).findOne().orElseThrow(() -> new VersionNotFoundException(globalId));
-    }
-
-    /**
      * Create artifact version using an existing handle.
      * This is the core method for version creation, used by AbstractSqlRegistryStorage.
      */

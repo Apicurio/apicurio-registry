@@ -70,3 +70,14 @@ use the client.
 This example application showcases an scenario where Apache Avro messages are published to the same
 Kafka topic using different Avro schemas. This example uses the Apicurio Registry serdes classes to serialize
 and deserialize Apache Avro messages using different schemas, even if received in the same Kafka topic.
+
+## LLM/AI Model Schema Artifact Types
+This example demonstrates the built-in AI/ML artifact types for managing LLM schemas and prompt templates:
+
+- **MODEL_SCHEMA**: AI/ML model input/output schema definitions with capability metadata
+- **PROMPT_TEMPLATE**: Version-controlled prompt templates with variable schemas
+
+Features include content auto-detection, backward compatibility checking, server-side prompt rendering,
+and model capability search. Includes integration examples for Quarkus + LangChain4j.
+
+See the [llm-artifact-types](llm-artifact-types/) directory for details.

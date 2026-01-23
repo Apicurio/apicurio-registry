@@ -113,22 +113,43 @@ docker compose up
 
 Wait for the services to be ready (check with `docker compose logs -f`).
 
-### 2. Run the Demo
-
-Execute the demo script to see the artifact types in action:
+### 2. Create a Prompt Template
 
 ```bash
-./demo.sh
+curl -X POST http://localhost:8080/apis/registry/v3/groups/default/artifacts \
+  -H "Content-Type: application/x-yaml" \
+  -H "X-Registry-ArtifactId: summarization-v1" \
+  -H "X-Registry-ArtifactType: PROMPT_TEMPLATE" \
+  -d '
+templateId: summarization-v1
+template: "Summarize in {{style}} style: {{document}}"
+variables:
+  style:
+    type: string
+    enum: [concise, detailed]
+  document:
+    type: string
+    required: true
+'
 ```
 
-The demo demonstrates:
-- Listing available artifact types (MODEL_SCHEMA, PROMPT_TEMPLATE)
-- Creating artifacts with explicit types
-- Content auto-detection
-- Backward compatibility checking
-- Content validation
+### 3. Create a Model Schema
 
-### 3. Explore the Registry
+```bash
+curl -X POST http://localhost:8080/apis/registry/v3/groups/default/artifacts \
+  -H "Content-Type: application/json" \
+  -H "X-Registry-ArtifactId: gpt-4-turbo" \
+  -H "X-Registry-ArtifactType: MODEL_SCHEMA" \
+  -d '{
+    "modelId": "gpt-4-turbo",
+    "provider": "openai",
+    "input": {"type": "object", "properties": {"messages": {"type": "array"}}},
+    "output": {"type": "object", "properties": {"choices": {"type": "array"}}},
+    "metadata": {"contextWindow": 128000, "capabilities": ["chat", "vision"]}
+  }'
+```
+
+### 4. Explore the Registry
 
 - **Web UI**: http://localhost:8888
 - **REST API**: http://localhost:8080/apis/registry/v3
@@ -202,89 +223,6 @@ To stop and remove the containers:
 docker compose down
 ```
 
-## SDK Integration (Quarkus + LangChain4j)
-
-Add the dependencies:
-
-```xml
-<!-- Apicurio Registry LangChain4j Integration -->
-<dependency>
-    <groupId>io.apicurio</groupId>
-    <artifactId>apicurio-registry-langchain4j</artifactId>
-    <version>${apicurio.version}</version>
-</dependency>
-
-<!-- LLM Provider (choose one) -->
-<!-- Option 1: Ollama (free, local) - Recommended for development -->
-<dependency>
-    <groupId>io.quarkiverse.langchain4j</groupId>
-    <artifactId>quarkus-langchain4j-ollama</artifactId>
-    <version>1.5.0</version>
-</dependency>
-
-<!-- Option 2: OpenAI (paid API) -->
-<!--
-<dependency>
-    <groupId>io.quarkiverse.langchain4j</groupId>
-    <artifactId>quarkus-langchain4j-openai</artifactId>
-    <version>1.5.0</version>
-</dependency>
--->
-```
-
-**Using with CDI:**
-
-```java
-@Inject
-ApicurioPromptRegistry promptRegistry;
-
-@Inject
-ChatModel chatModel;  // Automatically configured by quarkus-langchain4j
-
-public String chat(String question) {
-    // Fetch versioned prompt from registry
-    ApicurioPromptTemplate template = promptRegistry.getPrompt("qa-assistant", "1.2");
-
-    // Apply variables and get rendered prompt
-    Prompt prompt = template.apply(Map.of(
-        "question", question,
-        "context", getContext()
-    ));
-
-    // Send to LLM
-    return chatModel.chat(prompt.text());
-}
-```
-
-**Configuration (application.properties):**
-
-```properties
-# Registry connection
-apicurio.registry.url=http://localhost:8080
-apicurio.registry.default-group=default
-
-# Ollama configuration (free, local LLM) - Recommended
-quarkus.langchain4j.ollama.base-url=http://localhost:11434
-quarkus.langchain4j.ollama.chat-model.model-id=llama3.2
-quarkus.langchain4j.ollama.timeout=120s
-
-# OR OpenAI configuration (requires API key and credits)
-# quarkus.langchain4j.openai.api-key=${OPENAI_API_KEY}
-# quarkus.langchain4j.openai.chat-model.model-name=gpt-4o
-```
-
-**Running Ollama locally:**
-
-```bash
-# macOS
-brew install ollama && brew services start ollama && ollama pull llama3.2
-
-# Linux
-curl -fsSL https://ollama.com/install.sh | sh && ollama serve & && ollama pull llama3.2
-```
-
-For a complete working example with RAG and Kubernetes deployment, see the [Apicurio Registry Support Chat](https://github.com/carlesarnal/apicurio-registry-support-chat) project.
-
 ## REST API Endpoints
 
 ### Render Prompt Template
@@ -318,42 +256,9 @@ curl -X POST http://localhost:8080/apis/registry/v3/groups/default/artifacts/sum
 }
 ```
 
-### Search Models
-
-Query MODEL_SCHEMA artifacts by capabilities:
-
-```bash
-GET /apis/registry/v3/search/models?capability=function_calling&provider=openai&minContextWindow=100000
-
-# Example
-curl "http://localhost:8080/apis/registry/v3/search/models?capability=vision&provider=openai"
-```
-
-**Response:**
-
-```json
-{
-  "count": 1,
-  "models": [
-    {
-      "groupId": "ai-models",
-      "artifactId": "gpt-4-turbo",
-      "version": "2024-01",
-      "name": "GPT-4 Turbo",
-      "provider": "openai",
-      "contextWindow": 128000,
-      "capabilities": ["chat", "function_calling", "vision"],
-      "modelId": "gpt-4-turbo"
-    }
-  ]
-}
-```
-
 ## References
 
 - [Apicurio Registry Documentation](https://www.apicur.io/registry/)
 - [Custom Artifact Types Blog Post](https://www.apicur.io/blog/2025/10/27/custom-artifact-types)
 - [Model Cards for Model Reporting](https://arxiv.org/abs/1810.03993)
 - [Prompt Engineering Best Practices](https://platform.openai.com/docs/guides/prompt-engineering)
-- [LangChain4j Documentation](https://docs.langchain4j.dev/)
-- [Quarkus LangChain4j Extension](https://docs.quarkiverse.io/quarkus-langchain4j/dev/)

@@ -11,12 +11,14 @@ import type {
     ReferenceFinderRequest,
     ReferenceFinderResponse
 } from '@apicurio/artifact-type-builtins';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-
-type TypedContent = {
-    contentType: string;
-    content: string;
-}
+import {
+    TypedContent,
+    parseContent,
+    sortObjectKeys,
+    findRefs,
+    resolveRefs,
+    rewriteRefsWithUrls
+} from './shared-utils';
 
 interface ModelSchema {
     $schema?: string;
@@ -27,27 +29,6 @@ interface ModelSchema {
     output?: Record<string, unknown>;
     metadata?: Record<string, unknown>;
     definitions?: Record<string, unknown>;
-}
-
-/**
- * Parse content as JSON or YAML based on content type
- */
-function parseContent(content: string, contentType: string): ModelSchema | null {
-    try {
-        if (contentType === 'application/json') {
-            return JSON.parse(content);
-        } else if (contentType === 'application/x-yaml' || contentType === 'application/yaml') {
-            return parseYaml(content) as ModelSchema;
-        }
-        // Try JSON first, then YAML
-        try {
-            return JSON.parse(content);
-        } catch {
-            return parseYaml(content) as ModelSchema;
-        }
-    } catch {
-        return null;
-    }
 }
 
 /**
@@ -64,7 +45,7 @@ export function acceptsContent(request: ContentAccepterRequest): boolean {
         return false;
     }
 
-    const parsed = parseContent(content, contentType);
+    const parsed = parseContent<ModelSchema>(content, contentType);
     if (!parsed) {
         return false;
     }
@@ -102,7 +83,7 @@ export function validate(request: ContentValidatorRequest): ContentValidatorResp
     }
 
     // Parse content
-    const parsed = parseContent(content, contentType);
+    const parsed = parseContent<ModelSchema>(content, contentType);
     if (!parsed) {
         violations.push({
             description: 'Invalid content format. Unable to parse as JSON or YAML.',
@@ -217,8 +198,8 @@ export function testCompatibility(request: CompatibilityCheckerRequest): Compati
     const incompatibleDifferences: Array<{ description: string; context: string }> = [];
 
     try {
-        const proposed = parseContent(proposedArtifact.content, proposedArtifact.contentType);
-        const existing = parseContent(existingArtifacts[0].content, existingArtifacts[0].contentType);
+        const proposed = parseContent<ModelSchema>(proposedArtifact.content, proposedArtifact.contentType);
+        const existing = parseContent<ModelSchema>(existingArtifacts[0].content, existingArtifacts[0].contentType);
 
         if (!proposed || !existing) {
             return {
@@ -324,24 +305,6 @@ export function testCompatibility(request: CompatibilityCheckerRequest): Compati
 }
 
 /**
- * Sort object keys recursively for canonicalization
- */
-function sortObjectKeys(obj: unknown): unknown {
-    if (obj === null || typeof obj !== 'object') {
-        return obj;
-    }
-    if (Array.isArray(obj)) {
-        return obj.map(sortObjectKeys);
-    }
-    const sorted: Record<string, unknown> = {};
-    const keys = Object.keys(obj as Record<string, unknown>).sort();
-    for (const key of keys) {
-        sorted[key] = sortObjectKeys((obj as Record<string, unknown>)[key]);
-    }
-    return sorted;
-}
-
-/**
  * Canonicalize MODEL_SCHEMA content by normalizing JSON structure
  */
 export function canonicalize(request: ContentCanonicalizerRequest): ContentCanonicalizerResponse {
@@ -349,7 +312,7 @@ export function canonicalize(request: ContentCanonicalizerRequest): ContentCanon
     const contentType: string = request.content.contentType;
 
     try {
-        const parsed = parseContent(content, contentType);
+        const parsed = parseContent<ModelSchema>(content, contentType);
         if (!parsed) {
             return {
                 typedContent: {
@@ -382,32 +345,6 @@ export function canonicalize(request: ContentCanonicalizerRequest): ContentCanon
 }
 
 /**
- * Find all $ref references in an object recursively
- */
-function findRefs(obj: unknown, refs: string[]): void {
-    if (obj === null || typeof obj !== 'object') {
-        return;
-    }
-    if (Array.isArray(obj)) {
-        for (const item of obj) {
-            findRefs(item, refs);
-        }
-        return;
-    }
-    const record = obj as Record<string, unknown>;
-    if (typeof record.$ref === 'string') {
-        const ref = record.$ref;
-        // Only add external references (not internal #/definitions/...)
-        if (!ref.startsWith('#') && !refs.includes(ref)) {
-            refs.push(ref);
-        }
-    }
-    for (const key of Object.keys(record)) {
-        findRefs(record[key], refs);
-    }
-}
-
-/**
  * Find external references ($ref) in the MODEL_SCHEMA content
  */
 export function findExternalReferences(request: ReferenceFinderRequest): ReferenceFinderResponse {
@@ -417,7 +354,7 @@ export function findExternalReferences(request: ReferenceFinderRequest): Referen
     const references: string[] = [];
 
     try {
-        const parsed = parseContent(content, contentType);
+        const parsed = parseContent<ModelSchema>(content, contentType);
         if (parsed) {
             findRefs(parsed, references);
         }
@@ -426,34 +363,6 @@ export function findExternalReferences(request: ReferenceFinderRequest): Referen
     }
 
     return { externalReferences: references };
-}
-
-/**
- * Resolve $ref references in an object recursively
- */
-function resolveRefs(obj: unknown, indexedRefs: Record<string, TypedContent>): unknown {
-    if (obj === null || typeof obj !== 'object') {
-        return obj;
-    }
-    if (Array.isArray(obj)) {
-        return obj.map(item => resolveRefs(item, indexedRefs));
-    }
-    const record = obj as Record<string, unknown>;
-    if (typeof record.$ref === 'string') {
-        const ref = record.$ref;
-        // Resolve external references
-        if (!ref.startsWith('#') && indexedRefs[ref]) {
-            const resolved = parseContent(indexedRefs[ref].content, indexedRefs[ref].contentType);
-            if (resolved) {
-                return resolved;
-            }
-        }
-    }
-    const result: Record<string, unknown> = {};
-    for (const key of Object.keys(record)) {
-        result[key] = resolveRefs(record[key], indexedRefs);
-    }
-    return result;
 }
 
 /**
@@ -472,7 +381,7 @@ export function dereference(request: ContentDereferencerRequest): ContentDerefer
     });
 
     try {
-        const parsed = parseContent(content, contentType);
+        const parsed = parseContent<ModelSchema>(content, contentType);
         if (!parsed) {
             return {
                 typedContent: {
@@ -482,7 +391,7 @@ export function dereference(request: ContentDereferencerRequest): ContentDerefer
             };
         }
 
-        const dereferenced = resolveRefs(parsed, indexedResolvedRefs);
+        const dereferenced = resolveRefs(parsed, indexedResolvedRefs, parseContent<ModelSchema>);
         const dereferencedContent = JSON.stringify(dereferenced, null, 2);
 
         return {
@@ -514,7 +423,7 @@ export function rewriteReferences(request: ContentDereferencerRequest): ContentD
     });
 
     try {
-        const parsed = parseContent(content, contentType);
+        const parsed = parseContent<ModelSchema>(content, contentType);
         if (!parsed) {
             return {
                 typedContent: {
@@ -541,33 +450,6 @@ export function rewriteReferences(request: ContentDereferencerRequest): ContentD
             }
         };
     }
-}
-
-/**
- * Rewrite $ref values to use resolved URLs
- */
-function rewriteRefsWithUrls(obj: unknown, indexedUrls: Record<string, string>): unknown {
-    if (obj === null || typeof obj !== 'object') {
-        return obj;
-    }
-    if (Array.isArray(obj)) {
-        return obj.map(item => rewriteRefsWithUrls(item, indexedUrls));
-    }
-    const record = obj as Record<string, unknown>;
-    const result: Record<string, unknown> = {};
-    for (const key of Object.keys(record)) {
-        if (key === '$ref' && typeof record[key] === 'string') {
-            const ref = record[key] as string;
-            if (!ref.startsWith('#') && indexedUrls[ref]) {
-                result[key] = indexedUrls[ref];
-            } else {
-                result[key] = ref;
-            }
-        } else {
-            result[key] = rewriteRefsWithUrls(record[key], indexedUrls);
-        }
-    }
-    return result;
 }
 
 /**

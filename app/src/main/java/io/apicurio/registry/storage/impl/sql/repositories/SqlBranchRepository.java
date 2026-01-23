@@ -4,6 +4,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
@@ -38,8 +39,10 @@ import org.semver4j.Semver;
 import org.slf4j.Logger;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -68,6 +71,9 @@ public class SqlBranchRepository {
 
     @Inject
     SemVerConfigProperties semVerConfigProps;
+
+    @Inject
+    RestConfig restConfig;
 
     /**
      * Create a new branch.
@@ -372,6 +378,7 @@ public class SqlBranchRepository {
             VersionSearchResultsDto results = new VersionSearchResultsDto();
             results.setVersions(versions);
             results.setCount(count);
+            limitReturnedLabelsInVersions(results.getVersions());
             return results;
         });
     }
@@ -470,6 +477,38 @@ public class SqlBranchRepository {
                 .bind(2, ga.getRawGroupId()).bind(3, ga.getRawArtifactId()).bind(4, branchId.getRawBranchId())
                 .execute();
     }
+
+    /*
+     * Ensures that only a reasonable number/size of labels for each item in the list are returned. This is to
+     * guard against an unexpectedly enormous response size to a REST API search operation.
+     */
+
+    private Map<String, String> limitReturnedLabels(Map<String, String> labels) {
+        int maxBytes = restConfig.getLabelsInSearchResultsMaxSize();
+        if (labels != null && !labels.isEmpty()) {
+            Map<String, String> cappedLabels = new HashMap<>();
+            int totalBytes = 0;
+            for (String key : labels.keySet()) {
+                if (totalBytes < maxBytes) {
+                    String value = labels.get(key);
+                    cappedLabels.put(key, value);
+                    totalBytes += key.length() + (value != null ? value.length() : 0);
+                }
+            }
+            return cappedLabels;
+        }
+
+        return null;
+    }
+
+    private void limitReturnedLabelsInVersions(List<SearchedVersionDto> versions) {
+        versions.forEach(version -> {
+            Map<String, String> labels = version.getLabels();
+            Map<String, String> cappedLabels = limitReturnedLabels(labels);
+            version.setLabels(cappedLabels);
+        });
+    }
+
 
     // ==================== IMPORT OPERATIONS ====================
 

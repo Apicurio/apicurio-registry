@@ -13,6 +13,7 @@ import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactReferenceDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.rest.ConflictException;
@@ -331,6 +332,27 @@ public class SqlContentRepository {
                 throw new ContentAlreadyExistsException(entity.contentId);
             }
             return null;
+        });
+    }
+
+    /**
+     * Check if the registry is empty (no content stored).
+     */
+    public boolean isEmpty() {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectAllContentCount()).mapTo(Long.class).one() == 0;
+        });
+    }
+
+    /**
+     * Get inbound artifact references for a specific artifact version.
+     */
+    public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId,
+            String version) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements.selectInboundContentReferencesByGAV())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                    .map(ArtifactReferenceDtoMapper.instance).list();
         });
     }
 }

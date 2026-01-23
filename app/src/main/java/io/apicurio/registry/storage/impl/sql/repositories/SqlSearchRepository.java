@@ -6,7 +6,6 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
-import io.apicurio.registry.storage.dto.SearchedGroupDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -476,17 +475,6 @@ public class SqlSearchRepository {
             return cappedLabels;
         }
         return labels;
-    }
-
-    /**
-     * Limit labels in group search results.
-     */
-    public void limitReturnedLabelsInGroups(List<SearchedGroupDto> groups) {
-        groups.forEach(group -> {
-            Map<String, String> labels = group.getLabels();
-            Map<String, String> cappedLabels = limitReturnedLabels(labels);
-            group.setLabels(cappedLabels);
-        });
     }
 
     /**

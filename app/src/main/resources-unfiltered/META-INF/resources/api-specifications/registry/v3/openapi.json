@@ -3934,6 +3934,85 @@
         }
       ]
     },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render": {
+      "summary": "Render a prompt template artifact by substituting variables.",
+      "post": {
+        "tags": [
+          "Versions",
+          "AI"
+        ],
+        "requestBody": {
+          "description": "The variables to use for rendering the prompt template.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderPromptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderPromptResponse"
+                }
+              }
+            },
+            "description": "The rendered prompt template."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "renderPromptTemplate",
+        "summary": "Render a prompt template",
+        "description": "Renders a prompt template artifact by substituting the provided variables into the template.\nThe artifact must be of type `PROMPT_TEMPLATE`. Variables are validated against the template's\nvariable schema before rendering.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* The artifact is not a PROMPT_TEMPLATE (HTTP error `400`)\n* Required variables are missing or have invalid types (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/state": {
       "summary": "Manage the state of an artifact version.",
       "get": {
@@ -5610,6 +5689,101 @@
         ],
         "type": "string"
       },
+      "RenderPromptRequest": {
+        "title": "Root Type for RenderPromptRequest",
+        "description": "Request body for rendering a prompt template with variable substitution.",
+        "required": [
+          "variables"
+        ],
+        "type": "object",
+        "properties": {
+          "variables": {
+            "description": "A map of variable names to their values. These will be substituted into the prompt template.",
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "example": {
+          "variables": {
+            "document": "The quick brown fox jumps over the lazy dog.",
+            "max_words": 100,
+            "style": "concise"
+          }
+        }
+      },
+      "RenderPromptResponse": {
+        "title": "Root Type for RenderPromptResponse",
+        "description": "Response from rendering a prompt template.",
+        "required": [
+          "rendered"
+        ],
+        "type": "object",
+        "properties": {
+          "rendered": {
+            "description": "The rendered prompt with all variables substituted.",
+            "type": "string"
+          },
+          "groupId": {
+            "description": "The group ID of the artifact.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of the artifact that was rendered.",
+            "type": "string"
+          },
+          "validationErrors": {
+            "description": "Any validation errors encountered when validating variables against the template schema.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RenderValidationError"
+            }
+          }
+        },
+        "example": {
+          "rendered": "Style: concise\nMaximum length: 100 words\nDocument: The quick brown fox jumps over the lazy dog.",
+          "groupId": "default",
+          "artifactId": "summarization-v1",
+          "version": "1.2",
+          "validationErrors": []
+        }
+      },
+      "RenderValidationError": {
+        "title": "Root Type for RenderValidationError",
+        "description": "A validation error encountered when validating template variables.",
+        "required": [
+          "variableName",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "variableName": {
+            "description": "The name of the variable that failed validation.",
+            "type": "string"
+          },
+          "message": {
+            "description": "A description of the validation error.",
+            "type": "string"
+          },
+          "expectedType": {
+            "description": "The expected type of the variable.",
+            "type": "string"
+          },
+          "actualType": {
+            "description": "The actual type that was provided.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "variableName": "max_words",
+          "message": "Expected integer but got string",
+          "expectedType": "integer",
+          "actualType": "string"
+        }
+      },
       "SnapshotMetaData": {
         "title": "Root Type for SnapshotMetaData",
         "description": "",
@@ -6266,6 +6440,10 @@
     {
       "name": "Group rules",
       "description": "Rules can be configured on a per-group basis, allowing for different approaches\nto content evolution for artifacts in the group.  These rules override any global rules\nthat have been configured. This section contains the operations used to manage the\nrules in a single group."
+    },
+    {
+      "name": "AI",
+      "description": "Operations related to AI/ML artifact management, including prompt template rendering, model schema queries, and LLM integration features."
     }
   ],
   "x-codegen": {

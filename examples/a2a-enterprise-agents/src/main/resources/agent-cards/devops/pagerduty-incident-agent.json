@@ -1,0 +1,88 @@
+{
+  "name": "PagerDuty AI Incident Commander",
+  "description": "AI-powered incident management agent that orchestrates incident response, automates stakeholder communication, and coordinates on-call teams for faster resolution",
+  "version": "2.3.0",
+  "url": "https://api.pagerduty.com/ai-agents/incident-commander",
+  "provider": {
+    "organization": "PagerDuty Inc.",
+    "url": "https://www.pagerduty.com"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true
+  },
+  "skills": [
+    {
+      "id": "incident-declaration",
+      "name": "Automated Incident Declaration",
+      "description": "Automatically declare incidents based on alert thresholds, patterns, and correlated signals from monitoring tools",
+      "tags": ["incident", "declaration", "automation", "alerting"],
+      "examples": [
+        "Should this alert pattern trigger an incident?",
+        "Declare P1 incident for payment outage",
+        "Assess if alerts warrant incident declaration"
+      ]
+    },
+    {
+      "id": "responder-mobilization",
+      "name": "Responder Mobilization",
+      "description": "Identify and mobilize the right responders based on service ownership, escalation policies, and availability",
+      "tags": ["responders", "escalation", "on-call", "mobilization"],
+      "examples": [
+        "Page the database on-call team",
+        "Escalate to engineering manager",
+        "Find available SRE for incident"
+      ]
+    },
+    {
+      "id": "status-communication",
+      "name": "Stakeholder Communication",
+      "description": "Generate and distribute incident status updates to stakeholders, customers, and leadership with appropriate detail levels",
+      "tags": ["communication", "status", "updates", "stakeholders"],
+      "examples": [
+        "Draft customer status page update",
+        "Generate executive incident summary",
+        "Send technical update to engineering"
+      ]
+    },
+    {
+      "id": "timeline-reconstruction",
+      "name": "Incident Timeline Reconstruction",
+      "description": "Automatically reconstruct incident timeline from alerts, communications, and actions for post-incident analysis",
+      "tags": ["timeline", "reconstruction", "postmortem", "analysis"],
+      "examples": [
+        "Build timeline for incident #12345",
+        "Identify key events leading to outage",
+        "Correlate responder actions with alerts"
+      ]
+    },
+    {
+      "id": "postmortem-generation",
+      "name": "Post-Incident Report Generation",
+      "description": "Generate comprehensive post-incident reports with timeline, impact analysis, root cause, and action items",
+      "tags": ["postmortem", "report", "analysis", "learning"],
+      "examples": [
+        "Generate blameless postmortem",
+        "Summarize incident for leadership review",
+        "Extract action items from incident"
+      ]
+    },
+    {
+      "id": "similar-incident-matching",
+      "name": "Similar Incident Matching",
+      "description": "Find similar past incidents to accelerate diagnosis and suggest proven remediation approaches",
+      "tags": ["similarity", "matching", "history", "patterns"],
+      "examples": [
+        "Find similar incidents from past 90 days",
+        "What resolved this type of issue before?",
+        "Match current symptoms to known issues"
+      ]
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "authentication": {
+    "schemes": ["api-key", "oauth2"]
+  },
+  "supportsExtendedAgentCard": true
+}

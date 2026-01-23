@@ -1,0 +1,88 @@
+{
+  "name": "Plaid Financial Insights Agent",
+  "description": "AI-powered financial data analysis agent that provides transaction categorization, spending insights, income verification, and financial health scoring using Plaid's connected account data",
+  "version": "2.8.0",
+  "url": "https://api.plaid.com/ai-agents/insights",
+  "provider": {
+    "organization": "Plaid Inc.",
+    "url": "https://plaid.com"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": true
+  },
+  "skills": [
+    {
+      "id": "transaction-categorization",
+      "name": "Transaction Categorization",
+      "description": "Automatically categorize transactions into detailed hierarchical categories using merchant data and transaction patterns",
+      "tags": ["categorization", "transactions", "merchant", "ml"],
+      "examples": [
+        "Categorize this Uber transaction",
+        "Identify subscription vs one-time purchases",
+        "Classify transactions for tax reporting"
+      ]
+    },
+    {
+      "id": "income-verification",
+      "name": "Income Verification",
+      "description": "Analyze bank transactions to verify income sources, amounts, and stability for lending and employment verification",
+      "tags": ["income", "verification", "lending", "underwriting"],
+      "examples": [
+        "Verify stated income of $75,000/year",
+        "Identify all income sources in account",
+        "Calculate income stability score"
+      ]
+    },
+    {
+      "id": "spending-analysis",
+      "name": "Spending Pattern Analysis",
+      "description": "Analyze spending habits and trends to provide personalized budgeting insights and recommendations",
+      "tags": ["spending", "budget", "analysis", "pfm"],
+      "examples": [
+        "Analyze monthly spending breakdown",
+        "Identify areas of potential savings",
+        "Compare spending to similar demographics"
+      ]
+    },
+    {
+      "id": "cash-flow-prediction",
+      "name": "Cash Flow Prediction",
+      "description": "Predict future cash flows based on recurring transactions, income patterns, and upcoming bills",
+      "tags": ["cashflow", "prediction", "recurring", "forecast"],
+      "examples": [
+        "Predict account balance in 30 days",
+        "Identify upcoming bill payments",
+        "Forecast cash crunch risk"
+      ]
+    },
+    {
+      "id": "financial-health-score",
+      "name": "Financial Health Scoring",
+      "description": "Calculate comprehensive financial health score based on savings rate, debt-to-income, emergency fund, and spending habits",
+      "tags": ["health", "score", "wellness", "assessment"],
+      "examples": [
+        "Calculate financial health score",
+        "Identify areas for financial improvement",
+        "Track financial health over time"
+      ]
+    },
+    {
+      "id": "subscription-detection",
+      "name": "Subscription Detection",
+      "description": "Detect and track recurring subscriptions, identify price changes, and flag unused subscriptions",
+      "tags": ["subscription", "recurring", "detection", "optimization"],
+      "examples": [
+        "List all active subscriptions",
+        "Identify unused streaming services",
+        "Alert on subscription price increases"
+      ]
+    }
+  ],
+  "defaultInputModes": ["text", "file"],
+  "defaultOutputModes": ["text", "file", "image"],
+  "authentication": {
+    "schemes": ["bearer", "oauth2"]
+  },
+  "supportsExtendedAgentCard": true
+}

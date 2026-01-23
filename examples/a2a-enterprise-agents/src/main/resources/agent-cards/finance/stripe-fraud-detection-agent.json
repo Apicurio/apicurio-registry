@@ -1,0 +1,77 @@
+{
+  "name": "Stripe Radar AI Agent",
+  "description": "Advanced fraud detection and prevention AI agent powered by Stripe Radar, analyzing transactions in real-time using machine learning trained on millions of global transactions",
+  "version": "4.2.1",
+  "url": "https://api.stripe.com/ai-agents/radar",
+  "provider": {
+    "organization": "Stripe Inc.",
+    "url": "https://stripe.com"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": true
+  },
+  "skills": [
+    {
+      "id": "transaction-risk-scoring",
+      "name": "Transaction Risk Scoring",
+      "description": "Evaluate transaction risk in real-time using 1000+ signals including device fingerprinting, behavioral analysis, and network patterns",
+      "tags": ["fraud", "risk", "scoring", "real-time", "ml"],
+      "examples": [
+        "Score this transaction: $500 from new device",
+        "Evaluate risk for international purchase",
+        "Calculate fraud probability for card-not-present transaction"
+      ]
+    },
+    {
+      "id": "dispute-prediction",
+      "name": "Dispute Prediction",
+      "description": "Predict likelihood of chargebacks and disputes before they occur based on transaction and customer patterns",
+      "tags": ["dispute", "chargeback", "prediction", "prevention"],
+      "examples": [
+        "Predict dispute likelihood for this merchant",
+        "Identify transactions likely to result in chargebacks",
+        "Calculate dispute risk for subscription renewal"
+      ]
+    },
+    {
+      "id": "rule-recommendation",
+      "name": "Custom Rule Recommendation",
+      "description": "Recommend optimized fraud prevention rules based on your specific business patterns and risk tolerance",
+      "tags": ["rules", "optimization", "customization", "tuning"],
+      "examples": [
+        "Suggest rules to reduce false positives",
+        "Recommend block rules for high-risk regions",
+        "Optimize rules for subscription business model"
+      ]
+    },
+    {
+      "id": "anomaly-detection",
+      "name": "Behavioral Anomaly Detection",
+      "description": "Detect unusual patterns in transaction velocity, amounts, and customer behavior indicating potential fraud",
+      "tags": ["anomaly", "behavioral", "pattern", "detection"],
+      "examples": [
+        "Detect velocity abuse on this card",
+        "Identify unusual spending pattern",
+        "Flag suspicious account activity"
+      ]
+    },
+    {
+      "id": "fraud-investigation",
+      "name": "Fraud Investigation Assistant",
+      "description": "Assist analysts in investigating flagged transactions with evidence aggregation and pattern matching",
+      "tags": ["investigation", "analysis", "evidence", "forensics"],
+      "examples": [
+        "Gather evidence for transaction investigation",
+        "Find related fraudulent transactions",
+        "Generate investigation summary report"
+      ]
+    }
+  ],
+  "defaultInputModes": ["text", "file"],
+  "defaultOutputModes": ["text", "file"],
+  "authentication": {
+    "schemes": ["api-key", "bearer"]
+  },
+  "supportsExtendedAgentCard": true
+}

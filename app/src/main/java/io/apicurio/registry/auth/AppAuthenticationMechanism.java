@@ -16,8 +16,6 @@
 
 package io.apicurio.registry.auth;
 
-import io.apicurio.common.apps.config.Dynamic;
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.logging.audit.AuditHttpRequestContext;
 import io.apicurio.registry.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.registry.logging.audit.AuditLogService;
@@ -47,7 +45,6 @@ import jakarta.enterprise.inject.Alternative;
 import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
@@ -58,9 +55,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
-
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUTH;
 
 @Alternative
 @Priority(1)
@@ -68,60 +62,17 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUT
 @Unremovable
 public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
-    @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable auth", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
-    boolean oidcAuthEnabled;
-
-    // back to fake auth and use another property
-    @Dynamic(label = "HTTP basic authentication", description = "When selected, users are permitted to authenticate using HTTP basic authentication (in addition to OAuth).", requires = "apicurio.authn.enabled=true")
-    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable basic auth client credentials", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
-    Supplier<Boolean> basicClientCredentialsAuthEnabled;
-
-    @ConfigProperty(name = "quarkus.http.auth.basic", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable basic auth", availableSince = "1.1.X-SNAPSHOT", registryAvailableSince = "3.X.X.Final", studioAvailableSince = "1.0.0")
-    boolean basicAuthEnabled;
-
-    // TODO: Add suffix?
-    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration", defaultValue = "10")
-    @Info(category = CATEGORY_AUTH, description = "Default client credentials token expiration time in minutes.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.2.6.Final", studioAvailableSince = "1.0.0")
-    Integer accessTokenExpiration;
-
-    // TODO: Add suffix?
-    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration-offset", defaultValue = "10")
-    @Info(category = CATEGORY_AUTH, description = "Client credentials token expiration offset from JWT expiration, in seconds.", availableSince = "0.2.7", registryAvailableSince = "2.5.9.Final", studioAvailableSince = "1.0.0")
-    Integer accessTokenExpirationOffset;
-
-    @ConfigProperty(name = "apicurio.authn.basic.scope")
-    @Info(category = CATEGORY_AUTH, description = "Client credentials scope.", availableSince = "0.1.21-SNAPSHOT", registryAvailableSince = "2.5.0.Final", studioAvailableSince = "1.0.0")
-    Optional<String> scope;
-
-    @ConfigProperty(name = "apicurio.authn.audit.log.prefix", defaultValue = "audit")
-    @Info(category = CATEGORY_AUTH, description = "Prefix used for application audit logging.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.2.6", studioAvailableSince = "1.0.0")
-
-    String auditLogPrefix;
-
-    @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
-    @Info(category = CATEGORY_AUTH, description = "Authentication server endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
-    String authServerUrl;
-
-    @ConfigProperty(name = "quarkus.oidc.token-path", defaultValue = "/protocol/openid-connect/token/")
-    @Info(category = CATEGORY_AUTH, description = "Authentication server token endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
-    String oidcTokenPath;
-
-    @ConfigProperty(name = "quarkus.oidc.client-secret")
-    @Info(category = CATEGORY_AUTH, description = "Client secret used by the server for authentication.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
-    Optional<String> clientSecret;
-
-    @ConfigProperty(name = "quarkus.oidc.client-id", defaultValue = "")
-    @Info(category = CATEGORY_AUTH, description = "Client identifier used by the server for authentication.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
-    String clientId;
+    @Inject
+    AuthConfig authConfig;
 
     @Inject
     BasicAuthenticationMechanism basicAuthenticationMechanism;
 
     @Inject
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
+
+    @Inject
+    ProxyHeaderAuthenticationMechanism proxyHeaderAuthenticationMechanism;
 
     @Inject
     AuditLogService auditLog;
@@ -142,14 +93,14 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @PostConstruct
     public void init() {
-        if (oidcAuthEnabled) {
+        if (authConfig.oidcAuthEnabled) {
             cachedAccessTokens = new ConcurrentHashMap<>();
             cachedAuthFailures = new ConcurrentHashMap<>();
             String oidcTokenUrl;
-            if (oidcTokenPath.startsWith("http")) {
-                oidcTokenUrl = oidcTokenPath;
+            if (authConfig.oidcTokenPath.startsWith("http")) {
+                oidcTokenUrl = authConfig.oidcTokenPath;
             } else {
-                oidcTokenUrl = authServerUrl + oidcTokenPath;
+                oidcTokenUrl = authConfig.authServerUrl + authConfig.oidcTokenPath;
             }
 
             httpClient = new VertxHttpClientProvider(vertx).create(oidcTokenUrl, Collections.emptyMap(),
@@ -158,10 +109,12 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     }
 
     private HttpAuthenticationMechanism selectEnabledAuth() {
-        if (basicAuthEnabled) {
+        if (authConfig.basicAuthEnabled) {
             return basicAuthenticationMechanism;
-        } else if (oidcAuthEnabled) {
+        } else if (authConfig.oidcAuthEnabled) {
             return oidcAuthenticationMechanism;
+        } else if (authConfig.proxyHeaderAuthEnabled) {
+            return proxyHeaderAuthenticationMechanism;
         } else {
             return null;
         }
@@ -170,11 +123,13 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context,
                                               IdentityProviderManager identityProviderManager) {
-        if (basicAuthEnabled) {
+        if (authConfig.basicAuthEnabled) {
             return basicAuthenticationMechanism.authenticate(context, identityProviderManager);
-        } else if (oidcAuthEnabled) {
+        } else if (authConfig.proxyHeaderAuthEnabled) {
+            return proxyHeaderAuthenticationMechanism.authenticate(context, identityProviderManager);
+        } else if (authConfig.oidcAuthEnabled) {
             setAuditLogger(context);
-            if (basicClientCredentialsAuthEnabled.get()) {
+            if (authConfig.basicClientCredentialsAuthEnabled.get()) {
                 final Pair<String, String> clientCredentials = CredentialsHelper
                         .extractCredentialsFromContext(context);
                 if (null != clientCredentials) {
@@ -201,14 +156,14 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     public Uni<SecurityIdentity> customAuthentication(RoutingContext context,
                                                       IdentityProviderManager identityProviderManager) {
-        if (clientSecret.isEmpty()) {
+        if (authConfig.clientSecret.isEmpty()) {
             // if no secret is present, try to authenticate with oidc provider
             return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
         } else {
             final Pair<String, String> credentialsFromContext = CredentialsHelper
                     .extractCredentialsFromContext(context);
             if (credentialsFromContext != null) {
-                OidcAuth oidcAuth = new OidcAuth(httpClient, clientId, clientSecret.get());
+                OidcAuth oidcAuth = new OidcAuth(httpClient, authConfig.clientId, authConfig.clientSecret.get());
                 String jwtToken = oidcAuth.obtainAccessTokenPasswordGrant(credentialsFromContext.getLeft(),
                         credentialsFromContext.getRight());
                 if (jwtToken != null) {
@@ -244,7 +199,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                 }
 
                 // request context for AuditHttpRequestContext does not exist at this point
-                auditLog.log(auditLogPrefix, "authenticate", AuditHttpRequestContext.FAILURE, metadata,
+                auditLog.log(authConfig.auditLogPrefix, "authenticate", AuditHttpRequestContext.FAILURE, metadata,
                         new AuditHttpRequestInfo() {
                             @Override
                             public String getSourceIp() {
@@ -278,6 +233,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         Set<Class<? extends AuthenticationRequest>> credentialTypes = new HashSet<>();
         credentialTypes.addAll(oidcAuthenticationMechanism.getCredentialTypes());
         credentialTypes.addAll(basicAuthenticationMechanism.getCredentialTypes());
+        credentialTypes.addAll(proxyHeaderAuthenticationMechanism.getCredentialTypes());
         return credentialTypes;
     }
 
@@ -320,7 +276,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Retry(retryOn = AuthException.class, maxRetries = 4, delay = 1, delayUnit = ChronoUnit.SECONDS)
     public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash) {
         OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(),
-                clientCredentials.getRight(), Duration.ofSeconds(1), scope.orElse(null));
+                clientCredentials.getRight(), Duration.ofSeconds(1), authConfig.scope.orElse(null));
         try {
             String jwtToken = oidcAuth.authenticate();
             // If we manage to get a token from basic credentials,
@@ -344,7 +300,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
      */
     protected Duration getAccessTokenExpiration(String jwtToken) {
         if (jwtToken == null) {
-            return Duration.ofMinutes(accessTokenExpiration);
+            return Duration.ofMinutes(authConfig.accessTokenExpiration);
         }
         try {
             JsonWebToken parsedToken = jwtParser.parseOnly(jwtToken);
@@ -352,7 +308,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             // Convert the expiration to an Instant, and subtract the offset (we want to stop using it N
             // seconds before it expires).
             Instant expirationInstant = Instant.ofEpochSecond(parsedToken.getExpirationTime())
-                    .minusSeconds(accessTokenExpirationOffset);
+                    .minusSeconds(authConfig.accessTokenExpirationOffset);
             Instant nowInstant = Instant.now();
 
             // Convert the expiration instant to a duration
@@ -361,7 +317,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         } catch (ParseException e) {
             // Could not parse the JWT, just return the default expiration.
             log.error("Error parsing JWT from auth server (client credentials grant).", e);
-            return Duration.ofMinutes(accessTokenExpiration);
+            return Duration.ofMinutes(authConfig.accessTokenExpiration);
         }
     }
 

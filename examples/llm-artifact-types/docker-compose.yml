@@ -1,0 +1,33 @@
+---
+version: '3.8'
+
+services:
+  # Apicurio Registry with built-in LLM artifact type support
+  # MODEL_SCHEMA and PROMPT_TEMPLATE are available by default
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: llm-artifact-types-registry
+    ports:
+      - "8080:8080"
+    environment:
+      # Logging
+      QUARKUS_LOG_LEVEL: "INFO"
+      APICURIO_LOG_LEVEL: "DEBUG"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Apicurio Registry UI
+  apicurio-registry-ui:
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: llm-artifact-types-registry-ui
+    ports:
+      - "8888:8080"
+    environment:
+      REGISTRY_API_URL: "http://localhost:8080/apis/registry/v3"
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy

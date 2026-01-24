@@ -1,0 +1,74 @@
+$schema: https://apicur.io/schemas/prompt-template/v1
+templateId: apicurio-support-chat-prompt
+name: Apicurio Registry Support Chat - User Message Prompt
+description: Template for formatting user questions in the support chat
+version: "1.0"
+
+template: |
+  {{system_prompt}}
+
+  {{#if conversation_history}}
+  ## Previous Conversation
+  {{conversation_history}}
+  {{/if}}
+
+  ## Current Question
+  User: {{question}}
+
+  ## Instructions
+  Please provide a helpful, accurate answer based on your knowledge of Apicurio Registry.
+  {{#if include_examples}}
+  Include relevant code examples or configuration snippets where appropriate.
+  {{/if}}
+
+  Assistant:
+
+variables:
+  system_prompt:
+    type: string
+    required: true
+    description: The rendered system prompt from apicurio-support-system-prompt
+  question:
+    type: string
+    required: true
+    description: The user's current question
+  conversation_history:
+    type: string
+    required: false
+    description: Previous conversation turns for context
+  include_examples:
+    type: boolean
+    default: true
+    description: Whether to include code examples in responses
+
+outputSchema:
+  type: object
+  properties:
+    answer:
+      type: string
+      description: The assistant's response to the user's question
+    followUpQuestions:
+      type: array
+      items:
+        type: string
+      description: Suggested follow-up questions
+
+metadata:
+  author: apicurio-team
+  createdAt: "2025-01-21"
+  tags:
+    - support
+    - chatbot
+    - user-prompt
+    - conversation
+  recommendedModels:
+    - llama3.2
+    - gpt-4-turbo
+    - claude-3-sonnet
+  estimatedTokens:
+    input: 500
+    variableOverhead: 2.0
+  useCases:
+    - Interactive support chat
+    - Multi-turn conversations
+    - Technical Q&A

@@ -55,14 +55,12 @@ public final class ApicurioCatalogFactory implements CatalogFactory {
 
     @Override
     public Catalog createCatalog(final Context context) {
-        final FactoryUtil.CatalogFactoryHelper helper =
-                FactoryUtil.createCatalogFactoryHelper(
+        final FactoryUtil.CatalogFactoryHelper helper = FactoryUtil.createCatalogFactoryHelper(
                 this, context);
         helper.validate();
 
         final ReadableConfig cfg = helper.getOptions();
-        final ApicurioCatalog.CatalogConfig config =
-                ApicurioCatalog.CatalogConfig.builder()
+        final CatalogConfig config = CatalogConfig.builder()
                 .name(context.getName())
                 .defaultDatabase(cfg.get(DEFAULT_DATABASE))
                 .url(cfg.get(REGISTRY_URL))

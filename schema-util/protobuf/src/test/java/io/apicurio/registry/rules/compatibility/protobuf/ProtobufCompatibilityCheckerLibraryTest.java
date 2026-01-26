@@ -367,7 +367,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * This should be recognized as properly reserving those field numbers.
      */
     @Test
-    public void testRemovingFieldWithRangeReservation() {
+    public void testRemovingFieldWithRangeReservation() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package demo;

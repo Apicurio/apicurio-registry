@@ -38,10 +38,22 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     @Override
     public ProtobufSchema parseSchema(byte[] rawSchema,
             Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences) {
-        try {
-            // Try to parse as textual .proto file using protobuf4j
-            String schemaContent = IoUtil.toString(rawSchema);
 
+        // First, check if raw bytes are already binary protobuf format
+        if (ProtobufSchemaUtils.isBinaryDescriptor(rawSchema)) {
+            return parseDescriptor(rawSchema, resolvedReferences);
+        }
+
+        // Parse as text content
+        String schemaContent = IoUtil.toString(rawSchema);
+
+        // Check if it's base64-encoded binary descriptor
+        if (ProtobufSchemaUtils.isBase64BinaryDescriptor(schemaContent)) {
+            return parseBase64Descriptor(schemaContent, resolvedReferences);
+        }
+
+        // Try to parse as textual .proto file using protobuf4j
+        try {
             // Build dependencies map from resolved references
             Map<String, String> dependencies = new HashMap<>();
             if (!resolvedReferences.isEmpty()) {
@@ -58,21 +70,90 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
 
         } catch (Exception e) {
             // If parsing as .proto text fails, try parsing as binary FileDescriptorProto
-            return parseDescriptor(rawSchema);
+            // (fallback for edge cases)
+            return parseDescriptor(rawSchema, resolvedReferences);
         }
     }
 
-    private ProtobufSchema parseDescriptor(byte[] rawSchema) {
-        // Try to parse the binary format, in case the server has returned the descriptor format.
+    /**
+     * Parse binary FileDescriptorProto format with resolved references.
+     */
+    private ProtobufSchema parseDescriptor(byte[] rawSchema, Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences) {
         try {
             DescriptorProtos.FileDescriptorProto fileDescriptorProto = DescriptorProtos.FileDescriptorProto
                     .parseFrom(rawSchema);
-            FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileDescriptorProto);
+
+            // Build FileDescriptor with dependencies
+            FileDescriptor[] dependencies = buildDependencyArray(fileDescriptorProto, resolvedReferences);
+            FileDescriptor fileDescriptor = FileDescriptor.buildFrom(fileDescriptorProto, dependencies);
+
             // When parsing from binary, we don't have the original .proto text
             return new ProtobufSchema(fileDescriptor);
         } catch (InvalidProtocolBufferException | DescriptorValidationException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Parse base64-encoded binary FileDescriptorProto format with resolved references.
+     */
+    private ProtobufSchema parseBase64Descriptor(String base64Content, Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences) {
+        try {
+            byte[] decoded = java.util.Base64.getDecoder().decode(base64Content.trim());
+            return parseDescriptor(decoded, resolvedReferences);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid base64 encoding for protobuf descriptor", e);
+        }
+    }
+
+    /**
+     * Build the dependency array for FileDescriptor.buildFrom().
+     */
+    private FileDescriptor[] buildDependencyArray(DescriptorProtos.FileDescriptorProto proto,
+            Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences) {
+
+        // Start with well-known dependencies
+        FileDescriptor[] wellKnown = FileDescriptorUtils.baseDependencies();
+        Map<String, FileDescriptor> allDeps = new HashMap<>();
+        for (FileDescriptor fd : wellKnown) {
+            allDeps.put(fd.getName(), fd);
+        }
+
+        // Add resolved references
+        if (resolvedReferences != null) {
+            for (ParsedSchema<ProtobufSchema> ref : resolvedReferences.values()) {
+                FileDescriptor fd = ref.getParsedSchema().getFileDescriptor();
+                allDeps.put(fd.getName(), fd);
+
+                // Also add by reference name (may differ from FileDescriptor name)
+                allDeps.put(ref.referenceName(), fd);
+            }
+        }
+
+        // Return dependencies in the order they're declared in the proto
+        FileDescriptor[] result = new FileDescriptor[proto.getDependencyCount()];
+        for (int i = 0; i < proto.getDependencyCount(); i++) {
+            String depName = proto.getDependency(i);
+            FileDescriptor dep = allDeps.get(depName);
+            if (dep == null) {
+                // Try to find by base name (without path)
+                String baseName = depName.contains("/")
+                        ? depName.substring(depName.lastIndexOf('/') + 1)
+                        : depName;
+                for (FileDescriptor fd : allDeps.values()) {
+                    if (fd.getName().endsWith(baseName)) {
+                        dep = fd;
+                        break;
+                    }
+                }
+            }
+            result[i] = dep;
+        }
+
+        // Filter out nulls and return
+        return java.util.Arrays.stream(result)
+                .filter(java.util.Objects::nonNull)
+                .toArray(FileDescriptor[]::new);
     }
 
     private void addReferencesToDependencies(List<ParsedSchema<ProtobufSchema>> schemaReferences,

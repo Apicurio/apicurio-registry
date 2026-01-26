@@ -496,4 +496,234 @@ public class FileDescriptorUtilsTest {
         assertNotNull(timestampField);
         assertEquals("google.protobuf.Timestamp", timestampField.getMessageType().getFullName());
     }
+
+    // ==================================================================================
+    // TESTS FOR BINARY DESCRIPTOR SUPPORT (GitHub Issue #7066)
+    // ==================================================================================
+
+    /**
+     * Test isBase64BinaryDescriptor detection for text .proto content.
+     */
+    @Test
+    public void testIsBase64BinaryDescriptor_ReturnsFalseForTextProto() {
+        assertFalse(ProtobufSchemaUtils.isBase64BinaryDescriptor(SIMPLE_PROTO_SCHEMA));
+        assertFalse(ProtobufSchemaUtils.isBase64BinaryDescriptor(COMPLEX_PROTO_SCHEMA));
+        assertFalse(ProtobufSchemaUtils.isBase64BinaryDescriptor(ANYFILE_PROTO_SCHEMA));
+    }
+
+    /**
+     * Test isBase64BinaryDescriptor detection for actual base64 binary content.
+     */
+    @Test
+    public void testIsBase64BinaryDescriptor_ReturnsTrueForBinaryProto() throws Exception {
+        // Create a FileDescriptorProto and encode to base64
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(
+                SIMPLE_PROTO_SCHEMA, "test.proto", Optional.of("test.example"));
+
+        byte[] protoBytes = fd.toProto().toByteArray();
+        String base64EncodedSchema = Base64.getEncoder().encodeToString(protoBytes);
+
+        assertTrue(ProtobufSchemaUtils.isBase64BinaryDescriptor(base64EncodedSchema));
+    }
+
+    /**
+     * Test isBase64BinaryDescriptor returns false for invalid content.
+     */
+    @Test
+    public void testIsBase64BinaryDescriptor_ReturnsFalseForInvalidContent() {
+        assertFalse(ProtobufSchemaUtils.isBase64BinaryDescriptor(null));
+        assertFalse(ProtobufSchemaUtils.isBase64BinaryDescriptor(""));
+        assertFalse(ProtobufSchemaUtils.isBase64BinaryDescriptor("   "));
+        // Valid base64 but not a valid protobuf
+        assertFalse(ProtobufSchemaUtils.isBase64BinaryDescriptor(
+                Base64.getEncoder().encodeToString("not a protobuf".getBytes())));
+    }
+
+    /**
+     * Test isBinaryDescriptor for raw bytes.
+     */
+    @Test
+    public void testIsBinaryDescriptor_ForRawBytes() throws Exception {
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(
+                SIMPLE_PROTO_SCHEMA, "test.proto", Optional.of("test.example"));
+
+        byte[] protoBytes = fd.toProto().toByteArray();
+
+        assertTrue(ProtobufSchemaUtils.isBinaryDescriptor(protoBytes));
+        assertFalse(ProtobufSchemaUtils.isBinaryDescriptor(null));
+        assertFalse(ProtobufSchemaUtils.isBinaryDescriptor(new byte[0]));
+        assertFalse(ProtobufSchemaUtils.isBinaryDescriptor("not a protobuf".getBytes()));
+    }
+
+    /**
+     * Test parseBase64BinaryDescriptor parses correctly.
+     */
+    @Test
+    public void testParseBase64BinaryDescriptor() throws Exception {
+        // Create a FileDescriptorProto and encode to base64
+        Descriptors.FileDescriptor original = FileDescriptorUtils.protoFileToFileDescriptor(
+                SIMPLE_PROTO_SCHEMA, "test.proto", Optional.of("test.example"));
+
+        String base64EncodedSchema = Base64.getEncoder().encodeToString(original.toProto().toByteArray());
+
+        // Parse it back
+        Descriptors.FileDescriptor parsed = ProtobufSchemaUtils.parseBase64BinaryDescriptor(base64EncodedSchema);
+
+        assertNotNull(parsed);
+        assertEquals(original.getPackage(), parsed.getPackage());
+        assertEquals(original.getMessageTypes().size(), parsed.getMessageTypes().size());
+        assertNotNull(parsed.findMessageTypeByName("Person"));
+    }
+
+    /**
+     * Test validateBinaryDescriptorSyntax validates correctly.
+     */
+    @Test
+    public void testValidateBinaryDescriptorSyntax_ValidDescriptor() throws Exception {
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(
+                SIMPLE_PROTO_SCHEMA, "test.proto", Optional.of("test.example"));
+
+        String base64EncodedSchema = Base64.getEncoder().encodeToString(fd.toProto().toByteArray());
+
+        // Should not throw
+        ProtobufSchemaUtils.validateBinaryDescriptorSyntax(base64EncodedSchema);
+    }
+
+    /**
+     * Test validateBinaryDescriptorSyntax throws for invalid content.
+     */
+    @Test
+    public void testValidateBinaryDescriptorSyntax_InvalidDescriptor() {
+        String invalidBase64 = Base64.getEncoder().encodeToString("not a valid protobuf".getBytes());
+
+        Assertions.assertThrows(IOException.class, () -> {
+            ProtobufSchemaUtils.validateBinaryDescriptorSyntax(invalidBase64);
+        });
+    }
+
+    /**
+     * Test parsing base64 binary descriptor with dependencies (Issue #7066 scenario).
+     * This tests the case where both the main schema and dependencies are in binary format.
+     */
+    @Test
+    public void testParseBase64BinaryDescriptorWithDependencies() throws Exception {
+        // Create dependency schema
+        String depSchema = """
+                syntax = "proto3";
+                package dep;
+
+                message Dep {
+                  string name = 1;
+                }
+                """;
+
+        // Create main schema that imports the dependency
+        String mainSchema = """
+                syntax = "proto3";
+                package main;
+
+                import "dep.proto";
+
+                message Root {
+                  dep.Dep d = 1;
+                }
+                """;
+
+        // Compile both schemas
+        Descriptors.FileDescriptor depFd = FileDescriptorUtils.protoFileToFileDescriptor(
+                depSchema, "dep.proto", Optional.of("dep"));
+
+        // Compile main schema with dependency
+        Map<String, String> deps = new HashMap<>();
+        deps.put("dep.proto", depSchema);
+        Descriptors.FileDescriptor mainFd = FileDescriptorUtils.protoFileToFileDescriptor(
+                mainSchema, "main.proto", Optional.of("main"), deps, Collections.emptyMap());
+
+        // Encode both to base64
+        String depBase64 = Base64.getEncoder().encodeToString(depFd.toProto().toByteArray());
+        String mainBase64 = Base64.getEncoder().encodeToString(mainFd.toProto().toByteArray());
+
+        // Now parse the main schema with the dependency in base64 format
+        Map<String, String> base64Deps = new HashMap<>();
+        base64Deps.put("dep.proto", depBase64);
+
+        Descriptors.FileDescriptor parsed = ProtobufSchemaUtils.parseBase64BinaryDescriptorWithDependencies(
+                mainBase64, base64Deps);
+
+        assertNotNull(parsed);
+        assertEquals("main", parsed.getPackage());
+
+        Descriptors.Descriptor rootMsg = parsed.findMessageTypeByName("Root");
+        assertNotNull(rootMsg);
+
+        Descriptors.FieldDescriptor dField = rootMsg.findFieldByName("d");
+        assertNotNull(dField);
+        assertEquals("dep.Dep", dField.getMessageType().getFullName());
+    }
+
+    /**
+     * Test that ProtobufFile handles base64 binary descriptor with proper indexing.
+     */
+    @Test
+    public void testProtobufFile_Base64BinaryDescriptor_BuildsIndexesCorrectly() throws Exception {
+        // Create a schema with various elements to test indexing
+        String schema = """
+                syntax = "proto3";
+                package test.indexed;
+
+                enum Status {
+                  UNKNOWN = 0;
+                  ACTIVE = 1;
+                  INACTIVE = 2;
+                }
+
+                message User {
+                  reserved 10, 11;
+                  reserved "deprecated_field";
+                  string name = 1;
+                  int32 age = 2;
+                  Status status = 3;
+                  map<string, string> metadata = 4;
+                }
+
+                service UserService {
+                  rpc GetUser (User) returns (User);
+                }
+                """;
+
+        // Compile to FileDescriptor
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(
+                schema, "indexed.proto", Optional.of("test.indexed"));
+
+        // Encode to base64
+        String base64Schema = Base64.getEncoder().encodeToString(fd.toProto().toByteArray());
+
+        // Parse via ProtobufFile
+        ProtobufFile protobufFile = new ProtobufFile(base64Schema);
+
+        // Verify indexing
+        assertNotNull(protobufFile);
+        assertEquals("test.indexed", protobufFile.getPackageName());
+
+        // Check reserved fields
+        Map<String, Set<Object>> reservedFields = protobufFile.getReservedFields();
+        assertTrue(reservedFields.containsKey("User"));
+        Set<Object> userReserved = reservedFields.get("User");
+        assertTrue(userReserved.contains(10));
+        assertTrue(userReserved.contains(11));
+        assertTrue(userReserved.contains("deprecated_field"));
+
+        // Check enum fields
+        Map<String, Map<String, DescriptorProtos.EnumValueDescriptorProto>> enumFieldMap = protobufFile.getEnumFieldMap();
+        assertTrue(enumFieldMap.containsKey("Status"));
+        Map<String, DescriptorProtos.EnumValueDescriptorProto> statusValues = enumFieldMap.get("Status");
+        assertTrue(statusValues.containsKey("UNKNOWN"));
+        assertTrue(statusValues.containsKey("ACTIVE"));
+        assertTrue(statusValues.containsKey("INACTIVE"));
+
+        // Check service RPCs
+        Map<String, Set<String>> serviceRPCnames = protobufFile.getServiceRPCnames();
+        assertTrue(serviceRPCnames.containsKey("UserService"));
+        assertTrue(serviceRPCnames.get("UserService").contains("GetUser"));
+    }
 }

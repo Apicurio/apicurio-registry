@@ -603,7 +603,7 @@ The following {registry} configuration options are available for each component 
 |`3.1.7`
 |BUILD-TIME property to enable metrics export via OpenTelemetry. This works alongside existing Prometheus metrics export. Use `quarkus.otel.sdk.disabled` to control metrics at runtime.
 |`quarkus.otel.resource.attributes`
-|`string`
+|`optional<string>`
 |
 |`3.1.7`
 |Additional resource attributes to include in telemetry data, specified as comma-separated key=value pairs. Example: `service.version=3.0.0,deployment.environment=production`

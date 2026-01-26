@@ -1,0 +1,49 @@
+services:
+
+  # Varnish Cache pointing to host machine (quarkus:dev on port 8080)
+  varnish:
+    container_name: varnish-cache-dev
+    image: varnish:7.4
+    volumes:
+      - ./varnish/default-dev.vcl:/etc/varnish/default.vcl:ro
+    # Use host network mode to access localhost:8080 directly (quarkus:dev)
+    # Varnish will bind to port 8081 on your host machine (cached access)
+    network_mode: host
+    environment:
+      VARNISH_SIZE: 256M
+    # Override the default entrypoint to specify custom port
+    entrypoint: [ ]
+    command:
+      - "sh"
+      - "-c"
+      - |
+        echo "dev-secret" > /tmp/varnish-secret &&
+        /usr/sbin/varnishd -F \
+          -f /etc/varnish/default.vcl \
+          -a http=:8081,HTTP \
+          -T :6080 \
+          -S /tmp/varnish-secret \
+          -s malloc,256M \
+          -p default_ttl=3600 \
+          -p default_grace=3600
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "varnishadm -T localhost:6080 -S /tmp/varnish-secret ping" ]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 10s
+
+  # Apicurio Registry UI
+  ui:
+    container_name: registry-ui-dev
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      # Connect to Varnish on host machine (port 8081)
+      REGISTRY_API_URL: http://host.docker.internal:8081/apis/registry/v3
+    ports:
+      - "8888:8080"  # UI web interface
+    depends_on:
+      varnish:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

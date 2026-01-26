@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
@@ -31,6 +32,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,9 @@ public class SqlGroupRepository {
 
     @Inject
     Event<SqlOutboxEvent> outboxEvent;
+
+    @Inject
+    RestConfig restConfig;
 
     /**
      * Create a new group.
@@ -322,6 +327,7 @@ public class SqlGroupRepository {
 
             // Execute queries
             List<SearchedGroupDto> groups = groupsQuery.map(SearchedGroupMapper.instance).list();
+            limitReturnedLabelsInGroups(groups);
             Integer count = countQuery.mapTo(Integer.class).one();
 
             GroupSearchResultsDto results = new GroupSearchResultsDto();
@@ -376,6 +382,37 @@ public class SqlGroupRepository {
             }
 
             return null;
+        });
+    }
+
+    /**
+     * Limit the size of labels returned in search results.
+     */
+    private Map<String, String> limitReturnedLabels(Map<String, String> labels) {
+        int maxBytes = restConfig.getLabelsInSearchResultsMaxSize();
+        if (labels != null && !labels.isEmpty()) {
+            Map<String, String> cappedLabels = new HashMap<>();
+            int totalBytes = 0;
+            for (String key : labels.keySet()) {
+                if (totalBytes < maxBytes) {
+                    String value = labels.get(key);
+                    cappedLabels.put(key, value);
+                    totalBytes += key.length() + (value != null ? value.length() : 0);
+                }
+            }
+            return cappedLabels;
+        }
+        return labels;
+    }
+
+    /**
+     * Limit labels in group search results.
+     */
+    private void limitReturnedLabelsInGroups(List<SearchedGroupDto> groups) {
+        groups.forEach(group -> {
+            Map<String, String> labels = group.getLabels();
+            Map<String, String> cappedLabels = limitReturnedLabels(labels);
+            group.setLabels(cappedLabels);
         });
     }
 }

@@ -5,6 +5,8 @@ import io.apicurio.registry.rest.v3.IdsResource;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.rest.MethodMetadata;
+import io.apicurio.registry.rest.cache.ImmutableCache;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
@@ -32,6 +34,8 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static io.apicurio.registry.rest.cache.ImmutableCacheInterceptor.CACHE_KEY_ENTITY_ID;
+
 @ApplicationScoped
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
@@ -50,6 +54,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @ImmutableCache
+    @MethodMetadata(extractParameters = {"0", CACHE_KEY_ENTITY_ID})
     public Response getContentById(long contentId) {
         ContentWrapperDto dto = storage.getContentById(contentId);
         boolean isEmptyContent = ContentTypes.isEmptyContentType(dto.getContentType());
@@ -67,6 +73,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @ImmutableCache
+    @MethodMetadata(extractParameters = {"0", CACHE_KEY_ENTITY_ID})
     public Response getContentByGlobalId(long globalId, HandleReferencesType references,
             Boolean returnArtifactType) {
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
@@ -103,6 +111,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @ImmutableCache
+    @MethodMetadata(extractParameters = {"0", CACHE_KEY_ENTITY_ID})
     public Response getContentByHash(String contentHash) {
         ContentHandle content = storage.getContentByHash(contentHash).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);

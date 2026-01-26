@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.logging.audit;
 
-import jakarta.enterprise.util.Nonbinding;
 import jakarta.interceptor.InterceptorBinding;
 
 import java.lang.annotation.Retention;
@@ -27,7 +26,10 @@ import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * This annotation is processed by {@link AuditedInterceptor}
+ * This annotation is processed by {@link AuditedInterceptor}.
+ *
+ * Use {@link io.apicurio.registry.rest.MethodMetadata} to specify which method parameters
+ * should be extracted and included in the audit log.
  */
 @InterceptorBinding
 @Retention(RUNTIME)
@@ -36,26 +38,9 @@ public @interface Audited {
 
     /**
      * If empty or null the method name will be used as the action identifier
-     * 
+     *
      * @return the action identifier
      */
     String action() default "";
-
-    /**
-     * If a method parameter value should be recorded to the auditing log, but there is no extractor defined
-     * (e.g. the value is a type without specific meaning, such as a String), this field can be used by adding
-     * two successive values: 1. Position of the given parameter, starting at 0, as String. Parameter name is
-     * not used, in case it is not available via reflection. 2. Key under which the value of the parameter
-     * should be recorded. There can be more than one such pair. Note that the position can also optionally
-     * include an additional property name. For example you could indicate "3.title" as the position. This
-     * will get the third parameter from the context and then look for a JavaBean property named "title". If
-     * one exists, it will be logged. This allows extraction of properties of complex object parameters to be
-     * added to the audit log. So, for example, if the 2nd parameter of a method is type "MyWidget", and the
-     * "MyWidget" class has a "description" property, then you could specific "1.description" as the position.
-     *
-     * @return the array of parameters to extract
-     */
-    @Nonbinding
-    String[] extractParameters() default {};
 
 }

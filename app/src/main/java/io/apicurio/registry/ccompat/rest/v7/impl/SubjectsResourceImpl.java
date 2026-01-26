@@ -22,6 +22,7 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
+import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -151,7 +152,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = { "0", KEY_ARTIFACT_ID })
+    @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public List<BigInteger> deleteSubject(String subject, Boolean permanent, String groupId) {
         GA ga = getGA(groupId, subject);
@@ -210,7 +212,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = { "0", KEY_ARTIFACT_ID })
+    @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public SchemaId registerSchemaUnderSubject(String subject, Boolean normalize, String format, String groupId, RegisterSchemaRequest request) {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
@@ -297,7 +300,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_ARTIFACT_ID, "1", KEY_VERSION })
+    @MethodMetadata(extractParameters = { "0", KEY_ARTIFACT_ID, "1", KEY_VERSION })
+    @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public BigInteger deleteSchemaVersion(String subject, String versionString, Boolean permanent, String groupId) {
         final GA ga = getGA(groupId, subject);

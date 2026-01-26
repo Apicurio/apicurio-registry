@@ -202,13 +202,16 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByContentHash()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByHash()
      */
     @Override
-    public String selectArtifactVersionMetaDataByContentHash() {
-        return "SELECT v.*, a.type FROM versions v " + "JOIN content c ON v.contentId = c.contentId "
+    public String selectArtifactVersionMetaDataByHash() {
+        return "SELECT v.*, a.type FROM versions v "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "JOIN content_hashes ch ON c.contentId = ch.contentId "
                 + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE v.groupId = ? AND v.artifactId = ? AND c.contentHash = ? ORDER BY v.globalId DESC";
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND ch.hashType = ? AND ch.hashValue = ? "
+                + "ORDER BY v.globalId DESC";
     }
 
     @Override
@@ -217,16 +220,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "FROM versions v "
                 + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
                 + "WHERE v.contentId = ?";
-    }
-
-    /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByCanonicalHash()
-     */
-    @Override
-    public String selectArtifactVersionMetaDataByCanonicalHash() {
-        return "SELECT v.*, a.type FROM versions v " + "JOIN content c ON v.contentId = c.contentId "
-                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
-                + "WHERE v.groupId = ? AND v.artifactId = ? AND c.canonicalHash = ? ORDER BY v.globalId DESC";
     }
 
     /**
@@ -262,11 +255,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHash()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHashAndType()
      */
     @Override
-    public String selectContentIdByHash() {
-        return "SELECT c.contentId FROM content c WHERE c.contentHash = ?";
+    public String selectContentIdByHashAndType() {
+        return "SELECT ch.contentId FROM content_hashes ch WHERE ch.hashType = ? AND ch.hashValue = ?";
     }
 
     /**
@@ -618,7 +611,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentCountByHash() {
-        return "SELECT COUNT(c.contentId) FROM content c WHERE c.contentHash = ? ";
+        return "SELECT COUNT(DISTINCT ch.contentId) FROM content_hashes ch WHERE ch.hashType = ? AND ch.hashValue = ?";
     }
 
     /**
@@ -626,17 +619,18 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectContentById() {
-        return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
+        return "SELECT c.content, c.contentType, c.contentHash, c.refs FROM content c "
                 + "WHERE c.contentId = ?";
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentByContentHash()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentByHash()
      */
     @Override
-    public String selectContentByContentHash() {
-        return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
-                + "WHERE c.contentHash = ?";
+    public String selectContentByHash() {
+        return "SELECT c.content, c.contentType, c.contentHash, c.refs, ch.hashValue FROM content c "
+                + "JOIN content_hashes ch ON c.contentId = ch.contentId "
+                + "WHERE ch.hashType = ? AND ch.hashValue = ? LIMIT 1";
     }
 
     @Override
@@ -654,19 +648,27 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateContentCanonicalHash()
-     */
-    @Override
-    public String updateContentCanonicalHash() {
-        return "UPDATE content SET canonicalHash = ? WHERE contentId = ? AND contentHash = ?";
-    }
-
-    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertContent()
      */
     @Override
     public String insertContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO content (contentId, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertContentHash()
+     */
+    @Override
+    public String insertContentHash() {
+        return "INSERT INTO content_hashes (contentId, hashType, hashValue, createdOn) VALUES (?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentHashesByContentId()
+     */
+    @Override
+    public String selectContentHashesByContentId() {
+        return "SELECT contentId, hashType, hashValue, createdOn FROM content_hashes WHERE contentId = ?";
     }
 
     /**
@@ -766,7 +768,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String exportContent() {
-        return "SELECT c.contentId, c.canonicalHash, c.contentHash, c.contentType, c.content, c.refs FROM content c ";
+        return "SELECT c.contentId, c.contentType, c.contentHash, c.content, c.refs FROM content c ";
     }
 
     /**
@@ -817,7 +819,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importContent() {
-        return "INSERT INTO content (contentId, canonicalHash, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO content (contentId, contentHash, contentType, content, refs) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**

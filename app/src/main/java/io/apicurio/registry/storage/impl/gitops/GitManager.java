@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.gitops;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.storage.dto.ContentHashType;
 import io.apicurio.registry.storage.impl.gitops.model.GitFile;
 import io.apicurio.registry.storage.impl.gitops.model.Type;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Artifact;
@@ -381,6 +382,11 @@ public class GitManager {
                                         content.getArtifactType(), null, null);
                                 e.artifactType = content.getArtifactType();
                                 e.contentType = contentType;
+
+                                // Populate the hashes map for the new multiple hash support
+                                e.hashes = new java.util.HashMap<>();
+                                e.hashes.put(ContentHashType.CONTENT_SHA256.value(), content.getContentHash());
+                                e.hashes.put(ContentHashType.CANONICAL_SHA256.value(), e.canonicalHash);
                                 if (contentFile.getPath().toLowerCase().endsWith(".yaml")
                                         || contentFile.getPath().toLowerCase().endsWith(".yml")) {
                                     e.contentType = ContentTypes.APPLICATION_YAML;

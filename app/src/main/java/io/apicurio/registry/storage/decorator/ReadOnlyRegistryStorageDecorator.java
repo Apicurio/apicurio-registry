@@ -411,6 +411,10 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
         delegate.importBranch(entity);
     }
 
+    /**
+     * @deprecated Content hashes are immutable; this operation is no longer supported
+     */
+    @Deprecated
     @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
         checkReadOnly();

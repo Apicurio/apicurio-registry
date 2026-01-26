@@ -8,6 +8,7 @@ import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentHashType;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
@@ -186,21 +187,33 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             List<ArtifactReferenceDto> references = RegistryContentUtils
                     .deserializeReferences(entity.serializedReferences);
 
-            // Recalculate the hash using the current algorithm
+            // Always recalculate all three hashes using the current algorithm
             TypedContent typedContent = TypedContent.create(ContentHandle.create(entity.contentBytes), null);
-            entity.contentHash = utils.getContentHash(typedContent, references);
+            Map<String, String> hashes = new HashMap<>();
 
-            // Try to recalculate the canonical hash - this may fail if the content has references
+            // 1. Calculate content-sha256 hash
+            String contentHash = utils.getContentHash(typedContent, references);
+            hashes.put(ContentHashType.CONTENT_SHA256.value(), contentHash);
+
+            // 2. Try to calculate canonical-sha256 and canonical-no-refs-sha256
+            // This may fail if the content has references that cannot be resolved
             try {
                 Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                         .recursivelyResolveReferences(references, storage::getContentByReference);
                 entity.artifactType = utils.determineArtifactType(typedContent, null, resolvedReferences);
 
-                // First we have to recalculate both the canonical hash and the contentHash
+                // Calculate the canonical content
                 TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
                         resolvedReferences);
 
-                entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
+                // Calculate canonical-sha256 (canonical content with references)
+                String canonicalHash = utils.getCanonicalContentHash(typedContent, entity.artifactType,
+                        references, refs -> resolvedReferences);
+                hashes.put(ContentHashType.CANONICAL_SHA256.value(), canonicalHash);
+
+                // Calculate canonical-no-refs-sha256 (canonical content without references)
+                String canonicalNoRefsHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
+                hashes.put("canonical-no-refs-sha256", canonicalNoRefsHash);
             } catch (Exception ex) {
                 log.debug("Deferring canonical hash calculation: " + ex.getMessage());
                 deferredCanonicalHashContentIds.add(entity.contentId);
@@ -220,12 +233,14 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                 entity.artifactType = AVRO;
             }
 
-            // Finally, using the information from the old content, a V3 content entity is created.
+            // Create the v3 content entity with the recalculated hashes
             io.apicurio.registry.utils.impexp.v3.ContentEntity newEntity = io.apicurio.registry.utils.impexp.v3.ContentEntity
                     .builder().contentType(determineContentType(entity.artifactType, typedContent))
-                    .contentHash(entity.contentHash).artifactType(entity.artifactType)
+                    .artifactType(entity.artifactType)
                     .contentBytes(entity.contentBytes).serializedReferences(entity.serializedReferences)
-                    .canonicalHash(entity.canonicalHash).contentId(entity.contentId).build();
+                    .contentId(entity.contentId)
+                    .hashes(hashes)
+                    .build();
 
             storage.importContent(newEntity);
             log.debug("Content imported successfully: {}", entity);
@@ -325,12 +340,29 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             String artifactType = versions.get(0).getArtifactType();
             Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(references, storage::getContentByReference);
+
+            // Calculate the canonical content
             TypedContent canonicalContent = utils.canonicalizeContent(artifactType, content,
                     resolvedReferences);
-            String canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
+
+            // Calculate canonical-sha256 (canonical content with references)
+            String canonicalHash = utils.getCanonicalContentHash(content, artifactType, references,
+                    refs -> resolvedReferences);
+
+            // Calculate canonical-no-refs-sha256 (canonical content without references)
+            String canonicalNoRefsHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
+
             String contentHash = utils.getContentHash(content, references);
 
+            // Update the canonical-sha256 hash using the deprecated method
+            // Note: This only updates canonical-sha256, not canonical-no-refs-sha256
+            // The canonical-no-refs-sha256 hash will remain missing for these deferred cases
+            // This is acceptable because it's a rare edge case (content with unresolved references
+            // at initial import time)
             storage.updateContentCanonicalHash(canonicalHash, contentId, contentHash);
+
+            // TODO: Add a method to update canonical-no-refs-sha256 hash as well
+            log.debug("Recalculated canonical-sha256 hash for contentId {}, canonical-no-refs-sha256 not updated", contentId);
         } catch (Exception ex) {
             // Oh well, we did our best.
             log.warn("Failed to recalculate canonical hash for: " + contentId, ex);

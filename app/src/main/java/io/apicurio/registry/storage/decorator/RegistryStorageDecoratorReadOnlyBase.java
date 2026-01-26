@@ -13,6 +13,7 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentHashType;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
@@ -36,7 +37,6 @@ import io.apicurio.registry.utils.impexp.Entity;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -86,9 +86,9 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public ContentWrapperDto getContentByHash(String contentHash)
+    public ContentWrapperDto getContentByHash(String contentHash, ContentHashType hashType)
             throws ContentNotFoundException, RegistryStorageException {
-        return delegate.getContentByHash(contentHash);
+        return delegate.getContentByHash(contentHash, hashType);
     }
 
     @Override
@@ -333,11 +333,6 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     }
 
     @Override
-    public boolean isContentExists(String contentHash) throws RegistryStorageException {
-        return delegate.isContentExists(contentHash);
-    }
-
-    @Override
     public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule)
             throws RegistryStorageException {
         return delegate.isArtifactRuleExists(groupId, artifactId, rule);
@@ -351,11 +346,6 @@ public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistrySt
     @Override
     public boolean isRoleMappingExists(String principalId) {
         return delegate.isRoleMappingExists(principalId);
-    }
-
-    @Override
-    public Optional<Long> contentIdFromHash(String contentHash) {
-        return delegate.contentIdFromHash(contentHash);
     }
 
     @Override

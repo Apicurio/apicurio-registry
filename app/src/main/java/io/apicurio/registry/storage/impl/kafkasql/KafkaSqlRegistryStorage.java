@@ -1012,11 +1012,19 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     /**
+     * DEPRECATED: This method is no longer used in new code but is still needed for backward
+     * compatibility with SqlDataUpgrader (v2 to v3 data upgrades). Creates and submits an
+     * UpdateContentCanonicalHash3Message to the Kafka topic so all nodes can process the update.
+     *
+     * @deprecated Content hashes are now immutable in new code; this is only for v2 data upgrades
      * @see io.apicurio.registry.storage.RegistryStorage#updateContentCanonicalHash(java.lang.String, long,
      *      java.lang.String)
      */
+    @Deprecated
     @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
+        // Create and submit the message to Kafka so all nodes process the update
+        // This is needed when SqlDataUpgrader runs during v2 to v3 data upgrades
         var message = new UpdateContentCanonicalHash3Message(newCanonicalHash, contentId, contentHash);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);

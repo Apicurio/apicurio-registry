@@ -4,7 +4,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Managing {registry} content using the command-line interface
 
 [role="_abstract"]
-You can use the {registry} command-line interface (CLI) to manage {registry} content from the command line. The CLI provides commands for managing contexts, groups, and other registry operations.
+You can use the {registry} command-line interface (CLI) to manage {registry} content from the command line. The CLI provides commands for managing CLI contexts and artifact groups.
 
 ifndef::service-registry-downstream[]
 [NOTE]
@@ -34,7 +34,7 @@ endif::[]
 .Prerequisites
 * You have installed {registry} and it is running in your environment.
 * You have Java 11 or higher installed.
-* You have access to a bash shell (Linux or macOS).
+* You have access to a bash shell (Linux).
 
 //INCLUDES
 
@@ -122,8 +122,10 @@ $ acr context
 .Example output
 [source]
 ----
-CURRENT   NAME   URL
-*         dev    http://localhost:8080
+Current context is 'default'.
+ID        Registry URL
+--------  ---------------------
+default*  http://localhost:8080
 ----
 +
 The asterisk (*) indicates the current active context.

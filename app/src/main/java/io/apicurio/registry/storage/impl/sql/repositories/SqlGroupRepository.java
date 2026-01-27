@@ -179,33 +179,77 @@ public class SqlGroupRepository {
      * Update group metadata.
      */
     public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) {
-        String modifiedBy = securityIdentity.getPrincipal().getName();
-        Date modifiedOn = new Date();
         log.debug("Updating metadata for group {}.", groupId);
 
         handles.withHandleNoException(handle -> {
-            int rows = handle.createUpdate(sqlStatements.updateGroup()).bind(0, dto.getDescription())
-                    .bind(1, modifiedBy).bind(2, modifiedOn)
-                    .bind(3, RegistryContentUtils.serializeLabels(dto.getLabels())).bind(4, groupId)
-                    .execute();
-            if (rows == 0) {
-                throw new GroupNotFoundException(groupId);
+            boolean modified = false;
+
+            // Update description
+            if (dto.getDescription() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateGroupDescription())
+                        .bind(0, dto.getDescription())
+                        .bind(1, groupId)
+                        .execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new GroupNotFoundException(groupId);
+                }
             }
 
-            // Delete old labels
-            handle.createUpdate(sqlStatements.deleteGroupLabelsByGroupId()).bind(0, groupId).execute();
-
-            // Insert new labels
-            if (dto.getLabels() != null && !dto.getLabels().isEmpty()) {
-                dto.getLabels().forEach((k, v) -> {
-                    handle.createUpdate(sqlStatements.insertGroupLabel())
-                            .bind(0, groupId)
-                            .bind(1, limitStr(k.toLowerCase(), MAX_LABEL_KEY_LENGTH))
-                            .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
-                });
+            // Update owner
+            if (dto.getOwner() != null && !dto.getOwner().trim().isEmpty()) {
+                int rowCount = handle.createUpdate(sqlStatements.updateGroupOwner())
+                        .bind(0, dto.getOwner())
+                        .bind(1, groupId)
+                        .execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new GroupNotFoundException(groupId);
+                }
             }
 
-            outboxEvent.fire(SqlOutboxEvent.of(GroupMetadataUpdated.of(groupId, dto)));
+            // Update labels
+            if (dto.getLabels() != null) {
+                int rowCount = handle.createUpdate(sqlStatements.updateGroupLabels())
+                        .bind(0, RegistryContentUtils.serializeLabels(dto.getLabels()))
+                        .bind(1, groupId)
+                        .execute();
+                modified = true;
+                if (rowCount == 0) {
+                    throw new GroupNotFoundException(groupId);
+                }
+
+                // Delete all appropriate rows in the "group_labels" table
+                handle.createUpdate(sqlStatements.deleteGroupLabelsByGroupId()).bind(0, groupId).execute();
+
+                // Insert new labels into the "group_labels" table
+                if (dto.getLabels() != null && !dto.getLabels().isEmpty()) {
+                    dto.getLabels().forEach((k, v) -> {
+                        handle.createUpdate(sqlStatements.insertGroupLabel())
+                                .bind(0, groupId)
+                                .bind(1, limitStr(k.toLowerCase(), 256))
+                                .bind(2, limitStr(asLowerCase(v), 512))
+                                .execute();
+                    });
+                }
+            }
+
+            // Update modifiedBy and modifiedOn if anything changed
+            if (modified) {
+                String modifiedBy = securityIdentity.getPrincipal().getName();
+                Date modifiedOn = new Date();
+
+                int rowCount = handle.createUpdate(sqlStatements.updateGroupModifiedByOn())
+                        .bind(0, modifiedBy)
+                        .bind(1, modifiedOn)
+                        .bind(2, groupId)
+                        .execute();
+                if (rowCount == 0) {
+                    throw new GroupNotFoundException(groupId);
+                }
+
+                outboxEvent.fire(SqlOutboxEvent.of(GroupMetadataUpdated.of(groupId, dto)));
+            }
 
             return null;
         });

@@ -23,4 +23,5 @@ public class EditableGroupMetaDataDto {
 
     private String description;
     private Map<String, String> labels;
+    private String owner;
 }

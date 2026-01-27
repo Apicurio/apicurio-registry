@@ -436,9 +436,24 @@ public interface SqlStatements {
     public String insertGroup();
 
     /**
-     * A statement used to update information about a group.
+     * A statement used to update a group description.
      */
-    public String updateGroup();
+    public String updateGroupDescription();
+
+    /**
+     * A statement used to update a group owner.
+     */
+    public String updateGroupOwner();
+
+    /**
+     * A statement used to update a group labels.
+     */
+    public String updateGroupLabels();
+
+    /**
+     * A statement used to update the modified by and modified on for a group.
+     */
+    public String updateGroupModifiedByOn();
 
     /**
      * A statement used to delete a row from the groups table.

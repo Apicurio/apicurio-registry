@@ -3,6 +3,8 @@ package io.apicurio.registry.noprofile.serde;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
@@ -26,6 +28,7 @@ import io.apicurio.registry.support.Citizen;
 import io.apicurio.registry.support.CitizenIdentifier;
 import io.apicurio.registry.support.City;
 import io.apicurio.registry.support.CityQualification;
+import io.apicurio.registry.support.Event;
 import io.apicurio.registry.support.IdentifierQualification;
 import io.apicurio.registry.support.Person;
 import io.apicurio.registry.support.Qualification;
@@ -54,6 +57,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -977,6 +983,132 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
             Assertions.assertEquals("Diana", person.getFirstName());
             Assertions.assertEquals("Prince", person.getLastName());
             Assertions.assertEquals(28, person.getAge());
+        }
+    }
+
+    /**
+     * Tests that a custom ObjectMapper can be configured with JavaTimeModule to properly
+     * serialize and deserialize Java 8 Time types (LocalDate, OffsetDateTime, Instant).
+     * This addresses issue #7194.
+     */
+    @ParameterizedTest(name = "testCustomObjectMapperWithJavaTime [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testCustomObjectMapperWithJavaTime(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        // Load the Event schema
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/event-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+
+        // Create the artifact in the registry
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON);
+
+        // Create test event with Java 8 Time types
+        Event event = new Event(
+                UUID.randomUUID().toString(),
+                "TestEvent",
+                LocalDate.of(2026, 1, 26),
+                OffsetDateTime.parse("2026-01-26T15:30:45Z"),
+                Instant.parse("2026-01-26T15:30:45Z")
+        );
+
+        try (JsonSchemaKafkaSerializer<Event> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+             JsonSchemaKafkaDeserializer<Event> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+
+            // Create custom ObjectMapper with JavaTimeModule
+            // This is the key functionality being tested - the ability to customize the ObjectMapper
+            ObjectMapper customMapper = new ObjectMapper();
+            customMapper.registerModule(new JavaTimeModule());
+            customMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            // Use ISO-8601 format for dates (not timestamps as numbers)
+            customMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+            // Set the custom ObjectMapper BEFORE configure() is called
+            serializer.setObjectMapper(customMapper);
+            deserializer.setObjectMapper(customMapper);
+
+            // Configure serializer and deserializer
+            Map<String, Object> serializerConfig = new HashMap<>();
+            serializerConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            serializerConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            serializerConfig.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            serializerConfig.put(SerdeConfig.VALIDATION_ENABLED, "true");
+            serializer.configure(serializerConfig, false);
+
+            Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            deserializerConfig.put(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, Event.class.getName());
+            deserializer.configure(deserializerConfig, false);
+
+            // Serialize the event
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, event);
+
+            // Verify the serialized data is valid JSON with ISO-8601/RFC 3339 formatted dates
+            String json = new String(bytes, StandardCharsets.UTF_8);
+            Assertions.assertTrue(json.contains("2026-01-26"));  // LocalDate in ISO format
+            Assertions.assertTrue(json.contains("2026-01-26T15:30:45"));  // OffsetDateTime in RFC 3339 format
+
+            // Deserialize the event
+            Event deserializedEvent = deserializer.deserialize(artifactId, headers, bytes);
+
+            // Verify all fields match
+            assertEquals(event.getEventId(), deserializedEvent.getEventId());
+            assertEquals(event.getEventName(), deserializedEvent.getEventName());
+            assertEquals(event.getEventDate(), deserializedEvent.getEventDate());
+            assertEquals(event.getEventDateTime(), deserializedEvent.getEventDateTime());
+            assertEquals(event.getEventTimestamp(), deserializedEvent.getEventTimestamp());
+        }
+    }
+
+    /**
+     * Tests that without a custom ObjectMapper with JavaTimeModule, serialization of Java 8 Time
+     * types fails as expected. This verifies that the custom ObjectMapper is actually being used.
+     */
+    @ParameterizedTest(name = "testWithoutCustomObjectMapper [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testWithoutCustomObjectMapper(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        InputStream jsonSchema = getClass()
+                .getResourceAsStream("/io/apicurio/registry/util/event-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+
+        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+                ContentTypes.APPLICATION_JSON);
+
+        Event event = new Event(
+                UUID.randomUUID().toString(),
+                "TestEvent",
+                LocalDate.of(2026, 1, 26),
+                OffsetDateTime.parse("2026-01-26T15:30:45Z"),
+                Instant.parse("2026-01-26T15:30:45Z")
+        );
+
+        try (JsonSchemaKafkaSerializer<Event> serializer = new JsonSchemaKafkaSerializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+
+            // Configure WITHOUT setting custom ObjectMapper
+            serializer.configure(config, false);
+
+            Headers headers = new RecordHeaders();
+
+            // This should fail because default ObjectMapper doesn't know how to serialize Java 8 Time types
+            Assertions.assertThrows(Exception.class, () -> {
+                serializer.serialize(artifactId, headers, event);
+            });
         }
     }
 

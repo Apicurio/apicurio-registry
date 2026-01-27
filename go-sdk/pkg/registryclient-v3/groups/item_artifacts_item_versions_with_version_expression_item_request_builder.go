@@ -149,6 +149,12 @@ func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) Refer
 	return NewItemArtifactsItemVersionsItemReferencesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
+// Render render a prompt template artifact by substituting variables.
+// returns a *ItemArtifactsItemVersionsItemRenderRequestBuilder when successful
+func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) Render() *ItemArtifactsItemVersionsItemRenderRequestBuilder {
+	return NewItemArtifactsItemVersionsItemRenderRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // State manage the state of an artifact version.
 // returns a *ItemArtifactsItemVersionsItemStateRequestBuilder when successful
 func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) State() *ItemArtifactsItemVersionsItemStateRequestBuilder {

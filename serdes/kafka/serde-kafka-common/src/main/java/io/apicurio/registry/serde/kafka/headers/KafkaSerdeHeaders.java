@@ -22,5 +22,9 @@ public class KafkaSerdeHeaders {
     public static final String HEADER_VALUE_CONTENT_HASH = "apicurio.value.contentHash";
     public static final String HEADER_KEY_MESSAGE_TYPE = "apicurio.key.msgType";
     public static final String HEADER_VALUE_MESSAGE_TYPE = "apicurio.value.msgType";
+    public static final String HEADER_KEY_SCHEMA = "apicurio.key.schema";
+    public static final String HEADER_VALUE_SCHEMA = "apicurio.value.schema";
+    public static final String HEADER_KEY_SCHEMA_TYPE = "apicurio.key.schemaType";
+    public static final String HEADER_VALUE_SCHEMA_TYPE = "apicurio.value.schemaType";
 
 }

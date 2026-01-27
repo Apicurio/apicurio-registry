@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-examples</artifactId>
+    <version>3.1.7-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-examples-otel-tracing</artifactId>
+  <packaging>pom</packaging>
+  <name>Apicurio Registry Examples - OpenTelemetry Distributed Tracing</name>
+  <description>Example demonstrating end-to-end distributed tracing with Strimzi Kafka and Apicurio Registry</description>
+
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
+  <modules>
+    <module>producer</module>
+    <module>consumer</module>
+  </modules>
+
+</project>

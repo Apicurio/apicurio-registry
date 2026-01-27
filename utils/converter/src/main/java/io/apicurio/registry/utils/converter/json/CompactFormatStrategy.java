@@ -26,7 +26,8 @@ public class CompactFormatStrategy implements FormatStrategy {
 
     @Override
     public byte[] fromConnectData(long contentId, byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.allocate(1 + idHandler.idSize() + bytes.length);
+        ArtifactReference ref = ArtifactReference.fromContentId(contentId);
+        ByteBuffer buffer = ByteBuffer.allocate(1 + idHandler.idSize(ref, ByteBuffer.wrap(bytes)) + bytes.length);
         buffer.put(BaseSerde.MAGIC_BYTE);
         idHandler.writeId(ArtifactReference.fromContentId(contentId), buffer);
         buffer.put(bytes);
@@ -38,7 +39,7 @@ public class CompactFormatStrategy implements FormatStrategy {
         ByteBuffer buffer = BaseSerde.getByteBuffer(bytes);
         ArtifactReference reference = idHandler.readId(buffer);
         long contentId = reference.getContentId();
-        byte[] payload = new byte[bytes.length - idHandler.idSize() - 1];
+        byte[] payload = new byte[bytes.length - idHandler.idSize(reference, buffer) - 1];
         buffer.get(payload);
         return new IdPayload(contentId, payload);
     }

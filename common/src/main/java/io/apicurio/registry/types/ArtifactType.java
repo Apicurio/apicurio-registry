@@ -18,5 +18,6 @@ public class ArtifactType {
     public static final String WSDL = "WSDL";
     public static final String XSD = "XSD";
     public static final String XML = "XML";
+    public static final String AGENT_CARD = "AGENT_CARD";
 
 }

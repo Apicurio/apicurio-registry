@@ -174,6 +174,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         // Read the artifact content.
         ContentHandle artifactContent = readContent(artifact.getFile());
         String artifactContentType = getContentTypeByExtension(artifact.getFile().getName());
+        // Set the content type on the artifact if not already explicitly set by the user
+        if (artifact.getContentType() == null) {
+            artifact.setContentType(artifactContentType);
+        }
         TypedContent typedArtifactContent = TypedContent.create(artifactContent, artifactContentType);
 
         // Find all references in the content

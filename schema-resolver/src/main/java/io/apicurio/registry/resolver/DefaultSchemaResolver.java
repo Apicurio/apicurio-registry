@@ -75,7 +75,14 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         requireNonNull(data.payload());
 
         ParsedSchema<S> parsedSchema;
-        if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
+
+        // Check if an explicit schema is provided in the metadata (e.g., from headers)
+        String explicitSchemaContent = data.metadata().explicitSchemaContent();
+        if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
+            // Use the explicit schema from headers instead of inferring from data
+            parsedSchema = parseExplicitSchema(explicitSchemaContent);
+            logger.info("Using explicit schema from headers instead of inferring from data");
+        } else if (artifactResolverStrategy.loadSchema() && schemaParser.supportsExtractSchemaFromData()) {
             parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
         } else {
             parsedSchema = null;
@@ -84,6 +91,20 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
         return getSchemaFromCache(artifactReference)
                 .orElseGet(() -> getSchemaFromRegistry(parsedSchema, data, artifactReference));
+    }
+
+    /**
+     * Parses an explicit schema provided as a string (e.g., from message headers).
+     *
+     * @param schemaContent the raw schema content as a string
+     * @return the parsed schema
+     */
+    private ParsedSchema<S> parseExplicitSchema(String schemaContent) {
+        byte[] schemaBytes = schemaContent.getBytes(StandardCharsets.UTF_8);
+        S parsed = schemaParser.parseSchema(schemaBytes, Map.of());
+        return new ParsedSchemaImpl<S>()
+                .setParsedSchema(parsed)
+                .setRawSchema(schemaBytes);
     }
 
     private Optional<SchemaLookupResult<S>> getSchemaFromCache(ArtifactReference artifactReference) {
@@ -108,10 +129,17 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                                                         ArtifactReference artifactReference) {
         if (autoCreateArtifact) {
 
-            if (schemaParser.supportsExtractSchemaFromData()) {
+            // Check if we have an explicit schema or can extract from data
+            if (parsedSchema != null || schemaParser.supportsExtractSchemaFromData()) {
 
                 if (parsedSchema == null) {
-                    parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                    // Check for explicit schema from headers first
+                    String explicitSchemaContent = data.metadata().explicitSchemaContent();
+                    if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
+                        parsedSchema = parseExplicitSchema(explicitSchemaContent);
+                    } else {
+                        parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                    }
                 }
 
                 List<SchemaLookupResult<S>> schemaLookupResults = List.of();
@@ -133,9 +161,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                     artifactReference.getArtifactId(), artifactReference.getVersion());
         }
 
-        if (schemaParser.supportsExtractSchemaFromData()) {
+        if (parsedSchema != null || schemaParser.supportsExtractSchemaFromData()) {
             if (parsedSchema == null) {
-                parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                // Check for explicit schema from headers first
+                String explicitSchemaContent = data.metadata().explicitSchemaContent();
+                if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
+                    parsedSchema = parseExplicitSchema(explicitSchemaContent);
+                } else {
+                    parsedSchema = schemaParser.getSchemaFromData(data, resolveDereferenced);
+                }
             }
             return handleResolveSchemaByContent(parsedSchema, artifactReference);
         }

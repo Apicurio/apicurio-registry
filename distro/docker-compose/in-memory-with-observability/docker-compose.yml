@@ -1,0 +1,81 @@
+# Docker Compose example with OpenTelemetry observability stack
+# This example demonstrates Apicurio Registry with:
+# - Jaeger for distributed tracing
+# - Prometheus for metrics collection
+# - Grafana for visualization
+
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry-observability_api
+    environment:
+      # Enable deletion for demo purposes
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+      # OpenTelemetry Configuration
+      QUARKUS_OTEL_SDK_DISABLED: "false"
+      QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
+      QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_always_on"
+      # Structured JSON logging with trace context
+      QUARKUS_LOG_CONSOLE_JSON: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - jaeger
+
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-observability_ui
+    ports:
+      - "8888:8080"
+    depends_on:
+      - apicurio-registry
+
+  # Jaeger - Distributed Tracing Backend
+  # Access Jaeger UI at http://localhost:16686
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    container_name: apicurio-registry-observability_jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+      - "14250:14250"  # Jaeger gRPC
+
+  # Prometheus - Metrics Collection
+  # Access Prometheus UI at http://localhost:9090
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: apicurio-registry-observability_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - apicurio-registry
+
+  # Grafana - Visualization
+  # Access Grafana at http://localhost:3000 (admin/admin)
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: apicurio-registry-observability_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - jaeger

@@ -9,6 +9,7 @@ This chapter explains how to set configuration options for {registry} security. 
 * xref:registry-security-keycloak_{context}[]
 * xref:registry-security-azure_{context}[]
 * xref:registry-security-settings_{context}[]
+* xref:registry-cors-configuration_{context}[]
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
@@ -98,7 +99,7 @@ You can use the defaults for the other client settings.
 |The client ID for the {registry} REST API.
 |String
 |`registry-api`
-|`APICURIO_UI_AUTH_OIDC_CLIENT-ID`
+|`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
 |The client ID for the {registry} web console.
 |String
 |`apicurio-registry`
@@ -115,7 +116,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |Java system property
 |Type
 |Default value
-|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
+|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
 |`apicurio.auth.role-based-authorization`
 |Boolean
 |`false`
@@ -157,7 +158,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |Java system property
 |Type
 |Default value
-|`APICURIO_AUTH_OWNER-ONLY-AUTHORIZATION_LIMIT-GROUP-ACCESS`
+|`APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS`
 |`apicurio.auth.owner-only-authorization.limit-group-access`
 |Boolean
 |`false`
@@ -225,13 +226,13 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |Environment variable
 |Description
 |Setting
-|`QUARKUS_OIDC_CLIENT-ID`
+|`QUARKUS_OIDC_CLIENT_ID`
 |The client application ID for the {registry} REST API
 |Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
-|`APICURIO_UI_AUTH_OIDC_CLIENT-ID`
+|`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
 |The client application ID for the {registry} web console.
 |Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
-|`QUARKUS_OIDC_AUTH-SERVER-URL`
+|`QUARKUS_OIDC_AUTH_SERVER_URL`
 |The URL for authentication in Azure AD.
 |Your Azure AD Application (tenant) ID obtained in step 6. For example: `\https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`.
 |===
@@ -244,19 +245,19 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |Environment variable
 |Description
 |Setting
-|`QUARKUS_OIDC_TENANT-ENABLED`
+|`QUARKUS_OIDC_TENANT_ENABLED`
 |Enables authentication for {registry}.
 |`true`
 |`QUARKUS_HTTP_CORS_ORIGINS`
 |The host for your {registry} deployment for cross-origin resource sharing (CORS).
 |For example: `\https://test-registry.com`
-|`APICURIO_UI_AUTH_OIDC_REDIRECT-URI`
+|`APICURIO_UI_AUTH_OIDC_REDIRECT_URI`
 |The host for your {registry} web console.
 |For example: `\https://test-registry.com/ui`
-|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
+|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
 |Enables role-based authorization in {registry}.
 |`true`
-|`QUARKUS_OIDC_ROLES_ROLE-CLAIM-PATH`
+|`QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH`
 |The name of the claim in which Azure AD stores roles.
 |`roles`
 |===
@@ -328,19 +329,19 @@ You can set the following environment variables to configure authentication for 
 |Description
 |Type
 |Default
-|`QUARKUS_OIDC_TENANT-ENABLED`
+|`QUARKUS_OIDC_TENANT_ENABLED`
 |Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
 |String
 |`false`
-|`QUARKUS_OIDC_AUTH-SERVER-URL`
+|`QUARKUS_OIDC_AUTH_SERVER_URL`
 |The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
 |String
 |-
-|`QUARKUS_OIDC_CLIENT-ID`
+|`QUARKUS_OIDC_CLIENT_ID`
 |The client ID for the {registry} REST API.
 |String
 |`registry-api`
-|`APICURIO_UI_AUTH_OIDC_CLIENT-ID`
+|`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
 |The client ID for the {registry} web console.
 |String
 |`apicurio-registry`
@@ -355,7 +356,7 @@ You can set the following environment variables to configure authentication for 
 |String
 |-
 
-|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
+|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
 |Enables or disables role-based authorization.
 |Boolean
 |False
@@ -375,11 +376,11 @@ By default, {registry} supports authentication by using OpenID Connect. Users or
 |Java system property
 |Type
 |Default value
-|`QUARKUS_OIDC_TENANT-ENABLED`
+|`QUARKUS_OIDC_TENANT_ENABLED`
 |`quarkus.oidc.tenant-enabled`
 |Boolean
 |`false`
-|`APICURIO_AUTHN_BASIC-CLIENT-CREDENTIALS.ENABLED`
+|`APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_ENABLED`
 |`apicurio.authn.basic-client-credentials.enabled`
 |Boolean
 |`false`
@@ -399,7 +400,7 @@ When using {keycloak}, it is best to set this configuration to your {keycloak} J
 |Java system property
 |Type
 |Default value
-|`APICURIO_AUTHN_BASIC-CLIENT-CREDENTIALS_CACHE-EXPIRATION`
+|`APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_CACHE_EXPIRATION`
 |`apicurio.authn.basic-client-credentials.cache-expiration`
 |Integer
 |`10`
@@ -419,11 +420,11 @@ You can set the following options to `true` to enable role-based authorization i
 |Java system property
 |Type
 |Default value
-|`QUARKUS_OIDC_TENANT-ENABLED`
+|`QUARKUS_OIDC_TENANT_ENABLED`
 |`quarkus.oidc.tenant-enabled`
 |Boolean
 |`false`
-|`APICURIO_AUTH_ROLE-BASED-AUTHORIZATION`
+|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
 |`apicurio.auth.role-based-authorization`
 |Boolean
 |`false`
@@ -444,7 +445,7 @@ To enable using roles assigned by {keycloak}, set the following environment vari
 |Description
 |Type
 |Default
-|`APICURIO_AUTH_ROLE-SOURCE`
+|`APICURIO_AUTH_ROLE_SOURCE`
 | When set to `token`, user roles are taken from the authentication token.
 |String
 |`token`
@@ -502,7 +503,7 @@ To enable using roles managed internally by {registry}, set the following enviro
 |Description
 |Type
 |Default
-|`APICURIO_AUTH_ROLE-SOURCE`
+|`APICURIO_AUTH_ROLE_SOURCE`
 | When set to `application`, user roles are managed internally by {registry}.
 |String
 |`token`
@@ -527,27 +528,27 @@ Because there are no default admin users in {registry}, it is usually helpful to
 |Description
 |Type
 |Default
-|`APICURIO_AUTH_ADMIN-OVERRIDE_ENABLED`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED`
 | Enables the admin-override feature.
 |String
 |`false`
-|`APICURIO_AUTH_ADMIN-OVERRIDE_FROM`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_FROM`
 |Where to look for admin-override information.  Only `token` is currently supported.
 |String
 |`token`
-|`APICURIO_AUTH_ADMIN-OVERRIDE_TYPE`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_TYPE`
 |The type of information used to determine if a user is an admin.  Values depend on the value of the FROM variable, for example, `role` or `claim` when FROM is `token`.
 |String
 |`role`
-|`APICURIO_AUTH_ADMIN-OVERRIDE_ROLE`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_ROLE`
 |The name of the role that indicates a user is an admin.
 |String
 |`sr-admin`
-|`APICURIO_AUTH_ADMIN-OVERRIDE_CLAIM`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_CLAIM`
 |The name of a JWT token claim to use for determining admin-override.
 |String
 |`org-admin`
-|`APICURIO_AUTH_ADMIN-OVERRIDE_CLAIM-VALUE`
+|`APICURIO_AUTH_ADMIN_OVERRIDE_CLAIM_VALUE`
 |The value that the JWT token claim indicated by the CLAIM variable must be for the user to be granted admin-override.
 |String
 |`true`
@@ -576,12 +577,12 @@ You can set the following options to `true` to enable owner-only authorization f
 |Boolean
 |`false`
 
-|`APICURIO_AUTH_OWNER-ONLY-AUTHORIZATION`
+|`APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION`
 |`apicurio.auth.owner-only-authorization`
 |Boolean
 |`false`
 
-|`APICURIO_AUTH_OWNER-ONLY-AUTHORIZATION_LIMIT-GROUP-ACCESS`
+|`APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION_LIMIT_GROUP_ACCESS`
 |`apicurio.auth.owner-only-authorization.limit-group-access`
 |Boolean
 |`false`
@@ -606,11 +607,11 @@ To enable authenticated read access, you must first enable role-based authorizat
 |Java system property
 |Type
 |Default value
-|`QUARKUS_OIDC_TENANT-ENABLED`
+|`QUARKUS_OIDC_TENANT_ENABLED`
 |`quarkus.oidc.tenant-enabled`
 |Boolean
 |`false`
-|`APICURIO_AUTH_AUTHENTICATED-READ-ACCESS_ENABLED`
+|`APICURIO_AUTH_AUTHENTICATED_READ_ACCESS_ENABLED`
 |`apicurio.auth.authenticated-read-access.enabled`
 |Boolean
 |`false`
@@ -635,11 +636,11 @@ calls to the REST API, set the following options to `true`:
 |Java system property
 |Type
 |Default value
-|`QUARKUS_OIDC_TENANT-ENABLED`
+|`QUARKUS_OIDC_TENANT_ENABLED`
 |`quarkus.oidc.tenant-enabled`
 |Boolean
 |`false`
-|`APICURIO_AUTH_ANONYMOUS-READ-ACCESS_ENABLED`
+|`APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED`
 |`apicurio.auth.anonymous-read-access.enabled`
 |Boolean
 |`false`
@@ -650,5 +651,88 @@ calls to the REST API, set the following options to `true`:
 .Additional resources
 * For an example of how to set environment variables in your {registry} deployment on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[]
 * For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]
+
+
+
+// Metadata created by nebel
+
+[id="registry-cors-configuration_{context}"]
+
+== Configuring {registry} Cross-Origin Resource Sharing (CORS)
+
+[role="_abstract"]
+Cross-Origin Resource Sharing (CORS) is a browser security feature that controls how web applications running at one origin can request resources from a different origin. {registry} includes built-in CORS support that you can configure to allow the {registry} web console or other client applications to access the {registry} REST API from different domains.
+
+CORS configuration in {registry} is based on the underlying Quarkus HTTP CORS filter. By default, {registry} enables CORS and allows requests from `http://localhost:8888` and `http://127.0.0.1:8888` for local development.
+
+.Prerequisites
+* {registry} is installed and running.
+
+.Procedure
+
+Configure the following environment variables to customize CORS behavior for your {registry} deployment:
+
+.Configuration for {registry} CORS
+[.table-expandable,width="100%",cols="4,6,3",options="header"]
+|===
+|Environment variable
+|Description
+|Default
+
+|`QUARKUS_HTTP_CORS`
+|Enables or disables the CORS filter. Set to `true` to enable CORS support.
+|`true`
+
+|`QUARKUS_HTTP_CORS_ORIGINS`
+|A comma-separated list of allowed origins for CORS requests. Use `*` to allow all origins, or specify explicit origins such as `\https://my-ui.example.com`. For multiple origins, use a comma-separated list, for example: `\https://ui1.example.com,\https://ui2.example.com`.
+|`http://localhost:8888,http://127.0.0.1:8888`
+
+|`QUARKUS_HTTP_CORS_METHODS`
+|A comma-separated list of HTTP methods allowed for CORS requests.
+|`GET,PUT,POST,PATCH,DELETE,OPTIONS`
+
+|`QUARKUS_HTTP_CORS_HEADERS`
+|A comma-separated list of HTTP headers allowed in CORS requests. This includes custom {registry} headers used for artifact metadata.
+|See note below
+|===
+
+NOTE: The default allowed headers include: `x-registry-name`, `x-registry-name-encoded`, `x-registry-description`, `x-registry-description-encoded`, `x-registry-version`, `x-registry-artifactid`, `x-registry-artifacttype`, `x-registry-hash-algorithm`, `x-registry-content-hash`, `access-control-request-method`, `access-control-allow-credentials`, `access-control-allow-origin`, `access-control-allow-headers`, `authorization`, `content-type`, `content-encoding`, `user-agent`.
+
+.Example: Allow all origins (development only)
+[source,yaml]
+----
+environment:
+  QUARKUS_HTTP_CORS_ORIGINS: "*"
+----
+
+WARNING: Using `*` to allow all origins is not recommended for production deployments. Always specify explicit allowed origins in production environments.
+
+.Example: Allow specific origins (production)
+[source,yaml]
+----
+environment:
+  QUARKUS_HTTP_CORS_ORIGINS: "https://registry-ui.example.com,https://admin.example.com"
+----
+
+.Example: Kubernetes operator configuration
+If you are using the {registry} Operator, you can configure CORS in the `ApicurioRegistry3` custom resource:
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: my-registry
+spec:
+  app:
+    env:
+      - name: QUARKUS_HTTP_CORS_ORIGINS
+        value: https://ui.example.com
+----
+
+NOTE: When using the {registry} Operator with an Ingress configured for the UI component, the operator automatically configures CORS allowed origins based on the Ingress host. If you explicitly set `QUARKUS_HTTP_CORS_ORIGINS` in the CR, your configuration takes precedence.
+
+[role="_additional-resources"]
+.Additional resources
+* For detailed information about all available Quarkus CORS configuration options, see the link:https://quarkus.io/guides/http-reference#cors-filter[Quarkus HTTP Reference - CORS Filter] documentation.
 
 

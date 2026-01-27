@@ -4,6 +4,7 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { useConfigService } from "@services/useConfigService.ts";
 import { useUserService } from "@services/useUserService.ts";
 import {
+    DASHBOARD_PAGE_IDX,
     DRAFTS_PAGE_IDX,
     EXPLORE_PAGE_IDX,
     ROLES_PAGE_IDX,
@@ -27,6 +28,10 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
 
     const handleTabClick = (_event: React.MouseEvent<HTMLElement, MouseEvent>, eventKey: number | string): void => {
         if (eventKey !== props.tabKey) {
+            if (eventKey === DASHBOARD_PAGE_IDX) {
+                // navigate to dashboard
+                appNavigation.navigateTo("/dashboard");
+            }
             if (eventKey === EXPLORE_PAGE_IDX) {
                 // navigate to artifacts
                 appNavigation.navigateTo("/explore");
@@ -58,8 +63,9 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
         }
     };
 
-    // Always available:  Explore and Search tabs
+    // Always available: Dashboard, Explore and Search tabs
     const tabs: any[] = [
+        <Tab data-testid="dashboard-tab" key={DASHBOARD_PAGE_IDX} eventKey={DASHBOARD_PAGE_IDX} title={<TabTitleText>Dashboard</TabTitleText>} />,
         <Tab data-testid="explore-tab" key={EXPLORE_PAGE_IDX} eventKey={EXPLORE_PAGE_IDX} title={<TabTitleText>Explore</TabTitleText>} />,
         <Tab data-testid="search-tab" key={SEARCH_PAGE_IDX} eventKey={SEARCH_PAGE_IDX} title={<TabTitleText>Search</TabTitleText>} />,
     ];

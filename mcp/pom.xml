@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>3.1.5-SNAPSHOT</version>
+        <version>3.1.7-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -16,7 +16,7 @@
 
     <properties>
         <projectRoot>${project.basedir}/..</projectRoot>
-        <docker.app.file>app-files/apicurio-registry-mcp-server-${project.version}.tar.gz</docker.app.file>
+        <docker.app.file>app-files/apicurio-registry-mcp-server-${project.version}-all.tar.gz</docker.app.file>
         <!-- Exclude integration tests by default. Use -DexcludedGroups= to run them -->
         <excludedGroups>integration</excludedGroups>
     </properties>
@@ -116,7 +116,29 @@
             </plugin>
 
             <plugin>
-                <!-- Must be placed after quarkus-maven-plugin. -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>assembly</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
+                            <finalName>${project.artifactId}-${project.version}</finalName>
+                            <attach>true</attach>
+                            <descriptors>
+                                <descriptor>src/main/assembly/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <!-- Must be placed after quarkus-maven-plugin and maven-assembly-plugin. -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
@@ -149,7 +171,7 @@
                                     <directory>${basedir}/target</directory>
                                     <filtering>false</filtering>
                                     <includes>
-                                        <include>apicurio-*.tar.gz</include>
+                                        <include>apicurio-*-all.tar.gz</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -169,27 +191,6 @@
                     <!-- Use -DexcludedGroups= to run integration tests -->
                     <excludedGroups>${excludedGroups}</excludedGroups>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>assembly</id>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <finalName>${project.artifactId}-${project.version}</finalName>
-                            <attach>true</attach>
-                            <descriptors>
-                                <descriptor>src/main/assembly/assembly.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
 
         </plugins>

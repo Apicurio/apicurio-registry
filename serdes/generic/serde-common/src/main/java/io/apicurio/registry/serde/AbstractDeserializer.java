@@ -94,7 +94,8 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
         SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
 
-        int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize();
+        // Could this be replaced by buffer.limit() - buffer.position(); ?
+        int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize(artifactReference, buffer);
         int start = buffer.position() + buffer.arrayOffset();
 
         return readData(schema.getParsedSchema(), buffer, start, length);

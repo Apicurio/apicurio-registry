@@ -5,11 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
+import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.content.refs.ReferenceFinder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -20,7 +18,6 @@ import java.util.stream.Collectors;
 public class AvroReferenceFinder implements ReferenceFinder {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final Logger log = LoggerFactory.getLogger(AvroReferenceFinder.class);
 
     private static final Set<String> PRIMITIVE_TYPES = Set.of("null", "boolean", "int", "long", "float",
             "double", "bytes", "string");
@@ -38,8 +35,7 @@ public class AvroReferenceFinder implements ReferenceFinder {
             return externalTypes.stream().map(type -> new ExternalReference(type))
                     .collect(Collectors.toSet());
         } catch (Exception e) {
-            log.error("Error finding external references in an Avro file.", e);
-            return Collections.emptySet();
+            throw new ReferenceFinderException("Error finding external references in an Avro file.", e);
         }
     }
 

@@ -1,3 +1,4 @@
+export const DASHBOARD_PAGE_IDX = -1;
 export const EXPLORE_PAGE_IDX = 0;
 export const SEARCH_PAGE_IDX = 1;
 export const DRAFTS_PAGE_IDX = 2;

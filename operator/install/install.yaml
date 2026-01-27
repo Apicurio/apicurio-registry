@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -325,6 +325,36 @@ spec:
 
                           Set this to 'false' if you want to create your own custom NetworkPolicy.
                         type: boolean
+                    type: object
+                  otel:
+                    description: |
+                      Configure OpenTelemetry observability for Apicurio Registry.
+                      When enabled, Registry exports distributed traces and metrics to an OpenTelemetry collector.
+                    properties:
+                      enabled:
+                        description: |-
+                          Enable OpenTelemetry for distributed tracing, metrics export via OTLP, and log correlation.
+                          When enabled, Apicurio Registry exports telemetry data to an OpenTelemetry collector.
+                          Default is false.
+                        type: boolean
+                      endpoint:
+                        description: |-
+                          The endpoint URL of the OpenTelemetry collector.
+                          Supports both gRPC (typically port 4317) and HTTP (typically port 4318) protocols.
+                          Example: http://jaeger:4317 or http://otel-collector:4317
+                        type: string
+                      protocol:
+                        description: |-
+                          The protocol to use for exporting telemetry data.
+                          Valid values are 'grpc' or 'http/protobuf'. Default is 'grpc'.
+                        type: string
+                      traceSamplingRatio:
+                        description: |-
+                          The sampling ratio for traces when using ratio-based sampling.
+                          Value between 0.0 and 1.0. A value of 0.1 means 10% of traces are sampled.
+                          When set, uses 'parentbased_traceidratio' sampler. When not set, uses 'parentbased_always_on'.
+                          Recommended to set a value (e.g., 0.1) for production deployments.
+                        type: number
                     type: object
                   podDisruptionBudget:
                     description: |
@@ -933,6 +963,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -1487,6 +1519,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -2047,6 +2081,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -4274,6 +4310,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -4828,6 +4866,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -5388,6 +5428,8 @@ spec:
                                               x-kubernetes-int-or-string: true
                                           type: object
                                       type: object
+                                    stopSignal:
+                                      type: string
                                   type: object
                                 livenessProbe:
                                   properties:
@@ -6711,7 +6753,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -6723,7 +6765,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
   name: apicurio-registry-operator-clusterrole
 rules:
 - apiGroups:
@@ -6792,7 +6834,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
   name: apicurio-registry-operator-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -6812,8 +6854,8 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.1.5-SNAPSHOT
-  name: apicurio-registry-operator-v3.1.5-snapshot
+    app.kubernetes.io/version: 3.1.7-SNAPSHOT
+  name: apicurio-registry-operator-v3.1.7-snapshot
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -6824,7 +6866,7 @@ spec:
       app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.1.5-SNAPSHOT
+      app.kubernetes.io/version: 3.1.7-SNAPSHOT
   template:
     metadata:
       labels:
@@ -6833,7 +6875,7 @@ spec:
         app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.1.5-SNAPSHOT
+        app.kubernetes.io/version: 3.1.7-SNAPSHOT
     spec:
       containers:
       - env:

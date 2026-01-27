@@ -1,0 +1,162 @@
+static_resources:
+  listeners:
+    - name: listener_0
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 8081
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                codec_type: AUTO
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: backend
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: "/"
+                          route:
+                            cluster: apicurio_registry
+                            timeout: 60s
+                http_filters:
+                  # Step 1: Validate JWT tokens and inject identity headers
+                  - name: envoy.filters.http.jwt_authn
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                      providers:
+                        keycloak:
+                          issuer: http://localhost:8080/realms/registry
+                          audiences:
+                            - apicurio-registry
+                            - registry-api
+                            - account
+                          remote_jwks:
+                            http_uri:
+                              uri: http://keycloak:8080/realms/registry/protocol/openid-connect/certs
+                              cluster: keycloak
+                              timeout: 5s
+                            cache_duration:
+                              seconds: 300
+                          forward: true
+                          payload_in_metadata: jwt_payload
+                          claim_to_headers:
+                            - header_name: x-forwarded-user
+                              claim_name: preferred_username
+                            - header_name: x-forwarded-email
+                              claim_name: email
+                      rules:
+                        # Allow anonymous access to system endpoints
+                        - match:
+                            prefix: "/apis/registry/v3/system/"
+                          requires:
+                            allow_missing_or_failed: {}
+                        - match:
+                            prefix: "/apis/registry/v2/system/"
+                          requires:
+                            allow_missing_or_failed: {}
+                        # Require authentication for all other endpoints
+                        - match:
+                            prefix: "/"
+                          requires:
+                            provider_name: keycloak
+
+                  # Step 2: Extract roles array and convert to comma-separated string
+                  - name: envoy.filters.http.lua
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      default_source_code:
+                        inline_string: |
+                          function envoy_on_request(request_handle)
+                            -- Get JWT payload from dynamic metadata
+                            local metadata = request_handle:streamInfo():dynamicMetadata():get("envoy.filters.http.jwt_authn")
+
+                            if metadata and metadata.jwt_payload then
+                              local jwt = metadata.jwt_payload
+
+                              -- Extract and format roles from realm_access.roles array
+                              if jwt.realm_access and jwt.realm_access.roles then
+                                local roles = jwt.realm_access.roles
+                                local roles_str = table.concat(roles, ",")
+                                request_handle:headers():add("x-forwarded-groups", roles_str)
+                              end
+                            end
+                          end
+
+                  # Step 3: Call OPA for authorization decision
+                  - name: envoy.filters.http.ext_authz
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                      transport_api_version: V3
+                      grpc_service:
+                        envoy_grpc:
+                          cluster_name: opa
+                        timeout: 1s
+                      with_request_body:
+                        max_request_bytes: 8192
+                        allow_partial_message: true
+                      metadata_context_namespaces:
+                        - envoy.filters.http.jwt_authn
+
+                  # Step 4: Route to backend
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    # Apicurio Registry backend
+    - name: apicurio_registry
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: apicurio_registry
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: apicurio-registry
+                      port_value: 8080
+
+    # Keycloak for JWKS
+    - name: keycloak
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: keycloak
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: keycloak
+                      port_value: 8080
+
+    # OPA for authorization decisions
+    - name: opa
+      connect_timeout: 1s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      http2_protocol_options: {}
+      load_assignment:
+        cluster_name: opa
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: opa
+                      port_value: 9191
+
+admin:
+  access_log_path: /dev/null
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9901

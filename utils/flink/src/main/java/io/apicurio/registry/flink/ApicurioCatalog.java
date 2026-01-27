@@ -45,9 +45,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Flink Catalog implementation backed by Apicurio Registry.
@@ -77,7 +77,26 @@ public final class ApicurioCatalog extends AbstractCatalog {
     public ApicurioCatalog(final CatalogConfig catalogConfig) {
         super(catalogConfig.getName(), catalogConfig.getDefaultDatabase());
         this.config = catalogConfig;
-        this.schemaCache = new ConcurrentHashMap<>();
+        this.schemaCache = createBoundedCache(catalogConfig.getCacheMaxSize());
+    }
+
+    /**
+     * Creates a bounded LRU cache with the specified max size.
+     *
+     * @param maxSize maximum number of entries before eviction
+     * @param <K>     the key type
+     * @param <V>     the value type
+     * @return a synchronized bounded cache
+     */
+    private static <K, V> Map<K, V> createBoundedCache(final int maxSize) {
+        return Collections.synchronizedMap(
+                new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
+                    @Override
+                    protected boolean removeEldestEntry(
+                            final Map.Entry<K, V> eldest) {
+                        return size() > maxSize;
+                    }
+                });
     }
 
     @Override

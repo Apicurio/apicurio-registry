@@ -12,10 +12,10 @@ import java.util.Set;
 import static io.apicurio.registry.flink.ApicurioCatalogOptions.AUTH_CLIENT_ID;
 import static io.apicurio.registry.flink.ApicurioCatalogOptions.AUTH_CLIENT_SECRET;
 import static io.apicurio.registry.flink.ApicurioCatalogOptions.AUTH_PASSWORD;
-import static io.apicurio.registry.flink.ApicurioCatalogOptions.AUTH_TOKEN;
 import static io.apicurio.registry.flink.ApicurioCatalogOptions.AUTH_TOKEN_ENDPOINT;
 import static io.apicurio.registry.flink.ApicurioCatalogOptions.AUTH_TYPE;
 import static io.apicurio.registry.flink.ApicurioCatalogOptions.AUTH_USERNAME;
+import static io.apicurio.registry.flink.ApicurioCatalogOptions.CACHE_MAX_SIZE;
 import static io.apicurio.registry.flink.ApicurioCatalogOptions.CACHE_TTL_MS;
 import static io.apicurio.registry.flink.ApicurioCatalogOptions.DEFAULT_DATABASE;
 import static io.apicurio.registry.flink.ApicurioCatalogOptions.IDENTIFIER;
@@ -44,11 +44,11 @@ public final class ApicurioCatalogFactory implements CatalogFactory {
         options.add(AUTH_TYPE);
         options.add(AUTH_USERNAME);
         options.add(AUTH_PASSWORD);
-        options.add(AUTH_TOKEN);
         options.add(AUTH_TOKEN_ENDPOINT);
         options.add(AUTH_CLIENT_ID);
         options.add(AUTH_CLIENT_SECRET);
         options.add(CACHE_TTL_MS);
+        options.add(CACHE_MAX_SIZE);
         options.add(DEFAULT_DATABASE);
         return options;
     }
@@ -67,11 +67,11 @@ public final class ApicurioCatalogFactory implements CatalogFactory {
                 .authType(cfg.get(AUTH_TYPE))
                 .username(cfg.get(AUTH_USERNAME))
                 .password(cfg.get(AUTH_PASSWORD))
-                .token(cfg.get(AUTH_TOKEN))
                 .tokenEndpoint(cfg.get(AUTH_TOKEN_ENDPOINT))
                 .clientId(cfg.get(AUTH_CLIENT_ID))
                 .clientSecret(cfg.get(AUTH_CLIENT_SECRET))
                 .cacheTtlMs(cfg.get(CACHE_TTL_MS))
+                .cacheMaxSize(cfg.get(CACHE_MAX_SIZE))
                 .build();
 
         return new ApicurioCatalog(config);

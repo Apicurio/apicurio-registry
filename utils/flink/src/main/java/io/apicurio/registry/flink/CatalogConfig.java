@@ -23,9 +23,6 @@ public final class CatalogConfig {
     /** The password. */
     private final String password;
 
-    /** The bearer token. */
-    private final String token;
-
     /** OAuth2 token endpoint. */
     private final String tokenEndpoint;
 
@@ -38,6 +35,9 @@ public final class CatalogConfig {
     /** The cache TTL in ms. */
     private final long cacheTtlMs;
 
+    /** The maximum cache size. */
+    private final int cacheMaxSize;
+
     CatalogConfig(final Builder b) {
         this.name = b.bName;
         this.defaultDatabase = b.bDefaultDatabase;
@@ -45,11 +45,11 @@ public final class CatalogConfig {
         this.authType = b.bAuthType;
         this.username = b.bUsername;
         this.password = b.bPassword;
-        this.token = b.bToken;
         this.tokenEndpoint = b.bTokenEndpoint;
         this.clientId = b.bClientId;
         this.clientSecret = b.bClientSecret;
         this.cacheTtlMs = b.bCacheTtlMs;
+        this.cacheMaxSize = b.bCacheMaxSize;
     }
 
     /**
@@ -107,15 +107,6 @@ public final class CatalogConfig {
     }
 
     /**
-     * Gets the bearer token.
-     *
-     * @return the token
-     */
-    public String getToken() {
-        return token;
-    }
-
-    /**
      * Gets the OAuth2 token endpoint.
      *
      * @return the endpoint
@@ -152,6 +143,15 @@ public final class CatalogConfig {
     }
 
     /**
+     * Gets the maximum cache size.
+     *
+     * @return the max cache size
+     */
+    public int getCacheMaxSize() {
+        return cacheMaxSize;
+    }
+
+    /**
      * Creates a new builder.
      *
      * @return the builder
@@ -183,9 +183,6 @@ public final class CatalogConfig {
         /** The password. */
         private String bPassword;
 
-        /** The bearer token. */
-        private String bToken;
-
         /** OAuth2 token endpoint. */
         private String bTokenEndpoint;
 
@@ -197,6 +194,9 @@ public final class CatalogConfig {
 
         /** The cache TTL in milliseconds. */
         private long bCacheTtlMs = ApicurioCatalogOptions.DEFAULT_CACHE_TTL_MS;
+
+        /** The maximum cache size. */
+        private int bCacheMaxSize = ApicurioCatalogOptions.DEFAULT_CACHE_MAX_SIZE;
 
         Builder() {
         }
@@ -268,17 +268,6 @@ public final class CatalogConfig {
         }
 
         /**
-         * Sets bearer token.
-         *
-         * @param val the value
-         * @return this builder
-         */
-        public Builder token(final String val) {
-            this.bToken = val;
-            return this;
-        }
-
-        /**
          * Sets OAuth2 token endpoint.
          *
          * @param val the value
@@ -319,6 +308,17 @@ public final class CatalogConfig {
          */
         public Builder cacheTtlMs(final long val) {
             this.bCacheTtlMs = val;
+            return this;
+        }
+
+        /**
+         * Sets maximum cache size.
+         *
+         * @param val the value
+         * @return this builder
+         */
+        public Builder cacheMaxSize(final int val) {
+            this.bCacheMaxSize = val;
             return this;
         }
 

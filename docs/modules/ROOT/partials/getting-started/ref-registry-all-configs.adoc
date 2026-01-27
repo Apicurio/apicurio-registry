@@ -572,6 +572,66 @@ The following {registry} configuration options are available for each component 
         e.g. `/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`.         You might disable this tag to reduce metrics cardinality.         When an unsubstituted REST API resource path could not be determined,
         the tag value will be `(unspecified)`.
 
+|`quarkus.otel.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|Enable or disable OpenTelemetry for distributed tracing, metrics export via OTLP, and log correlation. When enabled, {registry} exports telemetry data to an OpenTelemetry collector.
+|`quarkus.otel.exporter.otlp.endpoint`
+|`string`
+|`http://localhost:4317`
+|`3.1.7`
+|The endpoint URL of the OpenTelemetry collector. Supports both gRPC (port 4317) and HTTP (port 4318) protocols.
+|`quarkus.otel.exporter.otlp.protocol`
+|`string`
+|`grpc`
+|`3.1.7`
+|The protocol to use for exporting telemetry data. Valid values are `grpc` or `http/protobuf`.
+|`quarkus.otel.instrument.kafka`
+|`boolean`
+|`true`
+|`3.1.7`
+|Enable or disable automatic tracing instrumentation for Kafka operations. Useful for tracing in KafkaSQL storage deployments.
+|`quarkus.otel.logs.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|BUILD-TIME property to enable log export via OpenTelemetry. When enabled along with JSON logging, trace context is automatically included in log entries. Use `quarkus.otel.sdk.disabled` to control log export at runtime.
+|`quarkus.otel.metrics.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|BUILD-TIME property to enable metrics export via OpenTelemetry. This works alongside existing Prometheus metrics export. Use `quarkus.otel.sdk.disabled` to control metrics at runtime.
+|`quarkus.otel.resource.attributes`
+|`optional<string>`
+|
+|`3.1.7`
+|Additional resource attributes to include in telemetry data, specified as comma-separated key=value pairs. Example: `service.version=3.0.0,deployment.environment=production`
+|`quarkus.otel.sdk.disabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|Disable the OpenTelemetry SDK at runtime. Set to `false` to enable OpenTelemetry. This is the primary runtime control for enabling/disabling all telemetry signals.
+|`quarkus.otel.service.name`
+|`string`
+|`apicurio-registry`
+|`3.1.7`
+|The logical service name for this {registry} instance. This name appears in traces and metrics exported to the OpenTelemetry collector.
+|`quarkus.otel.traces.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|BUILD-TIME property to enable distributed tracing instrumentation. When enabled, {registry} creates spans for REST API requests and storage operations. Use `quarkus.otel.sdk.disabled` to control tracing at runtime.
+|`quarkus.otel.traces.sampler`
+|`string`
+|`parentbased_always_on`
+|`3.1.7`
+|The sampling strategy for traces. Use `parentbased_always_on` for development or `parentbased_traceidratio` for production to reduce overhead.
+|`quarkus.otel.traces.sampler.arg`
+|`string`
+|`1.0`
+|`3.1.7`
+|The sampling ratio when using `parentbased_traceidratio` sampler. A value of `0.1` means 10% of traces are sampled.
 |===
 
 == redirects

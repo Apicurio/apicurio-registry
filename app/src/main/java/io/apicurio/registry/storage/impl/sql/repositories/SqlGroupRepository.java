@@ -65,6 +65,14 @@ public class SqlGroupRepository {
     @Inject
     HandleFactory handles;
 
+    /**
+     * Set the HandleFactory to use for database operations.
+     * This allows storage implementations to override the default injected HandleFactory.
+     */
+    public void setHandleFactory(HandleFactory handleFactory) {
+        this.handles = handleFactory;
+    }
+
     @Inject
     SecurityIdentity securityIdentity;
 

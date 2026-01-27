@@ -242,6 +242,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     protected void initialize(HandleFactory handleFactory, boolean emitStorageReadyEvent) {
         this.handles = handleFactory;
 
+        // Configure all repositories to use the same HandleFactory
+        // This is essential for GitOps storage which uses a different datasource
+        configureRepositories(handleFactory);
+
         log.info("SqlRegistryStorage constructed successfully.");
 
         handles.withHandleNoException((handle) -> {
@@ -310,6 +314,29 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
              */
             storageEvent.fireAsync(StorageEvent.builder().type(StorageEventType.READY).build());
         }
+    }
+
+    /**
+     * Configure all repositories to use the specified HandleFactory.
+     * This ensures that storage implementations using a different datasource (like GitOps)
+     * can override the default CDI-injected HandleFactory.
+     */
+    protected void configureRepositories(HandleFactory handleFactory) {
+        artifactRepository.setHandleFactory(handleFactory);
+        versionRepository.setHandleFactory(handleFactory);
+        groupRepository.setHandleFactory(handleFactory);
+        branchRepository.setHandleFactory(handleFactory);
+        ruleRepository.setHandleFactory(handleFactory);
+        contentRepository.setHandleFactory(handleFactory);
+        searchRepository.setHandleFactory(handleFactory);
+        commentRepository.setHandleFactory(handleFactory);
+        configRepository.setHandleFactory(handleFactory);
+        roleMappingRepository.setHandleFactory(handleFactory);
+        downloadRepository.setHandleFactory(handleFactory);
+        sequenceRepository.setHandleFactory(handleFactory);
+        exportRepository.setHandleFactory(handleFactory);
+        eventRepository.setHandleFactory(handleFactory);
+        cleanupRepository.setHandleFactory(handleFactory);
     }
 
     /**

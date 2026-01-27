@@ -1,0 +1,359 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="managing-registry-artifacts-cli_{context}"]
+= Managing {registry} content using the command-line interface
+
+[role="_abstract"]
+You can use the {registry} command-line interface (CLI) to manage {registry} content from the command line. The CLI provides commands for managing contexts, groups, and other registry operations.
+
+ifndef::service-registry-downstream[]
+[NOTE]
+====
+The CLI is currently in *dev-preview* status. The following limitations apply:
+
+* The CLI does not support Windows; you need a bash shell
+* The CLI currently implements only group management commands
+* Authentication configuration is not yet available
+* Future releases will include additional commands
+====
+endif::[]
+
+ifdef::service-registry-downstream[]
+[IMPORTANT]
+====
+The CLI is a Technology Preview feature. Technology Preview features are not supported with Red{nbsp}Hat production service level agreements (SLAs) and might not be functionally complete. Red{nbsp}Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process.
+====
+endif::[]
+
+* xref:installing-registry-cli_{context}[]
+* xref:configuring-registry-cli-contexts_{context}[]
+* xref:managing-groups-using-registry-cli_{context}[]
+* xref:registry-cli-output-formats_{context}[]
+* xref:registry-cli-reference_{context}[]
+
+.Prerequisites
+* You have installed {registry} and it is running in your environment.
+* You have Java 11 or higher installed.
+* You have access to a bash shell (Linux or macOS).
+
+//INCLUDES
+
+[id="installing-registry-cli_{context}"]
+== Installing the {registry} CLI
+
+[role="_abstract"]
+You can install the {registry} CLI to interact with {registry} from the command line. The CLI comes as a .zip file that has the executable program and required dependencies.
+
+.Prerequisites
+* You have Java 11 or higher installed on your system.
+* You have access to a bash shell.
+
+.Procedure
+ifndef::service-registry-downstream[]
+. Download the CLI .zip file from the https://github.com/Apicurio/apicurio-registry/releases[GitHub Releases] page or the https://search.maven.org/search?q=g:io.apicurio%20AND%20a:apicurio-registry-cli[Maven Central repository].
+endif::[]
+ifdef::service-registry-downstream[]
+. Download the CLI .zip file from the Red{nbsp}Hat Customer Portal.
+endif::[]
+. Extract the downloaded file to a location of your choice:
++
+[source,bash]
+----
+$ unzip apicurio-registry-cli-VERSION.zip -d ~/apicurio-cli
+----
+. Install the CLI for the current user:
++
+[source,bash]
+----
+$ cd ~/apicurio-cli
+$ ./acr install
+----
++
+This command installs the CLI files to `$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`, updates your `~/.bashrc` file, and configures bash completions.
+. Reload your shell configuration:
++
+[source,bash]
+----
+$ source ~/.bashrc
+----
+. Verify the installation:
++
+[source,bash]
+----
+$ acr --help
+----
+
+[role="_additional-resources"]
+.Additional resources
+ifndef::service-registry-downstream[]
+* For more information, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README] on GitHub.
+endif::[]
+
+
+[id="configuring-registry-cli-contexts_{context}"]
+== Configuring CLI contexts
+
+[role="_abstract"]
+With contexts, you can work with many {registry} instances. A context stores the registry URL and identifies the instance that the CLI commands target. You can create many contexts and switch between them as needed.
+
+.Procedure
+. Create a new context for your {registry} instance:
++
+[source,bash,subs="+quotes"]
+----
+$ acr context create _CONTEXT_NAME_ _REGISTRY_URL_
+----
++
+For example:
++
+[source,bash]
+----
+$ acr context create dev http://localhost:8080
+----
++
+The CLI automatically switches to the newly created context.
+. List all configured contexts:
++
+[source,bash]
+----
+$ acr context
+----
++
+.Example output
+[source]
+----
+CURRENT   NAME   URL
+*         dev    http://localhost:8080
+----
++
+The asterisk (*) indicates the current active context.
+. Optional: Create additional contexts without switching to them:
++
+[source,bash]
+----
+$ acr context create prod http://registry.example.com --no-switch-current
+----
+. Delete a context that you no longer need:
++
+[source,bash,subs="+quotes"]
+----
+$ acr context delete _CONTEXT_NAME_
+----
+
+
+[id="managing-groups-using-registry-cli_{context}"]
+== Managing groups using the CLI
+
+[role="_abstract"]
+You can use the CLI to create, list, update, and delete artifact groups in {registry}. Groups offer a way to organize related artifacts.
+
+.Prerequisites
+* You have configured at least one CLI context.
+
+.Procedure
+. List all groups in the registry:
++
+[source,bash]
+----
+$ acr group
+----
++
+You can use pagination options for large result sets:
++
+[source,bash]
+----
+$ acr group --page 1 --size 50
+----
+. Create a new group:
++
+[source,bash,subs="+quotes"]
+----
+$ acr group create _GROUP_ID_
+----
++
+You can include a description and labels:
++
+[source,bash]
+----
+$ acr group create my-schemas --description "Production schemas" --label env=prod --label team=platform
+----
+. Get details for a specific group:
++
+[source,bash,subs="+quotes"]
+----
+$ acr group get _GROUP_ID_
+----
++
+For example:
++
+[source,bash]
+----
+$ acr group get my-schemas
+----
+. Update a group description or labels:
++
+[source,bash]
+----
+$ acr group update my-schemas --description "Updated description"
+----
++
+To add or update labels:
++
+[source,bash]
+----
+$ acr group update my-schemas --set-label env=staging --set-label owner=alice
+----
++
+To delete labels:
++
+[source,bash]
+----
+$ acr group update my-schemas --delete-label env
+----
+. Delete a group:
++
+[source,bash,subs="+quotes"]
+----
+$ acr group delete _GROUP_ID_
+----
++
+To delete a group that has artifacts, use the `--force` option:
++
+[source,bash]
+----
+$ acr group delete my-schemas --force
+----
+
+[NOTE]
+====
+You must configure {registry} with `apicurio.rest.deletion.group.enabled=true` to allow group deletions. By default, you cannot delete a group that has artifacts unless you use the `--force` option.
+====
+
+
+[id="registry-cli-output-formats_{context}"]
+== CLI output formats and pagination
+
+[role="_abstract"]
+The CLI supports different output formats and pagination options for managing large result sets.
+
+.Output formats
+The CLI supports the following output formats:
+
+* `table` (default) - Human-readable tabular format
+* `json` - Machine-readable JSON format
+
+To specify the output format, use the `--output-type` or `-o` option:
+
+[source,bash]
+----
+$ acr group --output-type json
+$ acr group get my-schemas -o json
+----
+
+.Pagination
+For commands that return lists, you can use pagination options:
+
+* `--page` - The page number (starting from 1)
+* `--size` - The number of items per page
+
+For example:
+[source,bash]
+----
+$ acr group --page 2 --size 25
+----
+
+
+[id="registry-cli-reference_{context}"]
+== CLI reference
+
+[role="_abstract"]
+The following tables describe CLI global options and exit codes.
+
+.Global options
+The following options are available for most CLI commands:
+
+[cols="2,3", options="header"]
+|===
+| Option
+| Description
+
+| `--verbose`, `-v`
+| Enable verbose output for debugging.
+
+| `--help`, `-h`
+| Display help information for the command.
+
+| `--output-type`, `-o`
+| Set the output format. Valid values are `table` (default) and `json`.
+|===
+
+.Exit codes
+The CLI uses the following exit codes:
+
+[cols="1,3", options="header"]
+|===
+| Code
+| Description
+
+| 0
+| Successful execution.
+
+| 1
+| Application error.
+
+| 2
+| Input validation error.
+
+| 3
+| {registry} server error.
+|===
+
+.Command summary
+The following commands are currently available:
+
+[cols="2,3", options="header"]
+|===
+| Command
+| Description
+
+| `acr context`
+| List all configured contexts.
+
+| `acr context create`
+| Create a new context.
+
+| `acr context delete`
+| Delete a context.
+
+| `acr group`
+| List all groups.
+
+| `acr group create`
+| Create a new group.
+
+| `acr group get`
+| Get group details.
+
+| `acr group update`
+| Update a group.
+
+| `acr group delete`
+| Delete a group.
+
+| `acr install`
+| Install the CLI for the current user.
+
+| `acr update`
+| Update the CLI to a newer version.
+
+| `acr version`
+| Display CLI version information.
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* {managing-registry-artifacts-api}
+* {rest-client}
+ifndef::service-registry-downstream[]
+* For the latest CLI documentation, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README] on GitHub.
+endif::[]

@@ -15,6 +15,7 @@
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]
+** xref:getting-started/assembly-managing-registry-artifacts-cli.adoc[]
 ** xref:getting-started/assembly-using-the-registry-client.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-maven.adoc[]
 * Kafka client serializers/deserialisers

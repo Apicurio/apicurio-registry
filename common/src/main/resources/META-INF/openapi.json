@@ -5457,7 +5457,7 @@
         }
       },
       "EditableGroupMetaData": {
-        "title": "Root Type for EditableArtifactMetaData",
+        "title": "Root Type for EditableGroupMetaData",
         "description": "",
         "type": "object",
         "properties": {
@@ -5467,10 +5467,15 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "owner": {
+            "description": "",
+            "type": "string"
           }
         },
         "example": {
           "description": "The description of the group.",
+          "owner": "user-1",
           "labels": {
             "custom-1": "foo",
             "custom-2": "bar"

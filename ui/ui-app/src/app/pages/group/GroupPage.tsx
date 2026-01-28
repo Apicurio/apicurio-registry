@@ -195,6 +195,10 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         setInvalidContentModalOpen(true);
     };
 
+    const openChangeOwnerModal = (): void => {
+        setIsChangeOwnerModalOpen(true);
+    };
+
     const onEditModalClose = (): void => {
         setIsEditModalOpen(false);
     };
@@ -253,7 +257,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
             <GroupOverviewTabContent
                 group={group as GroupMetaData}
                 onEditMetaData={() => setIsEditModalOpen(true)}
-                onChangeOwner={() => {}}
+                onChangeOwner={openChangeOwnerModal}
                 onCreateArtifact={onCreateArtifact}
                 onViewArtifact={onViewArtifact}
                 onDeleteArtifact={onDeleteArtifact}

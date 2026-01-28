@@ -687,12 +687,35 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroup()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroupDescription()
      */
     @Override
-    public String updateGroup() {
-        return "UPDATE " + groupsTable()
-                + " SET description = ? , modifiedBy = ? , modifiedOn = ? , labels = ? WHERE groupId = ?";
+    public String updateGroupDescription() {
+        return "UPDATE " + groupsTable() + " SET description = ? WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroupOwner()
+     */
+    @Override
+    public String updateGroupOwner() {
+        return "UPDATE " + groupsTable() + " SET owner = ? WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroupLabels()
+     */
+    @Override
+    public String updateGroupLabels() {
+        return "UPDATE " + groupsTable() + " SET labels = ? WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroupModifiedByOn()
+     */
+    @Override
+    public String updateGroupModifiedByOn() {
+        return "UPDATE " + groupsTable() + " SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ?";
     }
 
     /**

@@ -599,6 +599,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         EditableGroupMetaDataDto dto = new EditableGroupMetaDataDto();
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
+        dto.setOwner(data.getOwner());
         storage.updateGroupMetaData(new GroupId(groupId).getRawGroupIdWithNull(), dto);
     }
 

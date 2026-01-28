@@ -88,3 +88,19 @@ JSON metadata documents that describe AI agents according to the A2A Protocol. T
 to register, version, and search for AI agent definitions, as well as apply compatibility rules to
 ensure safe evolution of agent capabilities. This is useful for organizations building agentic AI
 applications that need to discover and communicate with each other.
+
+## A2A Real-World Integration Example
+This example demonstrates **actual working A2A protocol integration** with Apicurio Registry. Unlike
+simulated examples, this runs real HTTP servers that implement the A2A protocol and communicate over
+the network. Features include:
+
+- **Mock Agents**: Real HTTP servers on ports 9001-9003 implementing A2A endpoints
+- **A2A Discovery**: Agents expose `/.well-known/agent.json` for capability discovery
+- **A2A Tasks**: Agents accept `POST /a2a` with JSON-RPC for task execution
+- **Orchestrator**: Makes real HTTP requests to discover and invoke agents
+- **Registry Integration**: Agents registered and discovered via `/.well-known/agents`
+
+The demo includes a multi-agent workflow that processes customer complaints through sentiment analysis,
+summarization, and translation agents - all using real HTTP communication.
+
+See the [a2a-real-world-integration](a2a-real-world-integration/) directory for details.

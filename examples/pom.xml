@@ -58,8 +58,7 @@
     <module>tools/kafkasql-topic-import</module>
     <module>otel-tracing</module>
     <module>debezium-otel-tracing</module>
-    <module>a2a-agent-card</module>
-    <module>a2a-enterprise-agents</module>
+    <module>a2a-real-world-integration</module>
   </modules>
 
   <scm>

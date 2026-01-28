@@ -52,7 +52,7 @@
     "@patternfly/react-icons": "5.4.2",
     "@patternfly/react-table": "5.4.16",
     "@xyflow/react": "12.10.0",
-    "axios": "1.13.3",
+    "axios": "1.13.4",
     "html-to-image": "1.11.13",
     "buffer": "6.0.3",
     "luxon": "3.7.2",

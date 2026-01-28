@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: quay.io/strimzi/kafka:0.41.0-kafka-3.7.0
+    container_name: order-demo-zookeeper
+    command: [
+      "sh", "-c",
+      "bin/zookeeper-server-start.sh config/zookeeper.properties"
+    ]
+    ports:
+      - "2181:2181"
+    environment:
+      LOG_DIR: /tmp/logs
+    networks:
+      - order-demo-network
+
+  kafka:
+    image: quay.io/strimzi/kafka:0.41.0-kafka-3.7.0
+    container_name: order-demo-kafka
+    command: [
+      "sh", "-c",
+      "bin/kafka-server-start.sh config/server.properties --override listeners=$${KAFKA_LISTENERS} --override advertised.listeners=$${KAFKA_ADVERTISED_LISTENERS} --override zookeeper.connect=$${KAFKA_ZOOKEEPER_CONNECT}"
+    ]
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      LOG_DIR: "/tmp/logs"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    networks:
+      - order-demo-network
+
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: order-demo-registry
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    networks:
+      - order-demo-network
+
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: order-demo-registry-ui
+    depends_on:
+      - apicurio-registry
+    ports:
+      - "8888:8080"
+    networks:
+      - order-demo-network
+
+networks:
+  order-demo-network:
+    driver: bridge

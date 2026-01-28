@@ -31,7 +31,7 @@ import {
 } from "@patternfly/react-core";
 import { SearchIcon, CubesIcon, ExternalLinkAltIcon } from "@patternfly/react-icons";
 import { RootPageHeader } from "@app/components";
-import { PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
+import { AGENTS_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
     AgentSearchFilters,
     AgentSearchResult,
@@ -41,8 +41,6 @@ import {
 import { Paging } from "@models/Paging.ts";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
 import { FromNow } from "@apicurio/common-ui-components";
-
-export const AGENTS_PAGE_IDX = 5;
 
 const EMPTY_RESULTS: AgentSearchResults = {
     agents: [],

@@ -17,6 +17,15 @@ static_resources:
                   virtual_hosts:
                     - name: backend
                       domains: ["*"]
+                      cors:
+                        allow_origin_string_match:
+                          - safe_regex:
+                              regex: "http://localhost:8888"
+                        allow_methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                        allow_headers: "authorization, content-type, x-requested-with, accept, user-agent"
+                        expose_headers: "content-type, content-length"
+                        allow_credentials: true
+                        max_age: "86400"
                       routes:
                         - match:
                             prefix: "/"
@@ -24,7 +33,12 @@ static_resources:
                             cluster: apicurio_registry
                             timeout: 60s
                 http_filters:
-                  # Step 1: Validate JWT tokens and inject identity headers
+                  # Step 1: CORS filter for browser requests from UI
+                  - name: envoy.filters.http.cors
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+
+                  # Step 2: Validate JWT tokens and inject identity headers
                   - name: envoy.filters.http.jwt_authn
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
@@ -65,7 +79,7 @@ static_resources:
                           requires:
                             provider_name: keycloak
 
-                  # Step 2: Extract roles array and convert to comma-separated string
+                  # Step 3: Extract roles array and convert to comma-separated string
                   - name: envoy.filters.http.lua
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
@@ -87,7 +101,7 @@ static_resources:
                             end
                           end
 
-                  # Step 3: Call OPA for authorization decision
+                  # Step 4: Call OPA for authorization decision
                   - name: envoy.filters.http.ext_authz
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
@@ -102,7 +116,7 @@ static_resources:
                       metadata_context_namespaces:
                         - envoy.filters.http.jwt_authn
 
-                  # Step 4: Route to backend
+                  # Step 5: Route to backend
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router

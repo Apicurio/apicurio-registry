@@ -145,6 +145,23 @@ The OPA policy (`policy.rego`) implements the following rules:
 - **OPA**: http://localhost:8181/v1/data/envoy/authz/allow (internal use)
 - **Envoy Admin**: http://localhost:9901 (metrics and stats)
 
+### Using the Web UI
+
+The Apicurio Registry UI is configured to use OIDC authentication with Keycloak:
+
+1. Navigate to http://localhost:8888
+2. Click the login button
+3. You will be redirected to Keycloak for authentication
+4. Log in with one of the test users (see below)
+5. After successful authentication, you will be redirected back to the UI with a JWT token
+6. The UI will use this token in the `Authorization: Bearer` header for all API requests to Envoy
+7. Envoy validates the token and enforces authorization via OPA
+
+**Important**: The UI is configured with `REGISTRY_AUTH_RBAC_ENABLED: "true"` to match the OPA RBAC
+policies. This means the UI will show/hide features based on user roles:
+- Read-only users will not see write/delete actions
+- Admin users will see all available features
+
 ### Test Users
 
 The Keycloak realm includes pre-configured test users:
@@ -322,6 +339,33 @@ docker-compose restart opa
 ### Changing Identity Headers
 
 Edit `envoy.yaml` in the Lua filter section to change header names or add additional headers from JWT claims.
+
+### Customizing UI Configuration
+
+The UI authentication is configured via environment variables in `docker-compose.yml`:
+
+```yaml
+environment:
+  # API URL - must point to Envoy, not directly to Registry
+  REGISTRY_API_URL: "http://localhost:8081/apis/registry/v3"
+
+  # OIDC Configuration
+  REGISTRY_AUTH_TYPE: "oidc"
+  REGISTRY_AUTH_URL: "http://localhost:8080/realms/registry"
+  REGISTRY_AUTH_CLIENT_ID: "apicurio-registry"
+  REGISTRY_AUTH_REDIRECT_URL: "http://localhost:8888"
+
+  # Authorization Features
+  REGISTRY_AUTH_RBAC_ENABLED: "true"
+  REGISTRY_AUTH_OBAC_ENABLED: "false"
+```
+
+Additional UI configuration options available (see `ui/.docker-scripts/create-config.cjs`):
+- `REGISTRY_AUTH_CLIENT_SCOPES` - Custom OIDC scopes
+- `REGISTRY_AUTH_LOGOUT_URL` - Custom logout URL
+- `REGISTRY_FEATURE_READ_ONLY` - Enable read-only mode for UI
+- `REGISTRY_FEATURE_ROLE_MANAGEMENT` - Show/hide role management UI
+- `REGISTRY_DELETE_*_ENABLED` - Control deletion features visibility
 
 ## Production Deployment Considerations
 

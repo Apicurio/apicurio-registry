@@ -105,9 +105,18 @@ services:
     image: apicurio/apicurio-registry-ui:latest-snapshot
     container_name: apicurio-registry-ui-envoy-opa
     environment:
+      # API URL points to Envoy (not directly to Registry)
       REGISTRY_API_URL: "http://localhost:8081/apis/registry/v3"
+
+      # OIDC Authentication Configuration
       REGISTRY_AUTH_TYPE: "oidc"
       REGISTRY_AUTH_URL: "http://localhost:8080/realms/registry"
+      REGISTRY_AUTH_CLIENT_ID: "apicurio-registry"
+      REGISTRY_AUTH_REDIRECT_URL: "http://localhost:8888"
+
+      # Authorization Configuration
+      REGISTRY_AUTH_RBAC_ENABLED: "true"
+      REGISTRY_AUTH_OBAC_ENABLED: "false"
     ports:
       - "8888:8080"
     depends_on:

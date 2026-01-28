@@ -5,7 +5,8 @@ import future.keywords.if
 import future.keywords.in
 
 # Default deny - explicit allow required
-default allow := false
+# Note: Must use "allowed" for Envoy ext_authz gRPC integration
+default allowed := false
 
 # Extract JWT payload from Envoy metadata
 jwt_payload := payload if {
@@ -35,26 +36,26 @@ has_role(role) if {
 }
 
 # Allow anonymous access to system endpoints
-allow if {
+allowed if {
     startswith(request_path, "/apis/registry/v3/system/")
 }
 
-allow if {
+allowed if {
     startswith(request_path, "/apis/registry/v2/system/")
 }
 
 # Admin users can do anything
-allow if {
+allowed if {
     has_role("sr-admin")
 }
 
 # Developer users can read and write
-allow if {
+allowed if {
     has_role("sr-developer")
 }
 
 # Read-only users can only GET
-allow if {
+allowed if {
     has_role("sr-readonly")
     http_method == "GET"
 }

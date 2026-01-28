@@ -18,8 +18,8 @@
     <description>AI-powered support assistant for Apicurio Registry with RAG and LLM integration</description>
 
     <properties>
-        <quarkus-langchain4j.version>0.22.0</quarkus-langchain4j.version>
-        <jsoup.version>1.18.3</jsoup.version>
+        <quarkus-langchain4j.version>0.26.2</quarkus-langchain4j.version>
+        <jsoup.version>1.22.1</jsoup.version>
     </properties>
 
     <dependencies>

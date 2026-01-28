@@ -44,22 +44,26 @@ public class ProtobufContentValidator implements ContentValidator {
                     ProtobufFile.toProtoFileElement(content.getContent().content());
                 }
                 else {
-
-                    final Map<String, String> requiredDeps = resolvedReferences.entrySet().stream().collect(
-                            Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getContent().content()));
-
+                    // Convert main content if binary (base64-encoded)
                     final ProtoFileElement protoFileElement = ProtobufFile
                             .toProtoFileElement(content.getContent().content());
+                    String textMainContent = protoFileElement.toSchema();
 
-                    final Set<FileDescriptorUtils.ProtobufSchemaContent> dependencies = resolvedReferences.entrySet()
+                    // Convert references if binary and build required deps map with text content
+                    final Map<String, String> requiredDeps = resolvedReferences.entrySet().stream().collect(
+                            Collectors.toMap(Map.Entry::getKey,
+                                    e -> ProtobufFile.toProtoFileElement(e.getValue().getContent().content()).toSchema()));
+
+                    final Set<FileDescriptorUtils.ProtobufSchemaContent> dependencies = requiredDeps.entrySet()
                             .stream()
-                            .map(e -> FileDescriptorUtils.ProtobufSchemaContent.of(e.getKey(), e.getValue().getContent().content()))
+                            .map(e -> FileDescriptorUtils.ProtobufSchemaContent.of(e.getKey(), e.getValue()))
                             .collect(Collectors.toSet());
 
                     MessageElement firstMessage = FileDescriptorUtils.firstMessage(protoFileElement);
+                    String fileName = firstMessage != null ? firstMessage.getName() : "schema";
 
-                    FileDescriptorUtils.ProtobufSchemaContent mainFile = FileDescriptorUtils.ProtobufSchemaContent.of(firstMessage.getName(),
-                            content.getContent().content());
+                    FileDescriptorUtils.ProtobufSchemaContent mainFile = FileDescriptorUtils.ProtobufSchemaContent.of(fileName,
+                            textMainContent);
 
                     FileDescriptorUtils.parseProtoFileWithDependencies(mainFile, dependencies, requiredDeps, true, true);
                 }

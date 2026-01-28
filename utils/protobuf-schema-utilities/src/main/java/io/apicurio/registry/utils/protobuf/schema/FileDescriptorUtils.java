@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.Base64;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -99,6 +100,59 @@ public class FileDescriptorUtils {
 
     public static FileDescriptor[] baseDependencies() {
         return WELL_KNOWN_DEPENDENCIES.clone();
+    }
+
+    /**
+     * Parse content as ProtoFileElement, trying text format first,
+     * then falling back to binary FileDescriptorProto format (base64-encoded).
+     * This follows the pattern established in ProtobufFile.toProtoFileElement().
+     */
+    public static ProtoFileElement parseWithBinaryFallback(Location location, String content) {
+        try {
+            return ProtoParser.Companion.parse(location, content);
+        } catch (Exception textException) {
+            try {
+                byte[] decodedBytes = Base64.getDecoder().decode(content);
+                DescriptorProtos.FileDescriptorProto descriptorProto =
+                    DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+                return fileDescriptorToProtoFile(descriptorProto);
+            } catch (Exception binaryException) {
+                throw new RuntimeException("Failed to parse as text or binary protobuf", textException);
+            }
+        }
+    }
+
+    /**
+     * Check if the content is likely a binary (base64-encoded) protobuf schema.
+     * Text protobuf schemas typically start with syntax, package, import, message, enum, or comments.
+     */
+    private static boolean isBinaryFormat(String content) {
+        if (content == null || content.isEmpty()) {
+            return false;
+        }
+        String trimmed = content.trim();
+        // Text protobuf typically starts with these keywords or comments
+        return !trimmed.startsWith("syntax") &&
+               !trimmed.startsWith("package") &&
+               !trimmed.startsWith("import") &&
+               !trimmed.startsWith("message") &&
+               !trimmed.startsWith("enum") &&
+               !trimmed.startsWith("service") &&
+               !trimmed.startsWith("option") &&
+               !trimmed.startsWith("//") &&
+               !trimmed.startsWith("/*");
+    }
+
+    /**
+     * Convert schema content to text format if it's binary (base64-encoded).
+     * Returns original content if already in text format.
+     */
+    public static String toTextFormat(String content) {
+        if (!isBinaryFormat(content)) {
+            return content;
+        }
+        ProtoFileElement element = parseWithBinaryFallback(DEFAULT_LOCATION, content);
+        return element.toSchema();
     }
 
     // Parse a self-contained descriptor proto just with the base dependencies.
@@ -312,7 +366,7 @@ public class FileDescriptorUtils {
         for (ProtobufSchemaContent schema : schemas) {
             final ProtoFileElement protoFile;
             try {
-                protoFile = ProtoParser.Companion.parse(DEFAULT_LOCATION, schema.schemaDefinition());
+                protoFile = parseWithBinaryFallback(DEFAULT_LOCATION, schema.schemaDefinition());
             }
             catch (Throwable t) {
                 if (failFast) {
@@ -329,7 +383,14 @@ public class FileDescriptorUtils {
                 fileName = toProtoFullName(protoFile, schema.fileName());
             }
             protoFileElements.put(fileName, protoFile);
-            schemaContents.put(fileName, schema.schemaDefinition());
+            // Store text representation to ensure downstream processing works correctly
+            // (toFileDescriptorProto doesn't handle binary format).
+            // For text schemas, preserve original content; for binary, convert to text.
+            if (isBinaryFormat(schema.schemaDefinition())) {
+                schemaContents.put(fileName, protoFile.toSchema());
+            } else {
+                schemaContents.put(fileName, schema.schemaDefinition());
+            }
         }
     }
 
@@ -368,13 +429,19 @@ public class FileDescriptorUtils {
         parseSchemas(dependencies, schemaDefinitions, protoFileElements, failFast, useSimpleName);
         final ProtoFileElement mainProtoElement;
         try {
-            mainProtoElement = ProtoParser.Companion.parse(DEFAULT_LOCATION,
+            mainProtoElement = parseWithBinaryFallback(DEFAULT_LOCATION,
                     mainProtoFile.schemaDefinition());
         }
         catch (Throwable t) {
             throw new ParseSchemaException(mainProtoFile.fileName(), t);
         }
-        return resolveFileDescriptor(mainProtoElement, mainProtoFile.schemaDefinition(),
+        // Use text representation to ensure downstream processing works correctly
+        // (toFileDescriptorProto doesn't handle binary format).
+        // For text schemas, preserve original content; for binary, convert to text.
+        String mainSchemaText = isBinaryFormat(mainProtoFile.schemaDefinition())
+                ? mainProtoElement.toSchema()
+                : mainProtoFile.schemaDefinition();
+        return resolveFileDescriptor(mainProtoElement, mainSchemaText,
                 mainProtoFile.fileName(), schemaDefinitions, resolvedDependencies, requiredSchemaDeps,
                 new HashSet<>(), protoFileElements);
     }
@@ -439,8 +506,9 @@ public class FileDescriptorUtils {
                     }
                 }
                 else {
-                    protoFile = ProtoParser.Companion.parse(DEFAULT_LOCATION, schemaDep);
+                    protoFile = parseWithBinaryFallback(DEFAULT_LOCATION, schemaDep);
                 }
+                // schemaDep is already in text format (converted by parseSchemas if binary)
                 fdDep = resolveFileDescriptor(protoFile, schemaDep, fileName, schemaDefinitions,
                         resolvedDependencies, requiredSubDependencies, unresolvedImportNames,
                         cachedProtoFileDependencies);

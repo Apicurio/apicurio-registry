@@ -89,6 +89,24 @@ public class FileDescriptorUtilsTest {
             }
             """;
 
+    // Test schemas with dependencies for base64 binary format testing (Issue #7066)
+    private static final String DEP_PROTO_SCHEMA = """
+            syntax = "proto3";
+            package test;
+            message Dep {
+              string name = 1;
+            }
+            """;
+
+    private static final String ROOT_PROTO_SCHEMA = """
+            syntax = "proto3";
+            package test;
+            import "dep.proto";
+            message Root {
+              Dep d = 1;
+            }
+            """;
+
     private static Stream<Arguments> testProtoFileProvider() {
         return Stream.of(TestOrderingSyntax2.getDescriptor(),
                 TestOrderingSyntax2OptionsExampleName.getDescriptor(),
@@ -407,5 +425,76 @@ public class FileDescriptorUtilsTest {
         Assertions.assertThrows(RuntimeException.class, () -> {
             new ProtobufFile(invalidBase64);
         });
+    }
+
+    /**
+     * Test for Issue #7066: Parse proto file with binary (base64-encoded) dependencies.
+     * This validates that dependencies in binary format can be used when resolving references.
+     */
+    @Test
+    public void testParseProtoFileWithBinaryDependencies() throws Exception {
+        // Create binary (base64) version of dependency
+        DescriptorProtos.FileDescriptorProto depProto = FileDescriptorUtils
+            .protoFileToFileDescriptor(DEP_PROTO_SCHEMA, "dep.proto", Optional.of("test"))
+            .toProto();
+        String base64Dep = Base64.getEncoder().encodeToString(depProto.toByteArray());
+
+        // Main schema as text
+        Set<FileDescriptorUtils.ProtobufSchemaContent> deps = Set.of(
+            FileDescriptorUtils.ProtobufSchemaContent.of("dep.proto", base64Dep));
+
+        FileDescriptorUtils.ProtobufSchemaContent main =
+            FileDescriptorUtils.ProtobufSchemaContent.of("root.proto", ROOT_PROTO_SCHEMA);
+
+        // Should successfully parse with binary dependency
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.parseProtoFileWithDependencies(main, deps, null, true, true);
+        assertNotNull(fd);
+        assertNotNull(fd.findMessageTypeByName("Root"));
+    }
+
+    /**
+     * Test for Issue #7066: Parse proto file when both main and dependencies are in binary format.
+     * This test uses a simple self-contained schema to verify binary format parsing.
+     */
+    @Test
+    public void testParseProtoFileAllBinaryFormat() throws Exception {
+        // Create binary version of a simple schema
+        DescriptorProtos.FileDescriptorProto simpleProto = FileDescriptorUtils
+            .protoFileToFileDescriptor(SIMPLE_PROTO_SCHEMA, "simple.proto", Optional.of("test.example"))
+            .toProto();
+        String base64Simple = Base64.getEncoder().encodeToString(simpleProto.toByteArray());
+
+        // Parse using our binary fallback mechanism (no dependencies needed for this test)
+        FileDescriptorUtils.ProtobufSchemaContent main =
+            FileDescriptorUtils.ProtobufSchemaContent.of("simple.proto", base64Simple);
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.parseProtoFileWithDependencies(main, Set.of(), null, true, true);
+        assertNotNull(fd);
+        assertNotNull(fd.findMessageTypeByName("Person"));
+    }
+
+    /**
+     * Test for Issue #7066: Test the parseWithBinaryFallback helper method directly.
+     */
+    @Test
+    public void testParseWithBinaryFallbackHelper() throws Exception {
+        // Test the new helper method directly
+        DescriptorProtos.FileDescriptorProto proto = FileDescriptorUtils
+            .protoFileToFileDescriptor(SIMPLE_PROTO_SCHEMA, "test.proto", Optional.of("test.example"))
+            .toProto();
+        String base64 = Base64.getEncoder().encodeToString(proto.toByteArray());
+
+        // Text format should work
+        ProtoFileElement textResult = FileDescriptorUtils.parseWithBinaryFallback(
+            FileDescriptorUtils.DEFAULT_LOCATION, SIMPLE_PROTO_SCHEMA);
+        assertNotNull(textResult);
+
+        // Binary format should work via fallback
+        ProtoFileElement binaryResult = FileDescriptorUtils.parseWithBinaryFallback(
+            FileDescriptorUtils.DEFAULT_LOCATION, base64);
+        assertNotNull(binaryResult);
+
+        // Both should produce same package
+        assertEquals(textResult.getPackageName(), binaryResult.getPackageName());
     }
 }

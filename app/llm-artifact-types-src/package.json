@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "cp": "0.2.0",
-    "esbuild": "0.25.11",
+    "esbuild": "0.27.2",
     "rimraf": "6.1.2",
     "typescript": "5.9.3"
   },

@@ -26,18 +26,21 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
 /**
- * A2A Orchestrator - Discovers agents and coordinates multi-agent workflows.
+ * A2A Orchestrator with Context Chaining - Coordinates multi-agent workflows
+ * where each agent receives accumulated context from previous agents.
  *
- * This orchestrator:
- * 1. Discovers agents from the A2A registry (/.well-known/agents)
- * 2. Fetches agent cards to understand their capabilities
+ * Key features:
+ * 1. Context chaining via {{variable}} template substitution
+ * 2. Each agent's output is stored and passed to subsequent agents
  * 3. Sends real A2A JSON-RPC tasks to agents
- * 4. Aggregates results from multiple agents
+ * 4. Optional registry discovery via /.well-known/agents
  */
 public class A2AOrchestrator {
 
@@ -220,62 +223,10 @@ public class A2AOrchestrator {
         return "No response";
     }
 
-    /**
-     * Execute a multi-agent workflow
-     */
-    public List<WorkflowResult> executeWorkflow(String workflowName, List<WorkflowStep> steps)
-            throws Exception {
-        LOGGER.info("");
-        LOGGER.info("================================================================================");
-        LOGGER.info("Executing Workflow: " + workflowName);
-        LOGGER.info("================================================================================");
+    // ==================================================================================
+    // Helper Classes
+    // ==================================================================================
 
-        List<WorkflowResult> results = new ArrayList<>();
-
-        for (int i = 0; i < steps.size(); i++) {
-            WorkflowStep step = steps.get(i);
-            LOGGER.info("");
-            LOGGER.info("[Step " + (i + 1) + "/" + steps.size() + "] " + step.description);
-            LOGGER.info("  Agent: " + step.agentUrl);
-            LOGGER.info("  Task: " + step.task.substring(0, Math.min(80, step.task.length())) + "...");
-
-            try {
-                long startTime = System.currentTimeMillis();
-                String response = sendTask(step.agentUrl, step.task);
-                long duration = System.currentTimeMillis() - startTime;
-
-                WorkflowResult result = new WorkflowResult();
-                result.stepName = step.description;
-                result.agentUrl = step.agentUrl;
-                result.response = response;
-                result.durationMs = duration;
-                result.success = true;
-                results.add(result);
-
-                LOGGER.info("  Result: " + response.substring(0, Math.min(100, response.length())) + "...");
-                LOGGER.info("  Duration: " + duration + "ms");
-
-            } catch (Exception e) {
-                LOGGER.warning("  FAILED: " + e.getMessage());
-                WorkflowResult result = new WorkflowResult();
-                result.stepName = step.description;
-                result.agentUrl = step.agentUrl;
-                result.response = "ERROR: " + e.getMessage();
-                result.success = false;
-                results.add(result);
-            }
-        }
-
-        LOGGER.info("");
-        LOGGER.info("================================================================================");
-        LOGGER.info("Workflow Complete: " + results.stream().filter(r -> r.success).count() +
-                "/" + results.size() + " steps succeeded");
-        LOGGER.info("================================================================================");
-
-        return results;
-    }
-
-    // Helper classes
     public static class AgentInfo {
         public String groupId;
         public String artifactId;
@@ -290,23 +241,133 @@ public class A2AOrchestrator {
         }
     }
 
-    public static class WorkflowStep {
-        public String description;
-        public String agentUrl;
-        public String task;
-
-        public WorkflowStep(String description, String agentUrl, String task) {
-            this.description = description;
-            this.agentUrl = agentUrl;
-            this.task = task;
-        }
-    }
-
     public static class WorkflowResult {
         public String stepName;
         public String agentUrl;
         public String response;
         public long durationMs;
         public boolean success;
+    }
+
+    /**
+     * Workflow context that accumulates outputs from each agent step.
+     * Enables context chaining where each agent can access previous agents' outputs.
+     */
+    public static class WorkflowContext {
+        public String originalMessage;
+        public Map<String, String> agentOutputs = new LinkedHashMap<>();
+
+        /**
+         * Build a prompt by substituting template variables with context values.
+         *
+         * @param template Template with {{variable}} placeholders
+         * @return Template with placeholders replaced by actual values
+         */
+        public String buildPrompt(String template) {
+            String result = template.replace("{{original}}", originalMessage);
+            for (Map.Entry<String, String> entry : agentOutputs.entrySet()) {
+                result = result.replace("{{" + entry.getKey() + "}}", entry.getValue());
+            }
+            return result;
+        }
+    }
+
+    /**
+     * A workflow step that uses templates with context variables.
+     * Each step can reference outputs from previous steps using {{variable}} syntax.
+     */
+    public static class ContextualStep {
+        public String description;
+        public String agentUrl;
+        public String outputKey;      // Key to store result in context
+        public String taskTemplate;   // Template with {{variable}} placeholders
+
+        public ContextualStep(String description, String agentUrl,
+                              String outputKey, String taskTemplate) {
+            this.description = description;
+            this.agentUrl = agentUrl;
+            this.outputKey = outputKey;
+            this.taskTemplate = taskTemplate;
+        }
+    }
+
+    /**
+     * Execute a context-aware workflow where each agent receives accumulated context.
+     *
+     * This method implements context chaining - each agent's output is stored and
+     * made available to subsequent agents via template variables.
+     *
+     * @param workflowName Name of the workflow for logging
+     * @param steps List of contextual steps to execute
+     * @param originalMessage The original message to process
+     * @return List of workflow results from each step
+     */
+    public List<WorkflowResult> executeContextualWorkflow(
+            String workflowName,
+            List<ContextualStep> steps,
+            String originalMessage) throws Exception {
+
+        LOGGER.info("");
+        LOGGER.info("================================================================================");
+        LOGGER.info("Executing Contextual Workflow: " + workflowName);
+        LOGGER.info("================================================================================");
+
+        WorkflowContext context = new WorkflowContext();
+        context.originalMessage = originalMessage;
+        List<WorkflowResult> results = new ArrayList<>();
+
+        for (int i = 0; i < steps.size(); i++) {
+            ContextualStep step = steps.get(i);
+
+            // Build prompt with accumulated context
+            String contextualTask = context.buildPrompt(step.taskTemplate);
+
+            LOGGER.info("");
+            LOGGER.info("[Step " + (i + 1) + "/" + steps.size() + "] " + step.description);
+            LOGGER.info("  Agent: " + step.agentUrl);
+            LOGGER.info("  Context keys available: " + context.agentOutputs.keySet());
+            LOGGER.info("  Task preview: " + contextualTask.substring(0, Math.min(100, contextualTask.length())) + "...");
+
+            try {
+                long startTime = System.currentTimeMillis();
+                String response = sendTask(step.agentUrl, contextualTask);
+                long duration = System.currentTimeMillis() - startTime;
+
+                // Store result in context for subsequent agents
+                context.agentOutputs.put(step.outputKey, response);
+
+                WorkflowResult result = new WorkflowResult();
+                result.stepName = step.description;
+                result.agentUrl = step.agentUrl;
+                result.response = response;
+                result.durationMs = duration;
+                result.success = true;
+                results.add(result);
+
+                LOGGER.info("  Stored output as: " + step.outputKey);
+                LOGGER.info("  Result: " + response.substring(0, Math.min(100, response.length())) + "...");
+                LOGGER.info("  Duration: " + duration + "ms");
+
+            } catch (Exception e) {
+                LOGGER.warning("  FAILED: " + e.getMessage());
+                WorkflowResult result = new WorkflowResult();
+                result.stepName = step.description;
+                result.agentUrl = step.agentUrl;
+                result.response = "ERROR: " + e.getMessage();
+                result.success = false;
+                results.add(result);
+
+                // Store error in context so subsequent steps can see it failed
+                context.agentOutputs.put(step.outputKey, "ERROR: " + e.getMessage());
+            }
+        }
+
+        LOGGER.info("");
+        LOGGER.info("================================================================================");
+        LOGGER.info("Contextual Workflow Complete: " + results.stream().filter(r -> r.success).count() +
+                "/" + results.size() + " steps succeeded");
+        LOGGER.info("================================================================================");
+
+        return results;
     }
 }

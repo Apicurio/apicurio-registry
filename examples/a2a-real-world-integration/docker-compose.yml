@@ -1,7 +1,7 @@
 version: '3.8'
 
-# Docker Compose for Real-World A2A Integration Example
-# Demonstrates production-ready AI agent marketplace with actual platforms
+# Docker Compose for Real-World A2A Integration Example with Ollama LLM
+# Demonstrates AI agents powered by local LLM (llama3.2) via Ollama
 
 services:
   # Apicurio Registry Backend API
@@ -18,10 +18,13 @@ services:
       # A2A Configuration - Registry exposes itself as an A2A agent
       APICURIO_A2A_ENABLED: "true"
       APICURIO_A2A_AGENT_NAME: "A2A Agent Registry"
-      APICURIO_A2A_AGENT_DESCRIPTION: "Central registry for discovering and orchestrating AI agents across OpenAI, Anthropic, Google, AWS, and enterprise platforms"
+      APICURIO_A2A_AGENT_DESCRIPTION: "Central registry for discovering and orchestrating AI agents powered by local LLM"
       APICURIO_A2A_AGENT_VERSION: "3.1.0"
       APICURIO_A2A_AGENT_PROVIDER_ORGANIZATION: "AI Platform Hub"
       APICURIO_A2A_AGENT_PROVIDER_URL: "https://platform.example.com"
+
+      # Enable artifact version content mutability for examples
+      APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED: "true"
 
       # Logging
       QUARKUS_LOG_LEVEL: "INFO"
@@ -52,21 +55,75 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Ollama - Local LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-a2a
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      # Increase context window for better responses
+      OLLAMA_NUM_CTX: "4096"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # Ollama Model Initialization - Pulls llama3.2 on first start
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      OLLAMA_HOST: "http://ollama:11434"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "============================================"
+        echo "Pulling llama3.2 model..."
+        echo "This may take a few minutes on first run."
+        echo "============================================"
+        ollama pull llama3.2
+        echo "============================================"
+        echo "Model llama3.2 is ready!"
+        echo "============================================"
+
+volumes:
+  ollama_data:
+    name: ollama-a2a-data
+
 # Network for service discovery
 networks:
   default:
     name: a2a-integration-network
 
 # Usage:
-#   Start:  docker-compose up -d
-#   Stop:   docker-compose down
-#   Logs:   docker-compose logs -f
+#   Start all services:
+#     docker-compose up -d
+#
+#   Wait for model download (first time only):
+#     docker-compose logs -f ollama-init
+#
+#   Stop all services:
+#     docker-compose down
+#
+#   View logs:
+#     docker-compose logs -f
 #
 # Endpoints:
-#   - API: http://localhost:8080/apis/registry/v3
-#   - UI:  http://localhost:8888
+#   - Registry API: http://localhost:8080/apis/registry/v3
+#   - Registry UI:  http://localhost:8888
+#   - Ollama API:   http://localhost:11434
 #   - A2A Discovery: http://localhost:8080/.well-known/agent.json
 #   - Agent Search: http://localhost:8080/.well-known/agents
 #
-# After starting, run the example:
-#   mvn exec:java
+# After starting, run the LLM-powered demo:
+#   mvn clean compile exec:java

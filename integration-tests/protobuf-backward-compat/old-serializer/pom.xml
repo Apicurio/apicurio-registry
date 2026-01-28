@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        This module is intentionally standalone (no parent) to avoid parent POM
+        resolution issues in CI where the integration-tests profile activates
+        additional modules. All required properties are defined locally.
+    -->
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-old-protobuf-serializer</artifactId>
+    <version>3.1.7-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>apicurio-registry-old-protobuf-serializer</name>
+    <description>Shaded old protobuf serializer (v3.1.2) for backward compatibility testing</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
+        <old.registry.version>3.1.2</old.registry.version>
+        <kafka-clients.version>3.9.1</kafka-clients.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Force all Apicurio dependencies to version 3.1.2 -->
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serde-kafka-common</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serde-common</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-serde-common-protobuf</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-resolver</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-protobuf</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-schema-util-common</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-common</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-java-sdk</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-java-sdk-common</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.apicurio</groupId>
+                <artifactId>apicurio-registry-v2-java-sdk</artifactId>
+                <version>${old.registry.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Old protobuf serializer with wire-schema -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+        </dependency>
+
+        <!-- Kafka clients for Serializer interface -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka-clients.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <release>${maven.compiler.release}</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <includes>
+                                    <include>io.apicurio:*</include>
+                                    <!-- Include wire-schema and dependencies - needed by shaded old serializer code -->
+                                    <include>com.squareup.wire:*</include>
+                                    <include>com.squareup.okio:*</include>
+                                    <include>com.ibm.icu:*</include>
+                                    <!-- Include Guava - needed by old FileDescriptorUtils -->
+                                    <include>com.google.guava:*</include>
+                                </includes>
+                                <excludes>
+                                    <!-- Keep Kafka clients unshaded -->
+                                    <exclude>org.apache.kafka:*</exclude>
+                                    <!-- CRITICAL: Keep protobuf-java unshaded - both old and new serializers must work with same Message types -->
+                                    <exclude>com.google.protobuf:*</exclude>
+                                    <!-- Keep Kotlin unshaded - both old and new use Kotlin, let runtime provide it -->
+                                    <exclude>org.jetbrains.kotlin:*</exclude>
+                                    <exclude>org.jetbrains.kotlinx:*</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <relocations>
+                                <!-- Relocate all Apicurio packages to .old. namespace -->
+                                <relocation>
+                                    <pattern>io.apicurio.registry</pattern>
+                                    <shadedPattern>io.apicurio.registry.old</shadedPattern>
+                                </relocation>
+                                <!-- Relocate wire-schema -->
+                                <relocation>
+                                    <pattern>com.squareup.wire</pattern>
+                                    <shadedPattern>io.apicurio.registry.old.wire</shadedPattern>
+                                </relocation>
+                                <!-- Relocate okio -->
+                                <relocation>
+                                    <pattern>okio</pattern>
+                                    <shadedPattern>io.apicurio.registry.old.okio</shadedPattern>
+                                </relocation>
+                                <!-- Relocate ICU -->
+                                <relocation>
+                                    <pattern>com.ibm.icu</pattern>
+                                    <shadedPattern>io.apicurio.registry.old.icu</shadedPattern>
+                                </relocation>
+                                <!-- Relocate Guava -->
+                                <relocation>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>io.apicurio.registry.old.guava</shadedPattern>
+                                </relocation>
+                                <!-- NOTE: Do NOT relocate metadata and additionalTypes packages
+                                     because they contain .proto resources that the code loads via
+                                     hardcoded paths using getResourceAsStream(). Relocating them
+                                     moves the .proto files but not the path strings in code. -->
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/maven/**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

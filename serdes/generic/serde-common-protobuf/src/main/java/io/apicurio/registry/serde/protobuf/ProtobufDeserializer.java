@@ -139,6 +139,7 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
             if (messageTypeName != null) {
                 descriptor = schema.getParsedSchema().getFileDescriptor()
                         .findMessageTypeByName(messageTypeName);
+
             }
 
             if (readIndexes) {

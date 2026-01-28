@@ -1,11 +1,9 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
-import okio.FileHandle;
-import okio.FileSystem;
-import okio.Path;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -78,28 +76,20 @@ public class ProtoContent {
         this.content = pattern.matcher(this.content).replaceAll("$1" + updatedImportPath + "$3");
     }
 
-    public Path writeTo(FileSystem fileSystem) throws IOException {
-        FileHandle fileHandle = null;
-        try {
-            String protoFileName = this.getExpectedImportPath();
-            okio.Path path = okio.Path.get(protoFileName);
-            
-            // Create parent directory if it doesn't exist
-            okio.Path parentDir = path.parent();
-            if (parentDir != null) {
-                fileSystem.createDirectories(parentDir);
-            }
-            
-            final byte[] schemaBytes = getContent().getBytes(StandardCharsets.UTF_8);
-            fileHandle = fileSystem.openReadWrite(path);
-            fileHandle.write(0, schemaBytes, 0, schemaBytes.length);
-            fileHandle.close();
-            return path;
-        } finally {
-            if (fileHandle != null) {
-                fileHandle.close();
-            }
+    public Path writeTo(Path baseDir) throws IOException {
+        String protoFileName = this.getExpectedImportPath();
+        Path path = baseDir.resolve(protoFileName);
+
+        // Create parent directory if it doesn't exist
+        Path parentDir = path.getParent();
+        if (parentDir != null) {
+            Files.createDirectories(parentDir);
         }
+
+        // Write file content
+        Files.write(path, getContent().getBytes(StandardCharsets.UTF_8));
+
+        return path;
     }
 
 }

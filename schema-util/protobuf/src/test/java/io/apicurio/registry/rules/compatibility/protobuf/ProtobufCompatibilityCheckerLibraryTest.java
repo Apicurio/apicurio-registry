@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ProtobufCompatibilityCheckerLibraryTest {
 
     @Test
-    public void testMapStringStringCompatibility() {
+    public void testMapStringStringCompatibility() throws Exception {
         // Define the old schema with a map<string, string>
         String oldSchema = """
             syntax = \"proto3\";
@@ -48,7 +48,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
     }
 
     @Test
-    public void testAddingNewFieldIsForwardCompatible() {
+    public void testAddingNewFieldIsForwardCompatible() throws Exception {
         // Mock ProtobufFile instances for before and after schema versions
         ProtobufFile fileBefore = new ProtobufFile("syntax = \"proto3\";\n" + //
                         "\n" + //
@@ -83,7 +83,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * This addresses GitHub issue #6832 where protobuf scoping rules were not being checked correctly.
      */
     @Test
-    public void testQualifiedVsUnqualifiedNestedTypeCompatibility() {
+    public void testQualifiedVsUnqualifiedNestedTypeCompatibility() throws Exception {
         // Schema with unqualified nested type reference
         String schemaWithUnqualifiedType = """
             syntax = "proto3";
@@ -136,7 +136,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that nested types at different nesting levels are correctly distinguished.
      */
     @Test
-    public void testNestedTypeResolution() {
+    public void testNestedTypeResolution() throws Exception {
         // Schema with nested types at different levels
         String schema1 = """
             syntax = "proto3";
@@ -178,7 +178,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that cross-file type references (from different packages) are handled correctly.
      */
     @Test
-    public void testCrossPackageTypeReferences() {
+    public void testCrossPackageTypeReferences() throws Exception {
         // Schema referencing a type that could be from another package
         String schema1 = """
             syntax = "proto3";
@@ -215,7 +215,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that using a previously reserved field name is detected as incompatible.
      */
     @Test
-    public void testUsingReservedFieldName() {
+    public void testUsingReservedFieldName() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -252,7 +252,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that using a previously reserved field ID is detected as incompatible.
      */
     @Test
-    public void testUsingReservedFieldId() {
+    public void testUsingReservedFieldId() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -290,7 +290,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that removing a field without proper reservation is detected as incompatible.
      */
     @Test
-    public void testRemovingFieldWithoutReservation() {
+    public void testRemovingFieldWithoutReservation() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -327,7 +327,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that properly removing a field with reservation is allowed.
      */
     @Test
-    public void testRemovingFieldWithReservation() {
+    public void testRemovingFieldWithReservation() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -343,7 +343,8 @@ public class ProtobufCompatibilityCheckerLibraryTest {
             package test;
 
             message MyMessage {
-                reserved 1, "old_field";
+                reserved 1;
+                reserved "old_field";
                 string kept_field = 2;
             }
         """;
@@ -366,7 +367,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * This should be recognized as properly reserving those field numbers.
      */
     @Test
-    public void testRemovingFieldWithRangeReservation() {
+    public void testRemovingFieldWithRangeReservation() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package demo;
@@ -406,7 +407,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that changing a field's ID is detected as incompatible.
      */
     @Test
-    public void testChangingFieldIdIsIncompatible() {
+    public void testChangingFieldIdIsIncompatible() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -443,7 +444,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that changing an enum constant's tag is detected as incompatible.
      */
     @Test
-    public void testChangingEnumConstantTag() {
+    public void testChangingEnumConstantTag() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -484,7 +485,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that changing a field's type is detected as incompatible.
      */
     @Test
-    public void testIncompatibleTypeChange() {
+    public void testIncompatibleTypeChange() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -521,7 +522,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that changing a field's label is detected as incompatible.
      */
     @Test
-    public void testFieldLabelChange() {
+    public void testFieldLabelChange() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -560,7 +561,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that renaming a field (with same ID) is detected as incompatible.
      */
     @Test
-    public void testRenamingField() {
+    public void testRenamingField() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -597,7 +598,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that renaming an enum constant is detected as incompatible.
      */
     @Test
-    public void testRenamingEnumConstant() {
+    public void testRenamingEnumConstant() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -636,7 +637,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that removing an RPC method is detected as incompatible.
      */
     @Test
-    public void testRemovingRpcMethod() {
+    public void testRemovingRpcMethod() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -679,7 +680,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that changing an RPC signature is detected as incompatible.
      */
     @Test
-    public void testChangingRpcSignature() {
+    public void testChangingRpcSignature() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -722,7 +723,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that changing streaming mode is detected as incompatible.
      */
     @Test
-    public void testChangingStreamingMode() {
+    public void testChangingStreamingMode() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -765,7 +766,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that adding a required field in proto2 is detected as incompatible.
      */
     @Test
-    public void testAddingRequiredFieldProto2() {
+    public void testAddingRequiredFieldProto2() throws Exception {
         String schemaBefore = """
             syntax = "proto2";
             package test;
@@ -801,7 +802,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that adding an optional field in proto2 is compatible.
      */
     @Test
-    public void testAddingOptionalFieldProto2() {
+    public void testAddingOptionalFieldProto2() throws Exception {
         String schemaBefore = """
             syntax = "proto2";
             package test;
@@ -843,7 +844,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * This test is based on the scenario from issue #6835.
      */
     @Test
-    public void testParentScopeResolution() {
+    public void testParentScopeResolution() throws Exception {
         String schema1 = """
             syntax = "proto3";
             package test;
@@ -888,7 +889,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests deeply nested types (3+ levels) with qualified and unqualified references.
      */
     @Test
-    public void testDeeplyNestedTypes() {
+    public void testDeeplyNestedTypes() throws Exception {
         String schema1 = """
             syntax = "proto3";
             package test;
@@ -934,7 +935,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests schemas without package declarations handle type normalization correctly.
      */
     @Test
-    public void testNestedTypeWithoutPackage() {
+    public void testNestedTypeWithoutPackage() throws Exception {
         String schema1 = """
             syntax = "proto3";
 
@@ -972,7 +973,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests referencing top-level types with unqualified and qualified forms.
      */
     @Test
-    public void testTopLevelTypeReferences() {
+    public void testTopLevelTypeReferences() throws Exception {
         String schema1 = """
             syntax = "proto3";
             package test;
@@ -1017,7 +1018,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests that adding an enum value is forward compatible.
      */
     @Test
-    public void testAddingEnumValue() {
+    public void testAddingEnumValue() throws Exception {
         String schemaBefore = """
             syntax = "proto3";
             package test;
@@ -1053,7 +1054,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * Tests referencing a nested enum with qualified and unqualified forms.
      */
     @Test
-    public void testNestedEnumReferences() {
+    public void testNestedEnumReferences() throws Exception {
         String schema1 = """
             syntax = "proto3";
             package test;
@@ -1098,7 +1099,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
      * name resolution searches upward through parent scopes.
      */
     @Test
-    public void testGrandparentScopeTypeReferences() {
+    public void testGrandparentScopeTypeReferences() throws Exception {
         String schema1 = """
             syntax = "proto3";
             package test;

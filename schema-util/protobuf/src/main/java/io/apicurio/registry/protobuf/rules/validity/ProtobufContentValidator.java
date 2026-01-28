@@ -1,8 +1,5 @@
 package io.apicurio.registry.protobuf.rules.validity;
 
-import com.google.protobuf.Descriptors;
-import com.squareup.wire.schema.internal.parser.MessageElement;
-import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.ContentValidator;
@@ -11,11 +8,9 @@ import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.RuleType;
-import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchemaUtils;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,30 +33,47 @@ public class ProtobufContentValidator implements ContentValidator {
     @Override
     public void validate(ValidityLevel level, TypedContent content,
                          Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
-        if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
+        String schemaContent = content.getContent().content();
+
+        if (level == ValidityLevel.SYNTAX_ONLY) {
+            // For SYNTAX_ONLY, just validate syntax without resolving imports
             try {
+                // Check if this is a base64-encoded binary descriptor
+                if (ProtobufSchemaUtils.isBase64BinaryDescriptor(schemaContent)) {
+                    // Binary descriptors are pre-compiled, so we just validate they parse correctly
+                    ProtobufSchemaUtils.validateBinaryDescriptorSyntax(schemaContent);
+                } else {
+                    // Text format - use standard syntax validation
+                    ProtobufFile.validateSyntaxOnly(schemaContent);
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationException("Syntax violation for Protobuf artifact.", RuleType.VALIDITY,
+                        level.name(), e);
+            }
+        }
+        else if (level == ValidityLevel.FULL) {
+            // For FULL validation, parse and compile with dependencies
+            try {
+                // Check if this is a base64-encoded binary descriptor
+                boolean isBinaryDescriptor = ProtobufSchemaUtils.isBase64BinaryDescriptor(schemaContent);
+
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
-                    ProtobufFile.toProtoFileElement(content.getContent().content());
+                    // Simple validation - parse the proto file (handles both text and binary)
+                    new ProtobufFile(schemaContent);
                 }
                 else {
-
-                    final Map<String, String> requiredDeps = resolvedReferences.entrySet().stream().collect(
+                    // Validation with dependencies
+                    final Map<String, String> dependencies = resolvedReferences.entrySet().stream().collect(
                             Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getContent().content()));
 
-                    final ProtoFileElement protoFileElement = ProtobufFile
-                            .toProtoFileElement(content.getContent().content());
-
-                    final Set<FileDescriptorUtils.ProtobufSchemaContent> dependencies = resolvedReferences.entrySet()
-                            .stream()
-                            .map(e -> FileDescriptorUtils.ProtobufSchemaContent.of(e.getKey(), e.getValue().getContent().content()))
-                            .collect(Collectors.toSet());
-
-                    MessageElement firstMessage = FileDescriptorUtils.firstMessage(protoFileElement);
-
-                    FileDescriptorUtils.ProtobufSchemaContent mainFile = FileDescriptorUtils.ProtobufSchemaContent.of(firstMessage.getName(),
-                            content.getContent().content());
-
-                    FileDescriptorUtils.parseProtoFileWithDependencies(mainFile, dependencies, requiredDeps, true, true);
+                    if (isBinaryDescriptor) {
+                        // Binary descriptor with dependencies
+                        ProtobufSchemaUtils.parseBase64BinaryDescriptorWithDependencies(schemaContent, dependencies);
+                    } else {
+                        // Text format - use protobuf4j to parse and compile
+                        ProtobufSchemaUtils.parseAndCompile("schema.proto", schemaContent, dependencies);
+                    }
                 }
             }
             catch (Exception e) {
@@ -78,17 +90,26 @@ public class ProtobufContentValidator implements ContentValidator {
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
         try {
+            String schemaContent = content.getContent().content();
             Set<String> mappedRefs = references.stream().map(ref -> ref.getName())
                     .collect(Collectors.toSet());
 
-            ProtoFileElement protoFileElement = ProtobufFile
-                    .toProtoFileElement(content.getContent().content());
-            Set<String> allImports = new HashSet<>();
-            allImports.addAll(protoFileElement.getImports());
-            allImports.addAll(protoFileElement.getPublicImports());
+            Set<String> allImports;
+
+            // Check if this is a base64-encoded binary descriptor
+            if (ProtobufSchemaUtils.isBase64BinaryDescriptor(schemaContent)) {
+                // For binary descriptors, extract dependencies from the FileDescriptorProto
+                allImports = extractDependenciesFromBinaryDescriptor(schemaContent);
+            } else {
+                // Extract imports from proto text WITHOUT compiling
+                // This avoids "File not found" errors when dependencies don't exist
+                // We only care about non-well-known imports for reference validation
+                allImports = ProtobufSchemaUtils.extractNonWellKnownImports(schemaContent);
+            }
 
             Set<RuleViolation> violations = allImports.stream()
-                    .filter(_import -> !mappedRefs.contains(_import)).map(missingRef -> new RuleViolation("Unmapped reference detected.", missingRef))
+                    .filter(_import -> !mappedRefs.contains(_import))
+                    .map(missingRef -> new RuleViolation("Unmapped reference detected.", missingRef))
                     .collect(Collectors.toSet());
             if (!violations.isEmpty()) {
                 throw new RuleViolationException("Unmapped reference(s) detected.", RuleType.INTEGRITY,
@@ -103,9 +124,30 @@ public class ProtobufContentValidator implements ContentValidator {
         }
     }
 
-    private ProtobufSchema getFileDescriptorFromElement(ProtoFileElement fileElem)
-            throws Descriptors.DescriptorValidationException {
-        Descriptors.FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
-        return new ProtobufSchema(fileDescriptor, fileElem);
+    /**
+     * Extract dependencies from a base64-encoded binary descriptor.
+     * Filters out well-known types.
+     */
+    private Set<String> extractDependenciesFromBinaryDescriptor(String base64Content) {
+        try {
+            byte[] decoded = java.util.Base64.getDecoder().decode(base64Content.trim());
+            com.google.protobuf.DescriptorProtos.FileDescriptorProto proto =
+                    com.google.protobuf.DescriptorProtos.FileDescriptorProto.parseFrom(decoded);
+
+            // Extract dependencies, filtering out well-known types
+            return proto.getDependencyList().stream()
+                    .filter(dep -> !isWellKnownType(dep))
+                    .collect(Collectors.toSet());
+        } catch (Exception e) {
+            return Set.of();
+        }
+    }
+
+    /**
+     * Check if a dependency is a well-known type that doesn't need to be mapped.
+     */
+    private boolean isWellKnownType(String dependency) {
+        return dependency.startsWith("google/protobuf/")
+                || dependency.startsWith("google/type/");
     }
 }

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package io.apicurio.registry.test;
+
+option java_package = "io.apicurio.registry.test";
+option java_outer_classname = "UserEventProtos";
+
+// Simple user event for testing schema registration scenarios
+message UserEvent {
+  // Unique identifier for the user
+  string user_id = 1;
+
+  // Type of event (login, logout, purchase, etc.)
+  string event_type = 2;
+
+  // Timestamp when the event occurred
+  int64 timestamp = 3;
+}

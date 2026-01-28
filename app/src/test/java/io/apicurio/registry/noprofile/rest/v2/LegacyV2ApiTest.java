@@ -13,7 +13,6 @@ import java.util.Map;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToObject;
 
 @QuarkusTest
 public class LegacyV2ApiTest extends AbstractResourceTestBase {
@@ -41,7 +40,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta").then().statusCode(200)
                 .body("id", equalTo(artifactId)).body("version", anything())
-                .body("labels", equalToObject(labels));
+                .body("labels", equalTo(labels));
     }
 
     @Test
@@ -65,7 +64,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta").then().statusCode(200)
                 .body("id", equalTo(artifactId)).body("version", anything())
-                .body("properties", equalToObject(properties));
+                .body("properties", equalTo(properties));
     }
 
     @Test
@@ -93,7 +92,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/meta").then().statusCode(200)
                 .body("id", equalTo(artifactId)).body("version", anything())
-                .body("labels", equalToObject(labels)).body("properties", equalToObject(properties));
+                .body("labels", equalTo(labels)).body("properties", equalTo(properties));
     }
 
     /**

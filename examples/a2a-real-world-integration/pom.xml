@@ -8,10 +8,10 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>apicurio-registry-examples-a2a-enterprise-agents</artifactId>
+  <artifactId>apicurio-registry-examples-a2a-real-world-integration</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-examples-a2a-enterprise-agents</name>
-  <description>Real-world example: Enterprise AI Agent Marketplace using A2A protocol with Apicurio Registry for agent discovery, orchestration, and governance</description>
+  <name>apicurio-registry-examples-a2a-real-world-integration</name>
+  <description>Real-world A2A integration example demonstrating actual HTTP communication with working A2A protocol agents, orchestration, and multi-agent workflows</description>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
@@ -45,7 +45,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.1.0</version>
         <configuration>
-          <mainClass>io.apicurio.registry.examples.a2a.enterprise.EnterpriseAgentMarketplace</mainClass>
+          <mainClass>io.apicurio.registry.examples.a2a.realworld.RealA2ADemo</mainClass>
         </configuration>
       </plugin>
     </plugins>

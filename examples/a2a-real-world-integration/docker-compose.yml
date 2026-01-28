@@ -1,13 +1,13 @@
 version: '3.8'
 
-# Docker Compose for Enterprise AI Agent Marketplace Example
-# This demonstrates a production-like setup for A2A agent discovery and governance
+# Docker Compose for Real-World A2A Integration Example
+# Demonstrates production-ready AI agent marketplace with actual platforms
 
 services:
   # Apicurio Registry Backend API
   apicurio-registry:
     image: quay.io/apicurio/apicurio-registry:latest-snapshot
-    container_name: apicurio-registry-enterprise
+    container_name: apicurio-registry-a2a
     ports:
       - "8080:8080"
     environment:
@@ -17,11 +17,11 @@ services:
 
       # A2A Configuration - Registry exposes itself as an A2A agent
       APICURIO_A2A_ENABLED: "true"
-      APICURIO_A2A_AGENT_NAME: "Enterprise Agent Registry"
-      APICURIO_A2A_AGENT_DESCRIPTION: "Central registry for discovering and governing enterprise AI agents across customer support, finance, DevOps, and orchestration domains"
+      APICURIO_A2A_AGENT_NAME: "A2A Agent Registry"
+      APICURIO_A2A_AGENT_DESCRIPTION: "Central registry for discovering and orchestrating AI agents across OpenAI, Anthropic, Google, AWS, and enterprise platforms"
       APICURIO_A2A_AGENT_VERSION: "3.1.0"
-      APICURIO_A2A_AGENT_PROVIDER_ORGANIZATION: "Enterprise AI Platform"
-      APICURIO_A2A_AGENT_PROVIDER_URL: "https://enterprise.example.com"
+      APICURIO_A2A_AGENT_PROVIDER_ORGANIZATION: "AI Platform Hub"
+      APICURIO_A2A_AGENT_PROVIDER_URL: "https://platform.example.com"
 
       # Logging
       QUARKUS_LOG_LEVEL: "INFO"
@@ -41,7 +41,7 @@ services:
   # Apicurio Registry UI
   apicurio-registry-ui:
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
-    container_name: apicurio-registry-enterprise-ui
+    container_name: apicurio-registry-a2a-ui
     ports:
       - "8888:8080"
     environment:
@@ -52,10 +52,10 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-# Network for service discovery (future expansion with real agents)
+# Network for service discovery
 networks:
   default:
-    name: enterprise-agents-network
+    name: a2a-integration-network
 
 # Usage:
 #   Start:  docker-compose up -d

@@ -20,9 +20,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.examples.a2a.realworld.agents.MockAgentServer;
+import io.apicurio.registry.examples.a2a.realworld.llm.AgentPrompts;
+import io.apicurio.registry.examples.a2a.realworld.llm.LLMAgentServer;
+import io.apicurio.registry.examples.a2a.realworld.llm.OllamaClient;
 import io.apicurio.registry.examples.a2a.realworld.orchestrator.A2AOrchestrator;
+import io.apicurio.registry.examples.a2a.realworld.orchestrator.A2AOrchestrator.ContextualStep;
 import io.apicurio.registry.examples.a2a.realworld.orchestrator.A2AOrchestrator.WorkflowResult;
-import io.apicurio.registry.examples.a2a.realworld.orchestrator.A2AOrchestrator.WorkflowStep;
+import io.apicurio.registry.examples.a2a.realworld.web.WebUIServer;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateGroup;
@@ -37,22 +41,27 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.logging.Logger;
 
 /**
- * Real A2A Demo - Demonstrates ACTUAL working A2A protocol integration.
+ * A2A Context Chaining Demo - Multi-Agent Pipeline with Accumulated Context.
  *
- * This example:
- * 1. Starts real HTTP servers (mock agents) that implement the A2A protocol
- * 2. Registers their agent cards in Apicurio Registry
- * 3. Uses the A2A Orchestrator to discover agents via registry endpoints
- * 4. Sends real A2A JSON-RPC tasks to agents and gets responses
- * 5. Demonstrates a multi-agent workflow with actual HTTP communication
+ * This example demonstrates context chaining where each agent in a pipeline
+ * receives the accumulated outputs from all previous agents, creating a
+ * truly integrated multi-agent system.
  *
- * All communication uses the actual A2A protocol:
- * - /.well-known/agent.json for agent discovery
- * - /a2a endpoint for JSON-RPC task submission
+ * Context Chaining Flow:
+ *   1. Sentiment Agent    → receives: {{original}}
+ *   2. Analyzer Agent     → receives: {{original}} + {{sentiment}}
+ *   3. Response Agent     → receives: {{original}} + {{sentiment}} + {{analysis}}
+ *   4. Translation Agent  → receives: {{response}}
+ *
+ * Each agent builds upon previous work, enabling intelligent decision-making
+ * that considers the full context of the conversation.
+ *
+ * Prerequisites:
+ * - Docker Compose running (docker-compose up -d)
+ * - Ollama with llama3.2 model ready
  */
 public class RealA2ADemo {
 
@@ -62,163 +71,175 @@ public class RealA2ADemo {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
+    // Configuration from environment or defaults
     private static final String REGISTRY_URL = System.getenv().getOrDefault(
             "REGISTRY_URL", "http://localhost:8080/apis/registry/v3");
     private static final String REGISTRY_BASE = REGISTRY_URL.replace("/apis/registry/v3", "");
+    private static final String OLLAMA_URL = System.getenv().getOrDefault(
+            "OLLAMA_URL", "http://localhost:11434");
+    private static final String OLLAMA_MODEL = System.getenv().getOrDefault(
+            "OLLAMA_MODEL", "llama3.2");
 
-    // Ports for our mock agents
+    // Ports for our LLM-powered agents
     private static final int SENTIMENT_AGENT_PORT = 9001;
-    private static final int SUMMARY_AGENT_PORT = 9002;
-    private static final int TRANSLATE_AGENT_PORT = 9003;
+    private static final int ANALYZER_AGENT_PORT = 9002;
+    private static final int RESPONSE_AGENT_PORT = 9003;
+    private static final int TRANSLATOR_AGENT_PORT = 9004;
+    private static final int WEB_UI_PORT = 9000;
 
     private static final List<MockAgentServer> runningAgents = new ArrayList<>();
+    private static OllamaClient ollamaClient;
+    private static WebUIServer webUIServer;
 
     public static void main(String[] args) throws Exception {
-        LOGGER.info("================================================================================");
-        LOGGER.info("Real A2A Protocol Demo - Actual Working Agent Integration");
-        LOGGER.info("================================================================================");
-        LOGGER.info("");
-        LOGGER.info("This demo runs REAL HTTP servers implementing the A2A protocol.");
-        LOGGER.info("All agent discovery and task execution uses actual HTTP communication.");
-        LOGGER.info("");
+        printBanner();
 
         try {
-            // Phase 1: Start mock agents (real HTTP servers)
-            startMockAgents();
+            // Phase 0: Connect to Ollama and wait for model
+            waitForOllama();
 
-            // Phase 2: Verify agents are running and accessible
+            // Phase 1: Start LLM-powered agents
+            startLLMAgents();
+
+            // Phase 2: Verify agents are running
             verifyAgentsRunning();
 
-            // Phase 3: Register agents in Apicurio Registry
-            registerAgentsInRegistry();
+            // Phase 3: Register agents in Apicurio Registry (optional - may fail if registry not configured)
+            try {
+                registerAgentsInRegistry();
+            } catch (Exception e) {
+                LOGGER.warning("Registry registration failed (continuing without): " + e.getMessage());
+            }
 
-            // Phase 4: Use orchestrator to discover agents
-            discoverAgentsViaA2A();
+            // Phase 4: Discover agents via A2A (optional - may fail if registry not configured)
+            try {
+                discoverAgentsViaA2A();
+            } catch (Exception e) {
+                LOGGER.warning("Registry discovery failed (continuing without): " + e.getMessage());
+            }
 
-            // Phase 5: Execute a real multi-agent workflow
-            executeRealWorkflow();
+            // Phase 5: Start Web UI
+            startWebUI();
 
-            LOGGER.info("");
-            LOGGER.info("================================================================================");
-            LOGGER.info("Demo Complete - All A2A communication was REAL HTTP traffic!");
-            LOGGER.info("================================================================================");
-            LOGGER.info("");
-            LOGGER.info("You can verify the agents are still running:");
-            LOGGER.info("  curl http://localhost:" + SENTIMENT_AGENT_PORT + "/.well-known/agent.json");
-            LOGGER.info("  curl http://localhost:" + SUMMARY_AGENT_PORT + "/.well-known/agent.json");
-            LOGGER.info("  curl http://localhost:" + TRANSLATE_AGENT_PORT + "/.well-known/agent.json");
-            LOGGER.info("");
-            LOGGER.info("Registry UI: http://localhost:8888");
-            LOGGER.info("");
-            LOGGER.info("Press Ctrl+C to stop the agents...");
+            // Phase 6: Execute sample workflow
+            executeIntelligentWorkflow();
+
+            printCompletionBanner();
 
             // Keep running so agents can be tested manually
             Thread.sleep(Long.MAX_VALUE);
 
         } finally {
-            stopMockAgents();
+            stopAgents();
+        }
+    }
+
+    private static void printBanner() {
+        LOGGER.info("");
+        LOGGER.info("================================================================================");
+        LOGGER.info("  A2A Context Chaining Demo");
+        LOGGER.info("  Multi-Agent Pipeline with Accumulated Context");
+        LOGGER.info("================================================================================");
+        LOGGER.info("");
+        LOGGER.info("Each agent receives outputs from ALL previous agents via {{variable}} templates:");
+        LOGGER.info("");
+        LOGGER.info("  Step 1: Sentiment    -> Input: {{original}}");
+        LOGGER.info("  Step 2: Analyzer     -> Input: {{original}} + {{sentiment}}");
+        LOGGER.info("  Step 3: Response     -> Input: {{original}} + {{sentiment}} + {{analysis}}");
+        LOGGER.info("  Step 4: Translation  -> Input: {{response}}");
+        LOGGER.info("");
+    }
+
+    // ==================================================================================
+    // Phase 0: Connect to Ollama
+    // ==================================================================================
+
+    private static void waitForOllama() throws Exception {
+        LOGGER.info("--------------------------------------------------------------------------------");
+        LOGGER.info("Phase 0: Connecting to Ollama LLM");
+        LOGGER.info("--------------------------------------------------------------------------------");
+        LOGGER.info("");
+
+        ollamaClient = new OllamaClient(OLLAMA_URL, OLLAMA_MODEL);
+
+        try {
+            ollamaClient.waitForReady(Duration.ofMinutes(5));
+            LOGGER.info("");
+            LOGGER.info("Ollama ready: " + OLLAMA_URL + " (model: " + OLLAMA_MODEL + ")");
+        } catch (Exception e) {
+            LOGGER.severe("");
+            LOGGER.severe("ERROR: Could not connect to Ollama at " + OLLAMA_URL);
+            LOGGER.severe("");
+            LOGGER.severe("Please ensure Docker Compose is running:");
+            LOGGER.severe("  cd examples/a2a-real-world-integration");
+            LOGGER.severe("  docker-compose up -d");
+            LOGGER.severe("  docker-compose logs -f ollama-init  # Wait for model download");
+            LOGGER.severe("");
+            throw e;
         }
     }
 
     // ==================================================================================
-    // Phase 1: Start Mock Agents (Real HTTP Servers)
+    // Phase 1: Start LLM-Powered Agents
     // ==================================================================================
 
-    private static void startMockAgents() throws Exception {
+    private static void startLLMAgents() throws Exception {
+        LOGGER.info("");
         LOGGER.info("--------------------------------------------------------------------------------");
-        LOGGER.info("Phase 1: Starting Mock Agents (Real HTTP Servers)");
+        LOGGER.info("Phase 1: Starting LLM-Powered Agents");
         LOGGER.info("--------------------------------------------------------------------------------");
         LOGGER.info("");
 
         // Sentiment Analysis Agent
-        MockAgentServer sentimentAgent = new MockAgentServer(
+        LLMAgentServer sentimentAgent = new LLMAgentServer(
                 SENTIMENT_AGENT_PORT,
                 "Sentiment Analysis Agent",
-                "Analyzes text sentiment and returns positive/negative/neutral classification with confidence score",
-                new String[]{"sentiment-analysis", "emotion-detection"},
-                (message) -> {
-                    // Simple mock logic - in reality this would call an AI model
-                    String lower = message.toLowerCase();
-                    String sentiment;
-                    double confidence;
-
-                    if (lower.contains("happy") || lower.contains("great") || lower.contains("love")
-                            || lower.contains("excellent") || lower.contains("amazing")) {
-                        sentiment = "POSITIVE";
-                        confidence = 0.85 + new Random().nextDouble() * 0.14;
-                    } else if (lower.contains("sad") || lower.contains("angry") || lower.contains("hate")
-                            || lower.contains("terrible") || lower.contains("frustrated")) {
-                        sentiment = "NEGATIVE";
-                        confidence = 0.80 + new Random().nextDouble() * 0.19;
-                    } else {
-                        sentiment = "NEUTRAL";
-                        confidence = 0.60 + new Random().nextDouble() * 0.25;
-                    }
-
-                    return String.format(
-                            "{\"sentiment\": \"%s\", \"confidence\": %.2f, \"analyzed_text_length\": %d}",
-                            sentiment, confidence, message.length());
-                });
+                AgentPrompts.SENTIMENT_DESCRIPTION,
+                AgentPrompts.SENTIMENT_SKILLS,
+                ollamaClient,
+                AgentPrompts.SENTIMENT_SYSTEM_PROMPT);
         sentimentAgent.start();
         runningAgents.add(sentimentAgent);
 
-        // Text Summarization Agent
-        MockAgentServer summaryAgent = new MockAgentServer(
-                SUMMARY_AGENT_PORT,
-                "Text Summarization Agent",
-                "Summarizes long text into concise summaries while preserving key information",
-                new String[]{"text-summarization", "key-extraction"},
-                (message) -> {
-                    // Simple mock summarization
-                    String[] sentences = message.split("[.!?]");
-                    int targetSentences = Math.min(2, sentences.length);
-                    StringBuilder summary = new StringBuilder();
-                    for (int i = 0; i < targetSentences; i++) {
-                        if (!sentences[i].trim().isEmpty()) {
-                            summary.append(sentences[i].trim()).append(". ");
-                        }
-                    }
-                    if (summary.length() == 0) {
-                        summary.append(message.substring(0, Math.min(100, message.length())));
-                    }
-                    return String.format(
-                            "{\"summary\": \"%s\", \"original_length\": %d, \"summary_length\": %d, \"compression_ratio\": %.2f}",
-                            summary.toString().replace("\"", "'"),
-                            message.length(),
-                            summary.length(),
-                            (double) summary.length() / message.length());
-                });
-        summaryAgent.start();
-        runningAgents.add(summaryAgent);
+        // Issue Analyzer Agent
+        LLMAgentServer analyzerAgent = new LLMAgentServer(
+                ANALYZER_AGENT_PORT,
+                "Issue Analyzer Agent",
+                AgentPrompts.ANALYZER_DESCRIPTION,
+                AgentPrompts.ANALYZER_SKILLS,
+                ollamaClient,
+                AgentPrompts.ANALYZER_SYSTEM_PROMPT);
+        analyzerAgent.start();
+        runningAgents.add(analyzerAgent);
+
+        // Response Generator Agent
+        LLMAgentServer responseAgent = new LLMAgentServer(
+                RESPONSE_AGENT_PORT,
+                "Response Generator Agent",
+                AgentPrompts.RESPONSE_GENERATOR_DESCRIPTION,
+                AgentPrompts.RESPONSE_GENERATOR_SKILLS,
+                ollamaClient,
+                AgentPrompts.RESPONSE_GENERATOR_SYSTEM_PROMPT);
+        responseAgent.start();
+        runningAgents.add(responseAgent);
 
         // Translation Agent
-        MockAgentServer translateAgent = new MockAgentServer(
-                TRANSLATE_AGENT_PORT,
+        LLMAgentServer translatorAgent = new LLMAgentServer(
+                TRANSLATOR_AGENT_PORT,
                 "Translation Agent",
-                "Translates text between languages using advanced neural machine translation",
-                new String[]{"translation", "language-detection"},
-                (message) -> {
-                    // Mock translation - just reverse words for demo
-                    String[] words = message.split(" ");
-                    StringBuilder translated = new StringBuilder();
-                    for (int i = words.length - 1; i >= 0; i--) {
-                        translated.append(words[i]);
-                        if (i > 0) {
-                            translated.append(" ");
-                        }
-                    }
-                    return String.format(
-                            "{\"translated_text\": \"%s\", \"source_language\": \"en\", " +
-                                    "\"target_language\": \"demo\", \"word_count\": %d}",
-                            translated.toString().replace("\"", "'"),
-                            words.length);
-                });
-        translateAgent.start();
-        runningAgents.add(translateAgent);
+                AgentPrompts.TRANSLATOR_DESCRIPTION,
+                AgentPrompts.TRANSLATOR_SKILLS,
+                ollamaClient,
+                AgentPrompts.TRANSLATOR_SYSTEM_PROMPT);
+        translatorAgent.start();
+        runningAgents.add(translatorAgent);
 
         LOGGER.info("");
-        LOGGER.info("Started 3 mock agents on ports " + SENTIMENT_AGENT_PORT + ", " +
-                SUMMARY_AGENT_PORT + ", " + TRANSLATE_AGENT_PORT);
+        LOGGER.info("Started 4 LLM-powered agents:");
+        LOGGER.info("  - Sentiment Analysis Agent on :" + SENTIMENT_AGENT_PORT);
+        LOGGER.info("  - Issue Analyzer Agent on :" + ANALYZER_AGENT_PORT);
+        LOGGER.info("  - Response Generator Agent on :" + RESPONSE_AGENT_PORT);
+        LOGGER.info("  - Translation Agent on :" + TRANSLATOR_AGENT_PORT);
     }
 
     // ==================================================================================
@@ -232,10 +253,11 @@ public class RealA2ADemo {
         LOGGER.info("--------------------------------------------------------------------------------");
         LOGGER.info("");
 
-        int[] ports = {SENTIMENT_AGENT_PORT, SUMMARY_AGENT_PORT, TRANSLATE_AGENT_PORT};
+        int[] ports = {SENTIMENT_AGENT_PORT, ANALYZER_AGENT_PORT,
+                RESPONSE_AGENT_PORT, TRANSLATOR_AGENT_PORT};
+
         for (int port : ports) {
             String url = "http://localhost:" + port + "/.well-known/agent.json";
-            LOGGER.info("GET " + url);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -246,10 +268,10 @@ public class RealA2ADemo {
 
             if (response.statusCode() == 200) {
                 JsonNode agentCard = objectMapper.readTree(response.body());
-                LOGGER.info("  ✓ " + agentCard.get("name").asText() +
+                LOGGER.info("  [OK] " + agentCard.get("name").asText() +
                         " - " + agentCard.get("skills").size() + " skills");
             } else {
-                LOGGER.warning("  ✗ Failed: HTTP " + response.statusCode());
+                LOGGER.warning("  [FAIL] Port " + port + ": HTTP " + response.statusCode());
             }
         }
     }
@@ -270,16 +292,18 @@ public class RealA2ADemo {
         // Create group
         try {
             CreateGroup group = new CreateGroup();
-            group.setGroupId("demo.agents");
-            group.setDescription("Demo A2A agents for real-world integration");
+            group.setGroupId("demo.llm-agents");
+            group.setDescription("LLM-powered A2A agents using Ollama llama3.2");
             client.groups().post(group);
         } catch (Exception e) {
             // Group may exist
         }
 
-        // Register each agent by fetching their actual agent card
-        int[] ports = {SENTIMENT_AGENT_PORT, SUMMARY_AGENT_PORT, TRANSLATE_AGENT_PORT};
-        String[] artifactIds = {"sentiment-agent", "summary-agent", "translate-agent"};
+        // Register each agent
+        int[] ports = {SENTIMENT_AGENT_PORT, ANALYZER_AGENT_PORT,
+                RESPONSE_AGENT_PORT, TRANSLATOR_AGENT_PORT};
+        String[] artifactIds = {"sentiment-agent", "analyzer-agent",
+                "response-agent", "translator-agent"};
 
         for (int i = 0; i < ports.length; i++) {
             String url = "http://localhost:" + ports[i] + "/.well-known/agent.json";
@@ -307,13 +331,12 @@ public class RealA2ADemo {
             version.setContent(content);
             artifact.setFirstVersion(version);
 
-            client.groups().byGroupId("demo.agents").artifacts()
+            client.groups().byGroupId("demo.llm-agents").artifacts()
                     .post(artifact, config -> {
                         config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
                     });
 
-            LOGGER.info("  Registered: " + agentCard.get("name").asText() +
-                    " @ http://localhost:" + ports[i]);
+            LOGGER.info("  Registered: " + agentCard.get("name").asText());
         }
     }
 
@@ -330,99 +353,222 @@ public class RealA2ADemo {
 
         A2AOrchestrator orchestrator = new A2AOrchestrator(REGISTRY_BASE);
 
-        // Discover all agents from registry
-        LOGGER.info("[Using /.well-known/agents endpoint]");
+        LOGGER.info("Querying: " + REGISTRY_BASE + "/.well-known/agents");
         var agents = orchestrator.discoverAgents();
 
+        LOGGER.info("Found " + agents.size() + " agents:");
         for (var agent : agents) {
-            LOGGER.info("  Found: " + agent.name);
-            if (agent.url != null) {
-                LOGGER.info("    URL: " + agent.url);
-            }
-        }
-
-        // Test direct agent discovery
-        LOGGER.info("");
-        LOGGER.info("[Using direct agent /.well-known/agent.json endpoints]");
-        int[] ports = {SENTIMENT_AGENT_PORT, SUMMARY_AGENT_PORT, TRANSLATE_AGENT_PORT};
-        for (int port : ports) {
-            JsonNode card = orchestrator.fetchAgentCardDirect("http://localhost:" + port);
-            LOGGER.info("  Direct discovery: " + card.get("name").asText());
+            LOGGER.info("  - " + agent.name + (agent.url != null ? " @ " + agent.url : ""));
         }
     }
 
     // ==================================================================================
-    // Phase 5: Execute Real Multi-Agent Workflow
+    // Phase 5: Start Web UI
     // ==================================================================================
 
-    private static void executeRealWorkflow() throws Exception {
+    private static void startWebUI() throws Exception {
         LOGGER.info("");
         LOGGER.info("--------------------------------------------------------------------------------");
-        LOGGER.info("Phase 5: Executing Real Multi-Agent Workflow");
+        LOGGER.info("Phase 5: Starting Web UI");
         LOGGER.info("--------------------------------------------------------------------------------");
+        LOGGER.info("");
 
+        webUIServer = new WebUIServer(
+            WEB_UI_PORT,
+            SENTIMENT_AGENT_PORT,
+            ANALYZER_AGENT_PORT,
+            RESPONSE_AGENT_PORT,
+            TRANSLATOR_AGENT_PORT
+        );
+        webUIServer.start();
+
+        LOGGER.info("");
+        LOGGER.info("Web UI available at: http://localhost:" + WEB_UI_PORT);
+        LOGGER.info("Submit customer complaints through the web interface!");
+    }
+
+    // ==================================================================================
+    // Phase 6: Execute Intelligent Multi-Agent Workflow with Context Chaining
+    // ==================================================================================
+
+    private static void executeIntelligentWorkflow() throws Exception {
+        LOGGER.info("");
+        LOGGER.info("================================================================================");
+        LOGGER.info("Phase 6: Executing Sample Workflow (Demo)");
+        LOGGER.info("================================================================================");
+        LOGGER.info("");
+        LOGGER.info("This workflow uses CONTEXT CHAINING - each agent receives outputs from");
+        LOGGER.info("previous agents, creating a true integrated pipeline.");
+        LOGGER.info("");
+
+        // Realistic customer complaint message
+        String customerMessage = """
+            I've been waiting 3 weeks for my order #12345 and nobody responds to my emails!
+            This is unacceptable. I've been a loyal customer for 5 years and I expected
+            much better treatment. The tracking hasn't updated in 10 days and your phone
+            support just puts me on hold forever. I want a full refund immediately or I'm
+            disputing the charge with my bank and posting about this on social media.
+            """.strip();
+
+        LOGGER.info("INPUT MESSAGE:");
+        LOGGER.info("--------------------------------------------------------------------------------");
+        LOGGER.info(customerMessage);
+        LOGGER.info("--------------------------------------------------------------------------------");
+        LOGGER.info("");
+
+        // Define contextual steps with template variables
+        // Each step can reference previous outputs using {{variable}} syntax
+        List<ContextualStep> steps = List.of(
+                // Step 1: Sentiment analysis (just original message)
+                new ContextualStep(
+                        "Analyze customer sentiment and emotions",
+                        "http://localhost:" + SENTIMENT_AGENT_PORT,
+                        "sentiment",
+                        "{{original}}"
+                ),
+
+                // Step 2: Issue analysis WITH sentiment context
+                new ContextualStep(
+                        "Extract issues and entities with sentiment context",
+                        "http://localhost:" + ANALYZER_AGENT_PORT,
+                        "analysis",
+                        """
+                        CUSTOMER MESSAGE:
+                        {{original}}
+
+                        SENTIMENT ANALYSIS (from previous agent):
+                        {{sentiment}}
+
+                        Based on the sentiment analysis above, perform issue extraction.
+                        Consider the urgency and emotional state when prioritizing.
+                        """
+                ),
+
+                // Step 3: Response with full context
+                new ContextualStep(
+                        "Generate response using sentiment and analysis",
+                        "http://localhost:" + RESPONSE_AGENT_PORT,
+                        "response",
+                        """
+                        CUSTOMER MESSAGE:
+                        {{original}}
+
+                        SENTIMENT ANALYSIS:
+                        {{sentiment}}
+
+                        ISSUE ANALYSIS:
+                        {{analysis}}
+
+                        Generate an empathetic response that:
+                        - Acknowledges the customer's emotional state
+                        - Addresses all identified issues
+                        - Matches the urgency level identified
+                        """
+                ),
+
+                // Step 4: Translate the ACTUAL response
+                new ContextualStep(
+                        "Translate response to Spanish",
+                        "http://localhost:" + TRANSLATOR_AGENT_PORT,
+                        "translation",
+                        """
+                        Translate the following customer service response to Spanish:
+
+                        {{response}}
+                        """
+                )
+        );
+
+        // Execute contextual workflow
         A2AOrchestrator orchestrator = new A2AOrchestrator(REGISTRY_BASE);
+        List<WorkflowResult> results = orchestrator.executeContextualWorkflow(
+                "Integrated Customer Complaint Resolution Pipeline",
+                steps,
+                customerMessage);
 
-        // Create a workflow that chains multiple agents
-        List<WorkflowStep> steps = new ArrayList<>();
+        // Display results showing the integrated flow
+        displayIntegratedResults(results);
+    }
 
-        String customerMessage = "I am so frustrated with your service! The product arrived broken " +
-                "and customer support has been unhelpful. I've been a loyal customer for 5 years " +
-                "and I expected much better treatment. This is completely unacceptable and I want " +
-                "a full refund immediately!";
-
-        // Step 1: Analyze sentiment
-        steps.add(new WorkflowStep(
-                "Analyze customer sentiment",
-                "http://localhost:" + SENTIMENT_AGENT_PORT,
-                customerMessage));
-
-        // Step 2: Summarize the complaint
-        steps.add(new WorkflowStep(
-                "Summarize the customer complaint",
-                "http://localhost:" + SUMMARY_AGENT_PORT,
-                customerMessage));
-
-        // Step 3: Translate for demo
-        steps.add(new WorkflowStep(
-                "Process text through translation agent",
-                "http://localhost:" + TRANSLATE_AGENT_PORT,
-                "Please process this refund request urgently"));
-
-        // Execute the workflow
-        List<WorkflowResult> results = orchestrator.executeWorkflow(
-                "Customer Complaint Processing Pipeline",
-                steps);
-
-        // Display aggregated results
+    /**
+     * Display results highlighting the integrated context flow.
+     */
+    private static void displayIntegratedResults(List<WorkflowResult> results) {
         LOGGER.info("");
         LOGGER.info("================================================================================");
-        LOGGER.info("AGGREGATED WORKFLOW RESULTS");
+        LOGGER.info("INTEGRATED WORKFLOW RESULTS");
         LOGGER.info("================================================================================");
         LOGGER.info("");
-        LOGGER.info("Original Customer Message:");
-        LOGGER.info("  \"" + customerMessage.substring(0, 80) + "...\"");
+        LOGGER.info("Each agent built upon the previous agent's output:");
         LOGGER.info("");
 
-        for (WorkflowResult result : results) {
-            LOGGER.info("Step: " + result.stepName);
+        for (int i = 0; i < results.size(); i++) {
+            WorkflowResult result = results.get(i);
+            LOGGER.info("--------------------------------------------------------------------------------");
+            LOGGER.info("Step " + (i + 1) + ": " + result.stepName);
             LOGGER.info("  Status: " + (result.success ? "SUCCESS" : "FAILED"));
-            LOGGER.info("  Response: " + result.response);
             LOGGER.info("  Duration: " + result.durationMs + "ms");
+            LOGGER.info("");
+
+            // Pretty print JSON response
+            try {
+                JsonNode json = objectMapper.readTree(result.response);
+                String prettyJson = objectMapper.writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(json);
+                for (String line : prettyJson.split("\n")) {
+                    LOGGER.info("  " + line);
+                }
+            } catch (Exception e) {
+                // Not JSON, print as-is
+                LOGGER.info("  Response: " + result.response);
+            }
             LOGGER.info("");
         }
 
-        // Calculate total
+        // Summary statistics
         long totalDuration = results.stream().mapToLong(r -> r.durationMs).sum();
         long successCount = results.stream().filter(r -> r.success).count();
 
-        LOGGER.info("Total Duration: " + totalDuration + "ms");
-        LOGGER.info("Success Rate: " + successCount + "/" + results.size());
+        LOGGER.info("================================================================================");
+        LOGGER.info("PIPELINE STATISTICS:");
+        LOGGER.info("  Total LLM Processing Time: " + totalDuration + "ms");
+        LOGGER.info("  Success Rate: " + successCount + "/" + results.size());
+        LOGGER.info("  Model: " + OLLAMA_MODEL + " (local)");
+        LOGGER.info("  Agents Used: " + results.size());
+        LOGGER.info("");
+        LOGGER.info("CONTEXT CHAINING VERIFICATION:");
+        LOGGER.info("  - Step 2 received sentiment from Step 1");
+        LOGGER.info("  - Step 3 received sentiment + analysis from Steps 1-2");
+        LOGGER.info("  - Step 4 translated the actual response from Step 3");
+        LOGGER.info("================================================================================");
     }
 
-    private static void stopMockAgents() {
+    private static void printCompletionBanner() {
         LOGGER.info("");
-        LOGGER.info("Stopping mock agents...");
+        LOGGER.info("================================================================================");
+        LOGGER.info("Context Chaining Demo Ready!");
+        LOGGER.info("================================================================================");
+        LOGGER.info("");
+        LOGGER.info("WEB UI: http://localhost:" + WEB_UI_PORT);
+        LOGGER.info("");
+        LOGGER.info("Open the URL above in your browser to submit customer complaints.");
+        LOGGER.info("Each complaint will be processed through the 4-agent context chaining pipeline.");
+        LOGGER.info("");
+        LOGGER.info("Pipeline flow:");
+        LOGGER.info("  1. Sentiment Analysis  -> {{original}}");
+        LOGGER.info("  2. Issue Analyzer      -> {{original}} + {{sentiment}}");
+        LOGGER.info("  3. Response Generator  -> {{original}} + {{sentiment}} + {{analysis}}");
+        LOGGER.info("  4. Translator          -> {{response}}");
+        LOGGER.info("");
+        LOGGER.info("Press Ctrl+C to stop.");
+    }
+
+    private static void stopAgents() {
+        LOGGER.info("");
+        LOGGER.info("Stopping services...");
+        if (webUIServer != null) {
+            webUIServer.stop();
+        }
         for (MockAgentServer agent : runningAgents) {
             agent.stop();
         }

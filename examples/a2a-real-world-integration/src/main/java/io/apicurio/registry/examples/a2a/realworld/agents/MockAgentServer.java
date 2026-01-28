@@ -45,11 +45,11 @@ public class MockAgentServer {
     private static final Logger LOGGER = Logger.getLogger(MockAgentServer.class.getName());
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final int port;
-    private final String agentName;
-    private final String agentDescription;
-    private final String[] skills;
-    private final Function<String, String> taskHandler;
+    protected final int port;
+    protected final String agentName;
+    protected final String agentDescription;
+    protected final String[] skills;
+    protected Function<String, String> taskHandler;
     private HttpServer server;
 
     public MockAgentServer(int port, String agentName, String agentDescription,

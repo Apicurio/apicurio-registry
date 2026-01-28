@@ -13,6 +13,7 @@ import io.apicurio.registry.logging.audit.AuditingConstants;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -75,7 +76,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
-    @Audited(extractParameters = { "0", AuditingConstants.KEY_RULE })
+    @MethodMetadata(extractParameters = { "0", AuditingConstants.KEY_RULE })
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public GlobalConfigResponse updateGlobalConfig(ConfigUpdateRequest request) {
         updateCompatibilityLevel(request.getCompatibility(), dto -> {
@@ -93,7 +95,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
-    @Audited(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE })
+    @MethodMetadata(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE })
+    @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public GlobalConfigResponse updateSubjectConfig(String subject, String groupId, ConfigUpdateRequest request) {
         final GA ga = getGA(groupId, subject);
@@ -143,7 +146,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
-    @Audited(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID })
+    @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public GlobalConfigResponse deleteSubjectConfig(String subject, String groupId) {
         final GA ga = getGA(groupId, subject);

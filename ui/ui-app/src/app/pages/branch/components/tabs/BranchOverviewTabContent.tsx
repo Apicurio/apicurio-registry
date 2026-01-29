@@ -17,7 +17,6 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateIcon,
     EmptyStateVariant,
     Flex,
     FlexItem,
@@ -90,9 +89,7 @@ export const BranchOverviewTabContent: FunctionComponent<BranchOverviewTabConten
     );
 
     const emptyState = (
-        <EmptyState variant={EmptyStateVariant.sm}>
-            <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No versions found</Title>
+        <EmptyState titleText={<Title headingLevel="h5" size="lg">No versions found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are currently no versions in this branch.  Add some versions to the branch to view them here.
             </EmptyStateBody>
@@ -116,10 +113,10 @@ export const BranchOverviewTabContent: FunctionComponent<BranchOverviewTabConten
                                     <If condition={!(props.branch.systemDefined || false)}>
                                         <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                             <IfFeature feature="readOnly" isNot={true}>
-                                                <Button id="edit-action"
+                                                <Button icon={<PencilAltIcon />} id="edit-action"
                                                     data-testid="branch-btn-edit"
                                                     onClick={props.onEditMetaData}
-                                                    variant="link"><PencilAltIcon />{" "}Edit</Button>
+                                                    variant="link">{" "}Edit</Button>
                                             </IfFeature>
                                         </IfAuth>
                                     </If>

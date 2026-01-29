@@ -20,7 +20,6 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateIcon,
     EmptyStateVariant,
     Flex,
     FlexItem,
@@ -134,9 +133,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
     );
 
     const emptyState = (
-        <EmptyState variant={EmptyStateVariant.sm}>
-            <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No artifacts found</Title>
+        <EmptyState titleText={<Title headingLevel="h5" size="lg">No artifacts found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are currently no artifacts in this group.  Create some artifacts in the group to view them here.
             </EmptyStateBody>
@@ -144,9 +141,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
     );
 
     const filteredEmptyState = (
-        <EmptyState variant={EmptyStateVariant.sm}>
-            <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No artifacts found</Title>
+        <EmptyState titleText={<Title headingLevel="h5" size="lg">No artifacts found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are no artifacts in this group that match the filter criteria.  Change the criteria or create
                 some matching artifacts to see them here.
@@ -166,7 +161,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
 
     const panelContent = (
         <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
-            <DrawerHead hasNoPadding={true}>
+            <DrawerHead >
                 <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
                     <div className="group-basics">
                         <div className="title-and-type">
@@ -177,11 +172,11 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
                                     <If condition={props.group.groupId !== "default"}>
                                         <IfAuth isDeveloper={true}>
                                             <IfFeature feature="readOnly" isNot={true}>
-                                                <Button id="edit-action"
+                                                <Button icon={<PencilAltIcon />} id="edit-action"
                                                     data-testid="group-btn-edit"
                                                     onClick={props.onEditMetaData}
                                                     style={{ padding: "0" }}
-                                                    variant="link"><PencilAltIcon />{" "}Edit</Button>
+                                                    variant="link">{" "}Edit</Button>
                                             </IfFeature>
                                         </IfAuth>
                                     </If>
@@ -215,10 +210,10 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
                                             <span>
                                                 <IfAuth isAdminOrOwner={true} owner={props.group.owner}>
                                                     <IfFeature feature="readOnly" isNot={true}>
-                                                        <Button id="edit-action"
+                                                        <Button icon={<PencilAltIcon />} id="edit-action"
                                                             data-testid="group-btn-change-owner"
                                                             onClick={props.onChangeOwner}
-                                                            variant="link"><PencilAltIcon /></Button>
+                                                            variant="link"></Button>
                                                     </IfFeature>
                                                 </IfAuth>
                                             </span>

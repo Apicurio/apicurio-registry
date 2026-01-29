@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./SearchPage.css";
-import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
+import { PageSection, PageSectionVariants, Content } from "@patternfly/react-core";
 import {
     SearchArtifactList,
     PageDataLoader,
@@ -224,15 +224,15 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_search-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_search-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={SEARCH_PAGE_IDX} />
                 </PageSection>
-                <PageSection className="ps_search-description" variant={PageSectionVariants.light}>
-                    <TextContent>
+                <PageSection hasBodyWrapper={false} className="ps_search-description" >
+                    <Content>
                         Search content in the registry by searching for artifacts, versions, or groups.
-                    </TextContent>
+                    </Content>
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true}>
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true}>
                     <ListWithToolbar toolbar={toolbar}
                         emptyState={emptyState}
                         filteredEmptyState={emptyState}

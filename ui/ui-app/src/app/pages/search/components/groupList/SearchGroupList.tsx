@@ -55,7 +55,7 @@ export const SearchGroupList: FunctionComponent<SearchGroupListProps> = (props: 
                             id={`group-actions-${idx}`}
                             aria-label="Group actions"
                             aria-labelledby={`group-actions-${idx}`}
-                            isPlainButtonAction={true}
+                            
                         >
                             <ObjectDropdown
                                 label=""

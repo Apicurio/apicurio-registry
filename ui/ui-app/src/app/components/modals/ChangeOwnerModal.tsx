@@ -1,5 +1,14 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import { Button, Form, FormGroup, Modal, Text, TextInput } from "@patternfly/react-core";
+import {
+	Button,
+	Form,
+	FormGroup,
+	Content,
+	TextInput
+} from '@patternfly/react-core';
+import {
+	Modal
+} from '@patternfly/react-core/deprecated';
 
 
 /**
@@ -45,7 +54,7 @@ export const ChangeOwnerModal: FunctionComponent<ChangeOwnerModalProps> = (
         >
             <Form>
                 <FormGroup label="Current owner" fieldId="form-current-owner">
-                    <Text>{ currentOwner }</Text>
+                    <Content component="p">{ currentOwner }</Content>
                 </FormGroup>
                 <FormGroup label="New owner" fieldId="form-new-owner" isRequired={true}>
                     <TextInput

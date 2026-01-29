@@ -56,7 +56,7 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
 
     const panelContent = (
         <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
-            <DrawerHead hasNoPadding={true}>
+            <DrawerHead >
                 <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
                     <div className="version-basics">
                         <div className="title-and-type">
@@ -65,11 +65,11 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                                     <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                         <IfFeature feature="readOnly" isNot={true}>
-                                            <Button id="edit-action"
+                                            <Button icon={<PencilAltIcon/>} id="edit-action"
                                                 data-testid="version-btn-edit"
                                                 onClick={props.onEditMetaData}
                                                 style={{ padding: "0" }}
-                                                variant="link"><PencilAltIcon/>{" "}Edit</Button>
+                                                variant="link">{" "}Edit</Button>
                                         </IfFeature>
                                     </IfAuth>
                                 </FlexItem>

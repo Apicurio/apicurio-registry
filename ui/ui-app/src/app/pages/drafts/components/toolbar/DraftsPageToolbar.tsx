@@ -167,7 +167,7 @@ export const DraftsPageToolbar: FunctionComponent<DraftsPageToolbarProps> = (pro
                             props.onSortChange(props.sortBy, newSortOrder);
                         })} />
                     </ToolbarItem>
-                    <ToolbarItem className="create-draft-item" style={{ paddingLeft: "20px" }} align={{ default: "alignRight" }}>
+                    <ToolbarItem className="create-draft-item" style={{ paddingLeft: "20px" }} align={{ default: "alignEnd" }}>
                         <Button className="btn-header-create-draft" data-testid="btn-toolbar-create-draft"
                             variant="primary" onClick={props.onCreateDraft}>Create draft</Button>
                     </ToolbarItem>
@@ -181,7 +181,7 @@ export const DraftsPageToolbar: FunctionComponent<DraftsPageToolbarProps> = (pro
                             onClearAllCriteria={onRemoveAllFilterCriteria}
                             onRemoveCriteria={onRemoveFilterCriteria} />
                     </ToolbarItem>
-                    <ToolbarItem className="draft-paging-item" align={{ default: "alignRight" }}>
+                    <ToolbarItem className="draft-paging-item" align={{ default: "alignEnd" }}>
                         <Pagination
                             variant="top"
                             dropDirection="down"

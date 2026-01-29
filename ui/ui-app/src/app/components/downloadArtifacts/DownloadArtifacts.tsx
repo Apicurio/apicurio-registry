@@ -34,7 +34,7 @@ export const DownloadArtifacts: FunctionComponent<DownloadArtifactsProps> = (pro
             variant={ButtonVariant.link}
             onClick={downloadArtifacts}
             isInline
-            isActive={true}
+            isClicked={true}
         >
             {downloadLinkLabel}
         </Button>

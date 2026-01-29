@@ -4,7 +4,6 @@ import {
     EmptyState,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateIcon,
     EmptyStateVariant,
     Title
 } from "@patternfly/react-core";
@@ -26,9 +25,7 @@ export const ExplorePageEmptyState: FunctionComponent<ExplorePageEmptyStateProps
     const entitySingular: string = "group";
     const entityPlural: string = "groups";
     return (
-        <EmptyState variant={EmptyStateVariant.full}>
-            <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No { entityPlural } found</Title>
+        <EmptyState titleText={<Title headingLevel="h5" size="lg">No { entityPlural } found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.full}>
             <If condition={() => props.isFiltered}>
                 <EmptyStateBody>
                     No {entityPlural} match your filter settings.  Change your filter or perhaps create a new {entitySingular}.

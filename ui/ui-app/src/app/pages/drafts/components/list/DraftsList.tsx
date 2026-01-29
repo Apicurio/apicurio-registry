@@ -96,7 +96,7 @@ export const DraftsList: FunctionComponent<DraftsListProps> = (props: DraftsList
                             id={`draft-actions-${idx}`}
                             aria-label="Draft actions"
                             aria-labelledby={`draft-actions-${idx}`}
-                            isPlainButtonAction={true}
+                            
                         >
                             <ObjectDropdown
                                 label=""

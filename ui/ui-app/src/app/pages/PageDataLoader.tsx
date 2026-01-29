@@ -48,7 +48,7 @@ export const PageDataLoader: FunctionComponent<PageDataLoaderProps> = (props: Pa
 
     if (isLoading) {
         return (
-            <PageSection variant={PageSectionVariants.default} isFilled={true}>
+            <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true}>
                 <Flex>
                     <FlexItem><Spinner size="lg"/></FlexItem>
                     <FlexItem><span>Loading...</span></FlexItem>

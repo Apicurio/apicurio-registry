@@ -1,14 +1,16 @@
 import React, { FunctionComponent } from "react";
 import "./InvalidContentModal.css";
 import {
-    Button,
-    DataList,
-    DataListCell,
-    DataListItemCells,
-    DataListItemRow,
-    Modal,
-    ModalVariant
-} from "@patternfly/react-core";
+	Button,
+	DataList,
+	DataListCell,
+	DataListItemCells,
+	DataListItemRow
+} from '@patternfly/react-core';
+import {
+	Modal,
+	ModalVariant
+} from '@patternfly/react-core/deprecated';
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { RuleViolationProblemDetails } from "@sdk/lib/generated-client/models";
 

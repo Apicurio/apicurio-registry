@@ -1,6 +1,12 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./VersionCompareModal.css";
-import { Modal, Spinner, Alert } from "@patternfly/react-core";
+import {
+	Spinner,
+	Alert
+} from '@patternfly/react-core';
+import {
+	Modal
+} from '@patternfly/react-core/deprecated';
 import { SearchedVersion } from "@sdk/lib/generated-client/models";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { DiffView } from "@app/components";

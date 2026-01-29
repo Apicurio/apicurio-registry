@@ -1,6 +1,8 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./CompareModal.css";
-import { Modal } from "@patternfly/react-core";
+import {
+	Modal
+} from '@patternfly/react-core/deprecated';
 import { contentToString } from "@utils/content.utils.ts";
 import { DiffView } from "@app/components";
 

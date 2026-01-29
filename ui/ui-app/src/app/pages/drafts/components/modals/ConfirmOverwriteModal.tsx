@@ -1,5 +1,11 @@
 import { FunctionComponent } from "react";
-import { Alert, Button, Modal } from "@patternfly/react-core";
+import {
+	Alert,
+	Button
+} from '@patternfly/react-core';
+import {
+	Modal
+} from '@patternfly/react-core/deprecated';
 
 
 /**

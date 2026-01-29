@@ -1,5 +1,12 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import { Button, Modal, Switch, Tooltip } from "@patternfly/react-core";
+import {
+	Button,
+	Switch,
+	Tooltip
+} from '@patternfly/react-core';
+import {
+	Modal
+} from '@patternfly/react-core/deprecated';
 import { Draft } from "@models/drafts";
 
 
@@ -55,7 +62,7 @@ export const ConfirmFinalizeModal: FunctionComponent<ConfirmFinalizeModalProps> 
                     <Switch
                         id="dryrun-switch"
                         label="Dry run only"
-                        labelOff="Dry run only"
+                        
                         isChecked={isDryRun}
                         onChange={onDryRunChange}
                         ouiaId="DryRunSwitch" />

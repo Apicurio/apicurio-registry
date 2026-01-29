@@ -1,6 +1,11 @@
 import React, { FunctionComponent, useState } from "react";
 import "./RoleList.css";
-import { Button, Modal } from "@patternfly/react-core";
+import {
+	Button
+} from '@patternfly/react-core';
+import {
+	Modal
+} from '@patternfly/react-core/deprecated';
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { RoleMappingsEmptyState } from "@app/pages";
 import { RoleMapping, RoleTypeObject } from "@sdk/lib/generated-client/models";

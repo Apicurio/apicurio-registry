@@ -263,7 +263,7 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
                             onClearAllCriteria={onRemoveAllFilterCriteria}
                             onRemoveCriteria={onRemoveFilterCriteria} />
                     </ToolbarItem>
-                    <ToolbarItem className="draft-paging-item" align={{ default: "alignRight" }}>
+                    <ToolbarItem className="draft-paging-item" align={{ default: "alignEnd" }}>
                         <Pagination
                             variant="top"
                             dropDirection="down"

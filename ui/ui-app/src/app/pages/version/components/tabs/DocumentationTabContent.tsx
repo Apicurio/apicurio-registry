@@ -2,11 +2,11 @@ import { FunctionComponent, useState } from "react";
 import { ErrorTabContent } from "@app/pages";
 import { If } from "@apicurio/common-ui-components";
 import YAML from "yaml";
-import { AsyncApiVisualizer, OpenApiVisualizer } from "@app/pages/version/components/tabs/visualizers";
+import { AgentCardVisualizer, AsyncApiVisualizer, OpenApiVisualizer } from "@app/pages/version/components/tabs/visualizers";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 
 enum VisualizerType {
-    OPENAPI, ASYNCAPI, OTHER
+    OPENAPI, ASYNCAPI, AGENT_CARD, OTHER
 }
 
 const getVisualizerType = (artifactType: string): VisualizerType => {
@@ -15,6 +15,9 @@ const getVisualizerType = (artifactType: string): VisualizerType => {
     }
     if (artifactType === ArtifactTypes.ASYNCAPI) {
         return VisualizerType.ASYNCAPI;
+    }
+    if (artifactType === ArtifactTypes.AGENT_CARD) {
+        return VisualizerType.AGENT_CARD;
     }
     return VisualizerType.OTHER;
 };
@@ -68,6 +71,9 @@ export const DocumentationTabContent: FunctionComponent<DocumentationTabContentP
             </If>
             <If condition={visualizerType === VisualizerType.ASYNCAPI}>
                 <AsyncApiVisualizer spec={parsedContent} />
+            </If>
+            <If condition={visualizerType === VisualizerType.AGENT_CARD}>
+                <AgentCardVisualizer spec={parsedContent} />
             </If>
             <If condition={visualizerType === VisualizerType.OTHER}>
                 <h1>Unsupported Type: { props.artifactType }</h1>

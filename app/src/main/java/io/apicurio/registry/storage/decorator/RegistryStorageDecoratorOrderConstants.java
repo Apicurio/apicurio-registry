@@ -6,6 +6,7 @@ package io.apicurio.registry.storage.decorator;
 public interface RegistryStorageDecoratorOrderConstants {
     int READ_ONLY_DECORATOR = 10;
     int KAFKA_SQL_DECORATOR = 20;
+    int AGENT_CARD_LABELS_DECORATOR = 25;
     int LIMITS_ENFORCER_DECORATOR = 30;
     int CONFIG_CACHE_DECORATOR = 40;
     int EVENT_SOURCED_DECORATOR = 50;

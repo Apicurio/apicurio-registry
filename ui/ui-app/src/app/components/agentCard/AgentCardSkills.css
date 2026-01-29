@@ -1,0 +1,44 @@
+.agent-card-skills {
+    margin-bottom: 16px;
+}
+
+.agent-card-skills .section-title {
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.agent-card-skills .skills-data-list {
+    border: none;
+}
+
+.agent-card-skills .skills-compact-list {
+    gap: 4px;
+}
+
+.agent-card-skills .skill-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--pf-v5-global--Color--100);
+}
+
+.agent-card-skills .skill-id {
+    font-size: 12px;
+    color: var(--pf-v5-global--Color--200);
+    font-family: var(--pf-v5-global--FontFamily--monospace);
+}
+
+.agent-card-skills .skill-description {
+    font-size: 13px;
+    color: var(--pf-v5-global--Color--100);
+    margin-bottom: 4px;
+}
+
+.agent-card-skills .skill-tags {
+    margin-top: 4px;
+}
+
+.agent-card-skills .empty-state-text {
+    color: var(--pf-v5-global--Color--200);
+    font-style: italic;
+}

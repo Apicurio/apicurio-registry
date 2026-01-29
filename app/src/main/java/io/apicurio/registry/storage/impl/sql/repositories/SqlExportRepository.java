@@ -1,7 +1,10 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.error.RegistryStorageException;
+
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactEntityMapper;
@@ -60,6 +63,7 @@ public class SqlExportRepository {
 
     @Inject
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka events topic for outbox pattern", registryAvailableSince = "3.0.1")
     String eventsTopic;
 
     /**

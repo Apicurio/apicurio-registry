@@ -107,6 +107,108 @@ public class A2AOrchestrator {
     }
 
     /**
+     * Render a prompt template using the registry's render endpoint.
+     * This calls: POST /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/render
+     *
+     * @param groupId The group ID of the prompt template artifact
+     * @param artifactId The artifact ID of the prompt template
+     * @param version The version expression (e.g., "1.0.0" or "latest")
+     * @param variables Map of variable names to values for template substitution
+     * @return The rendered prompt string
+     */
+    public String renderPromptTemplate(String groupId, String artifactId, String version,
+                                        Map<String, Object> variables) throws Exception {
+        String url = registryBaseUrl + "/apis/registry/v3/groups/" + groupId +
+                "/artifacts/" + artifactId + "/versions/" + version + "/render";
+        LOGGER.info("[Orchestrator] Rendering template via registry: " + url);
+
+        // Build RenderPromptRequest body
+        ObjectNode requestBody = objectMapper.createObjectNode();
+        ObjectNode variablesNode = requestBody.putObject("variables");
+        for (Map.Entry<String, Object> entry : variables.entrySet()) {
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                variablesNode.put(entry.getKey(), (String) value);
+            } else if (value instanceof Integer) {
+                variablesNode.put(entry.getKey(), (Integer) value);
+            } else if (value instanceof Long) {
+                variablesNode.put(entry.getKey(), (Long) value);
+            } else if (value instanceof Double) {
+                variablesNode.put(entry.getKey(), (Double) value);
+            } else if (value instanceof Boolean) {
+                variablesNode.put(entry.getKey(), (Boolean) value);
+            } else {
+                variablesNode.put(entry.getKey(), value != null ? value.toString() : null);
+            }
+        }
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(requestBody)))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Failed to render template: HTTP " + response.statusCode() +
+                    " - " + response.body());
+        }
+
+        JsonNode responseNode = objectMapper.readTree(response.body());
+
+        // Check for validation errors
+        if (responseNode.has("validationErrors")) {
+            JsonNode errors = responseNode.get("validationErrors");
+            if (errors.isArray() && errors.size() > 0) {
+                LOGGER.warning("[Orchestrator] Template validation warnings: " + errors.toString());
+            }
+        }
+
+        // Return the rendered prompt
+        if (responseNode.has("rendered")) {
+            return responseNode.get("rendered").asText();
+        }
+
+        throw new RuntimeException("Render response missing 'rendered' field: " + response.body());
+    }
+
+    /**
+     * Parse a URN reference into groupId, artifactId, and optional version.
+     * Format: urn:apicurio:groupId/artifactId or urn:apicurio:groupId/artifactId@version
+     *
+     * @param urn The URN reference string
+     * @return String array with [groupId, artifactId, version] (version may be "latest")
+     */
+    public String[] parsePromptTemplateRef(String urn) {
+        if (urn == null || !urn.startsWith("urn:apicurio:")) {
+            throw new IllegalArgumentException("Invalid URN format. Expected: urn:apicurio:groupId/artifactId[@version]");
+        }
+
+        String path = urn.substring("urn:apicurio:".length());
+        String version = "latest";
+
+        // Check for version suffix
+        if (path.contains("@")) {
+            int atIndex = path.lastIndexOf('@');
+            version = path.substring(atIndex + 1);
+            path = path.substring(0, atIndex);
+        }
+
+        // Split into groupId and artifactId
+        int slashIndex = path.lastIndexOf('/');
+        if (slashIndex == -1) {
+            throw new IllegalArgumentException("Invalid URN format. Expected: urn:apicurio:groupId/artifactId[@version]");
+        }
+
+        String groupId = path.substring(0, slashIndex);
+        String artifactId = path.substring(slashIndex + 1);
+
+        return new String[]{groupId, artifactId, version};
+    }
+
+    /**
      * Fetch the full agent card from the registry
      */
     public JsonNode fetchAgentCard(String groupId, String artifactId) throws Exception {
@@ -125,31 +227,6 @@ public class A2AOrchestrator {
         }
 
         return objectMapper.readTree(response.body());
-    }
-
-    /**
-     * Fetch agent card directly from the agent's well-known endpoint
-     */
-    public JsonNode fetchAgentCardDirect(String agentUrl) throws Exception {
-        String url = agentUrl + "/.well-known/agent.json";
-        LOGGER.info("[Orchestrator] Fetching agent card from: " + url);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .GET()
-                .header("Accept", "application/json")
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new RuntimeException("Failed to fetch agent card: HTTP " + response.statusCode());
-        }
-
-        JsonNode card = objectMapper.readTree(response.body());
-        LOGGER.info("[Orchestrator] Agent: " + card.get("name").asText() +
-                " - Skills: " + card.get("skills").size());
-        return card;
     }
 
     /**
@@ -226,7 +303,6 @@ public class A2AOrchestrator {
     // ==================================================================================
     // Helper Classes
     // ==================================================================================
-
     public static class AgentInfo {
         public String groupId;
         public String artifactId;
@@ -252,6 +328,7 @@ public class A2AOrchestrator {
     /**
      * Workflow context that accumulates outputs from each agent step.
      * Enables context chaining where each agent can access previous agents' outputs.
+     * Supports both local template substitution and registry-based rendering.
      */
     public static class WorkflowContext {
         public String originalMessage;
@@ -259,6 +336,7 @@ public class A2AOrchestrator {
 
         /**
          * Build a prompt by substituting template variables with context values.
+         * This is the local fallback method when no registry template reference is provided.
          *
          * @param template Template with {{variable}} placeholders
          * @return Template with placeholders replaced by actual values
@@ -269,6 +347,19 @@ public class A2AOrchestrator {
                 result = result.replace("{{" + entry.getKey() + "}}", entry.getValue());
             }
             return result;
+        }
+
+        /**
+         * Build the variables map for registry-based template rendering.
+         * Converts the context into a map suitable for the render endpoint.
+         *
+         * @return Map of variable names to values including original message and all agent outputs
+         */
+        public Map<String, Object> buildVariablesMap() {
+            Map<String, Object> variables = new LinkedHashMap<>();
+            variables.put("original", originalMessage);
+            variables.putAll(agentOutputs);
+            return variables;
         }
     }
 
@@ -355,11 +446,36 @@ public class A2AOrchestrator {
         for (int i = 0; i < steps.size(); i++) {
             ContextualStep step = steps.get(i);
 
-            // Build prompt with accumulated context
-            String contextualTask = context.buildPrompt(step.taskTemplate);
+            // Build prompt: use registry render endpoint if promptTemplateRef is set, otherwise use local substitution
+            String contextualTask;
+            boolean usedRegistryRender = false;
 
-            LOGGER.info("");
-            LOGGER.info("[Step " + (i + 1) + "/" + steps.size() + "] " + step.description);
+            if (step.promptTemplateRef != null && !step.promptTemplateRef.isEmpty()) {
+                // Use registry's render endpoint for server-side template rendering with validation
+                try {
+                    String[] parsed = parsePromptTemplateRef(step.promptTemplateRef);
+                    String groupId = parsed[0];
+                    String artifactId = parsed[1];
+                    String version = parsed[2];
+
+                    Map<String, Object> variables = context.buildVariablesMap();
+                    contextualTask = renderPromptTemplate(groupId, artifactId, version, variables);
+                    usedRegistryRender = true;
+                    LOGGER.info("[Step " + (i + 1) + "/" + steps.size() + "] " + step.description);
+                    LOGGER.info("  Using registry render endpoint: " + step.promptTemplateRef);
+                } catch (Exception e) {
+                    LOGGER.warning("  Failed to render via registry, falling back to local: " + e.getMessage());
+                    contextualTask = context.buildPrompt(step.taskTemplate);
+                }
+            } else {
+                // Use local template substitution as fallback
+                contextualTask = context.buildPrompt(step.taskTemplate);
+            }
+
+            if (!usedRegistryRender) {
+                LOGGER.info("");
+                LOGGER.info("[Step " + (i + 1) + "/" + steps.size() + "] " + step.description);
+            }
             LOGGER.info("  Agent: " + step.agentUrl);
             LOGGER.info("  Context keys available: " + context.agentOutputs.keySet());
             LOGGER.info("  Task preview: " + contextualTask.substring(0, Math.min(100, contextualTask.length())) + "...");

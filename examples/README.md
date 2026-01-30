@@ -82,6 +82,16 @@ and model capability search. Includes integration examples for Quarkus + LangCha
 
 See the [llm-artifact-types](llm-artifact-types/) directory for details.
 
+## Kafka Order Processing Example
+This example provides a complete, realistic Kafka architecture demonstrating both message production and
+consumption with Apicurio Registry as the schema registry. The example simulates an order processing
+system with separate producer and consumer applications built using Quarkus. The producer automatically
+generates random orders every 5 seconds, while the consumer processes them in real-time. Both applications
+use Avro serialization with schemas managed by Apicurio Registry, demonstrating automatic schema
+registration, schema evolution support, and seamless integration between Kafka and the registry. Includes
+a Docker Compose setup for running Kafka, Zookeeper, and Apicurio Registry locally.
+
+See the [kafka-order-processing](kafka-order-processing/) directory for details.
 ## A2A Agent Card Example
 This example demonstrates how to use Apicurio Registry to manage A2A (Agent-to-Agent) Agent Cards -
 JSON metadata documents that describe AI agents according to the A2A Protocol. The example shows how

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://apicurio.io/schemas/model-schema/v1",
+  "modelId": "issue-analyzer-output",
+  "provider": "a2a-demo",
+  "version": "1.0.0",
+  "output": {
+    "type": "object",
+    "required": ["issue_type", "priority", "category", "customer_requests", "action_items"],
+    "properties": {
+      "issue_type": {
+        "type": "string",
+        "description": "Category of the main issue (e.g., delayed_delivery, billing_error)"
+      },
+      "entities": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": ["string", "null"],
+            "description": "Extracted order ID if present"
+          },
+          "wait_time": {
+            "type": ["string", "null"],
+            "description": "How long customer has waited"
+          },
+          "amount": {
+            "type": ["string", "null"],
+            "description": "Monetary amount if mentioned"
+          },
+          "product": {
+            "type": ["string", "null"],
+            "description": "Product name if mentioned"
+          },
+          "date": {
+            "type": ["string", "null"],
+            "description": "Any specific date mentioned"
+          }
+        },
+        "description": "Extracted entities from the customer message"
+      },
+      "customer_requests": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of what the customer wants or is requesting"
+      },
+      "action_items": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Recommended actions to resolve the issue"
+      },
+      "priority": {
+        "type": "string",
+        "enum": ["P1", "P2", "P3", "P4"],
+        "description": "Priority level (P1=Critical, P4=Low)"
+      },
+      "category": {
+        "type": "string",
+        "enum": ["billing", "shipping", "product", "service", "technical", "other"],
+        "description": "Issue category classification"
+      },
+      "sentiment_considered": {
+        "type": "string",
+        "description": "How sentiment analysis influenced prioritization"
+      }
+    }
+  },
+  "metadata": {
+    "description": "Output schema for issue analyzer agent - extracts entities, classifies issues, and recommends actions",
+    "category": "customer-support",
+    "tags": ["analysis", "entity-extraction", "issue-classification"],
+    "dependsOn": ["llm-agents.schemas/sentiment-agent-output"]
+  }
+}

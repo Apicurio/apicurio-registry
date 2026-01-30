@@ -1,0 +1,53 @@
+.skill-editor {
+    margin-bottom: 16px;
+}
+
+.skill-editor .section-title {
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.skill-editor .skill-form {
+    padding: 16px;
+    background-color: var(--pf-v5-global--BackgroundColor--200);
+    border-radius: 4px;
+}
+
+.skill-editor .skills-list {
+    border: none;
+    margin-bottom: 12px;
+}
+
+.skill-editor .skill-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.skill-editor .skill-id {
+    font-size: 12px;
+    color: var(--pf-v5-global--Color--200);
+    font-family: var(--pf-v5-global--FontFamily--monospace);
+}
+
+.skill-editor .tags-list {
+    margin-top: 8px;
+}
+
+.skill-editor .add-skill-btn {
+    padding-left: 0;
+}
+
+.skill-editor .delete-btn {
+    color: var(--pf-v5-global--danger-color--100);
+}
+
+.skill-editor .no-skills {
+    padding: 16px;
+    text-align: center;
+}
+
+.skill-editor .empty-state-text {
+    color: var(--pf-v5-global--Color--200);
+    font-style: italic;
+}

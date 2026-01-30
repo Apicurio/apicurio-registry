@@ -1,0 +1,571 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="llm-artifact-types-implementation_{context}"]
+= LLM Artifact Types Implementation Guide
+
+[role="_abstract"]
+This chapter provides detailed implementation documentation for the built-in AI/ML artifact types (MODEL_SCHEMA and PROMPT_TEMPLATE) in {registry}. It covers the internal architecture, TypeScript implementation details, and how to customize or extend these types.
+
+* xref:llm-artifact-types-architecture_{context}[]
+* xref:llm-artifact-types-prompt-template-implementation_{context}[]
+* xref:llm-artifact-types-model-schema-implementation_{context}[]
+* xref:llm-artifact-types-prompt-rendering-service_{context}[]
+* xref:llm-artifact-types-customization_{context}[]
+
+[role="_additional-resources"]
+.Additional resources
+* For usage documentation, see xref:registry-artifact-types_{context}[]
+* For creating custom artifact types, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/custom-artifact-type[Custom Artifact Type Example]
+
+// Architecture Overview
+[id="llm-artifact-types-architecture_{context}"]
+== Architecture Overview
+
+{registry} implements the LLM artifact types using a script-based architecture that allows artifact type logic to be written in TypeScript and executed within the Java runtime.
+
+=== Script-Based Artifact Type System
+
+The LLM artifact types are implemented using the following components:
+
+.Architecture Components
+[%header,cols="2,4"]
+|===
+|Component
+|Description
+
+|TypeScript Implementation
+|Located in `app/llm-artifact-types-src/src/`. Contains the actual validation, compatibility checking, and content handling logic written in TypeScript.
+
+|Bundled JavaScript
+|The TypeScript is transpiled and bundled using esbuild into JavaScript files stored in `app/src/main/resources/llm-artifact-types/`.
+
+|Configuration File
+|`default-artifact-types-config.json` defines the artifact types and links them to their JavaScript implementations.
+
+|Java Bridge
+|`ConfiguredArtifactTypeUtilProvider` and `ScriptingService` execute the JavaScript using QuickJS within the JVM.
+
+|Prompt Rendering Service
+|Java service (`PromptRenderingService`) provides server-side template rendering for PROMPT_TEMPLATE artifacts.
+|===
+
+=== Configuration File Structure
+
+The LLM artifact types are configured in `app/src/main/resources/llm-artifact-types/default-artifact-types-config.json`:
+
+[source,json]
+----
+{
+  "includeStandardArtifactTypes": true,
+  "artifactTypes": [
+    {
+      "artifactType": "MODEL_SCHEMA",
+      "name": "Model Schema",
+      "description": "AI/ML model input/output schema definitions and metadata for LLM governance",
+      "contentTypes": ["application/json", "application/x-yaml"],
+      "scriptLocation": "llm-artifact-types/model-schema-artifact-type.js",
+      "contentAccepter": { "type": "script" },
+      "contentCanonicalizer": { "type": "script" },
+      "contentValidator": { "type": "script" },
+      "compatibilityChecker": { "type": "script" },
+      "contentDereferencer": { "type": "script" },
+      "referenceFinder": { "type": "script" }
+    },
+    {
+      "artifactType": "PROMPT_TEMPLATE",
+      "name": "Prompt Template",
+      "description": "Version-controlled prompt templates with variable schemas for LLMOps",
+      "contentTypes": ["application/x-yaml", "application/json", "text/x-prompt-template"],
+      "scriptLocation": "llm-artifact-types/prompt-template-artifact-type.js",
+      "contentAccepter": { "type": "script" },
+      "contentCanonicalizer": { "type": "script" },
+      "contentValidator": { "type": "script" },
+      "compatibilityChecker": { "type": "script" },
+      "contentDereferencer": { "type": "script" },
+      "referenceFinder": { "type": "script" }
+    }
+  ]
+}
+----
+
+=== Handler Functions
+
+Each artifact type implements the following handler functions:
+
+.Artifact Type Handler Functions
+[%header,cols="2,4"]
+|===
+|Function
+|Purpose
+
+|`acceptsContent()`
+|Determines if content matches this artifact type based on structure and content type.
+
+|`validate()`
+|Validates content structure, required fields, and constraint violations.
+
+|`testCompatibility()`
+|Checks backward compatibility between existing and proposed versions.
+
+|`canonicalize()`
+|Normalizes content for consistent hashing and comparison.
+
+|`findExternalReferences()`
+|Locates `$ref` references to external schemas.
+
+|`dereference()`
+|Resolves `$ref` references by substituting actual content.
+
+|`rewriteReferences()`
+|Rewrites `$ref` paths to use registry URLs.
+
+|`validateReferences()`
+|Ensures all references are properly mapped.
+|===
+
+// PROMPT_TEMPLATE Implementation
+[id="llm-artifact-types-prompt-template-implementation_{context}"]
+== PROMPT_TEMPLATE Implementation Details
+
+The PROMPT_TEMPLATE artifact type is implemented in `app/llm-artifact-types-src/src/PromptTemplateArtifactType.ts`.
+
+=== Schema Structure
+
+.PROMPT_TEMPLATE Schema Interface
+[source,typescript]
+----
+interface PromptTemplate {
+    $schema?: string;           // Schema URL for identification
+    templateId: string;         // Required: unique identifier
+    name?: string;              // Human-readable name
+    description?: string;       // Template description
+    version?: string;           // Semantic version
+    template: string;           // Required: template text with {{variable}} placeholders
+    variables?: Record<string, VariableSchema>;  // Variable definitions
+    outputSchema?: Record<string, unknown>;      // Expected output structure
+    metadata?: Record<string, unknown>;          // Custom metadata
+}
+
+interface VariableSchema {
+    type?: string;              // string, integer, number, boolean, array, object
+    required?: boolean;         // Whether variable is required
+    default?: unknown;          // Default value
+    description?: string;       // Variable description
+    enum?: unknown[];           // Allowed values
+    minimum?: number;           // Minimum value for numeric types
+    maximum?: number;           // Maximum value for numeric types
+    $ref?: string;              // Reference to external schema
+}
+----
+
+=== Content Detection
+
+The `acceptsContent()` function identifies PROMPT_TEMPLATE content by checking:
+
+1. **Content type** is `application/json`, `application/x-yaml`, or `text/x-prompt-template`
+2. **Schema identifier**: `$schema` field contains `prompt-template`
+3. **Required fields**: presence of both `templateId` and `template` fields
+
+=== Validation Rules
+
+The `validate()` function enforces:
+
+* `templateId` must be a non-empty string
+* `template` must be a non-empty string
+* All `{{variable}}` placeholders in template must have corresponding definitions in `variables`
+* Variable types must be valid: `string`, `integer`, `number`, `boolean`, `array`, `object`
+* Numeric constraints (`minimum`, `maximum`) must be numbers
+* Enum values must be arrays
+
+=== Compatibility Rules
+
+.PROMPT_TEMPLATE Backward Compatibility
+[%header,cols="3,1,3"]
+|===
+|Change Type
+|Allowed
+|Reason
+
+|Add new optional variable
+|Yes
+|Existing consumers can ignore new variables
+
+|Remove unused variable (not in template)
+|Yes
+|No impact on template rendering
+
+|Remove used variable (in template)
+|No
+|Breaks template rendering
+
+|Change variable type
+|No
+|Existing variable values may become invalid
+
+|Make optional variable required
+|No
+|Existing consumers may not provide value
+
+|Narrow enum values (remove options)
+|No
+|Existing valid values may become invalid
+
+|Change template text (same variables)
+|Yes
+|Variable contract remains intact
+
+|Remove output schema property
+|No
+|Consumer expectations may be violated
+|===
+
+=== Template Variable Extraction
+
+Variables are extracted from template text using regex pattern `\{\{(\w+)\}\}`:
+
+[source,typescript]
+----
+function extractTemplateVariables(template: string): string[] {
+    const regex = /\{\{(\w+)\}\}/g;
+    const variables: string[] = [];
+    let match;
+    while ((match = regex.exec(template)) !== null) {
+        if (!variables.includes(match[1])) {
+            variables.push(match[1]);
+        }
+    }
+    return variables;
+}
+----
+
+=== Canonicalization
+
+PROMPT_TEMPLATE content is canonicalized to YAML format with:
+
+* Recursively sorted object keys
+* Preserved multiline template strings
+* Consistent quoting style
+
+// MODEL_SCHEMA Implementation
+[id="llm-artifact-types-model-schema-implementation_{context}"]
+== MODEL_SCHEMA Implementation Details
+
+The MODEL_SCHEMA artifact type is implemented in `app/llm-artifact-types-src/src/ModelSchemaArtifactType.ts`.
+
+=== Schema Structure
+
+.MODEL_SCHEMA Schema Interface
+[source,typescript]
+----
+interface ModelSchema {
+    $schema?: string;                           // Schema URL for identification
+    modelId: string;                            // Required: unique model identifier
+    provider?: string;                          // Provider name (OpenAI, Anthropic, etc.)
+    version?: string;                           // Model version
+    input?: Record<string, unknown>;            // Input schema (JSON Schema format)
+    output?: Record<string, unknown>;           // Output schema (JSON Schema format)
+    metadata?: Record<string, unknown>;         // Custom metadata (capabilities, etc.)
+    definitions?: Record<string, unknown>;      // Reusable schema definitions
+}
+----
+
+=== Content Detection
+
+The `acceptsContent()` function identifies MODEL_SCHEMA content by checking:
+
+1. **Content type** is `application/json` or `application/x-yaml`
+2. **Schema identifier**: `$schema` field contains `model-schema`
+3. **Required fields**: presence of `modelId` and at least one of `input` or `output`
+
+=== Validation Rules
+
+The `validate()` function enforces:
+
+* `modelId` must be a non-empty string
+* At least one of `input` or `output` must be defined
+* `input` and `output` must be objects (JSON Schema format)
+* `metadata` must be an object if provided
+
+=== Compatibility Rules
+
+.MODEL_SCHEMA Backward Compatibility
+[%header,cols="3,1,3"]
+|===
+|Change Type
+|Allowed
+|Reason
+
+|Add optional input property
+|Yes
+|Existing consumers can ignore new fields
+
+|Add required input property
+|No
+|Existing consumers won't provide new required fields
+
+|Remove input property
+|No
+|Consumers may still send removed properties
+
+|Change input property type
+|No
+|Existing data may become invalid
+
+|Add output property
+|Yes
+|Consumers can ignore new fields in response
+
+|Remove output property
+|No
+|Consumers may depend on removed properties
+
+|Change output property type
+|No
+|Consumer parsing may break
+
+|Remove input schema entirely
+|No
+|Contract changes fundamentally
+
+|Remove output schema entirely
+|No
+|Contract changes fundamentally
+|===
+
+=== Canonicalization
+
+MODEL_SCHEMA content is canonicalized to JSON format with:
+
+* Recursively sorted object keys
+* Consistent indentation (2 spaces)
+* No trailing whitespace
+
+// Prompt Rendering Service
+[id="llm-artifact-types-prompt-rendering-service_{context}"]
+== Prompt Rendering Service
+
+{registry} provides a server-side prompt rendering service for PROMPT_TEMPLATE artifacts.
+
+=== REST API Endpoint
+
+[source,text]
+----
+POST /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render
+----
+
+.Request Body
+[source,json]
+----
+{
+  "variables": {
+    "variableName": "value",
+    "anotherVariable": 123
+  }
+}
+----
+
+.Response Body
+[source,json]
+----
+{
+  "rendered": "The fully rendered template with substituted values",
+  "groupId": "default",
+  "artifactId": "my-prompt",
+  "version": "1.0",
+  "validationErrors": []
+}
+----
+
+=== Java Implementation
+
+The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/services/PromptRenderingService.java`) provides:
+
+.Rendering Service Features
+[%header,cols="2,4"]
+|===
+|Feature
+|Description
+
+|Content Parsing
+|Automatically parses YAML or JSON prompt templates
+
+|Variable Substitution
+|Replaces `{{variable}}` placeholders with provided values
+
+|Type Validation
+|Validates variable values match their defined types
+
+|Required Field Checking
+|Reports missing required variables as validation errors
+
+|Enum Validation
+|Ensures values are within allowed enum options
+
+|Range Validation
+|Validates numeric values against minimum/maximum constraints
+|===
+
+=== Validation Error Response
+
+When validation fails, the response includes validation errors:
+
+[source,json]
+----
+{
+  "rendered": "Template with {{missing}} placeholder intact",
+  "groupId": "default",
+  "artifactId": "my-prompt",
+  "version": "1.0",
+  "validationErrors": [
+    {
+      "variableName": "missing",
+      "message": "Required variable is missing"
+    },
+    {
+      "variableName": "count",
+      "message": "Value 200 is greater than maximum 100"
+    }
+  ]
+}
+----
+
+// Customization
+[id="llm-artifact-types-customization_{context}"]
+== Customizing LLM Artifact Types
+
+You can modify the built-in LLM artifact types or use them as templates for custom types.
+
+=== Source Code Location
+
+.Source Files
+[%header,cols="2,4"]
+|===
+|File
+|Purpose
+
+|`app/llm-artifact-types-src/src/PromptTemplateArtifactType.ts`
+|PROMPT_TEMPLATE implementation
+
+|`app/llm-artifact-types-src/src/ModelSchemaArtifactType.ts`
+|MODEL_SCHEMA implementation
+
+|`app/llm-artifact-types-src/src/shared-utils.ts`
+|Shared utility functions (parsing, reference handling)
+
+|`app/llm-artifact-types-src/package.json`
+|Build configuration and dependencies
+|===
+
+=== Building Modified Types
+
+To modify and rebuild the LLM artifact types:
+
+[source,bash]
+----
+# Navigate to source directory
+cd app/llm-artifact-types-src
+
+# Install dependencies
+npm install
+
+# Build both artifact types
+npm run build
+
+# Or build individually
+npm run build-prompt-template
+npm run build-model-schema
+----
+
+The build process:
+
+1. Transpiles TypeScript to JavaScript using `tsc`
+2. Bundles with dependencies using `esbuild`
+3. Outputs to `app/src/main/resources/llm-artifact-types/`
+
+=== Using the artifact-type-builtins Package
+
+The `@apicurio/artifact-type-builtins` npm package provides:
+
+* TypeScript type definitions for all request/response interfaces
+* Utility functions (`info()`, `debug()`) for logging
+* IDE autocomplete support
+
+[source,bash]
+----
+npm install @apicurio/artifact-type-builtins
+----
+
+[source,typescript]
+----
+import type {
+    ContentAccepterRequest,
+    ContentValidatorRequest,
+    ContentValidatorResponse,
+    CompatibilityCheckerRequest,
+    CompatibilityCheckerResponse
+} from '@apicurio/artifact-type-builtins';
+
+export function validate(request: ContentValidatorRequest): ContentValidatorResponse {
+    // Implementation
+}
+----
+
+=== Shared Utilities
+
+The `shared-utils.ts` file provides reusable functions:
+
+.Shared Utility Functions
+[%header,cols="2,4"]
+|===
+|Function
+|Purpose
+
+|`parseContent<T>(content, contentType)`
+|Parse JSON or YAML content based on content type
+
+|`sortObjectKeys(obj)`
+|Recursively sort object keys for canonicalization
+
+|`findRefs(obj, refs)`
+|Find all external `$ref` references in an object
+
+|`resolveRefs(obj, indexedRefs, parser)`
+|Replace `$ref` with resolved content
+
+|`rewriteRefsWithUrls(obj, indexedUrls)`
+|Rewrite `$ref` paths to registry URLs
+|===
+
+=== External Configuration
+
+To override the built-in LLM artifact types at deployment time:
+
+1. Create a custom configuration file:
++
+[source,json]
+----
+{
+  "includeStandardArtifactTypes": true,
+  "artifactTypes": [
+    {
+      "artifactType": "PROMPT_TEMPLATE",
+      "scriptLocation": "/custom/my-prompt-template.js",
+      // ... other configuration
+    }
+  ]
+}
+----
+
+2. Mount the configuration and JavaScript files
+
+3. Set the environment variable:
++
+[source,bash]
+----
+APICURIO_ARTIFACT_TYPES_CONFIG_FILE=/path/to/config.json
+----
+
+[role="_additional-resources"]
+.Additional resources
+* For a complete custom artifact type example, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/custom-artifact-type[TOML Custom Artifact Type Example]
+* For the npm package documentation, see link:https://www.npmjs.com/package/@apicurio/artifact-type-builtins[@apicurio/artifact-type-builtins on npm]

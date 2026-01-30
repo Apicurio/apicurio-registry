@@ -4,6 +4,7 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { useConfigService } from "@services/useConfigService.ts";
 import { useUserService } from "@services/useUserService.ts";
 import {
+    AGENTS_PAGE_IDX,
     DASHBOARD_PAGE_IDX,
     DRAFTS_PAGE_IDX,
     EXPLORE_PAGE_IDX,
@@ -41,12 +42,12 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
                 appNavigation.navigateTo("/search");
             }
             if (eventKey === DRAFTS_PAGE_IDX) {
-                // navigate to artifacts
+                // navigate to drafts
                 appNavigation.navigateTo("/drafts");
             }
-            if (eventKey === DRAFTS_PAGE_IDX) {
-                // navigate to artifacts
-                appNavigation.navigateTo("/drafts");
+            if (eventKey === AGENTS_PAGE_IDX) {
+                // navigate to agents
+                appNavigation.navigateTo("/agents");
             }
             if (eventKey === RULES_PAGE_IDX) {
                 // navigate to global rules
@@ -76,6 +77,11 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
             <Tab data-testid="drafts-tab" key={DRAFTS_PAGE_IDX} eventKey={DRAFTS_PAGE_IDX} title={<TabTitleText>Drafts</TabTitleText>} />,
         );
     }
+
+    // Always show the Agents tab for A2A Agent discovery
+    tabs.push(
+        <Tab data-testid="agents-tab" key={AGENTS_PAGE_IDX} eventKey={AGENTS_PAGE_IDX} title={<TabTitleText>Agents</TabTitleText>} />
+    );
 
     // Always show the Global Rules tab
     tabs.push(

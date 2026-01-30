@@ -231,6 +231,16 @@ jobs:
         working-directory: registry/operator
         run: |
           source "$CUSTOM_ENV"
+          # Debug: Release version is used in the install.yaml instead of snapshot version:
+          cat "$GITHUB_ENV"
+          cat "$CUSTOM_ENV"
+          echo "(1) VERSION=$VERSION"
+          echo "(2) VERSION=$(make VAR=VERSION variable-get)"
+          echo "(3) PLACEHOLDER_VERSION=$PLACEHOLDER_VERSION"
+          echo "(4) PLACEHOLDER_VERSION=$(make VAR=PLACEHOLDER_VERSION variable-get)"
+          export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "(5) VERSION=$VERSION"
+          echo "(6) VERSION=$(make VAR=VERSION variable-get)"
           make SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
           git add install/*
 

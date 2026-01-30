@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # Apicurio Registry
+  registry:
+    image: apicurio/apicurio-registry:3.0.6
+    ports:
+      - "8080:8080"
+    environment:
+      QUARKUS_HTTP_PORT: 8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama LLM
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Support Chat Application
+  support-chat:
+    build:
+      context: .
+      dockerfile: src/main/docker/Dockerfile.jvm
+    ports:
+      - "8081:8080"
+    environment:
+      REGISTRY_URL: http://registry:8080
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.2
+      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
+    depends_on:
+      registry:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+volumes:
+  ollama_data:

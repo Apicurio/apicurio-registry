@@ -1,0 +1,33 @@
+{
+  "name": "CompleteAgent",
+  "description": "A fully featured AI agent",
+  "version": "2.0.0",
+  "url": "https://example.com/agent",
+  "provider": {
+    "organization": "Test Organization",
+    "url": "https://example.com"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "skill-1",
+      "name": "Primary Skill",
+      "description": "The main skill",
+      "tags": ["tag1", "tag2"],
+      "examples": ["example 1", "example 2"]
+    },
+    {
+      "id": "skill-2",
+      "name": "Secondary Skill"
+    }
+  ],
+  "defaultInputModes": ["text", "image"],
+  "defaultOutputModes": ["text"],
+  "authentication": {
+    "schemes": ["bearer", "api-key"]
+  },
+  "supportsExtendedAgentCard": false
+}

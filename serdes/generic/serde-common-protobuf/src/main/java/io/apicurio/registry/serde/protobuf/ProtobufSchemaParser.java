@@ -67,21 +67,39 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
         } catch (DescriptorValidationException pe) {
             throw new IllegalStateException("Error parsing protobuf schema ", pe);
         } catch (IllegalStateException illegalStateException) {
-            // If qe get here the server likely returned the full descriptor, try to parse it.
-            return parseDescriptor(rawSchema);
+            // If we get here the server likely returned the full descriptor, try to parse it.
+            return parseDescriptor(rawSchema, resolvedReferences);
         }
     }
 
-    private ProtobufSchema parseDescriptor(byte[] rawSchema) {
+    private ProtobufSchema parseDescriptor(byte[] rawSchema,
+            Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences) {
         // Try to parse the binary format, in case the server has returned the descriptor format.
         try {
             DescriptorProtos.FileDescriptorProto fileDescriptorProto = DescriptorProtos.FileDescriptorProto
                     .parseFrom(rawSchema);
             ProtoFileElement protoFileElement = FileDescriptorUtils
                     .fileDescriptorToProtoFile(fileDescriptorProto);
-            return new ProtobufSchema(FileDescriptorUtils.protoFileToFileDescriptor(fileDescriptorProto),
-                    protoFileElement);
-        } catch (InvalidProtocolBufferException | DescriptorValidationException e) {
+
+            if (resolvedReferences == null || resolvedReferences.isEmpty()) {
+                return new ProtobufSchema(FileDescriptorUtils.protoFileToFileDescriptor(fileDescriptorProto),
+                        protoFileElement);
+            }
+
+            // Build dependency map from resolved references
+            Map<String, Descriptors.FileDescriptor> deps = new HashMap<>();
+            for (Descriptors.FileDescriptor fd : FileDescriptorUtils.baseDependencies()) {
+                deps.put(fd.getName(), fd);
+            }
+            resolvedReferences.forEach((name, ps) -> {
+                deps.put(ps.getParsedSchema().getFileDescriptor().getName(),
+                         ps.getParsedSchema().getFileDescriptor());
+            });
+
+            Descriptors.FileDescriptor[] depArray = deps.values().toArray(new Descriptors.FileDescriptor[0]);
+            Descriptors.FileDescriptor fd = Descriptors.FileDescriptor.buildFrom(fileDescriptorProto, depArray);
+            return new ProtobufSchema(fd, protoFileElement);
+        } catch (InvalidProtocolBufferException | Descriptors.DescriptorValidationException e) {
             throw new RuntimeException(e);
         }
     }

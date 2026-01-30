@@ -1,12 +1,12 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import {
-	Button,
-	Switch,
-	Tooltip
-} from '@patternfly/react-core';
+    Button,
+    Switch,
+    Tooltip
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { Draft } from "@models/drafts";
 
 

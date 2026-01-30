@@ -1,16 +1,16 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import {
-	Button,
-	Form,
-	FormGroup,
-	FormHelperText,
-	HelperText,
-	HelperTextItem,
-	Content
-} from '@patternfly/react-core';
+    Button,
+    Form,
+    FormGroup,
+    FormHelperText,
+    HelperText,
+    HelperTextItem,
+    Content
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { VersionState, VersionStateObject } from "@sdk/lib/generated-client/models";
 import { ObjectSelect } from "@apicurio/common-ui-components";
 

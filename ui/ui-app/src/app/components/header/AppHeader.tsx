@@ -17,7 +17,7 @@ export const AppHeader: FunctionComponent<AppHeaderProps> = () => {
         return <></>;
     }
 
-    const logoSrc: string = `${config.uiContextPath() || "/"}apicurio_registry_logo_reverse.svg`;
+    const logoSrc: string = `${config.uiContextPath() || "/"}apicurio_registry_logo_default.svg`;
 
     return (
         <Masthead id="icon-router-link">

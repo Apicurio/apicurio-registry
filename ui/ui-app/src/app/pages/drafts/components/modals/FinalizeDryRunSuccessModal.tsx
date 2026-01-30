@@ -1,10 +1,10 @@
 import { FunctionComponent } from "react";
 import {
-	Button
-} from '@patternfly/react-core';
+    Button
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 
 
 /**

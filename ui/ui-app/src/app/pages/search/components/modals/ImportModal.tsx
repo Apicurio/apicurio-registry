@@ -1,16 +1,16 @@
 import { FunctionComponent, useState } from "react";
 import {
-	Button,
-	FileUpload,
-	Form,
-	FormGroup,
-	FormHelperText,
-	HelperText,
-	HelperTextItem
-} from '@patternfly/react-core';
+    Button,
+    FileUpload,
+    Form,
+    FormGroup,
+    FormHelperText,
+    HelperText,
+    HelperTextItem
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 
 
 /**

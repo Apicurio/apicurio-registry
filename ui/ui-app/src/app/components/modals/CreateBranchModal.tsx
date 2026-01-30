@@ -1,14 +1,14 @@
 import { FunctionComponent, useState } from "react";
 import {
-	Button,
-	Form,
-	FormGroup,
-	TextArea,
-	TextInput
-} from '@patternfly/react-core';
+    Button,
+    Form,
+    FormGroup,
+    TextArea,
+    TextInput
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { CreateBranch } from "@sdk/lib/generated-client/models";
 
 

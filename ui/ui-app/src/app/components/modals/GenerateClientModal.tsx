@@ -1,19 +1,19 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import {
-	Button,
-	ExpandableSection,
-	Form,
-	FormGroup,
-	FormHelperText,
-	Grid,
-	GridItem,
-	HelperText,
-	HelperTextItem,
-	TextInput
-} from '@patternfly/react-core';
+    Button,
+    ExpandableSection,
+    Form,
+    FormGroup,
+    FormHelperText,
+    Grid,
+    GridItem,
+    HelperText,
+    HelperTextItem,
+    TextInput
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { If, ObjectSelect } from "@apicurio/common-ui-components";
 import { ClientGeneration } from "@services/useGroupsService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";

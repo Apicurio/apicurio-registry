@@ -1,31 +1,31 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./CreateDraftModal.css";
 import {
-	Alert,
-	FileUpload,
-	Form,
-	FormGroup,
-	FormHelperText,
-	Grid,
-	GridItem,
-	HelperText,
-	HelperTextItem,
-	SimpleList,
-	SimpleListItem,
-	Spinner,
-	Tab,
-	Tabs,
-	TabTitleText,
-	TextArea,
-	Content,
-	TextInput,
-	Wizard,
-	WizardFooterProps,
-	WizardStep
-} from '@patternfly/react-core';
+    Alert,
+    FileUpload,
+    Form,
+    FormGroup,
+    FormHelperText,
+    Grid,
+    GridItem,
+    HelperText,
+    HelperTextItem,
+    SimpleList,
+    SimpleListItem,
+    Spinner,
+    Tab,
+    Tabs,
+    TabTitleText,
+    TextArea,
+    Content,
+    TextInput,
+    Wizard,
+    WizardFooterProps,
+    WizardStep
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";

@@ -1,13 +1,13 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import {
-	Button,
-	Form,
-	FormGroup,
-	TextArea
-} from '@patternfly/react-core';
+    Button,
+    Form,
+    FormGroup,
+    TextArea
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { Comment, NewComment } from "@sdk/lib/generated-client/models";
 
 

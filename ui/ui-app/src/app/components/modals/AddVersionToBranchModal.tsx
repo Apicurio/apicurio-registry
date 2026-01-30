@@ -1,15 +1,15 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import {
-	Button,
-	EmptyState,
-	EmptyStateBody,
-	EmptyStateVariant,
-	Form,
-	FormGroup
-} from '@patternfly/react-core';
+    Button,
+    EmptyState,
+    EmptyStateBody,
+    EmptyStateVariant,
+    Form,
+    FormGroup
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { SearchedBranch, SearchedVersion } from "@sdk/lib/generated-client/models";
 import { IfNotEmpty, IfNotLoading, ObjectSelect } from "@apicurio/common-ui-components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";

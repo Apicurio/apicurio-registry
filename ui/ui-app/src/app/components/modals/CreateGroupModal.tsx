@@ -1,15 +1,15 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import {
-	Button,
-	Form,
-	FormGroup,
-	Grid,
-	GridItem,
-	TextInput
-} from '@patternfly/react-core';
+    Button,
+    Form,
+    FormGroup,
+    Grid,
+    GridItem,
+    TextInput
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { CreateGroup } from "@sdk/lib/generated-client/models";
 
 

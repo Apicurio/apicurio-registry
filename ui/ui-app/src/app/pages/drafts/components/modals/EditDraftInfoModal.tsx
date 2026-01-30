@@ -1,17 +1,17 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./EditDraftInfoModal.css";
 import {
-	Button,
-	Form,
-	FormGroup,
-	Grid,
-	GridItem,
-	TextArea,
-	TextInput
-} from '@patternfly/react-core';
+    Button,
+    Form,
+    FormGroup,
+    Grid,
+    GridItem,
+    TextArea,
+    TextInput
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { DraftInfo } from "@models/drafts";
 
 /**

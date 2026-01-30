@@ -1,14 +1,14 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import {
-	Button,
-	FileUpload,
-	Form,
-	FormGroup,
-	TextInput
-} from '@patternfly/react-core';
+    Button,
+    FileUpload,
+    Form,
+    FormGroup,
+    TextInput
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 import { detectContentType } from "@utils/content.utils.ts";
 import { CreateVersion } from "@sdk/lib/generated-client/models";

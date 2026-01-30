@@ -33,7 +33,7 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
         });
     };
 
-    const logoSrc: string = `${config.uiContextPath() || "/"}apicurio_registry_logo_reverse.svg`;
+    const logoSrc: string = `${config.uiContextPath() || "/"}apicurio_registry_logo_default.svg`;
 
     return (
         <>

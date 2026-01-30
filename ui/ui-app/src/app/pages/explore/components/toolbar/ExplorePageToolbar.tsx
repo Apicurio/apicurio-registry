@@ -133,9 +133,9 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
                 </ToolbarItem>
                 <ToolbarItem className="sort-icon-item">
                     <Button icon={
-                            filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
-                        } variant="plain" aria-label="edit" data-testid="artifact-filter-sort"
-                        onClick={onToggleAscending} />
+                        filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
+                    } variant="plain" aria-label="edit" data-testid="artifact-filter-sort"
+                    onClick={onToggleAscending} />
                 </ToolbarItem>
                 <ToolbarItem className="create-artifact-item">
                     <IfAuth isDeveloper={true}>

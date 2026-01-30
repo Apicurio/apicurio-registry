@@ -1,19 +1,19 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import {
-	Button,
-	DescriptionList,
-	DescriptionListDescription,
-	DescriptionListGroup,
-	DescriptionListTerm,
-	Form,
-	FormGroup,
-	Popover,
-	Radio,
-	TextInput
-} from '@patternfly/react-core';
+    Button,
+    DescriptionList,
+    DescriptionListDescription,
+    DescriptionListGroup,
+    DescriptionListTerm,
+    Form,
+    FormGroup,
+    Popover,
+    Radio,
+    TextInput
+} from "@patternfly/react-core";
 import {
-	Modal
-} from '@patternfly/react-core/deprecated';
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { OutlinedQuestionCircleIcon } from "@patternfly/react-icons";
 import "./GrantAccessModal.css";
 import { Principal } from "@services/useConfigService.ts";

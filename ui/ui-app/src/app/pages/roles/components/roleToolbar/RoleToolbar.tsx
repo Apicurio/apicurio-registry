@@ -187,8 +187,8 @@ export const RoleToolbar: FunctionComponent<RoleToolbarProps> = (props: RoleTool
                 </ToolbarItem>
                 <ToolbarItem className="sort-icon-item">
                     <Button icon={
-                            filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
-                        } variant="plain" aria-label="edit" data-testid="toolbar-btn-sort" onClick={onToggleAscending} />
+                        filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
+                    } variant="plain" aria-label="edit" data-testid="toolbar-btn-sort" onClick={onToggleAscending} />
                 </ToolbarItem>
                 <ToolbarItem className="grant-access-item">
                     <Button variant="primary" data-testid="btn-grant-access" onClick={props.onGrantAccess}>Grant access</Button>

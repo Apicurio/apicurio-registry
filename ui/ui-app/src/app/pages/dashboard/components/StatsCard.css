@@ -1,6 +1,7 @@
 .stats-card {
     min-width: 200px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
 }
 
 .stats-card:hover {

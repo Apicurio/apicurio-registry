@@ -164,8 +164,7 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         viewMode={ viewMode }
         onViewModeChange={ handleViewModeChange } />);
 
-    const emptyState = (<EmptyState variant={EmptyStateVariant.xs}>
-        <Title headingLevel="h4" size="md">None found</Title>
+    const emptyState = (<EmptyState titleText={<Title headingLevel="h4" size="md">None found</Title>} variant={EmptyStateVariant.xs}>
         <EmptyStateBody>No references found.</EmptyStateBody>
     </EmptyState>);
 

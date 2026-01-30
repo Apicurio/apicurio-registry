@@ -9,7 +9,6 @@ import {
     GridItem,
     HelperText,
     HelperTextItem,
-    Modal,
     Tab,
     Tabs,
     TabTitleText,
@@ -19,6 +18,9 @@ import {
     WizardStep,
     WizardFooterProps
 } from "@patternfly/react-core";
+import {
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";
 import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";

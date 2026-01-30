@@ -200,8 +200,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
     // Empty state - no references
     if (nodes.length <= 1) {
         return (
-            <EmptyState variant={EmptyStateVariant.xs} data-testid="graph-empty-state">
-                <Title headingLevel="h4" size="md">No references found</Title>
+            <EmptyState titleText={<Title headingLevel="h4" size="md">No references found</Title>} variant={EmptyStateVariant.xs} data-testid="graph-empty-state">
                 <EmptyStateBody>
                     This artifact version has no {referenceType === "OUTBOUND" ? "outbound" : "inbound"} references.
                 </EmptyStateBody>
@@ -238,14 +237,10 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
                 {/* Top right panel with export and fullscreen buttons */}
                 <Panel position="top-right" className="graph-action-panel" data-testid="graph-action-panel">
                     <Tooltip content="Export as PNG">
-                        <Button variant="plain" onClick={exportAsPng} aria-label="Export as PNG" data-testid="graph-export-btn">
-                            <DownloadIcon />
-                        </Button>
+                        <Button icon={<DownloadIcon />} variant="plain" onClick={exportAsPng} aria-label="Export as PNG" data-testid="graph-export-btn" />
                     </Tooltip>
                     <Tooltip content={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
-                        <Button variant="plain" onClick={onToggleFullscreen} aria-label="Toggle fullscreen" data-testid="graph-fullscreen-btn">
-                            {isFullscreen ? <CompressIcon /> : <ExpandIcon />}
-                        </Button>
+                        <Button icon={isFullscreen ? <CompressIcon /> : <ExpandIcon />} variant="plain" onClick={onToggleFullscreen} aria-label="Toggle fullscreen" data-testid="graph-fullscreen-btn" />
                     </Tooltip>
                 </Panel>
 
@@ -265,7 +260,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
                     <div className="node-details-header">
                         <InfoCircleIcon />
                         <span>Node Details</span>
-                        <Button variant="plain" onClick={() => onNodeSelect(null)} aria-label="Close">×</Button>
+                        <Button icon="×" variant="plain" onClick={() => onNodeSelect(null)} aria-label="Close" />
                     </div>
                     <DescriptionList isCompact isHorizontal>
                         <DescriptionListGroup>

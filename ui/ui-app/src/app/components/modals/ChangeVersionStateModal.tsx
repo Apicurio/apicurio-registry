@@ -1,5 +1,16 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import { Button, Form, FormGroup, FormHelperText, HelperText, HelperTextItem, Modal, Text } from "@patternfly/react-core";
+import {
+    Button,
+    Form,
+    FormGroup,
+    FormHelperText,
+    HelperText,
+    HelperTextItem,
+    Content
+} from "@patternfly/react-core";
+import {
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { VersionState, VersionStateObject } from "@sdk/lib/generated-client/models";
 import { ObjectSelect } from "@apicurio/common-ui-components";
 
@@ -109,7 +120,7 @@ export const ChangeVersionStateModal: FunctionComponent<ChangeVersionStateModalP
         >
             <Form>
                 <FormGroup label="Current state" fieldId="form-current-state">
-                    <Text>{ stateToLabel(currentState) }</Text>
+                    <Content component="p">{ stateToLabel(currentState) }</Content>
                 </FormGroup>
                 <FormGroup label="New state" fieldId="form-new-state" isRequired={true}>
                     <ObjectSelect

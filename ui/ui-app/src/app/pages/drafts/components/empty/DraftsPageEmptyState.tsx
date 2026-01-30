@@ -6,7 +6,6 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateIcon,
     EmptyStateVariant,
     Title
 } from "@patternfly/react-core";
@@ -27,9 +26,7 @@ export type DraftsPageEmptyStateProps = {
  */
 export const DraftsPageEmptyState: FunctionComponent<DraftsPageEmptyStateProps> = (props: DraftsPageEmptyStateProps) => {
     return (
-        <EmptyState variant={EmptyStateVariant.full}>
-            <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No drafts found</Title>
+        <EmptyState titleText={<Title headingLevel="h5" size="lg">No drafts found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.full}>
             <If condition={() => props.isFiltered}>
                 <EmptyStateBody>
                     No drafts match your filter settings.  Change your filter or perhaps create a new draft.

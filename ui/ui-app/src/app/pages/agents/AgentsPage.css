@@ -21,7 +21,7 @@
 }
 
 .agent-card:hover {
-    box-shadow: var(--pf-v5-global--BoxShadow--lg);
+    box-shadow: var(--pf-t--global--box-shadow--lg);
 }
 
 .agent-card .agent-name {
@@ -30,7 +30,7 @@
 }
 
 .agent-card .agent-description {
-    color: var(--pf-v5-global--Color--200);
+    color: var(--pf-t--global--text--color--subtle);
     font-size: 14px;
     margin-bottom: 12px;
     display: -webkit-box;
@@ -41,7 +41,7 @@
 
 .agent-card .no-description {
     font-style: italic;
-    color: var(--pf-v5-global--Color--300);
+    color: var(--pf-t--global--text--color--disabled);
 }
 
 .agent-card .agent-url {
@@ -49,9 +49,9 @@
 }
 
 .agent-card .agent-url a {
-    font-family: var(--pf-v5-global--FontFamily--monospace);
+    font-family: var(--pf-t--global--font--family--mono);
     font-size: 12px;
-    color: var(--pf-v5-global--link--Color);
+    color: var(--pf-t--global--color--link--default);
     text-decoration: none;
     word-break: break-all;
 }
@@ -75,8 +75,8 @@
 
 .agent-card .agent-metadata {
     font-size: 12px;
-    color: var(--pf-v5-global--Color--200);
-    border-top: 1px solid var(--pf-v5-global--BorderColor--100);
+    color: var(--pf-t--global--text--color--subtle);
+    border-top: 1px solid var(--pf-t--global--border--color--default);
     padding-top: 8px;
     margin-top: 8px;
 }

@@ -63,7 +63,7 @@ export const GroupArtifactsToolbar: FunctionComponent<GroupArtifactsToolbarProps
                         onClear={onFilterClear}
                     />
                 </ToolbarItem>
-                <ToolbarItem className="paging-item" align={{ default: "alignRight" }}>
+                <ToolbarItem className="paging-item" align={{ default: "alignEnd" }}>
                     <Pagination
                         variant="top"
                         dropDirection="down"

@@ -55,7 +55,7 @@ export const SearchArtifactList: FunctionComponent<SearchArtifactListProps> = (p
                             id={`artifact-actions-${idx}`}
                             aria-label="Draft actions"
                             aria-labelledby={`artifact-actions-${idx}`}
-                            isPlainButtonAction={true}
+                            
                         >
                             <ObjectDropdown
                                 label=""

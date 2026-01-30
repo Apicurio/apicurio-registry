@@ -6,10 +6,8 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateHeader,
-    EmptyStateIcon,
     PageSection,
-    PageSectionVariants
+    
 } from "@patternfly/react-core";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
 import { PageError } from "@app/pages";
@@ -58,10 +56,9 @@ export const ErrorPage: FunctionComponent<ErrorPageProps> = (props: ErrorPagePro
 
     return (
         <React.Fragment>
-            <PageSection className="ps_error" variant={PageSectionVariants.light}>
+            <PageSection hasBodyWrapper={false} className="ps_error" >
                 <div className="centerizer">
-                    <EmptyState>
-                        <EmptyStateHeader titleText={errorMessage()} headingLevel="h4" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} />
+                    <EmptyState  headingLevel="h4" icon={ExclamationTriangleIcon}  titleText={errorMessage()}>
                         <EmptyStateBody>
                             Try reloading the page. If the issue persists, reach out to your administrator.
                         </EmptyStateBody>

@@ -7,7 +7,6 @@ import {
     CardTitle,
     EmptyState,
     EmptyStateBody,
-    EmptyStateIcon,
     Gallery,
     Label,
     LabelGroup,
@@ -20,8 +19,7 @@ import {
     MenuToggle,
     MenuToggleElement,
     Spinner,
-    TextContent,
-    Title,
+    Content,
     Toolbar,
     ToolbarContent,
     ToolbarItem,
@@ -231,11 +229,10 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const renderEmptyState = (): React.ReactElement => {
         const isFiltered = !!(nameFilter || capabilityFilter || skillFilter);
         return (
-            <EmptyState>
-                <EmptyStateIcon icon={isFiltered ? SearchIcon : CubesIcon} />
-                <Title headingLevel="h4" size="lg">
-                    {isFiltered ? "No agents found" : "No agents registered"}
-                </Title>
+            <EmptyState
+                headingLevel="h4"
+                icon={isFiltered ? SearchIcon : CubesIcon}
+                titleText={isFiltered ? "No agents found" : "No agents registered"}>
                 <EmptyStateBody>
                     {isFiltered
                         ? "No agents match your search criteria. Try adjusting your filters."
@@ -313,7 +310,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             Search
                         </Button>
                     </ToolbarItem>
-                    <ToolbarItem variant="pagination" align={{ default: "alignRight" }}>
+                    <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
                         <Pagination
                             itemCount={results.count}
                             perPage={paging.pageSize}
@@ -332,18 +329,18 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_agents-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_agents-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={AGENTS_PAGE_IDX} />
                 </PageSection>
-                <PageSection className="ps_agents-description" variant={PageSectionVariants.light}>
-                    <TextContent>
-                        <Title headingLevel="h1">A2A Agent Discovery</Title>
+                <PageSection hasBodyWrapper={false} className="ps_agents-description" >
+                    <Content>
+                        <h1>A2A Agent Discovery</h1>
                         <p>
                             Discover and explore registered A2A Agent Cards. Search by name, filter by capabilities, or find agents with specific skills.
                         </p>
-                    </TextContent>
+                    </Content>
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true}>
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true}>
                     {renderToolbar()}
                     {isSearching ? (
                         <div className="loading-container">

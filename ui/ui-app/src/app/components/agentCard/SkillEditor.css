@@ -10,7 +10,7 @@
 
 .skill-editor .skill-form {
     padding: 16px;
-    background-color: var(--pf-v5-global--BackgroundColor--200);
+    background-color: var(--pf-t--global--background--color--secondary--default);
     border-radius: 4px;
 }
 
@@ -26,8 +26,8 @@
 
 .skill-editor .skill-id {
     font-size: 12px;
-    color: var(--pf-v5-global--Color--200);
-    font-family: var(--pf-v5-global--FontFamily--monospace);
+    color: var(--pf-t--global--text--color--subtle);
+    font-family: var(--pf-t--global--font--family--mono);
 }
 
 .skill-editor .tags-list {
@@ -39,7 +39,7 @@
 }
 
 .skill-editor .delete-btn {
-    color: var(--pf-v5-global--danger-color--100);
+    color: var(--pf-t--global--color--status--danger--default);
 }
 
 .skill-editor .no-skills {
@@ -48,6 +48,6 @@
 }
 
 .skill-editor .empty-state-text {
-    color: var(--pf-v5-global--Color--200);
+    color: var(--pf-t--global--text--color--subtle);
     font-style: italic;
 }

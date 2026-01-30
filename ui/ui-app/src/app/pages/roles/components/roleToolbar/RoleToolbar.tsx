@@ -171,11 +171,11 @@ export const RoleToolbar: FunctionComponent<RoleToolbarProps> = (props: RoleTool
                                     onChange={(_evt, value) => setFilterValue(value)}
                                     data-testid="toolbar-filter-value"
                                     aria-label="search input example"/>
-                                <Button variant={ButtonVariant.control}
+                                <Button icon={<SearchIcon/>} variant={ButtonVariant.control}
                                     onClick={onFilterSubmit}
                                     data-testid="toolbar-btn-filter-search"
                                     aria-label="search button for search input">
-                                    <SearchIcon/>
+                                    
                                 </Button>
                             </If>
                             <If condition={filterType.type === "role"}>
@@ -186,16 +186,14 @@ export const RoleToolbar: FunctionComponent<RoleToolbarProps> = (props: RoleTool
                     </Form>
                 </ToolbarItem>
                 <ToolbarItem className="sort-icon-item">
-                    <Button variant="plain" aria-label="edit" data-testid="toolbar-btn-sort" onClick={onToggleAscending}>
-                        {
-                            filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
-                        }
-                    </Button>
+                    <Button icon={
+                        filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
+                    } variant="plain" aria-label="edit" data-testid="toolbar-btn-sort" onClick={onToggleAscending} />
                 </ToolbarItem>
                 <ToolbarItem className="grant-access-item">
                     <Button variant="primary" data-testid="btn-grant-access" onClick={props.onGrantAccess}>Grant access</Button>
                 </ToolbarItem>
-                <ToolbarItem className="artifact-paging-item" align={{ default: "alignRight" }}>
+                <ToolbarItem className="artifact-paging-item" align={{ default: "alignEnd" }}>
                     <Pagination
                         variant="top"
                         dropDirection="down"

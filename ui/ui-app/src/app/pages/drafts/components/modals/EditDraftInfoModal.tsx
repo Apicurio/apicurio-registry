@@ -6,10 +6,12 @@ import {
     FormGroup,
     Grid,
     GridItem,
-    Modal,
     TextArea,
     TextInput
 } from "@patternfly/react-core";
+import {
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { DraftInfo } from "@models/drafts";
 
 /**

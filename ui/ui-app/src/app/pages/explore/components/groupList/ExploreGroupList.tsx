@@ -96,7 +96,7 @@ export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props
                             id={`group-actions-${idx}`}
                             aria-label="Group actions"
                             aria-labelledby={`group-actions-${idx}`}
-                            isPlainButtonAction={true}
+                            
                         >
                             <ObjectDropdown
                                 label=""

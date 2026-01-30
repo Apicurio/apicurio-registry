@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./BranchPage.css";
-import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants } from "@patternfly/react-core";
+import { Breadcrumb, BreadcrumbItem, PageSection,  } from "@patternfly/react-core";
 import { Link, useParams } from "react-router-dom";
 import {
     EXPLORE_PAGE_IDX,
@@ -135,13 +135,13 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_explore-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
                 </PageSection>
                 <IfFeature feature="breadcrumbs" is={true}>
-                    <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
+                    <PageSection hasBodyWrapper={false} className="ps_header-breadcrumbs"  children={breadcrumbs} />
                 </IfFeature>
-                <PageSection className="ps_artifact-branch-header" variant={PageSectionVariants.light}>
+                <PageSection hasBodyWrapper={false} className="ps_artifact-branch-header" >
                     <BranchPageHeader
                         artifact={artifact}
                         onDelete={onDeleteBranch}
@@ -149,7 +149,7 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
                         groupId={gid}
                         artifactId={artifactId as string} />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{ default: "noPadding" }} className="branch-details-main">
+                <PageSection hasBodyWrapper={false}  isFilled={true} padding={{ default: "noPadding" }} className="branch-details-main">
                     <BranchOverviewTabContent
                         artifact={artifact as ArtifactMetaData}
                         branch={branch as BranchMetaData}

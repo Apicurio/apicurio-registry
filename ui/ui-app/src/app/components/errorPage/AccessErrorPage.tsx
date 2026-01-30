@@ -6,10 +6,8 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateHeader,
-    EmptyStateIcon,
     PageSection,
-    PageSectionVariants
+    
 } from "@patternfly/react-core";
 import { LockedIcon } from "@patternfly/react-icons";
 import { ErrorPageProps } from "./ErrorPage.tsx";
@@ -24,10 +22,9 @@ export const AccessErrorPage: FunctionComponent<ErrorPageProps> = () => {
 
     return (
         <React.Fragment>
-            <PageSection className="ps_error" variant={PageSectionVariants.light}>
+            <PageSection hasBodyWrapper={false} className="ps_error" >
                 <div className="centerizer">
-                    <EmptyState>
-                        <EmptyStateHeader titleText="Access permissions needed" headingLevel="h4" icon={<EmptyStateIcon icon={LockedIcon} />} />
+                    <EmptyState  headingLevel="h4" icon={LockedIcon}  titleText="Access permissions needed">
                         <EmptyStateBody>
                             To access this Registry instance, contact your organization administrator.
                         </EmptyStateBody>

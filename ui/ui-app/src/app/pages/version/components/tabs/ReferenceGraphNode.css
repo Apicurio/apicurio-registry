@@ -1,6 +1,6 @@
 .reference-graph-node {
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
-    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
+    border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
     border-radius: 4px;
     padding: 12px;
     min-width: 180px;
@@ -11,30 +11,30 @@
 }
 
 .reference-graph-node:hover {
-    border-color: var(--pf-v5-global--primary-color--100, #0066cc);
+    border-color: var(--pf-t--global--color--brand--default, #0066cc);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .reference-graph-node.root {
-    border-color: var(--pf-v5-global--primary-color--100, #0066cc);
+    border-color: var(--pf-t--global--color--brand--default, #0066cc);
     border-width: 2px;
-    background: var(--pf-v5-global--BackgroundColor--light-200, #fafafa);
+    background: var(--pf-t--global--background--color--secondary--default, #fafafa);
 }
 
 .reference-graph-node.selected {
-    border-color: var(--pf-v5-global--active-color--100, #004080);
-    box-shadow: 0 0 0 2px var(--pf-v5-global--active-color--100, #004080);
+    border-color: var(--pf-t--global--color--brand--active, #004080);
+    box-shadow: 0 0 0 2px var(--pf-t--global--color--brand--active, #004080);
 }
 
 .node-handle {
     width: 8px !important;
     height: 8px !important;
-    background: var(--pf-v5-global--BorderColor--200, #8a8d90) !important;
+    background: var(--pf-t--global--border--color--default, #8a8d90) !important;
     border: none !important;
 }
 
 .node-handle:hover {
-    background: var(--pf-v5-global--primary-color--100, #0066cc) !important;
+    background: var(--pf-t--global--color--brand--default, #0066cc) !important;
 }
 
 .node-content {
@@ -50,7 +50,7 @@
 }
 
 .root-badge {
-    background: var(--pf-v5-global--primary-color--100, #0066cc);
+    background: var(--pf-t--global--color--brand--default, #0066cc);
     color: white;
     font-size: 9px;
     font-weight: 600;
@@ -62,7 +62,7 @@
 .artifact-id {
     font-weight: 600;
     font-size: 13px;
-    color: var(--pf-v5-global--Color--100, #151515);
+    color: var(--pf-t--global--text--color--regular, #151515);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -70,7 +70,7 @@
 
 .node-group {
     font-size: 11px;
-    color: var(--pf-v5-global--Color--200, #6a6e73);
+    color: var(--pf-t--global--text--color--subtle, #6a6e73);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -84,8 +84,8 @@
 }
 
 .version-badge {
-    background: var(--pf-v5-global--BackgroundColor--200, #f0f0f0);
-    color: var(--pf-v5-global--Color--200, #6a6e73);
+    background: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
+    color: var(--pf-t--global--text--color--subtle, #6a6e73);
     font-size: 11px;
     font-weight: 500;
     padding: 2px 6px;
@@ -94,7 +94,7 @@
 
 .ref-name {
     font-size: 10px;
-    color: var(--pf-v5-global--Color--200, #6a6e73);
+    color: var(--pf-t--global--text--color--subtle, #6a6e73);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -103,13 +103,13 @@
 
 /* Cycle node styling */
 .reference-graph-node.cycle {
-    border-color: var(--pf-v5-global--danger-color--100, #c9190b);
+    border-color: var(--pf-t--global--color--status--danger--default, #c9190b);
     border-width: 2px;
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
 }
 
 .reference-graph-node.cycle:hover {
-    border-color: var(--pf-v5-global--danger-color--200, #a30000);
+    border-color: var(--pf-t--global--color--status--danger--hover, #a30000);
 }
 
 .cycle-indicator {
@@ -117,7 +117,7 @@
     align-items: center;
     gap: 4px;
     font-size: 10px;
-    color: var(--pf-v5-global--danger-color--100, #c9190b);
+    color: var(--pf-t--global--color--status--danger--default, #c9190b);
     margin-top: 4px;
 }
 

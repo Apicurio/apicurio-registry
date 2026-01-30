@@ -65,7 +65,7 @@ export const SearchVersionList: FunctionComponent<SearchVersionListProps> = (pro
                             id={`version-actions-${idx}`}
                             aria-label="Draft actions"
                             aria-labelledby={`version-actions-${idx}`}
-                            isPlainButtonAction={true}
+                            
                         >
                             <ObjectDropdown
                                 label=""

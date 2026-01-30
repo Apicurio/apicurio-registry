@@ -19,7 +19,6 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateIcon,
     EmptyStateVariant,
     Flex,
     FlexItem,
@@ -170,9 +169,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
     );
 
     const emptyState = (
-        <EmptyState variant={EmptyStateVariant.sm}>
-            <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No versions found</Title>
+        <EmptyState titleText={<Title headingLevel="h5" size="lg">No versions found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are currently no versions in this artifact.  Create some versions in the artifact to view them here.
             </EmptyStateBody>
@@ -191,7 +188,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
 
     const panelContent = (
         <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
-            <DrawerHead hasNoPadding={true}>
+            <DrawerHead >
                 <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
                     <div className="artifact-basics">
                         <div className="title-and-type">
@@ -200,11 +197,11 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                                     <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                         <IfFeature feature="readOnly" isNot={true}>
-                                            <Button id="edit-action"
+                                            <Button icon={<PencilAltIcon />} id="edit-action"
                                                 data-testid="artifact-btn-edit"
                                                 onClick={props.onEditMetaData}
                                                 style={{ padding: "0" }}
-                                                variant="link"><PencilAltIcon />{" "}Edit</Button>
+                                                variant="link">{" "}Edit</Button>
                                         </IfFeature>
                                     </IfAuth>
                                 </FlexItem>
@@ -250,10 +247,10 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                                         <span>
                                             <IfAuth isAdminOrOwner={true} owner={props.artifact.owner}>
                                                 <IfFeature feature="readOnly" isNot={true}>
-                                                    <Button id="edit-action"
+                                                    <Button icon={<PencilAltIcon />} id="edit-action"
                                                         data-testid="artifact-btn-change-owner"
                                                         onClick={props.onChangeOwner}
-                                                        variant="link"><PencilAltIcon /></Button>
+                                                        variant="link"></Button>
                                                 </IfFeature>
                                             </IfAuth>
                                         </span>

@@ -70,7 +70,7 @@ export const AgentCardViewer: FunctionComponent<AgentCardViewerProps> = (props: 
                 <DescriptionListDescription>
                     <LabelGroup>
                         {modes.map((mode, index) => (
-                            <Label key={index} color="cyan" isCompact>
+                            <Label key={index} color="teal" isCompact>
                                 {mode}
                             </Label>
                         ))}

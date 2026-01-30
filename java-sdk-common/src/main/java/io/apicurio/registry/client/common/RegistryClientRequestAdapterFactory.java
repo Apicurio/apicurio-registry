@@ -3,24 +3,11 @@ package io.apicurio.registry.client.common;
 import com.microsoft.kiota.RequestAdapter;
 import com.microsoft.kiota.RequestInformation;
 import io.apicurio.registry.client.common.auth.JdkAuthFactory;
-import io.apicurio.registry.client.common.auth.VertXAuthFactory;
 import io.apicurio.registry.client.common.ssl.JdkSslContextFactory;
 import io.kiota.http.jdk.JDKRequestAdapter;
-import io.kiota.http.vertx.VertXRequestAdapter;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClosedException;
-import io.vertx.core.net.JksOptions;
-import io.vertx.core.net.PemKeyCertOptions;
-import io.vertx.core.net.PemTrustOptions;
-import io.vertx.core.net.PfxOptions;
-import io.vertx.core.net.ProxyOptions;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -80,7 +67,8 @@ public class RegistryClientRequestAdapterFactory {
         RequestAdapter adapter;
         switch (adapterType) {
             case VERTX:
-                adapter = createVertxAdapter(options);
+                // Delegate to VertxAdapterFactory to avoid loading Vertx classes when JDK adapter is used
+                adapter = VertxAdapterFactory.createAdapter(options);
                 break;
             case JDK:
                 adapter = createJdkAdapter(options);
@@ -97,182 +85,6 @@ public class RegistryClientRequestAdapterFactory {
         }
 
         return adapter;
-    }
-
-    // ==================== Vert.x Adapter Implementation ====================
-
-    private static RequestAdapter createVertxAdapter(RegistryClientOptions options) {
-        Vertx vertxToUse = getVertx(options);
-        WebClientOptions webClientOptions = buildWebClientOptions(options);
-
-        switch (options.getAuthType()) {
-            case ANONYMOUS:
-                return createVertxAnonymous(vertxToUse, webClientOptions);
-            case BASIC:
-                return createVertxBasicAuth(options.getUsername(), options.getPassword(), vertxToUse, webClientOptions);
-            case OAUTH2:
-                return createVertxOAuth2(options.getTokenEndpoint(), options.getClientId(),
-                        options.getClientSecret(), options.getScope(), vertxToUse, webClientOptions);
-            case CUSTOM_WEBCLIENT:
-                return createVertxCustomWebClient(options.getWebClient());
-            default:
-                throw new IllegalArgumentException("Unsupported authentication type: " + options.getAuthType());
-        }
-    }
-
-    private static Vertx getVertxFromCDI(String CDIClassName, String InstanceClassName) {
-        try {
-            var CDIClass = Class.forName(CDIClassName);
-            var instanceClass = Class.forName(InstanceClassName);
-            var CDI = CDIClass.getMethod("current").invoke(null);
-            var vertxInstance = CDIClass.getMethod("select", Class.class, Annotation[].class).invoke(CDI, Vertx.class, new Annotation[]{});
-            return (Vertx) instanceClass.getMethod("get").invoke(vertxInstance);
-        } catch (Throwable t) {
-            log.log(Level.FINE, "Attempt to retrieve a Vertx instance from CDI failed: "
-                    + t.getClass().getCanonicalName() + ": " + t.getMessage());
-            return null;
-        }
-    }
-
-    private static Vertx getVertx(RegistryClientOptions options) {
-        if (options.getVertx() != null) {
-            return options.getVertx();
-        }
-
-        var vertx = getVertxFromCDI("jakarta.enterprise.inject.spi.CDI", "jakarta.enterprise.inject.Instance");
-        if (vertx == null) {
-            vertx = getVertxFromCDI("javax.enterprise.inject.spi.CDI", "javax.enterprise.inject.Instance");
-        }
-        if (vertx != null) {
-            log.log(Level.FINE, "Successfully retrieved a Vertx instance from CDI.");
-            return vertx;
-        }
-
-        return DefaultVertxInstance.get();
-    }
-
-    private static RequestAdapter createVertxAnonymous(Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = webClientOptions == null ? WebClient.create(vertx) : WebClient.create(vertx, webClientOptions);
-        return new VertXRequestAdapter(webClient);
-    }
-
-    private static RequestAdapter createVertxBasicAuth(String username, String password, Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = VertXAuthFactory.buildSimpleAuthWebClient(vertx, webClientOptions, username, password);
-        return new VertXRequestAdapter(webClient);
-    }
-
-    private static RequestAdapter createVertxOAuth2(String tokenEndpoint,
-                                                     String clientId, String clientSecret, String scope, Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = VertXAuthFactory.buildOIDCWebClient(vertx, webClientOptions, tokenEndpoint, clientId, clientSecret, scope);
-        return new VertXRequestAdapter(webClient);
-    }
-
-    private static RequestAdapter createVertxCustomWebClient(WebClient webClient) {
-        if (webClient == null) {
-            throw new IllegalArgumentException("WebClient cannot be null");
-        }
-        return new VertXRequestAdapter(webClient);
-    }
-
-    private static WebClientOptions buildWebClientOptions(RegistryClientOptions options) {
-        boolean hasSslConfig = options.getTrustStoreType() != RegistryClientOptions.TrustStoreType.NONE
-                || options.getKeyStoreType() != RegistryClientOptions.KeyStoreType.NONE
-                || options.isTrustAll()
-                || !options.isVerifyHost();
-
-        boolean hasProxyConfig = options.getProxyHost() != null;
-
-        if (!hasSslConfig && !hasProxyConfig) {
-            return null;
-        }
-
-        WebClientOptions webClientOptions = new WebClientOptions();
-
-        if (hasSslConfig) {
-            webClientOptions.setSsl(true);
-        }
-
-        if (options.isTrustAll()) {
-            webClientOptions.setTrustAll(true);
-        }
-
-        webClientOptions.setVerifyHost(options.isVerifyHost());
-
-        switch (options.getTrustStoreType()) {
-            case JKS:
-                JksOptions jksOptions = new JksOptions()
-                        .setPath(options.getTrustStorePath())
-                        .setPassword(options.getTrustStorePassword());
-                webClientOptions.setTrustOptions(jksOptions);
-                break;
-            case PKCS12:
-                PfxOptions pfxOptions = new PfxOptions()
-                        .setPath(options.getTrustStorePath())
-                        .setPassword(options.getTrustStorePassword());
-                webClientOptions.setTrustOptions(pfxOptions);
-                break;
-            case PEM:
-                PemTrustOptions pemOptions = new PemTrustOptions();
-                if (options.getPemCertContent() != null) {
-                    Buffer certBuffer = Buffer.buffer(options.getPemCertContent());
-                    pemOptions.addCertValue(certBuffer);
-                } else if (options.getPemCertPaths() != null) {
-                    for (String certPath : options.getPemCertPaths()) {
-                        pemOptions.addCertPath(certPath);
-                    }
-                }
-                webClientOptions.setTrustOptions(pemOptions);
-                break;
-            case NONE:
-                break;
-        }
-
-        switch (options.getKeyStoreType()) {
-            case JKS:
-                JksOptions jksKeyStoreOptions = new JksOptions()
-                        .setPath(options.getKeyStorePath())
-                        .setPassword(options.getKeyStorePassword());
-                webClientOptions.setKeyCertOptions(jksKeyStoreOptions);
-                break;
-            case PKCS12:
-                PfxOptions pfxKeyStoreOptions = new PfxOptions()
-                        .setPath(options.getKeyStorePath())
-                        .setPassword(options.getKeyStorePassword());
-                webClientOptions.setKeyCertOptions(pfxKeyStoreOptions);
-                break;
-            case PEM:
-                PemKeyCertOptions pemKeyCertOptions = new PemKeyCertOptions();
-                if (options.getPemClientCertContent() != null && options.getPemClientKeyContent() != null) {
-                    Buffer certBuffer = Buffer.buffer(options.getPemClientCertContent());
-                    Buffer keyBuffer = Buffer.buffer(options.getPemClientKeyContent());
-                    pemKeyCertOptions.addCertValue(certBuffer);
-                    pemKeyCertOptions.addKeyValue(keyBuffer);
-                } else if (options.getPemClientCertPath() != null && options.getPemClientKeyPath() != null) {
-                    pemKeyCertOptions.addCertPath(options.getPemClientCertPath());
-                    pemKeyCertOptions.addKeyPath(options.getPemClientKeyPath());
-                }
-                webClientOptions.setKeyCertOptions(pemKeyCertOptions);
-                break;
-            case NONE:
-                break;
-        }
-
-        if (hasProxyConfig) {
-            ProxyOptions proxyOptions = new ProxyOptions()
-                    .setHost(options.getProxyHost())
-                    .setPort(options.getProxyPort());
-
-            if (options.getProxyUsername() != null && !options.getProxyUsername().isEmpty()) {
-                proxyOptions.setUsername(options.getProxyUsername());
-                if (options.getProxyPassword() != null) {
-                    proxyOptions.setPassword(options.getProxyPassword());
-                }
-            }
-
-            webClientOptions.setProxyOptions(proxyOptions);
-        }
-
-        return webClientOptions;
     }
 
     // ==================== JDK Adapter Implementation ====================
@@ -447,8 +259,8 @@ public class RegistryClientRequestAdapterFactory {
         }
 
         private boolean isRetryable(Throwable cause) {
-            // Vert.x specific retryable exception
-            if (cause instanceof HttpClosedException) {
+            // Vert.x specific retryable exception - check by class name to avoid compile-time Vertx dependency
+            if ("io.vertx.core.http.HttpClosedException".equals(cause.getClass().getName())) {
                 return true;
             }
             // JDK specific retryable exceptions

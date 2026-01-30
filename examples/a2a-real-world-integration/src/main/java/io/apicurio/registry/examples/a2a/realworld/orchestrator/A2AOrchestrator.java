@@ -275,6 +275,7 @@ public class A2AOrchestrator {
     /**
      * A workflow step that uses templates with context variables.
      * Each step can reference outputs from previous steps using {{variable}} syntax.
+     * Enhanced with schema and prompt template references for registry integration.
      */
     public static class ContextualStep {
         public String description;
@@ -282,12 +283,47 @@ public class A2AOrchestrator {
         public String outputKey;      // Key to store result in context
         public String taskTemplate;   // Template with {{variable}} placeholders
 
+        // Registry integration fields (Phase 6)
+        public String promptTemplateRef;   // URN reference: urn:apicurio:group/artifact
+        public String outputSchemaRef;     // URN reference: urn:apicurio:group/artifact
+        public boolean validateOutput = true;
+
         public ContextualStep(String description, String agentUrl,
                               String outputKey, String taskTemplate) {
             this.description = description;
             this.agentUrl = agentUrl;
             this.outputKey = outputKey;
             this.taskTemplate = taskTemplate;
+        }
+
+        /**
+         * Set the prompt template reference from the registry.
+         * @param ref URN reference like "urn:apicurio:llm-agents.prompts/sentiment-agent-prompt"
+         * @return this step for method chaining
+         */
+        public ContextualStep withPromptTemplate(String ref) {
+            this.promptTemplateRef = ref;
+            return this;
+        }
+
+        /**
+         * Set the output schema reference for validation.
+         * @param ref URN reference like "urn:apicurio:llm-agents.schemas/sentiment-agent-output"
+         * @return this step for method chaining
+         */
+        public ContextualStep withOutputSchema(String ref) {
+            this.outputSchemaRef = ref;
+            return this;
+        }
+
+        /**
+         * Enable or disable output validation against the schema.
+         * @param validate whether to validate output (default true)
+         * @return this step for method chaining
+         */
+        public ContextualStep withValidation(boolean validate) {
+            this.validateOutput = validate;
+            return this;
         }
     }
 

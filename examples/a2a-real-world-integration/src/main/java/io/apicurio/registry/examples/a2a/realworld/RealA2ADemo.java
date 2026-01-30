@@ -34,14 +34,19 @@ import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.VersionContent;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * A2A Context Chaining Demo - Multi-Agent Pipeline with Accumulated Context.
@@ -104,24 +109,31 @@ public class RealA2ADemo {
             // Phase 2: Verify agents are running
             verifyAgentsRunning();
 
-            // Phase 3: Register agents in Apicurio Registry (optional - may fail if registry not configured)
+            // Phase 3: Register MODEL_SCHEMA and PROMPT_TEMPLATE artifacts (LLM lifecycle)
+            try {
+                registerSchemasAndPrompts();
+            } catch (Exception e) {
+                LOGGER.warning("Schema/prompt registration failed (continuing without): " + e.getMessage());
+            }
+
+            // Phase 4: Register agents in Apicurio Registry (optional - may fail if registry not configured)
             try {
                 registerAgentsInRegistry();
             } catch (Exception e) {
                 LOGGER.warning("Registry registration failed (continuing without): " + e.getMessage());
             }
 
-            // Phase 4: Discover agents via A2A (optional - may fail if registry not configured)
+            // Phase 5: Discover agents via A2A (optional - may fail if registry not configured)
             try {
                 discoverAgentsViaA2A();
             } catch (Exception e) {
                 LOGGER.warning("Registry discovery failed (continuing without): " + e.getMessage());
             }
 
-            // Phase 5: Start Web UI
+            // Phase 6: Start Web UI
             startWebUI();
 
-            // Phase 6: Execute sample workflow
+            // Phase 7: Execute sample workflow
             executeIntelligentWorkflow();
 
             printCompletionBanner();
@@ -277,13 +289,116 @@ public class RealA2ADemo {
     }
 
     // ==================================================================================
-    // Phase 3: Register Agents in Registry
+    // Phase 3: Register MODEL_SCHEMA and PROMPT_TEMPLATE Artifacts
+    // ==================================================================================
+
+    private static void registerSchemasAndPrompts() throws Exception {
+        LOGGER.info("");
+        LOGGER.info("--------------------------------------------------------------------------------");
+        LOGGER.info("Phase 3: Registering MODEL_SCHEMA and PROMPT_TEMPLATE Artifacts");
+        LOGGER.info("--------------------------------------------------------------------------------");
+        LOGGER.info("");
+
+        RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create(REGISTRY_URL));
+
+        // Create groups for schemas and prompts
+        createGroupIfNotExists(client, "llm-agents.schemas",
+                "Input/output schemas for LLM agents (MODEL_SCHEMA artifacts)");
+        createGroupIfNotExists(client, "llm-agents.prompts",
+                "System prompts for LLM agents (PROMPT_TEMPLATE artifacts)");
+
+        // Register MODEL_SCHEMA artifacts
+        LOGGER.info("Registering MODEL_SCHEMA artifacts...");
+        String[] schemaFiles = {
+                "sentiment-agent-output.json",
+                "analyzer-agent-output.json",
+                "response-generator-output.json",
+                "translator-agent-output.json"
+        };
+
+        for (String file : schemaFiles) {
+            String content = loadResource("schemas/" + file);
+            String artifactId = file.replace(".json", "");
+            registerArtifact(client, "llm-agents.schemas", artifactId,
+                    "MODEL_SCHEMA", content, "application/json");
+            LOGGER.info("  Registered schema: " + artifactId);
+        }
+
+        // Register PROMPT_TEMPLATE artifacts
+        LOGGER.info("Registering PROMPT_TEMPLATE artifacts...");
+        String[] promptFiles = {
+                "sentiment-agent-prompt.yaml",
+                "analyzer-agent-prompt.yaml",
+                "response-generator-prompt.yaml",
+                "translator-agent-prompt.yaml"
+        };
+
+        for (String file : promptFiles) {
+            String content = loadResource("prompts/" + file);
+            String artifactId = file.replace(".yaml", "");
+            registerArtifact(client, "llm-agents.prompts", artifactId,
+                    "PROMPT_TEMPLATE", content, "application/yaml");
+            LOGGER.info("  Registered prompt: " + artifactId);
+        }
+
+        LOGGER.info("");
+        LOGGER.info("LLM artifact registration complete:");
+        LOGGER.info("  - " + schemaFiles.length + " MODEL_SCHEMA artifacts");
+        LOGGER.info("  - " + promptFiles.length + " PROMPT_TEMPLATE artifacts");
+    }
+
+    private static void createGroupIfNotExists(RegistryClient client, String groupId, String description) {
+        try {
+            CreateGroup group = new CreateGroup();
+            group.setGroupId(groupId);
+            group.setDescription(description);
+            client.groups().post(group);
+            LOGGER.info("Created group: " + groupId);
+        } catch (Exception e) {
+            // Group may already exist
+        }
+    }
+
+    private static void registerArtifact(RegistryClient client, String groupId, String artifactId,
+            String artifactType, String content, String contentType) {
+        CreateArtifact artifact = new CreateArtifact();
+        artifact.setArtifactId(artifactId);
+        artifact.setArtifactType(artifactType);
+
+        CreateVersion version = new CreateVersion();
+        version.setVersion("1.0.0");
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(content);
+        versionContent.setContentType(contentType);
+        version.setContent(versionContent);
+        artifact.setFirstVersion(version);
+
+        client.groups().byGroupId(groupId).artifacts()
+                .post(artifact, config -> {
+                    config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+                });
+    }
+
+    private static String loadResource(String path) throws Exception {
+        try (InputStream is = RealA2ADemo.class.getClassLoader().getResourceAsStream(path)) {
+            if (is == null) {
+                throw new RuntimeException("Resource not found: " + path);
+            }
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                return reader.lines().collect(Collectors.joining("\n"));
+            }
+        }
+    }
+
+    // ==================================================================================
+    // Phase 4: Register Agents in Registry
     // ==================================================================================
 
     private static void registerAgentsInRegistry() throws Exception {
         LOGGER.info("");
         LOGGER.info("--------------------------------------------------------------------------------");
-        LOGGER.info("Phase 3: Registering Agents in Apicurio Registry");
+        LOGGER.info("Phase 4: Registering Agents in Apicurio Registry");
         LOGGER.info("--------------------------------------------------------------------------------");
         LOGGER.info("");
 
@@ -341,13 +456,13 @@ public class RealA2ADemo {
     }
 
     // ==================================================================================
-    // Phase 4: Discover Agents via A2A
+    // Phase 5: Discover Agents via A2A
     // ==================================================================================
 
     private static void discoverAgentsViaA2A() throws Exception {
         LOGGER.info("");
         LOGGER.info("--------------------------------------------------------------------------------");
-        LOGGER.info("Phase 4: Discovering Agents via A2A Registry Endpoints");
+        LOGGER.info("Phase 5: Discovering Agents via A2A Registry Endpoints");
         LOGGER.info("--------------------------------------------------------------------------------");
         LOGGER.info("");
 
@@ -363,7 +478,7 @@ public class RealA2ADemo {
     }
 
     // ==================================================================================
-    // Phase 5: Start Web UI
+    // Phase 6: Start Web UI
     // ==================================================================================
 
     private static void startWebUI() throws Exception {
@@ -388,13 +503,13 @@ public class RealA2ADemo {
     }
 
     // ==================================================================================
-    // Phase 6: Execute Intelligent Multi-Agent Workflow with Context Chaining
+    // Phase 7: Execute Intelligent Multi-Agent Workflow with Context Chaining
     // ==================================================================================
 
     private static void executeIntelligentWorkflow() throws Exception {
         LOGGER.info("");
         LOGGER.info("================================================================================");
-        LOGGER.info("Phase 6: Executing Sample Workflow (Demo)");
+        LOGGER.info("Phase 7: Executing Sample Workflow (Demo)");
         LOGGER.info("================================================================================");
         LOGGER.info("");
         LOGGER.info("This workflow uses CONTEXT CHAINING - each agent receives outputs from");
@@ -416,8 +531,9 @@ public class RealA2ADemo {
         LOGGER.info("--------------------------------------------------------------------------------");
         LOGGER.info("");
 
-        // Define contextual steps with template variables
-        // Each step can reference previous outputs using {{variable}} syntax
+        // Define contextual steps with template variables and registry references.
+        // Each step can reference previous outputs using {{variable}} syntax.
+        // Enhanced with schema and prompt template references for LLM lifecycle management.
         List<ContextualStep> steps = List.of(
                 // Step 1: Sentiment analysis (just original message)
                 new ContextualStep(
@@ -425,7 +541,9 @@ public class RealA2ADemo {
                         "http://localhost:" + SENTIMENT_AGENT_PORT,
                         "sentiment",
                         "{{original}}"
-                ),
+                )
+                .withPromptTemplate("urn:apicurio:llm-agents.prompts/sentiment-agent-prompt")
+                .withOutputSchema("urn:apicurio:llm-agents.schemas/sentiment-agent-output"),
 
                 // Step 2: Issue analysis WITH sentiment context
                 new ContextualStep(
@@ -442,7 +560,9 @@ public class RealA2ADemo {
                         Based on the sentiment analysis above, perform issue extraction.
                         Consider the urgency and emotional state when prioritizing.
                         """
-                ),
+                )
+                .withPromptTemplate("urn:apicurio:llm-agents.prompts/analyzer-agent-prompt")
+                .withOutputSchema("urn:apicurio:llm-agents.schemas/analyzer-agent-output"),
 
                 // Step 3: Response with full context
                 new ContextualStep(
@@ -464,7 +584,9 @@ public class RealA2ADemo {
                         - Addresses all identified issues
                         - Matches the urgency level identified
                         """
-                ),
+                )
+                .withPromptTemplate("urn:apicurio:llm-agents.prompts/response-generator-prompt")
+                .withOutputSchema("urn:apicurio:llm-agents.schemas/response-generator-output"),
 
                 // Step 4: Translate the ACTUAL response
                 new ContextualStep(
@@ -477,6 +599,8 @@ public class RealA2ADemo {
                         {{response}}
                         """
                 )
+                .withPromptTemplate("urn:apicurio:llm-agents.prompts/translator-agent-prompt")
+                .withOutputSchema("urn:apicurio:llm-agents.schemas/translator-agent-output")
         );
 
         // Execute contextual workflow

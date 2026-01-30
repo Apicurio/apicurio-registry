@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.logging.audit;
 
+import io.apicurio.registry.rest.MethodMetadataInterceptor;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.inject.Instance;
@@ -23,9 +24,7 @@ import jakarta.inject.Inject;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
-import org.apache.commons.beanutils.BeanUtils;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,7 +34,8 @@ import java.util.Map;
  * This interceptor follows the execution of a method and marks the audit entry as failed if the inner method
  * throws an exception.
  * <p>
- * This interceptor reads the inner method parameters to gather extra information for the audit entry.
+ * This interceptor reads extracted method parameters from the invocation context (populated by
+ * {@link MethodMetadataInterceptor}) to gather extra information for the audit entry.
  */
 @Audited
 @Interceptor
@@ -62,7 +62,7 @@ public class AuditedInterceptor {
             metadata.put(AuditingConstants.KEY_PRINCIPAL_ID, securityIdentity.get().getPrincipal().getName());
         }
 
-        extractMetaData(context, annotation, metadata);
+        extractMetaData(context, metadata);
 
         String action = annotation.action();
         if (action.isEmpty()) {
@@ -82,40 +82,22 @@ public class AuditedInterceptor {
     }
 
     /**
-     * Extracts metadata from the context based on the "extractParameters" configuration of the "Audited"
-     * annotation.
+     * Extracts metadata from the context. Parameters that have been extracted by
+     * {@link MethodMetadataInterceptor} are read from the invocation context.
      *
-     * @param context
-     * @param annotation
-     * @param metadata
+     * @param context the invocation context
+     * @param metadata the map to populate with extracted metadata
      */
-    protected void extractMetaData(InvocationContext context, Audited annotation,
-            Map<String, String> metadata) {
-        final String[] annotationParams = annotation.extractParameters();
-        if (annotationParams.length > 0) {
-            for (int i = 0; i <= annotationParams.length - 2; i += 2) {
-                String position = annotationParams[i];
-                String metadataName = annotationParams[i + 1];
-
-                String propertyName = null;
-                if (position.contains(".")) {
-                    position = extractPosition(position);
-                    propertyName = extractPropertyName(position);
-                }
-                int positionInt = Integer.parseInt(position);
-
-                Object parameterValue = context.getParameters()[positionInt];
-                if (parameterValue != null && propertyName != null) {
-                    parameterValue = getPropertyValueFromParam(parameterValue, propertyName);
-                }
-                if (parameterValue != null) {
-                    metadata.put(metadataName, parameterValue.toString());
-                }
-            }
+    @SuppressWarnings("unchecked")
+    protected void extractMetaData(InvocationContext context, Map<String, String> metadata) {
+        // First, check if parameters were already extracted by MethodMetadataInterceptor
+        Object extractedData = context.getContextData().get(io.apicurio.registry.rest.MethodMetadataInterceptor.EXTRACTED_PARAMETERS_KEY);
+        if (extractedData instanceof Map) {
+            Map<String, String> extractedParams = (Map<String, String>) extractedData;
+            metadata.putAll(extractedParams);
         } else if (extractors.iterator().hasNext()) {
-            // No parameters defined on the annotation. So try to use any configured
-            // extractors instead. Extract metadata from the collection of params on
-            // the context.
+            // No extracted data available. Fallback to using any configured extractors.
+            // Extract metadata from the collection of params on the context.
             for (Object parameter : context.getParameters()) {
                 for (AuditMetaDataExtractor extractor : extractors) {
                     if (extractor.accept(parameter)) {
@@ -123,22 +105,6 @@ public class AuditedInterceptor {
                     }
                 }
             }
-        }
-    }
-
-    private String extractPosition(String position) {
-        return position.split(".")[0];
-    }
-
-    private String extractPropertyName(String position) {
-        return position.split(".")[1];
-    }
-
-    private String getPropertyValueFromParam(Object parameterValue, String propertyName) {
-        try {
-            return BeanUtils.getProperty(parameterValue, propertyName);
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            return parameterValue.toString();
         }
     }
 

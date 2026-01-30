@@ -3,6 +3,62 @@
 
 The following {registry} configuration options are available for each component category:
 
+== a2a
+.a2a configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.a2a.agent.capabilities.push-notifications`
+|`boolean`
+|`false`
+|`3.0.0`
+|Whether the agent supports push notifications
+|`apicurio.a2a.agent.capabilities.streaming`
+|`boolean`
+|`false`
+|`3.0.0`
+|Whether the agent supports streaming
+|`apicurio.a2a.agent.description`
+|`string`
+|`API and Schema Registry with A2A Agent support`
+|`3.0.0`
+|Description of the registry agent
+|`apicurio.a2a.agent.name`
+|`string`
+|`Apicurio Registry`
+|`3.0.0`
+|Name of the registry agent for A2A discovery
+|`apicurio.a2a.agent.provider.organization`
+|`string`
+|`Apicurio`
+|`3.0.0`
+|Organization name for the agent provider
+|`apicurio.a2a.agent.provider.url`
+|`string`
+|`https://www.apicur.io`
+|`3.0.0`
+|URL for the agent provider
+|`apicurio.a2a.agent.url`
+|`optional<string>`
+|
+|`3.0.0`
+|Base URL for the registry agent's A2A endpoint
+|`apicurio.a2a.agent.version`
+|`optional<string>`
+|
+|`3.0.0`
+|Version of the registry agent (defaults to app version)
+|`apicurio.a2a.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable A2A protocol support
+|===
+
 == api
 .api configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -549,7 +605,7 @@ The following {registry} configuration options are available for each component 
 |`3.1.1`
 |        Only the general category of the HTTP status code is added as a tag/label on REST API request metrics,
         e.g. `1xx`, `2xx`, ...         If you are interested in metrics for a specific status code, e.g. 401 for authentication errors,
-        this property allows you to specify a list of such codes.         Each request will be counted only once, i.e. either as the specific status code or in the general category. 
+        this property allows you to specify a list of such codes.         Each request will be counted only once, i.e. either as the specific status code or in the general category.
 |`apicurio.metrics.rest.method-tag-enabled`
 |`boolean`
 |`true`

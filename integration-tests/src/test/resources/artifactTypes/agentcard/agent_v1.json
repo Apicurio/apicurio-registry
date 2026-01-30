@@ -1,0 +1,26 @@
+{
+  "name": "TestAgent",
+  "description": "A test AI agent for integration testing",
+  "version": "1.0.0",
+  "url": "https://example.com/agent",
+  "provider": {
+    "organization": "Test Organization",
+    "url": "https://example.com"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "test-skill",
+      "name": "Test Skill",
+      "description": "A test skill for testing"
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "authentication": {
+    "schemes": ["bearer"]
+  }
+}

@@ -1,6 +1,9 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.dto.OutboxEvent;
+
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import io.apicurio.registry.storage.impl.util.ProducerActions;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -20,6 +23,7 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 public class KafkaSqlEventsProcessor {
 
     @ConfigProperty(name = "apicurio.storage.kind", defaultValue = "sql")
+    @Info(category = CATEGORY_STORAGE, description = "The type of storage to use for the registry", registryAvailableSince = "3.0.0")
     String storageType;
 
     @Inject

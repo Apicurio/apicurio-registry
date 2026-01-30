@@ -1,6 +1,6 @@
-# A2A Context Chaining Demo
+# A2A Context Chaining Demo with LLM Lifecycle Management
 
-This example demonstrates **context chaining** in multi-agent workflows - where each agent receives the accumulated outputs from all previous agents, creating a truly integrated pipeline.
+This example demonstrates **context chaining** in multi-agent workflows combined with **LLM Lifecycle Management** - where agents, prompts, and schemas are all version-controlled through Apicurio Registry.
 
 ## The Problem: Isolated Agents
 
@@ -63,10 +63,53 @@ Customer Message
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
+## LLM Lifecycle Management
+
+This example also demonstrates **complete LLM Lifecycle Management** through Apicurio Registry:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Apicurio Registry                                  │
+│                                                                              │
+│  ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐        │
+│  │    AGENT_CARD     │  │   MODEL_SCHEMA    │  │  PROMPT_TEMPLATE  │        │
+│  │                   │  │                   │  │                   │        │
+│  │  - Agent metadata │  │  - Input schema   │  │  - System prompt  │        │
+│  │  - Skills list    │  │  - Output schema  │  │  - {{variables}}  │        │
+│  │  - Capabilities   │  │  - Validation     │  │  - Version ctrl   │        │
+│  │  - URL endpoint   │  │  - Compatibility  │  │  - Metadata       │        │
+│  └─────────┬─────────┘  └─────────┬─────────┘  └─────────┬─────────┘        │
+│            │                      │                      │                  │
+│            └──────────────────────┴──────────────────────┘                  │
+│                      Linked via URN references                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Registry Artifacts
+
+The demo registers these artifacts in Apicurio Registry:
+
+| Group | Artifact Type | Artifacts |
+|-------|--------------|-----------|
+| `llm-agents.schemas` | MODEL_SCHEMA | `sentiment-agent-output`, `analyzer-agent-output`, `response-generator-output`, `translator-agent-output` |
+| `llm-agents.prompts` | PROMPT_TEMPLATE | `sentiment-agent-prompt`, `analyzer-agent-prompt`, `response-generator-prompt`, `translator-agent-prompt` |
+| `demo.llm-agents` | AGENT_CARD | `sentiment-agent`, `analyzer-agent`, `response-agent`, `translator-agent` |
+
+### Benefits
+
+| Benefit | Description |
+|---------|-------------|
+| **Version Control** | Prompts and schemas evolve independently of code |
+| **A/B Testing** | Deploy prompt variations without redeployment |
+| **Validation** | Catch schema mismatches before runtime |
+| **Rollback** | Revert to previous prompt versions instantly |
+| **Discovery** | Find agents by capabilities, schemas, skills |
+| **Audit Trail** | Track all schema/prompt changes for compliance |
+
 ## Quick Start
 
 ```bash
-# 1. Start Ollama (requires ~4GB for llama3.2 model)
+# 1. Start Ollama and Apicurio Registry (requires ~4GB for llama3.2 model)
 cd examples/a2a-real-world-integration
 docker-compose up -d
 
@@ -79,7 +122,25 @@ mvn clean compile exec:java
 
 # 4. Open the Web UI
 open http://localhost:9000
+
+# 5. View registered artifacts in Registry UI (optional)
+open http://localhost:8888
 ```
+
+### Demo Phases
+
+The demo executes these phases:
+
+| Phase | Description |
+|-------|-------------|
+| 0 | Connect to Ollama LLM |
+| 1 | Start 4 LLM-powered agents |
+| 2 | Verify agents via A2A discovery |
+| 3 | Register MODEL_SCHEMA and PROMPT_TEMPLATE artifacts |
+| 4 | Register AGENT_CARD artifacts |
+| 5 | Discover agents via A2A registry endpoints |
+| 6 | Start Web UI |
+| 7 | Execute sample workflow with context chaining |
 
 ## Web UI
 
@@ -198,15 +259,38 @@ List<WorkflowResult> results = orchestrator.executeContextualWorkflow(
 
 ### ContextualStep
 
-Defines a workflow step with template-based input:
+Defines a workflow step with template-based input and registry references:
 
 ```java
 public class ContextualStep {
-    public String description;    // Human-readable description
-    public String agentUrl;       // Agent endpoint URL
-    public String outputKey;      // Key to store result in context
-    public String taskTemplate;   // Template with {{variable}} placeholders
+    public String description;       // Human-readable description
+    public String agentUrl;          // Agent endpoint URL
+    public String outputKey;         // Key to store result in context
+    public String taskTemplate;      // Template with {{variable}} placeholders
+
+    // Registry integration (LLM Lifecycle Management)
+    public String promptTemplateRef; // URN: urn:apicurio:group/artifact
+    public String outputSchemaRef;   // URN: urn:apicurio:group/artifact
+    public boolean validateOutput;   // Enable output validation
+
+    // Fluent builder methods
+    public ContextualStep withPromptTemplate(String ref) { ... }
+    public ContextualStep withOutputSchema(String ref) { ... }
+    public ContextualStep withValidation(boolean validate) { ... }
 }
+```
+
+Example with registry references:
+
+```java
+new ContextualStep(
+    "Analyze sentiment",
+    "http://localhost:9001",
+    "sentiment",
+    "{{original}}"
+)
+.withPromptTemplate("urn:apicurio:llm-agents.prompts/sentiment-agent-prompt")
+.withOutputSchema("urn:apicurio:llm-agents.schemas/sentiment-agent-output")
 ```
 
 ### WorkflowContext
@@ -239,22 +323,37 @@ public class WorkflowContext {
 ## File Structure
 
 ```
-src/main/java/.../realworld/
-├── RealA2ADemo.java              # Main demo application
-├── llm/
-│   ├── AgentPrompts.java         # Context-aware system prompts
-│   ├── LLMAgentServer.java       # LLM-powered A2A agent
-│   └── OllamaClient.java         # Ollama HTTP client
-├── orchestrator/
-│   └── A2AOrchestrator.java      # Context chaining orchestrator
-└── web/
-    └── WebUIServer.java          # Web UI for submitting complaints
+src/main/
+├── java/.../realworld/
+│   ├── RealA2ADemo.java              # Main demo application
+│   ├── agents/
+│   │   └── MockAgentServer.java      # Base A2A agent server
+│   ├── llm/
+│   │   ├── AgentPrompts.java         # Context-aware system prompts
+│   │   ├── LLMAgentServer.java       # LLM-powered A2A agent
+│   │   └── OllamaClient.java         # Ollama HTTP client
+│   ├── orchestrator/
+│   │   └── A2AOrchestrator.java      # Context chaining orchestrator
+│   └── web/
+│       └── WebUIServer.java          # Web UI for submitting complaints
+└── resources/
+    ├── schemas/                       # MODEL_SCHEMA artifacts
+    │   ├── sentiment-agent-output.json
+    │   ├── analyzer-agent-output.json
+    │   ├── response-generator-output.json
+    │   └── translator-agent-output.json
+    └── prompts/                       # PROMPT_TEMPLATE artifacts
+        ├── sentiment-agent-prompt.yaml
+        ├── analyzer-agent-prompt.yaml
+        ├── response-generator-prompt.yaml
+        └── translator-agent-prompt.yaml
 ```
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `REGISTRY_URL` | `http://localhost:8080/apis/registry/v3` | Apicurio Registry URL |
 | `OLLAMA_URL` | `http://localhost:11434` | Ollama server URL |
 | `OLLAMA_MODEL` | `llama3.2` | LLM model to use |
 

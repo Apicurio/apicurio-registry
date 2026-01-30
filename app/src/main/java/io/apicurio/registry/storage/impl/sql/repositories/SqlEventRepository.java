@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
@@ -7,6 +8,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 /**
  * Repository handling event/outbox operations in the SQL storage layer.
@@ -34,6 +37,7 @@ public class SqlEventRepository {
 
     @Inject
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka events topic for outbox pattern", registryAvailableSince = "3.0.1")
     String eventsTopic;
 
     /**

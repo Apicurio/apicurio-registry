@@ -12,8 +12,8 @@ import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtra
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.rules.compatibility.AgentCardCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.AgentCardContentValidator;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.types.ArtifactType;
@@ -48,9 +48,7 @@ public class AgentCardArtifactTypeUtilProvider extends AbstractArtifactTypeUtilP
 
     @Override
     protected CompatibilityChecker createCompatibilityChecker() {
-        // For MVP, no compatibility checking
-        // Future: implement Agent Card compatibility rules
-        return NoopCompatibilityChecker.INSTANCE;
+        return new AgentCardCompatibilityChecker();
     }
 
     @Override

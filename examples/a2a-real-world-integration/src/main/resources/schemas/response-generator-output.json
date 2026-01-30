@@ -1,0 +1,45 @@
+{
+  "$schema": "https://apicurio.io/schemas/model-schema/v1",
+  "modelId": "response-generator-output",
+  "provider": "a2a-demo",
+  "version": "1.0.0",
+  "output": {
+    "type": "object",
+    "required": ["response", "tone", "offered_resolution"],
+    "properties": {
+      "response": {
+        "type": "string",
+        "description": "The full customer service response text"
+      },
+      "tone": {
+        "type": "string",
+        "description": "Description of the tone used (e.g., empathetic_professional, warm_helpful)"
+      },
+      "offered_resolution": {
+        "type": "string",
+        "description": "Summary of what was offered to resolve the issue"
+      },
+      "follow_up_required": {
+        "type": "boolean",
+        "description": "Whether follow-up action is required"
+      },
+      "estimated_resolution_time": {
+        "type": "string",
+        "description": "Timeframe for resolution (e.g., 24-48 hours)"
+      },
+      "context_used": {
+        "type": "string",
+        "description": "How sentiment and analysis context was incorporated"
+      }
+    }
+  },
+  "metadata": {
+    "description": "Output schema for response generator agent - creates empathetic customer service responses",
+    "category": "customer-support",
+    "tags": ["response-generation", "customer-service", "conflict-resolution"],
+    "dependsOn": [
+      "llm-agents.schemas/sentiment-agent-output",
+      "llm-agents.schemas/analyzer-agent-output"
+    ]
+  }
+}

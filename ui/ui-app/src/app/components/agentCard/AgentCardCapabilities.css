@@ -1,0 +1,23 @@
+.agent-card-capabilities {
+    margin-bottom: 16px;
+}
+
+.agent-card-capabilities .section-title {
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.agent-card-capabilities .capabilities-list {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.agent-card-capabilities .capability-label {
+    font-size: 12px;
+}
+
+.agent-card-capabilities .empty-state-text {
+    color: var(--pf-v5-global--Color--200);
+    font-style: italic;
+}

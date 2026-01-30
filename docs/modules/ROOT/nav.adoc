@@ -26,6 +26,9 @@ ifndef::service-registry-downstream[]
 * Troubleshooting
 ** xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[]
 endif::[]
+* AI Agent Integration
+** xref:getting-started/assembly-a2a-features.adoc[]
+** xref:getting-started/assembly-llm-artifact-types-implementation.adoc[]
 * Reference
 ** xref:getting-started/assembly-artifact-reference.adoc[]
 ** xref:getting-started/assembly-rule-reference.adoc[]

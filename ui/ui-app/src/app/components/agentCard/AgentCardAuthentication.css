@@ -1,0 +1,18 @@
+.agent-card-authentication {
+    margin-bottom: 16px;
+}
+
+.agent-card-authentication .section-title {
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.agent-card-authentication .auth-schemes-list {
+    gap: 8px;
+}
+
+.agent-card-authentication .empty-state-text {
+    color: var(--pf-v5-global--Color--200);
+    font-style: italic;
+}

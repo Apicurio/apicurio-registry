@@ -190,7 +190,7 @@
     <okio.version>3.16.4</okio.version>
     <kotlin-stdlib.version>2.3.0</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
-    <protobuf.version>4.33.4</protobuf.version>
+    <protobuf.version>4.33.5</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.65.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -238,7 +238,7 @@
 
     <!-- Dependency versions -->
     <lombok.version>1.18.42</lombok.version>
-    <commons-codec.version>1.20.0</commons-codec.version>
+    <commons-codec.version>1.21.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.1</kafka-clients.version>
     <debezium.version>2.7.4.Final</debezium.version>

@@ -156,7 +156,7 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                                     value={stats.groupCount}
                                     icon={<FolderOpenIcon />}
                                     isLoading={isLoading}
-                                    onClick={() => handleStatsClick("/explore?for=groups")}
+                                    onClick={() => handleStatsClick("/search?for=groups")}
                                 />
                             </FlexItem>
                             <FlexItem>
@@ -174,7 +174,7 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                                     value={stats.versionCount}
                                     icon={<CodeBranchIcon />}
                                     isLoading={isLoading}
-                                    onClick={() => handleStatsClick("/search?for=groups")}
+                                    onClick={() => handleStatsClick("/search?for=versions")}
                                 />
                             </FlexItem>
                         </Flex>

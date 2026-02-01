@@ -132,9 +132,9 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     }, [comments, filter]);
 
     const toolbar = (
-        <Toolbar id="toolbar-items-example">
+        <Toolbar id="toolbar-items-example" style={{ padding: "15px" }}>
             <ToolbarContent>
-                <ToolbarItem >
+                <ToolbarItem>
                     <SearchInput aria-label="Search comments" placeholder="Filter comments" onChange={(evt, filter) => setFilter(filter)} />
                 </ToolbarItem>
                 <ToolbarItem variant="separator" />
@@ -192,6 +192,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                                         isExpanded={!collapsed.includes(comment.commentId!)}
                                         id={`${comment.commentId}-toggle`}
                                         aria-controls={`${comment.commentId}-expand`}
+                                        style={{ marginRight: "3px" }}
                                     />
                                     <DataListItemCells
                                         dataListCells={[
@@ -251,7 +252,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                                     isHidden={collapsed.includes(comment.commentId!)}
                                     hasNoPadding
                                 >
-                                    <div style={{ paddingLeft: "35px", marginBottom: "15px" }}>
+                                    <div style={{ paddingLeft: "15px", marginBottom: "0px", marginTop: "-6px" }}>
                                         {comment.value}
                                     </div>
                                 </DataListContent>

@@ -605,7 +605,7 @@ The following {registry} configuration options are available for each component 
 |`3.1.1`
 |        Only the general category of the HTTP status code is added as a tag/label on REST API request metrics,
         e.g. `1xx`, `2xx`, ...         If you are interested in metrics for a specific status code, e.g. 401 for authentication errors,
-        this property allows you to specify a list of such codes.         Each request will be counted only once, i.e. either as the specific status code or in the general category.
+        this property allows you to specify a list of such codes.         Each request will be counted only once, i.e. either as the specific status code or in the general category. 
 |`apicurio.metrics.rest.method-tag-enabled`
 |`boolean`
 |`true`

@@ -188,7 +188,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
 
     const panelContent = (
         <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
-            <DrawerHead >
+            <DrawerHead className="__drawer-head">
                 <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
                     <div className="artifact-basics">
                         <div className="title-and-type">
@@ -325,10 +325,10 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
 
     return (
         <div className="artifact-overview-tab-content">
-            <Card>
+            <Card variant="secondary">
                 <CardBody style={{ padding: "0" }}>
                     <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
-                        <DrawerContent panelContent={panelContent}>
+                        <DrawerContent panelContent={panelContent} style={{ backgroundColor: "white" }}>
                             <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
                         </DrawerContent>
                     </Drawer>

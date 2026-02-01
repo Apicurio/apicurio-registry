@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import "./DraftsPageToolbar.css";
-import { Button, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
+import {Button, Pagination, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem} from "@patternfly/react-core";
 import {
     ChipFilterCriteria,
     ChipFilterInput,
@@ -132,45 +132,51 @@ export const DraftsPageToolbar: FunctionComponent<DraftsPageToolbarProps> = (pro
         <div>
             <Toolbar id="drafts-toolbar-1" className="drafts-toolbar">
                 <ToolbarContent>
-                    <ToolbarItem variant="label" id="filter-by-label">
-                        Filter by
-                    </ToolbarItem>
-                    <ToolbarItem className="filter-item">
-                        <ChipFilterInput
-                            filterTypes={FILTER_TYPES}
-                            onAddCriteria={onAddFilterCriteria} />
-                        <Button
-                            variant="control" aria-label="Refresh"
-                            className="btn-header-refresh" data-testid="btn-toolbar-refresh"
-                            icon={<SyncAltIcon title="Refresh" />}
-                            onClick={props.onRefresh}
-                        />
-                    </ToolbarItem>
-                    <ToolbarItem variant="label" id="order-by-label">
-                        Order by
-                    </ToolbarItem>
-                    <ToolbarItem className="ordering-item">
-                        <ObjectSelect
-                            value={props.sortBy}
-                            items={[
-                                DraftsSortBy.artifactId,
-                                DraftsSortBy.groupId,
-                                DraftsSortBy.name,
-                                DraftsSortBy.modifiedOn
-                            ]}
-                            onSelect={(newSortBy) => {
-                                props.onSortChange(newSortBy, props.sortOrder);
-                            }}
-                            itemToString={item => sortByLabel(item)}
-                        />
-                        <SortOrderToggle sortOrder={props.sortOrder} onChange={(newSortOrder => {
-                            props.onSortChange(props.sortBy, newSortOrder);
-                        })} />
-                    </ToolbarItem>
-                    <ToolbarItem className="create-draft-item" style={{ paddingLeft: "20px" }} align={{ default: "alignEnd" }}>
-                        <Button className="btn-header-create-draft" data-testid="btn-toolbar-create-draft"
-                            variant="primary" onClick={props.onCreateDraft}>Create draft</Button>
-                    </ToolbarItem>
+                    <ToolbarGroup>
+                        <ToolbarItem variant="label" id="filter-by-label">
+                            Filter by
+                        </ToolbarItem>
+                        <ToolbarItem className="filter-item">
+                            <ChipFilterInput
+                                filterTypes={FILTER_TYPES}
+                                onAddCriteria={onAddFilterCriteria} />
+                            <Button
+                                variant="control" aria-label="Refresh"
+                                className="btn-header-refresh" data-testid="btn-toolbar-refresh"
+                                icon={<SyncAltIcon title="Refresh" />}
+                                onClick={props.onRefresh}
+                            />
+                        </ToolbarItem>
+                    </ToolbarGroup>
+                    <ToolbarGroup>
+                        <ToolbarItem variant="label" id="order-by-label">
+                            Order by
+                        </ToolbarItem>
+                        <ToolbarItem className="ordering-item">
+                            <ObjectSelect
+                                value={props.sortBy}
+                                items={[
+                                    DraftsSortBy.artifactId,
+                                    DraftsSortBy.groupId,
+                                    DraftsSortBy.name,
+                                    DraftsSortBy.modifiedOn
+                                ]}
+                                onSelect={(newSortBy) => {
+                                    props.onSortChange(newSortBy, props.sortOrder);
+                                }}
+                                itemToString={item => sortByLabel(item)}
+                            />
+                            <SortOrderToggle sortOrder={props.sortOrder} onChange={(newSortOrder => {
+                                props.onSortChange(props.sortBy, newSortOrder);
+                            })} />
+                        </ToolbarItem>
+                    </ToolbarGroup>
+                    <ToolbarGroup>
+                        <ToolbarItem className="create-draft-item" style={{ paddingLeft: "20px" }} align={{ default: "alignEnd" }}>
+                            <Button className="btn-header-create-draft" data-testid="btn-toolbar-create-draft"
+                                variant="primary" onClick={props.onCreateDraft}>Create draft</Button>
+                        </ToolbarItem>
+                    </ToolbarGroup>
                 </ToolbarContent>
             </Toolbar>
             <Toolbar id="drafts-toolbar-2" className="drafts-toolbar">

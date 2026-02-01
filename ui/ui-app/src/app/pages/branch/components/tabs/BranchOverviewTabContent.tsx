@@ -103,7 +103,7 @@ export const BranchOverviewTabContent: FunctionComponent<BranchOverviewTabConten
     return (
         <div className="branch-overview-tab-content">
             <div className="branch-basics">
-                <Card>
+                <Card variant="secondary" style={{ backgroundColor: "white" }}>
                     <CardTitle>
                         <div className="title-and-type">
                             <Flex>
@@ -116,6 +116,8 @@ export const BranchOverviewTabContent: FunctionComponent<BranchOverviewTabConten
                                                 <Button icon={<PencilAltIcon />} id="edit-action"
                                                     data-testid="branch-btn-edit"
                                                     onClick={props.onEditMetaData}
+                                                    style={{ padding: 0 }}
+                                                    size="sm"
                                                     variant="link">{" "}Edit</Button>
                                             </IfFeature>
                                         </IfAuth>
@@ -164,7 +166,7 @@ export const BranchOverviewTabContent: FunctionComponent<BranchOverviewTabConten
                 </Card>
             </div>
             <div className="branch-versions">
-                <Card>
+                <Card variant="secondary" style={{ backgroundColor: "white" }}>
                     <CardTitle>
                         <div className="title-and-type">
                             <Flex>

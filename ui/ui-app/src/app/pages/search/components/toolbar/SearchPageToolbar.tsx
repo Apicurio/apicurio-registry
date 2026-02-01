@@ -1,7 +1,16 @@
 import { FunctionComponent } from "react";
 import "./SearchPageToolbar.css";
-import { Button, capitalize, Pagination, Toolbar, ToolbarContent, ToolbarItem } from "@patternfly/react-core";
-import { SyncAltIcon } from "@patternfly/react-icons";
+import {
+    Button,
+    capitalize,
+    Divider,
+    Pagination,
+    Toolbar,
+    ToolbarContent, ToolbarGroup,
+    ToolbarItem,
+    ToolbarToggleGroup
+} from "@patternfly/react-core";
+import {FilterIcon, SyncAltIcon} from "@patternfly/react-icons";
 import { SortOrderToggle } from "@app/components";
 import {
     ChipFilterCriteria,
@@ -210,49 +219,55 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
         <div>
             <Toolbar id="artifacts-toolbar-1" className="artifacts-toolbar">
                 <ToolbarContent>
-                    <ToolbarItem variant="label">
-                        Search for
-                    </ToolbarItem>
-                    <ToolbarItem className="filter-item">
-                        <ObjectSelect
-                            value={props.searchType}
-                            items={[SearchType.ARTIFACT, SearchType.GROUP, SearchType.VERSION]}
-                            testId="search-type-select"
-                            toggleClassname="search-type-toggle"
-                            onSelect={props.onSearchTypeChange}
-                            itemToTestId={(item) => `search-type-${plural(item.toString().toLowerCase())}`}
-                            itemToString={(item) => capitalize(plural(item.toString().toLowerCase()))} />
-                    </ToolbarItem>
-                    <ToolbarItem variant="label">
-                        filter by
-                    </ToolbarItem>
-                    <ToolbarItem className="filter-item">
-                        <ChipFilterInput
-                            filterTypes={filterTypes}
-                            onAddCriteria={onAddFilterCriteria} />
-                        <Button
-                            variant="control" aria-label="Refresh"
-                            className="btn-header-refresh" data-testid="btn-toolbar-refresh"
-                            icon={<SyncAltIcon title="Refresh" />}
-                            onClick={props.onRefresh}
-                        />
-                    </ToolbarItem>
-                    <ToolbarItem variant="label" id="order-by-label">
-                        Order by
-                    </ToolbarItem>
-                    <ToolbarItem className="ordering-item">
-                        <ObjectSelect
-                            value={props.sortBy}
-                            items={sortItems}
-                            onSelect={(newSortBy) => {
-                                props.onSortChange(newSortBy, props.sortOrder);
-                            }}
-                            itemToString={item => sortByLabel(item)}
-                        />
-                        <SortOrderToggle sortOrder={props.sortOrder} onChange={(newSortOrder => {
-                            props.onSortChange(props.sortBy, newSortOrder);
-                        })} />
-                    </ToolbarItem>
+                    <ToolbarGroup>
+                        <ToolbarItem variant="label">
+                            Search for
+                        </ToolbarItem>
+                        <ToolbarItem className="filter-item">
+                            <ObjectSelect
+                                value={props.searchType}
+                                items={[SearchType.ARTIFACT, SearchType.GROUP, SearchType.VERSION]}
+                                testId="search-type-select"
+                                toggleClassname="search-type-toggle"
+                                onSelect={props.onSearchTypeChange}
+                                itemToTestId={(item) => `search-type-${plural(item.toString().toLowerCase())}`}
+                                itemToString={(item) => capitalize(plural(item.toString().toLowerCase()))} />
+                        </ToolbarItem>
+                    </ToolbarGroup>
+                    <ToolbarGroup>
+                        <ToolbarItem variant="label">
+                            filter by
+                        </ToolbarItem>
+                        <ToolbarItem className="filter-item">
+                            <ChipFilterInput
+                                filterTypes={filterTypes}
+                                onAddCriteria={onAddFilterCriteria} />
+                            <Button
+                                variant="control" aria-label="Refresh"
+                                className="btn-header-refresh" data-testid="btn-toolbar-refresh"
+                                icon={<SyncAltIcon title="Refresh" />}
+                                onClick={props.onRefresh}
+                            />
+                        </ToolbarItem>
+                    </ToolbarGroup>
+                    <ToolbarGroup>
+                        <ToolbarItem variant="label" id="order-by-label">
+                            Order by
+                        </ToolbarItem>
+                        <ToolbarItem className="ordering-item">
+                            <ObjectSelect
+                                value={props.sortBy}
+                                items={sortItems}
+                                onSelect={(newSortBy) => {
+                                    props.onSortChange(newSortBy, props.sortOrder);
+                                }}
+                                itemToString={item => sortByLabel(item)}
+                            />
+                            <SortOrderToggle sortOrder={props.sortOrder} onChange={(newSortOrder => {
+                                props.onSortChange(props.sortBy, newSortOrder);
+                            })} />
+                        </ToolbarItem>
+                    </ToolbarGroup>
                 </ToolbarContent>
             </Toolbar>
             <Toolbar id="search-toolbar-2" className="search-toolbar">

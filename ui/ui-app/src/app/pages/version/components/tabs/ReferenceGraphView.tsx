@@ -29,7 +29,7 @@ import {
     DescriptionListGroup,
     DescriptionListTerm,
     DescriptionListDescription,
-    Tooltip
+    Tooltip, Content, Divider
 } from "@patternfly/react-core";
 import {
     ExpandIcon,
@@ -378,40 +378,27 @@ export const ReferenceGraphView: FunctionComponent<ReferenceGraphViewProps> = ({
 
     return (
         <div className={`reference-graph-wrapper ${isFullscreen ? "fullscreen" : ""}`} ref={containerRef} data-testid="reference-graph-wrapper">
-            {/* Graph controls toolbar */}
-            <Toolbar className="graph-controls-toolbar" data-testid="graph-controls-toolbar">
-                <ToolbarContent>
-                    <ToolbarItem>
-                        <span className="depth-label">Depth:</span>
-                    </ToolbarItem>
-                    <ToolbarItem className="depth-slider-item">
-                        <Slider
-                            value={maxDepth}
-                            onChange={onDepthChange}
-                            min={1}
-                            max={5}
-                            showTicks
-                            showBoundaries={false}
-                            data-testid="graph-depth-slider"
-                            customSteps={[
-                                { value: 1, label: "1" },
-                                { value: 2, label: "2" },
-                                { value: 3, label: "3" },
-                                { value: 4, label: "4" },
-                                { value: 5, label: "5" }
-                            ]}
-                        />
-                    </ToolbarItem>
-                    <ToolbarItem className="depth-hint">
-                        <span className="hint-text">
-                            (Currently shows direct references only. Deeper levels require backend support.)
-                        </span>
-                    </ToolbarItem>
-                </ToolbarContent>
-            </Toolbar>
+            <Content component="h4">Graph Depth: ({maxDepth})</Content>
+            <Content component="small">(Currently shows direct references only. Deeper levels require backend support.)</Content>
+            <Slider
+                value={maxDepth}
+                onChange={onDepthChange}
+                min={1}
+                max={5}
+                step={maxDepth}
+                showTicks
+                customSteps={[
+                    { value: 1, label: "1" },
+                    { value: 2, label: "2" },
+                    { value: 3, label: "3" },
+                    { value: 4, label: "4" },
+                    { value: 5, label: "5" }
+                ]}
+                showBoundaries={false}
+            />
 
             {/* Graph container */}
-            <div className="reference-graph-container" data-testid="reference-graph-container">
+            <div className="reference-graph-container" data-testid="reference-graph-container" style={{ marginTop: "2rem" }}>
                 <ReactFlowProvider>
                     <ReferenceGraphInner
                         version={version}

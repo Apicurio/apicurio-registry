@@ -22,14 +22,12 @@ import {
     Spinner,
     Title,
     Alert,
-    Toolbar,
-    ToolbarContent,
-    ToolbarItem,
     DescriptionList,
     DescriptionListGroup,
     DescriptionListTerm,
     DescriptionListDescription,
-    Tooltip, Content, Divider
+    Tooltip,
+    Content
 } from "@patternfly/react-core";
 import {
     ExpandIcon,

@@ -215,7 +215,7 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                                     variant="plain"
                                     onClick={() => handleDeleteSkill(skill.id)}
                                     className="delete-btn"
-                                 />
+                                />
                             </DataListAction>
                         </DataListItemRow>
                     </DataListItem>

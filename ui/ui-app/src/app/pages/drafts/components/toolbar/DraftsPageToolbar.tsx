@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import "./DraftsPageToolbar.css";
-import {Button, Pagination, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem} from "@patternfly/react-core";
+import { Button, Pagination, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem } from "@patternfly/react-core";
 import {
     ChipFilterCriteria,
     ChipFilterInput,

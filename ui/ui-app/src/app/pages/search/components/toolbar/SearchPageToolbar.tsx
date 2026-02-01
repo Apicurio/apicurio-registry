@@ -3,14 +3,13 @@ import "./SearchPageToolbar.css";
 import {
     Button,
     capitalize,
-    Divider,
     Pagination,
     Toolbar,
-    ToolbarContent, ToolbarGroup,
-    ToolbarItem,
-    ToolbarToggleGroup
+    ToolbarContent,
+    ToolbarGroup,
+    ToolbarItem
 } from "@patternfly/react-core";
-import {FilterIcon, SyncAltIcon} from "@patternfly/react-icons";
+import { SyncAltIcon } from "@patternfly/react-icons";
 import { SortOrderToggle } from "@app/components";
 import {
     ChipFilterCriteria,

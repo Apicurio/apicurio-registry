@@ -1,19 +1,17 @@
 package io.apicurio.registry.protobuf.rules.validity;
 
-import com.google.protobuf.Descriptors;
 import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
-import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
 import java.util.HashSet;
 import java.util.List;
@@ -41,7 +39,12 @@ public class ProtobufContentValidator implements ContentValidator {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
-                    ProtobufFile.toProtoFileElement(content.getContent().content());
+                    // Parse the protobuf content
+                    ProtoFileElement protoFileElement = ProtobufFile
+                            .toProtoFileElement(content.getContent().content());
+                    // Perform semantic validation by building a FileDescriptor
+                    // This validates: duplicate tags, invalid tag numbers, unknown types, invalid options
+                    FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement);
                 }
                 else {
                     // Convert main content if binary (base64-encoded)
@@ -105,11 +108,5 @@ public class ProtobufContentValidator implements ContentValidator {
         catch (Exception e) {
             // Do nothing - we don't care if it can't validate. Another rule will handle that.
         }
-    }
-
-    private ProtobufSchema getFileDescriptorFromElement(ProtoFileElement fileElem)
-            throws Descriptors.DescriptorValidationException {
-        Descriptors.FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
-        return new ProtobufSchema(fileDescriptor, fileElem);
     }
 }

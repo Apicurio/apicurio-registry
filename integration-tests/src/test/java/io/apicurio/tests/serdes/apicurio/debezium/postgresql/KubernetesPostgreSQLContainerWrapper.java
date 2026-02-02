@@ -5,7 +5,7 @@ import com.github.dockerjava.api.model.ContainerConfig;
 import io.fabric8.kubernetes.api.model.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;

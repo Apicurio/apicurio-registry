@@ -5,8 +5,8 @@ import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.lifecycle.Startables;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.Map;
@@ -19,7 +19,7 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
     private static final KafkaContainer kafkaContainer = DebeziumKafkaContainer
             .defaultKRaftContainer(network);
 
-    public static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(
+    public static PostgreSQLContainer postgresContainer = new PostgreSQLContainer(
             DockerImageName.parse("quay.io/debezium/postgres:15").asCompatibleSubstituteFor("postgres"))
             .withDatabaseName("registry").withUsername("postgres").withPassword("postgres")
             .withNetwork(network).withNetworkAliases("postgres");
@@ -54,8 +54,9 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
         kafkaContainer.stop();
     }
 
+    @SuppressWarnings("deprecation")
     public class DebeziumKafkaContainer {
-        private static final String defaultImage = "confluentinc/cp-kafka:7.2.10";
+        private static final String defaultImage = "confluentinc/cp-kafka:7.4.0";
 
         public static KafkaContainer defaultKRaftContainer(Network network) {
             try (KafkaContainer kafka = new KafkaContainer(DockerImageName.parse(defaultImage))

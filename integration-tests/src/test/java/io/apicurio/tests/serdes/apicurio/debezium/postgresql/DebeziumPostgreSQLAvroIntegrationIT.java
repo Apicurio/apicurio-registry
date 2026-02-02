@@ -7,7 +7,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Tag;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro
@@ -33,7 +33,7 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends DebeziumPostgreSQLAvroB
     }
 
     @Override
-    protected PostgreSQLContainer<?> getPostgresContainer() {
+    protected PostgreSQLContainer getPostgresContainer() {
         return DebeziumContainerResource.postgresContainer;
     }
 

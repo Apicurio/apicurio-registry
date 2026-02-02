@@ -311,7 +311,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
                         onCompareContent={onCompareContent}
                     />
                 </PageSection>
-                <PageSection hasBodyWrapper={false}  id="section-editor" style={sectionEditorStyle}>
+                <PageSection hasBodyWrapper={false}  id="section-editor" style={sectionEditorStyle} isFilled={true}>
                     <div className="editor-parent" style={editorParentStyle} children={editor() as any} />
                 </PageSection>
             </PageDataLoader>

@@ -4,6 +4,8 @@ import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.Set;
+
 @ApplicationScoped
 public class TokenRoleProvider implements RoleProvider {
 
@@ -13,8 +15,15 @@ public class TokenRoleProvider implements RoleProvider {
     @Inject
     SecurityIdentity securityIdentity;
 
-    private boolean hasRole(String role) {
-        return securityIdentity.hasRole(role);
+    /**
+     * Checks if the security identity has any of the specified roles.
+     * This supports multiple role mappings (e.g., Azure AD groups and app roles).
+     *
+     * @param roles the set of role names to check
+     * @return true if the user has any of the roles
+     */
+    private boolean hasAnyRole(Set<String> roles) {
+        return roles.stream().anyMatch(securityIdentity::hasRole);
     }
 
     /**
@@ -22,7 +31,7 @@ public class TokenRoleProvider implements RoleProvider {
      */
     @Override
     public boolean isAdmin() {
-        return hasRole(authConfig.adminRole);
+        return hasAnyRole(authConfig.getAdminRoles());
     }
 
     /**
@@ -30,7 +39,7 @@ public class TokenRoleProvider implements RoleProvider {
      */
     @Override
     public boolean isDeveloper() {
-        return hasRole(authConfig.developerRole);
+        return hasAnyRole(authConfig.getDeveloperRoles());
     }
 
     /**
@@ -38,7 +47,7 @@ public class TokenRoleProvider implements RoleProvider {
      */
     @Override
     public boolean isReadOnly() {
-        return hasRole(authConfig.readOnlyRole);
+        return hasAnyRole(authConfig.getReadOnlyRoles());
     }
 
 }

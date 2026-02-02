@@ -275,8 +275,14 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @Retry(retryOn = AuthException.class, maxRetries = 4, delay = 1, delayUnit = ChronoUnit.SECONDS)
     public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash) {
-        OidcAuth oidcAuth = new OidcAuth(httpClient, clientCredentials.getLeft(),
-                clientCredentials.getRight(), Duration.ofSeconds(1), authConfig.scope.orElse(null));
+        String clientId = clientCredentials.getLeft();
+        String clientSecret = clientCredentials.getRight();
+
+        // Use client-specific scope resolution for Azure Entra ID multi-scope support
+        String scopeForClient = authConfig.getScopeForClient(clientId);
+
+        OidcAuth oidcAuth = new OidcAuth(httpClient, clientId, clientSecret,
+                Duration.ofSeconds(1), scopeForClient);
         try {
             String jwtToken = oidcAuth.authenticate();
             // If we manage to get a token from basic credentials,

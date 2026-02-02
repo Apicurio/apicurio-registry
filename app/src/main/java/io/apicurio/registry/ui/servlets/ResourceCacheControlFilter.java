@@ -63,6 +63,8 @@ public class ResourceCacheControlFilter implements Filter {
             disableCaching = true;
         } else if (requestURI.contains("/apis/")) {
             disableCaching = true;
+        } else if (requestURI.contains("/.well-known/agents")) {
+            disableCaching = true;
         }
 
         if (disableCaching) {

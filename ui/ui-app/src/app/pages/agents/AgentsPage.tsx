@@ -149,13 +149,12 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
             <Card
                 key={`${agent.groupId}-${agent.artifactId}`}
                 className="agent-card"
-                isClickable
                 onClick={() => navigateToAgent(agent)}
             >
                 <CardTitle>
                     <Flex>
                         <FlexItem>
-                            <span className="agent-name">{agent.name}</span>
+                            <span className="agent-name">{agent.name || agent.artifactId}</span>
                         </FlexItem>
                         {agent.version && (
                             <FlexItem align={{ default: "alignRight" }}>

@@ -1,10 +1,12 @@
 package io.apicurio.registry.ui;
 
+import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.Info;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_UI;
 
@@ -45,6 +47,10 @@ public class UserInterfaceConfigProperties {
     @ConfigProperty(name = "apicurio.ui.features.settings", defaultValue = "true")
     @Info(category = CATEGORY_UI, description = "Enabled to show the Settings tab in the UI", availableSince = "3.0.0")
     public String featureSettings;
+    @Dynamic(label = "Agents tab", description = "When enabled, the Agents tab will be visible in the UI for A2A Agent discovery.")
+    @ConfigProperty(name = "apicurio.ui.features.agents.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_UI, description = "Enabled to show the Agents tab in the UI", availableSince = "3.2.0")
+    public Supplier<Boolean> featureAgents;
 
     @ConfigProperty(name = "apicurio.ui.auth.oidc.scope", defaultValue = "openid profile email")
     @Info(category = CATEGORY_UI, description = "UI auth OIDC scope value", availableSince = "3.0.8")

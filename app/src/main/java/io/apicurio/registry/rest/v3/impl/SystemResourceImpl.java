@@ -80,6 +80,7 @@ public class SystemResourceImpl implements SystemResource {
                         .deleteArtifact(restConfig.isArtifactDeletionEnabled())
                         .deleteVersion(restConfig.isArtifactVersionDeletionEnabled())
                         .draftMutability(restConfig.isArtifactVersionMutabilityEnabled())
+                        .agents(uiConfig.featureAgents.get())
                         .settings("true".equals(uiConfig.featureSettings)).build())
                 .build();
     }

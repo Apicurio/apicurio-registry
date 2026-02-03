@@ -120,8 +120,6 @@
     <module>schema-util/xml</module>
     <module>schema-util/xsd</module>
 
-    <module>support-chat</module>
-
   </modules>
 
   <scm>

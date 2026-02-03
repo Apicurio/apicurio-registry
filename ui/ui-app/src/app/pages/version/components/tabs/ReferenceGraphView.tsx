@@ -20,7 +20,6 @@ import {
     Slider,
     SliderOnChangeEvent,
     Spinner,
-    Title,
     Alert,
     DescriptionList,
     DescriptionListGroup,

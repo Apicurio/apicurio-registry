@@ -5,11 +5,16 @@ import io.apicurio.common.apps.config.Info;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUTH;
 
@@ -22,6 +27,9 @@ public class AuthConfig {
 
     @Inject
     Logger log;
+
+    @Inject
+    Config config;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
     @Info(category = CATEGORY_AUTH, description = "Enable auth", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
@@ -220,6 +228,87 @@ public class AuthConfig {
 
     public boolean isAuthenticatedReadsEnabled() {
         return authenticatedReadAccessEnabled.get();
+    }
+
+    /**
+     * Parses a comma-separated role configuration value into a set of role names.
+     * This allows configuring multiple role names that map to a single authorization level.
+     * For example: "sr-admin,azure-group-uuid-123,AppRole.Admin"
+     *
+     * @param roleValue the comma-separated role configuration value
+     * @return a set of trimmed, non-empty role names
+     */
+    private Set<String> parseRoles(String roleValue) {
+        if (roleValue == null || roleValue.trim().isEmpty()) {
+            return Collections.emptySet();
+        }
+        return Arrays.stream(roleValue.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Gets the set of role names that grant read-only access.
+     * Supports comma-separated values for multiple role mappings (e.g., Azure AD groups).
+     */
+    public Set<String> getReadOnlyRoles() {
+        return parseRoles(readOnlyRole);
+    }
+
+    /**
+     * Gets the set of role names that grant developer access.
+     * Supports comma-separated values for multiple role mappings (e.g., Azure AD groups).
+     */
+    public Set<String> getDeveloperRoles() {
+        return parseRoles(developerRole);
+    }
+
+    /**
+     * Gets the set of role names that grant admin access.
+     * Supports comma-separated values for multiple role mappings (e.g., Azure AD groups).
+     */
+    public Set<String> getAdminRoles() {
+        return parseRoles(adminRole);
+    }
+
+    /**
+     * Gets the set of role names that grant admin override access.
+     * Supports comma-separated values for multiple role mappings.
+     */
+    public Set<String> getAdminOverrideRoles() {
+        return parseRoles(adminOverrideRole);
+    }
+
+    /**
+     * Gets the OAuth scope for a given client ID.
+     * First checks for a client-specific scope (apicurio.authn.basic.scope.{clientId}),
+     * then falls back to the default scope (apicurio.authn.basic.scope).
+     * Converts comma-separated scopes to space-separated (OAuth2 standard).
+     *
+     * @param clientId the client ID requesting the scope
+     * @return the scope string, or null if no scope is configured
+     */
+    public String getScopeForClient(String clientId) {
+        if (clientId != null) {
+            String clientSpecificKey = "apicurio.authn.basic.scope." + clientId;
+            var clientScope = config.getOptionalValue(clientSpecificKey, String.class);
+            if (clientScope.isPresent()) {
+                return normalizeScope(clientScope.get());
+            }
+        }
+        return scope.map(this::normalizeScope).orElse(null);
+    }
+
+    /**
+     * Normalizes a scope value by converting comma-separated scopes to space-separated.
+     * OAuth2 RFC 6749 specifies that multiple scopes should be space-separated.
+     */
+    private String normalizeScope(String scopeValue) {
+        if (scopeValue == null) {
+            return null;
+        }
+        return scopeValue.replace(",", " ").trim();
     }
 
 }

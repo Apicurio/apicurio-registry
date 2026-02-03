@@ -34,9 +34,28 @@ public class OTelMetricsProvider {
     private LongCounter ruleEvaluationCounter;
     private LongCounter searchRequestCounter;
 
+    // For testing: allows injecting a custom Meter
+    private Meter testMeter;
+
+    /**
+     * Default constructor for CDI.
+     */
+    public OTelMetricsProvider() {
+    }
+
+    /**
+     * Constructor for testing with a custom Meter.
+     * This allows testing without GlobalOpenTelemetry which can cause classloader issues.
+     *
+     * @param meter the Meter to use for creating counters
+     */
+    OTelMetricsProvider(Meter meter) {
+        this.testMeter = meter;
+    }
+
     @PostConstruct
     public void init() {
-        Meter meter = GlobalOpenTelemetry.getMeter(INSTRUMENTATION_NAME);
+        Meter meter = testMeter != null ? testMeter : GlobalOpenTelemetry.getMeter(INSTRUMENTATION_NAME);
 
         artifactCreatedCounter = meter.counterBuilder(METRIC_PREFIX + "artifacts.created")
                 .setDescription("Total number of artifacts created")

@@ -1,12 +1,29 @@
 # IMPORTANT: This resource should only be used for development or testing purposes.
 apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  labels:
+    strimzi.io/cluster: example-cluster
+spec:
+  replicas: 1
+  roles:
+    - controller
+    - broker
+  storage:
+    type: ephemeral
+---
+apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: example-cluster
+  annotations:
+    strimzi.io/kraft: enabled
+    strimzi.io/node-pools: enabled
 spec:
   kafka:
-    version: 3.8.0
-    replicas: 1
+    version: 3.9.0
+    metadataVersion: 3.9-IV0
     listeners:
       - name: tls
         type: internal
@@ -17,12 +34,9 @@ spec:
     authorization:
       type: simple
     config:
-      inter.broker.protocol.version: "3.8"
       offsets.topic.replication.factor: 1
-    storage:
-      type: ephemeral
-  zookeeper:
-    replicas: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
     storage:
       type: ephemeral
   entityOperator:

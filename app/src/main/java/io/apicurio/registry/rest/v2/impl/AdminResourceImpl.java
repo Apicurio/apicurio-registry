@@ -1,7 +1,5 @@
 package io.apicurio.registry.rest.v2.impl;
 
-import io.apicurio.registry.rest.v2.AdminResource;
-
 import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigPropertyIndex;
@@ -9,11 +7,14 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.v2.AdminResource;
 import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v2.beans.RoleMapping;
@@ -29,7 +30,6 @@ import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
-import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.RoleType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -48,18 +48,18 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_FOR_BROWSER;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_NAME;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_PRINCIPAL_ID;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ROLE_MAPPING;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_UPDATE_ROLE;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_FOR_BROWSER;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_NAME;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PRINCIPAL_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ROLE_MAPPING;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_UPDATE_ROLE;
 import static io.apicurio.registry.utils.DtoUtil.appAuthPropertyToRegistry;
 import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
 
 @ApplicationScoped
-@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
+@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class AdminResourceImpl implements AdminResource {
 
@@ -123,7 +123,8 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#createGlobalRule(io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_RULE })
+    @MethodMetadata(extractParameters = {"0", MPK_RULE})
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
         RuleType type = data.getType();
@@ -175,7 +176,8 @@ public class AdminResourceImpl implements AdminResource {
      *      io.apicurio.registry.rest.v2.beans.Rule)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_RULE_TYPE, "1", KEY_RULE })
+    @MethodMetadata(extractParameters = {"0", MPK_RULE_TYPE, "1", MPK_RULE})
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public Rule updateGlobalRuleConfig(RuleType rule, Rule data) {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
@@ -201,7 +203,8 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#deleteGlobalRule(io.apicurio.registry.types.RuleType)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_RULE_TYPE })
+    @MethodMetadata(extractParameters = {"0", MPK_RULE_TYPE})
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void deleteGlobalRule(RuleType rule) {
         try {
@@ -233,7 +236,8 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#exportData(java.lang.Boolean)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_FOR_BROWSER })
+    @MethodMetadata(extractParameters = {"0", MPK_FOR_BROWSER})
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public Response exportData(Boolean forBrowser) {
         throw new UnsupportedOperationException(
@@ -244,7 +248,8 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#createRoleMapping(io.apicurio.registry.rest.v2.beans.RoleMapping)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_ROLE_MAPPING })
+    @MethodMetadata(extractParameters = {"0", MPK_ROLE_MAPPING})
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void createRoleMapping(RoleMapping data) {
@@ -280,7 +285,8 @@ public class AdminResourceImpl implements AdminResource {
      *      io.apicurio.registry.rest.v2.beans.Role)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_PRINCIPAL_ID, "1", KEY_UPDATE_ROLE })
+    @MethodMetadata(extractParameters = {"0", MPK_PRINCIPAL_ID, "1", MPK_UPDATE_ROLE})
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
@@ -293,7 +299,8 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#deleteRoleMapping(java.lang.String)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_PRINCIPAL_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_PRINCIPAL_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {
@@ -362,7 +369,8 @@ public class AdminResourceImpl implements AdminResource {
      */
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
-    @Audited(extractParameters = { "0", KEY_NAME })
+    @MethodMetadata(extractParameters = {"0", MPK_NAME})
+    @Audited
     public void resetConfigProperty(String propertyName) {
         // Check if the config property exists.
         resolveConfigProperty(propertyName);
@@ -413,7 +421,7 @@ public class AdminResourceImpl implements AdminResource {
     /**
      * Lookup the dynamic configuration property being set. Ensure that it exists (throws a
      * {@link io.apicurio.registry.storage.error.NotFoundException} if it does not.
-     * 
+     *
      * @param propertyName the name of the dynamic property
      * @return the dynamic config property definition
      */
@@ -439,7 +447,7 @@ public class AdminResourceImpl implements AdminResource {
     /**
      * Ensure that the value being set on the given property is value for the property type. For example, this
      * should fail
-     * 
+     *
      * @param propertyDef the dynamic config property definition
      * @param value the config property value
      */

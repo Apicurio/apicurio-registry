@@ -1,7 +1,5 @@
 package io.apicurio.registry.rest.v3.impl;
 
-import io.apicurio.registry.rest.v3.IdsResource;
-
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -11,6 +9,9 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
+import io.apicurio.registry.rest.MethodMetadata;
+import io.apicurio.registry.rest.cache.ImmutableCache;
+import io.apicurio.registry.rest.v3.IdsResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.rest.v3.impl.shared.CommonResourceOperations;
@@ -32,8 +33,10 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ENTITY_ID;
+
 @ApplicationScoped
-@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
+@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource {
 
@@ -41,7 +44,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     CommonResourceOperations common;
 
     private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String artifactId, String version,
-            Response.ResponseBuilder builder) {
+                                   Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
     }
 
@@ -50,6 +53,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @ImmutableCache
+    @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     public Response getContentById(long contentId) {
         ContentWrapperDto dto = storage.getContentById(contentId);
         boolean isEmptyContent = ContentTypes.isEmptyContentType(dto.getContentType());
@@ -67,8 +72,10 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @ImmutableCache
+    @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     public Response getContentByGlobalId(long globalId, HandleReferencesType references,
-            Boolean returnArtifactType) {
+                                         Boolean returnArtifactType) {
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
         if (VersionState.DISABLED.equals(metaData.getState())
                 || VersionState.DRAFT.equals(metaData.getState())) {
@@ -103,6 +110,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @ImmutableCache
+    @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     public Response getContentByHash(String contentHash) {
         ContentHandle content = storage.getContentByHash(contentHash).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
@@ -131,7 +140,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
     /**
      * @see io.apicurio.registry.rest.v3.IdsResource#referencesByGlobalId(long,
-     *      io.apicurio.registry.types.ReferenceType)
+     * io.apicurio.registry.types.ReferenceType)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)

@@ -4,15 +4,15 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.ccompat.rest.v7.ConfigResource;
-import io.apicurio.registry.ccompat.rest.v7.beans.GlobalConfigResponse;
 import io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest;
+import io.apicurio.registry.ccompat.rest.v7.beans.GlobalConfigResponse;
 import io.apicurio.registry.ccompat.rest.v7.beans.SubjectConfigResponse;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
-import io.apicurio.registry.logging.audit.AuditingConstants;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -24,6 +24,9 @@ import jakarta.interceptor.Interceptors;
 
 import java.util.Optional;
 import java.util.function.Supplier;
+
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
@@ -75,7 +78,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
-    @Audited(extractParameters = { "0", AuditingConstants.KEY_RULE })
+    @MethodMetadata(extractParameters = { "0", MPK_RULE })
+    @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public GlobalConfigResponse updateGlobalConfig(ConfigUpdateRequest request) {
         updateCompatibilityLevel(request.getCompatibility(), dto -> {
@@ -93,7 +97,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
-    @Audited(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE })
+    @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID, "1", MPK_RULE })
+    @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public GlobalConfigResponse updateSubjectConfig(String subject, String groupId, ConfigUpdateRequest request) {
         final GA ga = getGA(groupId, subject);
@@ -143,7 +148,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
-    @Audited(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID })
+    @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public GlobalConfigResponse deleteSubjectConfig(String subject, String groupId) {
         final GA ga = getGA(groupId, subject);

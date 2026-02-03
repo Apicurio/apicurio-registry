@@ -43,6 +43,11 @@ jobs:
             -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -Dmaven.javadoc.skip=true
 
+      - name: Run examples/http-caching tests
+        working-directory: examples/http-caching
+        run: |
+          ./run-tests.sh --registry-image apicurio/apicurio-registry:${{ inputs.image-tag }}
+
       - name: Collect logs
         if: failure()
         run: sh ./.github/scripts/collect_logs.sh

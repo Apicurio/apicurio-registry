@@ -270,6 +270,11 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.2.2.Final`
 |Registry cache enabled
+|`apicurio.http-caching.highly-cacheable.max-age-seconds`
+|`long`
+|`31536000`
+|`3.1.8`
+|HTTP cache expiration for highly cacheable REST API endpoints, in seconds. If set to 0, caching is disabled.
 |===
 
 == ccompat
@@ -605,7 +610,7 @@ The following {registry} configuration options are available for each component 
 |`3.1.1`
 |        Only the general category of the HTTP status code is added as a tag/label on REST API request metrics,
         e.g. `1xx`, `2xx`, ...         If you are interested in metrics for a specific status code, e.g. 401 for authentication errors,
-        this property allows you to specify a list of such codes.         Each request will be counted only once, i.e. either as the specific status code or in the general category.
+        this property allows you to specify a list of such codes.         Each request will be counted only once, i.e. either as the specific status code or in the general category. 
 |`apicurio.metrics.rest.method-tag-enabled`
 |`boolean`
 |`true`
@@ -875,8 +880,8 @@ The following {registry} configuration options are available for each component 
 |`apicurio.events.kafka.topic`
 |`string`
 |`registry-events`
-|
-|Storage event topic
+|`3.0.1`
+|Kafka events topic for outbox pattern
 |`apicurio.events.kafka.topic.*`
 |`map<string, string>`
 |
@@ -1049,9 +1054,9 @@ The following {registry} configuration options are available for each component 
 |Enable automatic creation of group when creating an artifact
 |`apicurio.storage.kind`
 |`string`
-|
+|`sql`
 |`3.0.0`
-|Application storage variant, for example, sql, kafkasql, or gitops
+|The type of storage to use for the registry
 |`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
 |`false`

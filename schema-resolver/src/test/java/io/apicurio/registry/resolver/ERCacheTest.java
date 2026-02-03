@@ -188,6 +188,263 @@ public class ERCacheTest {
         assertEquals(2, loadCount.get());
     }
 
+    @Test
+    void testBackgroundRefreshReturnsStaleValueImmediately() throws InterruptedException {
+        String contentHashKey = "background refresh key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureLifetime(Duration.ofMillis(100));
+        cache.configureBackgroundRefresh(true);
+        cache.configureBackgroundRefreshTimeout(Duration.ofSeconds(5));
+
+        // Seed a value
+        Function<String, String> firstLoader = (key) -> {
+            return "initial value";
+        };
+        String initialValue = cache.getByContentHash(contentHashKey, firstLoader);
+        assertEquals("initial value", initialValue);
+
+        // Wait for expiration
+        Thread.sleep(150);
+
+        // Access with a slow loader - should return stale value immediately
+        AtomicInteger loadCallCount = new AtomicInteger(0);
+        Function<String, String> slowLoader = (key) -> {
+            loadCallCount.incrementAndGet();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return "refreshed value";
+        };
+
+        long startTime = System.currentTimeMillis();
+        String staleValue = cache.getByContentHash(contentHashKey, slowLoader);
+        long duration = System.currentTimeMillis() - startTime;
+
+        // Should return stale value immediately (within 200ms)
+        assertEquals("initial value", staleValue);
+        assertTrue(duration < 200, "Should return immediately but took " + duration + "ms");
+        assertEquals(0, loadCallCount.get(), "Loader should not have been called yet (async)");
+
+        // Clean up
+        cache.shutdown();
+    }
+
+    @Test
+    void testBackgroundRefreshEventuallyUpdatesCache() throws InterruptedException {
+        String contentHashKey = "background refresh update key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureLifetime(Duration.ofMillis(100));
+        cache.configureBackgroundRefresh(true);
+        cache.configureBackgroundRefreshTimeout(Duration.ofSeconds(5));
+
+        // Seed a value
+        Function<String, String> firstLoader = (key) -> {
+            return "original value";
+        };
+        cache.getByContentHash(contentHashKey, firstLoader);
+
+        // Wait for expiration
+        Thread.sleep(150);
+
+        // Trigger background refresh
+        Function<String, String> refreshLoader = (key) -> {
+            return "updated value";
+        };
+        String staleValue = cache.getByContentHash(contentHashKey, refreshLoader);
+        assertEquals("original value", staleValue);
+
+        // Wait for background refresh to complete
+        Thread.sleep(500);
+
+        // Verify cache was updated - should not call loader again
+        Function<String, String> ensureCachedLoader = (key) -> {
+            throw new IllegalStateException("should be cached");
+        };
+        String updatedValue = cache.getByContentHash(contentHashKey, ensureCachedLoader);
+        assertEquals("updated value", updatedValue);
+
+        // Clean up
+        cache.shutdown();
+    }
+
+    @Test
+    void testBackgroundRefreshFallsBackToSyncWhenNoStaleValue() {
+        String contentHashKey = "no stale value key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureBackgroundRefresh(true);
+
+        // First load with no stale value - should be synchronous
+        AtomicInteger loadCount = new AtomicInteger(0);
+        Function<String, String> loader = (key) -> {
+            loadCount.incrementAndGet();
+            return "first load";
+        };
+
+        String value = cache.getByContentHash(contentHashKey, loader);
+
+        assertEquals("first load", value);
+        assertEquals(1, loadCount.get());
+
+        // Clean up
+        cache.shutdown();
+    }
+
+    @Test
+    void testBackgroundRefreshPreventsConcurrentRefreshes() throws InterruptedException {
+        String contentHashKey = "concurrent refresh key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureLifetime(Duration.ofMillis(100));
+        cache.configureBackgroundRefresh(true);
+        cache.configureBackgroundRefreshExecutorThreads(4);
+
+        // Seed a value
+        Function<String, String> seedLoader = (key) -> {
+            return "original";
+        };
+        cache.getByContentHash(contentHashKey, seedLoader);
+
+        // Wait for expiration
+        Thread.sleep(150);
+
+        // Multiple concurrent accesses with slow loader
+        AtomicInteger loadCount = new AtomicInteger(0);
+        Function<String, String> slowLoader = (key) -> {
+            loadCount.incrementAndGet();
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return "refreshed";
+        };
+
+        // Simulate 5 concurrent requests
+        Thread[] threads = new Thread[5];
+        for (int i = 0; i < 5; i++) {
+            threads[i] = new Thread(() -> {
+                String value = cache.getByContentHash(contentHashKey, slowLoader);
+                assertEquals("original", value);
+            });
+            threads[i].start();
+        }
+
+        // Wait for all threads
+        for (Thread thread : threads) {
+            thread.join();
+        }
+
+        // Wait for background refresh to complete
+        Thread.sleep(700);
+
+        // Only one background refresh should have been triggered
+        assertEquals(1, loadCount.get());
+
+        // Clean up
+        cache.shutdown();
+    }
+
+    @Test
+    void testBackgroundRefreshInteractionWithFaultTolerantRefresh() throws InterruptedException {
+        String contentHashKey = "interaction key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureLifetime(Duration.ofMillis(100));
+        cache.configureBackgroundRefresh(true);
+        cache.configureFaultTolerantRefresh(true);
+
+        // Seed a value
+        Function<String, String> seedLoader = (key) -> {
+            return "original";
+        };
+        cache.getByContentHash(contentHashKey, seedLoader);
+
+        // Wait for expiration
+        Thread.sleep(150);
+
+        // Background refresh with failing loader should not throw
+        Function<String, String> failingLoader = (key) -> {
+            throw new IllegalStateException("background refresh failed");
+        };
+
+        // Should return stale value without throwing
+        assertDoesNotThrow(() -> {
+            String value = cache.getByContentHash(contentHashKey, failingLoader);
+            assertEquals("original", value);
+        });
+
+        // Wait for background refresh attempt
+        Thread.sleep(500);
+
+        // Stale value should still be served
+        Function<String, String> anotherLoader = (key) -> {
+            return "should not be called";
+        };
+        String stillStaleValue = cache.getByContentHash(contentHashKey, anotherLoader);
+        assertEquals("original", stillStaleValue);
+
+        // Clean up
+        cache.shutdown();
+    }
+
+    @Test
+    void testBackgroundRefreshTimeout() throws InterruptedException {
+        String contentHashKey = "timeout key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureLifetime(Duration.ofMillis(100));
+        cache.configureBackgroundRefresh(true);
+        cache.configureBackgroundRefreshTimeout(Duration.ofMillis(200));
+
+        // Seed a value
+        Function<String, String> seedLoader = (key) -> {
+            return "original";
+        };
+        cache.getByContentHash(contentHashKey, seedLoader);
+
+        // Wait for expiration
+        Thread.sleep(150);
+
+        // Trigger background refresh with loader that exceeds timeout
+        Function<String, String> slowLoader = (key) -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted");
+            }
+            return "should timeout";
+        };
+
+        String staleValue = cache.getByContentHash(contentHashKey, slowLoader);
+        assertEquals("original", staleValue);
+
+        // Wait for timeout to occur
+        Thread.sleep(500);
+
+        // Stale value should still be served (refresh timed out)
+        String stillStale = cache.getByContentHash(contentHashKey, (key) -> "not called");
+        assertEquals("original", stillStale);
+
+        // Clean up
+        cache.shutdown();
+    }
+
+    @Test
+    void testShutdownCleansUpExecutor() throws InterruptedException {
+        String contentHashKey = "shutdown key";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureLifetime(Duration.ofMillis(100));
+        cache.configureBackgroundRefresh(true);
+
+        // Seed and trigger background refresh
+        cache.getByContentHash(contentHashKey, (key) -> "value");
+        Thread.sleep(150);
+        cache.getByContentHash(contentHashKey, (key) -> "refreshed");
+
+        // Shutdown should complete without hanging
+        assertDoesNotThrow(() -> cache.shutdown());
+    }
+
     private ERCache<String> newCache(String contentHashKey) {
         ERCache<String> cache = new ERCache<>();
         cache.configureLifetime(Duration.ofDays(30));

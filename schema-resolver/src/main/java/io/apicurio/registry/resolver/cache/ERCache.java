@@ -11,6 +11,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -38,6 +44,13 @@ public class ERCache<V> {
     private long retries;
     private boolean cacheLatest;
     private boolean faultTolerantRefresh;
+    private boolean backgroundRefresh;
+    private long backgroundRefreshExecutorThreads = 2;
+    private Duration backgroundRefreshTimeout = Duration.ofMillis(30000);
+
+    // Background refresh state
+    private volatile ExecutorService refreshExecutor;
+    private final Map<Object, AtomicBoolean> refreshInProgress = new ConcurrentHashMap<>();
 
     // === Configuration
 
@@ -71,6 +84,45 @@ public class ERCache<V> {
      */
     public void configureFaultTolerantRefresh(boolean faultTolerantRefresh) {
         this.faultTolerantRefresh = faultTolerantRefresh;
+    }
+
+    /**
+     * If set to {@code true}, enables background refresh of expired cache entries. When an entry expires and
+     * a stale value exists, the cache will return the stale value immediately and trigger an asynchronous
+     * refresh in the background. This follows the "stale-while-revalidate" pattern to prevent blocking on
+     * cache refresh in high-concurrency scenarios. If no stale value exists (first fetch), falls back to
+     * synchronous refresh.
+     *
+     * @param backgroundRefresh Whether to enable background refresh behavior.
+     */
+    public void configureBackgroundRefresh(boolean backgroundRefresh) {
+        this.backgroundRefresh = backgroundRefresh;
+    }
+
+    /**
+     * Configures the number of threads in the background refresh executor pool. Only used when background
+     * refresh is enabled. The executor uses a fixed thread pool with daemon threads.
+     *
+     * @param threads The number of executor threads (must be positive).
+     */
+    public void configureBackgroundRefreshExecutorThreads(long threads) {
+        if (threads <= 0) {
+            throw new IllegalArgumentException("Background refresh executor threads must be positive");
+        }
+        this.backgroundRefreshExecutorThreads = threads;
+    }
+
+    /**
+     * Configures the timeout for background refresh operations. If a background refresh exceeds this
+     * timeout, it will be interrupted and the stale value will continue to be served.
+     *
+     * @param timeout The refresh timeout duration (must be non-negative).
+     */
+    public void configureBackgroundRefreshTimeout(Duration timeout) {
+        if (timeout == null || timeout.isNegative()) {
+            throw new IllegalArgumentException("Background refresh timeout must be non-negative");
+        }
+        this.backgroundRefreshTimeout = timeout;
     }
 
     public void configureGlobalIdKeyExtractor(Function<V, Long> keyExtractor) {
@@ -111,6 +163,16 @@ public class ERCache<V> {
      */
     public boolean isFaultTolerantRefresh() {
         return this.faultTolerantRefresh;
+    }
+
+    /**
+     * Return whether background refresh is enabled.
+     *
+     * @return {@code true} if it's enabled.
+     * @see #configureBackgroundRefresh(boolean)
+     */
+    public boolean isBackgroundRefresh() {
+        return this.backgroundRefresh;
     }
 
     public void checkInitialized() {
@@ -173,6 +235,18 @@ public class ERCache<V> {
         V result = value != null ? value.value : null;
 
         if (value == null || value.isExpired()) {
+            // Background refresh: return stale value immediately and refresh asynchronously
+            if (backgroundRefresh && value != null && value.isExpired()) {
+                // Only trigger refresh if not already in progress
+                AtomicBoolean refreshFlag = refreshInProgress.computeIfAbsent(key, k -> new AtomicBoolean(false));
+                if (refreshFlag.compareAndSet(false, true)) {
+                    scheduleBackgroundRefresh(key, loaderFunction);
+                }
+                // Return stale value immediately (non-blocking)
+                return value.value;
+            }
+
+            // Synchronous refresh (original behavior)
             // With retry
             Result<V, RuntimeException> newValue = retry(backoff, retries, () -> {
                 return loaderFunction.apply(key);
@@ -217,7 +291,88 @@ public class ERCache<V> {
         contentHashIndex.clear();
     }
 
+    /**
+     * Shuts down the background refresh executor if it exists. Waits for currently executing tasks to
+     * complete with a timeout. This method should be called when the cache is no longer needed to ensure
+     * proper cleanup of background threads.
+     */
+    public void shutdown() {
+        if (refreshExecutor != null) {
+            refreshExecutor.shutdown();
+            try {
+                if (!refreshExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    refreshExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                refreshExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
     // === Util & Other
+
+    /**
+     * Schedules a background refresh for the given key using the loader function. The refresh is executed
+     * asynchronously with a timeout. On successful refresh, the cache is updated. On failure, the error is
+     * logged and the stale value continues to be served.
+     */
+    private <T> void scheduleBackgroundRefresh(T key, Function<T, V> loaderFunction) {
+        ExecutorService executor = getOrCreateRefreshExecutor();
+        Future<?> refreshFuture = executor.submit(() -> {
+            try {
+                log.debug("Background refresh started for key: {}", key);
+                // Use same retry logic as synchronous refresh
+                Result<V, RuntimeException> newValue = retry(backoff, retries, () -> {
+                    return loaderFunction.apply(key);
+                });
+                if (newValue.isOk()) {
+                    reindex(new WrappedValue<>(lifetime, Instant.now(), newValue.ok), key);
+                    log.debug("Background refresh completed successfully for key: {}", key);
+                } else {
+                    log.warn("Background refresh failed for key: {}", key, newValue.error);
+                }
+            } catch (Exception e) {
+                log.warn("Background refresh encountered unexpected error for key: {}", key, e);
+            } finally {
+                // Always clear the refresh flag when done
+                refreshInProgress.remove(key);
+            }
+        });
+
+        // Monitor the future with timeout
+        executor.submit(() -> {
+            try {
+                refreshFuture.get(backgroundRefreshTimeout.toMillis(), TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                log.warn("Background refresh timed out for key: {} after {}ms", key, backgroundRefreshTimeout.toMillis());
+                refreshFuture.cancel(true);
+            } catch (Exception e) {
+                log.debug("Background refresh monitoring interrupted for key: {}", key, e);
+            }
+        });
+    }
+
+    /**
+     * Lazily initializes and returns the background refresh executor. Uses a fixed thread pool with daemon
+     * threads to prevent blocking application shutdown.
+     */
+    private ExecutorService getOrCreateRefreshExecutor() {
+        if (refreshExecutor == null) {
+            synchronized (this) {
+                if (refreshExecutor == null) {
+                    refreshExecutor = Executors.newFixedThreadPool((int) backgroundRefreshExecutorThreads, r -> {
+                        Thread thread = new Thread(r);
+                        thread.setDaemon(true);
+                        thread.setName("ercache-refresh-" + thread.getId());
+                        return thread;
+                    });
+                    log.debug("Background refresh executor initialized with {} threads", backgroundRefreshExecutorThreads);
+                }
+            }
+        }
+        return refreshExecutor;
+    }
 
     private static <T> Result<T, RuntimeException> retry(Duration backoff, long retries,
                                                          Supplier<T> supplier) {

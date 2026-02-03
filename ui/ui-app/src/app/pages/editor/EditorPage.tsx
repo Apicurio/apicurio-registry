@@ -4,7 +4,7 @@ import {
     EmptyState, EmptyStateBody,
     EmptyStateVariant,
     PageSection,
-    Title, useInterval
+    useInterval
 } from "@patternfly/react-core";
 import { useParams } from "react-router-dom";
 import {
@@ -249,7 +249,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     };
 
     const notDraftEmptyState = (
-        <EmptyState titleText={<Title headingLevel="h5" size="lg">Not a Draft</Title>} icon={WarningTriangleIcon} variant={EmptyStateVariant.sm}>
+        <EmptyState titleText="Not a Draft" icon={WarningTriangleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 This artifact is not in <em>DRAFT</em> status and so its content cannot be edited.
             </EmptyStateBody>

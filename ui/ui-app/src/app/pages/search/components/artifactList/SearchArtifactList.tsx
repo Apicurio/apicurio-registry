@@ -40,8 +40,8 @@ export const SearchArtifactList: FunctionComponent<SearchArtifactListProps> = (p
         <DataList aria-label="List of artifacts" className="artifact-list">
             {
                 props.artifacts.map( (artifact, idx) =>
-                    <DataListItem>
-                        <DataListItemRow className="artifact-list-item" key={shash(artifact.groupId + ":" + artifact.artifactId)}>
+                    <DataListItem key={shash(artifact.groupId + ":" + artifact.artifactId)}>
+                        <DataListItemRow className="artifact-list-item">
                             <DataListItemCells
                                 dataListCells={[
                                     <DataListCell key="type icon" className="type-icon-cell">

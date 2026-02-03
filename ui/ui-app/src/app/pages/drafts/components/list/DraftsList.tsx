@@ -45,8 +45,8 @@ export const DraftsList: FunctionComponent<DraftsListProps> = (props: DraftsList
         <DataList aria-label="List of drafts" className="drafts-list" id="drafts-list">
             {
                 props.drafts.map( (draft, idx) =>
-                    <DataListItem>
-                        <DataListItemRow className="drafts-list-item" key={idx}>
+                    <DataListItem key={idx}>
+                        <DataListItemRow className="drafts-list-item">
                             <DataListItemCells
                                 dataListCells={[
                                     <DataListCell key="type icon" className="type-icon-cell">

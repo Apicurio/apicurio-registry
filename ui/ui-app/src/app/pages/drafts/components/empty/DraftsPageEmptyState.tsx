@@ -6,8 +6,7 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateVariant,
-    Title
+    EmptyStateVariant
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { If } from "@apicurio/common-ui-components";
@@ -26,7 +25,7 @@ export type DraftsPageEmptyStateProps = {
  */
 export const DraftsPageEmptyState: FunctionComponent<DraftsPageEmptyStateProps> = (props: DraftsPageEmptyStateProps) => {
     return (
-        <EmptyState titleText={<Title headingLevel="h5" size="lg">No drafts found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.full}>
+        <EmptyState titleText="No drafts found" icon={PlusCircleIcon} variant={EmptyStateVariant.full}>
             <If condition={() => props.isFiltered}>
                 <EmptyStateBody>
                     No drafts match your filter settings.  Change your filter or perhaps create a new draft.

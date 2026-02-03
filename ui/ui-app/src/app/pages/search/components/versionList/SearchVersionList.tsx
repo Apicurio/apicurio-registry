@@ -45,8 +45,8 @@ export const SearchVersionList: FunctionComponent<SearchVersionListProps> = (pro
         <DataList aria-label="List of versions" className="version-list">
             {
                 props.versions.map( (version, idx) =>
-                    <DataListItem>
-                        <DataListItemRow className="version-list-item" key={shash(version.groupId + ":" + version.artifactId + ":" + version.version)}>
+                    <DataListItem key={shash(version.groupId + ":" + version.artifactId + ":" + version.version)}>
+                        <DataListItemRow className="version-list-item">
                             <DataListItemCells
                                 dataListCells={[
                                     <DataListCell key="type icon" className="type-icon-cell">

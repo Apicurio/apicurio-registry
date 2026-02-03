@@ -270,6 +270,11 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.2.2.Final`
 |Registry cache enabled
+|`apicurio.http-caching.highly-cacheable.max-age-seconds`
+|`long`
+|`31536000`
+|`3.1.8`
+|HTTP cache expiration for highly cacheable REST API endpoints, in seconds. If set to 0, caching is disabled.
 |===
 
 == ccompat
@@ -875,8 +880,8 @@ The following {registry} configuration options are available for each component 
 |`apicurio.events.kafka.topic`
 |`string`
 |`registry-events`
-|
-|Storage event topic
+|`3.0.1`
+|Kafka events topic for outbox pattern
 |`apicurio.events.kafka.topic.*`
 |`map<string, string>`
 |
@@ -1049,9 +1054,9 @@ The following {registry} configuration options are available for each component 
 |Enable automatic creation of group when creating an artifact
 |`apicurio.storage.kind`
 |`string`
-|
+|`sql`
 |`3.0.0`
-|Application storage variant, for example, sql, kafkasql, or gitops
+|The type of storage to use for the registry
 |`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -1175,8 +1180,8 @@ The following {registry} configuration options are available for each component 
 |`/editors/`
 |`3.1.0`
 |URL of the Editors component
-|`apicurio.ui.features.agents`
-|`string [dynamic]`
+|`apicurio.ui.features.agents.enabled`
+|`boolean [dynamic]`
 |`false`
 |`3.2.0`
 |Enabled to show the Agents tab in the UI
@@ -1392,6 +1397,11 @@ The following {registry} configuration options are available for each component 
 |
 |
 |`apicurio.storage.read-only.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
+|
+|
+|`apicurio.ui.features.agents.enabled.dynamic.allow`
 |`unknown`
 |`${apicurio.config.dynamic.allow-all}`
 |

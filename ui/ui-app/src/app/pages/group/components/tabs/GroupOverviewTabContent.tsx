@@ -25,7 +25,6 @@ import {
     FlexItem,
     Icon,
     Label,
-    Title,
     Truncate
 } from "@patternfly/react-core";
 import { OutlinedFolderIcon, PencilAltIcon, PlusCircleIcon } from "@patternfly/react-icons";
@@ -133,7 +132,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
     );
 
     const emptyState = (
-        <EmptyState titleText={<Title headingLevel="h5" size="lg">No artifacts found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
+        <EmptyState titleText="No artifacts found" icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are currently no artifacts in this group.  Create some artifacts in the group to view them here.
             </EmptyStateBody>
@@ -141,7 +140,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
     );
 
     const filteredEmptyState = (
-        <EmptyState titleText={<Title headingLevel="h5" size="lg">No artifacts found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
+        <EmptyState titleText="No artifacts found" icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are no artifacts in this group that match the filter criteria.  Change the criteria or create
                 some matching artifacts to see them here.

@@ -198,7 +198,7 @@ const ReferenceGraphInner: FunctionComponent<ReferenceGraphViewProps & {
     // Empty state - no references
     if (nodes.length <= 1) {
         return (
-            <EmptyState titleText={<Title headingLevel="h4" size="md">No references found</Title>} variant={EmptyStateVariant.xs} data-testid="graph-empty-state">
+            <EmptyState titleText="No references found" variant={EmptyStateVariant.xs} data-testid="graph-empty-state">
                 <EmptyStateBody>
                     This artifact version has no {referenceType === "OUTBOUND" ? "outbound" : "inbound"} references.
                 </EmptyStateBody>

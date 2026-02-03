@@ -4,8 +4,7 @@ import {
     EmptyState,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateVariant,
-    Title
+    EmptyStateVariant
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { If } from "@apicurio/common-ui-components";
@@ -25,7 +24,7 @@ export const ExplorePageEmptyState: FunctionComponent<ExplorePageEmptyStateProps
     const entitySingular: string = "group";
     const entityPlural: string = "groups";
     return (
-        <EmptyState titleText={<Title headingLevel="h5" size="lg">No { entityPlural } found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.full}>
+        <EmptyState titleText={`No ${entityPlural} found`} icon={PlusCircleIcon} variant={EmptyStateVariant.full}>
             <If condition={() => props.isFiltered}>
                 <EmptyStateBody>
                     No {entityPlural} match your filter settings.  Change your filter or perhaps create a new {entitySingular}.

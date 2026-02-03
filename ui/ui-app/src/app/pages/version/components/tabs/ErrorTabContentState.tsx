@@ -66,7 +66,7 @@ export const ErrorTabContent: FunctionComponent<ErrorTabContentProps> = (props: 
 
     return (
         <div className="centerizer">
-            <EmptyState  headingLevel="h4" icon={ExclamationTriangleIcon}  titleText={ errorMessage() } variant={EmptyStateVariant.lg}>
+            <EmptyState headingLevel="h4" icon={ExclamationTriangleIcon} titleText={ errorMessage() } variant={EmptyStateVariant.lg}>
                 <EmptyStateBody>
                     { errorDescription() }
                 </EmptyStateBody>

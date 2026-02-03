@@ -23,7 +23,6 @@ import {
     Flex,
     FlexItem,
     Label,
-    Title,
     Truncate
 } from "@patternfly/react-core";
 import { PencilAltIcon, PlusCircleIcon } from "@patternfly/react-icons";
@@ -169,7 +168,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
     );
 
     const emptyState = (
-        <EmptyState titleText={<Title headingLevel="h5" size="lg">No versions found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
+        <EmptyState titleText="No versions found" icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are currently no versions in this artifact.  Create some versions in the artifact to view them here.
             </EmptyStateBody>

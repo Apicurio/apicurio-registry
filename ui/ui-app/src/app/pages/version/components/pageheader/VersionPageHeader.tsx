@@ -105,7 +105,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
                 <ActionList>
-                    <ActionListItem>
+                    <ActionListItem key="download">
                         <Button id="download-version-button" variant="secondary"
                             data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
                         <IfFeature feature="readOnly" isNot={true}>
@@ -117,7 +117,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                             </IfFeature>
                         </IfFeature>
                     </ActionListItem>
-                    <ActionListItem>
+                    <ActionListItem key="actions">
                         <ObjectDropdown
                             label=""
                             items={actions}

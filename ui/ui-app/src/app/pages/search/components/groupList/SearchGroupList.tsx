@@ -40,8 +40,8 @@ export const SearchGroupList: FunctionComponent<SearchGroupListProps> = (props: 
         <DataList aria-label="List of groups" className="group-list">
             {
                 props.groups?.map( (group, idx) =>
-                    <DataListItem>
-                        <DataListItemRow className="group-list-item" key={group.groupId}>
+                    <DataListItem key={group.groupId}>
+                        <DataListItemRow className="group-list-item">
                             <DataListItemCells
                                 dataListCells={[
                                     <DataListCell key="type icon" className="type-icon-cell">

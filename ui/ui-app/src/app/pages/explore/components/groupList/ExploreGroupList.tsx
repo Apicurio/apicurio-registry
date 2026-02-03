@@ -95,8 +95,8 @@ export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props
             </If>
             {
                 props.groups?.map( (group, idx) =>
-                    <DataListItem id={group.groupId as string}>
-                        <DataListItemRow className="explore-group-list-item" key={group.groupId}>
+                    <DataListItem id={group.groupId as string} key={group.groupId}>
+                        <DataListItemRow className="explore-group-list-item">
                             <DataListItemCells
                                 dataListCells={[
                                     <DataListCell key="type icon" className="type-icon-cell">

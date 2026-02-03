@@ -19,8 +19,7 @@ import {
     EmptyStateFooter,
     EmptyStateVariant,
     Flex,
-    FlexItem,
-    Title
+    FlexItem
 } from "@patternfly/react-core";
 import { CodeBranchIcon, PencilAltIcon, PlusCircleIcon } from "@patternfly/react-icons";
 import { FromNow, If, ListWithToolbar } from "@apicurio/common-ui-components";
@@ -89,7 +88,7 @@ export const BranchOverviewTabContent: FunctionComponent<BranchOverviewTabConten
     );
 
     const emptyState = (
-        <EmptyState titleText={<Title headingLevel="h5" size="lg">No versions found</Title>} icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
+        <EmptyState titleText="No versions found" icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are currently no versions in this branch.  Add some versions to the branch to view them here.
             </EmptyStateBody>

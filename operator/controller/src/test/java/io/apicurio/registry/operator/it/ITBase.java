@@ -349,9 +349,9 @@ public abstract class ITBase {
     }
 
     static void applyStrimziResources() throws IOException {
-        // TODO: IMPORTANT: Strimzi >0.45 only supports Kraft-based Kafka clusters. Migration needed.
-        // var strimziClusterOperatorURL = new URL("https://strimzi.io/install/latest");
-        var strimziClusterOperatorURL = new URL("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.45.1/strimzi-cluster-operator-0.45.1.yaml");
+        // Use Strimzi 0.47.0 which supports both KRaft mode and Kafka 3.9.x
+        // Note: Strimzi 0.48+ removed support for Kafka 3.9.x, so we pin to 0.47.0
+        var strimziClusterOperatorURL = new URL("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.47.0/strimzi-cluster-operator-0.47.0.yaml");
         try (BufferedInputStream in = new BufferedInputStream(strimziClusterOperatorURL.openStream())) {
             List<HasMetadata> resources = Serialization.unmarshal(in);
             resources.forEach(r -> {

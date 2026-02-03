@@ -37,7 +37,8 @@ public class KafkaSqlITTest extends ITBase {
 
         await().ignoreExceptions().untilAsserted(() ->
         // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
-        assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-kafka-0").get().getStatus()
+        // KRaft mode uses KafkaNodePool, so pod naming is <cluster>-<nodepool>-<id>
+        assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0").get().getStatus()
                 .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
                 .containsOnly("True"));
 

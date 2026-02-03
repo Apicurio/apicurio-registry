@@ -88,6 +88,25 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
     }
 
     @Test
+    public void testValidProto2WithNestedTypes() throws Exception {
+        // Test proto2 schema with nested message types, enums, and default values
+        // This schema is similar to what integration tests use
+        TypedContent content = resourceToTypedContentHandle("protobuf-tutorial.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        // Should not throw - valid proto2 schema with nested types
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testValidProto3UuidSchema() throws Exception {
+        // Test proto3 schema similar to what serdes tests register
+        TypedContent content = resourceToTypedContentHandle("protobuf-uuid-simple.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        // Should not throw - valid proto3 schema
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
     public void testValidateReferences() throws Exception {
         TypedContent content = resourceToTypedContentHandle("protobuf-valid-with-refs.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();

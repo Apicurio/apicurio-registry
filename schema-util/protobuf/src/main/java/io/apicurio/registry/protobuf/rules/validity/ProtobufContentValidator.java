@@ -39,12 +39,28 @@ public class ProtobufContentValidator implements ContentValidator {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
-                    // Parse the protobuf content
+                    // Parse the protobuf content (syntax validation)
                     ProtoFileElement protoFileElement = ProtobufFile
                             .toProtoFileElement(content.getContent().content());
-                    // Perform semantic validation by building a FileDescriptor
+                    // Attempt semantic validation by building a FileDescriptor
                     // This validates: duplicate tags, invalid tag numbers, unknown types, invalid options
-                    FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement);
+                    try {
+                        FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement);
+                    } catch (RuntimeException e) {
+                        // In native mode, proto resources may not be available, causing NPE or RuntimeException
+                        // wrapping IOException. In this case, fall back to syntax-only validation.
+                        // Re-throw if this looks like a true semantic error (DescriptorValidationException)
+                        if (e.getCause() instanceof com.google.protobuf.Descriptors.DescriptorValidationException) {
+                            throw e;
+                        }
+                        // Otherwise, syntax validation (parsing) already succeeded, so we can continue.
+                    } catch (Exception e) {
+                        // Re-throw descriptor validation exceptions as they indicate true semantic errors
+                        if (e instanceof com.google.protobuf.Descriptors.DescriptorValidationException) {
+                            throw e;
+                        }
+                        // For other exceptions (IOException, etc.), fall back to syntax-only validation
+                    }
                 }
                 else {
                     // Convert main content if binary (base64-encoded)

@@ -216,7 +216,7 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
                                 {agentCard.defaultInputModes.map((mode, index) => (
                                     <Label
                                         key={index}
-                                        color="cyan"
+                                        color="teal"
                                         onClose={() => handleRemoveInputMode(mode)}
                                     >
                                         {mode}
@@ -260,7 +260,7 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
                                 {agentCard.defaultOutputModes.map((mode, index) => (
                                     <Label
                                         key={index}
-                                        color="cyan"
+                                        color="teal"
                                         onClose={() => handleRemoveOutputMode(mode)}
                                     >
                                         {mode}

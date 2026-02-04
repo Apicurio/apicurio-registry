@@ -14,6 +14,7 @@ import {
     CogIcon
 } from "@patternfly/react-icons";
 import "./QuickActions.css";
+import { IfAuth, IfFeature } from "@app/components";
 
 export type QuickActionsProps = {
     onCreateArtifact: () => void;
@@ -29,7 +30,7 @@ export const QuickActions: FunctionComponent<QuickActionsProps> = ({
     onSettings
 }: QuickActionsProps) => {
     return (
-        <Card className="quick-actions-card">
+        <Card className="quick-actions-card" variant="secondary" style={{ backgroundColor: "white" }}>
             <CardTitle>Quick Actions</CardTitle>
             <CardBody>
                 <Flex direction={{ default: "column" }} spaceItems={{ default: "spaceItemsMd" }}>
@@ -66,17 +67,21 @@ export const QuickActions: FunctionComponent<QuickActionsProps> = ({
                             Explore Groups
                         </Button>
                     </FlexItem>
-                    <FlexItem>
-                        <Button
-                            variant="tertiary"
-                            icon={<CogIcon />}
-                            onClick={onSettings}
-                            isBlock
-                            data-testid="quick-action-settings"
-                        >
-                            Settings
-                        </Button>
-                    </FlexItem>
+                    <IfFeature feature="settings">
+                        <IfAuth isAdmin={true}>
+                            <FlexItem>
+                                <Button
+                                    variant="secondary"
+                                    icon={<CogIcon />}
+                                    onClick={onSettings}
+                                    isBlock
+                                    data-testid="quick-action-settings"
+                                >
+                                    Settings
+                                </Button>
+                            </FlexItem>
+                        </IfAuth>
+                    </IfFeature>
                 </Flex>
             </CardBody>
         </Card>

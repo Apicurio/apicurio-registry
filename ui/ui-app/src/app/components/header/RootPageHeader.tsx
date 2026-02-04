@@ -78,10 +78,12 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
         );
     }
 
-    // Always show the Agents tab for A2A Agent discovery
-    tabs.push(
-        <Tab data-testid="agents-tab" key={AGENTS_PAGE_IDX} eventKey={AGENTS_PAGE_IDX} title={<TabTitleText>Agents</TabTitleText>} />
-    );
+    // Show Agents tab if feature is enabled
+    if (config.featureAgents()) {
+        tabs.push(
+            <Tab data-testid="agents-tab" key={AGENTS_PAGE_IDX} eventKey={AGENTS_PAGE_IDX} title={<TabTitleText>Agents</TabTitleText>} />
+        );
+    }
 
     // Always show the Global Rules tab
     tabs.push(

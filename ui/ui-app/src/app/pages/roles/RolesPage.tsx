@@ -171,10 +171,10 @@ export const RolesPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_roles-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_roles-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={ROLES_PAGE_IDX} />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true} className="ps_role-section">
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true} className="ps_role-section">
                     <If condition={roles.length === 0}>
                         <RoleMappingsEmptyState onCreateRoleMapping={onCreateRoleMapping}/>
                     </If>

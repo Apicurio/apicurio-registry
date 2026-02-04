@@ -5,10 +5,12 @@ import {
     DataList,
     DataListCell,
     DataListItemCells,
-    DataListItemRow,
+    DataListItemRow
+} from "@patternfly/react-core";
+import {
     Modal,
     ModalVariant
-} from "@patternfly/react-core";
+} from "@patternfly/react-core/deprecated";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { RuleViolationProblemDetails } from "@sdk/lib/generated-client/models";
 

@@ -1,4 +1,5 @@
 import React, { FunctionComponent } from "react";
+import "./BranchesTable.css";
 import { Link } from "react-router-dom";
 import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";

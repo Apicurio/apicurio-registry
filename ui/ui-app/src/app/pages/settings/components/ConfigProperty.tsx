@@ -95,11 +95,11 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
                 </FlexItem>
                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                     <If condition={!isEditing}>
-                        <Button variant="plain" className="action single" onClick={onStartEditing}><PencilAltIcon /></Button>
+                        <Button icon={<PencilAltIcon />} variant="plain" className="action single" onClick={onStartEditing} />
                     </If>
                     <If condition={isEditing}>
-                        <Button variant="plain" className="action" onClick={onSavePropertyValue} isDisabled={!isValid}><CheckIcon /></Button>
-                        <Button variant="plain" className="action" onClick={onCancelEdit}><CloseIcon /></Button>
+                        <Button icon={<CheckIcon />} variant="plain" className="action" onClick={onSavePropertyValue} isDisabled={!isValid} />
+                        <Button icon={<CloseIcon />} variant="plain" className="action" onClick={onCancelEdit} />
                     </If>
                 </FlexItem>
             </Flex>

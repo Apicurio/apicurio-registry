@@ -57,7 +57,8 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                 <Page
                     className="pf-m-redhat-font"
                     isManagedSidebar={false}
-                    header={<AppHeader />}
+                    masthead={<AppHeader />}
+                    isContentFilled={true}
                 >
                     <Routes>
                         <Route path="/" element={ <RootRedirectPage /> } />

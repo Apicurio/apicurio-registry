@@ -9,7 +9,7 @@
 }
 
 .agent-card-viewer .agent-description {
-    color: var(--pf-v5-global--Color--200);
+    color: var(--pf-t--global--text--color--subtle);
     font-size: 14px;
     margin-top: 8px;
     margin-bottom: 0;
@@ -20,9 +20,9 @@
 }
 
 .agent-card-viewer .agent-url {
-    color: var(--pf-v5-global--link--Color);
+    color: var(--pf-t--global--color--link--default);
     text-decoration: none;
-    font-family: var(--pf-v5-global--FontFamily--monospace);
+    font-family: var(--pf-t--global--font--family--mono);
     font-size: 13px;
 }
 
@@ -37,7 +37,7 @@
 
 .agent-card-viewer .provider-url {
     margin-left: 8px;
-    color: var(--pf-v5-global--link--Color);
+    color: var(--pf-t--global--color--link--default);
 }
 
 .agent-card-viewer .section-divider {

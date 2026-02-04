@@ -211,13 +211,11 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                                 <Button variant="link" onClick={() => handleEditSkill(skill)}>
                                     Edit
                                 </Button>
-                                <Button
+                                <Button icon={<TrashIcon />}
                                     variant="plain"
                                     onClick={() => handleDeleteSkill(skill.id)}
                                     className="delete-btn"
-                                >
-                                    <TrashIcon />
-                                </Button>
+                                />
                             </DataListAction>
                         </DataListItemRow>
                     </DataListItem>

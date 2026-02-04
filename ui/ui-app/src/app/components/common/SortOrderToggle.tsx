@@ -18,7 +18,7 @@ export const SortOrderToggle: FunctionComponent<SortOrderToggleProps> = (props: 
     );
 
     return (
-        <Button variant="plain" children={icon} onClick={() => {
+        <Button icon={icon} variant="plain"  onClick={() => {
             props.onChange(props.sortOrder === SortOrder.asc ? SortOrder.desc : SortOrder.asc);
         }} />
     );

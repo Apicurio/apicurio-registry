@@ -7,8 +7,12 @@ import {
     Spinner,
     Alert,
     Flex,
-    FlexItem
+    FlexItem,
+    EmptyState,
+    EmptyStateBody,
+    EmptyStateVariant
 } from "@patternfly/react-core";
+import { InfoCircleIcon } from "@patternfly/react-icons";
 import { FromNow } from "@apicurio/common-ui-components";
 import { SearchedArtifact } from "@sdk/lib/generated-client/models";
 import { ArtifactTypeIcon } from "@app/components";
@@ -35,7 +39,7 @@ export const RecentArtifacts: FunctionComponent<RecentArtifactsProps> = ({
     };
 
     return (
-        <Card className="recent-artifacts-card">
+        <Card className="recent-artifacts-card" variant="secondary" style={{ backgroundColor: "white" }}>
             <CardTitle>Recent Artifacts</CardTitle>
             <CardBody>
                 {isLoading ? (
@@ -47,9 +51,11 @@ export const RecentArtifacts: FunctionComponent<RecentArtifactsProps> = ({
                         {error}
                     </Alert>
                 ) : artifacts.length === 0 ? (
-                    <div className="empty-state">
-                        <p>No artifacts found. Create your first artifact to get started.</p>
-                    </div>
+                    <EmptyState headingLevel="h5" icon={InfoCircleIcon} titleText="No recent artifacts" variant={EmptyStateVariant.sm}>
+                        <EmptyStateBody>
+                            No recent artifacts found. Create your first artifact to get started.
+                        </EmptyStateBody>
+                    </EmptyState>
                 ) : (
                     <div className="artifacts-list">
                         {artifacts.map((artifact, index) => (

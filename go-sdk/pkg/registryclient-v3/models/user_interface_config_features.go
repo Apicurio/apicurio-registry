@@ -7,6 +7,8 @@ import (
 type UserInterfaceConfigFeatures struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
+	// The agents property
+	agents *bool
 	// The breadcrumbs property
 	breadcrumbs *bool
 	// The deleteArtifact property
@@ -44,6 +46,12 @@ func (m *UserInterfaceConfigFeatures) GetAdditionalData() map[string]any {
 	return m.additionalData
 }
 
+// GetAgents gets the agents property value. The agents property
+// returns a *bool when successful
+func (m *UserInterfaceConfigFeatures) GetAgents() *bool {
+	return m.agents
+}
+
 // GetBreadcrumbs gets the breadcrumbs property value. The breadcrumbs property
 // returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetBreadcrumbs() *bool {
@@ -78,6 +86,16 @@ func (m *UserInterfaceConfigFeatures) GetDraftMutability() *bool {
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
+	res["agents"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetAgents(val)
+		}
+		return nil
+	}
 	res["breadcrumbs"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetBoolValue()
 		if err != nil {
@@ -182,6 +200,12 @@ func (m *UserInterfaceConfigFeatures) GetSettings() *bool {
 // Serialize serializes information the current object
 func (m *UserInterfaceConfigFeatures) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
 	{
+		err := writer.WriteBoolValue("agents", m.GetAgents())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteBoolValue("breadcrumbs", m.GetBreadcrumbs())
 		if err != nil {
 			return err
@@ -243,6 +267,11 @@ func (m *UserInterfaceConfigFeatures) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
+// SetAgents sets the agents property value. The agents property
+func (m *UserInterfaceConfigFeatures) SetAgents(value *bool) {
+	m.agents = value
+}
+
 // SetBreadcrumbs sets the breadcrumbs property value. The breadcrumbs property
 func (m *UserInterfaceConfigFeatures) SetBreadcrumbs(value *bool) {
 	m.breadcrumbs = value
@@ -286,6 +315,7 @@ func (m *UserInterfaceConfigFeatures) SetSettings(value *bool) {
 type UserInterfaceConfigFeaturesable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
+	GetAgents() *bool
 	GetBreadcrumbs() *bool
 	GetDeleteArtifact() *bool
 	GetDeleteGroup() *bool
@@ -294,6 +324,7 @@ type UserInterfaceConfigFeaturesable interface {
 	GetReadOnly() *bool
 	GetRoleManagement() *bool
 	GetSettings() *bool
+	SetAgents(value *bool)
 	SetBreadcrumbs(value *bool)
 	SetDeleteArtifact(value *bool)
 	SetDeleteGroup(value *bool)

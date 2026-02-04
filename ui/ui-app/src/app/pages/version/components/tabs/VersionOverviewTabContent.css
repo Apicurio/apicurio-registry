@@ -4,7 +4,12 @@
     background-color: rgb(240,240,240);
 }
 
+.version-overview-tab-content .__drawer-head {
+    padding: 0;
+}
+
 .version-overview-tab-content .version-basics {
+    margin-top: -8px;
 }
 
 .version-overview-tab-content .version-comments {

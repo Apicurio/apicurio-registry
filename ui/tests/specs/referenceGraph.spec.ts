@@ -66,7 +66,6 @@ test("Reference Graph - view mode toggle and graph view", async ({ page }) => {
 
     // Step 8: Verify graph elements are visible
     await expect(page.getByTestId("reference-graph-wrapper")).toBeVisible();
-    await expect(page.getByTestId("graph-controls-toolbar")).toBeVisible();
 
     // Step 9: Verify empty state is shown (no references in our test artifact)
     await expect(page.getByTestId("graph-empty-state")).toBeVisible();

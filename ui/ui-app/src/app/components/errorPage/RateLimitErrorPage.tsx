@@ -6,10 +6,8 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateHeader,
-    EmptyStateIcon,
     PageSection,
-    PageSectionVariants
+    
 } from "@patternfly/react-core";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { ErrorPageProps } from "./ErrorPage.tsx";
@@ -23,10 +21,9 @@ export const RateLimitErrorPage: FunctionComponent<ErrorPageProps> = () => {
 
     return (
         <React.Fragment>
-            <PageSection className="ps_error" variant={PageSectionVariants.light}>
+            <PageSection hasBodyWrapper={false} className="ps_error" >
                 <div className="centerizer">
-                    <EmptyState>
-                        <EmptyStateHeader titleText="Current usage is too high" headingLevel="h4" icon={<EmptyStateIcon icon={ExclamationCircleIcon} />} />
+                    <EmptyState  headingLevel="h4" icon={ExclamationCircleIcon}  titleText="Current usage is too high">
                         <EmptyStateBody>
                             This Registry instance is throttled due to a high request rate. Ensure
                             that existing applications are properly configured to cache the schemas.

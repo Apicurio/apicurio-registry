@@ -13,6 +13,6 @@
 }
 
 .agent-card-authentication .empty-state-text {
-    color: var(--pf-v5-global--Color--200);
+    color: var(--pf-t--global--text--color--subtle);
     font-style: italic;
 }

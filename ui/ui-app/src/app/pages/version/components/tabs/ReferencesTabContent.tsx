@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import "./ReferencesTabContent.css";
-import { EmptyState, EmptyStateBody, EmptyStateVariant, Title } from "@patternfly/react-core";
+import { EmptyState, EmptyStateBody, EmptyStateVariant } from "@patternfly/react-core";
 import { ReferenceList, ReferencesSort } from "./ReferenceList.tsx";
 import {
     ReferencesToolbar,
@@ -164,10 +164,11 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         viewMode={ viewMode }
         onViewModeChange={ handleViewModeChange } />);
 
-    const emptyState = (<EmptyState variant={EmptyStateVariant.xs}>
-        <Title headingLevel="h4" size="md">None found</Title>
-        <EmptyStateBody>No references found.</EmptyStateBody>
-    </EmptyState>);
+    const emptyState = (
+        <EmptyState titleText="None found" variant={EmptyStateVariant.xs}>
+            <EmptyStateBody>No references found.</EmptyStateBody>
+        </EmptyState>
+    );
 
     return (
         <div className="references-tab-content">

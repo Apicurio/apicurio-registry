@@ -4,6 +4,8 @@ import io.apicurio.common.apps.config.Info;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.util.Optional;
+
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_ICEBERG;
 
 /**
@@ -16,9 +18,9 @@ public class IcebergConfig {
     @Info(category = CATEGORY_ICEBERG, description = "Enable the Iceberg REST Catalog API", availableSince = "3.0.0")
     boolean enabled;
 
-    @ConfigProperty(name = "apicurio.iceberg.warehouse", defaultValue = "")
+    @ConfigProperty(name = "apicurio.iceberg.warehouse")
     @Info(category = CATEGORY_ICEBERG, description = "Default warehouse location for Iceberg tables", availableSince = "3.0.0")
-    String defaultWarehouse;
+    Optional<String> defaultWarehouse;
 
     @ConfigProperty(name = "apicurio.iceberg.default-prefix", defaultValue = "default")
     @Info(category = CATEGORY_ICEBERG, description = "Default prefix (catalog identifier) for the Iceberg REST API", availableSince = "3.0.0")
@@ -29,7 +31,7 @@ public class IcebergConfig {
     }
 
     public String getDefaultWarehouse() {
-        return defaultWarehouse;
+        return defaultWarehouse.orElse("");
     }
 
     public String getDefaultPrefix() {

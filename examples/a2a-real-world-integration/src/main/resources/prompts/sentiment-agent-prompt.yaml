@@ -1,7 +1,30 @@
+# Prompt Template aligned with Microsoft Prompty specification
+# See: https://prompty.ai/specification/page/
+# Schema: https://apicur.io/schemas/prompt-template/v1
+
 templateId: sentiment-analysis
 name: Sentiment Analysis System Prompt
 version: "1.0.0"
-description: Analyzes customer sentiment, emotions, and urgency level
+description: Analyzes customer sentiment, emotions, and urgency level for customer service workflows
+
+# Prompty-aligned fields
+authors:
+  - Apicurio Team
+tags:
+  - sentiment
+  - nlp
+  - customer-service
+  - a2a-agent
+
+# Template format (mustache is default)
+templateFormat: mustache
+
+# Model configuration (Prompty-aligned)
+model:
+  api: chat
+  parameters:
+    temperature: 0.3
+    max_tokens: 500
 
 template: |
   You are an expert sentiment analysis AI specializing in customer service communications.
@@ -42,16 +65,30 @@ template: |
 
   Respond ONLY with the JSON object, no additional text or markdown.
 
+# Input variables (Prompty: "inputs")
 variables:
   customerMessage:
     type: string
     required: true
     description: The customer's message to analyze
 
+# Output schema reference (Prompty: "outputs")
+outputSchema:
+  $ref: "urn:apicurio:llm-agents.schemas/sentiment-agent-output"
+
+# MCP integration for AI agent discovery
+mcp:
+  enabled: true
+  name: analyze-sentiment
+  description: Analyze customer message sentiment, emotions, and escalation risk
+  arguments:
+    - name: customerMessage
+      description: The customer message to analyze for sentiment
+      required: true
+
 metadata:
   category: customer-support
-  outputSchema: urn:apicurio:llm-agents.schemas/sentiment-agent-output
-  tags:
-    - sentiment
-    - nlp
-    - customer-service
+  outputSchemaRef: urn:apicurio:llm-agents.schemas/sentiment-agent-output
+  a2a:
+    agentCard: urn:apicurio:demo.llm-agents/sentiment-agent
+    skill: sentiment_analysis

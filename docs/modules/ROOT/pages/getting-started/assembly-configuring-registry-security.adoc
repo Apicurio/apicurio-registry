@@ -280,6 +280,51 @@ NOTE: When you enable roles in {registry}, you must also create the same roles i
 |`id`
 |===
 
+[discrete]
+=== Multiple role mappings for Azure Entra ID
+
+When using Azure Entra ID (formerly Azure AD), you may need to map multiple Azure AD groups or app roles to a single {registry} role. This is useful when:
+
+* Interactive users authenticate via Azure AD groups
+* Service principals authenticate via app roles
+* Both should grant the same {registry} permissions
+
+To configure multiple role mappings, use comma-separated values:
+
+[source,properties]
+----
+# Map multiple Azure AD groups/roles to registry roles
+APICURIO_AUTH_ROLES_ADMIN=sr-admin,12345678-aaaa-bbbb-cccc-ddddeeeefffff,AppRole.Admin
+APICURIO_AUTH_ROLES_DEVELOPER=sr-developer,87654321-aaaa-bbbb-cccc-ddddeeeefffff,AppRole.Developer
+APICURIO_AUTH_ROLES_READONLY=sr-readonly,abcd1234-aaaa-bbbb-cccc-ddddeeeefffff,AppRole.Reader
+----
+
+With this configuration, a user with any of the listed roles or group memberships will be granted the corresponding {registry} authorization level.
+
+[discrete]
+=== Client-specific OAuth scopes for Azure Entra ID
+
+Azure Entra ID requires that each app registration uses a unique scope. When you have multiple app registrations (for example, one for developers and one for read-only access), you can configure client-specific scopes:
+
+[source,properties]
+----
+# Default scope for all clients (fallback)
+APICURIO_AUTHN_BASIC_SCOPE=api://default-app-id/.default
+
+# Client-specific scope overrides
+# Replace dots in client IDs with underscores for environment variables
+APICURIO_AUTHN_BASIC_SCOPE_SR_DEVELOPER_CLIENT=api://developer-app-id/.default
+APICURIO_AUTHN_BASIC_SCOPE_SR_READONLY_CLIENT=api://readonly-app-id/.default
+----
+
+When a client authenticates, {registry} will:
+
+1. Check for a client-specific scope configuration matching the client ID
+2. If not found, use the default scope
+3. If no scope is configured, proceed without a scope parameter
+
+NOTE: Multiple scopes can be specified using comma separation. They will be converted to space-separated format per the OAuth2 specification.
+
 [role="_additional-resources"]
 .Additional resources
 * For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].

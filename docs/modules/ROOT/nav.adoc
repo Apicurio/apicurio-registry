@@ -19,6 +19,8 @@
 ** xref:getting-started/assembly-managing-registry-artifacts-maven.adoc[]
 * Apache Flink integration
 ** xref:getting-started/assembly-using-flink-catalog.adoc[]
+* Apache Iceberg integration
+** xref:getting-started/assembly-using-iceberg-catalog.adoc[]
 * Kafka client serializers/deserialisers
 ** xref:getting-started/assembly-using-kafka-client-serdes.adoc[]
 ** xref:getting-started/assembly-configuring-kafka-client-serdes.adoc[]

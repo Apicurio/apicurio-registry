@@ -461,6 +461,32 @@ The following {registry} configuration options are available for each component 
 |Storage metrics cache check period
 |===
 
+== iceberg
+.iceberg configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.iceberg.default-prefix`
+|`string`
+|`default`
+|`3.0.0`
+|Default prefix (catalog identifier) for the Iceberg REST API
+|`apicurio.iceberg.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable the Iceberg REST Catalog API
+|`apicurio.iceberg.warehouse`
+|`string`
+|
+|`3.0.0`
+|Default warehouse location for Iceberg tables
+|===
+
 == import
 .import configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]

@@ -1,5 +1,6 @@
 package io.apicurio.registry.protobuf.rules.validity;
 
+import com.squareup.wire.schema.SchemaException;
 import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.TypedContent;
@@ -13,6 +14,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,23 +45,30 @@ public class ProtobufContentValidator implements ContentValidator {
                     ProtoFileElement protoFileElement = ProtobufFile
                             .toProtoFileElement(content.getContent().content());
                     // Attempt semantic validation by building a FileDescriptor
-                    // This validates: duplicate tags, invalid tag numbers, unknown types, invalid options
+                    // This validates: duplicate tags, invalid tag numbers, unknown types, etc.
                     try {
                         FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement);
                     } catch (RuntimeException e) {
-                        // In native mode, proto resources may not be available, causing NPE or RuntimeException
-                        // wrapping IOException. In this case, fall back to syntax-only validation.
-                        // Re-throw if this looks like a true semantic error (DescriptorValidationException)
-                        if (e.getCause() instanceof com.google.protobuf.Descriptors.DescriptorValidationException) {
+                        // Check if this is a semantic error or a resource loading issue
+                        Throwable cause = e.getCause();
+                        if (cause instanceof SchemaException) {
+                            // Semantic error from Wire's schema linker - re-throw to fail validation
                             throw e;
                         }
-                        // Otherwise, syntax validation (parsing) already succeeded, so we can continue.
-                    } catch (Exception e) {
-                        // Re-throw descriptor validation exceptions as they indicate true semantic errors
-                        if (e instanceof com.google.protobuf.Descriptors.DescriptorValidationException) {
+                        if (cause instanceof IOException || cause instanceof NullPointerException) {
+                            // Resource loading failure (e.g., in native mode where proto resources
+                            // may not be available) - fall back to syntax-only validation.
+                            // Syntax validation already passed above, so continue.
+                            return;
+                        }
+                        // For other RuntimeExceptions, check the message for semantic error indicators
+                        String message = e.getMessage() != null ? e.getMessage() : "";
+                        if (message.contains("SchemaException") || message.contains("multiple fields share tag")
+                                || message.contains("unable to resolve")) {
+                            // This looks like a semantic error - re-throw
                             throw e;
                         }
-                        // For other exceptions (IOException, etc.), fall back to syntax-only validation
+                        // Unknown error type - fall back to syntax-only to avoid breaking native mode
                     }
                 }
                 else {

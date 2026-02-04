@@ -53,6 +53,24 @@ outputSchema:
         type: string
       description: Suggested follow-up questions
 
+mcp:
+  enabled: true
+  name: apicurio-support-chat
+  description: Ask questions about Apicurio Registry with conversation context
+  arguments:
+    - name: system_prompt
+      description: The system prompt establishing assistant behavior
+      required: true
+    - name: question
+      description: The user's current question
+      required: true
+    - name: conversation_history
+      description: Previous conversation turns for context
+      required: false
+    - name: include_examples
+      description: Whether to include code examples in responses
+      required: false
+
 metadata:
   author: apicurio-team
   createdAt: "2025-01-21"
@@ -61,6 +79,7 @@ metadata:
     - chatbot
     - user-prompt
     - conversation
+    - mcp-enabled
   recommendedModels:
     - llama3.2
     - gpt-4-turbo
@@ -72,3 +91,4 @@ metadata:
     - Interactive support chat
     - Multi-turn conversations
     - Technical Q&A
+    - MCP prompt serving

@@ -1,7 +1,31 @@
+# Prompt Template aligned with Microsoft Prompty specification
+# See: https://prompty.ai/specification/page/
+# Schema: https://apicur.io/schemas/prompt-template/v1
+
 templateId: translation
 name: Translation System Prompt
 version: "1.0.0"
-description: Translates customer service responses while preserving tone and nuance
+description: Translates customer service responses while preserving tone and nuance for multilingual support
+
+# Prompty-aligned fields
+authors:
+  - Apicurio Team
+tags:
+  - translation
+  - localization
+  - multilingual
+  - customer-service
+  - a2a-agent
+
+# Template format (mustache is default)
+templateFormat: mustache
+
+# Model configuration (Prompty-aligned)
+model:
+  api: chat
+  parameters:
+    temperature: 0.3
+    max_tokens: 2000
 
 template: |
   You are a professional translator specializing in customer service communications.
@@ -40,6 +64,7 @@ template: |
 
   Respond ONLY with the JSON object, no additional text or markdown.
 
+# Input variables (Prompty: "inputs")
 variables:
   responseText:
     type: string
@@ -50,13 +75,55 @@ variables:
     required: false
     default: es
     description: ISO language code for target translation (default Spanish)
+    enum:
+      - es
+      - fr
+      - de
+      - pt
+      - it
+      - ja
+      - zh
+      - ko
+
+# Output schema reference (Prompty: "outputs")
+outputSchema:
+  $ref: "urn:apicurio:llm-agents.schemas/translator-agent-output"
+
+# MCP integration for AI agent discovery
+mcp:
+  enabled: true
+  name: translate-response
+  description: Translate customer service responses while preserving tone and cultural nuance
+  arguments:
+    - name: responseText
+      description: The response text to translate
+      required: true
+    - name: targetLanguage
+      description: ISO language code for target language (default es)
+      required: false
 
 metadata:
   category: customer-support
-  outputSchema: urn:apicurio:llm-agents.schemas/translator-agent-output
+  outputSchemaRef: urn:apicurio:llm-agents.schemas/translator-agent-output
   dependsOn:
     - urn:apicurio:llm-agents.prompts/response-generator-prompt
-  tags:
-    - translation
-    - localization
-    - multilingual
+  a2a:
+    agentCard: urn:apicurio:demo.llm-agents/translator-agent
+    skill: translation
+  supportedLanguages:
+    - code: es
+      name: Spanish
+    - code: fr
+      name: French
+    - code: de
+      name: German
+    - code: pt
+      name: Portuguese
+    - code: it
+      name: Italian
+    - code: ja
+      name: Japanese
+    - code: zh
+      name: Chinese
+    - code: ko
+      name: Korean

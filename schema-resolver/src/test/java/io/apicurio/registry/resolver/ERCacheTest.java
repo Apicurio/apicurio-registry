@@ -223,9 +223,13 @@ public class ERCacheTest {
         long duration = System.currentTimeMillis() - startTime;
 
         // Should return stale value immediately (within 200ms)
+        // The key behavior is that we get the stale value back quickly without blocking
         assertEquals("initial value", staleValue);
         assertTrue(duration < 200, "Should return immediately but took " + duration + "ms");
-        assertEquals(0, loadCallCount.get(), "Loader should not have been called yet (async)");
+
+        // Note: We don't assert that loadCallCount is 0 because with a thread pool,
+        // the background task may start executing immediately. What matters is that
+        // getValue() returned quickly without blocking on the slow loader.
 
         // Clean up
         cache.shutdown();

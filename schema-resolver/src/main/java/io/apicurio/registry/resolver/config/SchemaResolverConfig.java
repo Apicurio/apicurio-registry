@@ -94,12 +94,12 @@ public class SchemaResolverConfig extends AbstractConfig {
      * synchronous refresh behavior. This option complements {@link #FAULT_TOLERANT_REFRESH}, which handles
      * refresh failures rather than refresh latency.
      */
-    public static final String BACKGROUND_REFRESH = "apicurio.registry.background-refresh";
-    public static final boolean BACKGROUND_REFRESH_DEFAULT = false;
+    public static final String BACKGROUND_REFRESH_ENABLED = "apicurio.registry.background-refresh-enabled";
+    public static final boolean BACKGROUND_REFRESH_ENABLED_DEFAULT = false;
 
     /**
      * The number of threads in the background refresh executor pool. Only used when
-     * {@link #BACKGROUND_REFRESH} is enabled. The executor uses a fixed thread pool with daemon threads to
+     * {@link #BACKGROUND_REFRESH_ENABLED} is enabled. The executor uses a fixed thread pool with daemon threads to
      * prevent blocking application shutdown. A value of 2-4 threads is typically sufficient for most
      * workloads. Valid values are positive integers.
      */
@@ -108,7 +108,7 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     /**
      * The maximum time (in milliseconds) to wait for a background refresh operation to complete before
-     * timing out. Only used when {@link #BACKGROUND_REFRESH} is enabled. If a background refresh exceeds
+     * timing out. Only used when {@link #BACKGROUND_REFRESH_ENABLED} is enabled. If a background refresh exceeds
      * this timeout, it will be interrupted and the stale value will continue to be served until the next
      * refresh attempt. Valid values are positive integers.
      */
@@ -390,7 +390,7 @@ public class SchemaResolverConfig extends AbstractConfig {
     }
 
     public boolean getBackgroundRefresh() {
-        return getBoolean(BACKGROUND_REFRESH);
+        return getBoolean(BACKGROUND_REFRESH_ENABLED);
     }
 
     public long getBackgroundRefreshExecutorThreads() {
@@ -534,7 +534,7 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(AUTO_REGISTER_ARTIFACT_IF_EXISTS, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT),
             entry(CACHE_LATEST, CACHE_LATEST_DEFAULT),
             entry(FAULT_TOLERANT_REFRESH, FAULT_TOLERANT_REFRESH_DEFAULT),
-            entry(BACKGROUND_REFRESH, BACKGROUND_REFRESH_DEFAULT),
+            entry(BACKGROUND_REFRESH_ENABLED, BACKGROUND_REFRESH_ENABLED_DEFAULT),
             entry(BACKGROUND_REFRESH_EXECUTOR_THREADS, BACKGROUND_REFRESH_EXECUTOR_THREADS_DEFAULT),
             entry(BACKGROUND_REFRESH_TIMEOUT_MS, BACKGROUND_REFRESH_TIMEOUT_MS_DEFAULT),
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),

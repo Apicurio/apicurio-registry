@@ -1,6 +1,7 @@
 package io.apicurio.registry.resolver.cache;
 
 import com.microsoft.kiota.ApiException;
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +46,8 @@ public class ERCache<V> {
     private boolean cacheLatest;
     private boolean faultTolerantRefresh;
     private boolean backgroundRefresh;
-    private long backgroundRefreshExecutorThreads = 2;
-    private Duration backgroundRefreshTimeout = Duration.ofMillis(30000);
+    private long backgroundRefreshExecutorThreads = SchemaResolverConfig.BACKGROUND_REFRESH_EXECUTOR_THREADS_DEFAULT;
+    private Duration backgroundRefreshTimeout = Duration.ofMillis(SchemaResolverConfig.BACKGROUND_REFRESH_TIMEOUT_MS_DEFAULT);
 
     // Background refresh state
     private volatile ExecutorService refreshExecutor;
@@ -247,14 +248,8 @@ public class ERCache<V> {
             }
 
             // Synchronous refresh (original behavior)
-            // With retry
-            Result<V, RuntimeException> newValue = retry(backoff, retries, () -> {
-                return loaderFunction.apply(key);
-            });
+            Result<V, RuntimeException> newValue = performRefresh(key, loaderFunction);
             if (newValue.isOk()) {
-                // Index
-                reindex(new WrappedValue<>(lifetime, Instant.now(), newValue.ok), key);
-                // Return
                 result = newValue.ok;
             } else {
                 if (faultTolerantRefresh && value != null) {
@@ -310,7 +305,47 @@ public class ERCache<V> {
         }
     }
 
-    // === Util & Other
+    /**
+     * Calculates the effective timeout for refresh operations based on retry configuration.
+     * The timeout must be sufficient to accommodate all retry attempts with backoff periods.
+     * 
+     * @return Duration representing the calculated timeout
+     */
+    private Duration calculateEffectiveTimeout() {
+        // Calculate minimum timeout needed for retries: (retries + 1) * backoff + buffer
+        // The +1 accounts for the initial attempt, and we add a buffer for actual operation time
+        long bufferMs = 5000; // 5 second buffer per attempt
+        long minTimeoutMs = (retries + 1) * (backoff.toMillis() + bufferMs);
+        
+        // Use the maximum of configured timeout and calculated minimum
+        long effectiveTimeoutMs = Math.max(backgroundRefreshTimeout.toMillis(), minTimeoutMs);
+        
+        if (effectiveTimeoutMs > backgroundRefreshTimeout.toMillis()) {
+            log.warn("Configured background refresh timeout ({}ms) is insufficient for {} retries with {}ms backoff. " +
+                    "Using calculated minimum of {}ms instead. Consider increasing the timeout configuration.",
+                    backgroundRefreshTimeout.toMillis(), retries, backoff.toMillis(), effectiveTimeoutMs);
+        }
+        
+        return Duration.ofMillis(effectiveTimeoutMs);
+    }
+
+    /**
+     * Performs a cache refresh for the given key using the loader function.
+     * This method contains the core refresh logic shared between synchronous and asynchronous refresh.
+     * 
+     * @param key The cache key being refreshed
+     * @param loaderFunction Function to load the new value
+     * @return Result containing either the refreshed value or an exception
+     */
+    private <T> Result<V, RuntimeException> performRefresh(T key, Function<T, V> loaderFunction) {
+        Result<V, RuntimeException> newValue = retry(backoff, retries, () -> {
+            return loaderFunction.apply(key);
+        });
+        if (newValue.isOk()) {
+            reindex(new WrappedValue<>(lifetime, Instant.now(), newValue.ok), key);
+        }
+        return newValue;
+    }
 
     /**
      * Schedules a background refresh for the given key using the loader function. The refresh is executed
@@ -319,15 +354,13 @@ public class ERCache<V> {
      */
     private <T> void scheduleBackgroundRefresh(T key, Function<T, V> loaderFunction) {
         ExecutorService executor = getOrCreateRefreshExecutor();
+        Duration effectiveTimeout = calculateEffectiveTimeout();
+        
         Future<?> refreshFuture = executor.submit(() -> {
             try {
                 log.debug("Background refresh started for key: {}", key);
-                // Use same retry logic as synchronous refresh
-                Result<V, RuntimeException> newValue = retry(backoff, retries, () -> {
-                    return loaderFunction.apply(key);
-                });
+                Result<V, RuntimeException> newValue = performRefresh(key, loaderFunction);
                 if (newValue.isOk()) {
-                    reindex(new WrappedValue<>(lifetime, Instant.now(), newValue.ok), key);
                     log.debug("Background refresh completed successfully for key: {}", key);
                 } else {
                     log.warn("Background refresh failed for key: {}", key, newValue.error);
@@ -343,12 +376,13 @@ public class ERCache<V> {
         // Monitor the future with timeout
         executor.submit(() -> {
             try {
-                refreshFuture.get(backgroundRefreshTimeout.toMillis(), TimeUnit.MILLISECONDS);
+                refreshFuture.get(effectiveTimeout.toMillis(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                log.warn("Background refresh timed out for key: {} after {}ms", key, backgroundRefreshTimeout.toMillis());
+                log.warn("Background refresh timed out for key: {} after {}ms", key, effectiveTimeout.toMillis());
                 refreshFuture.cancel(true);
             } catch (Exception e) {
                 log.debug("Background refresh monitoring interrupted for key: {}", key, e);
+                refreshFuture.cancel(true);
             }
         });
     }

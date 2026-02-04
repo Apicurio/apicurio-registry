@@ -4,9 +4,11 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = LLM Artifact Types Implementation Guide
 
 [role="_abstract"]
-This chapter provides detailed implementation documentation for the built-in AI/ML artifact types (MODEL_SCHEMA and PROMPT_TEMPLATE) in {registry}. It covers the internal architecture, TypeScript implementation details, and how to customize or extend these types.
+This chapter provides detailed implementation documentation for the built-in AI/ML artifact types (MODEL_SCHEMA and PROMPT_TEMPLATE) in {registry}. It covers the internal architecture, TypeScript implementation details, JSON Schema backing, MCP integration, and how to customize or extend these types.
 
 * xref:llm-artifact-types-architecture_{context}[]
+* xref:llm-artifact-types-json-schema-backing_{context}[]
+* xref:llm-artifact-types-mcp-integration_{context}[]
 * xref:llm-artifact-types-prompt-template-implementation_{context}[]
 * xref:llm-artifact-types-model-schema-implementation_{context}[]
 * xref:llm-artifact-types-prompt-rendering-service_{context}[]
@@ -16,6 +18,9 @@ This chapter provides detailed implementation documentation for the built-in AI/
 .Additional resources
 * For usage documentation, see xref:registry-artifact-types_{context}[]
 * For creating custom artifact types, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/custom-artifact-type[Custom Artifact Type Example]
+* link:https://prompty.ai/specification/page/[Microsoft Prompty Specification]
+* link:https://github.com/tensorflow/model-card-toolkit[Google Model Card Toolkit]
+* link:https://modelcontextprotocol.io/specification/2025-06-18/server/prompts[MCP Prompts Specification]
 
 // Architecture Overview
 [id="llm-artifact-types-architecture_{context}"]
@@ -123,6 +128,316 @@ Each artifact type implements the following handler functions:
 |Ensures all references are properly mapped.
 |===
 
+// JSON Schema Backing
+[id="llm-artifact-types-json-schema-backing_{context}"]
+== JSON Schema Backing and Industry Standards
+
+{registry} provides formal JSON Schemas for PROMPT_TEMPLATE and MODEL_SCHEMA artifact types, aligned with industry standards for interoperability.
+
+=== Schema Locations
+
+The JSON Schemas are located in `app/llm-artifact-types-src/schemas/`:
+
+.JSON Schema Files
+[%header,cols="2,3"]
+|===
+|File
+|Description
+
+|`prompt-template-v1.schema.json`
+|Schema for PROMPT_TEMPLATE artifacts, aligned with Microsoft Prompty
+
+|`model-schema-v1.schema.json`
+|Schema for MODEL_SCHEMA artifacts, aligned with Google Model Card Toolkit
+|===
+
+=== PROMPT_TEMPLATE Schema - Prompty Alignment
+
+The PROMPT_TEMPLATE schema is aligned with the link:https://prompty.ai/specification/page/[Microsoft Prompty specification] for interoperability with the Azure AI ecosystem.
+
+.Prompty Field Mappings
+[%header,cols="2,2,3"]
+|===
+|Apicurio Field
+|Prompty Field
+|Notes
+
+|`templateId`
+|`name`
+|Primary identifier
+
+|`variables`
+|`inputs`
+|Both names supported
+
+|`outputSchema`
+|`outputs`
+|Both names supported
+
+|`template`
+|Body content
+|{{variable}} syntax
+
+|`model`
+|`model`
+|Model configuration
+
+|`authors`
+|`authors`
+|Contributors list
+
+|`tags`
+|`tags`
+|Categorization
+|===
+
+.PROMPT_TEMPLATE with Prompty-aligned Fields
+[source,yaml]
+----
+templateId: sentiment-analysis
+name: Sentiment Analysis Prompt
+version: "1.0.0"
+description: Analyzes customer sentiment
+
+# Prompty-aligned fields
+authors:
+  - Apicurio Team
+tags:
+  - sentiment
+  - nlp
+
+templateFormat: mustache  # or jinja2, handlebars
+
+# Model configuration (Prompty-aligned)
+model:
+  api: chat
+  parameters:
+    temperature: 0.3
+    max_tokens: 500
+
+template: |
+  Analyze the sentiment of: {{customerMessage}}
+
+variables:
+  customerMessage:
+    type: string
+    required: true
+----
+
+=== MODEL_SCHEMA Schema - Model Card Toolkit Alignment
+
+The MODEL_SCHEMA is aligned with the link:https://github.com/tensorflow/model-card-toolkit[Google Model Card Toolkit] for governance and compliance use cases.
+
+.Model Card Field Mappings
+[%header,cols="2,2,3"]
+|===
+|Apicurio Field
+|Model Card Field
+|Notes
+
+|`modelId`
+|`model_details.name`
+|Model identifier
+
+|`provider`
+|`model_details.owners`
+|Model provider
+
+|`version`
+|`model_details.version`
+|Version info
+
+|`input`
+|`model_parameters.input_format`
+|I/O schema
+
+|`output`
+|`model_parameters.output_format`
+|I/O schema
+
+|`modelDetails`
+|`model_details`
+|Full metadata
+
+|`quantitativeAnalysis`
+|`quantitative_analysis`
+|Metrics
+
+|`considerations`
+|`considerations`
+|Ethics, limitations
+|===
+
+.MODEL_SCHEMA with Model Card-aligned Sections
+[source,json]
+----
+{
+  "modelId": "claude-3-opus",
+  "provider": "anthropic",
+  "version": "2024-02",
+  "input": { "type": "object" },
+  "output": { "type": "object" },
+  "modelDetails": {
+    "name": "Claude 3 Opus",
+    "overview": "Advanced multimodal AI assistant",
+    "owners": [{"name": "Anthropic"}],
+    "licenses": [{"identifier": "Proprietary"}]
+  },
+  "considerations": {
+    "users": ["Developers", "Enterprises"],
+    "limitations": ["May produce inaccurate information"],
+    "ethicalConsiderations": [
+      {"name": "Bias", "mitigationStrategy": "Regular auditing"}
+    ]
+  }
+}
+----
+
+// MCP Integration
+[id="llm-artifact-types-mcp-integration_{context}"]
+== MCP (Model Context Protocol) Integration
+
+{registry} integrates with the link:https://modelcontextprotocol.io/[Model Context Protocol (MCP)] to expose PROMPT_TEMPLATE artifacts as MCP prompts, enabling AI agents to discover and use prompt templates.
+
+=== MCP Extension in PROMPT_TEMPLATE
+
+Prompt templates can include an `mcp` section to enable MCP protocol integration:
+
+[source,yaml]
+----
+templateId: support-chat
+name: Support Chat Prompt
+template: |
+  Answer the question: {{question}}
+
+variables:
+  question:
+    type: string
+    required: true
+
+# MCP integration
+mcp:
+  enabled: true
+  name: support-chat
+  description: Answer customer support questions
+  arguments:
+    - name: question
+      description: The customer question
+      required: true
+----
+
+.MCP Configuration Fields
+[%header,cols="2,1,4"]
+|===
+|Field
+|Required
+|Description
+
+|`enabled`
+|No
+|Set to `true` to expose this prompt via MCP (default: false)
+
+|`name`
+|No
+|MCP prompt name (defaults to `templateId`)
+
+|`description`
+|No
+|MCP prompt description (defaults to template description)
+
+|`arguments`
+|No
+|MCP arguments (auto-derived from `variables` if not specified)
+|===
+
+=== MCP Server Module
+
+The `mcp/` module provides an MCP Server that exposes registry prompts:
+
+.MCP Server Components
+[%header,cols="2,4"]
+|===
+|Component
+|Description
+
+|`PromptTemplateMCPServer.java`
+|MCP Server exposing prompt templates as MCP prompts
+
+|`PromptTemplateConverter.java`
+|Parses and renders prompt templates
+|===
+
+=== MCP Tools and Prompts
+
+The MCP Server exposes these tools and prompts:
+
+.MCP Tools
+[%header,cols="2,4"]
+|===
+|Tool
+|Description
+
+|`list_mcp_prompts`
+|List all MCP-enabled prompt templates in the registry
+
+|`get_mcp_prompt`
+|Get and render an MCP-enabled prompt with arguments
+
+|`render_prompt_template`
+|Render any prompt template (MCP-enabled or not)
+|===
+
+.MCP Prompts
+[%header,cols="2,4"]
+|===
+|Prompt
+|Description
+
+|`render_registry_prompt`
+|Interactive prompt for rendering templates from the registry
+|===
+
+=== Using the MCP Server
+
+To run the MCP Server:
+
+[source,bash]
+----
+cd mcp
+../mvnw quarkus:dev
+----
+
+The MCP Server connects to the registry and exposes prompts via the MCP protocol, enabling AI agents (Claude, ChatGPT, etc.) to discover and use registry-stored prompts.
+
+=== MCP Architecture
+
+[source,text]
+----
+┌─────────────────────────────────────────────────────────────┐
+│                     Apicurio Registry                        │
+├─────────────────────────────────────────────────────────────┤
+│  PROMPT_TEMPLATE Artifacts (with mcp.enabled: true)         │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    MCP Server Module                         │
+│  - list_mcp_prompts(): List MCP-enabled templates           │
+│  - get_mcp_prompt(): Render template with arguments         │
+│  - render_prompt_template(): Render any template            │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     AI Agent / LLM                           │
+│  (Claude, ChatGPT, etc.)                                    │
+│                                                              │
+│  MCP Protocol:                                               │
+│  - prompts/list → Discover available prompts                 │
+│  - prompts/get  → Get prompt content with arguments          │
+└─────────────────────────────────────────────────────────────┘
+----
+
 // PROMPT_TEMPLATE Implementation
 [id="llm-artifact-types-prompt-template-implementation_{context}"]
 == PROMPT_TEMPLATE Implementation Details
@@ -131,7 +446,7 @@ The PROMPT_TEMPLATE artifact type is implemented in `app/llm-artifact-types-src/
 
 === Schema Structure
 
-.PROMPT_TEMPLATE Schema Interface
+.PROMPT_TEMPLATE Schema Interface (Prompty-aligned)
 [source,typescript]
 ----
 interface PromptTemplate {
@@ -141,9 +456,22 @@ interface PromptTemplate {
     description?: string;       // Template description
     version?: string;           // Semantic version
     template: string;           // Required: template text with {{variable}} placeholders
+
+    // Prompty-aligned fields
+    authors?: string[];         // Contributors list
+    tags?: string[];            // Categorization tags
+    templateFormat?: string;    // 'mustache' | 'jinja2' | 'handlebars'
+    model?: ModelConfiguration; // Model configuration
+
+    // Input/output definitions (Prompty: inputs/outputs)
     variables?: Record<string, VariableSchema>;  // Variable definitions
+    inputs?: Record<string, VariableSchema>;     // Alias for variables (Prompty)
     outputSchema?: Record<string, unknown>;      // Expected output structure
+    outputs?: Record<string, unknown>;           // Alias for outputSchema (Prompty)
+
+    // Extensions
     metadata?: Record<string, unknown>;          // Custom metadata
+    mcp?: MCPConfiguration;                      // MCP integration
 }
 
 interface VariableSchema {
@@ -155,6 +483,28 @@ interface VariableSchema {
     minimum?: number;           // Minimum value for numeric types
     maximum?: number;           // Maximum value for numeric types
     $ref?: string;              // Reference to external schema
+}
+
+interface ModelConfiguration {
+    api?: string;               // 'chat' | 'completion'
+    configuration?: {
+        type?: string;          // Provider type
+        azure_deployment?: string;
+        azure_endpoint?: string;
+    };
+    parameters?: {
+        temperature?: number;
+        max_tokens?: number;
+        top_p?: number;
+    };
+    response?: string;          // 'first' | 'all'
+}
+
+interface MCPConfiguration {
+    enabled?: boolean;          // Expose via MCP protocol
+    name?: string;              // MCP prompt name
+    description?: string;       // MCP prompt description
+    arguments?: MCPArgument[];  // MCP arguments
 }
 ----
 
@@ -254,7 +604,7 @@ The MODEL_SCHEMA artifact type is implemented in `app/llm-artifact-types-src/src
 
 === Schema Structure
 
-.MODEL_SCHEMA Schema Interface
+.MODEL_SCHEMA Schema Interface (Model Card Toolkit-aligned)
 [source,typescript]
 ----
 interface ModelSchema {
@@ -266,6 +616,35 @@ interface ModelSchema {
     output?: Record<string, unknown>;           // Output schema (JSON Schema format)
     metadata?: Record<string, unknown>;         // Custom metadata (capabilities, etc.)
     definitions?: Record<string, unknown>;      // Reusable schema definitions
+
+    // Model Card Toolkit-aligned sections
+    modelDetails?: ModelDetails;                // Comprehensive model metadata
+    modelParameters?: ModelParameters;          // Architecture and data info
+    quantitativeAnalysis?: QuantitativeAnalysis; // Performance metrics
+    considerations?: Considerations;            // Ethics, limitations, users
+
+    // MLflow compatibility
+    signature?: MLflowSignature;                // MLflow model signature
+}
+
+interface ModelDetails {
+    name?: string;
+    overview?: string;
+    owners?: Array<{name: string; contact?: string}>;
+    version?: {name: string; date?: string};
+    licenses?: Array<{identifier?: string; custom_text?: string}>;
+    references?: Array<{reference: string}>;
+    citations?: Array<{style?: string; citation: string}>;
+    regulatoryRequirements?: string[];
+}
+
+interface Considerations {
+    users?: string[];
+    useCases?: string[];
+    limitations?: string[];
+    tradeoffs?: string[];
+    ethicalConsiderations?: Array<{name: string; mitigationStrategy?: string}>;
+    fairnessConsiderations?: Array<{name: string; mitigationStrategy?: string}>;
 }
 ----
 

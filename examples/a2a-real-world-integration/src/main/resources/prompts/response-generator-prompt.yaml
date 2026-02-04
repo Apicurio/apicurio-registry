@@ -1,7 +1,31 @@
+# Prompt Template aligned with Microsoft Prompty specification
+# See: https://prompty.ai/specification/page/
+# Schema: https://apicur.io/schemas/prompt-template/v1
+
 templateId: response-generation
 name: Response Generator System Prompt
 version: "1.0.0"
-description: Generates empathetic customer service responses using full context
+description: Generates empathetic customer service responses using full context from sentiment and issue analysis
+
+# Prompty-aligned fields
+authors:
+  - Apicurio Team
+tags:
+  - response-generation
+  - customer-service
+  - conflict-resolution
+  - a2a-agent
+
+# Template format (mustache is default)
+templateFormat: mustache
+
+# Model configuration (Prompty-aligned)
+model:
+  api: chat
+  parameters:
+    temperature: 0.7
+    max_tokens: 1500
+    top_p: 0.9
 
 template: |
   You are an expert customer service representative. Your task is to generate
@@ -66,6 +90,7 @@ template: |
 
   Respond ONLY with the JSON object, no additional text or markdown.
 
+# Input variables (Prompty: "inputs")
 variables:
   customerMessage:
     type: string
@@ -80,13 +105,32 @@ variables:
     required: false
     description: JSON output from issue analyzer agent
 
+# Output schema reference (Prompty: "outputs")
+outputSchema:
+  $ref: "urn:apicurio:llm-agents.schemas/response-generator-output"
+
+# MCP integration for AI agent discovery
+mcp:
+  enabled: true
+  name: generate-response
+  description: Generate empathetic customer service responses using sentiment and issue analysis context
+  arguments:
+    - name: customerMessage
+      description: The original customer complaint message
+      required: true
+    - name: sentimentContext
+      description: Sentiment analysis output (JSON)
+      required: false
+    - name: analysisContext
+      description: Issue analysis output (JSON)
+      required: false
+
 metadata:
   category: customer-support
-  outputSchema: urn:apicurio:llm-agents.schemas/response-generator-output
+  outputSchemaRef: urn:apicurio:llm-agents.schemas/response-generator-output
   dependsOn:
     - urn:apicurio:llm-agents.prompts/sentiment-agent-prompt
     - urn:apicurio:llm-agents.prompts/analyzer-agent-prompt
-  tags:
-    - response-generation
-    - customer-service
-    - conflict-resolution
+  a2a:
+    agentCard: urn:apicurio:demo.llm-agents/response-agent
+    skill: response_generation

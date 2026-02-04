@@ -1,7 +1,31 @@
+# Prompt Template aligned with Microsoft Prompty specification
+# See: https://prompty.ai/specification/page/
+# Schema: https://apicur.io/schemas/prompt-template/v1
+
 templateId: issue-analysis
 name: Issue Analyzer System Prompt
 version: "1.0.0"
-description: Extracts issues and entities with sentiment context awareness
+description: Extracts issues and entities with sentiment context awareness for customer service triage
+
+# Prompty-aligned fields
+authors:
+  - Apicurio Team
+tags:
+  - analysis
+  - entity-extraction
+  - issue-classification
+  - customer-service
+  - a2a-agent
+
+# Template format (mustache is default)
+templateFormat: mustache
+
+# Model configuration (Prompty-aligned)
+model:
+  api: chat
+  parameters:
+    temperature: 0.2
+    max_tokens: 800
 
 template: |
   You are a customer service issue analyzer. Your task is to extract structured
@@ -58,6 +82,7 @@ template: |
 
   Respond ONLY with the JSON object, no additional text or markdown.
 
+# Input variables (Prompty: "inputs")
 variables:
   customerMessage:
     type: string
@@ -68,12 +93,28 @@ variables:
     required: false
     description: JSON output from sentiment analysis agent
 
+# Output schema reference (Prompty: "outputs")
+outputSchema:
+  $ref: "urn:apicurio:llm-agents.schemas/analyzer-agent-output"
+
+# MCP integration for AI agent discovery
+mcp:
+  enabled: true
+  name: analyze-issue
+  description: Extract structured issue information from customer complaints with sentiment-aware prioritization
+  arguments:
+    - name: customerMessage
+      description: The customer's complaint message
+      required: true
+    - name: sentimentContext
+      description: Sentiment analysis output from previous agent (JSON)
+      required: false
+
 metadata:
   category: customer-support
-  outputSchema: urn:apicurio:llm-agents.schemas/analyzer-agent-output
+  outputSchemaRef: urn:apicurio:llm-agents.schemas/analyzer-agent-output
   dependsOn:
     - urn:apicurio:llm-agents.prompts/sentiment-agent-prompt
-  tags:
-    - analysis
-    - entity-extraction
-    - issue-classification
+  a2a:
+    agentCard: urn:apicurio:demo.llm-agents/analyzer-agent
+    skill: issue_analysis

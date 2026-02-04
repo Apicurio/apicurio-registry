@@ -111,6 +111,7 @@
     <module>schema-util/avro</module>
     <module>schema-util/common</module>
     <module>schema-util/graphql</module>
+    <module>schema-util/iceberg</module>
     <module>schema-util/json</module>
     <module>schema-util/kconnect</module>
     <module>schema-util/openapi</module>
@@ -540,6 +541,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-xsd</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-iceberg</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

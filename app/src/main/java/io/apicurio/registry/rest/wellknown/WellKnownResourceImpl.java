@@ -39,6 +39,9 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -214,6 +217,45 @@ public class WellKnownResourceImpl implements WellKnownResource {
                         .pushNotifications(pushNotifications)
                         .build())
                 .build();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
+    public Response getSchema(String type, String version) {
+        // Validate and normalize the type
+        String schemaResourcePath = getSchemaResourcePath(type, version);
+        if (schemaResourcePath == null) {
+            throw new NotFoundException("Schema not found: " + type + "/" + version);
+        }
+
+        try {
+            String schemaContent = loadSchemaFromClasspath(schemaResourcePath);
+            return Response.ok(schemaContent, "application/schema+json")
+                    .header("Content-Disposition", "inline; filename=\"" + type + "-" + version + ".json\"")
+                    .header("Cache-Control", "public, max-age=86400")
+                    .build();
+        } catch (IOException e) {
+            throw new NotFoundException("Schema not found: " + type + "/" + version);
+        }
+    }
+
+    private String getSchemaResourcePath(String type, String version) {
+        // Only allow known schema types and versions
+        if ("prompt-template".equals(type) && "v1".equals(version)) {
+            return "schemas/prompt-template-v1.json";
+        } else if ("model-schema".equals(type) && "v1".equals(version)) {
+            return "schemas/model-schema-v1.json";
+        }
+        return null;
+    }
+
+    private String loadSchemaFromClasspath(String resourcePath) throws IOException {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) {
+                throw new IOException("Resource not found: " + resourcePath);
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     private String getBaseUrl() {

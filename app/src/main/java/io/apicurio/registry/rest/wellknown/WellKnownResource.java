@@ -14,12 +14,16 @@ import jakarta.ws.rs.core.Response;
 import java.util.List;
 
 /**
- * JAX-RS resource for A2A protocol well-known endpoints.
+ * JAX-RS resource for well-known endpoints including A2A protocol and JSON Schemas.
  *
  * Per the A2A protocol specification, agents publish their Agent Card at
  * /.well-known/agent.json for discovery purposes.
  *
+ * This resource also serves JSON Schemas for LLM artifact types at
+ * /.well-known/schemas/{type}/{version} for IDE autocompletion and validation.
+ *
  * @see <a href="https://a2a-protocol.org/">A2A Protocol</a>
+ * @see <a href="https://json-schema.org/">JSON Schema</a>
  */
 @Path("/.well-known")
 public interface WellKnownResource {
@@ -76,4 +80,23 @@ public interface WellKnownResource {
             @QueryParam("outputMode") List<String> outputModes,
             @QueryParam("offset") @DefaultValue("0") Integer offset,
             @QueryParam("limit") @DefaultValue("20") Integer limit);
+
+    /**
+     * Returns the JSON Schema for a specific LLM artifact type.
+     * This enables IDE autocompletion and validation for PROMPT_TEMPLATE and MODEL_SCHEMA artifacts.
+     *
+     * Supported types:
+     * - prompt-template (versions: v1)
+     * - model-schema (versions: v1)
+     *
+     * @param type the schema type (e.g., "prompt-template", "model-schema")
+     * @param version the schema version (e.g., "v1")
+     * @return the JSON Schema
+     */
+    @GET
+    @Path("/schemas/{type}/{version}")
+    @Produces(MediaType.APPLICATION_JSON)
+    Response getSchema(
+            @PathParam("type") String type,
+            @PathParam("version") String version);
 }

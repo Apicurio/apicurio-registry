@@ -1,0 +1,110 @@
+$schema: https://apicur.io/schemas/prompt-template/v1
+templateId: code-review-assistant
+name: Code Review Assistant
+description: A prompt template for performing code reviews with customizable focus areas
+version: "1.0"
+
+template: |
+  You are a code review assistant. Review the following code with attention to {{focus_area}}.
+
+  ## Code to Review
+  ```{{language}}
+  {{code}}
+  ```
+
+  {{#if context}}
+  ## Additional Context
+  {{context}}
+  {{/if}}
+
+  ## Review Guidelines
+  - Check for bugs and logic errors
+  - Evaluate code style and readability
+  - Identify security vulnerabilities
+  - Suggest performance improvements
+  - Recommend best practices
+
+  Provide a structured review with:
+  1. Summary of findings
+  2. Specific issues with line references
+  3. Suggested improvements
+  4. Overall assessment (score 1-10)
+
+variables:
+  code:
+    type: string
+    required: true
+    description: The code snippet to review
+  language:
+    type: string
+    required: true
+    description: Programming language of the code
+    enum:
+      - java
+      - python
+      - javascript
+      - typescript
+      - go
+      - rust
+      - kotlin
+      - scala
+  focus_area:
+    type: string
+    required: false
+    default: "code quality, security, and performance"
+    description: Specific areas to focus the review on
+  context:
+    type: string
+    required: false
+    description: Additional context about the code or project
+
+outputSchema:
+  type: object
+  properties:
+    summary:
+      type: string
+      description: Brief summary of the review findings
+    issues:
+      type: array
+      items:
+        type: object
+        properties:
+          severity:
+            type: string
+            enum: [critical, major, minor, suggestion]
+          line:
+            type: integer
+          description:
+            type: string
+          suggestion:
+            type: string
+    score:
+      type: integer
+      minimum: 1
+      maximum: 10
+  required:
+    - summary
+    - issues
+    - score
+
+metadata:
+  author: apicurio-team
+  createdAt: "2025-01-21"
+  tags:
+    - code-review
+    - developer-tools
+    - mcp-enabled
+  recommendedModels:
+    - claude-3-opus
+    - gpt-4-turbo
+    - claude-3-sonnet
+  useCases:
+    - Automated code review
+    - Pull request analysis
+    - Developer assistance
+
+# MCP Extension - enables this prompt to be served via MCP prompts/list and prompts/get
+mcp:
+  enabled: true
+  name: review_code
+  description: Review code for quality, security, and performance issues

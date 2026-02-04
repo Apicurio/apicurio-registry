@@ -6,9 +6,11 @@ import {
     FormGroup,
     FormHelperText,
     HelperText,
-    HelperTextItem,
-    Modal
+    HelperTextItem
 } from "@patternfly/react-core";
+import {
+    Modal
+} from "@patternfly/react-core/deprecated";
 
 
 /**

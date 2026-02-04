@@ -1,6 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./SearchPage.css";
-import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
+import { PageSection, PageSectionVariants, Content } from "@patternfly/react-core";
 import {
     SearchArtifactList,
     PageDataLoader,
@@ -45,11 +46,41 @@ const DEFAULT_PAGING: Paging = {
  * The Search page.
  */
 export const SearchPage: FunctionComponent<PageProperties> = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
-    const [searchType, setSearchType] = useState(SearchType.ARTIFACT);
+
+    const getDefaultSortBy = (newSearchType: SearchType) => {
+        switch (newSearchType) {
+            case SearchType.GROUP:
+                return GroupSortByObject.GroupId;
+            case SearchType.ARTIFACT:
+                return ArtifactSortByObject.ArtifactId;
+            case SearchType.VERSION:
+                return VersionSortByObject.ArtifactId;
+        }
+    };
+
+    /**
+     * Determines the initial search type from the URL query parameter "for".
+     * Supports: artifacts (default), groups, versions
+     */
+    const getInitialSearchType = (): SearchType => {
+        const forParam = searchParams.get("for");
+        switch (forParam) {
+            case "groups":
+                return SearchType.GROUP;
+            case "versions":
+                return SearchType.VERSION;
+            case "artifacts":
+            default:
+                return SearchType.ARTIFACT;
+        }
+    };
+
+    const [searchType, setSearchType] = useState(getInitialSearchType());
     const [filters, setFilters] = useState<SearchFilter[]>([]);
-    const [sortBy, setSortBy] = useState<GroupSortBy | ArtifactSortBy | VersionSortBy>(ArtifactSortByObject.ArtifactId);
+    const [sortBy, setSortBy] = useState<GroupSortBy | ArtifactSortBy | VersionSortBy>(getDefaultSortBy(searchType));
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.asc);
     const [isSearching, setSearching] = useState<boolean>(false);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
@@ -138,26 +169,19 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     const onSearchTypeChange = (newSearchType: SearchType): void => {
         const newFilters: SearchFilter[] = [];
         const newPaging: Paging = DEFAULT_PAGING;
-        let newSortBy: GroupSortBy | ArtifactSortBy | VersionSortBy;
+        const newSortBy: GroupSortBy | ArtifactSortBy | VersionSortBy = getDefaultSortBy(newSearchType);
         const newSortOrder: SortOrder = SortOrder.asc;
-
-        switch (newSearchType) {
-            case SearchType.GROUP:
-                newSortBy = GroupSortByObject.GroupId;
-                break;
-            case SearchType.ARTIFACT:
-                newSortBy = ArtifactSortByObject.ArtifactId;
-                break;
-            case SearchType.VERSION:
-                newSortBy = VersionSortByObject.ArtifactId;
-                break;
-        }
 
         setPaging(newPaging);
         setFilters(newFilters);
         setSearchType(newSearchType);
         setSortBy(newSortBy);
         setSortOrder(newSortOrder);
+
+        // Update URL query parameter
+        const forValue = newSearchType === SearchType.GROUP ? "groups"
+            : newSearchType === SearchType.VERSION ? "versions" : "artifacts";
+        setSearchParams({ for: forValue });
 
         search(newSearchType, newFilters, newSortBy, newSortOrder, newPaging);
     };
@@ -224,15 +248,15 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_search-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_search-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={SEARCH_PAGE_IDX} />
                 </PageSection>
-                <PageSection className="ps_search-description" variant={PageSectionVariants.light}>
-                    <TextContent>
+                <PageSection hasBodyWrapper={false} className="ps_search-description" >
+                    <Content>
                         Search content in the registry by searching for artifacts, versions, or groups.
-                    </TextContent>
+                    </Content>
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true}>
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true}>
                     <ListWithToolbar toolbar={toolbar}
                         emptyState={emptyState}
                         filteredEmptyState={emptyState}

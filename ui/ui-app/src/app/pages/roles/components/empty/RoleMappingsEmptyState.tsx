@@ -4,8 +4,6 @@ import {
     EmptyState,
     EmptyStateActions,
     EmptyStateBody, EmptyStateFooter,
-    EmptyStateHeader,
-    EmptyStateIcon,
     EmptyStateVariant
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
@@ -25,8 +23,7 @@ export type RoleMappingsEmptyStateProps = {
  */
 export const RoleMappingsEmptyState: FunctionComponent<RoleMappingsEmptyStateProps> = (props: RoleMappingsEmptyStateProps) => {
     return (
-        <EmptyState variant={EmptyStateVariant.full}>
-            <EmptyStateHeader titleText="No roles assigned" headingLevel="h4" icon={<EmptyStateIcon icon={PlusCircleIcon} />} />
+        <EmptyState  headingLevel="h4" icon={PlusCircleIcon}  titleText="No roles assigned" variant={EmptyStateVariant.full}>
             <If condition={() => props.isFiltered === true}>
                 <EmptyStateBody>No role mappings match your filter settings.  Change your filter or perhaps create a new role mapping.</EmptyStateBody>
             </If>

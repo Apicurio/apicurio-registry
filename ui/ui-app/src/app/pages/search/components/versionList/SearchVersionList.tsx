@@ -1,6 +1,13 @@
 import React, { FunctionComponent } from "react";
 import "./SearchVersionList.css";
-import { DataList, DataListAction, DataListCell, DataListItemCells, DataListItemRow } from "@patternfly/react-core";
+import {
+    DataList,
+    DataListAction,
+    DataListCell,
+    DataListItem,
+    DataListItemCells,
+    DataListItemRow
+} from "@patternfly/react-core";
 import { ArtifactGroup, ArtifactTypeIcon, ListedItemLabels, VersionStateBadge } from "@app/components";
 import { SearchVersionName } from "@app/pages";
 import { SearchedVersion } from "@sdk/lib/generated-client/models";
@@ -38,68 +45,70 @@ export const SearchVersionList: FunctionComponent<SearchVersionListProps> = (pro
         <DataList aria-label="List of versions" className="version-list">
             {
                 props.versions.map( (version, idx) =>
-                    <DataListItemRow className="version-list-item" key={shash(version.groupId + ":" + version.artifactId + ":" + version.version)}>
-                        <DataListItemCells
-                            dataListCells={[
-                                <DataListCell key="type icon" className="type-icon-cell">
-                                    <ArtifactTypeIcon artifactType={version.artifactType!}/>
-                                </DataListCell>,
-                                <DataListCell key="main content" className="content-cell">
-                                    <div className="version-title">
-                                        <ArtifactGroup groupId={version.groupId!} />
-                                        <SearchVersionName
-                                            groupId={version.groupId!}
-                                            artifactId={version.artifactId!}
-                                            version={version.version!}
-                                            name={version.name!} />
-                                        <VersionStateBadge version={version} />
-                                    </div>
-                                    <div className="version-description">{description(version)}</div>
-                                    <div className="version-labels">
-                                        <ListedItemLabels item={version} onClick={props.onFilterByLabel} />
-                                    </div>
-                                </DataListCell>
-                            ]}
-                        />
-                        <DataListAction
-                            id={`version-actions-${idx}`}
-                            aria-label="Draft actions"
-                            aria-labelledby={`version-actions-${idx}`}
-                            isPlainButtonAction={true}
-                        >
-                            <ObjectDropdown
-                                label=""
-                                isKebab={true}
-                                testId={`version-actions-dropdown-${idx}`}
-                                popperProps={{
-                                    position: "right"
-                                }}
-                                items={[
-                                    {
-                                        id: "view-version-in-explorer",
-                                        label: "Explore version",
-                                        testId: "view-version-in-explorer-" + idx,
-                                        action: () => props.onExplore(version)
-                                    },
-                                    {
-                                        id: "edit-version",
-                                        label: "Edit draft",
-                                        testId: "edit-version-" + idx,
-                                        isVisible: () => !config.featureReadOnly() &&
-                                            config.featureDraftMutability() &&
-                                            version.state === "DRAFT" &&
-                                            user.isUserDeveloper(version.owner),
-                                        action: () => props.onEdit(version)
-                                    },
+                    <DataListItem key={shash(version.groupId + ":" + version.artifactId + ":" + version.version)}>
+                        <DataListItemRow className="version-list-item">
+                            <DataListItemCells
+                                dataListCells={[
+                                    <DataListCell key="type icon" className="type-icon-cell">
+                                        <ArtifactTypeIcon artifactType={version.artifactType!}/>
+                                    </DataListCell>,
+                                    <DataListCell key="main content" className="content-cell">
+                                        <div className="version-title">
+                                            <ArtifactGroup groupId={version.groupId!} />
+                                            <SearchVersionName
+                                                groupId={version.groupId!}
+                                                artifactId={version.artifactId!}
+                                                version={version.version!}
+                                                name={version.name!} />
+                                            <VersionStateBadge version={version} />
+                                        </div>
+                                        <div className="version-description">{description(version)}</div>
+                                        <div className="version-labels">
+                                            <ListedItemLabels item={version} onClick={props.onFilterByLabel} />
+                                        </div>
+                                    </DataListCell>
                                 ]}
-                                onSelect={item => item.action()}
-                                itemToString={item => item.label}
-                                itemToTestId={item => item.testId}
-                                itemIsDivider={item => item.divider}
-                                itemIsVisible={item => !item.isVisible || item.isVisible()}
                             />
-                        </DataListAction>
-                    </DataListItemRow>
+                            <DataListAction
+                                id={`version-actions-${idx}`}
+                                aria-label="Draft actions"
+                                aria-labelledby={`version-actions-${idx}`}
+
+                            >
+                                <ObjectDropdown
+                                    label=""
+                                    isKebab={true}
+                                    testId={`version-actions-dropdown-${idx}`}
+                                    popperProps={{
+                                        position: "right"
+                                    }}
+                                    items={[
+                                        {
+                                            id: "view-version-in-explorer",
+                                            label: "Explore version",
+                                            testId: "view-version-in-explorer-" + idx,
+                                            action: () => props.onExplore(version)
+                                        },
+                                        {
+                                            id: "edit-version",
+                                            label: "Edit draft",
+                                            testId: "edit-version-" + idx,
+                                            isVisible: () => !config.featureReadOnly() &&
+                                                config.featureDraftMutability() &&
+                                                version.state === "DRAFT" &&
+                                                user.isUserDeveloper(version.owner),
+                                            action: () => props.onEdit(version)
+                                        },
+                                    ]}
+                                    onSelect={item => item.action()}
+                                    itemToString={item => item.label}
+                                    itemToTestId={item => item.testId}
+                                    itemIsDivider={item => item.divider}
+                                    itemIsVisible={item => !item.isVisible || item.isVisible()}
+                                />
+                            </DataListAction>
+                        </DataListItemRow>
+                    </DataListItem>
                 )
             }
         </DataList>

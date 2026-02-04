@@ -1,13 +1,15 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import {
     Button,
-    EmptyState, EmptyStateBody,
-    EmptyStateHeader, EmptyStateIcon,
+    EmptyState,
+    EmptyStateBody,
     EmptyStateVariant,
     Form,
-    FormGroup,
-    Modal
+    FormGroup
 } from "@patternfly/react-core";
+import {
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { SearchedBranch, SearchedVersion } from "@sdk/lib/generated-client/models";
 import { IfNotEmpty, IfNotLoading, ObjectSelect } from "@apicurio/common-ui-components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
@@ -58,8 +60,7 @@ export const AddVersionToBranchModal: FunctionComponent<AddVersionToBranchModalP
     }, [props.isOpen]);
 
     const noBranches = (
-        <EmptyState variant={EmptyStateVariant.xs}>
-            <EmptyStateHeader titleText="No branches found" headingLevel="h4" icon={<EmptyStateIcon icon={PlusCircleIcon} />} />
+        <EmptyState  headingLevel="h4" icon={PlusCircleIcon}  titleText="No branches found" variant={EmptyStateVariant.xs}>
             <EmptyStateBody>No <b>user defined</b> branches found for this artifact.  Create a new branch and try again.</EmptyStateBody>
         </EmptyState>
     );

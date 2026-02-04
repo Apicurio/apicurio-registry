@@ -10,9 +10,7 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateIcon,
-    EmptyStateVariant,
-    Title
+    EmptyStateVariant
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { IfAuth, IfFeature } from "@app/components";
@@ -76,9 +74,7 @@ export const ArtifactBranchesTabContent: FunctionComponent<ArtifactBranchesTabCo
     );
 
     const emptyState = (
-        <EmptyState variant={EmptyStateVariant.sm}>
-            <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No branches found</Title>
+        <EmptyState titleText="No branches found" icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are currently no branches in this artifact.  Create some branches in the artifact to view them here.
             </EmptyStateBody>

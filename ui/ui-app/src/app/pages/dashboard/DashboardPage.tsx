@@ -2,7 +2,6 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./DashboardPage.css";
 import {
     PageSection,
-    PageSectionVariants,
     Title,
     Grid,
     GridItem,
@@ -132,10 +131,10 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
 
     return (
         <PageErrorHandler error={pageError}>
-            <PageSection className="ps_dashboard-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+            <PageSection hasBodyWrapper={false} className="ps_dashboard-header"  padding={{ default: "noPadding" }}>
                 <RootPageHeader tabKey={DASHBOARD_PAGE_IDX} />
             </PageSection>
-            <PageSection className="ps_dashboard-description" variant={PageSectionVariants.light}>
+            <PageSection hasBodyWrapper={false} className="ps_dashboard-description" >
                 <Flex direction={{ default: "column" }}>
                     <FlexItem>
                         <Title headingLevel="h1">Registry Dashboard</Title>
@@ -147,7 +146,7 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                     </FlexItem>
                 </Flex>
             </PageSection>
-            <PageSection isFilled={true} className="ps_dashboard-content">
+            <PageSection hasBodyWrapper={false} isFilled={true} className="ps_dashboard-content">
                 <Grid hasGutter>
                     <GridItem span={12}>
                         <Flex spaceItems={{ default: "spaceItemsLg" }}>
@@ -157,7 +156,7 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                                     value={stats.groupCount}
                                     icon={<FolderOpenIcon />}
                                     isLoading={isLoading}
-                                    onClick={() => handleStatsClick("/explore")}
+                                    onClick={() => handleStatsClick("/search?for=groups")}
                                 />
                             </FlexItem>
                             <FlexItem>
@@ -166,7 +165,7 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                                     value={stats.artifactCount}
                                     icon={<CubesIcon />}
                                     isLoading={isLoading}
-                                    onClick={() => handleStatsClick("/search")}
+                                    onClick={() => handleStatsClick("/search?for=artifacts")}
                                 />
                             </FlexItem>
                             <FlexItem>
@@ -175,6 +174,7 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                                     value={stats.versionCount}
                                     icon={<CodeBranchIcon />}
                                     isLoading={isLoading}
+                                    onClick={() => handleStatsClick("/search?for=versions")}
                                 />
                             </FlexItem>
                         </Flex>

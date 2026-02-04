@@ -6,10 +6,8 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateHeader,
-    EmptyStateIcon,
     PageSection,
-    PageSectionVariants
+    
 } from "@patternfly/react-core";
 import { NetworkIcon } from "@patternfly/react-icons";
 import { ErrorPageProps } from "./ErrorPage.tsx";
@@ -23,10 +21,9 @@ export const ConnectionFailedErrorPage: FunctionComponent<ErrorPageProps> = () =
 
     return (
         <React.Fragment>
-            <PageSection className="ps_error" variant={PageSectionVariants.light}>
+            <PageSection hasBodyWrapper={false} className="ps_error" >
                 <div className="centerizer">
-                    <EmptyState>
-                        <EmptyStateHeader titleText="Connection failed" headingLevel="h4" icon={<EmptyStateIcon icon={NetworkIcon} />} />
+                    <EmptyState  headingLevel="h4" icon={NetworkIcon}  titleText="Connection failed">
                         <EmptyStateBody>
                             Connection to the Registry server failed (could not reach the server).  Please
                             check your connection and try again, or report this error to an admin.

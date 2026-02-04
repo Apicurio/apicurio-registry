@@ -5,8 +5,6 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateHeader,
-    EmptyStateIcon,
     EmptyStateVariant
 } from "@patternfly/react-core";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
@@ -68,8 +66,7 @@ export const ErrorTabContent: FunctionComponent<ErrorTabContentProps> = (props: 
 
     return (
         <div className="centerizer">
-            <EmptyState variant={EmptyStateVariant.lg}>
-                <EmptyStateHeader titleText={ errorMessage() } headingLevel="h4" icon={<EmptyStateIcon icon={ExclamationTriangleIcon} />} />
+            <EmptyState headingLevel="h4" icon={ExclamationTriangleIcon} titleText={ errorMessage() } variant={EmptyStateVariant.lg}>
                 <EmptyStateBody>
                     { errorDescription() }
                 </EmptyStateBody>

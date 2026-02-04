@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
-import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
+import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { EXPLORE_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
@@ -403,18 +403,18 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_explore-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
                 </PageSection>
                 <IfFeature feature="breadcrumbs" is={true}>
-                    <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
+                    <PageSection hasBodyWrapper={false} className="ps_header-breadcrumbs"  children={breadcrumbs} />
                 </IfFeature>
-                <PageSection className="ps_artifact-version-header" variant={PageSectionVariants.light}>
+                <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <ArtifactPageHeader
                         artifact={artifact as ArtifactMetaData}
                         onDeleteArtifact={onDeleteArtifact} />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
+                <PageSection hasBodyWrapper={false}  isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
                         id="artifact-page-tabs"
                         unmountOnExit={true}

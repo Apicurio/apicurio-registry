@@ -2,11 +2,9 @@ import { CSSProperties, FunctionComponent, useEffect, useState } from "react";
 import "./EditorPage.css";
 import {
     EmptyState, EmptyStateBody,
-    EmptyStateIcon,
     EmptyStateVariant,
     PageSection,
-    PageSectionVariants,
-    Title, useInterval
+    useInterval
 } from "@patternfly/react-core";
 import { useParams } from "react-router-dom";
 import {
@@ -251,9 +249,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     };
 
     const notDraftEmptyState = (
-        <EmptyState variant={EmptyStateVariant.sm}>
-            <EmptyStateIcon icon={WarningTriangleIcon}/>
-            <Title headingLevel="h5" size="lg">Not a Draft</Title>
+        <EmptyState titleText="Not a Draft" icon={WarningTriangleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 This artifact is not in <em>DRAFT</em> status and so its content cannot be edited.
             </EmptyStateBody>
@@ -301,10 +297,10 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_explore-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.light} id="section-context" style={sectionContextStyle}>
+                <PageSection hasBodyWrapper={false}  id="section-context" style={sectionContextStyle}>
                     <EditorContext
                         draft={draft}
                         dirty={isDirty}
@@ -315,7 +311,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
                         onCompareContent={onCompareContent}
                     />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.light} id="section-editor" style={sectionEditorStyle}>
+                <PageSection hasBodyWrapper={false}  id="section-editor" style={sectionEditorStyle} isFilled={true}>
                     <div className="editor-parent" style={editorParentStyle} children={editor() as any} />
                 </PageSection>
             </PageDataLoader>

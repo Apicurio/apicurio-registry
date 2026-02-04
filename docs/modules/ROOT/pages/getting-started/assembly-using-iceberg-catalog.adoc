@@ -1,0 +1,409 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="using-iceberg-catalog_{context}"]
+= Using {registry} as an Apache Iceberg REST Catalog
+
+[role="_abstract"]
+This chapter explains how to use {registry} as an Apache Iceberg REST Catalog to manage table metadata for your data lakehouse applications:
+
+* xref:registry-iceberg-catalog-overview_{context}[]
+* xref:registry-iceberg-catalog-config_{context}[]
+* xref:registry-iceberg-catalog-rest-api_{context}[]
+* xref:registry-iceberg-catalog-query-engines_{context}[]
+
+
+.Prerequisites
+* A running {registry} instance
+* Query engines or tools that support the Iceberg REST Catalog specification (Apache Spark, Trino, ClickHouse, DuckDB, Flink)
+
+
+[id='registry-iceberg-catalog-overview_{context}']
+== Overview of the {registry} Iceberg REST Catalog
+
+[role="_abstract"]
+{registry} implements the Apache Iceberg REST Catalog API specification, enabling it to serve as a metadata catalog for Iceberg tables. This allows query engines like Apache Spark, Trino, ClickHouse, DuckDB, and Flink to use {registry} as their Iceberg catalog for managing table metadata.
+
+The catalog maps {registry} concepts to Iceberg concepts as follows:
+
+.Mapping between {registry} and Iceberg concepts
+[.table-expandable,width="100%",cols="3,3,5",options="header"]
+|===
+|{registry} Concept
+|Iceberg Concept
+|Description
+|Group
+|Namespace
+|A logical namespace for organizing tables. Each group in {registry} appears as a namespace in Iceberg.
+|Artifact (type: `ICEBERG_TABLE`)
+|Table
+|An Iceberg table registered in {registry}. The artifact content contains the full TableMetadata JSON.
+|Artifact (type: `ICEBERG_VIEW`)
+|View
+|An Iceberg view registered in {registry}. The artifact content contains the ViewMetadata JSON.
+|Artifact Content
+|TableMetadata / ViewMetadata
+|The metadata JSON stored as artifact content, containing schema, partition spec, sort order, snapshots, and other Iceberg metadata.
+|Group Labels
+|Namespace Properties
+|Key-value properties associated with a namespace, stored as group labels.
+|Artifact Labels
+|Table Properties
+|Key-value properties associated with a table, stored as artifact labels.
+|Prefix (path parameter)
+|Catalog Identifier
+|A configurable prefix that identifies the catalog instance (default: `default`).
+|===
+
+
+[id='registry-iceberg-catalog-config_{context}']
+== Configuring the {registry} Iceberg REST Catalog
+
+[role="_abstract"]
+This section describes the configuration options available for the {registry} Iceberg REST Catalog.
+
+.{registry} Iceberg configuration properties
+[.table-expandable,width="100%",cols="4,4,3,5",options="header"]
+|===
+|Property
+|Environment Variable
+|Default
+|Description
+|`apicurio.iceberg.enabled`
+|`APICURIO_ICEBERG_ENABLED`
+|`true`
+|Enables or disables the Iceberg REST Catalog API.
+|`apicurio.iceberg.warehouse`
+|`APICURIO_ICEBERG_WAREHOUSE`
+|Empty string
+|The default warehouse location for Iceberg tables. This is returned in the catalog configuration.
+|`apicurio.iceberg.default-prefix`
+|`APICURIO_ICEBERG_DEFAULT_PREFIX`
+|`default`
+|The default prefix (catalog identifier) used when none is specified.
+|===
+
+.Example: Configuring {registry} for Iceberg
+[source,properties]
+----
+apicurio.iceberg.enabled=true
+apicurio.iceberg.warehouse=s3://my-bucket/warehouse
+apicurio.iceberg.default-prefix=production
+----
+
+
+[id='registry-iceberg-catalog-rest-api_{context}']
+== Using the Iceberg REST API
+
+[role="_abstract"]
+{registry} exposes the Iceberg REST Catalog API at the `/apis/iceberg/v1` endpoint. The following examples demonstrate how to interact with the API using `curl`.
+
+=== Getting catalog configuration
+
+[source,bash]
+----
+curl http://localhost:8080/apis/iceberg/v1/config
+----
+
+.Example response
+[source,json]
+----
+{
+  "defaults": {},
+  "overrides": {}
+}
+----
+
+=== Creating a namespace
+
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": ["my_database"],
+    "properties": {
+      "owner": "data-team",
+      "description": "Production database"
+    }
+  }'
+----
+
+.Example response
+[source,json]
+----
+{
+  "namespace": ["my_database"],
+  "properties": {
+    "owner": "data-team",
+    "description": "Production database"
+  }
+}
+----
+
+=== Listing namespaces
+
+[source,bash]
+----
+curl http://localhost:8080/apis/iceberg/v1/default/namespaces
+----
+
+.Example response
+[source,json]
+----
+{
+  "namespaces": [
+    ["my_database"],
+    ["another_database"]
+  ]
+}
+----
+
+=== Creating a table
+
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "users",
+    "schema": {
+      "type": "struct",
+      "schema-id": 0,
+      "fields": [
+        {"id": 1, "name": "id", "required": true, "type": "long"},
+        {"id": 2, "name": "name", "required": true, "type": "string"},
+        {"id": 3, "name": "email", "required": false, "type": "string"},
+        {"id": 4, "name": "created_at", "required": true, "type": "timestamp"}
+      ]
+    },
+    "properties": {
+      "write.format.default": "parquet"
+    }
+  }'
+----
+
+=== Loading a table
+
+[source,bash]
+----
+curl http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users
+----
+
+=== Listing tables in a namespace
+
+[source,bash]
+----
+curl http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables
+----
+
+.Example response
+[source,json]
+----
+{
+  "identifiers": [
+    {
+      "namespace": ["my_database"],
+      "name": "users"
+    }
+  ]
+}
+----
+
+=== Renaming a table
+
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/iceberg/v1/default/tables/rename \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": {
+      "namespace": ["my_database"],
+      "name": "users"
+    },
+    "destination": {
+      "namespace": ["my_database"],
+      "name": "customers"
+    }
+  }'
+----
+
+=== Dropping a table
+
+[source,bash]
+----
+curl -X DELETE http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users
+----
+
+=== Dropping a namespace
+
+NOTE: A namespace must be empty (contain no tables) before it can be dropped.
+
+[source,bash]
+----
+curl -X DELETE http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database
+----
+
+
+[id='registry-iceberg-catalog-query-engines_{context}']
+== Using {registry} with query engines
+
+[role="_abstract"]
+This section provides configuration examples for popular query engines that support the Iceberg REST Catalog specification.
+
+=== Apache Spark
+
+Configure Spark to use {registry} as the Iceberg catalog:
+
+[source,scala]
+----
+spark.conf.set("spark.sql.catalog.apicurio", "org.apache.iceberg.spark.SparkCatalog")
+spark.conf.set("spark.sql.catalog.apicurio.type", "rest")
+spark.conf.set("spark.sql.catalog.apicurio.uri", "http://localhost:8080/apis/iceberg/v1")
+spark.conf.set("spark.sql.catalog.apicurio.prefix", "default")
+----
+
+.Using the catalog in Spark SQL
+[source,sql]
+----
+-- Switch to the Apicurio catalog
+USE apicurio;
+
+-- Create a namespace
+CREATE NAMESPACE my_database;
+
+-- Create a table
+CREATE TABLE apicurio.my_database.events (
+  id BIGINT,
+  event_type STRING,
+  event_time TIMESTAMP
+) USING iceberg;
+
+-- Query the table
+SELECT * FROM apicurio.my_database.events;
+----
+
+=== Trino
+
+Configure Trino to use {registry} as the Iceberg catalog by creating a catalog properties file:
+
+.etc/catalog/apicurio.properties
+[source,properties]
+----
+connector.name=iceberg
+iceberg.catalog.type=rest
+iceberg.rest-catalog.uri=http://localhost:8080/apis/iceberg/v1
+iceberg.rest-catalog.prefix=default
+----
+
+.Using the catalog in Trino
+[source,sql]
+----
+-- Create a schema (namespace)
+CREATE SCHEMA apicurio.my_database;
+
+-- Create a table
+CREATE TABLE apicurio.my_database.products (
+  id BIGINT,
+  name VARCHAR,
+  price DECIMAL(10, 2)
+) WITH (format = 'PARQUET');
+
+-- Query the table
+SELECT * FROM apicurio.my_database.products;
+----
+
+=== DuckDB
+
+Configure DuckDB to use {registry} as the Iceberg catalog:
+
+[source,sql]
+----
+-- Install and load the Iceberg extension
+INSTALL iceberg;
+LOAD iceberg;
+
+-- Attach the Apicurio Registry catalog
+ATTACH 'http://localhost:8080/apis/iceberg/v1' AS apicurio (TYPE ICEBERG);
+
+-- Query tables from the catalog
+SELECT * FROM apicurio.my_database.users;
+----
+
+=== ClickHouse
+
+Configure ClickHouse to use {registry} as the Iceberg catalog:
+
+[source,sql]
+----
+-- Create a database using the Iceberg engine
+CREATE DATABASE apicurio_db ENGINE = Iceberg(
+  'http://localhost:8080/apis/iceberg/v1',
+  'default',
+  'my_database'
+);
+
+-- Query tables from the catalog
+SELECT * FROM apicurio_db.users;
+----
+
+
+[id='registry-iceberg-catalog-api-reference_{context}']
+== API reference
+
+[role="_abstract"]
+The following table lists all Iceberg REST Catalog API endpoints supported by {registry}.
+
+.Iceberg REST Catalog API endpoints
+[.table-expandable,width="100%",cols="2,4,5",options="header"]
+|===
+|Method
+|Endpoint
+|Description
+|GET
+|`/apis/iceberg/v1/config`
+|Get catalog configuration
+|GET
+|`/apis/iceberg/v1/{prefix}/namespaces`
+|List all namespaces
+|POST
+|`/apis/iceberg/v1/{prefix}/namespaces`
+|Create a namespace
+|GET
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}`
+|Load namespace metadata
+|HEAD
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}`
+|Check if namespace exists
+|DELETE
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}`
+|Drop a namespace (must be empty)
+|POST
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/properties`
+|Update namespace properties
+|GET
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables`
+|List tables in a namespace
+|POST
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables`
+|Create a table
+|GET
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
+|Load a table
+|HEAD
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
+|Check if table exists
+|DELETE
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
+|Drop a table
+|POST
+|`/apis/iceberg/v1/{prefix}/tables/rename`
+|Rename a table
+|===
+
+
+[role="_additional-resources"]
+.Additional resources
+* For more information about the Iceberg REST Catalog specification, see the link:https://github.com/apache/iceberg/blob/main/open-api/rest-catalog-open-api.yaml[Apache Iceberg REST Catalog OpenAPI specification]
+* For information on {registry} groups and artifacts, see {registry-overview}
+* For information about Apache Iceberg, see the link:https://iceberg.apache.org/[Apache Iceberg documentation]
+

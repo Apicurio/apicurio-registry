@@ -149,6 +149,168 @@ $ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-
 * For more details on PostgreSQL, see the link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation].
 
 
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+[id="installing-registry-sql-storage-secrets_{context}"]
+== Using file-based secrets for database credentials
+
+[role="_abstract"]
+This section explains how to use file-based secrets for database credentials with {registry} when using Docker Compose.
+This approach follows Docker's recommended secret management practices and is more secure than passing credentials as
+environment variables.
+
+.Prerequisites
+
+* You must have Docker and Docker Compose installed.
+* You must already have a database server installed and running (PostgreSQL, MySQL, or Microsoft SQL Server).
+
+.Overview
+
+Instead of passing credentials and secrets as environment variables (which can be exposed in process lists and container
+inspection), you can use file-based secrets. {registry} supports a generic `_FILE` suffix pattern that works with
+**any** configuration property.
+
+Environment variables are automatically converted to configuration properties by Quarkus. For example,
+`APICURIO_DATASOURCE_PASSWORD_FILE` becomes the property `apicurio.datasource.password.file`. The
+FileBasedSecretsConfigSource reads the file path from these properties and loads the actual values from the files.
+
+.How it works
+
+To use file-based secrets for any configuration property:
+
+1. Take any environment variable name (e.g., `APICURIO_DATASOURCE_PASSWORD`)
+2. Add `_FILE` suffix (e.g., `APICURIO_DATASOURCE_PASSWORD_FILE`)
+3. Set the value to a file path containing the secret
+4. {registry} reads the file contents and uses them as the actual property value
+
+This works for **any** configuration property, not just the examples listed below.
+
+.Common file-based credential variables
+
+Some commonly used file-based credential environment variables (and their corresponding properties):
+
+**Database credentials:**
+
+* `APICURIO_DATASOURCE_USERNAME_FILE` (property: `apicurio.datasource.username.file`)
+* `APICURIO_DATASOURCE_PASSWORD_FILE` (property: `apicurio.datasource.password.file`)
+* `APICURIO_DATASOURCE_BLUE_USERNAME_FILE` (property: `apicurio.datasource.blue.username.file`)
+* `APICURIO_DATASOURCE_BLUE_PASSWORD_FILE` (property: `apicurio.datasource.blue.password.file`)
+* `APICURIO_DATASOURCE_GREEN_USERNAME_FILE` (property: `apicurio.datasource.green.username.file`)
+* `APICURIO_DATASOURCE_GREEN_PASSWORD_FILE` (property: `apicurio.datasource.green.password.file`)
+
+**OAuth/OIDC credentials:**
+
+* `QUARKUS_OIDC_CLIENT_SECRET_FILE` (property: `quarkus.oidc.client-secret.file`)
+* `APICURIO_UI_AUTH_OIDC_CLIENT_SECRET_FILE` (property: `apicurio.ui.auth.oidc.client-secret.file`)
+
+**Kafka SASL credentials:**
+
+* `APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_ID_FILE` (property: `apicurio.kafkasql.security.sasl.client-id.file`)
+* `APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_SECRET_FILE` (property: `apicurio.kafkasql.security.sasl.client-secret.file`)
+
+**Kafka SSL/TLS passwords:**
+
+* `APICURIO_KAFKASQL_SECURITY_SSL_TRUSTSTORE_PASSWORD_FILE` (property:
+  `apicurio.kafkasql.security.ssl.truststore.password.file`)
+* `APICURIO_KAFKASQL_SECURITY_SSL_KEYSTORE_PASSWORD_FILE` (property:
+  `apicurio.kafkasql.security.ssl.keystore.password.file`)
+* `APICURIO_KAFKASQL_SECURITY_SSL_KEY_PASSWORD_FILE` (property: `apicurio.kafkasql.security.ssl.key.password.file`)
+
+**Any other property:**
+
+The `_FILE` suffix works with any configuration property. Simply add `_FILE` to any environment variable name and set
+the value to a file path.
+
+When a `_FILE` variant is set, {registry} reads the value from the specified file instead of using the direct
+environment variable. Configuration precedence: System properties (400) > File-based secrets (350) > Environment
+variables (300) > application.properties (250).
+
+.Procedure
+
+. Create a directory for your secret files:
++
+[source,bash]
+----
+$ mkdir -p secrets
+----
+
+. Create files containing your database credentials:
++
+[source,bash]
+----
+$ echo "pguser" > secrets/db_user.txt
+$ echo "pgpass" > secrets/db_password.txt
+----
+
+. Set restrictive permissions on the secret files:
++
+[source,bash]
+----
+$ chmod 600 secrets/*.txt
+----
+
+. Create a `docker-compose.yml` file that uses Docker Compose secrets:
++
+[source,yaml]
+----
+version: '3.8'
+
+secrets:
+  registry_db_user:
+    file: ./secrets/db_user.txt
+  registry_db_password:
+    file: ./secrets/db_password.txt
+
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry:VERSION
+    environment:
+      APICURIO_STORAGE_KIND: "sql"
+      APICURIO_STORAGE_SQL_KIND: "postgresql"
+      APICURIO_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/registrydb"
+      APICURIO_DATASOURCE_USERNAME_FILE: /run/secrets/registry_db_user
+      APICURIO_DATASOURCE_PASSWORD_FILE: /run/secrets/registry_db_password
+    secrets:
+      - registry_db_user
+      - registry_db_password
+    ports:
+      - "8080:8080"
+----
+
+. Start the services:
++
+[source,bash]
+----
+$ docker compose up -d
+----
+
+.File format
+
+Secret files should contain only the credential value in plain text (UTF-8 encoding). Leading and trailing whitespace
+is automatically trimmed. For example:
+
+[source,text]
+----
+mypassword
+----
+
+.Security considerations
+
+* Ensure secret files have restrictive permissions (e.g., `chmod 600`)
+* Never commit secret files to version control (add them to `.gitignore`)
+* {registry} will log a warning if secret files are world-readable
+* If a `_FILE` variable is set but the file doesn't exist or isn't readable, {registry} will fail to start with a
+  clear error message
+
+[role="_additional-resources"]
+.Additional resources
+* For a complete Docker Compose example with secrets, see
+  link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/docker-compose/pg-secrets[PostgreSQL with
+  file-based secrets example].
+* For more details on Docker Compose secrets, see
+  link:https://docs.docker.com/compose/how-tos/use-secrets/[Docker Compose secrets documentation].
+
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc

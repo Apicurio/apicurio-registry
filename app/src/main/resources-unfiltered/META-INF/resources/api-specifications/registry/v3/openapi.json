@@ -5383,6 +5383,10 @@
           "draftMutability": {
             "description": "",
             "type": "boolean"
+          },
+          "agents": {
+            "description": "",
+            "type": "boolean"
           }
         },
         "example": {

@@ -1,0 +1,1009 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "Apache Iceberg REST Catalog API",
+    "version": "0.0.1",
+    "description": "Apicurio Registry implementation of the Apache Iceberg REST Catalog API",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    }
+  },
+  "paths": {
+    "/apis/iceberg/v1/config": {
+      "get": {
+        "operationId": "getConfig",
+        "tags": ["Configuration"],
+        "summary": "Get catalog configuration",
+        "description": "Returns server-side configuration for the catalog",
+        "responses": {
+          "200": {
+            "description": "Catalog configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apis/iceberg/v1/{prefix}/namespaces": {
+      "get": {
+        "operationId": "listNamespaces",
+        "tags": ["Namespaces"],
+        "summary": "List namespaces",
+        "description": "List all namespaces at a certain level, optionally starting from a given parent namespace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "name": "parent",
+            "in": "query",
+            "required": false,
+            "description": "An optional namespace, encoded as a concatenation of namespace levels separated by the null byte (0x00)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of namespaces",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListNamespacesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createNamespace",
+        "tags": ["Namespaces"],
+        "summary": "Create a namespace",
+        "description": "Create a new namespace with the given properties",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNamespaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Namespace created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateNamespaceResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      }
+    },
+    "/apis/iceberg/v1/{prefix}/namespaces/{namespace}": {
+      "get": {
+        "operationId": "loadNamespaceMetadata",
+        "tags": ["Namespaces"],
+        "summary": "Load namespace metadata",
+        "description": "Return all stored metadata properties for a given namespace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Namespace metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetNamespaceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "head": {
+        "operationId": "namespaceExists",
+        "tags": ["Namespaces"],
+        "summary": "Check if a namespace exists",
+        "description": "Check if a namespace exists. Returns 204 if the namespace exists, 404 otherwise",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Namespace exists"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "dropNamespace",
+        "tags": ["Namespaces"],
+        "summary": "Drop a namespace",
+        "description": "Drop a namespace. The namespace must be empty",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Namespace successfully dropped"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      }
+    },
+    "/apis/iceberg/v1/{prefix}/namespaces/{namespace}/properties": {
+      "post": {
+        "operationId": "updateNamespaceProperties",
+        "tags": ["Namespaces"],
+        "summary": "Update namespace properties",
+        "description": "Set or remove properties on a namespace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNamespacePropertiesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Properties updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateNamespacePropertiesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables": {
+      "get": {
+        "operationId": "listTables",
+        "tags": ["Tables"],
+        "summary": "List tables in a namespace",
+        "description": "Return all table identifiers under this namespace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of table identifiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTablesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTable",
+        "tags": ["Tables"],
+        "summary": "Create a table in a namespace",
+        "description": "Create a table or start a create transaction",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "name": "X-Iceberg-Access-Delegation",
+            "in": "header",
+            "required": false,
+            "description": "Optional signal that the client wants the server to return access credentials",
+            "schema": {
+              "type": "string",
+              "enum": ["vended-credentials", "remote-signing"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTableRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadTableResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      }
+    },
+    "/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}": {
+      "get": {
+        "operationId": "loadTable",
+        "tags": ["Tables"],
+        "summary": "Load a table",
+        "description": "Load a table from the catalog",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/table"
+          },
+          {
+            "name": "X-Iceberg-Access-Delegation",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["vended-credentials", "remote-signing"]
+            }
+          },
+          {
+            "name": "snapshots",
+            "in": "query",
+            "required": false,
+            "description": "Control what snapshots to return. Defaults to 'all' if not specified",
+            "schema": {
+              "type": "string",
+              "enum": ["all", "refs"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Table metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadTableResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "head": {
+        "operationId": "tableExists",
+        "tags": ["Tables"],
+        "summary": "Check if a table exists",
+        "description": "Check if a table exists. Returns 204 if the table exists, 404 otherwise",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/table"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Table exists"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "dropTable",
+        "tags": ["Tables"],
+        "summary": "Drop a table",
+        "description": "Drop a table from the catalog",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/table"
+          },
+          {
+            "name": "purgeRequested",
+            "in": "query",
+            "required": false,
+            "description": "If true, purge the underlying table data",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Table successfully dropped"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/apis/iceberg/v1/{prefix}/tables/rename": {
+      "post": {
+        "operationId": "renameTable",
+        "tags": ["Tables"],
+        "summary": "Rename a table",
+        "description": "Rename a table from its current name to a new name",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameTableRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Table successfully renamed"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "prefix": {
+        "name": "prefix",
+        "in": "path",
+        "required": true,
+        "description": "An optional prefix to use for the catalog. A prefix can be used to distinguish between multiple catalogs",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "namespace": {
+        "name": "namespace",
+        "in": "path",
+        "required": true,
+        "description": "A namespace identifier as a URL-encoded concatenation of namespace levels, separated by the null byte (0x00)",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "table": {
+        "name": "table",
+        "in": "path",
+        "required": true,
+        "description": "A table name",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "NotFoundError": {
+        "description": "Not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IcebergErrorResponse"
+            }
+          }
+        }
+      },
+      "ConflictError": {
+        "description": "Conflict - Resource already exists or namespace is not empty",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IcebergErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "IcebergErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorModel"
+          }
+        }
+      },
+      "ErrorModel": {
+        "type": "object",
+        "required": ["message", "type", "code"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "type": {
+            "type": "string",
+            "description": "Error type identifier"
+          },
+          "code": {
+            "type": "integer",
+            "description": "HTTP error code"
+          },
+          "stack": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional stack trace"
+          }
+        }
+      },
+      "CatalogConfig": {
+        "type": "object",
+        "properties": {
+          "overrides": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Configuration overrides for the catalog"
+          },
+          "defaults": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Default configuration values for the catalog"
+          }
+        }
+      },
+      "Namespace": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "A namespace identifier as an array of levels"
+      },
+      "ListNamespacesResponse": {
+        "type": "object",
+        "required": ["namespaces"],
+        "properties": {
+          "next-page-token": {
+            "type": "string",
+            "description": "Token for the next page of results"
+          },
+          "namespaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Namespace"
+            }
+          }
+        }
+      },
+      "CreateNamespaceRequest": {
+        "type": "object",
+        "required": ["namespace"],
+        "properties": {
+          "namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Properties to set on the namespace"
+          }
+        }
+      },
+      "CreateNamespaceResponse": {
+        "type": "object",
+        "required": ["namespace"],
+        "properties": {
+          "namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "GetNamespaceResponse": {
+        "type": "object",
+        "required": ["namespace"],
+        "properties": {
+          "namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "UpdateNamespacePropertiesRequest": {
+        "type": "object",
+        "properties": {
+          "removals": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Properties to remove"
+          },
+          "updates": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Properties to update or add"
+          }
+        }
+      },
+      "UpdateNamespacePropertiesResponse": {
+        "type": "object",
+        "required": ["updated", "removed", "missing"],
+        "properties": {
+          "updated": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of property keys that were updated or added"
+          },
+          "removed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of property keys that were removed"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of property keys that were requested to be removed but were not present"
+          }
+        }
+      },
+      "TableIdentifier": {
+        "type": "object",
+        "required": ["namespace", "name"],
+        "properties": {
+          "namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          },
+          "name": {
+            "type": "string",
+            "description": "Table name"
+          }
+        }
+      },
+      "ListTablesResponse": {
+        "type": "object",
+        "required": ["identifiers"],
+        "properties": {
+          "next-page-token": {
+            "type": "string"
+          },
+          "identifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableIdentifier"
+            }
+          }
+        }
+      },
+      "Schema": {
+        "type": "object",
+        "required": ["type", "fields"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["struct"]
+          },
+          "schema-id": {
+            "type": "integer"
+          },
+          "identifier-field-ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StructField"
+            }
+          }
+        }
+      },
+      "StructField": {
+        "type": "object",
+        "required": ["id", "name", "type", "required"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "description": "Iceberg type"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "doc": {
+            "type": "string"
+          }
+        }
+      },
+      "PartitionSpec": {
+        "type": "object",
+        "required": ["spec-id", "fields"],
+        "properties": {
+          "spec-id": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartitionField"
+            }
+          }
+        }
+      },
+      "PartitionField": {
+        "type": "object",
+        "required": ["field-id", "source-id", "name", "transform"],
+        "properties": {
+          "field-id": {
+            "type": "integer"
+          },
+          "source-id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "transform": {
+            "type": "string"
+          }
+        }
+      },
+      "SortOrder": {
+        "type": "object",
+        "required": ["order-id", "fields"],
+        "properties": {
+          "order-id": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortField"
+            }
+          }
+        }
+      },
+      "SortField": {
+        "type": "object",
+        "required": ["source-id", "transform", "direction", "null-order"],
+        "properties": {
+          "source-id": {
+            "type": "integer"
+          },
+          "transform": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["asc", "desc"]
+          },
+          "null-order": {
+            "type": "string",
+            "enum": ["nulls-first", "nulls-last"]
+          }
+        }
+      },
+      "CreateTableRequest": {
+        "type": "object",
+        "required": ["name", "schema"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Table name"
+          },
+          "location": {
+            "type": "string",
+            "description": "Table location. If not specified, the location will be computed by the catalog"
+          },
+          "schema": {
+            "$ref": "#/components/schemas/Schema"
+          },
+          "partition-spec": {
+            "$ref": "#/components/schemas/PartitionSpec"
+          },
+          "write-order": {
+            "$ref": "#/components/schemas/SortOrder"
+          },
+          "stage-create": {
+            "type": "boolean",
+            "description": "If true, create the table as staged. The table will not be visible until it is committed"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TableMetadata": {
+        "type": "object",
+        "required": ["format-version", "table-uuid", "location"],
+        "properties": {
+          "format-version": {
+            "type": "integer",
+            "description": "Iceberg format version"
+          },
+          "table-uuid": {
+            "type": "string",
+            "description": "UUID of the table"
+          },
+          "location": {
+            "type": "string",
+            "description": "Table location"
+          },
+          "last-sequence-number": {
+            "type": "integer"
+          },
+          "last-updated-ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last-column-id": {
+            "type": "integer"
+          },
+          "current-schema-id": {
+            "type": "integer"
+          },
+          "schemas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Schema"
+            }
+          },
+          "default-spec-id": {
+            "type": "integer"
+          },
+          "partition-specs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartitionSpec"
+            }
+          },
+          "last-partition-id": {
+            "type": "integer"
+          },
+          "default-sort-order-id": {
+            "type": "integer"
+          },
+          "sort-orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortOrder"
+            }
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "current-snapshot-id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "snapshots": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "snapshot-log": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "metadata-log": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "refs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "LoadTableResponse": {
+        "type": "object",
+        "required": ["metadata"],
+        "properties": {
+          "metadata-location": {
+            "type": "string",
+            "description": "Location of the metadata file"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/TableMetadata"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Configuration for accessing the table"
+          }
+        }
+      },
+      "RenameTableRequest": {
+        "type": "object",
+        "required": ["source", "destination"],
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/TableIdentifier"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/TableIdentifier"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,20 +1,20 @@
 package io.apicurio.registry.protobuf.rules.validity;
 
-import com.google.protobuf.Descriptors;
+import com.squareup.wire.schema.SchemaException;
 import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
-import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,35 @@ public class ProtobufContentValidator implements ContentValidator {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
-                    ProtobufFile.toProtoFileElement(content.getContent().content());
+                    // Parse the protobuf content (syntax validation)
+                    ProtoFileElement protoFileElement = ProtobufFile
+                            .toProtoFileElement(content.getContent().content());
+                    // Attempt semantic validation by building a FileDescriptor
+                    // This validates: duplicate tags, invalid tag numbers, unknown types, etc.
+                    try {
+                        FileDescriptorUtils.protoFileToFileDescriptor(protoFileElement);
+                    } catch (RuntimeException e) {
+                        // Check if this is a semantic error or a resource loading issue
+                        Throwable cause = e.getCause();
+                        if (cause instanceof SchemaException) {
+                            // Semantic error from Wire's schema linker - re-throw to fail validation
+                            throw e;
+                        }
+                        if (cause instanceof IOException || cause instanceof NullPointerException) {
+                            // Resource loading failure (e.g., in native mode where proto resources
+                            // may not be available) - fall back to syntax-only validation.
+                            // Syntax validation already passed above, so continue.
+                            return;
+                        }
+                        // For other RuntimeExceptions, check the message for semantic error indicators
+                        String message = e.getMessage() != null ? e.getMessage() : "";
+                        if (message.contains("SchemaException") || message.contains("multiple fields share tag")
+                                || message.contains("unable to resolve")) {
+                            // This looks like a semantic error - re-throw
+                            throw e;
+                        }
+                        // Unknown error type - fall back to syntax-only to avoid breaking native mode
+                    }
                 }
                 else {
                     // Convert main content if binary (base64-encoded)
@@ -105,11 +133,5 @@ public class ProtobufContentValidator implements ContentValidator {
         catch (Exception e) {
             // Do nothing - we don't care if it can't validate. Another rule will handle that.
         }
-    }
-
-    private ProtobufSchema getFileDescriptorFromElement(ProtoFileElement fileElem)
-            throws Descriptors.DescriptorValidationException {
-        Descriptors.FileDescriptor fileDescriptor = FileDescriptorUtils.protoFileToFileDescriptor(fileElem);
-        return new ProtobufSchema(fileDescriptor, fileElem);
     }
 }

@@ -1,0 +1,84 @@
+$schema: https://apicur.io/schemas/prompt-template/v1
+templateId: code-review-prompt
+name: Code Review Analysis
+version: "1.0.0"
+
+template: |
+  You are a senior software engineer performing a code review.
+
+  ## Code to Review
+  Language: {{language}}
+  File: {{filename}}
+
+  ```{{language}}
+  {{code}}
+  ```
+
+  ## Review Focus Areas
+  {{#if focus_areas}}
+  Focus on: {{focus_areas}}
+  {{else}}
+  Perform a comprehensive review covering:
+  - Code quality and readability
+  - Potential bugs and edge cases
+  - Performance considerations
+  - Security vulnerabilities
+  - Best practices adherence
+  {{/if}}
+
+  ## Output Format
+  Provide your review as {{output_format}}.
+
+variables:
+  language:
+    type: string
+    description: "Programming language of the code"
+    required: true
+  filename:
+    type: string
+    description: "Name of the file being reviewed"
+    required: true
+  code:
+    type: string
+    description: "The code to review"
+    required: true
+  focus_areas:
+    type: string
+    description: "Specific areas to focus on (optional)"
+    required: false
+  output_format:
+    type: string
+    enum: ["markdown", "json", "inline-comments"]
+    default: "markdown"
+    description: "Format for the review output"
+
+outputSchema:
+  type: object
+  properties:
+    summary:
+      type: string
+      description: "High-level summary of the code review"
+    issues:
+      type: array
+      items:
+        type: object
+        properties:
+          severity:
+            type: string
+            enum: ["critical", "major", "minor", "info"]
+          line:
+            type: integer
+          description:
+            type: string
+          suggestion:
+            type: string
+    score:
+      type: integer
+      minimum: 0
+      maximum: 100
+      description: "Overall code quality score"
+
+metadata:
+  estimatedTokens: 500
+  recommendedModels: ["claude-opus-4-5", "claude-sonnet-4"]
+  tags: ["code-review", "analysis", "quality"]

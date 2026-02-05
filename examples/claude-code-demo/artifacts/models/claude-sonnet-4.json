@@ -1,0 +1,128 @@
+{
+  "$schema": "https://apicur.io/schemas/model-schema/v1",
+  "modelId": "claude-sonnet-4",
+  "provider": "anthropic",
+  "version": "2024-01",
+  "input": {
+    "type": "object",
+    "properties": {
+      "messages": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": ["user", "assistant", "system"]
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": ["role", "content"]
+        }
+      },
+      "max_tokens": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 64000
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "tools": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/tool"
+        }
+      },
+      "system": {
+        "type": "string",
+        "description": "System prompt for the conversation"
+      }
+    },
+    "required": ["messages"]
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string",
+        "enum": ["message"]
+      },
+      "role": {
+        "type": "string",
+        "enum": ["assistant"]
+      },
+      "content": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["text", "tool_use"]
+            },
+            "text": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "stop_reason": {
+        "type": "string",
+        "enum": ["end_turn", "max_tokens", "stop_sequence", "tool_use"]
+      },
+      "usage": {
+        "type": "object",
+        "properties": {
+          "input_tokens": {
+            "type": "integer"
+          },
+          "output_tokens": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "contextWindow": 200000,
+    "maxOutputTokens": 64000,
+    "capabilities": [
+      "chat",
+      "tool_use",
+      "vision",
+      "computer_use"
+    ],
+    "pricing": {
+      "inputPerMillion": 3.0,
+      "outputPerMillion": 15.0
+    },
+    "releaseDate": "2025-05-22",
+    "description": "Claude Sonnet 4 balances intelligence and speed, ideal for everyday coding tasks"
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "input_schema": {
+          "type": "object"
+        }
+      },
+      "required": ["name", "input_schema"]
+    }
+  }
+}

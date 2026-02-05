@@ -1,0 +1,40 @@
+{
+  "$schema": "https://apicur.io/schemas/agent-card/v1",
+  "name": "code-review-agent",
+  "description": "AI-powered code review agent that analyzes code quality, patterns, and potential issues",
+  "version": "1.0.0",
+  "url": "http://localhost:8081/agents/code-review",
+  "provider": {
+    "organization": "Apicurio Demo",
+    "url": "https://www.apicur.io"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "code-analysis",
+      "name": "Code Analysis",
+      "description": "Analyzes code for quality, patterns, and anti-patterns",
+      "tags": ["code", "analysis", "quality"]
+    },
+    {
+      "id": "bug-detection",
+      "name": "Bug Detection",
+      "description": "Identifies potential bugs and issues in code",
+      "tags": ["bugs", "issues", "detection"]
+    },
+    {
+      "id": "suggestion-generation",
+      "name": "Suggestion Generation",
+      "description": "Generates improvement suggestions for code",
+      "tags": ["suggestions", "improvements"]
+    }
+  ],
+  "authentication": {
+    "schemes": ["none"]
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text", "json"]
+}

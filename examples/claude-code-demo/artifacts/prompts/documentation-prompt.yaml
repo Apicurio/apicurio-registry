@@ -1,0 +1,88 @@
+$schema: https://apicur.io/schemas/prompt-template/v1
+templateId: documentation-prompt
+name: Documentation Generator
+version: "1.0.0"
+
+template: |
+  You are a technical documentation expert. Generate comprehensive documentation for the following code.
+
+  ## Code to Document
+  Language: {{language}}
+  File: {{filename}}
+  Documentation Type: {{doc_type}}
+
+  ```{{language}}
+  {{code}}
+  ```
+
+  ## Requirements
+  {{#if audience}}
+  Target Audience: {{audience}}
+  {{else}}
+  Target Audience: Developers familiar with {{language}}
+  {{/if}}
+
+  {{#if include_examples}}
+  Include usage examples for each public API.
+  {{/if}}
+
+  ## Output Format
+  Generate documentation in {{output_format}} format.
+
+variables:
+  language:
+    type: string
+    description: "Programming language of the code"
+    required: true
+  filename:
+    type: string
+    description: "Name of the file being documented"
+    required: true
+  code:
+    type: string
+    description: "The code to document"
+    required: true
+  doc_type:
+    type: string
+    enum: ["api", "readme", "javadoc", "tutorial"]
+    default: "api"
+    description: "Type of documentation to generate"
+  audience:
+    type: string
+    description: "Target audience for the documentation"
+    required: false
+  include_examples:
+    type: boolean
+    default: true
+    description: "Whether to include usage examples"
+  output_format:
+    type: string
+    enum: ["markdown", "html", "asciidoc"]
+    default: "markdown"
+    description: "Output format for documentation"
+
+outputSchema:
+  type: object
+  properties:
+    title:
+      type: string
+    description:
+      type: string
+    sections:
+      type: array
+      items:
+        type: object
+        properties:
+          heading:
+            type: string
+          content:
+            type: string
+          examples:
+            type: array
+            items:
+              type: string
+
+metadata:
+  estimatedTokens: 800
+  recommendedModels: ["claude-opus-4-5", "claude-sonnet-4"]
+  tags: ["documentation", "api-docs", "readme"]

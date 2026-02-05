@@ -1,0 +1,40 @@
+{
+  "$schema": "https://apicur.io/schemas/agent-card/v1",
+  "name": "documentation-agent",
+  "description": "AI-powered documentation agent that generates and maintains technical documentation",
+  "version": "1.0.0",
+  "url": "http://localhost:8082/agents/documentation",
+  "provider": {
+    "organization": "Apicurio Demo",
+    "url": "https://www.apicur.io"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "api-documentation",
+      "name": "API Documentation",
+      "description": "Generates comprehensive API documentation from code",
+      "tags": ["api", "documentation", "openapi"]
+    },
+    {
+      "id": "readme-generation",
+      "name": "README Generation",
+      "description": "Creates README files with usage examples and setup instructions",
+      "tags": ["readme", "documentation", "examples"]
+    },
+    {
+      "id": "code-comments",
+      "name": "Code Comments",
+      "description": "Adds meaningful comments and docstrings to code",
+      "tags": ["comments", "docstrings", "javadoc"]
+    }
+  ],
+  "authentication": {
+    "schemes": ["none"]
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text", "markdown"]
+}

@@ -1,2 +1,3 @@
 io.apicurio.registry.services.RegistryConfigSource
 io.apicurio.registry.config.config.impl.DynamicConfigSource
+io.apicurio.registry.config.FileBasedSecretsConfigSource

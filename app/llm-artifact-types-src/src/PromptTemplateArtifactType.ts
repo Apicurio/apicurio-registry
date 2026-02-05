@@ -32,6 +32,27 @@ interface VariableSchema {
     $ref?: string;
 }
 
+/**
+ * MCP (Model Context Protocol) extension for exposing prompt templates via MCP servers.
+ * When enabled, this prompt template can be served via MCP prompts/list and prompts/get.
+ *
+ * @see https://modelcontextprotocol.io/specification/2025-06-18/server/prompts
+ */
+interface MCPExtension {
+    /** Whether to expose this template via MCP prompts/list and prompts/get */
+    enabled: boolean;
+    /** MCP prompt name (lowercase with underscores). Defaults to templateId if not specified. */
+    name?: string;
+    /** Description shown in MCP prompts/list. Defaults to template description if not specified. */
+    description?: string;
+    /** Explicit MCP arguments. If not specified, auto-derived from variables. */
+    arguments?: Array<{
+        name: string;
+        description?: string;
+        required?: boolean;
+    }>;
+}
+
 interface PromptTemplate {
     $schema?: string;
     templateId: string;
@@ -42,6 +63,8 @@ interface PromptTemplate {
     variables?: Record<string, VariableSchema>;
     outputSchema?: Record<string, unknown>;
     metadata?: Record<string, unknown>;
+    /** Optional MCP extension for runtime serving via MCP servers */
+    mcp?: MCPExtension;
 }
 
 /**

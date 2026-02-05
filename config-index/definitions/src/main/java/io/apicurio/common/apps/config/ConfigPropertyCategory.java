@@ -14,6 +14,7 @@ public enum ConfigPropertyCategory {
      * Properties that belong to this category will not show up in the documentation.
      */
     CATEGORY_HIDDEN("hidden"),
+    CATEGORY_ICEBERG("iceberg"),
     CATEGORY_IMPORT("import"),
     CATEGORY_LIMITS("limits"),
     CATEGORY_LOG("log"),

@@ -262,6 +262,26 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Used by serializers and deserializers. If a schema can not be be retrieved from the Registry, it may retry a number of times. This configuration option controls the number of retry attempts.
 |`non-negative Number, or integer String`
 |`3`
+|`FAULT_TOLERANT_REFRESH`
+|`apicurio.registry.fault-tolerant-refresh`
+|Used by serializers and deserializers. If `true`, will log exceptions instead of throwing them when an error occurs trying to refresh a schema in the cache. This is useful for production situations where a stale schema is better than completely failing schema resolution. Note that this will not impact retry attempts, as retries are attempted before this flag is considered.
+|`boolean`
+|`false`
+|`BACKGROUND_REFRESH_ENABLED`
+|`apicurio.registry.background-refresh-enabled`
+|Used by serializers and deserializers. If `true`, enables background refresh of expired cache entries following the "stale-while-revalidate" pattern. When an entry expires and a stale value exists, the cache will return the stale value immediately (non-blocking) and trigger an asynchronous refresh in the background. This prevents latency spikes in high-concurrency scenarios where multiple threads would otherwise block waiting for cache refresh. If no stale value exists (first fetch), falls back to synchronous refresh behavior. When a background refresh fails, errors are logged and stale values continue to be served (similar to `FAULT_TOLERANT_REFRESH` behavior). This option complements `FAULT_TOLERANT_REFRESH`, which handles refresh failures rather than refresh latency.
+|`boolean`
+|`false`
+|`BACKGROUND_REFRESH_EXECUTOR_THREADS`
+|`apicurio.registry.background-refresh.executor-threads`
+|Used by serializers and deserializers when `BACKGROUND_REFRESH_ENABLED` is enabled. Specifies the number of threads in the background refresh executor pool. The executor uses a fixed thread pool with daemon threads to prevent blocking application shutdown. A value of 2-4 threads is typically sufficient for most workloads.
+|`non-negative Number, or integer String`
+|`2`
+|`BACKGROUND_REFRESH_TIMEOUT_MS`
+|`apicurio.registry.background-refresh.timeout-ms`
+|Used by serializers and deserializers when `BACKGROUND_REFRESH_ENABLED` is enabled. Specifies the maximum time (milliseconds) to wait for a background refresh operation to complete before timing out. If a background refresh exceeds this timeout, it will be interrupted and the stale value will continue to be served until the next refresh attempt.
+|`java.time.Duration, non-negative Number, or integer String`
+|`30000`
 |`USE_ID`
 |`apicurio.registry.use-id`
 |Used by serializers and deserializers. Configures to use the specified `IdOption` as the identifier for artifacts. Options are `globalId` and `contentId`. Instructs the serializer to write the specified ID to Kafka, and instructs the deserializer to use this ID to find the schema.

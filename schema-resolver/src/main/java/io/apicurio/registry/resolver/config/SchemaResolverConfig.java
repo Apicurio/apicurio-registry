@@ -86,6 +86,36 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final boolean FAULT_TOLERANT_REFRESH_DEFAULT = false;
 
     /**
+     * If {@code true}, enables background refresh of expired cache entries following the
+     * "stale-while-revalidate" pattern. When an entry expires and a stale value exists, the cache will
+     * return the stale value immediately (non-blocking) and trigger an asynchronous refresh in the
+     * background. This prevents latency spikes in high-concurrency scenarios where multiple threads would
+     * otherwise block waiting for cache refresh. If no stale value exists (first fetch), falls back to
+     * synchronous refresh behavior. This option complements {@link #FAULT_TOLERANT_REFRESH}, which handles
+     * refresh failures rather than refresh latency.
+     */
+    public static final String BACKGROUND_REFRESH_ENABLED = "apicurio.registry.background-refresh-enabled";
+    public static final boolean BACKGROUND_REFRESH_ENABLED_DEFAULT = false;
+
+    /**
+     * The number of threads in the background refresh executor pool. Only used when
+     * {@link #BACKGROUND_REFRESH_ENABLED} is enabled. The executor uses a fixed thread pool with daemon threads to
+     * prevent blocking application shutdown. A value of 2-4 threads is typically sufficient for most
+     * workloads. Valid values are positive integers.
+     */
+    public static final String BACKGROUND_REFRESH_EXECUTOR_THREADS = "apicurio.registry.background-refresh.executor-threads";
+    public static final long BACKGROUND_REFRESH_EXECUTOR_THREADS_DEFAULT = 2;
+
+    /**
+     * The maximum time (in milliseconds) to wait for a background refresh operation to complete before
+     * timing out. Only used when {@link #BACKGROUND_REFRESH_ENABLED} is enabled. If a background refresh exceeds
+     * this timeout, it will be interrupted and the stale value will continue to be served until the next
+     * refresh attempt. Valid values are positive integers.
+     */
+    public static final String BACKGROUND_REFRESH_TIMEOUT_MS = "apicurio.registry.background-refresh.timeout-ms";
+    public static final long BACKGROUND_REFRESH_TIMEOUT_MS_DEFAULT = 30000;
+
+    /**
      * Only applicable for serializers Optional, set explicitly the groupId used for querying/creating an
      * artifact. Overrides the groupId returned by the {@link ArtifactReferenceResolverStrategy}
      */
@@ -359,6 +389,18 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getBoolean(FAULT_TOLERANT_REFRESH);
     }
 
+    public boolean getBackgroundRefresh() {
+        return getBoolean(BACKGROUND_REFRESH_ENABLED);
+    }
+
+    public long getBackgroundRefreshExecutorThreads() {
+        return getLongNonNegative(BACKGROUND_REFRESH_EXECUTOR_THREADS);
+    }
+
+    public Duration getBackgroundRefreshTimeout() {
+        return getDurationNonNegativeMillis(BACKGROUND_REFRESH_TIMEOUT_MS);
+    }
+
     public boolean findLatest() {
         // Should be non-null, a default value is defined
         return getBoolean(FIND_LATEST_ARTIFACT);
@@ -492,6 +534,9 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(AUTO_REGISTER_ARTIFACT_IF_EXISTS, AUTO_REGISTER_ARTIFACT_IF_EXISTS_DEFAULT),
             entry(CACHE_LATEST, CACHE_LATEST_DEFAULT),
             entry(FAULT_TOLERANT_REFRESH, FAULT_TOLERANT_REFRESH_DEFAULT),
+            entry(BACKGROUND_REFRESH_ENABLED, BACKGROUND_REFRESH_ENABLED_DEFAULT),
+            entry(BACKGROUND_REFRESH_EXECUTOR_THREADS, BACKGROUND_REFRESH_EXECUTOR_THREADS_DEFAULT),
+            entry(BACKGROUND_REFRESH_TIMEOUT_MS, BACKGROUND_REFRESH_TIMEOUT_MS_DEFAULT),
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),

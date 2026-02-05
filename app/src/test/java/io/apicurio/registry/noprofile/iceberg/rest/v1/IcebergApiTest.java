@@ -19,7 +19,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 @QuarkusTest
 public class IcebergApiTest extends AbstractResourceTestBase {
 
-    private static final String ICEBERG_API_BASE = "/apis";
+    private static final String ICEBERG_API_BASE = "";
 
     @Test
     public void testGetConfig() {

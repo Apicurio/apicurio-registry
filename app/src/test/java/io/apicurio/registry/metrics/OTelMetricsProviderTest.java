@@ -1,8 +1,7 @@
 package io.apicurio.registry.metrics;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.data.LongPointData;
 import io.opentelemetry.sdk.metrics.data.MetricData;
@@ -20,37 +19,41 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit tests for {@link OTelMetricsProvider}.
  * Tests verify that OpenTelemetry metrics are correctly recorded with proper attributes.
+ *
+ * Note: This test uses an isolated SdkMeterProvider instead of GlobalOpenTelemetry
+ * to avoid classloader conflicts when running alongside Quarkus tests.
  */
 class OTelMetricsProviderTest {
 
+    private static final String INSTRUMENTATION_NAME = "io.apicurio.registry";
+
     private InMemoryMetricReader metricReader;
+    private SdkMeterProvider meterProvider;
     private OTelMetricsProvider metricsProvider;
 
     @BeforeEach
     void setUp() {
-        // Reset GlobalOpenTelemetry to ensure clean state
-        GlobalOpenTelemetry.resetForTest();
-
         // Create an in-memory metric reader for testing
         metricReader = InMemoryMetricReader.create();
 
-        // Create SDK with in-memory exporter
-        SdkMeterProvider meterProvider = SdkMeterProvider.builder()
+        // Create SDK with in-memory exporter - isolated from GlobalOpenTelemetry
+        meterProvider = SdkMeterProvider.builder()
                 .registerMetricReader(metricReader)
                 .build();
 
-        OpenTelemetrySdk.builder()
-                .setMeterProvider(meterProvider)
-                .buildAndRegisterGlobal();
+        // Get a meter from the isolated SDK
+        Meter meter = meterProvider.get(INSTRUMENTATION_NAME);
 
-        // Create and initialize the metrics provider
-        metricsProvider = new OTelMetricsProvider();
+        // Create the metrics provider with the test meter (uses package-private constructor)
+        metricsProvider = new OTelMetricsProvider(meter);
         metricsProvider.init();
     }
 
     @AfterEach
     void tearDown() {
-        GlobalOpenTelemetry.resetForTest();
+        if (meterProvider != null) {
+            meterProvider.close();
+        }
     }
 
     @Test

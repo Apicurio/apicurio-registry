@@ -7,7 +7,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Tag;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 /**
  * Integration tests for Debezium MySQL CDC with Apicurio Registry Avro
@@ -32,7 +32,7 @@ public class DebeziumMySQLAvroIntegrationIT extends DebeziumMySQLAvroBaseIT
     }
 
     @Override
-    protected MySQLContainer<?> getMySQLContainer() {
+    protected MySQLContainer getMySQLContainer() {
         return DebeziumMySQLContainerResource.mysqlContainer;
     }
 

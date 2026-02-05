@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.File;
@@ -51,7 +51,7 @@ public class ConfluentExporterTest {
             "APICURIO_URL", "http://localhost:8080/apis/registry/v3");
 
     private static Network network;
-    private static KafkaContainer kafka;
+    private static ConfluentKafkaContainer kafka;
     private static GenericContainer<?> schemaRegistry;
     private static GenericContainer<?> apicurioRegistry;
     private static String confluentUrl;
@@ -70,7 +70,7 @@ public class ConfluentExporterTest {
         network = Network.newNetwork();
 
         // Start Kafka
-        kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"))
+        kafka = new ConfluentKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"))
                 .withNetwork(network)
                 .withNetworkAliases("kafka");
         kafka.start();

@@ -6,7 +6,7 @@ import io.apicurio.tests.serdes.apicurio.debezium.KubernetesDebeziumContainerWra
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 import java.util.Collections;
 import java.util.Map;
@@ -20,7 +20,7 @@ public class DebeziumMySQLLocalConvertersResource extends DebeziumMySQLContainer
     private static final Logger log = LoggerFactory.getLogger(DebeziumMySQLLocalConvertersResource.class);
 
     // Shadow parent's static fields to avoid pollution between regular and local-converter tests
-    public static MySQLContainer<?> mysqlContainer;
+    public static MySQLContainer mysqlContainer;
     public static DebeziumContainer debeziumContainer;
 
     @Override

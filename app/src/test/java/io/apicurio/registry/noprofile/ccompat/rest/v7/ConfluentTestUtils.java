@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.apicurio.registry.utils.RandomUtil.RANDOM;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ConfluentTestUtils {
 
@@ -21,8 +21,9 @@ public class ConfluentTestUtils {
     public static void checkNumberOfVersions(RestService restService, int expected, String subject)
             throws IOException, RestClientException {
         List<Integer> versions = restService.getAllVersions(subject);
-        assertEquals("Expected " + expected + " registered versions under subject " + subject + ", but found "
-                + versions.size(), expected, versions.size());
+        assertEquals(expected, versions.size(),
+                "Expected " + expected + " registered versions under subject " + subject + ", but found "
+                        + versions.size());
     }
 
     /**

@@ -5,9 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
 
@@ -34,8 +34,8 @@ public class SharedDebeziumInfrastructure {
 
     // Shared containers
     public static KafkaContainer kafkaContainer;
-    public static MySQLContainer<?> mysqlContainer;
-    public static PostgreSQLContainer<?> postgresContainer;
+    public static MySQLContainer mysqlContainer;
+    public static PostgreSQLContainer postgresContainer;
     public static DebeziumContainer debeziumContainerMysql;
     public static DebeziumContainer debeziumContainerPostgres;
 
@@ -183,7 +183,7 @@ public class SharedDebeziumInfrastructure {
      * Creates Kafka container with appropriate network configuration.
      */
     private static KafkaContainer createKafkaContainer() {
-        KafkaContainer container = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.10"))
+        KafkaContainer container = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
                 .withNetwork(network)
                 .withKraft();
 
@@ -200,8 +200,8 @@ public class SharedDebeziumInfrastructure {
     /**
      * Creates MySQL container with appropriate network configuration.
      */
-    private static MySQLContainer<?> createMySQLContainer() {
-        MySQLContainer<?> container = new MySQLContainer<>(
+    private static MySQLContainer createMySQLContainer() {
+        MySQLContainer container = new MySQLContainer(
                 DockerImageName.parse("quay.io/debezium/example-mysql:2.5").asCompatibleSubstituteFor("mysql"))
                 .withDatabaseName("registry")
                 .withUsername("root")
@@ -231,8 +231,8 @@ public class SharedDebeziumInfrastructure {
     /**
      * Creates PostgreSQL container with appropriate network configuration.
      */
-    private static PostgreSQLContainer<?> createPostgreSQLContainer() {
-        PostgreSQLContainer<?> container = new PostgreSQLContainer<>(
+    private static PostgreSQLContainer createPostgreSQLContainer() {
+        PostgreSQLContainer container = new PostgreSQLContainer(
                 DockerImageName.parse("quay.io/debezium/postgres:15").asCompatibleSubstituteFor("postgres"))
                 .withDatabaseName("registry")
                 .withUsername("postgres")

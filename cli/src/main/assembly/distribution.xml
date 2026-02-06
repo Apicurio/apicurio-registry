@@ -10,7 +10,7 @@
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
-            <source>${project.build.directory}/acr_bash_completions</source>
+            <source>${project.build.directory}/acr_completions</source>
             <outputDirectory>/</outputDirectory>
         </file>
         <file>

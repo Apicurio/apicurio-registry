@@ -42,7 +42,7 @@ export type VersionOverviewTabContentProps = {
 export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabContentProps> = (props: VersionOverviewTabContentProps) => {
     const [isExpanded] = useState(true);
 
-    const drawerRef: any = React.useRef<HTMLDivElement>();
+    const drawerRef: any = React.useRef<HTMLDivElement>(null);
 
     const description = (): string => {
         return props.version.description || "No description";

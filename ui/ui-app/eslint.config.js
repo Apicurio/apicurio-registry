@@ -4,7 +4,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 
 export default [
     {
-        ignores: ["dist/**", "eslint.config.js", "public/**", ".fix_yaml.cjs", "configs/**"]
+        ignores: ["dist/**", "eslint.config.js", "public/**", ".fix_yaml.cjs", "configs/**", "config.js", "version.js"]
     },
     ...apicurioConfig,
     {

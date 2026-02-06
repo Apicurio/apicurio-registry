@@ -214,7 +214,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Override
     @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID })
     @Audited
-    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public SchemaId registerSchemaUnderSubject(String subject, Boolean normalize, String format, String groupId, RegisterSchemaRequest request) {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
         final GA ga = getGA(groupId, subject);

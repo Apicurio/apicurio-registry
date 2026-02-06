@@ -1294,8 +1294,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                         .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
-                // Apply any configured rules unless it is a DRAFT version
-                if (!firstVersionIsDraft) {
+                // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
+                if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
                     rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
                             artifactType, typedContent, RuleApplicationType.CREATE, references,
                             resolvedReferences);
@@ -1388,8 +1388,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(
                 data.getContent().getReferences());
 
-        // Apply rules unless the version is DRAFT
-        if (!isDraft) {
+        // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
+        if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
             // Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
@@ -1674,8 +1674,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        // Apply rules only if not a draft version
-        if (!isDraftVersion) {
+        // Apply rules only if not a draft version (unless draft production mode is enabled)
+        if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
             final TypedContent typedContent = TypedContent.create(content, contentType);

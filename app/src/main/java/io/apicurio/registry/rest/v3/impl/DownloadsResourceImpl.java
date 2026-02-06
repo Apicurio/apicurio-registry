@@ -7,6 +7,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v3.impl.shared.DataExporter;
+import io.apicurio.registry.rest.v3.impl.shared.ProtobufExporter;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
@@ -34,6 +35,9 @@ public class DownloadsResourceImpl {
     @Inject
     DataExporter exporter;
 
+    @Inject
+    ProtobufExporter protobufExporter;
+
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     @GET
     @Path("{downloadId}")
@@ -42,6 +46,13 @@ public class DownloadsResourceImpl {
         DownloadContextDto downloadContext = storage.consumeDownload(downloadId);
         if (downloadContext.getType() == DownloadContextType.EXPORT) {
             return exporter.exportData();
+        }
+
+        if (downloadContext.getType() == DownloadContextType.VERSION_EXPORT) {
+            return protobufExporter.exportVersionAsZip(
+                    downloadContext.getGroupId(),
+                    downloadContext.getArtifactId(),
+                    downloadContext.getVersion());
         }
 
         // TODO support other types of downloads (e.g. download content by contentId)

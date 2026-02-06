@@ -21,7 +21,7 @@
     "@kiota-community/kiota-wasm": "0.0.3",
     "@monaco-editor/react": "4.7.0",
     "@types/luxon": "3.7.1",
-    "@types/node": "22.19.7",
+    "@types/node": "22.19.9",
     "@types/pluralize": "0.0.33",
     "@types/react": "19.2.13",
     "@types/react-dom": "19.2.3",

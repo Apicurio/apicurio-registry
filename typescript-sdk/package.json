@@ -17,7 +17,6 @@
     "clean": "rimraf dist lib/generated-client .kiota",
     "kiota-info": "cross-env KIOTA_VERSION=v1.23.0 kiota info -l typescript",
     "generate-sources": "cross-env KIOTA_VERSION=v1.23.0 kiota generate --serializer none --deserializer none -l typescript -d ../common/src/main/resources/META-INF/openapi.json -c ApicurioRegistryClient -o ./lib/generated-client",
-    "dev": "vite",
     "build": "tsc --p ./tsconfig-build.json && vite build",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run"
@@ -33,23 +32,15 @@
   "devDependencies": {
     "@apicurio/eslint-config": "1.0.0",
     "@kiota-community/kiota-gen": "1.0.2",
-    "@types/node": "22.19.7",
-    "@types/react": "18.3.27",
-    "@types/react-dom": "18.3.7",
-    "@vitejs/plugin-react": "4.7.0",
-    "cross-env": "7.0.3",
+    "@types/node": "25.2.1",
+    "cross-env": "10.1.0",
     "eslint": "9.39.2",
-    "eslint-plugin-react-hooks": "7.0.1",
-    "eslint-plugin-react-refresh": "0.5.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-router-dom": "7.13.0",
     "rimraf": "6.1.2",
-    "typescript": "5.8.3",
+    "typescript": "5.9.3",
     "typescript-eslint": "8.54.0",
-    "uuid": "11.1.0",
-    "vite": "6.4.1",
+    "uuid": "13.0.0",
+    "vite": "7.3.1",
     "vite-plugin-dts": "4.5.4",
-    "vitest": "3.2.4"
+    "vitest": "4.0.18"
   }
 }

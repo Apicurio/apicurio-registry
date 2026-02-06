@@ -26,7 +26,7 @@ export const ProtoEditor: DraftEditor = (props: EditorProps) => {
     const defaultValue: string = draftContentToString(props.content);
     const [value, setValue] = useState<string>(defaultValue);
 
-    const editorRef: MutableRefObject<IStandaloneCodeEditor|undefined> = useRef<IStandaloneCodeEditor>();
+    const editorRef: MutableRefObject<IStandaloneCodeEditor|undefined> = useRef<IStandaloneCodeEditor>(undefined);
 
     useEffect(() => {
         const contentString: string = draftContentToString(props.content);

@@ -6,7 +6,7 @@ import {
     PageSection,
     useInterval
 } from "@patternfly/react-core";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import {
     CompareModal,
     EditorContext,

@@ -3,7 +3,7 @@ import "./EditorContext.css";
 import { Breadcrumb, BreadcrumbItem, Button, Icon, Popover } from "@patternfly/react-core";
 import { FromNow, If, ObjectDropdown } from "@apicurio/common-ui-components";
 import { Draft } from "@models/drafts";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";

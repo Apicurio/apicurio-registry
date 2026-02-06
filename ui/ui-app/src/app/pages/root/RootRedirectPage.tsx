@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate } from "react-router";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { PageProperties } from "@app/pages";
 

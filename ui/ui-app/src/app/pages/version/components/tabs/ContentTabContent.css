@@ -20,6 +20,10 @@
     visibility: hidden;
 }
 
+.code-wrapper .pf-v6-c-toggle-group__item > button:not(.pf-m-selected) {
+    background-color: white;
+}
+
 .formatting-buttons {
     position: absolute;
     right: 25px;

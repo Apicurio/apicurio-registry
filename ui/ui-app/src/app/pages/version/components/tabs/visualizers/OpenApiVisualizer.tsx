@@ -11,7 +11,7 @@ export type OpenApiVisualizerProps = {
 export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (props: OpenApiVisualizerProps) => {
     const config: ConfigService = useConfigService();
     const logger: LoggerService = useLoggerService();
-    const ref = useRef<any>();
+    const ref = useRef<any>(null);
 
     const oaiDocsUrl = (): string => {
         let rval: string = config.uiOaiDocsUrl() || "/docs";

@@ -2,10 +2,10 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ContentTabContent.css";
 import { ToggleGroup, ToggleGroupItem } from "@patternfly/react-core";
 import YAML from "yaml";
-import useResizeObserver from "use-resize-observer";
 import Editor from "@monaco-editor/react";
 import { detectContentType } from "@utils/content.utils.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
+import { useResizeObserver } from "@apicurio/common-ui-components";
 
 const TYPE_MAP: any = {};
 TYPE_MAP[ContentTypes.APPLICATION_PROTOBUF] = "protobuf";
@@ -91,14 +91,12 @@ export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (pro
                         buttonId="json"
                         isSelected={editorMode === "json"}
                         onChange={() => switchJsonYaml("json")}
-                        isDisabled={editorMode === "json"}
                     />
                     <ToggleGroupItem
                         text="YAML"
                         buttonId="yaml"
                         isSelected={editorMode === "yaml"}
                         onChange={() => switchJsonYaml("yaml")}
-                        isDisabled={editorMode === "yaml"}
                     />
                 </ToggleGroup>
             }

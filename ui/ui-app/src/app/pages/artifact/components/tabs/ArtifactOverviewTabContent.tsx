@@ -80,7 +80,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
     const [selectedVersions, setSelectedVersions] = useState<SearchedVersion[]>([]);
     const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
 
-    const drawerRef: any = React.useRef<HTMLDivElement>();
+    const drawerRef: any = React.useRef<HTMLDivElement>(null);
 
     const search: SearchService = useSearchService();
     const logger: LoggerService = useLoggerService();

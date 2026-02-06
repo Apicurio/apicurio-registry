@@ -1,15 +1,21 @@
 package io.apicurio.registry.protobuf.rules.compatibility;
 
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.protobuf.ProtobufDifference;
+import io.apicurio.registry.protobuf.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
+import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-import io.apicurio.registry.protobuf.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
+import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -17,8 +23,8 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
 
     @Override
     public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel,
-                                                          List<TypedContent> existingArtifacts, TypedContent proposedArtifact,
-                                                          Map<String, TypedContent> resolvedReferences) {
+            List<TypedContent> existingArtifacts, TypedContent proposedArtifact,
+            Map<String, TypedContent> resolvedReferences) {
         requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
         requireNonNull(existingArtifacts, "existingArtifacts MUST NOT be null");
         requireNonNull(proposedArtifact, "proposedArtifact MUST NOT be null");
@@ -58,84 +64,109 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
     @NotNull
     private CompatibilityExecutionResult testFullTransitive(List<TypedContent> existingSchemas,
             ProtobufFile fileAfter) {
-        ProtobufFile fileBefore;
+        Set<CompatibilityDifference> allDifferences = new HashSet<>();
         for (TypedContent existing : existingSchemas) {
-            fileBefore = new ProtobufFile(existing.getContent().content());
-            if (!testFull(fileBefore, fileAfter).isCompatible()) {
-                return CompatibilityExecutionResult
-                        .incompatible("The new version of the protobuf artifact is not fully compatible.");
-            }
+            ProtobufFile fileBefore = new ProtobufFile(existing.getContent().content());
+            // Collect backward differences
+            ProtobufCompatibilityCheckerLibrary backwardChecker = new ProtobufCompatibilityCheckerLibrary(
+                    fileBefore, fileAfter);
+            allDifferences.addAll(collectDifferences(backwardChecker));
+            // Collect forward differences
+            ProtobufCompatibilityCheckerLibrary forwardChecker = new ProtobufCompatibilityCheckerLibrary(
+                    fileAfter, fileBefore);
+            allDifferences.addAll(collectDifferences(forwardChecker));
         }
-        return CompatibilityExecutionResult.compatible();
+        return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
     }
 
     @NotNull
     private CompatibilityExecutionResult testFull(ProtobufFile fileBefore, ProtobufFile fileAfter) {
+        Set<CompatibilityDifference> allDifferences = new HashSet<>();
+        // Collect backward differences
         ProtobufCompatibilityCheckerLibrary backwardChecker = new ProtobufCompatibilityCheckerLibrary(
                 fileBefore, fileAfter);
+        allDifferences.addAll(collectDifferences(backwardChecker));
+        // Collect forward differences
         ProtobufCompatibilityCheckerLibrary forwardChecker = new ProtobufCompatibilityCheckerLibrary(
                 fileAfter, fileBefore);
-        if (!backwardChecker.validate() && !forwardChecker.validate()) {
-            return CompatibilityExecutionResult
-                    .incompatible("The new version of the protobuf artifact is not fully compatible.");
-        } else {
-            return CompatibilityExecutionResult.compatible();
-        }
+        allDifferences.addAll(collectDifferences(forwardChecker));
+        return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
     }
 
     @NotNull
     private CompatibilityExecutionResult testForwardTransitive(List<TypedContent> existingSchemas,
             ProtobufFile fileAfter) {
-        ProtobufFile fileBefore;
+        Set<CompatibilityDifference> allDifferences = new HashSet<>();
         for (TypedContent existing : existingSchemas) {
-            fileBefore = new ProtobufFile(existing.getContent().content());
+            ProtobufFile fileBefore = new ProtobufFile(existing.getContent().content());
             ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter,
                     fileBefore);
-            if (!checker.validate()) {
-                return CompatibilityExecutionResult
-                        .incompatible("The new version of the protobuf artifact is not forward compatible.");
-            }
+            allDifferences.addAll(collectDifferences(checker));
         }
-        return CompatibilityExecutionResult.compatible();
+        return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
     }
 
     @NotNull
     private CompatibilityExecutionResult testForward(ProtobufFile fileBefore, ProtobufFile fileAfter) {
         ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter,
                 fileBefore);
-        if (checker.validate()) {
-            return CompatibilityExecutionResult.compatible();
-        } else {
-            return CompatibilityExecutionResult
-                    .incompatible("The new version of the protobuf artifact is not forward compatible.");
-        }
+        Set<CompatibilityDifference> differences = collectDifferences(checker);
+        return CompatibilityExecutionResult.incompatibleOrEmpty(differences);
     }
 
     @NotNull
     private CompatibilityExecutionResult testBackwardTransitive(List<TypedContent> existingSchemas,
             ProtobufFile fileAfter) {
-        ProtobufFile fileBefore;
+        Set<CompatibilityDifference> allDifferences = new HashSet<>();
         for (TypedContent existing : existingSchemas) {
-            fileBefore = new ProtobufFile(existing.getContent().content());
+            ProtobufFile fileBefore = new ProtobufFile(existing.getContent().content());
             ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
                     fileAfter);
-            if (!checker.validate()) {
-                return CompatibilityExecutionResult
-                        .incompatible("The new version of the protobuf artifact is not backward compatible.");
-            }
+            allDifferences.addAll(collectDifferences(checker));
         }
-        return CompatibilityExecutionResult.compatible();
+        return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
     }
 
     @NotNull
     private CompatibilityExecutionResult testBackward(ProtobufFile fileBefore, ProtobufFile fileAfter) {
         ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
                 fileAfter);
-        if (checker.validate()) {
-            return CompatibilityExecutionResult.compatible();
-        } else {
-            return CompatibilityExecutionResult
-                    .incompatible("The new version of the protobuf artifact is not backward compatible.");
+        Set<CompatibilityDifference> differences = collectDifferences(checker);
+        return CompatibilityExecutionResult.incompatibleOrEmpty(differences);
+    }
+
+    /**
+     * Collects all differences from the compatibility checker and converts them to CompatibilityDifference
+     * objects.
+     */
+    private Set<CompatibilityDifference> collectDifferences(ProtobufCompatibilityCheckerLibrary checker) {
+        List<ProtobufDifference> differences = checker.findDifferences();
+        return differences.stream().map(this::toCompatibilityDifference).collect(Collectors.toSet());
+    }
+
+    /**
+     * Converts a ProtobufDifference to a CompatibilityDifference.
+     */
+    private CompatibilityDifference toCompatibilityDifference(ProtobufDifference diff) {
+        String message = diff.getMessage();
+        String context = extractContext(message);
+        return new SimpleCompatibilityDifference(message, context);
+    }
+
+    /**
+     * Extracts the context (message name) from a difference message. The context is used to provide
+     * additional location information in the error response.
+     */
+    private String extractContext(String message) {
+        if (message != null && message.contains("message ")) {
+            int startIndex = message.indexOf("message ") + "message ".length();
+            int endIndex = message.indexOf(",", startIndex);
+            if (endIndex == -1) {
+                endIndex = message.length();
+            }
+            String messageName = message.substring(startIndex, endIndex).trim();
+            return "/" + messageName;
         }
+        return "/";
     }
 }

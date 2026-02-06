@@ -3,7 +3,6 @@ package io.apicurio.registry.noprofile.rest.v3;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
-import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ArtifactType;

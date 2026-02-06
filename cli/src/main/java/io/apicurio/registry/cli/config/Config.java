@@ -8,6 +8,8 @@ import lombok.Setter;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.copy;
@@ -39,7 +41,42 @@ public final class Config {
     @Setter
     private Path acrCurrentHomePath;
 
+    private final Map<String, String> envOverrides = new HashMap<>();
+
     private Config() {
+    }
+
+    /**
+     * Gets an environment variable value, checking overrides first.
+     * This allows tests to inject environment variables without modifying the system environment.
+     *
+     * @param name the environment variable name
+     * @return the environment variable value (from override or system), or null if not set
+     */
+    public String getEnv(final String name) {
+        if (envOverrides.containsKey(name)) {
+            return envOverrides.get(name);
+        }
+        return System.getenv(name);
+    }
+
+    /**
+     * Sets an environment variable override for testing purposes.
+     * The override takes precedence over the actual system environment variable.
+     *
+     * @param name  the environment variable name
+     * @param value the value to return (null to simulate unset variable)
+     */
+    public void setEnvOverride(final String name, final String value) {
+        envOverrides.put(name, value);
+    }
+
+    /**
+     * Clears all environment variable overrides.
+     * Should be called in test teardown to avoid test interference.
+     */
+    public void clearEnvOverrides() {
+        envOverrides.clear();
     }
 
     public Path getAcrCurrentHomePath() {

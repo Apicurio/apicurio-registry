@@ -14,6 +14,10 @@
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
+            <source>${project.build.directory}/acr_zsh_completions</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+        <file>
             <source>${project.basedir}/README.md</source>
             <outputDirectory>/</outputDirectory>
         </file>

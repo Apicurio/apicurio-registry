@@ -1,0 +1,14 @@
+#!/usr/bin/env zsh
+
+export ACR_HOME="{{ACR_HOME}}"
+
+# Add ~/bin to PATH if not already present
+if [[ ":$PATH:" != *":$HOME/bin:"* ]]; then
+    export PATH="$HOME/bin:$PATH"
+fi
+
+# Enable bash completion compatibility in zsh
+autoload -U +X compinit && compinit
+autoload -U +X bashcompinit && bashcompinit
+
+source "$ACR_HOME/acr_zsh_completions"

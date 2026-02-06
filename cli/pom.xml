@@ -146,26 +146,46 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>generate-autocompletion-script</id>
+                        <id>generate-bash-autocompletion-script</id>
                         <phase>package</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-Dpicocli.autocomplete.systemExitOnError</argument>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>picocli.AutoComplete</argument>
+                                <argument>--force</argument><!-- overwrite if exists -->
+                                <argument>--completionScript</argument>
+                                <argument>${project.build.directory}/acr_bash_completions</argument>
+                                <argument>io.apicurio.registry.cli.Acr</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-zsh-autocompletion-script</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-Dpicocli.autocomplete.systemExitOnError</argument>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>picocli.AutoComplete</argument>
+                                <argument>--force</argument><!-- overwrite if exists -->
+                                <argument>--completionScript</argument>
+                                <argument>${project.build.directory}/acr_zsh_completions</argument>
+                                <argument>io.apicurio.registry.cli.Acr</argument>
+                            </arguments>
+                        </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <executable>java</executable>
-                    <arguments>
-                        <argument>-Dpicocli.autocomplete.systemExitOnError</argument>
-                        <argument>-cp</argument>
-                        <classpath/>
-                        <argument>picocli.AutoComplete</argument>
-                        <argument>--force</argument><!-- overwrite if exists -->
-                        <argument>--completionScript</argument>
-                        <argument>${project.build.directory}/acr_bash_completions</argument>
-                        <argument>io.apicurio.registry.cli.Acr</argument>
-                    </arguments>
-                </configuration>
             </plugin>
 
             <plugin>

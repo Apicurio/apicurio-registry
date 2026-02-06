@@ -10,6 +10,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MethodMetadata;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.cache.ImmutableCache;
 import io.apicurio.registry.rest.v3.IdsResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -43,6 +44,9 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Inject
     CommonResourceOperations common;
 
+    @Inject
+    RestConfig restConfig;
+
     private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String artifactId, String version,
                                    Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
@@ -59,7 +63,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         ContentWrapperDto dto = storage.getContentById(contentId);
         boolean isEmptyContent = ContentTypes.isEmptyContentType(dto.getContentType());
         boolean isDraft = dto.getContentHash() != null && dto.getContentHash().startsWith("draft:");
-        if (isEmptyContent || isDraft) {
+        if (isEmptyContent || (isDraft && !restConfig.isDraftProductionModeEnabled())) {
             throw new ContentNotFoundException(contentId);
         }
         ContentHandle content = dto.getContent();
@@ -77,8 +81,10 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     public Response getContentByGlobalId(long globalId, HandleReferencesType references,
                                          Boolean returnArtifactType) {
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
-        if (VersionState.DISABLED.equals(metaData.getState())
-                || VersionState.DRAFT.equals(metaData.getState())) {
+        if (VersionState.DISABLED.equals(metaData.getState())) {
+            throw new ArtifactNotFoundException(null, String.valueOf(globalId));
+        }
+        if (VersionState.DRAFT.equals(metaData.getState()) && !restConfig.isDraftProductionModeEnabled()) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
 

@@ -380,8 +380,14 @@ public class SqlContentRepository {
     /**
      * Make sure the content exists in the database (try to insert it). Regardless of whether it already
      * existed or not, return the contentId of the content in the DB.
+     *
+     * @param artifactType The type of artifact
+     * @param contentDto The content wrapper containing the content and references
+     * @param isDraft Whether this is draft content
+     * @param draftProductionMode When true and isDraft is true, use real content hashes instead of draft: prefix
      */
-    public Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
+    public Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft,
+            boolean draftProductionMode) {
         List<ArtifactReferenceDto> references = contentDto.getReferences();
 
         // Deduplicate references to handle cases where callers (like Avro converters)
@@ -399,9 +405,10 @@ public class SqlContentRepository {
         String serializedReferences;
 
         // Need to create the content hash and canonical content hash. If the content is DRAFT
-        // content, then do NOT calculate those hashes because we don't want DRAFT content to
-        // be looked up by those hashes.
-        if (isDraft) {
+        // content and draftProductionMode is NOT enabled, then do NOT calculate those hashes
+        // because we don't want DRAFT content to be looked up by those hashes.
+        // When draftProductionMode is enabled, drafts behave like production content with real hashes.
+        if (isDraft && !draftProductionMode) {
             contentHash = "draft:" + UUID.randomUUID().toString();
             canonicalContentHash = "draft:" + UUID.randomUUID().toString();
             serializedReferences = null;

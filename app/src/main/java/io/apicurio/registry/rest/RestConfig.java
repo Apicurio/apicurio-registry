@@ -44,6 +44,11 @@ public class RestConfig {
     @Info(category = CATEGORY_REST, description = "Enables artifact version mutability", availableSince = "3.0.2")
     Supplier<Boolean> artifactVersionMutabilityEnabled;
 
+    @Dynamic(label = "Draft production mode", description = "When selected, draft versions use real content hashes, are accessible via content lookups, and have rules evaluated.")
+    @ConfigProperty(name = "apicurio.rest.draft.production-mode.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_REST, description = "Enables production-like behavior for draft versions", availableSince = "3.0.x")
+    Supplier<Boolean> draftProductionModeEnabled;
+
     public int getDownloadMaxSize() {
         return this.downloadMaxSize;
     }
@@ -70,6 +75,10 @@ public class RestConfig {
 
     public boolean isArtifactVersionMutabilityEnabled() {
         return artifactVersionMutabilityEnabled.get();
+    }
+
+    public boolean isDraftProductionModeEnabled() {
+        return draftProductionModeEnabled.get();
     }
 
 }

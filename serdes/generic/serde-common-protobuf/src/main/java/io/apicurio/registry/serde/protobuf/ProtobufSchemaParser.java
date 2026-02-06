@@ -19,6 +19,7 @@ import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,8 +77,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences) {
         // Try to parse the binary format, in case the server has returned the descriptor format.
         try {
-            DescriptorProtos.FileDescriptorProto fileDescriptorProto = DescriptorProtos.FileDescriptorProto
-                    .parseFrom(rawSchema);
+            DescriptorProtos.FileDescriptorProto fileDescriptorProto = parseFileDescriptorProto(rawSchema);
             ProtoFileElement protoFileElement = FileDescriptorUtils
                     .fileDescriptorToProtoFile(fileDescriptorProto);
 
@@ -101,6 +101,28 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             return new ProtobufSchema(fd, protoFileElement);
         } catch (InvalidProtocolBufferException | Descriptors.DescriptorValidationException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Parse rawSchema as FileDescriptorProto, trying raw binary first,
+     * then falling back to base64-decoded binary.
+     */
+    private DescriptorProtos.FileDescriptorProto parseFileDescriptorProto(byte[] rawSchema)
+            throws InvalidProtocolBufferException {
+        try {
+            // First try: parse as raw binary
+            return DescriptorProtos.FileDescriptorProto.parseFrom(rawSchema);
+        } catch (InvalidProtocolBufferException e) {
+            // Second try: decode from base64 and parse
+            try {
+                String content = IoUtil.toString(rawSchema);
+                byte[] decoded = Base64.getDecoder().decode(content);
+                return DescriptorProtos.FileDescriptorProto.parseFrom(decoded);
+            } catch (IllegalArgumentException base64Error) {
+                // Not valid base64, throw original error
+                throw e;
+            }
         }
     }
 

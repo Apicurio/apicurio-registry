@@ -26,6 +26,19 @@ java -jar target/apicurio-registry-utils-exportConfluent-3.0.0-SNAPSHOT-runner.j
 
 To allow insecure https certificates, you can use `--insecure` parameter.
 
+## Run with Docker
+
+You can also run this tool using Docker. First, build the image:
+```bash
+docker build -t apicurio/registry-utils-export-confluent -f utils/exportConfluent/src/main/docker/Dockerfile.jvm .
+```
+
+Then run it:
+```bash
+docker run --rm -v $(pwd):/out apicurio/registry-utils-export-confluent http://host.docker.internal:8081/ --output /out/confluent-export.zip
+```
+Note: Use `host.docker.internal` to connect to a registry running on your host machine.
+
 ## Import data into Registry
 
 You can import your data into Apicurio Registry using curl:

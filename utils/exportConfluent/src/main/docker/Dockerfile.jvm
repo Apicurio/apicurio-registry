@@ -1,0 +1,27 @@
+FROM registry.access.redhat.com/ubi9/openjdk-17:latest AS build
+
+USER root
+
+WORKDIR /build
+
+COPY . /build
+
+RUN ./mvnw clean package -Pprod -DskipTests -pl utils/exportConfluent -am
+
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:latest
+
+ENV JAVA_APP_DIR=/deployments \
+    JAVA_OPTIONS="-Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+
+USER root
+
+COPY --from=build /build/utils/exportConfluent/target/quarkus-app /deployments/quarkus-app
+
+RUN chmod -R "ug=rwx" /deployments \
+    && chown -R 1001:0 /deployments
+
+USER 1001
+
+WORKDIR /deployments/quarkus-app
+
+ENTRYPOINT ["java", "-jar", "quarkus-run.jar"]

@@ -10,6 +10,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MethodMetadata;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.cache.ImmutableCache;
 import io.apicurio.registry.rest.v3.IdsResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -42,6 +43,9 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
     @Inject
     CommonResourceOperations common;
+
+    @Inject
+    RestConfig restConfig;
 
     private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String artifactId, String version,
                                    Response.ResponseBuilder builder) {
@@ -83,7 +87,14 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         }
 
         if (references == null) {
-            references = HandleReferencesType.PRESERVE;
+            // Check if admin has configured a default reference handling behavior
+            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+                references = HandleReferencesType.fromValue(configuredDefault.get());
+            } else {
+                // No configuration - use existing default (no behavior change)
+                references = HandleReferencesType.PRESERVE;
+            }
         }
 
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);

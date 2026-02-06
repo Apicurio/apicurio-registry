@@ -1,0 +1,201 @@
+# Claude Code + Apicurio Registry Integration Demo
+# Real-world setup with Ollama LLM, PostgreSQL persistence, and working A2A agents
+
+services:
+  # PostgreSQL - Persistent storage for Registry
+  postgres:
+    image: postgres:15-alpine
+    container_name: demo-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: apicurio
+      POSTGRES_PASSWORD: apicurio
+      POSTGRES_DB: apicurio-registry
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apicurio -d apicurio-registry"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - claude-demo
+
+  # Apicurio Registry - Central schema and agent registry
+  registry:
+    image: quay.io/apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry
+    ports:
+      - "8080:8080"
+    environment:
+      # PostgreSQL persistent storage
+      APICURIO_STORAGE_KIND: "sql"
+      APICURIO_STORAGE_SQL_KIND: "postgresql"
+      APICURIO_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/apicurio-registry"
+      APICURIO_DATASOURCE_USERNAME: "apicurio"
+      APICURIO_DATASOURCE_PASSWORD: "apicurio"
+
+      # Enable A2A protocol support
+      APICURIO_A2A_ENABLED: "true"
+      APICURIO_A2A_AGENT_NAME: "Apicurio Registry"
+      APICURIO_A2A_AGENT_DESCRIPTION: "Schema and API registry with A2A agent discovery - Claude Code integration demo"
+      APICURIO_A2A_AGENT_VERSION: "3.0.0"
+      APICURIO_A2A_AGENT_URL: "http://localhost:8080"
+      APICURIO_A2A_AGENT_PROVIDER_ORGANIZATION: "Apicurio"
+      APICURIO_A2A_AGENT_PROVIDER_URL: "https://www.apicur.io"
+      APICURIO_A2A_AGENT_CAPABILITIES_STREAMING: "true"
+      APICURIO_A2A_AGENT_CAPABILITIES_PUSH_NOTIFICATIONS: "false"
+
+      # Enable content mutability for demo
+      APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED: "true"
+
+      # CORS for UI and external clients
+      QUARKUS_HTTP_CORS: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+
+      # Logging
+      QUARKUS_LOG_LEVEL: INFO
+      QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: DEBUG
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - claude-demo
+    restart: unless-stopped
+
+  # Apicurio Registry UI - Web interface for managing artifacts
+  registry-ui:
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-ui
+    ports:
+      - "8888:8080"
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    depends_on:
+      registry:
+        condition: service_healthy
+    networks:
+      - claude-demo
+    restart: unless-stopped
+
+  # Ollama - Local LLM Server for AI-powered agents
+  ollama:
+    image: ollama/ollama:latest
+    container_name: demo-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_NUM_CTX: "4096"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - claude-demo
+    restart: unless-stopped
+
+  # Ollama Model Initialization - Pulls llama3.2 on first start
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: demo-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      OLLAMA_HOST: "http://ollama:11434"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "============================================"
+        echo "Pulling llama3.2 model for code review..."
+        echo "This may take a few minutes on first run."
+        echo "============================================"
+        ollama pull llama3.2
+        echo "============================================"
+        echo "Model llama3.2 is ready!"
+        echo "============================================"
+    networks:
+      - claude-demo
+
+  # Code Review Agent - LLM-powered A2A agent
+  code-review-agent:
+    build:
+      context: ./agents/code-review-agent
+      dockerfile: Dockerfile
+    container_name: demo-code-review-agent
+    ports:
+      - "8081:8080"
+    environment:
+      OLLAMA_URL: "http://ollama:11434"
+      OLLAMA_MODEL: "llama3.2"
+      REGISTRY_URL: "http://registry:8080"
+      AGENT_PORT: "8080"
+    depends_on:
+      ollama:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+    networks:
+      - claude-demo
+    restart: unless-stopped
+
+  # MCP Server - Model Context Protocol server for Claude Code integration
+  mcp-server:
+    image: quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot
+    container_name: apicurio-mcp-server
+    environment:
+      REGISTRY_URL: http://registry:8080
+      APICURIO_MCP_SAFE_MODE: "false"
+      APICURIO_MCP_PAGING_LIMIT: "200"
+      APICURIO_MCP_PAGING_LIMIT_ERROR: "false"
+    depends_on:
+      registry:
+        condition: service_healthy
+    networks:
+      - claude-demo
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+    name: claude-demo-postgres
+  ollama_data:
+    name: claude-demo-ollama
+
+networks:
+  claude-demo:
+    driver: bridge
+    name: claude-demo-network
+
+# Usage:
+#   Start all services:
+#     docker-compose up -d
+#
+#   Wait for model download (first time only):
+#     docker-compose logs -f ollama-init
+#
+#   Run the setup script:
+#     ./demo-setup.sh
+#
+#   Run the end-to-end demo:
+#     ./run-demo.sh
+#
+# Endpoints:
+#   - Registry API:  http://localhost:8080/apis/registry/v3
+#   - Registry UI:   http://localhost:8888
+#   - A2A Discovery: http://localhost:8080/.well-known/agent.json
+#   - Agent Search:  http://localhost:8080/.well-known/agents
+#   - Code Review:   http://localhost:8081/agents/code-review
+#   - Ollama API:    http://localhost:11434

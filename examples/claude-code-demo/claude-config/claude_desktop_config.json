@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "apicurio-registry": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "${APICURIO_MCP_JAR:-/path/to/apicurio-registry-mcp-server.jar}"
+      ],
+      "env": {
+        "REGISTRY_URL": "http://localhost:8080",
+        "APICURIO_MCP_SAFE_MODE": "false",
+        "APICURIO_MCP_PAGING_LIMIT": "100",
+        "APICURIO_MCP_PAGING_LIMIT_ERROR": "false"
+      }
+    }
+  }
+}

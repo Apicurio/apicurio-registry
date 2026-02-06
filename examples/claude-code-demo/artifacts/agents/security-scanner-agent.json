@@ -1,0 +1,46 @@
+{
+  "$schema": "https://apicur.io/schemas/agent-card/v1",
+  "name": "security-scanner-agent",
+  "description": "AI-powered security scanner that identifies vulnerabilities and security issues in code",
+  "version": "1.0.0",
+  "url": "http://localhost:8083/agents/security-scanner",
+  "provider": {
+    "organization": "Apicurio Demo",
+    "url": "https://www.apicur.io"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true
+  },
+  "skills": [
+    {
+      "id": "vulnerability-detection",
+      "name": "Vulnerability Detection",
+      "description": "Identifies OWASP Top 10 and common security vulnerabilities",
+      "tags": ["security", "vulnerabilities", "owasp"]
+    },
+    {
+      "id": "dependency-audit",
+      "name": "Dependency Audit",
+      "description": "Scans dependencies for known CVEs and security issues",
+      "tags": ["dependencies", "cve", "audit"]
+    },
+    {
+      "id": "secrets-detection",
+      "name": "Secrets Detection",
+      "description": "Finds hardcoded secrets, API keys, and credentials in code",
+      "tags": ["secrets", "credentials", "api-keys"]
+    },
+    {
+      "id": "security-recommendations",
+      "name": "Security Recommendations",
+      "description": "Provides actionable security improvement recommendations",
+      "tags": ["recommendations", "best-practices", "hardening"]
+    }
+  ],
+  "authentication": {
+    "schemes": ["bearer", "none"]
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["json", "sarif"]
+}

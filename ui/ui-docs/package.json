@@ -13,8 +13,8 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "1.0.0",
-    "@types/react": "18.3.27",
-    "@types/react-dom": "18.3.7",
+    "@types/react": "19.0.6",
+    "@types/react-dom": "19.0.5",
     "@vitejs/plugin-react-swc": "3.11.0",
     "eslint": "9.39.2",
     "eslint-plugin-react-hooks": "7.0.1",
@@ -28,8 +28,8 @@
   "dependencies": {
     "core-js": "3.48.0",
     "mobx": "6.15.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "redoc": "2.5.2",
     "styled-components": "6.3.8",
     "yaml": "^2.8.2"

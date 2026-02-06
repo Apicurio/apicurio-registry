@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./GroupPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router";
 import {
     EXPLORE_PAGE_IDX,
     GroupOverviewTabContent,

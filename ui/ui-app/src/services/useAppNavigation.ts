@@ -1,4 +1,4 @@
-import { NavigateFunction, useNavigate } from "react-router-dom";
+import { NavigateFunction, useNavigate } from "react-router";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 const navigateTo = (config: ConfigService, path: string, navigateFunc: NavigateFunction): void => {

@@ -745,6 +745,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.2.6`
 |Skip SSL validation when downloading artifacts from URL
+|`apicurio.rest.artifact.references.default-handling`
+|`optional<string>`
+|
+|`3.1.0`
+|Optional configuration to override default reference handling behavior. When not set, uses API defaults (PRESERVE for v3, false for v2, none for ccompat).
 |`apicurio.rest.deletion.artifact-version.enabled`
 |`boolean [dynamic]`
 |`false`

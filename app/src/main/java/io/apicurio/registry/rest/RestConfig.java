@@ -5,6 +5,7 @@ import io.apicurio.common.apps.config.Info;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_REST;
@@ -44,6 +45,10 @@ public class RestConfig {
     @Info(category = CATEGORY_REST, description = "Enables artifact version mutability", availableSince = "3.0.2")
     Supplier<Boolean> artifactVersionMutabilityEnabled;
 
+    @ConfigProperty(name = "apicurio.rest.artifact.references.default-handling")
+    @Info(category = CATEGORY_REST, description = "Optional configuration to override default reference handling behavior. When not set, uses API defaults (PRESERVE for v3, false for v2, none for ccompat).", availableSince = "3.1.0")
+    Optional<String> defaultReferenceHandling;
+
     public int getDownloadMaxSize() {
         return this.downloadMaxSize;
     }
@@ -70,6 +75,10 @@ public class RestConfig {
 
     public boolean isArtifactVersionMutabilityEnabled() {
         return artifactVersionMutabilityEnabled.get();
+    }
+
+    public Optional<String> getDefaultReferenceHandling() {
+        return defaultReferenceHandling;
     }
 
 }

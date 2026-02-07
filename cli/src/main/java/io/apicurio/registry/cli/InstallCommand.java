@@ -21,30 +21,92 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 @Command(
         name = "install",
-        description = "Install the CLI to the user's home directory and configure bash integration"
+        description = "Install the CLI to the user's home directory and configure shell integration"
 )
 public class InstallCommand extends AbstractCommand {
 
     private static final Logger log = LogManager.getRootLogger();
 
+    // File names
+    private static final String ACR_SCRIPT = "acr";
+    private static final String ACR_JAR = "acr.jar";
+    private static final String README = "README.md";
+    private static final String CONFIG_JSON = "config.json";
+
+    // Shell-specific files
+    private static final String BASH_COMPLETIONS = "acr_bash_completions";
+    private static final String BASH_ENV = "acr_bash_env";
+    private static final String ZSH_COMPLETIONS = "acr_zsh_completions";
+    private static final String ZSH_ENV = "acr_zsh_env";
+
+    // Shell config files
+    private static final String BASHRC = ".bashrc";
+    private static final String ZSHRC = ".zshrc";
+
+    // Directory names
+    private static final String BIN_DIR = "bin";
+
+    // Placeholders and markers
+    private static final String ACR_HOME_PLACEHOLDER = "{{ACR_HOME}}";
+    private static final String CLI_MARKER_COMMENT = " # Apicurio Registry CLI";
+
+    // Environment variable names
+    private static final String ENV_ACR_INSTALL_PATH = "ACR_INSTALL_PATH";
+    private static final String ENV_ACR_HOME = "ACR_HOME";
+    private static final String ENV_HOME = "HOME";
+
+    // OS detection
+    private static final String OS_NAME_PROPERTY = "os.name";
+    private static final String OS_MAC_IDENTIFIER = "mac";
+    private static final String OS_DARWIN_IDENTIFIER = "darwin";
+
+    /**
+     * Gets an environment variable value. Protected to allow test overriding.
+     *
+     * @param name the environment variable name
+     * @return the environment variable value, or null if not set
+     */
+    protected String getEnv(final String name) {
+        return System.getenv(name);
+    }
+
     @Override
-    public void run(OutputBuffer output) throws IOException {
+    public void run(final OutputBuffer output) throws IOException {
         // Location of the directory where the current CLI .jar is running from
-        var currentPath = Config.getInstance().getAcrCurrentHomePath();
+        final Path currentPath = Config.getInstance().getAcrCurrentHomePath();
         log.debug("Current home path: {}", currentPath);
 
+        final Path cliHomePath = determineCliHomePath();
+        final boolean isMacOS = detectMacOS();
+
+        copyFiles(currentPath, cliHomePath, isMacOS);
+        final Path userHomePath = getUserHomePath();
+        final Path binPath = ensureBinDirectoryExists(userHomePath, output);
+
+        createSymlinks(binPath, cliHomePath, isMacOS);
+        final Path shellConfigPath = updateShellConfiguration(userHomePath, binPath, isMacOS);
+
+        output.writeStdOutLine("Installation complete. Please restart your terminal or run `source " + shellConfigPath + "`.");
+    }
+
+    /**
+     * Determines the CLI home path where files will be installed.
+     * Uses ACR_HOME if set and valid, otherwise uses ACR_INSTALL_PATH.
+     */
+    private Path determineCliHomePath() throws IOException {
         // Default home directory, where the CLI should be installed
-        var installDir = System.getenv("ACR_INSTALL_PATH");
+        final String installDir = getEnv(ENV_ACR_INSTALL_PATH);
         if (isBlank(installDir)) {
-            throw new CliException("Environment variable ACR_INSTALL_PATH is not set.", VALIDATION_ERROR_RETURN_CODE);
+            throw new CliException("Environment variable " + ENV_ACR_INSTALL_PATH + " is not set.", VALIDATION_ERROR_RETURN_CODE);
         }
-        log.debug("ACR_INSTALL_PATH={}", installDir);
-        var installDirPath = Paths.get(installDir).normalize().toAbsolutePath();
+        log.debug("{}={}", ENV_ACR_INSTALL_PATH, installDir);
+        final Path installDirPath = Paths.get(installDir).normalize().toAbsolutePath();
 
         // Location of the CLI home directory, set only if the CLI is already installed
-        var cliHome = System.getenv("ACR_HOME");
-        log.debug("ACR_HOME={}", cliHome);
+        final String cliHome = getEnv(ENV_ACR_HOME);
+        log.debug("{}={}", ENV_ACR_HOME, cliHome);
         Path cliHomePath = null;
+
         if (!isBlank(cliHome)) {
             cliHomePath = Path.of(cliHome).normalize().toAbsolutePath();
             if (!Files.exists(cliHomePath)) {
@@ -59,55 +121,110 @@ public class InstallCommand extends AbstractCommand {
             cliHomePath = installDirPath;
         }
 
-        // Copy files:
-        Files.copy(currentPath.resolve("acr"), cliHomePath.resolve("acr"), REPLACE_EXISTING);
-        Files.copy(currentPath.resolve("acr.jar"), cliHomePath.resolve("acr.jar"), REPLACE_EXISTING);
-        Files.copy(currentPath.resolve("acr_bash_completions"), cliHomePath.resolve("acr_bash_completions"), REPLACE_EXISTING);
-        Files.copy(currentPath.resolve("acr_bash_env"), cliHomePath.resolve("acr_bash_env"), REPLACE_EXISTING);
-        Files.copy(currentPath.resolve("README.md"), cliHomePath.resolve("README.md"), REPLACE_EXISTING);
-        // `config.json` is intentionally not copied if it exists to preserve user settings
-        if (!Files.exists(cliHomePath.resolve("config.json"))) {
-            Files.copy(currentPath.resolve("config.json"), cliHomePath.resolve("config.json"));
+        return cliHomePath;
+    }
+
+    /**
+     * Detects if the current OS is macOS.
+     */
+    private boolean detectMacOS() {
+        final String osName = System.getProperty(OS_NAME_PROPERTY).toLowerCase();
+        return osName.contains(OS_MAC_IDENTIFIER) || osName.contains(OS_DARWIN_IDENTIFIER);
+    }
+
+    /**
+     * Copies all necessary files to the CLI home directory.
+     */
+    private void copyFiles(final Path currentPath, final Path cliHomePath, final boolean isMacOS) throws IOException {
+        // Copy common files
+        Files.copy(currentPath.resolve(ACR_SCRIPT), cliHomePath.resolve(ACR_SCRIPT), REPLACE_EXISTING);
+        Files.copy(currentPath.resolve(ACR_JAR), cliHomePath.resolve(ACR_JAR), REPLACE_EXISTING);
+        Files.copy(currentPath.resolve(README), cliHomePath.resolve(README), REPLACE_EXISTING);
+
+        // Copy shell-specific files
+        copyShellSpecificFiles(currentPath, cliHomePath, isMacOS);
+
+        // Copy config.json only if it doesn't exist (preserve user settings)
+        if (!Files.exists(cliHomePath.resolve(CONFIG_JSON))) {
+            Files.copy(currentPath.resolve(CONFIG_JSON), cliHomePath.resolve(CONFIG_JSON));
         }
+    }
 
-        // Set ACR_HOME
-        FileUtils.replaceInFile(cliHomePath.resolve("acr_bash_env"), "{{ACR_HOME}}", cliHomePath.toAbsolutePath().toString());
+    /**
+     * Copies shell-specific completion and environment files based on OS.
+     */
+    private void copyShellSpecificFiles(final Path currentPath, final Path cliHomePath, final boolean isMacOS) throws IOException {
+        if (isMacOS) {
+            Files.copy(currentPath.resolve(ZSH_COMPLETIONS), cliHomePath.resolve(ZSH_COMPLETIONS), REPLACE_EXISTING);
+            Files.copy(currentPath.resolve(ZSH_ENV), cliHomePath.resolve(ZSH_ENV), REPLACE_EXISTING);
+            FileUtils.replaceInFile(cliHomePath.resolve(ZSH_ENV), ACR_HOME_PLACEHOLDER, cliHomePath.toAbsolutePath().toString());
+        } else {
+            Files.copy(currentPath.resolve(BASH_COMPLETIONS), cliHomePath.resolve(BASH_COMPLETIONS), REPLACE_EXISTING);
+            Files.copy(currentPath.resolve(BASH_ENV), cliHomePath.resolve(BASH_ENV), REPLACE_EXISTING);
+            FileUtils.replaceInFile(cliHomePath.resolve(BASH_ENV), ACR_HOME_PLACEHOLDER, cliHomePath.toAbsolutePath().toString());
+        }
+    }
 
-        var userHome = System.getenv("HOME");
+    /**
+     * Gets the user's home directory path.
+     */
+    private Path getUserHomePath() {
+        final String userHome = getEnv(ENV_HOME);
         if (isBlank(userHome)) {
-            throw new CliException("HOME environment variable is not set.", VALIDATION_ERROR_RETURN_CODE);
+            throw new CliException(ENV_HOME + " environment variable is not set.", VALIDATION_ERROR_RETURN_CODE);
         }
-        var userHomePath = Path.of(userHome).normalize().toAbsolutePath();
+        return Path.of(userHome).normalize().toAbsolutePath();
+    }
 
-        var binPath = userHomePath.resolve("bin");
+    /**
+     * Ensures the ~/bin directory exists, creating it if necessary.
+     */
+    private Path ensureBinDirectoryExists(final Path userHomePath, final OutputBuffer output) throws IOException {
+        final Path binPath = userHomePath.resolve(BIN_DIR);
         if (!Files.exists(binPath)) {
             Files.createDirectories(binPath);
             output.writeStdOutLine("Created bin directory at '" + binPath + "'. " +
                     "Make sure your system is configured to look for executable files in this directory.");
         }
+        return binPath;
+    }
 
-        FileUtils.createLink(binPath.resolve("acr"), cliHomePath.resolve("acr"));
-        FileUtils.createLink(binPath.resolve("acr_bash_env"), cliHomePath.resolve("acr_bash_env"));
+    /**
+     * Creates symlinks for the CLI executable and shell environment files.
+     */
+    private void createSymlinks(final Path binPath, final Path cliHomePath, final boolean isMacOS) throws IOException {
+        FileUtils.createLink(binPath.resolve(ACR_SCRIPT), cliHomePath.resolve(ACR_SCRIPT));
 
-        // Update .bashrc
-        // TODO: `.bashrc` does not exist on macOS by default, support `.zshrc`. Same for the completions.
-        var bashrcPath = userHomePath.resolve(".bashrc");
-        if (Files.exists(bashrcPath)) {
-            // Append "source (binPath)/acr_bash_env" to .bashrc if not already present
-            var sourceCmd = "source " + binPath.resolve("acr_bash_env");
-            if (!FileUtils.findInFile(bashrcPath, sourceCmd)) {
+        if (isMacOS) {
+            FileUtils.createLink(binPath.resolve(ZSH_ENV), cliHomePath.resolve(ZSH_ENV));
+        } else {
+            FileUtils.createLink(binPath.resolve(BASH_ENV), cliHomePath.resolve(BASH_ENV));
+        }
+    }
+
+    /**
+     * Updates the shell configuration file (.bashrc or .zshrc) to source the CLI environment.
+     * Returns the path to the shell configuration file.
+     */
+    private Path updateShellConfiguration(final Path userHomePath, final Path binPath, final boolean isMacOS) throws IOException {
+        final String shellEnvFile = isMacOS ? ZSH_ENV : BASH_ENV;
+        final Path shellConfigPath = isMacOS ? userHomePath.resolve(ZSHRC) : userHomePath.resolve(BASHRC);
+
+        if (Files.exists(shellConfigPath)) {
+            final String sourceCmd = "source " + binPath.resolve(shellEnvFile);
+            if (!FileUtils.findInFile(shellConfigPath, sourceCmd)) {
                 try {
-                    Files.writeString(bashrcPath, "\n" + sourceCmd + " # Apicurio Registry CLI\n", StandardOpenOption.APPEND);
-                    log.debug("Updated .bashrc at: {}", bashrcPath);
-
-                } catch (IOException e) {
-                    log.error("Failed to update .bashrc at: {}", bashrcPath, e);
+                    Files.writeString(shellConfigPath, "\n" + sourceCmd + CLI_MARKER_COMMENT + "\n", StandardOpenOption.APPEND);
+                    log.debug("Updated {} at: {}", shellConfigPath.getFileName(), shellConfigPath);
+                } catch (final IOException e) {
+                    log.error("Failed to update {} at: {}", shellConfigPath.getFileName(), shellConfigPath, e);
                     throw new RuntimeException(e);
                 }
             }
         } else {
-            log.warn("Could not update '.bashrc'. File does not exist at: {}", bashrcPath);
+            log.warn("Could not update '{}'. File does not exist at: {}", shellConfigPath.getFileName(), shellConfigPath);
         }
-        output.writeStdOutLine("Installation complete. Please restart your terminal or run `source " + bashrcPath + "`.");
+
+        return shellConfigPath;
     }
 }

@@ -612,7 +612,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
-        return contentRepository.ensureContentAndGetId(artifactType, contentDto, isDraft);
+        return contentRepository.ensureContentAndGetId(artifactType, contentDto, isDraft,
+                restConfig.isDraftProductionModeEnabled());
     }
 
     @Override

@@ -1,0 +1,105 @@
+{
+  "$schema": "https://apicur.io/schemas/agent-workflow/v1",
+  "workflowId": "code-quality-pipeline",
+  "name": "Code Quality Pipeline",
+  "description": "Multi-agent workflow for comprehensive code quality analysis. Demonstrates cross-artifact references, context chaining, and conditional execution.",
+  "version": "1.0.0",
+  "triggers": ["pull_request", "manual", "scheduled"],
+  "context": {
+    "accumulated": true,
+    "maxTokens": 50000,
+    "persistResults": true
+  },
+  "inputs": {
+    "code": {
+      "type": "string",
+      "required": true,
+      "description": "Source code to analyze"
+    },
+    "language": {
+      "type": "string",
+      "required": true,
+      "description": "Programming language"
+    },
+    "filename": {
+      "type": "string",
+      "required": true,
+      "description": "File name for context"
+    },
+    "severity_threshold": {
+      "type": "string",
+      "enum": ["critical", "major", "minor", "info"],
+      "default": "minor",
+      "description": "Minimum severity to report"
+    }
+  },
+  "steps": [
+    {
+      "id": "security-scan",
+      "name": "Security Vulnerability Analysis",
+      "description": "Scan for security vulnerabilities including OWASP Top 10",
+      "agent": "urn:apicurio:claude-demo.agents/security-scanner-agent@1.0.0",
+      "promptTemplate": "urn:apicurio:claude-demo.prompts/security-scan-prompt@1.0.0",
+      "model": "urn:apicurio:claude-demo.models/claude-sonnet-4@1.0.0",
+      "timeout": "60s",
+      "retries": 2,
+      "onFailure": "continue",
+      "outputMapping": {
+        "vulnerabilities": "$.issues[?(@.category=='security')]",
+        "securityScore": "$.score"
+      }
+    },
+    {
+      "id": "code-review",
+      "name": "Code Quality Review",
+      "description": "Comprehensive code review with context from security scan",
+      "agent": "urn:apicurio:claude-demo.agents/code-review-agent@1.0.0",
+      "promptTemplate": "urn:apicurio:claude-demo.prompts/code-review-prompt@2.0.0",
+      "model": "urn:apicurio:claude-demo.models/claude-opus-4-5@1.0.0",
+      "dependsOn": ["security-scan"],
+      "contextFrom": ["security-scan"],
+      "inputMapping": {
+        "context_from_security_scan": "${steps.security-scan.output}"
+      },
+      "timeout": "120s",
+      "onFailure": "fail"
+    },
+    {
+      "id": "refactoring-suggestions",
+      "name": "Refactoring Recommendations",
+      "description": "Suggest refactoring improvements based on review findings",
+      "agent": "urn:apicurio:claude-demo.agents/refactoring-agent@1.0.0",
+      "promptTemplate": "urn:apicurio:claude-demo.prompts/refactoring-prompt@1.0.0",
+      "model": "urn:apicurio:claude-demo.models/claude-haiku-3-5@1.0.0",
+      "dependsOn": ["code-review"],
+      "contextFrom": ["security-scan", "code-review"],
+      "condition": "${steps.code-review.output.score < 80}",
+      "timeout": "60s",
+      "onFailure": "continue"
+    },
+    {
+      "id": "documentation-check",
+      "name": "Documentation Completeness",
+      "description": "Check documentation quality (only if code quality is acceptable)",
+      "agent": "urn:apicurio:claude-demo.agents/documentation-agent@1.0.0",
+      "promptTemplate": "urn:apicurio:claude-demo.prompts/documentation-prompt@1.0.0",
+      "model": "urn:apicurio:claude-demo.models/claude-haiku-3-5@1.0.0",
+      "dependsOn": ["code-review"],
+      "condition": "${steps.code-review.output.score >= 50}",
+      "timeout": "60s",
+      "onFailure": "continue"
+    }
+  ],
+  "output": {
+    "aggregate": true,
+    "format": "markdown",
+    "includeStepResults": true,
+    "template": "## Code Quality Report\n\n### Security Score: ${steps.security-scan.output.score}/100\n### Quality Score: ${steps.code-review.output.score}/100\n\n${steps.*.output.summary}"
+  },
+  "metadata": {
+    "author": "Apicurio Demo",
+    "tags": ["code-quality", "security", "review", "pipeline"],
+    "estimatedDuration": "5-10 minutes",
+    "costEstimate": "low-medium"
+  }
+}

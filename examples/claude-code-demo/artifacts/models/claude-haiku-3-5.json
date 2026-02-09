@@ -1,0 +1,62 @@
+{
+  "$schema": "https://apicur.io/schemas/model-schema/v1",
+  "modelId": "claude-haiku-3-5",
+  "name": "Claude 3.5 Haiku",
+  "description": "Fast, cost-effective model optimized for quick responses. Ideal for high-volume, lower-complexity tasks in multi-agent workflows.",
+  "version": "1.0.0",
+  "provider": {
+    "name": "Anthropic",
+    "url": "https://www.anthropic.com"
+  },
+  "capabilities": [
+    "chat",
+    "tools",
+    "code-generation",
+    "analysis"
+  ],
+  "constraints": {
+    "maxInputTokens": 200000,
+    "maxOutputTokens": 8192,
+    "supportedMediaTypes": ["text/plain", "application/json"]
+  },
+  "pricing": {
+    "inputTokens": {
+      "unit": "per_million",
+      "cost": 0.25
+    },
+    "outputTokens": {
+      "unit": "per_million",
+      "cost": 1.25
+    }
+  },
+  "performance": {
+    "latency": "fast",
+    "throughput": "high",
+    "reliability": "99.9%"
+  },
+  "useCases": [
+    "Quick code analysis",
+    "Documentation generation",
+    "Simple refactoring suggestions",
+    "Categorization tasks",
+    "High-volume processing"
+  ],
+  "metadata": {
+    "contextWindow": 200000,
+    "releaseDate": "2024-10-01",
+    "trainingCutoff": "2024-04",
+    "tier": "economy",
+    "recommendedFor": [
+      "workflow-preprocessing",
+      "categorization",
+      "simple-analysis"
+    ]
+  },
+  "apiConfiguration": {
+    "endpoint": "https://api.anthropic.com/v1/messages",
+    "modelString": "claude-3-5-haiku-20241022",
+    "headers": {
+      "anthropic-version": "2024-01-01"
+    }
+  }
+}

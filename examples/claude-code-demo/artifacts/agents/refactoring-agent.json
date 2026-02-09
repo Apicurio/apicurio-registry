@@ -1,0 +1,54 @@
+{
+  "$schema": "https://apicur.io/schemas/agent-card/v1",
+  "name": "refactoring-agent",
+  "description": "AI-powered code refactoring agent that suggests and generates improved code implementations based on design patterns and best practices",
+  "version": "1.0.0",
+  "url": "http://localhost:8082/agents/refactoring",
+  "provider": {
+    "organization": "Apicurio Demo",
+    "url": "https://www.apicur.io"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "codeGeneration": true,
+    "contextAware": true
+  },
+  "skills": [
+    {
+      "id": "extract-method",
+      "name": "Extract Method",
+      "description": "Identifies code blocks that can be extracted into separate methods",
+      "tags": ["refactoring", "methods", "extraction"]
+    },
+    {
+      "id": "simplify-conditionals",
+      "name": "Simplify Conditionals",
+      "description": "Simplifies complex conditional logic and nested if statements",
+      "tags": ["refactoring", "conditionals", "simplification"]
+    },
+    {
+      "id": "remove-duplication",
+      "name": "Remove Duplication",
+      "description": "Identifies and eliminates duplicate code patterns",
+      "tags": ["refactoring", "duplication", "dry"]
+    },
+    {
+      "id": "design-patterns",
+      "name": "Apply Design Patterns",
+      "description": "Suggests applicable design patterns to improve code structure",
+      "tags": ["refactoring", "patterns", "architecture"]
+    }
+  ],
+  "authentication": {
+    "schemes": ["none"]
+  },
+  "defaultInputModes": ["text", "code"],
+  "defaultOutputModes": ["text", "json", "code"],
+  "supportedLanguages": ["java", "python", "typescript", "javascript", "go", "rust"],
+  "metadata": {
+    "tier": "standard",
+    "costPerRequest": "low",
+    "averageLatency": "30s"
+  }
+}

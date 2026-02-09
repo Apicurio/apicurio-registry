@@ -1,0 +1,77 @@
+{
+  "$schema": "https://apicur.io/schemas/agent-workflow/v1",
+  "workflowId": "pr-review-workflow",
+  "name": "Pull Request Review Workflow",
+  "description": "Automated PR review workflow with multi-agent analysis and approval recommendations",
+  "version": "1.0.0",
+  "triggers": ["pull_request_opened", "pull_request_updated"],
+  "context": {
+    "accumulated": true,
+    "maxTokens": 100000,
+    "includeGitContext": true
+  },
+  "inputs": {
+    "pr_diff": {
+      "type": "string",
+      "required": true,
+      "description": "Git diff content"
+    },
+    "pr_title": {
+      "type": "string",
+      "required": true
+    },
+    "pr_description": {
+      "type": "string",
+      "required": false
+    },
+    "changed_files": {
+      "type": "array",
+      "items": "string",
+      "required": true
+    }
+  },
+  "steps": [
+    {
+      "id": "categorize-changes",
+      "name": "Categorize Changes",
+      "description": "Analyze and categorize the types of changes in the PR",
+      "agent": "urn:apicurio:claude-demo.agents/code-review-agent@1.0.0",
+      "model": "urn:apicurio:claude-demo.models/claude-haiku-3-5@1.0.0",
+      "timeout": "30s"
+    },
+    {
+      "id": "security-review",
+      "name": "Security Impact Review",
+      "description": "Analyze security implications of changes",
+      "agent": "urn:apicurio:claude-demo.agents/security-scanner-agent@1.0.0",
+      "promptTemplate": "urn:apicurio:claude-demo.prompts/security-scan-prompt@1.0.0",
+      "model": "urn:apicurio:claude-demo.models/claude-sonnet-4@1.0.0",
+      "parallel": true,
+      "timeout": "60s"
+    },
+    {
+      "id": "code-quality",
+      "name": "Code Quality Analysis",
+      "agent": "urn:apicurio:claude-demo.agents/code-review-agent@1.0.0",
+      "promptTemplate": "urn:apicurio:claude-demo.prompts/code-review-prompt@2.0.0",
+      "model": "urn:apicurio:claude-demo.models/claude-opus-4-5@1.0.0",
+      "parallel": true,
+      "timeout": "120s"
+    },
+    {
+      "id": "generate-summary",
+      "name": "Generate PR Summary",
+      "description": "Create comprehensive PR review summary with recommendations",
+      "agent": "urn:apicurio:claude-demo.agents/documentation-agent@1.0.0",
+      "dependsOn": ["categorize-changes", "security-review", "code-quality"],
+      "contextFrom": ["categorize-changes", "security-review", "code-quality"],
+      "model": "urn:apicurio:claude-demo.models/claude-sonnet-4@1.0.0",
+      "timeout": "60s"
+    }
+  ],
+  "output": {
+    "format": "github-pr-comment",
+    "sections": ["summary", "security", "quality", "recommendations"],
+    "approvalRecommendation": true
+  }
+}

@@ -1,0 +1,118 @@
+$schema: https://apicur.io/schemas/prompt-template/v1
+templateId: refactoring-prompt
+name: Code Refactoring Recommendations
+version: "1.0.0"
+description: |
+  Generates specific refactoring recommendations based on code review findings.
+  Designed to work in a multi-agent workflow after code-review step.
+
+variables:
+  - name: language
+    type: string
+    required: true
+    description: Programming language
+  - name: filename
+    type: string
+    required: true
+  - name: code
+    type: string
+    required: true
+    description: Original source code
+  - name: review_findings
+    type: object
+    required: false
+    description: Findings from code review step
+  - name: security_findings
+    type: object
+    required: false
+    description: Findings from security scan step
+  - name: refactoring_focus
+    type: array
+    items: string
+    default: ["extract-method", "simplify-conditionals", "remove-duplication"]
+
+template: |
+  You are a software architect specializing in code refactoring and design patterns.
+  
+  ## Current Code
+  **File**: {{filename}} ({{language}})
+  
+  ```{{language}}
+  {{code}}
+  ```
+  
+  {{#review_findings}}
+  ## Code Review Findings
+  - **Score**: {{score}}/100
+  - **Summary**: {{summary}}
+  
+  ### Issues Identified
+  {{#issues}}
+  - [{{severity}}] {{description}} (line {{line}})
+  {{/issues}}
+  {{/review_findings}}
+  
+  {{#security_findings}}
+  ## Security Concerns
+  {{#vulnerabilities}}
+  - [{{severity}}] {{description}}
+  {{/vulnerabilities}}
+  {{/security_findings}}
+  
+  ## Refactoring Focus
+  {{#refactoring_focus}}
+  - {{.}}
+  {{/refactoring_focus}}
+  
+  ## Instructions
+  Provide concrete refactoring recommendations:
+  
+  1. Identify the top 3-5 refactoring opportunities
+  2. For each, provide:
+     - The refactoring pattern/technique
+     - Before/after code snippets
+     - Expected benefits
+     - Estimated effort
+  
+  Return JSON:
+  ```json
+  {
+    "summary": "Overall refactoring strategy",
+    "refactorings": [
+      {
+        "id": "unique-id",
+        "pattern": "Extract Method|Rename|Simplify Conditionals|etc",
+        "priority": "high|medium|low",
+        "location": { "startLine": N, "endLine": N },
+        "description": "What to refactor",
+        "rationale": "Why this improves the code",
+        "before": "code snippet",
+        "after": "refactored code",
+        "benefits": ["benefit1", "benefit2"],
+        "effort": "low|medium|high",
+        "risks": ["potential risk"]
+      }
+    ],
+    "estimatedImpact": {
+      "readability": "+N%",
+      "maintainability": "+N%",
+      "testability": "+N%"
+    }
+  }
+  ```
+
+metadata:
+  recommendedModels:
+    - id: claude-opus-4-5
+      reason: Best for generating correct refactored code
+    - id: claude-haiku-3-5
+      reason: Faster for simple refactoring suggestions
+  tags:
+    - refactoring
+    - code-improvement
+    - design-patterns
+  workflowIntegration:
+    supportsContextChaining: true
+    canReceiveFrom:
+      - code-review-prompt
+      - security-scan-prompt

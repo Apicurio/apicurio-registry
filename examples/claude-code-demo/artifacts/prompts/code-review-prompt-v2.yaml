@@ -1,0 +1,213 @@
+$schema: https://apicur.io/schemas/prompt-template/v1
+templateId: code-review-prompt
+name: Code Review Analysis (Enhanced)
+version: "2.0.0"
+description: |
+  Enhanced code review prompt with context awareness, cross-step integration,
+  and improved severity scoring. Designed for use in multi-agent workflows.
+
+changelog:
+  - version: "2.0.0"
+    date: "2025-02-01"
+    changes:
+      - "Added context_from_security_scan variable for cross-step awareness"
+      - "Enhanced severity scoring with CVSS-like metrics"
+      - "Added performance analysis section"
+      - "Improved output schema with actionable recommendations"
+      - "Added support for focus_areas array"
+  - version: "1.0.0"
+    date: "2025-01-15"
+    changes:
+      - "Initial release"
+
+variables:
+  - name: language
+    type: string
+    required: true
+    description: Programming language of the code being reviewed
+    examples: ["java", "python", "typescript", "go"]
+  - name: filename
+    type: string
+    required: true
+    description: Name of the file being reviewed
+  - name: code
+    type: string
+    required: true
+    description: The source code to review
+  - name: focus_areas
+    type: array
+    items: string
+    default: ["security", "performance", "maintainability", "best-practices"]
+    description: Specific areas to focus the review on
+  - name: context_from_security_scan
+    type: object
+    required: false
+    description: Security findings from a previous workflow step (enables context chaining)
+    schema:
+      type: object
+      properties:
+        vulnerabilities:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string }
+              description: { type: string }
+              line: { type: integer }
+        score:
+          type: integer
+  - name: severity_threshold
+    type: string
+    enum: ["critical", "major", "minor", "info"]
+    default: "minor"
+    description: Minimum severity level to report
+  - name: max_issues
+    type: integer
+    default: 20
+    description: Maximum number of issues to report
+
+template: |
+  You are a senior software engineer performing a comprehensive code review.
+  Your analysis should be thorough, actionable, and prioritized by impact.
+
+  ## File Information
+  - **Language**: {{language}}
+  - **Filename**: {{filename}}
+  - **Severity Threshold**: {{severity_threshold}}
+
+  ## Code to Review
+  ```{{language}}
+  {{code}}
+  ```
+
+  {{#context_from_security_scan}}
+  ## Security Context (from previous analysis step)
+  A security scan has already been performed. Consider these findings in your review:
+  
+  **Security Score**: {{score}}/100
+  
+  {{#vulnerabilities}}
+  ### {{severity}} Security Issue
+  - **Description**: {{description}}
+  - **Line**: {{line}}
+  {{/vulnerabilities}}
+  
+  Build upon these security findings rather than duplicating them.
+  {{/context_from_security_scan}}
+
+  ## Review Focus Areas
+  Prioritize your analysis on:
+  {{#focus_areas}}
+  - {{.}}
+  {{/focus_areas}}
+
+  ## Analysis Instructions
+
+  1. **Code Quality**: Evaluate readability, maintainability, and adherence to {{language}} best practices
+  2. **Potential Bugs**: Identify logic errors, edge cases, and runtime issues
+  3. **Performance**: Flag inefficient algorithms, unnecessary allocations, or N+1 queries
+  4. **Security**: Note any security concerns not already identified
+  5. **Recommendations**: Provide specific, actionable improvement suggestions
+
+  ## Output Format
+  Return a JSON object with the following structure:
+  ```json
+  {
+    "summary": "Brief overall assessment (1-2 sentences)",
+    "score": <0-100 quality score>,
+    "issues": [
+      {
+        "severity": "critical|major|minor|info",
+        "category": "security|performance|bug|style|maintainability",
+        "line": <line number or null>,
+        "code_snippet": "relevant code",
+        "description": "Issue description",
+        "suggestion": "How to fix it",
+        "effort": "low|medium|high"
+      }
+    ],
+    "strengths": ["List of good practices found"],
+    "recommendations": [
+      {
+        "priority": "high|medium|low",
+        "description": "Improvement suggestion",
+        "rationale": "Why this matters"
+      }
+    ],
+    "metrics": {
+      "complexity": "low|medium|high",
+      "testability": "low|medium|high",
+      "documentation": "poor|adequate|good"
+    }
+  }
+  ```
+
+  IMPORTANT: Return ONLY valid JSON, no markdown code fences, no explanations outside the JSON.
+
+outputSchema:
+  type: object
+  required: ["summary", "score", "issues", "recommendations"]
+  properties:
+    summary:
+      type: string
+      description: Brief overall assessment
+    score:
+      type: integer
+      minimum: 0
+      maximum: 100
+    issues:
+      type: array
+      items:
+        type: object
+        required: ["severity", "category", "description", "suggestion"]
+        properties:
+          severity:
+            type: string
+            enum: ["critical", "major", "minor", "info"]
+          category:
+            type: string
+          line:
+            type: integer
+          description:
+            type: string
+          suggestion:
+            type: string
+          effort:
+            type: string
+            enum: ["low", "medium", "high"]
+    strengths:
+      type: array
+      items:
+        type: string
+    recommendations:
+      type: array
+      items:
+        type: object
+    metrics:
+      type: object
+
+metadata:
+  author: Apicurio Demo Team
+  tags:
+    - code-review
+    - quality
+    - analysis
+    - workflow-compatible
+  recommendedModels:
+    - id: claude-opus-4-5
+      reason: Best for complex codebases requiring deep analysis
+    - id: claude-sonnet-4
+      reason: Good balance of quality and speed for routine reviews
+  estimatedTokens:
+    input: 2500
+    output: 2000
+  compatibleWith:
+    - code-review-prompt@1.x
+  workflowIntegration:
+    supportsContextChaining: true
+    outputFormat: json
+    canReceiveFrom:
+      - security-scan-prompt
+    canProvideContextTo:
+      - documentation-prompt
+      - refactoring-prompt

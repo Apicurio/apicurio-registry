@@ -1,26 +1,26 @@
 #!/bin/bash
 #
-# Claude Code + Apicurio Registry - End-to-End Demo
+# Claude Code + Apicurio Registry - Interactive Demo
 #
-# This script demonstrates the complete workflow:
-# 1. Discover agents via A2A protocol
-# 2. Fetch prompt template from registry
-# 3. Get model schema
-# 4. Invoke the code-review-agent with sample code
-# 5. Display results
+# This script provides an interactive menu to explore all demo scenarios
+# showcasing Apicurio Registry as an AI Agent Lifecycle Platform.
 #
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REGISTRY_URL=${REGISTRY_URL:-http://localhost:8080}
 AGENT_URL=${AGENT_URL:-http://localhost:8081}
+API_BASE="$REGISTRY_URL/apis/registry/v3"
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
 
 print_header() {
     echo ""
@@ -30,7 +30,6 @@ print_header() {
 }
 
 print_step() {
-    echo ""
     echo -e "${GREEN}▶ $1${NC}"
 }
 
@@ -38,118 +37,250 @@ print_info() {
     echo -e "${YELLOW}  $1${NC}"
 }
 
-# Check services are running
-print_header "Claude Code + Apicurio Registry Demo"
+check_services() {
+    local all_ok=true
 
-print_step "Checking services..."
+    if ! curl -sf "$REGISTRY_URL/health/ready" > /dev/null 2>&1; then
+        echo -e "${RED}✗ Registry not available at $REGISTRY_URL${NC}"
+        all_ok=false
+    else
+        echo -e "${GREEN}✓ Registry OK${NC}"
+    fi
 
-if ! curl -sf "$REGISTRY_URL/health/ready" > /dev/null 2>&1; then
-    echo -e "${RED}Error: Registry is not running at $REGISTRY_URL${NC}"
-    echo "Please run: docker-compose up -d"
-    exit 1
-fi
-print_info "Registry: OK"
+    if ! curl -sf "$AGENT_URL/health" > /dev/null 2>&1; then
+        echo -e "${YELLOW}○ Code Review Agent not available (some demos limited)${NC}"
+    else
+        echo -e "${GREEN}✓ Code Review Agent OK${NC}"
+    fi
 
-if ! curl -sf "$AGENT_URL/health" > /dev/null 2>&1; then
-    echo -e "${RED}Error: Code Review Agent is not running at $AGENT_URL${NC}"
-    echo "Please run: docker-compose up -d"
-    exit 1
-fi
-print_info "Code Review Agent: OK"
+    if [ "$all_ok" = false ]; then
+        echo ""
+        echo "Please run: docker-compose up -d && ./demo-setup.sh"
+        exit 1
+    fi
+}
 
-# Step 1: A2A Discovery - Get Registry's Agent Card
-print_header "Step 1: A2A Discovery - Registry Agent Card"
+show_menu() {
+    clear
+    echo -e "${BOLD}${BLUE}"
+    cat << 'BANNER'
+    ╔══════════════════════════════════════════════════════════════╗
+    ║                                                              ║
+    ║   █████╗ ██████╗ ██╗ ██████╗██╗   ██╗██████╗ ██╗ ██████╗    ║
+    ║  ██╔══██╗██╔══██╗██║██╔════╝██║   ██║██╔══██╗██║██╔═══██╗   ║
+    ║  ███████║██████╔╝██║██║     ██║   ██║██████╔╝██║██║   ██║   ║
+    ║  ██╔══██║██╔═══╝ ██║██║     ██║   ██║██╔══██╗██║██║   ██║   ║
+    ║  ██║  ██║██║     ██║╚██████╗╚██████╔╝██║  ██║██║╚██████╔╝   ║
+    ║  ╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝ ╚═════╝    ║
+    ║                                                              ║
+    ║              AI Agent Lifecycle Platform Demo                ║
+    ║                                                              ║
+    ╚══════════════════════════════════════════════════════════════╝
+BANNER
+    echo -e "${NC}"
+    echo ""
+    echo -e "${BOLD}Select a Demo Scenario:${NC}"
+    echo ""
+    echo -e "  ${GREEN}1${NC}) Basic Discovery      - List groups, artifacts, and A2A endpoints"
+    echo -e "  ${GREEN}2${NC}) Versioning           - Manage multiple artifact versions"
+    echo -e "  ${GREEN}3${NC}) Branching            - Work with stable/experimental branches"
+    echo -e "  ${GREEN}4${NC}) Workflow Orchestration - Multi-agent pipelines with context"
+    echo -e "  ${GREEN}5${NC}) Search & Labels      - Advanced filtering and categorization"
+    echo ""
+    echo -e "  ${CYAN}6${NC}) Full Pipeline Demo   - End-to-end code quality workflow"
+    echo -e "  ${CYAN}7${NC}) Quick Overview       - Show all artifacts summary"
+    echo ""
+    echo -e "  ${YELLOW}8${NC}) Launch Claude Code   - Interactive MCP session"
+    echo ""
+    echo -e "  ${RED}0${NC}) Exit"
+    echo ""
+    echo -n "Enter choice [0-8]: "
+}
 
-print_step "Fetching registry's agent card..."
-REGISTRY_AGENT=$(curl -s "$REGISTRY_URL/.well-known/agent.json")
-echo "$REGISTRY_AGENT" | jq '{name, description, skills: [.skills[].id]}'
+run_scenario() {
+    local script="$SCRIPT_DIR/scenarios/$1"
+    if [ -f "$script" ]; then
+        bash "$script"
+    else
+        echo -e "${RED}Scenario not found: $script${NC}"
+    fi
+    echo ""
+    read -p "Press Enter to continue..."
+}
 
-# Step 2: Search for Code Review Agents
-print_header "Step 2: A2A Discovery - Find Code Review Agents"
+quick_overview() {
+    print_header "Quick Overview - All Artifacts"
 
-print_step "Searching for agents with code-analysis skill..."
-AGENTS=$(curl -s "$REGISTRY_URL/.well-known/agents")
-echo "$AGENTS" | jq '.agents[] | {groupId, artifactId}'
+    echo ""
+    print_step "Groups"
+    curl -sf "$API_BASE/groups" | jq -r '.groups[] | "  • \(.groupId)"'
 
-print_step "Getting code-review-agent details from registry..."
-AGENT_CARD=$(curl -s "$REGISTRY_URL/.well-known/agents/claude-demo.agents/code-review-agent")
-echo "$AGENT_CARD" | jq '{name, skills: [.skills[].id], capabilities}'
+    echo ""
+    print_step "Agent Cards (A2A Protocol)"
+    curl -sf "$API_BASE/search/artifacts?artifactType=AGENT_CARD" | \
+        jq -r '.artifacts[] | "  • \(.artifactId) - \(.groupId)"'
 
-# Step 3: Fetch Model Schema
-print_header "Step 3: Fetch Model Schema"
+    echo ""
+    print_step "Model Schemas"
+    curl -sf "$API_BASE/search/artifacts?artifactType=MODEL_SCHEMA" | \
+        jq -r '.artifacts[] | "  • \(.artifactId)"'
 
-print_step "Getting Claude Opus 4.5 model schema..."
-MODEL_SCHEMA=$(curl -s "$REGISTRY_URL/apis/registry/v3/groups/claude-demo.models/artifacts/claude-opus-4-5/versions/1.0.0/content")
-echo "$MODEL_SCHEMA" | jq '{modelId, provider, "contextWindow": .metadata.contextWindow, capabilities: .metadata.capabilities}'
+    echo ""
+    print_step "Prompt Templates"
+    curl -sf "$API_BASE/search/artifacts?artifactType=PROMPT_TEMPLATE" | \
+        jq -r '.artifacts[] | "  • \(.artifactId)"'
 
-# Step 4: Fetch Prompt Template
-print_header "Step 4: Fetch Prompt Template"
+    echo ""
+    print_step "Agent Workflows"
+    curl -sf "$API_BASE/search/artifacts?artifactType=AGENT_WORKFLOW" 2>/dev/null | \
+        jq -r '.artifacts[] | "  • \(.artifactId)"' 2>/dev/null || echo "  (none found)"
 
-print_step "Getting code-review prompt template..."
-PROMPT_TEMPLATE=$(curl -s "$REGISTRY_URL/apis/registry/v3/groups/claude-demo.prompts/artifacts/code-review-prompt/versions/1.0.0/content")
-echo "$PROMPT_TEMPLATE" | head -20
-echo "..."
+    echo ""
+    print_step "Version Branches (code-review-prompt)"
+    curl -sf "$API_BASE/groups/claude-demo.prompts/artifacts/code-review-prompt/branches" 2>/dev/null | \
+        jq -r '.branches[] | "  • \(.branchId)"' 2>/dev/null || echo "  (none found)"
 
-# Step 5: Invoke Code Review Agent with Sample Code
-print_header "Step 5: Invoke Code Review Agent"
+    echo ""
+    read -p "Press Enter to continue..."
+}
 
-SAMPLE_CODE='public class UserService {
-    private Connection conn;
+full_pipeline_demo() {
+    print_header "Full Pipeline Demo - Code Quality Workflow"
 
+    echo ""
+    echo "This demonstrates the complete workflow from the design document:"
+    echo ""
+    echo "  1. Fetch workflow definition from registry"
+    echo "  2. Resolve artifact references"
+    echo "  3. Execute multi-agent pipeline"
+    echo "  4. Show accumulated context and results"
+    echo ""
+
+    print_step "Step 1: Fetch workflow definition"
+    echo ""
+    WORKFLOW=$(curl -sf "$API_BASE/groups/claude-demo.workflows/artifacts/code-quality-pipeline/versions/branch=latest/content")
+    echo "$WORKFLOW" | jq '{name, steps: (.steps | length), triggers}'
+    echo ""
+
+    print_step "Step 2: Resolve referenced artifacts"
+    echo ""
+    echo -e "${CYAN}Agents referenced:${NC}"
+    echo "$WORKFLOW" | jq -r '.steps[].agent' | sort -u | while read urn; do
+        echo "  • $urn"
+    done
+    echo ""
+    echo -e "${CYAN}Prompt templates referenced:${NC}"
+    echo "$WORKFLOW" | jq -r '.steps[].promptTemplate // empty' | sort -u | while read urn; do
+        echo "  • $urn"
+    done
+    echo ""
+
+    print_step "Step 3: Fetch prompt template (v2.0.0 - enhanced)"
+    echo ""
+    curl -sf "$API_BASE/groups/claude-demo.prompts/artifacts/code-review-prompt/versions/2.0.0/content" | \
+        head -15
+    echo "..."
+    echo ""
+
+    print_step "Step 4: Execute code review (simulated)"
+    echo ""
+
+    SAMPLE_CODE='public class UserService {
     public User getUser(String id) {
-        // SQL Injection vulnerability!
-        String sql = "SELECT * FROM users WHERE id = " + id;
-        ResultSet rs = conn.createStatement().executeQuery(sql);
-
-        if (rs.next()) {
-            User user = new User();
-            user.id = rs.getString("id");
-            user.name = rs.getString("name");
-            user.password = rs.getString("password"); // Exposing password!
-            return user;
-        }
-        return null;
-    }
-
-    public void updateUser(User user) {
-        // No input validation
-        String sql = "UPDATE users SET name=\"" + user.name + "\" WHERE id=" + user.id;
-        conn.createStatement().execute(sql);
+        String sql = "SELECT * FROM users WHERE id=" + id;
+        return connection.execute(sql);
     }
 }'
 
-print_step "Sending code to agent for review..."
-print_info "Code sample: UserService.java (Java, 25 lines)"
-print_info "Calling: POST $AGENT_URL/agents/code-review/invoke"
+    echo -e "${CYAN}Code to analyze:${NC}"
+    echo "$SAMPLE_CODE"
+    echo ""
 
-REVIEW_RESULT=$(curl -s -X POST "$AGENT_URL/agents/code-review/invoke" \
-    -H "Content-Type: application/json" \
-    -d "{
-        \"code\": $(echo "$SAMPLE_CODE" | jq -Rs .),
-        \"language\": \"java\",
-        \"filename\": \"UserService.java\"
-    }")
+    if curl -sf "$AGENT_URL/health" > /dev/null 2>&1; then
+        echo -e "${GREEN}Calling code-review-agent...${NC}"
+        RESULT=$(curl -sf -X POST "$AGENT_URL/agents/code-review/invoke" \
+            -H "Content-Type: application/json" \
+            -d "{
+                \"code\": $(echo "$SAMPLE_CODE" | jq -Rs .),
+                \"language\": \"java\",
+                \"filename\": \"UserService.java\",
+                \"focus_areas\": \"security, performance\"
+            }" 2>/dev/null)
+        echo ""
+        echo -e "${CYAN}Review Result:${NC}"
+        echo "$RESULT" | jq '.'
+    else
+        echo -e "${YELLOW}Agent not available. Expected result:${NC}"
+        cat << 'EXPECTED'
+{
+  "summary": "Critical security vulnerability - SQL injection",
+  "score": 20,
+  "issues": [
+    {
+      "severity": "critical",
+      "category": "security",
+      "line": 3,
+      "description": "SQL Injection - User input directly concatenated into query",
+      "suggestion": "Use PreparedStatement with parameterized queries"
+    }
+  ],
+  "agent": "code-review-agent",
+  "provider": "ollama",
+  "model": "llama3.2"
+}
+EXPECTED
+    fi
 
-# Step 6: Display Results
-print_header "Step 6: Code Review Results"
+    echo ""
+    print_step "Step 5: Workflow complete"
+    echo ""
+    echo "In a full workflow execution:"
+    echo "  ✓ Security scan would run first"
+    echo "  ✓ Code review receives security context"
+    echo "  ✓ Refactoring suggestions if score < 80"
+    echo "  ✓ Documentation check if score >= 50"
+    echo ""
 
-echo "$REVIEW_RESULT" | jq '.'
+    read -p "Press Enter to continue..."
+}
 
-# Summary
-print_header "Demo Complete!"
+launch_claude_code() {
+    print_header "Launching Claude Code with MCP"
+    echo ""
+    echo "Starting Claude Code CLI with Apicurio Registry MCP server..."
+    echo ""
+    "$SCRIPT_DIR/run-claude-code-demo.sh"
+}
 
+# Main
+print_header "Apicurio Registry - AI Agent Lifecycle Platform"
 echo ""
-echo "This demo showed the complete Claude Code + Apicurio Registry workflow:"
+print_step "Checking services..."
+check_services
 echo ""
-echo "  1. A2A Discovery    - Found registry and agents via /.well-known/agent.json"
-echo "  2. Agent Search     - Searched for agents with specific skills"
-echo "  3. Model Schema     - Retrieved LLM model definitions from registry"
-echo "  4. Prompt Template  - Fetched versioned prompt template"
-echo "  5. Agent Invocation - Called LLM-powered code-review-agent"
-echo "  6. Results          - Received structured analysis with issues and score"
-echo ""
-echo "Endpoints used:"
-echo "  - Registry API:  $REGISTRY_URL/apis/registry/v3"
-echo "  - A2A Discovery: $REGISTRY_URL/.well-known/agent.json"
-echo "  - Agent Invoke:  $AGENT_URL/agents/code-review/invoke"
-echo ""
+read -p "Press Enter to continue to menu..."
+
+while true; do
+    show_menu
+    read choice
+
+    case $choice in
+        1) run_scenario "01-basic-discovery.sh" ;;
+        2) run_scenario "02-versioning.sh" ;;
+        3) run_scenario "03-branching.sh" ;;
+        4) run_scenario "04-workflow-orchestration.sh" ;;
+        5) run_scenario "05-search-labels.sh" ;;
+        6) full_pipeline_demo ;;
+        7) quick_overview ;;
+        8) launch_claude_code ;;
+        0)
+            echo ""
+            echo "Goodbye!"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Invalid choice. Please try again.${NC}"
+            sleep 1
+            ;;
+    esac
+done

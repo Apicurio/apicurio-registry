@@ -67,12 +67,6 @@
       <artifactId>apicurio-registry-avro-serde-nats</artifactId>
       <scope>provided</scope>
     </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-mcp-server</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
   </dependencies>
 
   <build>

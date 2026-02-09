@@ -30,7 +30,9 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse testCompatibilityBySubjectName(String subject, SchemaContent request,
-            Boolean verbose, String groupId) throws Exception {
+            Boolean verbose, Boolean normalize, String groupId) throws Exception {
+        // Note: normalize parameter is accepted for API compatibility but normalization
+        // during compatibility checking is not yet implemented.
         final GA ga = getGA(groupId, subject);
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         try {
@@ -65,7 +67,9 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse testCompatibilityByVersion(String subject, String versionString,
-            SchemaContent request, Boolean verbose, String groupId) throws Exception {
+            SchemaContent request, Boolean verbose, Boolean normalize, String groupId) throws Exception {
+        // Note: normalize parameter is accepted for API compatibility but normalization
+        // during compatibility checking is not yet implemented.
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         final GA ga = getGA(groupId, subject);
 

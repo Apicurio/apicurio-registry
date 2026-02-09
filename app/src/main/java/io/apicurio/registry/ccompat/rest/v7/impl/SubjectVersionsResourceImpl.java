@@ -50,26 +50,46 @@ public class SubjectVersionsResourceImpl extends AbstractResource implements Sub
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public List<Integer> listVersions(String subject, String groupId, Boolean deleted) throws Exception {
+    public List<Integer> listVersions(String subject, String groupId, Boolean deleted, Boolean deletedOnly,
+            Integer offset, Integer limit) throws Exception {
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        final boolean fdeletedOnly = deletedOnly == null ? Boolean.FALSE : deletedOnly;
+        final int effectiveOffset = offset != null ? offset : 0;
+        final int effectiveLimit = (limit != null && limit > 0) ? limit : Integer.MAX_VALUE;
         final GA ga = getGA(groupId, subject);
 
         List<Integer> rval;
-        if (fdeleted) {
+        if (fdeletedOnly) {
+            // Only return soft-deleted versions
+            rval = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), DEFAULT)
+                    .stream().filter(version -> {
+                        ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(
+                                ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
+                        return vmd.getState() == VersionState.DISABLED;
+                    }).map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
+                    .collect(Collectors.toList());
+        } else if (fdeleted) {
+            // Return both active and deleted versions
             rval = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), DEFAULT)
                     .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
                     .collect(Collectors.toList());
         } else {
+            // Default: return only active versions
             rval = storage
                     .getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
                             SKIP_DISABLED_LATEST)
                     .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
                     .collect(Collectors.toList());
         }
+
         if (rval.isEmpty()) {
             throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
         }
-        return rval;
+
+        // Apply pagination
+        int fromIndex = Math.min(effectiveOffset, rval.size());
+        int toIndex = Math.min(effectiveOffset + effectiveLimit, rval.size());
+        return rval.subList(fromIndex, toIndex);
     }
 
     @Override

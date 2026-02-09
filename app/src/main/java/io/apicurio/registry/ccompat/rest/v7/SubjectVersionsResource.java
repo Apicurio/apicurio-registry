@@ -50,11 +50,17 @@ public interface SubjectVersionsResource {
      * </ul>
      * </li>
      * </ul>
+     *
+     * @param deletedOnly (boolean) Add ?deletedOnly=true to list only soft-deleted versions. The default is
+     *            false.
+     * @param offset (int) Pagination offset. Default is 0.
+     * @param limit (int) Pagination limit. Default is the configured maximum.
      */
     @GET
     List<Integer> listVersions(@PathParam("subject") String subject,
-            @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted)
-            throws Exception;
+            @HeaderParam(Headers.GROUP_ID) String groupId, @QueryParam("deleted") Boolean deleted,
+            @QueryParam("deletedOnly") Boolean deletedOnly, @QueryParam("offset") Integer offset,
+            @QueryParam("limit") Integer limit) throws Exception;
 
     /**
      * Register a new schema under the specified subject. If successfully registered, this returns the unique

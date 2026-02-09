@@ -40,6 +40,13 @@ public interface ConfigResource {
     @PUT
     CompatibilityLevelDto updateGlobalCompatibilityLevel(@NotNull CompatibilityLevelDto request);
 
+    /**
+     * Delete global compatibility level and revert to NONE. Status Codes: 500 Internal Server Error Error
+     * code 50001 – Error in the backend data store
+     */
+    @DELETE
+    CompatibilityLevelParamDto deleteGlobalCompatibilityLevel();
+
     // ----- Path: /config/{subject} -----
 
     /**
@@ -49,10 +56,13 @@ public interface ConfigResource {
      *            for the subject. Will be one of BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE,
      *            FULL, FULL_TRANSITIVE, NONE Status Codes: 404 Not Found – Subject not found 500 Internal
      *            Server Error – Error code 50001 – Error in the backend data store
+     * @param defaultToGlobal (boolean) – Whether to return the global compatibility level if subject-level is
+     *            not configured. The default is false.
      */
     @Path("/{subject}")
     @GET
     CompatibilityLevelParamDto getSubjectCompatibilityLevel(@PathParam("subject") String subject,
+            @QueryParam("defaultToGlobal") Boolean defaultToGlobal,
             @HeaderParam(Headers.GROUP_ID) String groupId);
 
     /**

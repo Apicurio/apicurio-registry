@@ -11,32 +11,228 @@
   },
   "paths": {
     "/mode": {
-      "summary": "Mode operations. These operations are not supported in the compatibility API and will return a 404",
-      "description": "Mode operations. These operations are not supported in the compatibility API and will return a 404",
+      "summary": "Global mode operations",
+      "description": "The mode resource allows you to get and set the mode of the Schema Registry. READWRITE allows read and write operations, READONLY allows only read operations, and IMPORT allows importing schemas with pre-existing IDs.",
       "get": {
         "tags": [
           "Mode"
         ],
         "responses": {
-          "404": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeDto"
+                },
+                "examples": {
+                  "Example": {
+                    "value": {
+                      "mode": "READWRITE"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The current global mode"
+          },
+          "500": {
             "$ref": "#/components/responses/Error"
           }
         },
         "summary": "Get global mode.",
-        "description": "Mode operations. These operations are not supported in the compatibility API and will return a 404"
+        "description": "Get the current global mode for the Schema Registry."
       },
       "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeDto"
+              },
+              "examples": {
+                "Example": {
+                  "value": {
+                    "mode": "READWRITE"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
         "tags": [
           "Mode"
         ],
+        "parameters": [
+          {
+            "name": "force",
+            "description": "Force the mode change even if there are existing schemas (required for IMPORT mode)",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
+        ],
         "responses": {
-          "404": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeDto"
+                }
+              }
+            },
+            "description": "The new mode"
+          },
+          "500": {
             "$ref": "#/components/responses/Error"
           }
         },
         "summary": "Update global mode",
-        "description": "Mode operations. These operations are not supported in the compatibility API and will return a 404"
+        "description": "Update the global mode for the Schema Registry."
+      },
+      "delete": {
+        "tags": [
+          "Mode"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeDto"
+                }
+              }
+            },
+            "description": "The previous mode"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Delete global mode",
+        "description": "Delete the global mode setting and revert to READWRITE."
       }
+    },
+    "/mode/{subject}": {
+      "summary": "Subject mode operations",
+      "description": "Get, update, or delete the mode for a specific subject.",
+      "get": {
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "defaultToGlobal",
+            "description": "If true, return the global mode if the subject doesn't have a specific mode",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeDto"
+                }
+              }
+            },
+            "description": "The mode for the subject"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Get subject mode",
+        "description": "Get the mode for a specific subject."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "force",
+            "description": "Force the mode change",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeDto"
+                }
+              }
+            },
+            "description": "The new mode"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Update subject mode",
+        "description": "Update the mode for a specific subject."
+      },
+      "delete": {
+        "tags": [
+          "Mode"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeDto"
+                }
+              }
+            },
+            "description": "The previous mode"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Delete subject mode",
+        "description": "Delete the mode setting for a specific subject and revert to global."
+      },
+      "parameters": [
+        {
+          "name": "subject",
+          "description": "Name of the subject",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
     },
     "/config": {
       "summary": "Compatibility level configuration operations",
@@ -161,6 +357,42 @@
           }
         },
         "summary": "Update global compatibility level."
+      },
+      "delete": {
+        "tags": [
+          "Config"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityLevelParamDto"
+                }
+              }
+            },
+            "description": "The previous global compatibility level"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Delete global compatibility level and revert to default (NONE)."
       }
     },
     "/config/{subject}": {
@@ -168,6 +400,16 @@
       "get": {
         "tags": [
           "Config"
+        ],
+        "parameters": [
+          {
+            "name": "defaultToGlobal",
+            "description": "Whether to return the global compatibility level if subject-level is not configured. The default is false.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
         ],
         "responses": {
           "200": {
@@ -313,8 +555,109 @@
         }
       ]
     },
+    "/compatibility/subjects/{subject}/versions": {
+      "summary": "The compatibility resource allows the user to test schemas for compatibility against all versions of a subject's schema.",
+      "description": "",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemaContent"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemaContent"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemaContent"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemaContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Compatibility"
+        ],
+        "parameters": [
+          {
+            "name": "verbose",
+            "description": "Add ?verbose=true at the end of this request to output the reason a schema fails the compatibility test, in cases where it fails. The default is false.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          },
+          {
+            "name": "normalize",
+            "description": "Add ?normalize=true at the end of this request to normalize the schema before comparison. The default is false.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              },
+              "application/octet-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              }
+            },
+            "description": "Valid response"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Perform a compatibility check on the schema against all versions of a subject.",
+        "description": "Perform a compatibility check on the schema against one or more versions in the subject, depending on how the compatibility is set."
+      },
+      "parameters": [
+        {
+          "name": "subject",
+          "description": "Subject of the schema version against which compatibility is to be tested",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/compatibility/subjects/{subject}/versions/{version}": {
-      "summary": "The compatibility resource allows the user to test schemas for compatibility against specific versions of a subject’s schema.",
+      "summary": "The compatibility resource allows the user to test schemas for compatibility against specific versions of a subject's schema.",
       "description": "",
       "post": {
         "requestBody": {
@@ -354,6 +697,14 @@
           {
             "name": "verbose",
             "description": "Add ?verbose=true at the end of this request to output the reason a schema fails the compatibility test, in cases where it fails. The default is false (the reason a schema fails compatibility test is not given).",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          },
+          {
+            "name": "normalize",
+            "description": "Add ?normalize=true at the end of this request to normalize the schema before comparison. The default is false.",
             "schema": {
               "type": "boolean"
             },
@@ -404,7 +755,7 @@
           }
         },
         "summary": "Allows the user to test schemas against specific versions of a schema.",
-        "description": "Test input schema against a particular version of a subject’s schema for compatibility.\nNote that the compatibility level applied for the check is the configured compatibility level for the subject (GET /config/(string: subject)).\nIf this subject’s compatibility level was never changed, then the global compatibility level applies (GET /config)."
+        "description": "Test input schema against a particular version of a subject's schema for compatibility.\nNote that the compatibility level applied for the check is the configured compatibility level for the subject (GET /config/(string: subject)).\nIf this subject's compatibility level was never changed, then the global compatibility level applies (GET /config)."
       },
       "parameters": [
         {
@@ -426,6 +777,76 @@
           "required": true
         }
       ]
+    },
+    "/schemas": {
+      "summary": "Operations to list all schemas",
+      "get": {
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "subjectPrefix",
+            "description": "Filter by subject prefix",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "deleted",
+            "description": "Include soft-deleted schemas",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          },
+          {
+            "name": "latestOnly",
+            "description": "Return only the latest version of each schema",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "Pagination offset",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "description": "Pagination limit",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SchemaInfo"
+                  }
+                }
+              }
+            },
+            "description": "List of schema objects"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Get a list of all schema objects.",
+        "description": "Get a list of all schema objects registered in the Schema Registry."
+      }
     },
     "/schemas/types": {
       "summary": "Operations around schema types",
@@ -599,6 +1020,101 @@
         "summary": "Get the subject-version pairs identified by the input ID."
       }
     },
+    "/schemas/ids/{id}/subjects": {
+      "summary": "Get subjects by schema ID",
+      "get": {
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The globally unique identifier of the schema",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "deleted",
+            "description": "Include soft-deleted subjects",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "description": "List of subject names that reference this schema"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Get the list of subjects that reference the schema with the given ID."
+      }
+    },
+    "/schemas/ids/{id}/schema": {
+      "summary": "Get raw schema string by ID",
+      "get": {
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The globally unique identifier of the schema",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "subject",
+            "description": "Optional subject name for context",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The raw schema string"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Get the raw schema string identified by the input ID."
+      }
+    },
     "/subjects": {
       "summary": "Operations around subjects",
       "description": "The subjects resource provides a list of all registered subjects in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a “<topic>-key” or “<topic>-value” depending on whether you are registering the key schema for that topic or the value schema.",
@@ -616,10 +1132,34 @@
             "in": "query"
           },
           {
+            "name": "deletedOnly",
+            "description": "Return only soft deleted subjects. The default is false.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          },
+          {
             "name": "subjectPrefix",
             "description": "Add ?subjectPrefix= (as an empty string) at the end of this request to list subjects in the default context. If this flag is not included, GET /subjects returns all subjects across all contexts.",
             "schema": {
               "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "Pagination offset. Default is 0.",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "description": "Pagination limit. Default is the configured maximum.",
+            "schema": {
+              "type": "integer"
             },
             "in": "query"
           }
@@ -864,6 +1404,38 @@
             },
             "in": "path",
             "required": true
+          },
+          {
+            "name": "deleted",
+            "description": "Return also soft deleted versions. The default is false.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          },
+          {
+            "name": "deletedOnly",
+            "description": "Return only soft deleted versions. The default is false.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "Pagination offset. Default is 0.",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "description": "Pagination limit.",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query"
           }
         ],
         "responses": {
@@ -1305,6 +1877,9 @@
     "/exporters": {
       "summary": "The exporters resource allows you to query the information or manipulate the lifecycle of schema exporters.",
       "get": {
+        "tags": [
+          "Exporters"
+        ],
         "responses": {
           "200": {
             "content": {
@@ -1314,14 +1889,20 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "examples": {
+                  "Example": {
+                    "value": []
+                  }
                 }
               }
             },
-            "description": "List of exporters"
+            "description": "List of exporters. Returns an empty list since exporters are not currently supported."
           }
         },
         "operationId": "getExportersList",
-        "summary": "Gets a list of schema exporters that have been created."
+        "summary": "Gets a list of schema exporters that have been created.",
+        "description": "Returns an empty list since exporters are not currently supported in this implementation."
       },
       "post": {
         "requestBody": {
@@ -1677,6 +2258,24 @@
         },
         "example": {
           "compatibility": "BACKWARD"
+        }
+      },
+      "ModeDto": {
+        "title": "Root Type for ModeDto",
+        "description": "Schema Registry mode. READWRITE allows read and write operations, READONLY allows only read operations, and IMPORT allows importing schemas with pre-existing IDs.",
+        "type": "object",
+        "properties": {
+          "mode": {
+            "enum": [
+              "READWRITE",
+              "READONLY",
+              "IMPORT"
+            ],
+            "type": "string"
+          }
+        },
+        "example": {
+          "mode": "READWRITE"
         }
       },
       "Error": {

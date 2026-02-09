@@ -9,6 +9,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import jakarta.interceptor.Interceptors;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -18,8 +19,8 @@ public class ExporterResourceImpl extends AbstractResource implements ExporterRe
 
     @Override
     public List<String> getExporters() throws Exception {
-        Errors.operationNotSupported();
-        return null;
+        // Exporters are not supported, return empty list for API compatibility
+        return Collections.emptyList();
     }
 
     @Override

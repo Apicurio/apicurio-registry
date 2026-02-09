@@ -25,7 +25,7 @@ public interface SubjectsResource {
 
     /**
      * Get a list of registered subjects.
-     * 
+     *
      * @param subjectPrefix (string) Add ?subjectPrefix= (as an empty string) at the end of this request to
      *            list subjects in the default context. If this flag is not included, GET /subjects returns
      *            all subjects across all contexts.
@@ -35,10 +35,16 @@ public interface SubjectsResource {
      *            explained below in the description of the delete API. Response JSON Array of Objects: name
      *            (string) – Subject Status Codes: 500 Internal Server Error – Error code 50001 – Error in the
      *            backend datastore
+     * @param deletedOnly (boolean) Add ?deletedOnly=true at the end of this request to list only soft-deleted
+     *            subjects. The default is false.
+     * @param offset (int) Pagination offset. Default is 0.
+     * @param limit (int) Pagination limit. Default is the configured maximum.
      */
     @GET
     List<String> listSubjects(@QueryParam("subjectPrefix") String subjectPrefix,
-            @QueryParam("deleted") Boolean deleted, @HeaderParam(Headers.GROUP_ID) String groupId);
+            @QueryParam("deleted") Boolean deleted, @QueryParam("deletedOnly") Boolean deletedOnly,
+            @QueryParam("offset") Integer offset, @QueryParam("limit") Integer limit,
+            @HeaderParam(Headers.GROUP_ID) String groupId);
 
     // ----- Path: /subjects/{subject} -----
 

@@ -43,18 +43,31 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public List<String> listSubjects(String subjectPrefix, Boolean deleted, String groupId) {
+    public List<String> listSubjects(String subjectPrefix, Boolean deleted, Boolean deletedOnly,
+            Integer offset, Integer limit, String groupId) {
         // Since contexts are not supported, subjectPrefix is not used
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        final boolean fdeletedOnly = deletedOnly == null ? Boolean.FALSE : deletedOnly;
+        final int effectiveOffset = offset != null ? offset : 0;
+        final int effectiveLimit = (limit != null && limit > 0) ? limit : cconfig.maxSubjects.get();
+
         Set<SearchFilter> filters = new HashSet<>();
         if (!cconfig.groupConcatEnabled) {
             filters.add(SearchFilter.ofGroupId(groupId));
         }
-        if (!fdeleted) {
+
+        // Handle deleted/deletedOnly filters
+        if (fdeletedOnly) {
+            // Only return soft-deleted subjects
+            filters.add(SearchFilter.ofState(VersionState.DISABLED));
+        } else if (!fdeleted) {
+            // Default: exclude soft-deleted subjects
             filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
+        // If fdeleted is true (and not deletedOnly), include both active and disabled
+
         ArtifactSearchResultsDto searchResults = storage.searchArtifacts(filters, OrderBy.createdOn,
-                OrderDirection.asc, 0, cconfig.maxSubjects.get());
+                OrderDirection.asc, effectiveOffset, effectiveLimit);
         Function<SearchedArtifactDto, String> toSubject = SearchedArtifactDto::getArtifactId;
         if (cconfig.groupConcatEnabled) {
             toSubject = (dto) -> toSubjectWithGroupConcat(dto);

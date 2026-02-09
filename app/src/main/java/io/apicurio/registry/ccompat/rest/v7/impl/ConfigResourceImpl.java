@@ -78,6 +78,18 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public CompatibilityLevelParamDto deleteGlobalCompatibilityLevel() {
+        CompatibilityLevelParamDto current = getGlobalCompatibilityLevel();
+        try {
+            storage.deleteGlobalRule(RuleType.COMPATIBILITY);
+        } catch (RuleNotFoundException e) {
+            // Already at default, ignore
+        }
+        return current;
+    }
+
+    @Override
     @Audited(extractParameters = { "0", AuditingConstants.KEY_ARTIFACT_ID, "1", AuditingConstants.KEY_RULE })
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityLevelDto updateSubjectCompatibilityLevel(String subject,
@@ -106,11 +118,18 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject, String groupId) {
+    public CompatibilityLevelParamDto getSubjectCompatibilityLevel(String subject, Boolean defaultToGlobal,
+            String groupId) {
         final GA ga = getGA(groupId, subject);
-        return getCompatibilityLevel(() -> storage
-                .getArtifactRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), RuleType.COMPATIBILITY)
-                .getConfiguration());
+        try {
+            return getCompatibilityLevel(() -> storage.getArtifactRule(ga.getRawGroupIdWithNull(),
+                    ga.getRawArtifactId(), RuleType.COMPATIBILITY).getConfiguration());
+        } catch (RuleNotFoundException ex) {
+            if (Boolean.TRUE.equals(defaultToGlobal)) {
+                return getGlobalCompatibilityLevel();
+            }
+            throw ex;
+        }
     }
 
     @Override

@@ -35,23 +35,26 @@ public interface CompatibilityResource {
      *            found Error code 40402 – Version not found 422 Unprocessable Entity Error code 42201 –
      *            Invalid schema Error code 42202 – Invalid version 500 Internal Server Error Error code 50001
      *            – Error in the backend data store
+     * @param normalize Add ?normalize=true at the end of this request to normalize the schema before
+     *            comparison. The default is false.
      */
     @POST
     @Path("/subjects/{subject}/versions")
     CompatibilityCheckResponse testCompatibilityBySubjectName(@PathParam("subject") String subject,
             @NotNull SchemaContent request, @QueryParam("verbose") Boolean verbose,
-            @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
+            @QueryParam("normalize") Boolean normalize, @HeaderParam(Headers.GROUP_ID) String groupId)
+            throws Exception;
 
     // ----- Path: /compatibility/subjects/{subject}/versions/{version} -----
 
     /**
-     * Test input schema against a particular version of a subject’s schema for compatibility. Note that the
+     * Test input schema against a particular version of a subject's schema for compatibility. Note that the
      * compatibility level applied for the check is the configured compatibility level for the subject (GET
-     * /config/(string: subject)). If this subject’s compatibility level was never changed, then the global
+     * /config/(string: subject)). If this subject's compatibility level was never changed, then the global
      * compatibility level applies (GET /config).
      *
      * @param subject Subject of the schema version against which compatibility is to be tested
-     * @param version Version of the subject’s schema against which compatibility is to be tested. Valid
+     * @param version Version of the subject's schema against which compatibility is to be tested. Valid
      *            values for versionId are between [1,2^31-1] or the string "latest". "latest" checks
      *            compatibility of the input schema with the last registered schema under the specified
      *            subject
@@ -61,12 +64,14 @@ public interface CompatibilityResource {
      *            found Error code 40402 – Version not found 422 Unprocessable Entity Error code 42201 –
      *            Invalid schema Error code 42202 – Invalid version 500 Internal Server Error Error code 50001
      *            – Error in the backend data store
+     * @param normalize Add ?normalize=true at the end of this request to normalize the schema before
+     *            comparison. The default is false.
      */
     @POST
     @Path("/subjects/{subject}/versions/{version}")
     CompatibilityCheckResponse testCompatibilityByVersion(@PathParam("subject") String subject,
             @PathParam("version") String version, @NotNull SchemaContent request,
-            @QueryParam("verbose") Boolean verbose, @HeaderParam(Headers.GROUP_ID) String groupId)
-            throws Exception;
+            @QueryParam("verbose") Boolean verbose, @QueryParam("normalize") Boolean normalize,
+            @HeaderParam(Headers.GROUP_ID) String groupId) throws Exception;
 
 }

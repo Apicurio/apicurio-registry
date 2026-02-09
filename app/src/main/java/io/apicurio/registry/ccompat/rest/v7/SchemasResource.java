@@ -4,6 +4,7 @@ import io.apicurio.registry.ccompat.dto.SchemaInfo;
 import io.apicurio.registry.ccompat.dto.SubjectVersion;
 import io.apicurio.registry.rest.Headers;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
 
 import java.util.List;
 
@@ -19,6 +20,23 @@ import static io.apicurio.registry.ccompat.rest.ContentTypes.*;
 @Consumes({ JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST })
 @Produces({ JSON, OCTET_STREAM, COMPAT_SCHEMA_REGISTRY_V1, COMPAT_SCHEMA_REGISTRY_STABLE_LATEST })
 public interface SchemasResource {
+
+    // ----- Path: /schemas -----
+
+    /**
+     * Get a list of all schema objects.
+     *
+     * @param subjectPrefix Filter by subject prefix
+     * @param deleted Include soft-deleted schemas
+     * @param latestOnly Return only the latest version of each schema
+     * @param offset Pagination offset
+     * @param limit Pagination limit
+     * @return List of schema objects
+     */
+    @GET
+    List<SchemaInfo> getSchemas(@QueryParam("subjectPrefix") String subjectPrefix,
+            @QueryParam("deleted") Boolean deleted, @QueryParam("latestOnly") Boolean latestOnly,
+            @QueryParam("offset") Integer offset, @QueryParam("limit") Integer limit);
 
     // ----- Path: /schemas/ids/{globalId} -----
 
@@ -61,4 +79,31 @@ public interface SchemasResource {
     @GET
     @Path("/ids/{id}/versions")
     List<SubjectVersion> getSubjectVersions(@PathParam("id") int id, @QueryParam("deleted") Boolean deleted);
+
+    // ----- Path: /schemas/ids/{id}/subjects -----
+
+    /**
+     * Get the list of subjects that reference the schema with the given ID.
+     *
+     * @param id (int) – the globally unique identifier of the schema
+     * @param deleted (boolean) – include soft-deleted subjects
+     * @return List of subject names
+     */
+    @GET
+    @Path("/ids/{id}/subjects")
+    List<String> getSubjectsBySchemaId(@PathParam("id") int id, @QueryParam("deleted") Boolean deleted);
+
+    // ----- Path: /schemas/ids/{id}/schema -----
+
+    /**
+     * Get the raw schema string identified by the input ID.
+     *
+     * @param id (int) – the globally unique identifier of the schema
+     * @param subject (string) – add ?subject=<someSubjectName> at the end of this request
+     * @return The raw schema string
+     */
+    @GET
+    @Path("/ids/{id}/schema")
+    @Produces(MediaType.TEXT_PLAIN)
+    String getSchemaString(@PathParam("id") int id, @QueryParam("subject") String subject);
 }

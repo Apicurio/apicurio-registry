@@ -22,6 +22,7 @@ import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v3.GroupsResource;
 import io.apicurio.registry.rest.v3.beans.*;
+import io.apicurio.registry.rest.v3.impl.shared.ProtobufExporter;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
@@ -106,6 +107,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     io.apicurio.registry.services.PromptRenderingService promptRenderingService;
+
+    @Inject
+    ProtobufExporter protobufExporter;
 
     public enum RegistryHashAlgorithm {
         SHA256, MD5
@@ -1791,6 +1795,34 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 gav.getRawGroupIdWithNull() != null ? gav.getRawGroupIdWithNull() : "default",
                 gav.getRawArtifactId(),
                 gav.getRawVersionId());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#exportArtifactVersion(java.lang.String,
+     *      java.lang.String, java.lang.String)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public Response exportArtifactVersion(String groupId, String artifactId, String versionExpression) {
+        requireParameter("groupId", groupId);
+        requireParameter("artifactId", artifactId);
+        requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        // Verify the artifact exists and is of type PROTOBUF
+        ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        String artifactType = versionMetaData.getArtifactType();
+        if (!"PROTOBUF".equals(artifactType)) {
+            throw new BadRequestException(
+                    "Export as ZIP is only supported for PROTOBUF artifacts, but artifact type was: " + artifactType);
+        }
+
+        return protobufExporter.exportVersionAsZip(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
     }
 
 }

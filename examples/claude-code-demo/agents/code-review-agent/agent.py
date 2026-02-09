@@ -2,8 +2,8 @@
 """
 Code Review Agent - LLM-powered A2A Agent
 
-This agent implements the A2A (Agent-to-Agent) protocol and uses Ollama
-for AI-powered code review. It exposes:
+This agent implements the A2A (Agent-to-Agent) protocol and supports multiple
+LLM providers (Claude, Ollama) for AI-powered code review. It exposes:
 - /.well-known/agent.json - Agent card (A2A discovery)
 - /agents/code-review/invoke - Task execution endpoint
 """
@@ -18,10 +18,27 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuration from environment
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")  # "claude" or "ollama"
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 AGENT_PORT = int(os.getenv("AGENT_PORT", "8080"))
 REGISTRY_URL = os.getenv("REGISTRY_URL", "http://localhost:8080")
+
+# Initialize Anthropic client if using Claude
+anthropic_client = None
+if LLM_PROVIDER == "claude" and ANTHROPIC_API_KEY:
+    try:
+        import anthropic
+        anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        print(f"[code-review-agent] Claude API initialized with model: {CLAUDE_MODEL}")
+    except ImportError:
+        print("[code-review-agent] WARNING: anthropic package not installed, falling back to Ollama")
+        LLM_PROVIDER = "ollama"
+    except Exception as e:
+        print(f"[code-review-agent] WARNING: Failed to initialize Claude: {e}, falling back to Ollama")
+        LLM_PROVIDER = "ollama"
 
 # Agent Card - A2A Protocol
 AGENT_CARD = {
@@ -93,6 +110,38 @@ Be thorough but concise. Focus on:
 IMPORTANT: Return ONLY valid JSON, no markdown, no explanations outside the JSON."""
 
 
+def call_claude(prompt: str, system_prompt: str = None) -> str:
+    """Call Claude API for LLM inference."""
+    if not anthropic_client:
+        return json.dumps({
+            "error": "Claude client not initialized",
+            "summary": "Failed to analyze code",
+            "score": 0,
+            "issues": []
+        })
+
+    try:
+        messages = [{"role": "user", "content": prompt}]
+        kwargs = {
+            "model": CLAUDE_MODEL,
+            "max_tokens": 4096,
+            "messages": messages
+        }
+        if system_prompt:
+            kwargs["system"] = system_prompt
+
+        response = anthropic_client.messages.create(**kwargs)
+        return response.content[0].text
+
+    except Exception as e:
+        return json.dumps({
+            "error": f"Claude API error: {str(e)}",
+            "summary": "Failed to analyze code",
+            "score": 0,
+            "issues": []
+        })
+
+
 def call_ollama(prompt: str, system_prompt: str = None) -> str:
     """Call Ollama API for LLM inference."""
     try:
@@ -126,6 +175,14 @@ def call_ollama(prompt: str, system_prompt: str = None) -> str:
             "score": 0,
             "issues": []
         })
+
+
+def call_llm(prompt: str, system_prompt: str = None) -> str:
+    """Call the configured LLM provider."""
+    if LLM_PROVIDER == "claude" and anthropic_client:
+        return call_claude(prompt, system_prompt)
+    else:
+        return call_ollama(prompt, system_prompt)
 
 
 def parse_llm_response(response: str) -> dict:
@@ -234,10 +291,10 @@ def invoke_agent():
 
 Provide your analysis as JSON."""
 
-        print(f"[code-review-agent] Analyzing code ({len(code)} chars)...")
+        print(f"[code-review-agent] Analyzing code ({len(code)} chars) using {LLM_PROVIDER}...")
 
-        # Call Ollama
-        llm_response = call_ollama(prompt, SYSTEM_PROMPT)
+        # Call the configured LLM provider
+        llm_response = call_llm(prompt, SYSTEM_PROMPT)
 
         # Parse the response
         result = parse_llm_response(llm_response)
@@ -246,7 +303,8 @@ Provide your analysis as JSON."""
 
         # Add metadata
         result["agent"] = "code-review-agent"
-        result["model"] = OLLAMA_MODEL
+        result["provider"] = LLM_PROVIDER
+        result["model"] = CLAUDE_MODEL if LLM_PROVIDER == "claude" else OLLAMA_MODEL
 
         return jsonify(result)
 
@@ -267,7 +325,7 @@ def health_check():
     try:
         response = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
         ollama_status = "healthy" if response.ok else "unhealthy"
-    except:
+    except Exception:
         ollama_status = "unreachable"
 
     return jsonify({

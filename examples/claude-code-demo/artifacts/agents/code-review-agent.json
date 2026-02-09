@@ -9,7 +9,7 @@
     "url": "https://www.apicur.io"
   },
   "capabilities": {
-    "streaming": true,
+    "streaming": false,
     "pushNotifications": false
   },
   "skills": [

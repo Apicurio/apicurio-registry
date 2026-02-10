@@ -45,4 +45,18 @@ public class AvroReferenceFinderTest extends ArtifactUtilProviderTestBase {
                 new ExternalReference("com.kubetrade.schema.trade.TradeValue")), foundReferences);
     }
 
+    /**
+     * Test that reference defined within the avro schema are not flagged as external.
+     */
+    @Test
+    public void testInternalReferencesAreNotReturnedAsExternal() {
+        TypedContent content = resourceToTypedContentHandle("avro-with-internal-refs.avsc");
+        AvroReferenceFinder finder = new AvroReferenceFinder();
+        Set<ExternalReference> foundReferences = finder.findExternalReferences(content);
+        Assertions.assertNotNull(foundReferences);
+        Assertions.assertEquals(2, foundReferences.size());
+        Assertions.assertEquals(Set.of(new ExternalReference("com.kubetrade.schema.trade.TradeKey"),
+                new ExternalReference("com.kubetrade.schema.trade.TradeValue")), foundReferences);
+    }
+
 }

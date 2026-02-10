@@ -50,6 +50,13 @@ public class ModeResourceImpl implements ModeResource {
         return convertResponse(v7Response);
     }
 
+    @Override
+    public ModeUpdateResponse deleteSubjectMode(String subject, String xRegistryGroupId) {
+        io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateResponse v7Response =
+                v7ModeResource.deleteSubjectMode(subject, xRegistryGroupId);
+        return convertResponse(v7Response);
+    }
+
     private io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateRequest convertToV7Request(ModeUpdateRequest data) {
         io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateRequest v7Request =
                 new io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateRequest();

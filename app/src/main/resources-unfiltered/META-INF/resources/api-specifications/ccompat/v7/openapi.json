@@ -1753,6 +1753,64 @@
             "$ref": "#/components/responses/Error"
           }
         }
+      },
+      "delete": {
+        "operationId": "deleteSubjectMode",
+        "description": "Deletes the subject-level mode configuration and reverts to using the global mode.",
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the mode that was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                },
+                "example": {
+                  "mode": "READWRITE"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
       }
     },
     "/compatibility/subjects/{subject}/versions/{version}": {

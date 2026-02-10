@@ -112,4 +112,70 @@ public class CCompatV8HeaderTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("is_compatible", notNullValue());
     }
+
+    @Test
+    public void testRegisterSchemaWithUnknownPropertiesInBody() throws Exception {
+        var subject = TestUtils.generateSubject();
+        var schema = "{\"type\" : \"string\"}";
+
+        // Create a JSON body with unknown properties - this should be accepted with the header
+        String bodyWithUnknownProps = "{\"schema\": \"" + schema.replace("\"", "\\\"") +
+                "\", \"unknownField\": \"should-be-ignored\", \"anotherUnknown\": 123}";
+
+        // With the header set to true, unknown properties should be ignored
+        given().when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .header("X-Confluent-Accept-Unknown-Properties", "true")
+                .body(bodyWithUnknownProps)
+                .post("/ccompat/v8/subjects/{subject}/versions", subject)
+                .then()
+                .statusCode(200)
+                .body("id", notNullValue());
+    }
+
+    @Test
+    public void testDeleteSubjectMode() throws Exception {
+        var subject = TestUtils.generateSubject();
+        var schema = "{\"type\" : \"string\"}";
+        var schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema(schema);
+
+        // First register a schema to create the subject
+        given().when()
+                .contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent))
+                .post("/ccompat/v8/subjects/{subject}/versions", subject)
+                .then()
+                .statusCode(200);
+
+        // Set a subject-level mode
+        given().when()
+                .contentType(ContentTypes.JSON)
+                .body("{\"mode\": \"READONLY\"}")
+                .put("/ccompat/v8/mode/{subject}", subject)
+                .then()
+                .statusCode(200)
+                .body("mode", org.hamcrest.Matchers.equalTo("READONLY"));
+
+        // Verify mode was set
+        given().when()
+                .get("/ccompat/v8/mode/{subject}", subject)
+                .then()
+                .statusCode(200)
+                .body("mode", org.hamcrest.Matchers.equalTo("READONLY"));
+
+        // Delete the subject mode
+        given().when()
+                .delete("/ccompat/v8/mode/{subject}", subject)
+                .then()
+                .statusCode(200)
+                .body("mode", notNullValue());
+
+        // Verify subject now uses global mode (READWRITE is default)
+        given().when()
+                .get("/ccompat/v8/mode/{subject}", subject)
+                .then()
+                .statusCode(200)
+                .body("mode", org.hamcrest.Matchers.equalTo("READWRITE"));
+    }
 }

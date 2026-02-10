@@ -21,7 +21,6 @@ import io.apicurio.registry.types.VersionState;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;

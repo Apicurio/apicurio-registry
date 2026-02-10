@@ -1,0 +1,3703 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "Apicurio Registry Confluent Compatibility API",
+    "version": "8.0.0",
+    "description": "Apicurio Registry Confluent compatibility API",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    }
+  },
+  "paths": {
+    "/schemas": {
+      "summary": "Get a list of all schemas.",
+      "get": {
+        "operationId": "getSchemas",
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "subjectPrefix",
+            "in": "query",
+            "required": false,
+            "description": "Filter schemas by subject prefix.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Include soft-deleted schemas. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "latestOnly",
+            "in": "query",
+            "required": false,
+            "description": "Only return the latest version of each schema. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Pagination offset. Default is 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of schemas to return. Default is -1 (no limit).",
+            "schema": {
+              "type": "integer",
+              "default": -1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of schemas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Schema"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Schema"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Schema"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/schemas/ids/{id}/subjects": {
+      "summary": "Get the list of subjects that reference the schema with the given ID.",
+      "get": {
+        "operationId": "getSubjectsBySchemaId",
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The globally unique identifier of the schema.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Include soft-deleted subjects. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of subjects that reference the schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "subject1",
+                  "subject2"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/schemas/ids/{id}": {
+      "summary": "Get the schema string identified by the input ID.",
+      "get": {
+        "operationId": "getSchemaById",
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The globally unique identifier of the schema.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" (default) or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "description": "Look for the subject in all contexts starting with the default context and return the schema with the ID from that context.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema found with the id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                "example": {
+                  "subject": "test",
+                  "id": 1,
+                  "version": 3,
+                  "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/schemas/ids/{id}/schema": {
+      "summary": "Retrieves only the schema identified by the input ID.",
+      "get": {
+        "operationId": "getSchemaContentById",
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The globally unique identifier of the schema.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" (default) or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "description": "Look for the subject in all contexts starting with the default context and return the schema with the ID from that context.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema string identified by the ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "\"string\""
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/schemas/types": {
+      "summary": "Get the schema types that are registered with Schema Registry.",
+      "get": {
+        "operationId": "getSchemaTypes",
+        "tags": [
+          "Schemas"
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema types currently available on Schema Registry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "JSON",
+                  "PROTOBUF",
+                  "AVRO"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/schemas/ids/{id}/versions": {
+      "summary": "Get the subject-version pairs identified by the input ID.",
+      "get": {
+        "operationId": "getSchemaVersionsById",
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The globally unique identifier of the schema.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of subject-version pairs where the schema is registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectVersion"
+                  }
+                },
+                "example": [
+                  {
+                    "subject": "test-subject1",
+                    "version": 1
+                  }
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectVersion"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectVersion"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects": {
+      "summary": "Get a list of registered subjects.",
+      "get": {
+        "operationId": "getSubjects",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subjectPrefix",
+            "in": "query",
+            "required": false,
+            "description": "List subjects in the default context. If not included, returns all subjects across all contexts.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Include both current and soft-deleted subjects. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "deletedOnly",
+            "in": "query",
+            "required": false,
+            "description": "If true, only return soft-deleted subjects. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Pagination offset. Default is 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of subjects to return. Default is -1 (no limit).",
+            "schema": {
+              "type": "integer",
+              "default": -1
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of registered subject names.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "subject1",
+                  "subject2"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}/versions": {
+      "get": {
+        "summary": "Get a list of versions registered under the subject.",
+        "operationId": "getSubjectVersions",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "The name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "deletedOnly",
+            "in": "query",
+            "required": false,
+            "description": "If true, only return soft-deleted versions. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Pagination offset. Default is 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of versions to return. Default is -1 (no limit).",
+            "schema": {
+              "type": "integer",
+              "default": -1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of version numbers registered under the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "example": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "registerSchemaUnderSubject",
+        "description": "Register a new schema.",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Subject under which the schema will be registered.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "normalize",
+            "in": "query",
+            "required": false,
+            "description": "If true, normalize the schema before comparing. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Schema information to register under the subject.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [{ \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"com.acme.Referenced\", \"name\": \"int\" }] }",
+                    "schemaType": "AVRO",
+                    "references": [
+                      {
+                        "name": "com.acme.Referenced",
+                        "subject": "childSubject",
+                        "version": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [{ \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"com.acme.Referenced\", \"name\": \"int\" }] }",
+                    "schemaType": "AVRO",
+                    "references": [
+                      {
+                        "name": "com.acme.Referenced",
+                        "subject": "childSubject",
+                        "version": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [{ \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"com.acme.Referenced\", \"name\": \"int\" }] }",
+                    "schemaType": "AVRO",
+                    "references": [
+                      {
+                        "name": "com.acme.Referenced",
+                        "subject": "childSubject",
+                        "version": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [{ \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"com.acme.Referenced\", \"name\": \"int\" }] }",
+                    "schemaType": "AVRO",
+                    "references": [
+                      {
+                        "name": "com.acme.Referenced",
+                        "subject": "childSubject",
+                        "version": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Schema successfully registered (or already exists).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaId"
+                },
+                "example": {
+                  "id": 1
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaId"
+                },
+                "example": {
+                  "id": 1
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaId"
+                },
+                "example": {
+                  "id": 1
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}": {
+      "summary": "The subjects resource provides a list of all registered subjects across all contexts in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a “<topic>-value” or “<topic>-key” depending on whether you are registering the value schema for that topic or the key schema.",
+      "post": {
+        "operationId": "lookupSchemaByContent",
+        "description": "Returns the schema string along with its global ID and version if already registered under the given subject.",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "The subject under which the schema will be registered.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "normalize",
+            "in": "query",
+            "required": false,
+            "description": "Normalize the schema content before comparing. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Schema information to check for registration.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "examples": {
+                "example": {
+                  "value": {
+                    "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
+                  }
+                }
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Schema found under the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                "example": {
+                  "subject": "test",
+                  "id": 1,
+                  "version": 3,
+                  "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSubject",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "The name of the subject to delete.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "permanent",
+            "in": "query",
+            "required": false,
+            "description": "If true, perform a hard delete. Default is false (soft delete).",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of version numbers that were deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "example": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}/versions/{version}": {
+      "summary": "Subject version operations.",
+      "get": {
+        "operationId": "getSchemaVersion",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the schema to return. Can be a version number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" (default) or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema version data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                "examples": {
+                  "avro": {
+                    "value": {
+                      "subject": "test",
+                      "version": 1,
+                      "schema": "{\"type\": \"string\"}"
+                    }
+                  },
+                  "protobuf": {
+                    "value": {
+                      "subject": "test",
+                      "version": 1,
+                      "schemaType": "PROTOBUF",
+                      "schema": "{\"type\": \"string\"}"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSchemaVersion",
+        "description": "Performs a soft or hard delete on the specified schema version. Hard delete requires the exact version number (not 'latest').",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the schema to delete. Can be a version number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "permanent",
+            "in": "query",
+            "required": false,
+            "description": "If true, perform a hard delete. Default is false (soft delete).",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The version number that was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": 1
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}/versions/{version}/schema": {
+      "summary": "Get the schema for the specified version of a subject.",
+      "description": "Returns the raw (unescaped) schema string for a given subject and version.",
+      "get": {
+        "operationId": "getSchemaVersionContent",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the schema to be returned. Can be a version number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The raw, unescaped schema string.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "{\"type\": \"string\"}"
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}/versions/{version}/referencedby": {
+      "summary": "Get a list of IDs of schemas that reference the specified schema version.",
+      "description": "Returns the list of globally unique schema IDs that reference the given subject and version.",
+      "get": {
+        "operationId": "getReferencedBy",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "The name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the schema. Can be a version number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of schema IDs that reference the specified schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "example": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/subjects/{subject}/metadata": {
+      "summary": "Retrieve the latest version with the given metadata filters.",
+      "description": "Returns the latest schema version registered under the specified subject that matches the provided metadata key-value pairs.",
+      "get": {
+        "operationId": "getSubjectMetadata",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject to search under.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "description": "Metadata key to match. Can appear multiple times, matched in order with 'value'.",
+            "schema": {
+              "type": "string"
+            },
+            "explode": true
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "required": false,
+            "description": "Metadata value to match. Can appear multiple times, matched in order with 'key'.",
+            "schema": {
+              "type": "string"
+            },
+            "explode": true
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format. For AVRO: \"\" or \"resolved\". For PROTOBUF: \"\", \"ignore_extensions\", or \"serialized\".",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "If true, include both current and soft-deleted subjects. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema version matching the metadata filters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/mode": {
+      "summary": "Get the current global mode of Schema Registry.",
+      "description": "Returns the global mode for Schema Registry, which can be one of: IMPORT, READONLY, or READWRITE (default).",
+      "get": {
+        "operationId": "getMode",
+        "tags": [
+          "Mode"
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the current global mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                },
+                "example": {
+                  "mode": "READWRITE"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateMode",
+        "description": "Updates the global mode for Schema Registry. This operation is allowed only if Schema Registry was started with mode.mutability=true.",
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "description": "If true, allows the mode change even if schemas are already registered. Useful in disaster recovery scenarios.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              },
+              "example": {
+                "mode": "IMPORT"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the updated global mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                },
+                "example": {
+                  "mode": "IMPORT"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/mode/{subject}": {
+      "summary": "Subject-level mode operations.",
+      "description": "",
+      "get": {
+        "operationId": "getSubjectMode",
+        "description": "Returns the mode configured for a specific subject. If not explicitly configured, the subject inherits the global mode.",
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the mode for the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                },
+                "example": {
+                  "mode": "READWRITE"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateSubjectMode",
+        "description": "Updates the subject-level mode. This is allowed only if Schema Registry was started with mode.mutability=true.",
+        "tags": [
+          "Mode"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "description": "If true, forces the mode change even if schemas already exist. Useful in disaster recovery scenarios.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              },
+              "example": {
+                "mode": "READONLY"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the updated subject mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                },
+                "example": {
+                  "mode": "READONLY"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeUpdateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/compatibility/subjects/{subject}/versions/{version}": {
+      "summary": "Test schema compatibility against a specific version of a subject.",
+      "description": "Checks whether the provided schema is compatible with a specific version of the subject's schema, based on configured compatibility rules.",
+      "post": {
+        "operationId": "checkCompatibility",
+        "tags": [
+          "Compatibility"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Subject of the schema version to check compatibility against.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the subject's schema to check against. Can be a number, 'latest', or '-1'.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verbose",
+            "in": "query",
+            "required": false,
+            "description": "If true, includes reason when compatibility fails. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "normalize",
+            "in": "query",
+            "required": false,
+            "description": "If true, normalize the schema before checking compatibility. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "example": {
+                "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compatibility check result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                },
+                "example": {
+                  "is_compatible": true
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/compatibility/subjects/{subject}/versions": {
+      "summary": "Test schema compatibility against all applicable versions of a subject.",
+      "description": "Tests a schema for compatibility against all versions under the subject, depending on the configured compatibility level (e.g. TRANSITIVE levels test all previous versions).",
+      "post": {
+        "operationId": "checkAllCompatibility",
+        "tags": [
+          "Compatibility"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Subject of the schema version to check compatibility against.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verbose",
+            "in": "query",
+            "required": false,
+            "description": "If true, includes reason when compatibility fails. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "normalize",
+            "in": "query",
+            "required": false,
+            "description": "If true, normalize the schema before checking compatibility. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              },
+              "example": {
+                "schema": "{ \"type\": \"record\", \"name\": \"test\", \"fields\": [ { \"type\": \"string\", \"name\": \"field1\" }, { \"type\": \"int\", \"name\": \"field2\" } ] }"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compatibility check result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                },
+                "example": {
+                  "is_compatible": true
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/config": {
+      "summary": "Global configuration operations.",
+      "put": {
+        "operationId": "updateGlobalConfig",
+        "summary": "Update the global configuration for compatibility and related settings.",
+        "description": "Updates global configuration values such as compatibility level, normalization, metadata, rule sets, and compatibility group. This applies to the entire Schema Registry cluster.",
+        "tags": [
+          "Config"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              },
+              "example": {
+                "compatibilityLevel": "FULL"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated global configuration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibilityLevel": "FULL"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "summary": "Get the global compatibility configuration.",
+        "description": "Retrieves the global configuration for compatibility level, normalization, metadata, rule sets, and compatibility group settings.",
+        "operationId": "getGlobalConfig",
+        "tags": [
+          "Config"
+        ],
+        "responses": {
+          "200": {
+            "description": "Global configuration settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibilityLevel": "FULL"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete the global compatibility configuration.",
+        "description": "Removes the global compatibility configuration and reverts to default settings.",
+        "operationId": "deleteGlobalConfig",
+        "tags": [
+          "Config"
+        ],
+        "responses": {
+          "200": {
+            "description": "The compatibility configuration that was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibilityLevel": "NONE"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/config/{subject}": {
+      "summary": "Update the compatibility level and related configuration for a subject.",
+      "description": "Updates compatibility settings for a specific subject. These settings override the global configuration for this subject.",
+      "put": {
+        "operationId": "updateSubjectConfig",
+        "description": "Update the compatibility level for a subject. This setting overrides the global compatibility level for this subject.",
+        "summary": "Update the compatibility level for a subject.",
+        "tags": [
+          "Config"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              },
+              "example": {
+                "compatibilityLevel": "FULL"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated configuration for the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibilityLevel": "FULL"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getSubjectConfig",
+        "description": "Get the compatibility level for a subject.",
+        "summary": "Get the compatibility level for a subject.",
+        "tags": [
+          "Config"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "defaultToGlobal",
+            "in": "query",
+            "required": false,
+            "description": "If true, shows the effective configuration used for compatibility checks, falling back to global config if subject config is not set.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current compatibility configuration for the subject.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectConfigResponse"
+                },
+                "example": {
+                  "compatibilityLevel": "FULL"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectConfigResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSubjectConfig",
+        "summary": "Delete subject-level compatibility configuration.",
+        "description": "Removes the compatibility configuration for a subject and reverts it to the global default configuration.",
+        "tags": [
+          "Config"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject whose compatibility configuration should be deleted.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The previous subject-level configuration before deletion (or the new global default in effect).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibilityLevel": "NONE"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/contexts": {
+      "summary": "Get a list of all schema registry contexts.",
+      "description": "Retrieves a list of contexts available in the registry. The list always includes the default context and any custom-defined contexts.",
+      "get": {
+        "operationId": "getContexts",
+        "tags": [
+          "Contexts"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of context names.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  ":.:",
+                  ".mycontext"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters": {
+      "post": {
+        "summary": "Create a new schema exporter.",
+        "description": "Creates a new schema exporter. All attributes in the request body are optional except for `config`, which is required.",
+        "operationId": "createExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterCreateRequest"
+              },
+              "example": {
+                "name": "test-exporter",
+                "contextType": "CUSTOM",
+                "context": "test-context",
+                "subjects": [
+                  "foo"
+                ],
+                "kekRenameFormat": "dc_${kek}",
+                "subjectRenameFormat": "dc_${subject}",
+                "config": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterCreateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterCreateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created exporter name.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getExporters",
+        "tags": [
+          "Exporters"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of exporter names.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "exporter1",
+                  "exporter2"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}": {
+      "summary": "Update an existing schema exporter's configuration.",
+      "description": "Updates the information or configuration of the specified schema exporter. All request body fields are optional.",
+      "put": {
+        "operationId": "updateExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterUpdateRequest"
+              },
+              "example": {
+                "contextType": "CUSTOM",
+                "context": "test-context"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterUpdateRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExporterUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated exporter's name.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getExporter",
+        "summary": "Get the configuration and metadata of a schema exporter.",
+        "description": "Returns information about the specified schema exporter, including its context, subjects, and configuration.",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to retrieve.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schema exporter information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exporter"
+                },
+                "example": {
+                  "name": "test-exporter",
+                  "contextType": "CUSTOM",
+                  "context": "test-context",
+                  "subjects": [
+                    "foo"
+                  ],
+                  "config": {
+                    "schema.registry.url": "<Physical SR Endpoint>",
+                    "basic.auth.credentials.source": "USER_INFO",
+                    "basic.auth.user.info": "[hidden]"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exporter"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exporter"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to delete.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Exporter successfully deleted. No content is returned."
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/status": {
+      "summary": "Get the status of a schema exporter.",
+      "description": "Returns the current status of the specified schema exporter, including its state, offset, timestamp, and trace information.",
+      "get": {
+        "operationId": "getExporterStatus",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exporter status information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExporterStatus"
+                },
+                "example": {
+                  "name": "test-exporter",
+                  "state": "RUNNING",
+                  "offset": 100,
+                  "ts": 1631206325,
+                  "trace": ""
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExporterStatus"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExporterStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/config": {
+      "get": {
+        "operationId": "getExporterConfig",
+        "summary": "Get the configuration of a schema exporter.",
+        "description": "Returns the configuration map for the specified schema exporter. The response is a flat map, not wrapped in a 'config' object.",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration key-value pairs of the exporter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "[hidden]"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateExporterConfig",
+        "summary": "Update the configuration map of a schema exporter.",
+        "description": "Updates the exporter configuration directly. Unlike POST /exporters, the payload here is not wrapped in a config object.",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to update.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Direct map of configuration properties for the exporter.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "type": "object",
+                "description": "Direct map of configuration properties for the exporter.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "type": "object",
+                "description": "Direct map of configuration properties for the exporter.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "type": "object",
+                "description": "Direct map of configuration properties for the exporter.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "example": {
+                  "schema.registry.url": "<Physical SR Endpoint>",
+                  "basic.auth.credentials.source": "USER_INFO",
+                  "basic.auth.user.info": "<SR Credentials>"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Name of the updated exporter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/pause": {
+      "summary": "Pause a schema exporter.",
+      "description": "Pauses the specified schema exporter. This operation will fail if the exporter is still starting.",
+      "put": {
+        "operationId": "pauseExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to pause.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exporter was successfully paused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/reset": {
+      "summary": "Reset a schema exporter.",
+      "description": "Resets the specified schema exporter. The exporter must be paused before it can be reset.",
+      "put": {
+        "operationId": "resetExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to reset.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exporter was successfully reset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exporters/{name}/resume": {
+      "summary": "Resume a paused schema exporter.",
+      "description": "Resumes the specified exporter if it is currently paused. Cannot be called if the exporter is already running.",
+      "put": {
+        "operationId": "resumeExporter",
+        "tags": [
+          "Exporters"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Name of the exporter to resume.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exporter was successfully resumed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "name": "test-exporter"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "x-codegen-contextRoot": "/apis/ccompat/v8"
+  },
+  "components": {
+    "parameters": {
+      "AcceptUnknownProperties": {
+        "name": "X-Confluent-Accept-Unknown-Properties",
+        "in": "header",
+        "required": false,
+        "description": "When set to true, unknown properties in request bodies are ignored (forward compatibility). Default is false.",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error_code",
+          "message"
+        ],
+        "properties": {
+          "error_code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The internal error code."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable description of the error."
+          }
+        },
+        "example": {
+          "error_code": 40403,
+          "message": "Schema not found"
+        }
+      },
+      "Schema": {
+        "type": "object",
+        "required": [
+          "subject",
+          "version",
+          "schema"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "The name of the subject this schema belongs to."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version of the schema under the subject."
+          },
+          "id": {
+            "type": "integer",
+            "description": "The globally unique ID of the schema."
+          },
+          "schema": {
+            "type": "string",
+            "description": "The actual schema definition as a string."
+          },
+          "schemaType": {
+            "type": "string",
+            "description": "The type of the schema (AVRO, PROTOBUF, JSON). Default is AVRO."
+          },
+          "references": {
+            "type": "array",
+            "description": "A list of referenced schemas.",
+            "items": {
+              "$ref": "#/components/schemas/SchemaReference"
+            }
+          }
+        }
+      },
+      "RegisterSchemaRequest": {
+        "type": "object",
+        "required": [
+          "schema"
+        ],
+        "properties": {
+          "schema": {
+            "type": "string",
+            "description": "The schema definition as a string."
+          },
+          "schemaType": {
+            "type": "string",
+            "description": "The schema format (AVRO, PROTOBUF, JSON). Default is AVRO."
+          },
+          "references": {
+            "type": "array",
+            "description": "A list of referenced schemas.",
+            "items": {
+              "$ref": "#/components/schemas/SchemaReference"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional metadata associated with the schema."
+          },
+          "ruleSet": {
+            "type": "object",
+            "description": "Optional ruleset configuration for the schema."
+          }
+        }
+      },
+      "SchemaReference": {
+        "type": "object",
+        "required": [
+          "name",
+          "subject",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      },
+      "SchemaId": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        }
+      },
+      "SubjectVersion": {
+        "type": "object",
+        "required": [
+          "subject",
+          "version"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "The name of the subject."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version number of the schema under the subject."
+          }
+        },
+        "example": {
+          "subject": "test-subject1",
+          "version": 1
+        }
+      },
+      "ModeUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "READWRITE",
+              "READONLY",
+              "IMPORT"
+            ],
+            "description": "Current operating mode of the registry."
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "example": {
+          "mode": "READWRITE"
+        }
+      },
+      "ModeUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "READWRITE",
+              "READONLY",
+              "IMPORT"
+            ],
+            "description": "The new global mode to set."
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "example": {
+          "mode": "IMPORT"
+        }
+      },
+      "CompatibilityCheckResponse": {
+        "type": "object",
+        "required": [
+          "is_compatible"
+        ],
+        "properties": {
+          "is_compatible": {
+            "type": "boolean",
+            "description": "True if the schema is compatible, false otherwise."
+          }
+        },
+        "example": {
+          "is_compatible": true
+        }
+      },
+      "ConfigUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "compatibility": {
+            "type": "string",
+            "description": "New global compatibility level."
+          },
+          "alias": {
+            "type": "string",
+            "description": "Alias subject name used for resolution."
+          },
+          "normalize": {
+            "type": "boolean",
+            "description": "Automatically normalize schemas when registering or comparing."
+          },
+          "compatibilityGroup": {
+            "type": "string",
+            "description": "Group name for compatibility scoping."
+          },
+          "defaultMetadata": {
+            "type": "object",
+            "description": "Default metadata to be applied during schema registration."
+          },
+          "overrideMetadata": {
+            "type": "object",
+            "description": "Overrides metadata values on schema registration."
+          },
+          "defaultRuleSet": {
+            "type": "object",
+            "description": "Default ruleset to apply during registration."
+          },
+          "overrideRuleSet": {
+            "type": "object",
+            "description": "Overrides schema-level ruleset if present."
+          }
+        }
+      },
+      "GlobalConfigResponse": {
+        "type": "object",
+        "properties": {
+          "compatibilityLevel": {
+            "type": "string",
+            "description": "The current global compatibility level."
+          }
+        },
+        "example": {
+          "compatibilityLevel": "FULL"
+        }
+      },
+      "SubjectConfigResponse": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "description": "Alias subject name used for resolution."
+          },
+          "normalize": {
+            "type": "boolean",
+            "description": "Whether schemas are normalized during registration and lookups."
+          },
+          "compatibilityLevel": {
+            "type": "string",
+            "description": "The compatibility level for the subject.",
+            "enum": [
+              "BACKWARD",
+              "BACKWARD_TRANSITIVE",
+              "FORWARD",
+              "FORWARD_TRANSITIVE",
+              "FULL",
+              "FULL_TRANSITIVE",
+              "NONE"
+            ]
+          },
+          "compatibilityGroup": {
+            "type": "string",
+            "description": "Only schemas in the same group will be compared for compatibility."
+          },
+          "defaultMetadata": {
+            "type": "object",
+            "description": "Default metadata applied during schema registration."
+          },
+          "overrideMetadata": {
+            "type": "object",
+            "description": "Override metadata applied during schema registration."
+          },
+          "defaultRuleSet": {
+            "type": "object",
+            "description": "Default ruleSet applied during schema registration."
+          },
+          "overrideRuleSet": {
+            "type": "object",
+            "description": "Override ruleSet applied during schema registration."
+          }
+        },
+        "example": {
+          "compatibilityLevel": "FULL",
+          "normalize": false
+        }
+      },
+      "ExporterCreateRequest": {
+        "type": "object",
+        "required": [
+          "config"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the exporter."
+          },
+          "contextType": {
+            "type": "string",
+            "description": "Context type for the exporter. One of: CUSTOM, NONE, AUTO.",
+            "enum": [
+              "CUSTOM",
+              "NONE",
+              "AUTO"
+            ],
+            "default": "AUTO"
+          },
+          "context": {
+            "type": "string",
+            "description": "The custom context name (used only if contextType is CUSTOM)."
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A list of subject names to export."
+          },
+          "kekRenameFormat": {
+            "type": "string",
+            "description": "Format string to rename KEKs in the destination cluster."
+          },
+          "subjectRenameFormat": {
+            "type": "string",
+            "description": "Format string to rename subjects in the destination cluster."
+          },
+          "config": {
+            "type": "object",
+            "description": "Map containing configuration settings for the exporter."
+          }
+        }
+      },
+      "ExporterUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "contextType": {
+            "type": "string",
+            "enum": [
+              "CUSTOM",
+              "NONE",
+              "AUTO"
+            ],
+            "description": "Context type for the exporter."
+          },
+          "context": {
+            "type": "string",
+            "description": "The custom context to use, if contextType is CUSTOM."
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of subject names to export."
+          },
+          "kekRenameFormat": {
+            "type": "string",
+            "description": "Format for renaming KEKs using ${kek} as a placeholder."
+          },
+          "subjectRenameFormat": {
+            "type": "string",
+            "description": "Format for renaming subject names using ${subject} as a placeholder."
+          },
+          "config": {
+            "type": "object",
+            "description": "Map of exporter-specific configuration options."
+          }
+        }
+      },
+      "Exporter": {
+        "type": "object",
+        "required": [
+          "name",
+          "contextType",
+          "config"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the exporter."
+          },
+          "contextType": {
+            "type": "string",
+            "description": "The type of context for the exporter.",
+            "enum": [
+              "CUSTOM",
+              "NONE",
+              "AUTO"
+            ]
+          },
+          "context": {
+            "type": "string",
+            "description": "The custom context if contextType is CUSTOM."
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of subjects that the exporter is exporting."
+          },
+          "subjectRenameFormat": {
+            "type": "string",
+            "description": "Format for renaming subject names in the destination cluster."
+          },
+          "config": {
+            "type": "object",
+            "description": "Map of configuration properties for the exporter.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ExporterStatus": {
+        "type": "object",
+        "required": [
+          "name",
+          "state",
+          "offset",
+          "ts",
+          "trace"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the exporter."
+          },
+          "state": {
+            "type": "string",
+            "description": "Current state of the exporter.",
+            "enum": [
+              "STARTING",
+              "RUNNING",
+              "PAUSED"
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The current offset of the exporter."
+          },
+          "ts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Timestamp of the last known exporter activity."
+          },
+          "trace": {
+            "type": "string",
+            "description": "Error trace or message, if any."
+          }
+        }
+      }
+    },
+    "responses": {
+      "Schema": {
+        "description": "Schema returned by the Schema Registry API",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "application/octet-stream": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "application/vnd.schemaregistry.v1+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "application/vnd.schemaregistry+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error": {
+        "description": "Error returned by the Schema Registry API",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "application/octet-stream": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "application/vnd.schemaregistry.v1+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          },
+          "application/vnd.schemaregistry+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Subjects",
+      "description": ""
+    },
+    {
+      "name": "Schemas",
+      "description": ""
+    },
+    {
+      "name": "Mode",
+      "description": ""
+    },
+    {
+      "name": "Config",
+      "description": ""
+    },
+    {
+      "name": "Compatibility",
+      "description": ""
+    }
+  ]
+}

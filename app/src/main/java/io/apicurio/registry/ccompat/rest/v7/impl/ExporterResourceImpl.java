@@ -13,6 +13,7 @@ import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.core.Response;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
@@ -23,8 +24,8 @@ public class ExporterResourceImpl extends AbstractResource implements ExportersR
 
     @Override
     public List<String> getExporters() {
-        Errors.operationNotSupported();
-        return null;
+        // Exporters are not implemented, return empty list for compatibility
+        return Collections.emptyList();
     }
 
     @Override

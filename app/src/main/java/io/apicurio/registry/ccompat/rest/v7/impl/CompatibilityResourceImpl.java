@@ -31,7 +31,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose, String groupId, RegisterSchemaRequest request) {
+    public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose, Boolean normalize, String groupId, RegisterSchemaRequest request) {
         final GA ga = getGA(groupId, subject);
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         try {
@@ -76,7 +76,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public CompatibilityCheckResponse checkCompatibility(String subject, String versionString, Boolean verbose, String groupId, RegisterSchemaRequest request) {
+    public CompatibilityCheckResponse checkCompatibility(String subject, String versionString, Boolean verbose, Boolean normalize, String groupId, RegisterSchemaRequest request) {
         final boolean fverbose = verbose == null ? Boolean.FALSE : verbose;
         final GA ga = getGA(groupId, subject);
 

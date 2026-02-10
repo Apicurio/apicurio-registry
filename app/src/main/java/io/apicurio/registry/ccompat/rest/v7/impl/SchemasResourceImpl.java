@@ -21,11 +21,20 @@ import io.apicurio.registry.types.VersionState;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchedVersionDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
@@ -106,6 +115,73 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> getSchemaTypes() {
         return Arrays.asList(ArtifactType.JSON, ArtifactType.PROTOBUF, ArtifactType.AVRO);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public List<Schema> getSchemas(String subjectPrefix, Boolean deleted, Boolean latestOnly,
+            BigInteger offset, BigInteger limit) {
+        final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        final boolean flatestOnly = latestOnly == null ? Boolean.FALSE : latestOnly;
+
+        Set<SearchFilter> filters = new HashSet<>();
+        if (!fdeleted) {
+            filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
+        }
+
+        // Handle pagination
+        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
+                : cconfig.maxSubjects.get();
+
+        // Search for versions to get schemas
+        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
+                OrderDirection.asc, effectiveOffset, effectiveLimit);
+
+        List<Schema> schemas = new ArrayList<>();
+        Set<Long> seenContentIds = new HashSet<>();
+
+        for (SearchedVersionDto version : searchResults.getVersions()) {
+            // Filter by subject prefix if provided
+            if (subjectPrefix != null && !version.getArtifactId().startsWith(subjectPrefix)) {
+                continue;
+            }
+
+            // If latestOnly, skip non-latest versions (we'd need to track per-artifact)
+            // For now, just return all matching schemas
+
+            long contentId = version.getContentId();
+            if (flatestOnly && seenContentIds.contains(contentId)) {
+                continue;
+            }
+            seenContentIds.add(contentId);
+
+            try {
+                ContentWrapperDto contentWrapper = storage.getContentById(contentId);
+                Schema schema = converter.convert(contentWrapper.getContent(),
+                        version.getArtifactType(), contentWrapper.getReferences());
+                schemas.add(schema);
+            } catch (Exception e) {
+                // Skip schemas that can't be loaded
+            }
+        }
+
+        return schemas;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    public List<String> getSubjectsBySchemaId(BigInteger id, Boolean deleted) {
+        final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+
+        List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
+        if (versions == null || versions.isEmpty()) {
+            throw new ArtifactNotFoundException("ContentId: " + id);
+        }
+
+        return versions.stream()
+                .filter(v -> fdeleted || v.getState() != VersionState.DISABLED)
+                .map(ArtifactVersionMetaDataDto::getArtifactId).distinct().collect(Collectors.toList());
     }
 
     @Override

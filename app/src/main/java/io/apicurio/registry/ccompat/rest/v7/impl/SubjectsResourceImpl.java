@@ -75,18 +75,29 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public List<String> getSubjects(String subjectPrefix, Boolean deleted, String groupId) {
+    public List<String> getSubjects(String subjectPrefix, Boolean deleted, Boolean deletedOnly,
+            BigInteger offset, BigInteger limit, String groupId) {
         // Since contexts are not supported, subjectPrefix is not used
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        final boolean fdeletedOnly = deletedOnly == null ? Boolean.FALSE : deletedOnly;
         Set<SearchFilter> filters = new HashSet<>();
         if (!cconfig.groupConcatEnabled) {
             filters.add(SearchFilter.ofGroupId(groupId));
         }
-        if (!fdeleted) {
+        if (fdeletedOnly) {
+            // Only return deleted subjects
+            filters.add(SearchFilter.ofState(VersionState.DISABLED));
+        } else if (!fdeleted) {
+            // Exclude deleted subjects
             filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
+        // Handle pagination
+        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
+                : cconfig.maxSubjects.get();
+
         ArtifactSearchResultsDto searchResults = storage.searchArtifacts(filters, OrderBy.createdOn,
-                OrderDirection.asc, 0, cconfig.maxSubjects.get());
+                OrderDirection.asc, effectiveOffset, effectiveLimit);
         Function<SearchedArtifactDto, String> toSubject = SearchedArtifactDto::getArtifactId;
         if (cconfig.groupConcatEnabled) {
             toSubject = (dto) -> toSubjectWithGroupConcat(dto);
@@ -185,27 +196,42 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public List<BigInteger> getSubjectVersions(String subject, String groupId, Boolean deleted) {
+    public List<BigInteger> getSubjectVersions(String subject, String groupId, Boolean deleted,
+            Boolean deletedOnly, BigInteger offset, BigInteger limit) {
         final GA ga = getGA(groupId, subject);
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        final boolean fdeletedOnly = deletedOnly == null ? Boolean.FALSE : deletedOnly;
 
         List<BigInteger> rval;
-        if (fdeleted) {
-            rval = storage
-                    .getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                            RegistryStorage.RetrievalBehavior.NON_DRAFT_STATES)
-                    .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
-                    .collect(Collectors.toList());
-        }
-        else {
-            rval = storage
-                    .getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                            RegistryStorage.RetrievalBehavior.ACTIVE_STATES)
-                    .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
-                    .collect(Collectors.toList());
+        Set<VersionState> statesFilter;
+
+        if (fdeletedOnly) {
+            // Only return deleted versions
+            statesFilter = Set.of(VersionState.DISABLED);
+        } else if (fdeleted) {
+            statesFilter = RegistryStorage.RetrievalBehavior.NON_DRAFT_STATES;
+        } else {
+            statesFilter = RegistryStorage.RetrievalBehavior.ACTIVE_STATES;
         }
 
-        if (rval.isEmpty()) {
+        rval = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), statesFilter)
+                .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
+                .collect(Collectors.toList());
+
+        // Apply pagination
+        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue() : rval.size();
+
+        if (effectiveOffset > 0 || effectiveLimit < rval.size()) {
+            int toIndex = Math.min(effectiveOffset + effectiveLimit, rval.size());
+            if (effectiveOffset < rval.size()) {
+                rval = rval.subList(effectiveOffset, toIndex);
+            } else {
+                rval = java.util.Collections.emptyList();
+            }
+        }
+
+        if (rval.isEmpty() && effectiveOffset == 0) {
             throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
         }
         return rval;

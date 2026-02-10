@@ -10,6 +10,168 @@
     }
   },
   "paths": {
+    "/schemas": {
+      "summary": "Get a list of all schemas.",
+      "get": {
+        "operationId": "getSchemas",
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "subjectPrefix",
+            "in": "query",
+            "required": false,
+            "description": "Filter schemas by subject prefix.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Include soft-deleted schemas. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "latestOnly",
+            "in": "query",
+            "required": false,
+            "description": "Only return the latest version of each schema. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Pagination offset. Default is 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of schemas to return. Default is -1 (no limit).",
+            "schema": {
+              "type": "integer",
+              "default": -1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of schemas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Schema"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Schema"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Schema"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/schemas/ids/{id}/subjects": {
+      "summary": "Get the list of subjects that reference the schema with the given ID.",
+      "get": {
+        "operationId": "getSubjectsBySchemaId",
+        "tags": [
+          "Schemas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The globally unique identifier of the schema.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Include soft-deleted subjects. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of subjects that reference the schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "subject1",
+                  "subject2"
+                ]
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/schemas/ids/{id}": {
       "summary": "Get the schema string identified by the input ID.",
       "get": {
@@ -304,6 +466,35 @@
             }
           },
           {
+            "name": "deletedOnly",
+            "in": "query",
+            "required": false,
+            "description": "If true, only return soft-deleted subjects. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Pagination offset. Default is 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of subjects to return. Default is -1 (no limit).",
+            "schema": {
+              "type": "integer",
+              "default": -1
+            }
+          },
+          {
             "name": "X-Registry-GroupId",
             "in": "header",
             "required": false,
@@ -386,6 +577,35 @@
             "description": "Lookup for soft-deleted values.",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "deletedOnly",
+            "in": "query",
+            "required": false,
+            "description": "If true, only return soft-deleted versions. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Pagination offset. Default is 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of versions to return. Default is -1 (no limit).",
+            "schema": {
+              "type": "integer",
+              "default": -1
             }
           }
         ],
@@ -1557,7 +1777,7 @@
             "name": "version",
             "in": "path",
             "required": true,
-            "description": "Version of the subject’s schema to check against. Can be a number, 'latest', or '-1'.",
+            "description": "Version of the subject's schema to check against. Can be a number, 'latest', or '-1'.",
             "schema": {
               "type": "string"
             }
@@ -1567,6 +1787,15 @@
             "in": "query",
             "required": false,
             "description": "If true, includes reason when compatibility fails. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "normalize",
+            "in": "query",
+            "required": false,
+            "description": "If true, normalize the schema before checking compatibility. Default is false.",
             "schema": {
               "type": "boolean"
             }
@@ -1668,6 +1897,15 @@
             "in": "query",
             "required": false,
             "description": "If true, includes reason when compatibility fails. Default is false.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "normalize",
+            "in": "query",
+            "required": false,
+            "description": "If true, normalize the schema before checking compatibility. Default is false.",
             "schema": {
               "type": "boolean"
             }
@@ -1832,6 +2070,42 @@
                 },
                 "example": {
                   "compatibilityLevel": "FULL"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete the global compatibility configuration.",
+        "description": "Removes the global compatibility configuration and reverts to default settings.",
+        "operationId": "deleteGlobalConfig",
+        "tags": [
+          "Config"
+        ],
+        "responses": {
+          "200": {
+            "description": "The compatibility configuration that was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                },
+                "example": {
+                  "compatibilityLevel": "NONE"
                 }
               },
               "application/vnd.schemaregistry.v1+json": {

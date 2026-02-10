@@ -22,7 +22,7 @@ import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
-import io.apicurio.registry.rest.ParametersConflictException;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v2.GroupsResource;
 import io.apicurio.registry.rest.v2.beans.*;
@@ -131,8 +131,8 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response getLatestArtifact(String groupId, String artifactId, Boolean dereference) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         if (dereference == null) {
             dereference = Boolean.FALSE;
@@ -208,7 +208,7 @@ public class GroupsResourceImpl implements GroupsResource {
     public ArtifactMetaData updateArtifact(String groupId, String artifactId, String xRegistryVersion,
             String xRegistryName, String xRegistryNameEncoded, String xRegistryDescription,
             String xRegistryDescriptionEncoded, ArtifactContent data) {
-        requireParameter("content", data.getContent());
+        ParameterValidationUtils.requireParameter("content", data.getContent());
         return this.updateArtifactWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName,
                 xRegistryNameEncoded, xRegistryDescription, xRegistryDescriptionEncoded,
                 IoUtil.toStream(data.getContent()), data.getReferences());
@@ -243,11 +243,11 @@ public class GroupsResourceImpl implements GroupsResource {
             String xRegistryDescription, String xRegistryDescriptionEncoded, InputStream data,
             List<ArtifactReference> references) {
 
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
-        maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
-        maxOneOf("X-Registry-Description", xRegistryDescription, "X-Registry-Description-Encoded",
+        ParameterValidationUtils.maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
+        ParameterValidationUtils.maxOneOf("X-Registry-Description", xRegistryDescription, "X-Registry-Description-Encoded",
                 xRegistryDescriptionEncoded);
 
         String artifactName = getOneOf(xRegistryName, decode(xRegistryNameEncoded));
@@ -274,8 +274,8 @@ public class GroupsResourceImpl implements GroupsResource {
                     (String[]) null);
         }
 
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         storage.deleteArtifact(defaultGroupIdToNull(groupId), artifactId);
     }
@@ -287,8 +287,8 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(defaultGroupIdToNull(groupId), artifactId);
         GAV latestGAV = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
@@ -337,8 +337,8 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ArtifactOwner getArtifactOwner(String groupId, String artifactId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(defaultGroupIdToNull(groupId), artifactId);
         ArtifactOwner owner = new ArtifactOwner();
@@ -351,9 +351,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.AdminOrOwner)
     public void updateArtifactOwner(String groupId, String artifactId, ArtifactOwner data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("data", data);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("data", data);
 
         if (data.getOwner().isEmpty()) {
             throw new MissingRequiredParameterException("Missing required owner");
@@ -449,8 +449,8 @@ public class GroupsResourceImpl implements GroupsResource {
 
     private VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId,
             Boolean canonical, InputStream data, List<ArtifactReference> artifactReferences) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         if (canonical == null) {
             canonical = Boolean.FALSE;
@@ -481,8 +481,8 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         return storage.getArtifactRules(defaultGroupIdToNull(groupId), artifactId);
     }
@@ -496,11 +496,11 @@ public class GroupsResourceImpl implements GroupsResource {
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void createArtifactRule(String groupId, String artifactId, Rule data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         RuleType type = data.getType();
-        requireParameter("type", type);
+        ParameterValidationUtils.requireParameter("type", type);
 
         if (data.getConfig() == null || data.getConfig().isEmpty()) {
             throw new MissingRequiredParameterException("Config");
@@ -525,8 +525,8 @@ public class GroupsResourceImpl implements GroupsResource {
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactRules(String groupId, String artifactId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         storage.deleteArtifactRules(defaultGroupIdToNull(groupId), artifactId);
     }
@@ -538,9 +538,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType rule) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("rule", rule);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("rule", rule);
 
         RuleConfigurationDto dto = storage.getArtifactRule(defaultGroupIdToNull(groupId), artifactId, rule);
         Rule rval = new Rule();
@@ -559,9 +559,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType rule, Rule data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("rule", rule);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("rule", rule);
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
         storage.updateArtifactRule(defaultGroupIdToNull(groupId), artifactId, rule, dto);
@@ -580,9 +580,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("rule", rule);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("rule", rule);
 
         storage.deleteArtifactRule(defaultGroupIdToNull(groupId), artifactId, rule);
     }
@@ -596,9 +596,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactState(String groupId, String artifactId, UpdateState data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("body.state", data.getState());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("body.state", data.getState());
 
         // Possible race condition here. Worst case should be that the update fails with a reasonable message.
         GAV latestGAV = storage.getBranchTip(new GA(defaultGroupIdToNull(groupId), artifactId),
@@ -613,8 +613,8 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
@@ -642,9 +642,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response getArtifactVersion(String groupId, String artifactId, String version,
             Boolean dereference) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         if (dereference == null) {
             dereference = Boolean.FALSE;
@@ -702,9 +702,9 @@ public class GroupsResourceImpl implements GroupsResource {
                     HttpMethod.GET, (String[]) null);
         }
 
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         storage.deleteArtifactVersion(defaultGroupIdToNull(groupId), artifactId, version);
     }
@@ -716,9 +716,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         if ("latest".equals(version)) {
             var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), "branch=latest",
@@ -759,9 +759,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionMetaData(String groupId, String artifactId, String version) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         EditableVersionMetaDataDto vmd = EditableVersionMetaDataDto.builder().name("").description("")
                 .labels(Map.of()).build();
@@ -778,9 +778,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public Comment addArtifactVersionComment(String groupId, String artifactId, String version,
             NewComment data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         CommentDto newComment = storage.createArtifactVersionComment(defaultGroupIdToNull(groupId),
                 artifactId, version, data.getValue());
@@ -798,10 +798,10 @@ public class GroupsResourceImpl implements GroupsResource {
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionComment(String groupId, String artifactId, String version,
             String commentId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
-        requireParameter("commentId", commentId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("commentId", commentId);
 
         storage.deleteArtifactVersionComment(defaultGroupIdToNull(groupId), artifactId, version, commentId);
     }
@@ -813,9 +813,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<Comment> getArtifactVersionComments(String groupId, String artifactId, String version) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         if ("latest".equals(version)) {
             var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), "branch=latest",
@@ -839,11 +839,11 @@ public class GroupsResourceImpl implements GroupsResource {
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionComment(String groupId, String artifactId, String version,
             String commentId, NewComment data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
-        requireParameter("commentId", commentId);
-        requireParameter("value", data.getValue());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("commentId", commentId);
+        ParameterValidationUtils.requireParameter("value", data.getValue());
 
         storage.updateArtifactVersionComment(defaultGroupIdToNull(groupId), artifactId, version, commentId,
                 data.getValue());
@@ -860,9 +860,9 @@ public class GroupsResourceImpl implements GroupsResource {
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             UpdateState data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         VersionState newState = VersionState.fromValue(data.getState().name());
         storage.updateArtifactVersionState(groupId, artifactId, version, newState, false);
@@ -876,7 +876,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public ArtifactSearchResults listArtifactsInGroup(String groupId, BigInteger limit, BigInteger offset,
             SortOrder order, SortBy orderby) {
-        requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
 
         if (orderby == null) {
             orderby = SortBy.name;
@@ -913,7 +913,7 @@ public class GroupsResourceImpl implements GroupsResource {
                     (String[]) null);
         }
 
-        requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
 
         storage.deleteArtifacts(defaultGroupIdToNull(groupId));
     }
@@ -956,7 +956,7 @@ public class GroupsResourceImpl implements GroupsResource {
             String xRegistryDescription, String xRegistryDescriptionEncoded, String xRegistryName,
             String xRegistryNameEncoded, String xRegistryContentHash, String xRegistryHashAlgorithm,
             ArtifactContent data) {
-        requireParameter("content", data.getContent());
+        ParameterValidationUtils.requireParameter("content", data.getContent());
 
         Client client = null;
         InputStream content;
@@ -1054,10 +1054,10 @@ public class GroupsResourceImpl implements GroupsResource {
             String xRegistryNameEncoded, String xRegistryContentHash, String xRegistryHashAlgorithm,
             InputStream data, List<ArtifactReference> references) {
 
-        requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
 
-        maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
-        maxOneOf("X-Registry-Description", xRegistryDescription, "X-Registry-Description-Encoded",
+        ParameterValidationUtils.maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
+        ParameterValidationUtils.maxOneOf("X-Registry-Description", xRegistryDescription, "X-Registry-Description-Encoded",
                 xRegistryDescriptionEncoded);
 
         String artifactName = getOneOf(xRegistryName, decode(xRegistryNameEncoded));
@@ -1175,8 +1175,8 @@ public class GroupsResourceImpl implements GroupsResource {
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionSearchResults listArtifactVersions(String groupId, String artifactId, BigInteger offset,
             BigInteger limit) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         // This will check if the artifact exists (throws 404 if not).
         storage.getArtifactMetaData(defaultGroupIdToNull(groupId), artifactId);
@@ -1225,7 +1225,7 @@ public class GroupsResourceImpl implements GroupsResource {
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, String xRegistryVersion,
             String xRegistryName, String xRegistryDescription, String xRegistryDescriptionEncoded,
             String xRegistryNameEncoded, ArtifactContent data) {
-        requireParameter("content", data.getContent());
+        ParameterValidationUtils.requireParameter("content", data.getContent());
         return this.createArtifactVersionWithRefs(groupId, artifactId, xRegistryVersion, xRegistryName,
                 xRegistryDescription, xRegistryDescriptionEncoded, xRegistryNameEncoded,
                 IoUtil.toStream(data.getContent()), data.getReferences());
@@ -1250,11 +1250,11 @@ public class GroupsResourceImpl implements GroupsResource {
             String xRegistryDescriptionEncoded, String xRegistryNameEncoded, InputStream data,
             List<ArtifactReference> references) {
         // TODO do something with the user-provided version info
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
-        maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
-        maxOneOf("X-Registry-Description", xRegistryDescription, "X-Registry-Description-Encoded",
+        ParameterValidationUtils.maxOneOf("X-Registry-Name", xRegistryName, "X-Registry-Name-Encoded", xRegistryNameEncoded);
+        ParameterValidationUtils.maxOneOf("X-Registry-Description", xRegistryDescription, "X-Registry-Description-Encoded",
                 xRegistryDescriptionEncoded);
 
         String artifactName = getOneOf(xRegistryName, decode(xRegistryNameEncoded));
@@ -1339,19 +1339,6 @@ public class GroupsResourceImpl implements GroupsResource {
      */
     private String getContentType() {
         return request.getContentType();
-    }
-
-    private static final void requireParameter(String parameterName, Object parameterValue) {
-        if (parameterValue == null) {
-            throw new MissingRequiredParameterException(parameterName);
-        }
-    }
-
-    private static void maxOneOf(String parameterOneName, Object parameterOneValue, String parameterTwoName,
-            Object parameterTwoValue) {
-        if (parameterOneValue != null && parameterTwoValue != null) {
-            throw new ParametersConflictException(parameterOneName, parameterTwoName);
-        }
     }
 
     private static <T> T getOneOf(T parameterOneValue, T parameterTwoValue) {

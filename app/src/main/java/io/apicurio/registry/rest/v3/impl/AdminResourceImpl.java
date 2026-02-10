@@ -17,6 +17,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.ConflictException;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.v3.AdminResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
@@ -132,12 +133,6 @@ public class AdminResourceImpl implements AdminResource {
     @Info(category = CATEGORY_DOWNLOAD, description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
 
-    private static void requireParameter(String parameterName, Object parameterValue) {
-        if (parameterValue == null) {
-            throw new MissingRequiredParameterException(parameterName);
-        }
-    }
-
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
      */
@@ -181,7 +176,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void createGlobalRule(CreateRule data) {
         RuleType ruleType = data.getRuleType();
-        requireParameter("ruleType", ruleType);
+        ParameterValidationUtils.requireParameter("ruleType", ruleType);
 
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
@@ -433,8 +428,8 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
-        requireParameter("principalId", principalId);
-        requireParameter("role", data.getRole());
+        ParameterValidationUtils.requireParameter("principalId", principalId);
+        ParameterValidationUtils.requireParameter("role", data.getRole());
         storage.updateRoleMapping(principalId, data.getRole().name());
     }
 

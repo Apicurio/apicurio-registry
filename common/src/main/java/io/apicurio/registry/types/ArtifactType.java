@@ -19,5 +19,7 @@ public class ArtifactType {
     public static final String XSD = "XSD";
     public static final String XML = "XML";
     public static final String AGENT_CARD = "AGENT_CARD";
+    public static final String ICEBERG_TABLE = "ICEBERG_TABLE";
+    public static final String ICEBERG_VIEW = "ICEBERG_VIEW";
 
 }

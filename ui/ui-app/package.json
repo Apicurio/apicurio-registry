@@ -23,7 +23,7 @@
     "@types/luxon": "3.7.1",
     "@types/node": "25.2.3",
     "@types/pluralize": "0.0.33",
-    "@types/react": "19.2.13",
+    "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react-swc": "4.2.3",
     "copyfiles": "2.4.1",

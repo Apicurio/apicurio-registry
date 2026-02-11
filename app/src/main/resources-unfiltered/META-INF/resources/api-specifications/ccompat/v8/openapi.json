@@ -2,7 +2,7 @@
   "openapi": "3.0.2",
   "info": {
     "title": "Apicurio Registry Confluent Compatibility API",
-    "version": "7.9.0",
+    "version": "8.0.0",
     "description": "Apicurio Registry Confluent compatibility API",
     "license": {
       "name": "Apache 2.0",
@@ -3205,9 +3205,21 @@
         }
       }
     },
-    "x-codegen-contextRoot": "/apis/ccompat/v7"
+    "x-codegen-contextRoot": "/apis/ccompat/v8"
   },
   "components": {
+    "parameters": {
+      "AcceptUnknownProperties": {
+        "name": "X-Confluent-Accept-Unknown-Properties",
+        "in": "header",
+        "required": false,
+        "description": "When set to true, unknown properties in request bodies are ignored (forward compatibility). Default is false.",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
     "schemas": {
       "Error": {
         "type": "object",

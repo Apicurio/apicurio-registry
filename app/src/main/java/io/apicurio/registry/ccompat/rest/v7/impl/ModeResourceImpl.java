@@ -114,4 +114,30 @@ public class ModeResourceImpl extends AbstractResource implements ModeResource {
         response.setMode(ModeUpdateResponse.Mode.valueOf(newMode.name()));
         return response;
     }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public ModeUpdateResponse deleteSubjectMode(String subject, String groupId) {
+        final GA ga = getGA(groupId, subject);
+        String propertyName = getSubjectModePropertyName(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+
+        // Get the current mode before deleting
+        ModeUpdateResponse.Mode currentMode = ModeUpdateResponse.Mode.READWRITE;
+        try {
+            DynamicConfigPropertyDto property = storage.getRawConfigProperty(propertyName);
+            if (property != null && property.getValue() != null && !property.getValue().isEmpty()) {
+                currentMode = ModeUpdateResponse.Mode.valueOf(property.getValue());
+            }
+        } catch (Exception e) {
+            // Property not found, use default
+        }
+
+        // Delete the subject-specific mode configuration
+        storage.deleteConfigProperty(propertyName);
+
+        // Return the mode that was deleted
+        ModeUpdateResponse response = new ModeUpdateResponse();
+        response.setMode(currentMode);
+        return response;
+    }
 }

@@ -639,6 +639,21 @@
               <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/ccompat/v7/openapi.json</inputSpec>
             </configuration>
           </execution>
+          <execution>
+            <id>generate-api-ccompat-v8</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <projectSettings>
+                <javaPackage>io.apicurio.registry.ccompat.rest.v8</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
+              </projectSettings>
+              <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/ccompat/v8/openapi.json</inputSpec>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>

@@ -1346,7 +1346,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         storage.getArtifactMetaData(gid.getRawGroupIdWithNull(), artifactId);
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = order == null || order == SortOrder.desc ? OrderDirection.asc
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc
             : OrderDirection.desc;
 
         Set<SearchFilter> filters = Set.of(

@@ -55,9 +55,15 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             MessageElement firstMessage = FileDescriptorUtils.firstMessage(fileElem);
             if (firstMessage != null) {
                 try {
-                    final Descriptors.Descriptor fileDescriptor = FileDescriptorUtils
+                    final Descriptors.Descriptor descriptor = FileDescriptorUtils
                             .toDescriptor(firstMessage.getName(), fileElem, dependencies);
-                    return new ProtobufSchema(fileDescriptor.getFile(), fileElem);
+                    if (descriptor == null) {
+                        // toDescriptor returns null when the message can't be resolved, typically due to
+                        // missing imports (e.g. google/protobuf/timestamp.proto). Fall through to the
+                        // alternative parsing method.
+                        return getFileDescriptorFromElement(fileElem);
+                    }
+                    return new ProtobufSchema(descriptor.getFile(), fileElem);
                 } catch (IllegalStateException ise) {
                     // If we fail to init the dynamic schema, try to get the descriptor from the proto element
                     return getFileDescriptorFromElement(fileElem);

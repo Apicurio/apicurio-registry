@@ -177,4 +177,95 @@ public class ProtobufSchemaParserTest {
 
         assertThrows(RuntimeException.class, () -> parser.parseSchema(rawSchema, resolvedReferences));
     }
+
+    /**
+     * Test that schemas importing well-known types (like google/protobuf/timestamp.proto)
+     * are parsed correctly even when resolvedReferences is empty.
+     * This is the fix for issue #7377.
+     *
+     * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/7377">Issue #7377</a>
+     */
+    @Test
+    public void testParseSchemaWithWellKnownTypeImportAndEmptyReferences() {
+        String schemaWithTimestamp = """
+                syntax = "proto3";
+                package test;
+                import "google/protobuf/timestamp.proto";
+                message Event {
+                  string name = 1;
+                  google.protobuf.Timestamp created_at = 2;
+                }
+                """;
+        byte[] rawSchema = schemaWithTimestamp.getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        // This should not throw NPE (the bug from issue #7377)
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Event"));
+    }
+
+    /**
+     * Test that schemas importing multiple well-known types are parsed correctly
+     * even when resolvedReferences is empty.
+     *
+     * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/7377">Issue #7377</a>
+     */
+    @Test
+    public void testParseSchemaWithMultipleWellKnownTypeImports() {
+        String schemaWithMultipleImports = """
+                syntax = "proto3";
+                package test;
+                import "google/protobuf/timestamp.proto";
+                import "google/protobuf/duration.proto";
+                import "google/protobuf/any.proto";
+                message Event {
+                  string name = 1;
+                  google.protobuf.Timestamp created_at = 2;
+                  google.protobuf.Duration duration = 3;
+                  google.protobuf.Any metadata = 4;
+                }
+                """;
+        byte[] rawSchema = schemaWithMultipleImports.getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        // This should not throw NPE
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Event"));
+    }
+
+    /**
+     * Test that schemas importing google/protobuf/struct.proto are parsed correctly.
+     *
+     * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/7377">Issue #7377</a>
+     */
+    @Test
+    public void testParseSchemaWithStructImport() {
+        String schemaWithStruct = """
+                syntax = "proto3";
+                package test;
+                import "google/protobuf/struct.proto";
+                message Document {
+                  string id = 1;
+                  google.protobuf.Struct data = 2;
+                }
+                """;
+        byte[] rawSchema = schemaWithStruct.getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        // This should not throw NPE
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Document"));
+    }
 }

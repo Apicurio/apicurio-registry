@@ -17,16 +17,20 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactReferenceDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ContentWithIdMapper;
 import io.apicurio.registry.rest.ConflictException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -292,39 +296,189 @@ public class SqlContentRepository {
         }
     }
 
+    /**
+     * Batch size for loading references. This limit ensures database compatibility (SQL Server has ~2000
+     * parameter limit).
+     */
+    private static final int BATCH_SIZE = 100;
+
+    /**
+     * Resolves references recursively using batched database operations for improved performance. For N
+     * references at depth D, this approach uses D metadata queries + D content queries instead of N^D
+     * queries.
+     */
     private void resolveReferencesRecursive(Handle handle, Map<String, TypedContent> resolvedReferences,
             List<ArtifactReferenceDto> references) {
-        if (references != null && !references.isEmpty()) {
-            for (ArtifactReferenceDto reference : references) {
-                if (reference.getArtifactId() == null || reference.getName() == null
-                        || reference.getVersion() == null) {
-                    throw new IllegalStateException("Invalid reference: " + reference);
-                } else {
-                    if (!resolvedReferences.containsKey(reference.getName())) {
-                        try {
-                            Optional<ArtifactVersionMetaDataDto> metaRes = handle
-                                    .createQuery(sqlStatements.selectArtifactVersionMetaData())
-                                    .bind(0, normalizeGroupId(reference.getGroupId()))
-                                    .bind(1, reference.getArtifactId())
-                                    .bind(2, reference.getVersion())
-                                    .map(ArtifactVersionMetaDataDtoMapper.instance).findOne();
+        if (references == null || references.isEmpty()) {
+            return;
+        }
 
-                            if (metaRes.isPresent()) {
-                                ArtifactVersionMetaDataDto meta = metaRes.get();
-                                ContentWrapperDto referencedContent = getContentByIdRaw(handle,
-                                        meta.getContentId());
-                                resolveReferencesRecursive(handle, resolvedReferences,
-                                        referencedContent.getReferences());
-                                TypedContent typedContent = TypedContent.create(referencedContent.getContent(),
-                                        referencedContent.getContentType());
-                                resolvedReferences.put(reference.getName(), typedContent);
+        // Filter out already-resolved references and invalid ones
+        List<ArtifactReferenceDto> unresolvedReferences = new ArrayList<>();
+        for (ArtifactReferenceDto reference : references) {
+            if (reference.getArtifactId() == null || reference.getName() == null
+                    || reference.getVersion() == null) {
+                throw new IllegalStateException("Invalid reference: " + reference);
+            }
+            if (!resolvedReferences.containsKey(reference.getName())) {
+                unresolvedReferences.add(reference);
+            }
+        }
+
+        if (unresolvedReferences.isEmpty()) {
+            return;
+        }
+
+        // Batch load all metadata
+        Map<String, ArtifactVersionMetaDataDto> metadataByKey = batchLoadMetadata(handle,
+                unresolvedReferences);
+
+        // Collect all contentIds we need to load
+        Set<Long> contentIds = new HashSet<>();
+        for (ArtifactVersionMetaDataDto meta : metadataByKey.values()) {
+            contentIds.add(meta.getContentId());
+        }
+
+        // Batch load all content
+        Map<Long, ContentWrapperDto> contentById = batchLoadContent(handle, new ArrayList<>(contentIds));
+
+        // Process results and collect nested references
+        List<ArtifactReferenceDto> nestedReferences = new ArrayList<>();
+        for (ArtifactReferenceDto reference : unresolvedReferences) {
+            String key = buildReferenceKey(reference);
+            ArtifactVersionMetaDataDto meta = metadataByKey.get(key);
+            if (meta != null) {
+                ContentWrapperDto content = contentById.get(meta.getContentId());
+                if (content != null) {
+                    // Collect nested references for next batch
+                    if (content.getReferences() != null) {
+                        for (ArtifactReferenceDto nestedRef : content.getReferences()) {
+                            if (!resolvedReferences.containsKey(nestedRef.getName())) {
+                                nestedReferences.add(nestedRef);
                             }
-                        } catch (VersionNotFoundException ex) {
-                            // Ignored
                         }
                     }
+                    // Add to resolved map
+                    TypedContent typedContent = TypedContent.create(content.getContent(),
+                            content.getContentType());
+                    resolvedReferences.put(reference.getName(), typedContent);
                 }
             }
+        }
+
+        // Recursively resolve nested references (batched at each level)
+        if (!nestedReferences.isEmpty()) {
+            resolveReferencesRecursive(handle, resolvedReferences, nestedReferences);
+        }
+    }
+
+    /**
+     * Creates a unique key from groupId:artifactId:version for deduplication and lookup.
+     */
+    private String buildReferenceKey(ArtifactReferenceDto reference) {
+        return normalizeGroupId(reference.getGroupId()) + ":" + reference.getArtifactId() + ":"
+                + reference.getVersion();
+    }
+
+    /**
+     * Batch loads metadata for a list of references in one or more queries using OR conditions.
+     */
+    private Map<String, ArtifactVersionMetaDataDto> batchLoadMetadata(Handle handle,
+            List<ArtifactReferenceDto> references) {
+        Map<String, ArtifactVersionMetaDataDto> result = new LinkedHashMap<>();
+        if (references == null || references.isEmpty()) {
+            return result;
+        }
+
+        // Process in batches to avoid database parameter limits
+        for (int i = 0; i < references.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, references.size());
+            List<ArtifactReferenceDto> batch = references.subList(i, end);
+            batchLoadMetadataChunk(handle, batch, result);
+        }
+
+        return result;
+    }
+
+    /**
+     * Loads metadata for a single batch chunk.
+     */
+    private void batchLoadMetadataChunk(Handle handle, List<ArtifactReferenceDto> batch,
+            Map<String, ArtifactVersionMetaDataDto> result) {
+        // Build OR conditions for each reference
+        StringBuilder conditions = new StringBuilder();
+        List<String> params = new ArrayList<>();
+
+        for (int i = 0; i < batch.size(); i++) {
+            ArtifactReferenceDto ref = batch.get(i);
+            if (i > 0) {
+                conditions.append(" OR ");
+            }
+            conditions.append("(v.groupId = ? AND v.artifactId = ? AND v.version = ?)");
+            params.add(normalizeGroupId(ref.getGroupId()));
+            params.add(ref.getArtifactId());
+            params.add(ref.getVersion());
+        }
+
+        // Build and execute query
+        String sql = sqlStatements.selectArtifactVersionMetaDataBatch().replace("REFERENCES_CONDITION",
+                conditions.toString());
+
+        var query = handle.createQuery(sql);
+        for (int i = 0; i < params.size(); i++) {
+            query.bind(i, params.get(i));
+        }
+
+        List<ArtifactVersionMetaDataDto> metadataList = query.map(ArtifactVersionMetaDataDtoMapper.instance)
+                .list();
+
+        // Map results by reference key
+        for (ArtifactVersionMetaDataDto meta : metadataList) {
+            String key = normalizeGroupId(meta.getGroupId()) + ":" + meta.getArtifactId() + ":"
+                    + meta.getVersion();
+            result.put(key, meta);
+        }
+    }
+
+    /**
+     * Batch loads content for a list of contentIds in one or more queries using IN clause.
+     */
+    private Map<Long, ContentWrapperDto> batchLoadContent(Handle handle, List<Long> contentIds) {
+        Map<Long, ContentWrapperDto> result = new LinkedHashMap<>();
+        if (contentIds == null || contentIds.isEmpty()) {
+            return result;
+        }
+
+        // Process in batches to avoid database parameter limits
+        for (int i = 0; i < contentIds.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, contentIds.size());
+            List<Long> batch = contentIds.subList(i, end);
+            batchLoadContentChunk(handle, batch, result);
+        }
+
+        return result;
+    }
+
+    /**
+     * Loads content for a single batch chunk.
+     */
+    private void batchLoadContentChunk(Handle handle, List<Long> batch,
+            Map<Long, ContentWrapperDto> result) {
+        // Build IN clause with proper number of placeholders
+        String placeholders = batch.stream().map(id -> "?").collect(Collectors.joining(", "));
+
+        String sql = sqlStatements.selectContentByIdBatch().replace("(?)", "(" + placeholders + ")");
+
+        var query = handle.createQuery(sql);
+        for (int i = 0; i < batch.size(); i++) {
+            query.bind(i, batch.get(i));
+        }
+
+        List<Map.Entry<Long, ContentWrapperDto>> contentList = query.map(ContentWithIdMapper.instance).list();
+
+        // Map results by contentId
+        for (Map.Entry<Long, ContentWrapperDto> entry : contentList) {
+            result.put(entry.getKey(), entry.getValue());
         }
     }
 

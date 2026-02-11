@@ -15,7 +15,7 @@ import io.apicurio.registry.rest.cache.ImmutableCache;
 import io.apicurio.registry.rest.v3.IdsResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
-import io.apicurio.registry.rest.v3.impl.shared.CommonResourceOperations;
+import io.apicurio.registry.rest.impl.shared.CommonResourceOperations;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -130,7 +130,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
-        return common.getReferencesByContentHash(contentHash);
+        return common.getReferencesByContentHash(contentHash, V3ApiUtil::referenceDtoToReference);
     }
 
     /**

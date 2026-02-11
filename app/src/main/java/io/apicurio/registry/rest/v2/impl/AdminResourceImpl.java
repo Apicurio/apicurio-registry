@@ -14,6 +14,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.v2.AdminResource;
 import io.apicurio.registry.rest.v2.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v2.beans.ConfigurationProperty;
@@ -88,12 +89,6 @@ public class AdminResourceImpl implements AdminResource {
     @Inject
     io.apicurio.registry.rest.v3.impl.AdminResourceImpl v3Admin;
 
-    private static void requireParameter(String parameterName, Object parameterValue) {
-        if (parameterValue == null) {
-            throw new MissingRequiredParameterException(parameterName);
-        }
-    }
-
     /**
      * @see io.apicurio.registry.rest.v2.AdminResource#listArtifactTypes()
      */
@@ -128,7 +123,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void createGlobalRule(Rule data) {
         RuleType type = data.getType();
-        requireParameter("type", type);
+        ParameterValidationUtils.requireParameter("type", type);
 
         if (data.getConfig() == null || data.getConfig().isEmpty()) {
             throw new MissingRequiredParameterException("Config");
@@ -290,8 +285,8 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
-        requireParameter("principalId", principalId);
-        requireParameter("role", data.getRole());
+        ParameterValidationUtils.requireParameter("principalId", principalId);
+        ParameterValidationUtils.requireParameter("role", data.getRole());
         storage.updateRoleMapping(principalId, data.getRole().name());
     }
 

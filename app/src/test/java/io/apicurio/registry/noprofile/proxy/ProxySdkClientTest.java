@@ -21,7 +21,6 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOn;
 @QuarkusTest
 public class ProxySdkClientTest extends AbstractResourceTestBase {
 
-    private static final int PROXY_PORT = 38080;
     private SimpleTestProxy proxy;
 
     @Override
@@ -29,6 +28,12 @@ public class ProxySdkClientTest extends AbstractResourceTestBase {
         // Don't bother with this test
     }
 
+    /**
+     * Sets up the test proxy server with dynamic port allocation.
+     * Uses port 0 to let the OS assign an available port, avoiding "Address already in use" errors.
+     * 
+     * @throws Exception if the proxy fails to start
+     */
     @BeforeEach
     public void setupProxy() throws Exception {
         URL url = new URL(registryV3ApiUrl);
@@ -39,7 +44,8 @@ public class ProxySdkClientTest extends AbstractResourceTestBase {
             // which is typically 8081 for QuarkusTest
             port = 8081;
         }
-        proxy = new SimpleTestProxy(PROXY_PORT, host, port);
+        // Use port 0 for dynamic port allocation to avoid conflicts
+        proxy = new SimpleTestProxy(0, host, port);
         blockOn(proxy.start());
         proxy.resetRequestCount();
     }
@@ -51,11 +57,17 @@ public class ProxySdkClientTest extends AbstractResourceTestBase {
         }
     }
 
+    /**
+     * Tests that the V3 client can successfully connect through the proxy.
+     * The proxy port is dynamically allocated to avoid conflicts.
+     * 
+     * @throws Exception if the test fails
+     */
     @Test
     public void testV3ClientWithProxy() throws Exception {
         RegistryClient client = RegistryClientFactory.create(
                 RegistryClientOptions.create(registryV3ApiUrl)
-                        .proxy("localhost", PROXY_PORT));
+                        .proxy("localhost", proxy.getPort()));
 
         SystemInfo systemInfo = client.system().info().get();
         Assertions.assertNotNull(systemInfo);

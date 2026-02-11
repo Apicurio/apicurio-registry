@@ -223,19 +223,12 @@ public final class V2ApiUtil {
      * @param amdd
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
+     * @deprecated Use {@link io.apicurio.registry.rest.ApiDtoUtils#setEditableMetaDataInArtifact} instead
      */
+    @Deprecated
     public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd,
             EditableArtifactMetaDataDto editableArtifactMetaData) {
-        if (editableArtifactMetaData.getName() != null) {
-            amdd.setName(editableArtifactMetaData.getName());
-        }
-        if (editableArtifactMetaData.getDescription() != null) {
-            amdd.setDescription(editableArtifactMetaData.getDescription());
-        }
-        if (editableArtifactMetaData.getLabels() != null && !editableArtifactMetaData.getLabels().isEmpty()) {
-            amdd.setLabels(editableArtifactMetaData.getLabels());
-        }
-        return amdd;
+        return io.apicurio.registry.rest.ApiDtoUtils.setEditableMetaDataInArtifact(amdd, editableArtifactMetaData);
     }
 
     public static Comparator<ArtifactMetaDataDto> comparator(SortOrder sortOrder) {
@@ -356,14 +349,19 @@ public final class V2ApiUtil {
                 .reduce((left, right) -> left + ", " + right).orElse("");
     }
 
+    /**
+     * @deprecated Use {@link io.apicurio.registry.rest.ApiDtoUtils#defaultGroupIdToNull} instead
+     */
+    @Deprecated
     public static String defaultGroupIdToNull(String groupId) {
-        if ("default".equalsIgnoreCase(groupId)) {
-            return null;
-        }
-        return groupId;
+        return io.apicurio.registry.rest.ApiDtoUtils.defaultGroupIdToNull(groupId);
     }
 
+    /**
+     * @deprecated Use {@link io.apicurio.registry.rest.ApiDtoUtils#nullGroupIdToDefault} instead
+     */
+    @Deprecated
     public static String nullGroupIdToDefault(String groupId) {
-        return groupId != null ? groupId : "default";
+        return io.apicurio.registry.rest.ApiDtoUtils.nullGroupIdToDefault(groupId);
     }
 }

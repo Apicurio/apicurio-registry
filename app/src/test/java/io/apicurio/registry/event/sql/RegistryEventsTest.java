@@ -675,23 +675,51 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 new StringDeserializer(), new StringDeserializer());
     }
 
+    /**
+     * Polls Kafka for events matching the specified field and event type.
+     * 
+     * @param consumer the Kafka consumer to poll from
+     * @param fieldLookupName the name of the field to match
+     * @param fieldValue the expected value of the field
+     * @param eventType the expected event type
+     * @return list of all consumed events (for compatibility)
+     */
     private List<JsonNode> lookupEvent(KafkaConsumer<String, String> consumer, String fieldLookupName,
                                        String fieldValue, StorageEventType eventType) {
 
         List<JsonNode> events = new ArrayList<>();
 
         Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
-            consumer.poll(Duration.ofMillis(50)).iterator().forEachRemaining(record -> {
+            // Poll for new records with a reasonable timeout
+            consumer.poll(Duration.ofMillis(200)).iterator().forEachRemaining(record -> {
                 events.add(readEventPayload(record));
             });
 
-            return events.stream().anyMatch(event -> event.get(fieldLookupName).asText().equals(fieldValue)
-                    && event.get("eventType").asText().equals(eventType.name()));
-
+            // Check if any matching event exists in the accumulated events
+            boolean matchFound = events.stream().anyMatch(event -> 
+                event.get(fieldLookupName).asText().equals(fieldValue)
+                && event.get("eventType").asText().equals(eventType.name())
+            );
+            
+            if (matchFound) {
+                log.info("Found matching event for {}={}, eventType={}", 
+                         fieldLookupName, fieldValue, eventType.name());
+            }
+            
+            return matchFound;
         });
+        
         return events;
     }
 
+    /**
+     * Polls Kafka for events matching the specified event type and field lookups.
+     * 
+     * @param consumer the Kafka consumer to poll from
+     * @param eventType the expected event type to look for
+     * @param lookups map of field names to expected values that must all match
+     * @return list of matching events found
+     */
     private List<JsonNode> lookupEvent(KafkaConsumer<String, String> consumer, StorageEventType eventType,
                                        Map<String, String> lookups) {
 
@@ -702,23 +730,32 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         List<JsonNode> lookedUpEvents = new ArrayList<>();
 
         Unreliables.retryUntilTrue(20, TimeUnit.SECONDS, () -> {
-            consumer.poll(Duration.ofMillis(100)).iterator().forEachRemaining(record -> {
+            // Poll for new records with a reasonable timeout
+            consumer.poll(Duration.ofMillis(200)).iterator().forEachRemaining(record -> {
                 consumedEvents.add(readEventPayload(record));
             });
 
-            log.info("Consumed events: {}", consumedEvents);
-            boolean eventFound = false;
+            // Clear previously found events to get fresh matches from accumulated events
+            lookedUpEvents.clear();
+            
+            // Find all matching events from the accumulated events
             for (JsonNode event : consumedEvents) {
                 if (event.get("eventType").asText().equals(eventType.name()) && lookups.keySet().stream()
                         .allMatch(fieldName -> checkField(event, fieldName, lookups.get(fieldName)))) {
                     lookedUpEvents.add(event);
-                    eventFound = true;
-                } else {
-                    eventFound = false;
                 }
             }
-            return eventFound;
+            
+            // Log current state for debugging
+            if (!lookedUpEvents.isEmpty()) {
+                log.info("Found {} matching event(s) out of {} consumed events", 
+                         lookedUpEvents.size(), consumedEvents.size());
+            }
+            
+            // Return true if at least one matching event was found
+            return !lookedUpEvents.isEmpty();
         });
+        
         return lookedUpEvents;
     }
 

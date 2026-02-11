@@ -181,8 +181,6 @@ public class SqlVersionRepository {
                 throw new RegistryStorageException("Unexpected: deleted more than one version row");
             }
 
-            contentRepository.deleteAllOrphanedContentRaw(handle);
-
             outboxEvent.fire(SqlOutboxEvent.of(ArtifactVersionDeleted.of(groupId, artifactId, version)));
 
             return null;
@@ -516,9 +514,6 @@ public class SqlVersionRepository {
             if (rowCount == 0) {
                 throw new VersionNotFoundException(groupId, artifactId, version);
             }
-
-            // Updating content will typically leave a row in the content table orphaned.
-            contentRepository.deleteAllOrphanedContentRaw(handle);
 
             return null;
         });

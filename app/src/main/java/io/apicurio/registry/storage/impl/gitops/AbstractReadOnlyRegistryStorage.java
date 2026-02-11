@@ -239,6 +239,11 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     }
 
     @Override
+    public void deleteAllOrphanedContent() throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
     public void setConfigProperty(DynamicConfigPropertyDto propertyDto) {
         readOnlyViolation();
     }

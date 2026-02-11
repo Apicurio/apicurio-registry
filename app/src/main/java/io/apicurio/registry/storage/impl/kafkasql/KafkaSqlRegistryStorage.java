@@ -824,6 +824,16 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         coordinator.waitForResponse(uuid);
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteAllOrphanedContent()
+     */
+    @Override
+    public void deleteAllOrphanedContent() throws RegistryStorageException {
+        var message = new DeleteAllOrphanedContent0Message();
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
     @Override
     public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
         return sqlStore.getContentByReference(reference);

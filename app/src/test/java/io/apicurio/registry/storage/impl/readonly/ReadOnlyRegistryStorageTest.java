@@ -64,6 +64,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("createRoleMapping3", new State(true, s -> s.createRoleMapping(null, null, null))),
                 entry("deleteAllExpiredDownloads0",
                         new State(true, RegistryStorage::deleteAllExpiredDownloads)),
+                entry("deleteAllOrphanedContent0",
+                        new State(true, RegistryStorage::deleteAllOrphanedContent)),
                 entry("deleteAllUserData0", new State(true, RegistryStorage::deleteAllUserData)),
                 entry("deleteArtifact2", new State(true, s -> s.deleteArtifact(null, null))),
                 entry("deleteBranch2", new State(true, s -> s.deleteBranch(null, null))),

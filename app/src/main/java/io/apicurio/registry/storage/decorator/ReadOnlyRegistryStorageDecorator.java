@@ -340,6 +340,12 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     }
 
     @Override
+    public void deleteAllOrphanedContent() throws RegistryStorageException {
+        checkReadOnly();
+        delegate.deleteAllOrphanedContent();
+    }
+
+    @Override
     public void resetGlobalId() {
         checkReadOnly();
         delegate.resetGlobalId();

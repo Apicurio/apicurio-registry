@@ -57,4 +57,19 @@ public final class ApiDtoUtils {
         return groupId != null ? groupId : "default";
     }
 
+    /**
+     * Compares two artifact metadata DTOs by name (or artifactId as fallback).
+     * This method is used by both v2 and v3 API comparators.
+     *
+     * @param descending true for descending order, false for ascending
+     * @param dto1 the first DTO to compare
+     * @param dto2 the second DTO to compare
+     * @return comparison result
+     */
+    public static int compareByName(boolean descending, ArtifactMetaDataDto dto1, ArtifactMetaDataDto dto2) {
+        String name1 = dto1.getName() != null ? dto1.getName() : dto1.getArtifactId();
+        String name2 = dto2.getName() != null ? dto2.getName() : dto2.getArtifactId();
+        return descending ? name2.compareToIgnoreCase(name1) : name1.compareToIgnoreCase(name2);
+    }
+
 }

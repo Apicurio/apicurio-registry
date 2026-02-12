@@ -1,6 +1,7 @@
 * Introduction
 ** xref:getting-started/assembly-intro-to-the-registry.adoc[]
 ** xref:getting-started/assembly-intro-to-registry-rules.adoc[]
+** xref:getting-started/assembly-data-contracts.adoc[]
 * Installation
 ** xref:getting-started/assembly-installing-registry-docker.adoc[]
 ** xref:getting-started/assembly-installing-registry-openshift.adoc[]

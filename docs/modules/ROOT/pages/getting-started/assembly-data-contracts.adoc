@@ -1,0 +1,490 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="data-contracts_{context}"]
+= {registry} data contracts
+
+[role="_abstract"]
+This chapter introduces the Data Contracts framework in {registry}, which provides comprehensive support for managing schema contracts between data producers and consumers.
+
+* xref:data-contracts-overview_{context}[]
+* xref:data-contracts-metadata_{context}[]
+* xref:data-contracts-lifecycle_{context}[]
+* xref:data-contracts-field-tags_{context}[]
+* xref:data-contracts-rules_{context}[]
+* xref:data-contracts-migration_{context}[]
+* xref:data-contracts-api_{context}[]
+* xref:data-contracts-configuration_{context}[]
+
+[id="data-contracts-overview_{context}"]
+== Overview
+
+[role="_abstract"]
+The Data Contracts framework enables teams to define, enforce, and track formal agreements about schema structure, ownership, and quality. Data contracts help ensure data producers and consumers adhere to clearly defined standards throughout the schema lifecycle.
+
+A data contract in {registry} combines:
+
+* *Metadata* - Standardized ownership, classification, and support information
+* *Lifecycle* - Status tracking (DRAFT, STABLE, DEPRECATED) and promotion workflows
+* *Field Tags* - Semantic annotation of schema fields (for example, PII, SENSITIVE, EMAIL)
+* *Rules* - Governance rules (registry-side) and validation/transformation rules (runtime)
+* *Migration* - Schema evolution with data transformation between versions
+
+[id="data-contracts-metadata_{context}"]
+== Contract metadata
+
+[role="_abstract"]
+Contract metadata provides standardized information about schema ownership, classification, and support. Metadata is stored using the reserved `contract.*` label namespace.
+
+=== Metadata fields
+
+The following metadata fields are available for data contracts:
+
+.Contract metadata fields
+[cols="2,1,3", options="header"]
+|===
+|Field |Type |Description
+
+|`contract.status`
+|Enum
+|Contract lifecycle status: `DRAFT`, `STABLE`, or `DEPRECATED`
+
+|`contract.owner.team`
+|String
+|Name of the team responsible for the contract
+
+|`contract.owner.domain`
+|String
+|Business domain (for example, payments, orders, users)
+
+|`contract.support.contact`
+|String
+|Support email address
+
+|`contract.classification`
+|Enum
+|Data classification: `PUBLIC`, `INTERNAL`, `CONFIDENTIAL`, or `RESTRICTED`
+
+|`contract.stage`
+|Enum
+|Promotion stage: `DEV`, `STAGE`, or `PROD`
+
+|`contract.lifecycle.stable-date`
+|ISO-8601 date
+|Date when the contract status became STABLE
+
+|`contract.lifecycle.deprecated-date`
+|ISO-8601 date
+|Date when the contract status became DEPRECATED
+
+|`contract.lifecycle.deprecation-reason`
+|String
+|Reason for deprecating the contract
+|===
+
+=== Data classification levels
+
+Data classification helps teams understand the sensitivity of data in a contract:
+
+* *PUBLIC* - No restrictions, data can be freely shared
+* *INTERNAL* - For internal use only, not for external parties
+* *CONFIDENTIAL* - Need-to-know basis, limited access
+* *RESTRICTED* - Highly sensitive data requiring strict access controls
+
+[id="data-contracts-lifecycle_{context}"]
+== Contract lifecycle
+
+[role="_abstract"]
+The contract lifecycle tracks the maturity and availability of a schema through defined status transitions.
+
+=== Lifecycle statuses
+
+* *DRAFT* - Initial state. The schema is being developed and is not ready for production use.
+* *STABLE* - The schema is production-ready and consumers can rely on it.
+* *DEPRECATED* - The schema is being phased out. Consumers should migrate to a newer version.
+
+=== Status transitions
+
+The following status transitions are allowed:
+
+----
+DRAFT ──────► STABLE ──────► DEPRECATED
+   │                              ▲
+   └──────────────────────────────┘
+         (skip stable)
+----
+
+* `DRAFT` → `STABLE` - Use when the schema is ready for production
+* `STABLE` → `DEPRECATED` - Use when phasing out the schema
+* `DRAFT` → `DEPRECATED` - Use to deprecate without ever reaching stable
+
+NOTE: Reverse transitions (for example, `STABLE` → `DRAFT` or `DEPRECATED` → `STABLE`) are not allowed.
+
+=== Promotion workflow
+
+The promotion workflow tracks which environment a contract is deployed to:
+
+----
+DEV ──────► STAGE ──────► PROD
+----
+
+* *DEV* - Development environment
+* *STAGE* - Staging or QA environment
+* *PROD* - Production environment
+
+Promotion rules:
+
+* You can only promote to the next stage (DEV → STAGE → PROD)
+* You cannot skip stages (DEV → PROD is not allowed)
+* You cannot demote (PROD → STAGE is not allowed)
+* PROD promotion might require STABLE status (configurable)
+
+[id="data-contracts-field-tags_{context}"]
+== Field-level tags
+
+[role="_abstract"]
+Field tags provide semantic annotation of schema fields, enabling you to identify sensitive data, apply tag-based rules, and search for artifacts by tag.
+
+=== Supported tag formats
+
+Tags can be embedded directly in schema definitions:
+
+.Avro schema with tags
+[source,json]
+----
+{
+  "type": "record",
+  "name": "User",
+  "fields": [{
+    "name": "email",
+    "type": "string",
+    "tags": ["PII", "EMAIL"]
+  }, {
+    "name": "ssn",
+    "type": "string",
+    "tags": ["PII", "SENSITIVE"]
+  }]
+}
+----
+
+.JSON Schema with tags
+[source,json]
+----
+{
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "x-tags": ["PII", "EMAIL"]
+    }
+  }
+}
+----
+
+.Protobuf schema with tags
+[source,protobuf]
+----
+message User {
+  string email = 1 [(apicurio.field_meta).tags = "PII,EMAIL"];
+}
+----
+
+=== Tag sources
+
+Tags can come from two sources:
+
+* *Inline tags* - Extracted automatically from schema content during registration
+* *External tags* - Added manually through the REST API
+
+External tags are merged with inline tags and can be used to add additional context without modifying the schema.
+
+=== Common tag examples
+
+* `PII` - Personally Identifiable Information
+* `SENSITIVE` - Sensitive data requiring special handling
+* `EMAIL` - Email address fields
+* `PHONE` - Phone number fields
+* `FINANCIAL` - Financial data
+* `HEALTH` - Health-related data (PHI)
+
+[id="data-contracts-rules_{context}"]
+== Contract rules
+
+[role="_abstract"]
+Contract rules enable you to enforce governance policies and validate or transform data. Rules are organized into three categories based on when they execute.
+
+=== Governance rules (registry-side)
+
+Governance rules execute when artifacts are created or updated. They enforce policies at the registry level.
+
+.Governance rule examples
+[cols="2,3", options="header"]
+|===
+|Rule |Description
+
+|`requireOwner`
+|Require the owner team to be set before registration
+
+|`requireClassification`
+|Require data classification to be specified
+
+|`preventDeprecatedUpdates`
+|Block updates to contracts with DEPRECATED status
+
+|`requireStableForProd`
+|Require STABLE status before promoting to PROD
+|===
+
+=== Validation rules (client-side)
+
+Validation rules execute during serialization (WRITE) or deserialization (READ). They validate data against business rules using CEL (Common Expression Language).
+
+.Example CEL validation rule
+[source,json]
+----
+{
+  "name": "validateAge",
+  "kind": "CONDITION",
+  "type": "CEL",
+  "mode": "WRITE",
+  "expr": "message.age >= 0 && message.age <= 150",
+  "onFailure": "ERROR"
+}
+----
+
+=== Transform rules (client-side)
+
+Transform rules modify data during serialization or deserialization.
+
+.Example encryption rule
+[source,json]
+----
+{
+  "name": "encryptPII",
+  "kind": "TRANSFORM",
+  "type": "ENCRYPT",
+  "mode": "WRITE",
+  "tags": ["PII"],
+  "params": {
+    "encrypt.kek.name": "pii-key"
+  }
+}
+----
+
+=== Rule modes
+
+* *REGISTRY* - Execute on artifact create/update (governance)
+* *WRITE* - Execute on serialize
+* *READ* - Execute on deserialize
+* *WRITEREAD* - Execute on both serialize and deserialize
+* *UPGRADE* - Execute during schema upgrade migration
+* *DOWNGRADE* - Execute during schema downgrade migration
+
+=== Rule actions
+
+When a rule fails, you can configure the action:
+
+* *NONE* - Continue processing (log only)
+* *ERROR* - Throw an exception and reject the operation
+* *DLQ* - Route the message to a dead letter queue
+
+[id="data-contracts-migration_{context}"]
+== Schema migration rules
+
+[role="_abstract"]
+Migration rules enable schema evolution with data transformation between versions. When a consumer reads data written with an older schema version, migration rules transform the data to match the expected format.
+
+=== Migration directions
+
+* *UPGRADE* - Transform data from an older schema version to a newer one
+* *DOWNGRADE* - Transform data from a newer schema version to an older one
+
+=== JSONata transforms
+
+Migration rules use JSONata expressions for data transformation:
+
+.Example upgrade rule (v1 to v2)
+[source,json]
+----
+{
+  "name": "upgradeToV2",
+  "kind": "TRANSFORM",
+  "type": "JSONATA",
+  "mode": "UPGRADE",
+  "expr": "{ 'fullName': firstName & ' ' & lastName }"
+}
+----
+
+This rule transforms:
+[source,json]
+----
+// Input (v1)
+{ "firstName": "John", "lastName": "Doe" }
+
+// Output (v2)
+{ "fullName": "John Doe" }
+----
+
+=== Compatibility groups
+
+When schemas evolve with breaking changes, you can use compatibility groups to partition the version history. Versions within the same compatibility group must be compatible. Migration rules are required when crossing group boundaries.
+
+[id="data-contracts-api_{context}"]
+== REST API
+
+[role="_abstract"]
+The Data Contracts REST API provides endpoints for managing all aspects of contracts.
+
+=== Contract endpoints
+
+.Data contract REST API endpoints
+[cols="1,2,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract`
+|Get contract metadata, rules, and tags
+
+|PUT
+|`/groups/{groupId}/artifacts/{artifactId}/contract`
+|Create or update contract
+
+|DELETE
+|`/groups/{groupId}/artifacts/{artifactId}/contract`
+|Remove contract
+
+|POST
+|`/groups/{groupId}/artifacts/{artifactId}/contract/status`
+|Change lifecycle status
+
+|POST
+|`/groups/{groupId}/artifacts/{artifactId}/contract/promote`
+|Promote to next stage
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract/tags`
+|Get field-level tags
+
+|PUT
+|`/groups/{groupId}/artifacts/{artifactId}/contract/tags`
+|Set external tags
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract/rules`
+|Get contract rules
+
+|PUT
+|`/groups/{groupId}/artifacts/{artifactId}/contract/rules`
+|Update contract rules
+
+|POST
+|`/groups/{groupId}/artifacts/{artifactId}/contract/rules/execute`
+|Execute rules (for testing)
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract/quality`
+|Get quality score
+|===
+
+=== Example: Setting contract metadata
+
+[source,bash]
+----
+curl -X PUT \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "status": "DRAFT",
+    "ownerTeam": "Platform Team",
+    "ownerDomain": "payments",
+    "supportContact": "platform@example.com",
+    "classification": "CONFIDENTIAL",
+    "stage": "DEV"
+  }'
+----
+
+=== Example: Changing lifecycle status
+
+[source,bash]
+----
+curl -X POST \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/status \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "status": "STABLE",
+    "comment": "Approved for production use"
+  }'
+----
+
+[id="data-contracts-configuration_{context}"]
+== Configuration
+
+[role="_abstract"]
+Configure the Data Contracts framework using {registry} application properties.
+
+=== Configuration properties
+
+.Data contracts configuration properties
+[cols="2,1,2", options="header"]
+|===
+|Property |Default |Description
+
+|`apicurio.contracts.enabled`
+|`true`
+|Enable or disable the data contracts feature
+
+|`apicurio.contracts.governance.require-owner`
+|`false`
+|Require owner team to be set
+
+|`apicurio.contracts.governance.require-classification`
+|`false`
+|Require data classification to be set
+
+|`apicurio.contracts.governance.prevent-deprecated-updates`
+|`true`
+|Block updates to deprecated contracts
+
+|`apicurio.contracts.governance.require-stable-for-prod`
+|`true`
+|Require STABLE status for PROD promotion
+
+|`apicurio.contracts.quality.cache-ttl`
+|`300`
+|Quality score cache TTL in seconds
+
+|`apicurio.contracts.rules.fail-fast`
+|`true`
+|Stop on first rule failure
+
+|`apicurio.contracts.rules.cache-ttl`
+|`300`
+|Rule cache TTL in seconds
+|===
+
+=== SerDes configuration
+
+Configure rule execution in Kafka serializers/deserializers:
+
+.SerDes configuration properties
+[cols="2,1,2", options="header"]
+|===
+|Property |Default |Description
+
+|`apicurio.registry.rules.enabled`
+|`true`
+|Enable rule execution in SerDes
+
+|`apicurio.registry.rules.on-failure`
+|`ERROR`
+|Action on rule failure: `ERROR` or `DLQ`
+
+|`apicurio.registry.rules.dlq.topic`
+|
+|Dead letter queue topic name
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rules}
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]

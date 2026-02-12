@@ -774,6 +774,14 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void deleteAllExpiredDownloads() throws RegistryStorageException;
 
     /**
+     * Called to delete all orphaned content rows - content that is not referenced by any artifact version.
+     * This is a background cleanup operation typically run by a scheduled job.
+     *
+     * @throws RegistryStorageException
+     */
+    void deleteAllOrphanedContent() throws RegistryStorageException;
+
+    /**
      * Gets the raw value of a property, bypassing any caching that might be enabled.
      *
      * @param propertyName the name of a property

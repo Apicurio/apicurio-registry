@@ -118,8 +118,6 @@ public class SqlArtifactRepository {
                 throw new ArtifactNotFoundException(groupId, artifactId);
             }
 
-            contentRepository.deleteAllOrphanedContentRaw(handle);
-
             outboxEvent.fire(SqlOutboxEvent.of(ArtifactDeleted.of(groupId, artifactId)));
 
             return versions;
@@ -143,8 +141,6 @@ public class SqlArtifactRepository {
             if (rowCount == 0) {
                 throw new ArtifactNotFoundException(groupId, null);
             }
-
-            contentRepository.deleteAllOrphanedContentRaw(handle);
 
             return null;
         });

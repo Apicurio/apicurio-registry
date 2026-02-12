@@ -1105,6 +1105,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void deleteAllOrphanedContent() throws RegistryStorageException {
+        handles.withHandleNoException(handle -> {
+            contentRepository.deleteAllOrphanedContentRaw(handle);
+            return null;
+        });
+    }
+
+    @Override
     public void deleteAllUserData() {
         cleanupRepository.deleteAllUserData();
     }

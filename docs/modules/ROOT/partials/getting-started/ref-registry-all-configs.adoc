@@ -1057,6 +1057,11 @@ The following {registry} configuration options are available for each component 
 |`sql`
 |`3.0.0`
 |The type of storage to use for the registry
+|`apicurio.storage.orphan-cleanup.every`
+|`duration`
+|`1h`
+|`3.x.x`
+|Interval for orphaned content cleanup job (e.g., 1h, 30m, 86400s). Set to "off" to disable.
 |`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
 |`false`

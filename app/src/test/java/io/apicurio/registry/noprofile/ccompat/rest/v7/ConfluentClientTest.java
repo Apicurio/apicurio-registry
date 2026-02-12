@@ -2,7 +2,9 @@ package io.apicurio.registry.noprofile.ccompat.rest.v7;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.rest.headers.Headers;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -37,6 +39,7 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -83,6 +86,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 @TestProfile(DeletionEnabledProfile.class)
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class ConfluentClientTest extends AbstractResourceTestBase {
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     public SchemaRegistryClient buildClient() {
         final List<SchemaProvider> schemaProviders = Arrays.asList(new JsonSchemaProvider(),
@@ -151,11 +158,14 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         // The schema can be fetched with this particular id
         TestUtils.retry(() -> client.getSchemaById(id1));
 
-        // First sotft delete subject, then hard delete, the content must be claimed as orphaned
+        // First soft delete subject, then hard delete, the content must be claimed as orphaned
         client.deleteSubject(subject);
         client.deleteSubject(subject, true);
 
-        // Register schema again, the id must be different
+        // Trigger orphaned content cleanup (normally runs as a scheduled background job)
+        storage.deleteAllOrphanedContent();
+
+        // Register schema again, the id must be different since orphaned content was cleaned up
         int id2 = client.register(subject, schema);
 
         Assertions.assertNotEquals(id1, id2);

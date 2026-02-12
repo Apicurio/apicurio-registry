@@ -760,6 +760,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.0`
 |Enables group deletion
+|`apicurio.rest.draft.production-mode.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.x`
+|Enables production-like behavior for draft versions
 |`apicurio.rest.mutability.artifact-version-content.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -1372,6 +1377,11 @@ The following {registry} configuration options are available for each component 
 |
 |
 |`apicurio.rest.deletion.group.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
+|
+|
+|`apicurio.rest.draft.production-mode.enabled.dynamic.allow`
 |`unknown`
 |`${apicurio.config.dynamic.allow-all}`
 |

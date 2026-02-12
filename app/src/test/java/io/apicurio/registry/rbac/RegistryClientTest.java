@@ -45,7 +45,6 @@ import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -178,7 +177,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         assertTrue(groupIds.containsAll(List.of(groupId, group1Id, group2Id, group3Id)));
         clientV3.groups().byGroupId(groupId).delete();
 
-        var exception = Assert.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+        var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
                 () -> clientV3.groups().byGroupId(groupId).get());
         Assertions.assertEquals("GroupNotFoundException", exception.getName());
         Assertions.assertEquals(404, exception.getStatus());

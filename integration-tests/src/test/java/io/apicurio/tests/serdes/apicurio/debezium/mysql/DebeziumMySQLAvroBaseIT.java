@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,7 +40,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
     /**
      * Returns the MySQL container to use for this test.
      */
-    protected abstract MySQLContainer<?> getMySQLContainer();
+    protected abstract MySQLContainer getMySQLContainer();
 
     @Override
     protected String getDatabaseType() {

@@ -1,10 +1,10 @@
-package io.apicurio.registry.storage.impl.gitops;
+package io.apicurio.registry.storage.impl.kubernetesops;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.impl.gitops.model.GitFile;
+import io.apicurio.registry.storage.impl.gitops.ProcessingState;
 import io.apicurio.registry.storage.impl.gitops.model.Type;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Artifact;
 import io.apicurio.registry.storage.impl.gitops.model.v0.Content;
@@ -27,148 +27,105 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
-import jakarta.annotation.PreDestroy;
+import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.URIish;
-import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.io.FilenameUtils.concat;
 
 @ApplicationScoped
-public class GitManager implements DataSourceManager {
+public class KubernetesManager implements DataSourceManager {
 
     @Inject
     Logger log;
 
     @Inject
-    GitOpsConfigProperties config;
+    KubernetesOpsConfigProperties config;
+
+    @Inject
+    KubernetesClient kubernetesClient;
 
     @Inject
     RegistryStorageContentUtils utils;
 
-    private Git git;
+    private String previousResourceVersion = "";
 
-    private String originRemoteName;
-
-    private RevCommit previousCommit;
-
-    public void start() throws IOException, URISyntaxException, GitAPIException {
-        initRepo();
-    }
-
-    private void initRepo() throws IOException, GitAPIException, URISyntaxException {
-
-        var workDirPath = Paths.get(config.getWorkDir());
-        var gitPath = workDirPath.resolve("repo").resolve(".git");
-
-        if (Files.exists(gitPath.resolve("config"))) {
-            git = Git.open(gitPath.toFile());
-        } else {
-            git = Git.init().setGitDir(gitPath.toFile()).setInitialBranch(UUID.randomUUID().toString())
-                    .call();
-        }
-
-        var previousOID = git.getRepository().resolve("refs/heads/empty");
-        if (previousOID == null) {
-
-            git.commit().setMessage("empty").setAllowEmpty(true).call();
-
-            git.checkout().setName("empty").setCreateBranch(true).setForced(true).setOrphan(true).call();
-
-            previousOID = git.getRepository().resolve("refs/heads/empty");
-        }
-
-        previousCommit = git.getRepository().parseCommit(previousOID);
-        originRemoteName = ensureRemote(config.getOriginRepoURI());
-    }
-
-    private String ensureRemote(String repoURI) throws GitAPIException, URISyntaxException {
-        var repoURIish = new URIish(repoURI);
-        var remote = git.remoteList().call().stream()
-                .filter(r -> r.getURIs().stream().allMatch(u -> u.equals(repoURIish))).findAny();
-        if (remote.isPresent()) {
-            return remote.get().getName();
-        } else {
-            var name = UUID.randomUUID().toString();
-            git.remoteAdd().setName(name).setUri(repoURIish).call();
-            return name;
-        }
+    @Override
+    public void start() throws Exception {
+        log.info("Initializing KubernetesOps manager with registry ID: {}", config.getRegistryId());
+        log.info("Watching namespace: {} for ConfigMaps with label {}={}",
+                config.getEffectiveNamespace(), config.getRegistryIdLabel(), config.getRegistryId());
     }
 
     @Override
     public PollResult poll() throws Exception {
-        var updatedRef = "refs/remotes/" + originRemoteName + "/" + config.getOriginRepoBranch();
-        var fetchRef = "refs/heads/" + config.getOriginRepoBranch() + ":" + updatedRef;
+        String namespace = config.getEffectiveNamespace();
+        String labelSelector = config.getRegistryIdLabel() + "=" + config.getRegistryId();
 
-        git.fetch().setRemote(originRemoteName).setRefSpecs(fetchRef).setDepth(1).setForceUpdate(true).call();
+        var configMapList = kubernetesClient.configMaps()
+                .inNamespace(namespace)
+                .withLabelSelector(labelSelector)
+                .list();
 
-        var updatedOID = git.getRepository().resolve(updatedRef);
-        if (updatedOID == null) {
-            throw new RuntimeException(String.format("Could not resolve %s", updatedRef));
+        String currentResourceVersion = configMapList.getMetadata().getResourceVersion();
+
+        if (currentResourceVersion.equals(previousResourceVersion)) {
+            return PollResult.noChanges(currentResourceVersion);
         }
-        RevCommit updatedCommit = git.getRepository().parseCommit(updatedOID);
 
-        if (updatedCommit.equals(previousCommit)) {
-            return PollResult.noChanges(updatedCommit);
-        }
-
-        log.debug("Detected change: {} -> {}", updatedCommit.name(),
-                previousCommit != null ? previousCommit.name() : "null");
+        log.debug("Detected change in ConfigMaps: resourceVersion {} -> {}",
+                previousResourceVersion, currentResourceVersion);
 
         List<DataFile> files = new ArrayList<>();
         ProcessingState tempState = new ProcessingState(null);
 
-        try (TreeWalk treeWalk = new TreeWalk(git.getRepository())) {
-            treeWalk.addTree(updatedCommit.getTree());
-            treeWalk.setRecursive(true);
+        for (ConfigMap configMap : configMapList.getItems()) {
+            Map<String, String> data = configMap.getData();
 
-            while (treeWalk.next()) {
-                var objectId = treeWalk.getObjectId(0);
-                try (InputStream data = git.getRepository().getObjectDatabase().open(objectId).openStream()) {
-                    var file = GitFile.create(tempState, treeWalk.getPathString(), data);
+            if (data != null) {
+                for (Map.Entry<String, String> entry : data.entrySet()) {
+                    String dataKey = entry.getKey();
+                    String content = entry.getValue();
+
+                    // dataKey should be a relative path (e.g., "test/artifact.yaml")
+                    ConfigMapDataFile file = ConfigMapDataFile.create(tempState, dataKey, content);
                     files.add(file);
                 }
             }
         }
 
-        PollResult result = PollResult.withChanges(updatedCommit, files);
-        return result;
+        log.debug("Found {} data files across {} ConfigMaps",
+                files.size(), configMapList.getItems().size());
+
+        return PollResult.withChanges(currentResourceVersion, files);
     }
 
     @Override
     public void commitChange(Object marker) {
-        if (marker instanceof RevCommit) {
-            previousCommit = (RevCommit) marker;
+        if (marker instanceof String) {
+            previousResourceVersion = (String) marker;
         }
     }
 
     @Override
     public Object getPreviousMarker() {
-        return previousCommit;
+        return previousResourceVersion;
     }
 
     @Override
     public ProcessingResult process(RegistryStorage storage, PollResult pollResult) throws Exception {
         ProcessingState state = new ProcessingState(storage);
 
-        RevCommit updatedCommit = (RevCommit) pollResult.getMarker();
-        state.setMarker(updatedCommit);
-        state.setCommitTime(updatedCommit.getCommitTime());
+        state.setMarker(pollResult.getMarker());
+        state.setCommitTime(Instant.now().getEpochSecond());
 
         for (DataFile file : pollResult.getFiles()) {
             state.index(file);
@@ -177,8 +134,10 @@ public class GitManager implements DataSourceManager {
         log.debug("Processing {} files", state.getPathIndex().size());
         processFiles(state);
 
-        var unprocessed = state.getPathIndex().values().stream().filter(f -> !f.isProcessed())
-                .map(DataFile::getPath).collect(Collectors.toList());
+        var unprocessed = state.getPathIndex().values().stream()
+                .filter(f -> !f.isProcessed())
+                .map(DataFile::getPath)
+                .collect(Collectors.toList());
 
         log.debug("The following {} file(s) were not processed: {}", unprocessed.size(), unprocessed);
 
@@ -190,7 +149,6 @@ public class GitManager implements DataSourceManager {
     }
 
     private void processFiles(ProcessingState state) {
-
         for (DataFile file : state.fromTypeIndex(Type.REGISTRY)) {
             Registry registry = file.getEntityUnchecked();
             if (config.getRegistryId().equals(registry.getId())) {
@@ -200,7 +158,6 @@ public class GitManager implements DataSourceManager {
         }
 
         if (state.getCurrentRegistry() != null) {
-
             processSettings(state);
             processGlobalRules(state);
 
@@ -213,10 +170,8 @@ public class GitManager implements DataSourceManager {
                     log.debug("Ignoring {}", artifact);
                 }
             }
-
         } else {
-            log.warn("Git repository does not contain data for this registry (ID = {})",
-                    config.getRegistryId());
+            log.warn("ConfigMaps do not contain data for this registry (ID = {})", config.getRegistryId());
         }
     }
 
@@ -305,7 +260,6 @@ public class GitManager implements DataSourceManager {
             }
             processArtifactRules(state, artifact);
             artifactFile.setProcessed(true);
-
         } else {
             state.recordError("Could not find group %s", artifact.getGroupId());
         }
@@ -452,12 +406,5 @@ public class GitManager implements DataSourceManager {
     private DataFile findFileByPathRef(ProcessingState state, DataFile base, String path) {
         path = concat(concat(base.getPath(), ".."), path);
         return state.getPathIndex().get(path);
-    }
-
-    @PreDestroy
-    public void close() {
-        if (git != null) {
-            git.close();
-        }
     }
 }

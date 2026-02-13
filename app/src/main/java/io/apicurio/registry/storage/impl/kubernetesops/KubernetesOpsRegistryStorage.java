@@ -1,4 +1,4 @@
-package io.apicurio.registry.storage.impl.gitops;
+package io.apicurio.registry.storage.impl.kubernetesops;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.logging.Logged;
@@ -15,32 +15,37 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
+/**
+ * KubernetesOps storage implementation that loads registry data from Kubernetes ConfigMaps.
+ * This provides a Kubernetes-native approach to managing registry artifacts using standard
+ * Kubernetes tooling (kubectl, ArgoCD, Flux, etc.).
+ */
 @ApplicationScoped
 @StorageMetricsApply
 @Logged
-@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "gitops")
-public class GitOpsRegistryStorage extends AbstractPollingRegistryStorage {
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kubernetesops")
+public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage {
 
     @Inject
-    GitManager gitManager;
+    KubernetesManager kubernetesManager;
 
     @ConfigProperty(name = "apicurio.storage.kind")
-    @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops", availableSince = "3.0.0")
     String registryStorageType;
 
     @Override
     protected DataSourceManager getDataSourceManager() {
-        return gitManager;
+        return kubernetesManager;
     }
 
     @Override
     public String storageName() {
-        return "gitops";
+        return "kubernetesops";
     }
 
-    @Scheduled(concurrentExecution = SKIP, every = "{apicurio.gitops.refresh.every}")
+    @Scheduled(concurrentExecution = SKIP, every = "${apicurio.kubernetesops.refresh.every:30s}")
     void scheduledRefresh() {
-        if ("gitops".equals(registryStorageType)) {
+        if ("kubernetesops".equals(registryStorageType)) {
             refresh();
         }
     }

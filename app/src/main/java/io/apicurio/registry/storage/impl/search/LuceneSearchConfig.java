@@ -92,37 +92,19 @@ public class LuceneSearchConfig {
         String storageType = storage.storageName().toLowerCase();
 
         switch (storageType) {
-        case "kafkasql":
-        case "gitops":
-        case "inmemory":
-            log.info("Storage type '{}' is inherently single-node, using SYNCHRONOUS mode",
-                    storageType);
-            return IndexUpdateMode.SYNCHRONOUS;
-
-        case "sql":
-            // SQL can be single or multi-node
-            // Check for explicit configuration via deployment mode
-            if (isSingleNodeDeployment()) {
-                log.info("Single-node deployment detected, using SYNCHRONOUS mode");
+            case "kafkasql":
+            case "gitops":
+            case "inmemory":
+                log.info("Storage type '{}' is inherently single-node, using SYNCHRONOUS indexing mode",
+                        storageType);
                 return IndexUpdateMode.SYNCHRONOUS;
-            } else {
-                log.info("Multi-node deployment possible, using ASYNCHRONOUS mode");
+            case "sql":
+                log.info("Multi-node SQL deployment possible, using ASYNCHRONOUS indexing mode");
                 return IndexUpdateMode.ASYNCHRONOUS;
-            }
-
-        default:
-            log.warn("Unknown storage type '{}', defaulting to ASYNCHRONOUS mode", storageType);
-            return IndexUpdateMode.ASYNCHRONOUS;
+            default:
+                log.warn("Unknown storage type '{}', defaulting to ASYNCHRONOUS indexing mode", storageType);
+                return IndexUpdateMode.ASYNCHRONOUS;
         }
-    }
-
-    /**
-     * Checks if this is a single-node deployment based on environment configuration.
-     */
-    private boolean isSingleNodeDeployment() {
-        // Check environment variable for explicit single-node configuration
-        String deploymentMode = System.getenv("REGISTRY_DEPLOYMENT_MODE");
-        return "single-node".equalsIgnoreCase(deploymentMode);
     }
 
     public boolean isEnabled() {

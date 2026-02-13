@@ -1681,13 +1681,13 @@ The migration scripts automate key steps in the workflow. All scripts support in
 
 The migration scripts are production-ready tools that handle the most critical and error-prone aspects of migration:
 
-* **link:https://github.com/Apicurio/apicurio-registry/blob/main/docs/scripts/apicurio-capture-metrics.sh[apicurio-capture-metrics.sh]** - Captures metrics before/after migration (for comparison)
-* **link:https://github.com/Apicurio/apicurio-registry/blob/main/docs/scripts/apicurio-export-registry-data.sh[apicurio-export-registry-data.sh]** - Exports all data from {registry-v2}
-* **link:https://github.com/Apicurio/apicurio-registry/blob/main/docs/scripts/apicurio-import-registry-data.sh[apicurio-import-registry-data.sh]** - Imports data into {registry} 3.x
-* **link:https://github.com/Apicurio/apicurio-registry/blob/main/docs/scripts/apicurio-verify-registry-version.sh[apicurio-verify-registry-version.sh]** - Verifies registry version and health
-* **link:https://github.com/Apicurio/apicurio-registry/blob/main/docs/scripts/apicurio-verify-v3-api-features.sh[apicurio-verify-v3-api-features.sh]** - Tests v3-specific API features
+* **apicurio-capture-metrics.sh** - Captures metrics before/after migration (for comparison)
+* **apicurio-export-registry-data.sh** - Exports all data from {registry-v2}
+* **apicurio-import-registry-data.sh** - Imports data into {registry} 3.x
+* **apicurio-verify-registry-version.sh** - Verifies registry version and health
+* **apicurio-verify-v3-api-features.sh** - Tests v3-specific API features
 
-Find all scripts in the {registry} GitHub repository under link:https://github.com/Apicurio/apicurio-registry/tree/main/docs/scripts[docs/scripts/].
+Find all scripts in the {registry} GitHub repository under link:https://github.com/Apicurio/apicurio-registry/tree/3.1.x/docs/scripts[docs/scripts/].
 
 .Understanding common features
 

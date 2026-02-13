@@ -332,7 +332,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
                     version, autoCreate, canonicalize, rawSchemaString, clientReferences);
 
-            return loadFromVersionCoordinates(versionCoordinates, parsedSchema);
+            return loadFromVersionCoordinates(versionCoordinates, parsedSchema, references);
         });
     }
 

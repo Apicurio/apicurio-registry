@@ -18,8 +18,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -66,6 +68,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             if (rawSchema != null) {
                 return ContentWithReferences.builder()
                         .content(IoUtil.toString(rawSchema))
+                        .references(schema.getReferences())
                         .build();
             }
             return null;
@@ -238,6 +241,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     protected SchemaLookupResult<S> loadFromVersionCoordinates(RegistryVersionCoordinates version, ParsedSchema<S> parsedSchema) {
+        return loadFromVersionCoordinates(version, parsedSchema, new HashSet<>());
+    }
+
+    protected SchemaLookupResult<S> loadFromVersionCoordinates(RegistryVersionCoordinates version, ParsedSchema<S> parsedSchema,
+                                                                Set<ArtifactReference> references) {
         return SchemaLookupResult.<S>builder()
                 .globalId(version.getGlobalId())
                 .contentId(version.getContentId())
@@ -245,6 +253,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .artifactId(version.getArtifactId())
                 .version(String.valueOf(version.getVersion()))
                 .parsedSchema(parsedSchema)
+                .references(references)
                 .build();
     }
 }

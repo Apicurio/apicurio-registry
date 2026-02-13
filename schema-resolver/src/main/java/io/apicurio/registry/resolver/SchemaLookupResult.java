@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import static lombok.AccessLevel.PRIVATE;
 
 @AllArgsConstructor(access = PRIVATE)
@@ -23,6 +26,13 @@ public class SchemaLookupResult<T> {
     private String groupId;
     private String artifactId;
     private String version;
+
+    /**
+     * The artifact references used when registering this schema.
+     * Used for content-based cache key generation.
+     */
+    @Builder.Default
+    private Set<ArtifactReference> references = new HashSet<>();
 
 
     public ArtifactReference toArtifactReference() {

@@ -777,6 +777,47 @@ The following {registry} configuration options are available for each component 
 |Max size of the labels (in bytes) per item from within search results
 |===
 
+== search
+.search configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.search.lucene.enabled`
+|`boolean`
+|`false`
+|`3.2.0`
+|Enable search indexing
+|`apicurio.search.lucene.full-rebuild-threshold`
+|`int`
+|`1000`
+|`3.2.0`
+|Threshold to reach before a full search index rebuild is required
+|`apicurio.search.lucene.index-path`
+|`optional<string>`
+|
+|`3.2.0`
+|Path to where the search index file should be written
+|`apicurio.search.lucene.polling-interval`
+|`duration`
+|`30s`
+|`3.2.0`
+|Asynchronous search index update polling interval
+|`apicurio.search.lucene.ram-buffer-size-mb`
+|`int`
+|`256`
+|`3.2.0`
+|Search index RAM buffer size (in MB)
+|`apicurio.search.lucene.update-mode`
+|`string`
+|`AUTO`
+|`3.2.0`
+|Search index update mode (AUTO, SYNCHRONOUS, ASYNCHRONOUS)
+|===
+
 == semver
 .semver configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -1062,11 +1103,6 @@ The following {registry} configuration options are available for each component 
 |`sql`
 |`3.0.0`
 |The type of storage to use for the registry
-|`apicurio.storage.orphan-cleanup.every`
-|`duration`
-|`1h`
-|`3.x.x`
-|Interval for orphaned content cleanup job (e.g., 1h, 30m, 86400s). Set to "off" to disable.
 |`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -1409,6 +1445,11 @@ The following {registry} configuration options are available for each component 
 |`apicurio.semver.validation.enabled.dynamic.allow`
 |`unknown`
 |`${apicurio.config.dynamic.allow-all}`
+|
+|
+|`apicurio.storage.orphan-cleanup.every`
+|`unknown`
+|`1h`
 |
 |
 |`apicurio.storage.read-only.enabled.dynamic.allow`

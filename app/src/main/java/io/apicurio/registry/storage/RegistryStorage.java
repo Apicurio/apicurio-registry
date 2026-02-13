@@ -1035,6 +1035,28 @@ public interface RegistryStorage extends DynamicConfigStorage {
     boolean supportsDatabaseEvents();
 
     /**
+     * Get all versions modified (created or updated) since the given timestamp. Only needed for
+     * ASYNCHRONOUS mode of Lucene search indexing.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return List of version metadata for changed versions
+     */
+    default List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
+        throw new UnsupportedOperationException(
+                "getVersionsModifiedSince not supported by storage type: " + storageName());
+    }
+
+    /**
+     * Get the timestamp of the most recently modified version. Only needed for ASYNCHRONOUS mode of
+     * Lucene search indexing.
+     *
+     * @return Timestamp in milliseconds, or 0 if no versions exist
+     */
+    default long getLatestVersionTimestamp() {
+        return System.currentTimeMillis();
+    }
+
+    /**
      * Legacy code: we used to have an enum that drove how to retrieve versions. This has since been converted
      * to a filtered set of states. For now, this class replicates the names of the old enum values, aiding in
      * converting existing code with fewer changes.

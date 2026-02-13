@@ -1,0 +1,429 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="configuring-kubernetesops-storage_{context}"]
+= Configuring {registry} with KubernetesOps storage
+
+[role="_abstract"]
+This chapter explains how to configure {registry} to use Kubernetes ConfigMaps as the data source for registry artifacts. KubernetesOps storage enables Kubernetes-native management of schemas and APIs using standard tools like `kubectl`, ArgoCD, or Flux.
+
+* xref:kubernetesops-overview_{context}[]
+* xref:configuring-kubernetesops-storage_{context}[]
+* xref:kubernetesops-configmap-format_{context}[]
+* xref:kubernetesops-rbac-requirements_{context}[]
+* xref:kubernetesops-limitations_{context}[]
+
+.Prerequisites
+* You have installed {registry} on Kubernetes or OpenShift.
+* You have access to create ConfigMaps and RBAC resources in your cluster.
+
+//INCLUDES
+
+[id="kubernetesops-overview_{context}"]
+== Overview of KubernetesOps storage
+
+[role="_abstract"]
+KubernetesOps storage is a read-only storage variant that loads registry data from Kubernetes ConfigMaps. It extends the proven GitOps storage pattern to use ConfigMaps instead of Git repositories, enabling Kubernetes-native workflows for managing schemas and APIs.
+
+[discrete]
+=== Architecture
+
+KubernetesOps storage uses a polling-based architecture with blue-green database switching:
+
+. The registry polls the Kubernetes API for ConfigMaps with a specific label
+. When changes are detected (via `resourceVersion`), data is loaded into an inactive database
+. After successful loading, the active and inactive databases are atomically switched
+. Clients continue to receive read-only access to the active database during the switch
+
+This architecture provides:
+
+* *Zero-downtime updates*: The blue-green pattern ensures clients always have access to consistent data
+* *Kubernetes-native integration*: Manages artifacts using standard Kubernetes tools (`kubectl`, ArgoCD, Flux)
+* *GitOps compatibility*: ConfigMaps can be managed via GitOps tools that sync Kubernetes manifests from Git
+
+[discrete]
+=== When to use KubernetesOps storage
+
+KubernetesOps storage is ideal when:
+
+* You want to manage artifacts using Kubernetes-native tools (`kubectl apply`)
+* You already use ArgoCD or Flux for GitOps and want to include registry artifacts
+* You need a read-only registry where all changes flow through your GitOps pipeline
+* You want to avoid external dependencies (like a Git server) from within your cluster
+
+[discrete]
+=== Comparison with other storage options
+
+.Storage option comparison
+[.table-expandable,width="100%",cols="2,3,3,3",options="header"]
+|===
+|Aspect
+|SQL Storage
+|GitOps Storage
+|KubernetesOps Storage
+
+|Data source
+|Database (PostgreSQL, etc.)
+|Git repository
+|Kubernetes ConfigMaps
+
+|Write capability
+|Full read/write
+|Read-only
+|Read-only
+
+|Change management
+|REST API, UI
+|Git commits
+|kubectl, ArgoCD, Flux
+
+|External dependencies
+|Database server
+|Git server
+|None (in-cluster only)
+
+|Use case
+|Standard deployment
+|Git-based workflows
+|Kubernetes-native workflows
+|===
+
+
+[id="configuring-kubernetesops-storage_{context}"]
+== Configuring KubernetesOps storage
+
+[role="_abstract"]
+This section explains how to configure {registry} to use KubernetesOps storage.
+
+.Prerequisites
+* You have a Kubernetes or OpenShift cluster with cluster administrator access.
+* You have installed {registry}.
+
+.Procedure
+
+. Configure the following environment variables in your {registry} deployment:
++
+.Environment variables for KubernetesOps storage
+[.table-expandable,width="100%",cols="4,2,4",options="header"]
+|===
+|Environment Variable
+|Default
+|Description
+
+|`APICURIO_STORAGE_KIND`
+|-
+|Set to `kubernetesops` to enable KubernetesOps storage.
+
+|`APICURIO_KUBERNETESOPS_ID`
+|-
+|*Required*. Unique identifier for this registry instance. Only ConfigMaps with matching label will be loaded.
+
+|`APICURIO_KUBERNETESOPS_NAMESPACE`
+|Current namespace
+|Kubernetes namespace to watch for ConfigMaps.
+
+|`APICURIO_KUBERNETESOPS_REFRESH_EVERY`
+|`30s`
+|How often to poll for ConfigMap changes. Supports duration format (e.g., `10s`, `1m`).
+
+|`APICURIO_KUBERNETESOPS_LABEL_REGISTRY_ID`
+|`apicurio.io/registry-id`
+|Label key used to identify ConfigMaps belonging to this registry.
+|===
+
+. Example deployment configuration:
++
+[source,yaml]
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apicurio-registry
+spec:
+  template:
+    spec:
+      serviceAccountName: apicurio-registry
+      containers:
+        - name: registry
+          image: apicurio/apicurio-registry:latest
+          env:
+            - name: APICURIO_STORAGE_KIND
+              value: "kubernetesops"
+            - name: APICURIO_KUBERNETESOPS_ID
+              value: "my-registry"
+            - name: APICURIO_KUBERNETESOPS_NAMESPACE
+              value: "apicurio"
+            - name: APICURIO_KUBERNETESOPS_REFRESH_EVERY
+              value: "30s"
+----
+
+. Create the required RBAC resources as described in xref:kubernetesops-rbac-requirements_{context}[].
+
+. Create ConfigMaps containing your registry data as described in xref:kubernetesops-configmap-format_{context}[].
+
+
+[id="kubernetesops-configmap-format_{context}"]
+== ConfigMap data format
+
+[role="_abstract"]
+ConfigMaps for KubernetesOps storage must use a specific YAML format with `$type` markers to identify the type of each file. This format is identical to the GitOps storage format.
+
+[discrete]
+=== ConfigMap requirements
+
+* ConfigMaps must have the registry ID label (e.g., `apicurio.io/registry-id: my-registry`)
+* Each data entry key should be a relative path (e.g., `test/artifact.yaml`)
+* YAML files must contain a `$type` field identifying the entity type
+
+[discrete]
+=== Entity types
+
+The following `$type` values are supported:
+
+.Supported entity types
+[.table-expandable,width="100%",cols="2,4",options="header"]
+|===
+|Type
+|Description
+
+|`registry-v0`
+|Registry configuration including global rules and settings
+
+|`group-v0`
+|Group definition
+
+|`artifact-v0`
+|Artifact definition with versions
+
+|`content-v0`
+|Content metadata linking to actual schema/API data
+|===
+
+[discrete]
+=== Example: Registry configuration
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-config
+  namespace: apicurio
+  labels:
+    apicurio.io/registry-id: my-registry
+data:
+  registry.yaml: |
+    $type: registry-v0
+    id: my-registry
+    globalRules:
+      - type: VALIDITY
+        config: FULL
+    settings: []
+----
+
+[discrete]
+=== Example: Group definition
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: events-group
+  namespace: apicurio
+  labels:
+    apicurio.io/registry-id: my-registry
+data:
+  test/group-events.yaml: |
+    $type: group-v0
+    registryId: my-registry
+    id: com.example.events
+    description: "Event schemas for the platform"
+----
+
+[discrete]
+=== Example: Artifact with content
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-event-artifact
+  namespace: apicurio
+  labels:
+    apicurio.io/registry-id: my-registry
+data:
+  test/artifact-user-event.yaml: |
+    $type: artifact-v0
+    registryId: my-registry
+    groupId: com.example.events
+    id: user-event
+    versions:
+      - id: "1"
+        globalId: 1
+        contentFile: content-1.yaml
+    rules:
+      - type: COMPATIBILITY
+        config: BACKWARD
+
+  test/content-1.yaml: |
+    $type: content-v0
+    registryId: my-registry
+    id: 1
+    contentHash: "sha256:abc123..."
+    dataFile: ../content/user-event.avsc
+
+  content/user-event.avsc: |
+    {
+      "type": "record",
+      "name": "UserEvent",
+      "namespace": "com.example.events",
+      "fields": [
+        {"name": "userId", "type": "string"},
+        {"name": "action", "type": "string"},
+        {"name": "timestamp", "type": "long"}
+      ]
+    }
+----
+
+NOTE: The `contentFile` and `dataFile` fields use relative paths. The path resolution works the same as in GitOps storage.
+
+
+[id="kubernetesops-rbac-requirements_{context}"]
+== RBAC requirements
+
+[role="_abstract"]
+{registry} requires read access to ConfigMaps in the configured namespace. Create the following RBAC resources:
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: apicurio-registry
+  namespace: apicurio
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: apicurio-registry-configmaps
+  namespace: apicurio
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: apicurio-registry-configmaps
+  namespace: apicurio
+subjects:
+  - kind: ServiceAccount
+    name: apicurio-registry
+    namespace: apicurio
+roleRef:
+  kind: Role
+  name: apicurio-registry-configmaps
+  apiGroup: rbac.authorization.k8s.io
+----
+
+For multi-namespace scenarios, create a ClusterRole and ClusterRoleBinding instead.
+
+
+[id="kubernetesops-limitations_{context}"]
+== Limitations and considerations
+
+[role="_abstract"]
+KubernetesOps storage has specific limitations and considerations you should understand before deployment.
+
+[discrete]
+=== Read-only storage
+
+KubernetesOps storage is *read-only*. You cannot create, update, or delete artifacts through the {registry} REST API or web console. All changes must be made by updating ConfigMaps.
+
+[discrete]
+=== ConfigMap size limits
+
+Kubernetes ConfigMaps have a maximum size of *1 MiB* per ConfigMap. For large schemas:
+
+* Distribute content across multiple ConfigMaps
+* Consider using compressed content where possible
+* For very large schemas, evaluate if SQL storage is more appropriate
+
+[discrete]
+=== Polling latency
+
+Changes are detected via polling, with a default interval of 30 seconds. This means:
+
+* Updates are not immediate - expect up to one polling interval delay
+* Decrease `APICURIO_KUBERNETESOPS_REFRESH_EVERY` for faster updates (increases API load)
+* Increase the interval for larger deployments to reduce Kubernetes API load
+
+[discrete]
+=== Scalability estimates
+
+.Expected performance by deployment size
+[.table-expandable,width="100%",cols="2,2,2,2",options="header"]
+|===
+|Registry Size
+|ConfigMaps
+|Artifacts
+|Performance
+
+|Small
+|5-20
+|<100
+|Excellent
+
+|Medium
+|20-100
+|100-1000
+|Good
+
+|Large
+|100-500
+|1000-5000
+|Acceptable
+
+|Very Large
+|500+
+|5000+
+|Consider alternatives
+|===
+
+For very large registries (5000+ artifacts), consider:
+
+* SQL storage with proper backup/restore procedures
+* GitOps storage if Git-based workflows are required
+* Custom partitioning strategies
+
+[discrete]
+=== Memory usage
+
+The blue-green architecture requires maintaining two copies of the database in memory:
+
+* One active database serving read requests
+* One inactive database for loading new data
+
+This doubles the memory footprint compared to single-database storage. Plan your resource limits accordingly.
+
+[discrete]
+=== Full reload behavior
+
+On each detected change, the entire dataset is reloaded from ConfigMaps. This approach:
+
+* Ensures consistency - no partial updates
+* Simplifies error recovery
+* May increase load times for large datasets
+
+[discrete]
+=== No watch API support
+
+The current implementation uses polling rather than Kubernetes watch API. Future versions may add watch support for real-time updates.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-configuring-the-registry.adoc[]
+* xref:getting-started/assembly-config-reference.adoc[]
+

@@ -15,6 +15,7 @@ public enum ConfigPropertyCategory {
      */
     CATEGORY_HIDDEN("hidden"),
     CATEGORY_IMPORT("import"),
+    CATEGORY_KUBERNETESOPS("kubernetesops"),
     CATEGORY_LIMITS("limits"),
     CATEGORY_LOG("log"),
     CATEGORY_OBSERVABILITY("observability"),

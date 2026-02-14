@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -21,7 +22,10 @@ import io.apicurio.registry.storage.impl.sql.mappers.ContentWithIdMapper;
 import io.apicurio.registry.rest.ConflictException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
+
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,6 +71,10 @@ public class SqlContentRepository {
 
     @Inject
     RegistryStorageContentUtils utils;
+
+    @ConfigProperty(name = "apicurio.storage.references.max-depth", defaultValue = "100")
+    @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.", registryAvailableSince = "3.0.6")
+    int maxReferenceDepth;
 
     /**
      * Get content by contentId.
@@ -291,7 +299,8 @@ public class SqlContentRepository {
             return Collections.emptyMap();
         } else {
             Map<String, TypedContent> result = new LinkedHashMap<>();
-            resolveReferencesRecursive(handle, result, references);
+            Set<String> visited = new HashSet<>();
+            resolveReferencesRecursive(handle, result, references, 0, visited);
             return result;
         }
     }
@@ -306,22 +315,46 @@ public class SqlContentRepository {
      * Resolves references recursively using batched database operations for improved performance. For N
      * references at depth D, this approach uses D metadata queries + D content queries instead of N^D
      * queries.
+     *
+     * @param handle Database handle
+     * @param resolvedReferences Map to collect resolved references
+     * @param references List of references to resolve
+     * @param currentDepth Current recursion depth (0-based)
+     * @param visited Set of already-visited reference keys for cycle detection
      */
     private void resolveReferencesRecursive(Handle handle, Map<String, TypedContent> resolvedReferences,
-            List<ArtifactReferenceDto> references) {
+            List<ArtifactReferenceDto> references, int currentDepth, Set<String> visited) {
         if (references == null || references.isEmpty()) {
             return;
         }
 
-        // Filter out already-resolved references and invalid ones
+        // Check maximum depth limit to prevent stack overflow
+        if (currentDepth > maxReferenceDepth) {
+            log.warn("Maximum reference resolution depth ({}) exceeded at depth {}. "
+                    + "Stopping resolution. This may indicate deeply nested schemas or a configuration issue.",
+                    maxReferenceDepth, currentDepth);
+            return;
+        }
+
+        // Filter out already-resolved references, visited references, and invalid ones
         List<ArtifactReferenceDto> unresolvedReferences = new ArrayList<>();
         for (ArtifactReferenceDto reference : references) {
             if (reference.getArtifactId() == null || reference.getName() == null
                     || reference.getVersion() == null) {
                 throw new IllegalStateException("Invalid reference: " + reference);
             }
+
+            String referenceKey = buildReferenceKey(reference);
+
+            // Check for cycles using the visited set
+            if (visited.contains(referenceKey)) {
+                log.debug("Skipping already-visited reference to prevent cycles: {}", referenceKey);
+                continue;
+            }
+
             if (!resolvedReferences.containsKey(reference.getName())) {
                 unresolvedReferences.add(reference);
+                visited.add(referenceKey);
             }
         }
 
@@ -347,28 +380,37 @@ public class SqlContentRepository {
         for (ArtifactReferenceDto reference : unresolvedReferences) {
             String key = buildReferenceKey(reference);
             ArtifactVersionMetaDataDto meta = metadataByKey.get(key);
-            if (meta != null) {
-                ContentWrapperDto content = contentById.get(meta.getContentId());
-                if (content != null) {
-                    // Collect nested references for next batch
-                    if (content.getReferences() != null) {
-                        for (ArtifactReferenceDto nestedRef : content.getReferences()) {
-                            if (!resolvedReferences.containsKey(nestedRef.getName())) {
-                                nestedReferences.add(nestedRef);
-                            }
-                        }
+            if (meta == null) {
+                log.debug("Metadata not found for reference: {}", key);
+                continue;
+            }
+
+            ContentWrapperDto content = contentById.get(meta.getContentId());
+            if (content == null) {
+                log.debug("Content not found for reference: {} with contentId: {}", key, meta.getContentId());
+                continue;
+            }
+
+            // Collect nested references for next batch
+            if (content.getReferences() != null) {
+                for (ArtifactReferenceDto nestedRef : content.getReferences()) {
+                    String nestedKey = buildReferenceKey(nestedRef);
+                    if (!resolvedReferences.containsKey(nestedRef.getName())
+                            && !visited.contains(nestedKey)) {
+                        nestedReferences.add(nestedRef);
                     }
-                    // Add to resolved map
-                    TypedContent typedContent = TypedContent.create(content.getContent(),
-                            content.getContentType());
-                    resolvedReferences.put(reference.getName(), typedContent);
                 }
             }
+            // Add to resolved map
+            TypedContent typedContent = TypedContent.create(content.getContent(),
+                    content.getContentType());
+            resolvedReferences.put(reference.getName(), typedContent);
         }
 
         // Recursively resolve nested references (batched at each level)
         if (!nestedReferences.isEmpty()) {
-            resolveReferencesRecursive(handle, resolvedReferences, nestedReferences);
+            resolveReferencesRecursive(handle, resolvedReferences, nestedReferences, currentDepth + 1,
+                    visited);
         }
     }
 

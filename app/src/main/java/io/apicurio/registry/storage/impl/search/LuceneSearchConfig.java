@@ -60,12 +60,36 @@ public class LuceneSearchConfig {
             resolvedMode = determineUpdateMode();
             resolvedIndexPath = indexPath.orElse(System.getProperty("java.io.tmpdir")
                     + "/apicurio-registry-lucene");
+
             log.info("Lucene search index ENABLED");
             log.info("  - Update mode: {}", resolvedMode);
             log.info("  - Index path: {}", resolvedIndexPath);
             log.info("  - Storage type: {}", storage.storageName());
             if (resolvedMode == IndexUpdateMode.ASYNCHRONOUS) {
                 log.info("  - Polling interval: {}", pollingInterval);
+            }
+
+            // Warn if index path is not explicitly configured
+            if (indexPath.isEmpty()) {
+                log.warn("");
+                log.warn("╔═══════════════════════════════════════════════════════════════════════════════╗");
+                log.warn("║ WARNING: Lucene search index path is NOT configured!                          ║");
+                log.warn("║                                                                               ║");
+                log.warn("║ The search index is using a TEMPORARY directory.                              ║");
+                log.warn("║                                                                               ║");
+                log.warn("║ THIS IS NOT SUITABLE FOR PRODUCTION!                                          ║");
+                log.warn("║                                                                               ║");
+                log.warn("║ The index will be LOST when the application restarts or the temp directory    ║");
+                log.warn("║ is cleaned. This will cause:                                                  ║");
+                log.warn("║   • Search to return no results until index is rebuilt                        ║");
+                log.warn("║   • Performance degradation during index rebuild                              ║");
+                log.warn("║   • Potential inconsistencies in search results                               ║");
+                log.warn("║                                                                               ║");
+                log.warn("║ SOLUTION: Configure a persistent index path:                                  ║");
+                log.warn("║   apicurio.search.lucene.index-path=/var/lib/apicurio-registry/lucene         ║");
+                log.warn("║                                                                               ║");
+                log.warn("╚═══════════════════════════════════════════════════════════════════════════════╝");
+                log.warn("");
             }
         } else {
             log.info("Lucene search index DISABLED");

@@ -15,7 +15,7 @@ import static io.apicurio.registry.rest.cache.HttpCaching.caching;
 
 /**
  * JAX-RS response filter that adds HTTP cache headers to responses
- * when a cache strategy was set by EntityIdCacheInterceptor.
+ * when a cache strategy was set by EntityIdContentCacheInterceptor.
  * <p>
  * This filter runs after the resource method completes successfully
  * (i.e., when 304 was not returned).

@@ -1,11 +1,11 @@
 package io.apicurio.registry.rest.cache;
 
+import io.apicurio.registry.rest.cache.headers.ETagHttpHeader;
 import io.apicurio.registry.rest.cache.headers.SurrogateControlHttpHeader;
 import io.apicurio.registry.rest.cache.headers.VaryHttpHeader;
 import io.apicurio.registry.rest.cache.headers.XCacheCacheabilityHttpHeader;
 import io.apicurio.registry.rest.cache.strategy.CacheStrategy;
 import jakarta.enterprise.inject.spi.CDI;
-import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,17 +71,11 @@ public class HttpCaching {
         String ifNoneMatch = httpHeaders.getHeaderString(HttpHeaders.IF_NONE_MATCH);
         if (ifNoneMatch != null) {
             var etag = strategy.getETagBuilder().build();
-            if (etagMatches(ifNoneMatch, etag)) {
+            var etagHeader = ETagHttpHeader.builder().etag(etag).build();
+            if (etagHeader.matches(ifNoneMatch)) {
                 throw new CacheNotModifiedException();
             }
         }
-    }
-
-    private boolean etagMatches(String ifNoneMatch, EntityTag etag) {
-        // Remove quotes if present
-        var requestEtag = ifNoneMatch.replaceAll("^\"|\"$", "");
-        var responseEtag = etag.getValue();
-        return requestEtag.equals(responseEtag);
     }
 
     void applyCacheHeaders(ResponseAdapter adapter) {
@@ -97,7 +91,10 @@ public class HttpCaching {
             // Add ETag header
             var etagBuilder = strategy.getETagBuilder();
             var etag = config.hashedETagsEnabled() ? etagBuilder.buildHashed() : etagBuilder.build();
-            adapter.setResponseHeader(HttpHeaders.ETAG, etag);
+            ETagHttpHeader.builder()
+                    .etag(etag)
+                    .build()
+                    .apply(adapter);
 
             // Add X-Cache-Cacheability header if extra headers are enabled
             if (config.isExtraHeadersEnabled()) {

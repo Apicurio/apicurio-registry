@@ -1,5 +1,11 @@
 package io.apicurio.registry.rest.cache;
 
+import java.util.Arrays;
+import java.util.Objects;
+
+import static java.util.Arrays.stream;
+import static java.util.Comparator.comparingInt;
+
 /**
  * Enum representing the cacheability of a resource.
  * Cacheability is a property of a specific resource (based on the individual request), not necessarily an entire endpoint.
@@ -17,20 +23,44 @@ public enum Cacheability {
      * Resource is very unlikely to change.
      * High-quality ETags are available.
      */
-    HIGH,
+    HIGH(3),
     /**
      * Resource might change often,
      * but high-quality ETags are still available.
      */
-    MODERATE,
+    MODERATE(2),
     /**
      * Resource might change often,
      * and high-quality ETags are not available.
      */
-    LOW,
+    LOW(1),
     /**
      * Resource is not cacheable.
      * ETags are not available or not useful.
      */
-    NONE;
+    NONE(0);
+
+    private final int level;
+
+    Cacheability(int level) {
+        this.level = level;
+    }
+
+    private int getLevel() {
+        return level;
+    }
+
+    /**
+     * Returns the lowest Cacheability from the given values.
+     * If no values are provided, throws IllegalArgumentException.
+     */
+    public static Cacheability min(Cacheability... cacheabilities) {
+        if (cacheabilities == null) {
+            throw new IllegalArgumentException("Nothing to compare: cacheabilities is null");
+        }
+        return stream(cacheabilities)
+                .filter(Objects::nonNull)
+                .min(comparingInt(Cacheability::getLevel))
+                .orElseThrow(() -> new IllegalArgumentException("Nothing to compare: " + Arrays.toString(cacheabilities)));
+    }
 }

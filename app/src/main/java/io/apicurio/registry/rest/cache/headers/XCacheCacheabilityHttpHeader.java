@@ -24,7 +24,7 @@ public class XCacheCacheabilityHttpHeader implements HttpHeader {
     }
 
     @Override
-    public Object value() {
+    public String value() {
         return cacheability.name();
     }
 }

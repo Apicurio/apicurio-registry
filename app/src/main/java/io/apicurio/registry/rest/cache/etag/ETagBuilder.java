@@ -35,8 +35,9 @@ public class ETagBuilder {
 
     private final SortedMap<String, String> parts = new TreeMap<>();
 
-    // TODO: We cannot use ",", because it is already used as a separator for multiple ETag values in
-    // `org.jboss.resteasy.specimpl.RequestImpl.convertEtag`.
+    // We cannot use ",", because it is already used as a standard separator
+    // for multiple ETags in the same header.
+    // TODO: Add some kind of escaping if it causes issues.
     private <T> String getValue(Key<T> key, T value) {
         var valueString = valueOf(value);
         if (contains(valueString, "=;+,")) {

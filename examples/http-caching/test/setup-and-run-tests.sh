@@ -384,11 +384,12 @@ echo ""
 print_header "Running HTTP Caching Tests"
 
 # Run test script with arguments
+# Temporarily disable exit-on-error to capture test failures
 cd "$SCRIPT_DIR"
+set +e
 ./run-tests.sh $TEST_ARGS
-
-# Capture exit code
 TEST_EXIT_CODE=$?
+set -e
 
 ###############################################################################
 # Display Results

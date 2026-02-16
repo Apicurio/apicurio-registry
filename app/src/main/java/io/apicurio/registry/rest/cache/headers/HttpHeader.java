@@ -7,7 +7,7 @@ public interface HttpHeader {
 
     String key();
 
-    Object value();
+    String value();
 
     default void apply(ResponseAdapter adapter) {
         adapter.setResponseHeader(key(), value());

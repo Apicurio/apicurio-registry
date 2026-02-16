@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 import static io.apicurio.registry.rest.cache.Cacheability.HIGH;
 import static io.apicurio.registry.rest.cache.Cacheability.LOW;
 import static io.apicurio.registry.rest.cache.Cacheability.MODERATE;
+import static io.apicurio.registry.rest.cache.Cacheability.min;
 import static io.apicurio.registry.rest.v3.beans.HandleReferencesType.PRESERVE;
 import static io.apicurio.registry.types.VersionState.DRAFT;
 import static lombok.AccessLevel.PRIVATE;
@@ -33,29 +34,31 @@ public class VersionContentCacheStrategy extends CacheStrategy {
     // Cacheability
     private final String versionExpression;
     private final VersionState versionState;
-
-    private boolean contentChangesWithReferences() {
-        return references != null && !PRESERVE.equals(references);
-    }
+    // IMPORTANT: Any of the parameters can be null. Be careful about default values.
 
     @Override
     public void evaluate() {
-        var isVersionExpression = !VersionId.isValid(versionExpression);
-        var isDraft = DRAFT.equals(versionState);
 
         eTagBuilder = new ETagBuilder()
                 .with(ETagKeys.CONTENT_ID, contentId)
                 .with(ETagKeys.QUERY_PARAM_REFERENCES, references);
-        if (isVersionExpression || ((isDraft || contentChangesWithReferences()) && isVersionMutabilityEnabled())) {
+
+        cacheability = HIGH;
+
+        if (!VersionId.isValid(versionExpression) /* is a version expression */) {
+            cacheability = min(cacheability, MODERATE);
+        }
+        if (DRAFT.equals(versionState) && isVersionMutabilityEnabled()) {
+            cacheability = min(cacheability, MODERATE);
+        }
+        if (references != null && !PRESERVE.equals(references) && isVersionMutabilityEnabled()) {
             if (referenceTreeContentIds != null && isHigherQualityEtagEnabled()) {
                 eTagBuilder.with(ETagKeys.REFERENCE_TREE_CONTENT_IDS, referenceTreeContentIds.get());
-                cacheability = MODERATE;
+                cacheability = min(cacheability, MODERATE);
             } else {
                 eTagBuilder.withRandom();
-                cacheability = LOW;
+                cacheability = min(cacheability, LOW);
             }
-        } else {
-            cacheability = HIGH;
         }
     }
 

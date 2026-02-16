@@ -10,7 +10,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.RestConfig;
-import io.apicurio.registry.rest.cache.EntityIdCache;
+import io.apicurio.registry.rest.cache.strategy.interceptor.EntityIdContentCache;
 import io.apicurio.registry.rest.cache.strategy.EntityIdContentCacheStrategy;
 import io.apicurio.registry.rest.impl.shared.CommonResourceOperations;
 import io.apicurio.registry.rest.v3.IdsResource;
@@ -28,12 +28,14 @@ import io.apicurio.registry.types.VersionState;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ENTITY_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_REF_TYPE;
 import static io.apicurio.registry.rest.cache.HttpCaching.caching;
 import static io.apicurio.registry.rest.headers.Headers.checkIfDeprecated;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.recursivelyResolveReferenceContentIds;
@@ -50,13 +52,16 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Inject
     RestConfig restConfig;
 
+    @Inject
+    HttpHeaders _ignored; // Do not remove, ensures it is available for dynamic CDI injection.
+
     /**
      * @see io.apicurio.registry.rest.v3.IdsResource#getContentById(long)
      */
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
-    @EntityIdCache
+    @EntityIdContentCache
     public Response getContentById(long contentId) {
         ContentWrapperDto dto = storage.getContentById(contentId);
         boolean isEmptyContent = ContentTypes.isEmptyContentType(dto.getContentType());
@@ -130,7 +135,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
-    @EntityIdCache
+    @EntityIdContentCache
     public Response getContentByHash(String contentHash) {
         ContentHandle content = storage.getContentByHash(contentHash).getContent();
         return Response.ok(content, ArtifactMediaTypes.BINARY).build();
@@ -142,7 +147,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
-    @EntityIdCache
+    @EntityIdContentCache
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
         return common.getReferencesByContentHash(contentHash, V3ApiUtil::referenceDtoToReference);
     }
@@ -153,7 +158,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
-    @EntityIdCache
+    @EntityIdContentCache
     public List<ArtifactReference> referencesByContentId(long contentId) {
         ContentWrapperDto artifact = storage.getContentById(contentId);
         return artifact.getReferences().stream().map(V3ApiUtil::referenceDtoToReference)
@@ -166,8 +171,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      */
     @Override
     @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
-    @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID}) // TODO: refType
-    @EntityIdCache
+    @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID, "1", MPK_REF_TYPE})
+    @EntityIdContentCache(refTypeParam = MPK_REF_TYPE)
     public List<ArtifactReference> referencesByGlobalId(long globalId, ReferenceType refType) {
         if (refType == ReferenceType.OUTBOUND || refType == null) {
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);

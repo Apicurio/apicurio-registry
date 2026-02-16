@@ -36,7 +36,7 @@ public class SurrogateControlHttpHeader implements HttpHeader {
     }
 
     @Override
-    public Object value() {
+    public String value() {
         var template = immutable ? IMMUTABLE : MUTABLE;
         requireNonNull(expiration, "expiration");
         return format(template, expiration.getSeconds());

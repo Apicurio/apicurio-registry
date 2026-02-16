@@ -8,4 +8,7 @@ public final class TimeUtils {
         // Duration.isPositive() is only available in Java 18+ :(
         return duration != null && !duration.isZero() && !duration.isNegative();
     }
+
+    private TimeUtils() {
+    }
 }

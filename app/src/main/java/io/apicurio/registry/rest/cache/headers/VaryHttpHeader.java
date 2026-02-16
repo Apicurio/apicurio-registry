@@ -1,7 +1,6 @@
 package io.apicurio.registry.rest.cache.headers;
 
 import jakarta.ws.rs.core.HttpHeaders;
-import joptsimple.internal.Strings;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
@@ -15,8 +14,8 @@ public class VaryHttpHeader implements HttpHeader {
     }
 
     @Override
-    public Object value() {
-        // TODO: Authentication
-        return Strings.join(new String[]{HttpHeaders.ACCEPT, HttpHeaders.ACCEPT_ENCODING, HttpHeaders.AUTHORIZATION}, ",");
+    public String value() {
+        // TODO: Analyze how to handle authentication better.
+        return String.join(",", HttpHeaders.ACCEPT, HttpHeaders.ACCEPT_ENCODING, HttpHeaders.AUTHORIZATION);
     }
 }

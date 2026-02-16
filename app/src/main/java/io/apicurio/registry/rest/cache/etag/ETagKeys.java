@@ -1,6 +1,7 @@
 package io.apicurio.registry.rest.cache.etag;
 
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
+import io.apicurio.registry.types.ReferenceType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -12,8 +13,9 @@ public final class ETagKeys {
 
     public static final ETagKey<Long> CONTENT_ID = new ETagKey<>("contentId");
     public static final ETagKey<Object> ENTITY_ID = new ETagKey<>("entityId");
-    public static final ETagKey<UUID> UUID = new ETagKey<>("uuid");
     public static final ETagListKey<Long> REFERENCE_TREE_CONTENT_IDS = new ETagListKey<>("referenceTreeContentIds");
+    public static final ETagKey<UUID> UUID = new ETagKey<>("uuid");
+    public static final ETagKey<ReferenceType> QUERY_PARAM_REF_TYPE = new ETagKey<>("refType");
     public static final ETagKey<HandleReferencesType> QUERY_PARAM_REFERENCES = new ETagKey<>("references");
     public static final ETagKey<Boolean> QUERY_PARAM_RETURN_ARTIFACT_TYPE = new ETagKey<>("returnArtifactType");
 

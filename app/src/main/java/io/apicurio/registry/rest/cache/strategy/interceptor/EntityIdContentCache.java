@@ -1,9 +1,9 @@
-package io.apicurio.registry.rest.cache;
+package io.apicurio.registry.rest.cache.strategy.interceptor;
 
+import jakarta.enterprise.util.Nonbinding;
 import jakarta.interceptor.InterceptorBinding;
 
 import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -37,21 +37,29 @@ import java.lang.annotation.Target;
  * }
  * </pre>
  */
-@Inherited
 @InterceptorBinding
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.METHOD})
-public @interface EntityIdCache {
+public @interface EntityIdContentCache {
 
     /**
      * Name of the extracted parameter that contains HandleReferencesType.
      * If specified, the interceptor will include this in the cache strategy.
      */
+    @Nonbinding
     String referencesParam() default "";
 
     /**
      * Name of the extracted parameter that contains Boolean returnArtifactType.
      * If specified, the interceptor will include this in the cache strategy.
      */
+    @Nonbinding
     String returnArtifactTypeParam() default "";
+
+    /**
+     * Name of the extracted parameter that contains ReferenceType.
+     * If specified, the interceptor will include this in the cache strategy.
+     */
+    @Nonbinding
+    String refTypeParam() default "";
 }

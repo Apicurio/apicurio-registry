@@ -14,13 +14,6 @@ public class CacheNotModifiedExceptionMapper implements ExceptionMapper<CacheNot
 
     @Override
     public Response toResponse(CacheNotModifiedException exception) {
-        //var strategy = exception.getStrategy();
-
-        //Response.ResponseBuilder builder = Response.notModified(strategy.getETagBuilder().build().getValue());
-
-        // Add cache headers
-        //strategy.getHeaders().forEach(header -> header.apply(builder));
-
         return Response.notModified().build();
     }
 }

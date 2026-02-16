@@ -10,7 +10,7 @@ import static java.util.Optional.ofNullable;
 
 /**
  * Request-scoped context for storing cache strategy information.
- * Used by EntityIdCacheInterceptor to communicate with CacheHeaderResponseFilter.
+ * Used by EntityIdContentCacheInterceptor to communicate with CacheHeaderResponseFilter.
  */
 @RequestScoped
 @Setter

@@ -11,7 +11,7 @@
       down the environment.
     - Both files can be run by a user directly, but `setup-and-run-tests.sh` will be run by CI.
     - `run-tests.sh` must work with both `docker-compose.yaml` and `docker-compose-dev.yaml`.
-3. Test files are structures to have high readability and maintainability:
+3. Test files are structured to have high readability and maintainability:
     - Reusable code, such as request generation, response parsing, assertions etc. are extracted to separate functions.
       These are called from the main test flow and are reused as much as possible to keep the main test flow clear and
       concise.
@@ -25,7 +25,7 @@
 7. Tests are parametrized by configuration in `io.apicurio.registry.rest.cache.HttpCachingConfig`, so that the
    configuration can be easily updated. This does not mean that the tests should read the configuration from that file,
    but that the configuration should be easily updated in the test files when needed.
-8. Each test case and it's result is clearly marked in the output, using colours and human-friendly formatting.
+8. Each test case and its result is clearly marked in the output, using colours and human-friendly formatting.
 9. Each "test suite" section is focused on testing a specific endpoint, with multiple tests each verifying a specific
    feature.
 10. Tests scripts must be able to be re-run multiple time without any manual cleanup, even if the backend is not
@@ -54,7 +54,7 @@
 
 To keep the tests from being too complex, assume the following (for now):
 
-1. Registry configuration does not change, as that would require restarting the backed:
+1. Registry configuration does not change, as that would require restarting the backend:
     - Artifact version mutability is enabled
 2. Varnish configuration does not change, as that would require restarting the cache.
 3. Only test Registry v3 REST API, as that is the only version that has caching enabled.

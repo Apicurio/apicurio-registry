@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.cache.strategy;
 import io.apicurio.registry.rest.cache.etag.ETagBuilder;
 import io.apicurio.registry.rest.cache.etag.ETagKeys;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
+import io.apicurio.registry.types.ReferenceType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
@@ -12,7 +13,9 @@ import java.util.function.Supplier;
 import static io.apicurio.registry.rest.cache.Cacheability.HIGH;
 import static io.apicurio.registry.rest.cache.Cacheability.LOW;
 import static io.apicurio.registry.rest.cache.Cacheability.MODERATE;
+import static io.apicurio.registry.rest.cache.Cacheability.min;
 import static io.apicurio.registry.rest.v3.beans.HandleReferencesType.PRESERVE;
+import static io.apicurio.registry.types.ReferenceType.INBOUND;
 import static lombok.AccessLevel.PRIVATE;
 
 @AllArgsConstructor(access = PRIVATE)
@@ -28,27 +31,33 @@ public class EntityIdContentCacheStrategy extends CacheStrategy {
      */
     private final Supplier<List<Long>> referenceTreeContentIds;
     private final Boolean returnArtifactType;
-
-    private boolean contentChangesWithReferences() {
-        return references != null && !PRESERVE.equals(references);
-    }
+    private final ReferenceType refType;
+    // IMPORTANT: Any of the parameters can be null. Be careful about default values.
 
     @Override
     public void evaluate() {
         eTagBuilder = new ETagBuilder()
                 .with(ETagKeys.ENTITY_ID, entityId)
                 .with(ETagKeys.QUERY_PARAM_REFERENCES, references)
-                .with(ETagKeys.QUERY_PARAM_RETURN_ARTIFACT_TYPE, returnArtifactType);
-        if (contentChangesWithReferences() && isVersionMutabilityEnabled()) {
+                .with(ETagKeys.QUERY_PARAM_RETURN_ARTIFACT_TYPE, returnArtifactType)
+                .with(ETagKeys.QUERY_PARAM_REF_TYPE, refType);
+
+        cacheability = HIGH;
+
+        if (references != null && !PRESERVE.equals(references) && isVersionMutabilityEnabled()) {
             if (referenceTreeContentIds != null && isHigherQualityEtagEnabled()) {
                 eTagBuilder.with(ETagKeys.REFERENCE_TREE_CONTENT_IDS, referenceTreeContentIds.get());
-                cacheability = MODERATE;
+                cacheability = min(cacheability, MODERATE);
             } else {
                 eTagBuilder.withRandom();
-                cacheability = LOW;
+                cacheability = min(cacheability, LOW);
             }
-        } else {
-            cacheability = HIGH;
+        }
+        // INBOUND references can change when new artifact versions are created
+        // or draft versions are updated that reference this content.
+        if (INBOUND.equals(refType)) {
+            eTagBuilder.withRandom();
+            cacheability = min(cacheability, LOW);
         }
     }
 

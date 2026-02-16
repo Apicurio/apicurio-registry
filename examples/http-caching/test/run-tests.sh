@@ -638,23 +638,63 @@ test_suite_ids_refs_globalid() {
 
     check_header "$headers" "X-Debug-Cache" "HIT" "Second request is cache HIT"
 
-    # Test 3: Query parameter refType=OUTBOUND
+    # Test 3: Query parameter refType=OUTBOUND (default behavior)
     print_test "Query parameter: refType=OUTBOUND"
+    purge_cache "${endpoint}?refType=OUTBOUND" "true"
 
     response=$(curl -s -D - "${endpoint}?refType=OUTBOUND")
     headers=$(get_headers "$response")
+    body=$(get_body "$response")
 
-    check_header "$headers" "X-Cache-Cacheability" "HIGH" "Cacheability is HIGH with refType=OUTBOUND param"
+    check_header "$headers" "X-Debug-Cache" "MISS" "First request with refType=OUTBOUND is MISS"
+    check_header "$headers" "X-Cache-Cacheability" "HIGH" "Cacheability is HIGH with refType=OUTBOUND (default)"
+    check_header "$headers" "ETag" ".*refType.*" "ETag includes refType parameter"
+
+    # Verify body contains outbound references
+    if echo "$body" | grep -q "${REFERENCED_ARTIFACT_ID}"; then
+        print_pass "Response contains outbound reference to Address artifact"
+    else
+        print_fail "Response should contain outbound reference"
+        print_debug "Body: $body"
+    fi
 
     # Test 4: Query parameter refType=INBOUND
-    print_test "Query parameter: refType=INBOUND"
+    print_test "Query parameter: refType=INBOUND (LOW cacheability)"
     purge_cache "${endpoint}?refType=INBOUND" "true"
 
     response=$(curl -s -D - "${endpoint}?refType=INBOUND")
     headers=$(get_headers "$response")
 
     check_header "$headers" "X-Debug-Cache" "MISS" "First request with refType=INBOUND is MISS"
-    check_header "$headers" "X-Cache-Cacheability" "HIGH" "Cacheability is HIGH with refType=INBOUND param"
+    check_header "$headers" "X-Cache-Cacheability" "LOW" "Cacheability is LOW with refType=INBOUND (new artifacts can reference this)"
+    check_header "$headers" "ETag" ".*refType.*" "ETag includes refType parameter"
+    check_header "$headers" "Surrogate-Control" ".*max-age=${LOW_CACHEABILITY_TTL}.*" "Surrogate-Control max-age is \$LOW_CACHEABILITY_TTL for INBOUND"
+
+    # Test 5: Cache HIT for INBOUND references
+    print_test "Cache HIT for refType=INBOUND"
+
+    response=$(curl -s -D - "${endpoint}?refType=INBOUND")
+    headers=$(get_headers "$response")
+
+    check_header "$headers" "X-Debug-Cache" "HIT" "Second request with refType=INBOUND is cache HIT"
+
+    # Test 6: Verify different ETags for OUTBOUND vs INBOUND
+    print_test "Different ETags for OUTBOUND vs INBOUND"
+
+    local outbound_response=$(curl -s -D - "${endpoint}?refType=OUTBOUND")
+    local outbound_etag=$(get_header_value "$(get_headers "$outbound_response")" "ETag")
+
+    local inbound_response=$(curl -s -D - "${endpoint}?refType=INBOUND")
+    local inbound_etag=$(get_header_value "$(get_headers "$inbound_response")" "ETag")
+
+    if [ "$outbound_etag" != "$inbound_etag" ]; then
+        print_pass "ETags differ for OUTBOUND vs INBOUND (proper cache separation)"
+        print_debug "OUTBOUND ETag: $outbound_etag"
+        print_debug "INBOUND ETag: $inbound_etag"
+    else
+        print_fail "ETags should differ for different refType values"
+        print_debug "Both ETags: $outbound_etag"
+    fi
 }
 
 ###############################################################################

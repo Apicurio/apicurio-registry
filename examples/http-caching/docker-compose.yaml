@@ -6,15 +6,14 @@ services:
     image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
     environment:
       QUARKUS_PROFILE: "prod"
-
-      # Enable anonymous read access for Phase 1 (public caching)
+      APICURIO_HTTP_CACHING_ENABLED: "true"
+      # Enable Registry features that affect caching:
       APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED: "true"
-
+      APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED: "true"
       # Logging
       LOG_LEVEL: "INFO"
       QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
-
-      # CORS (for testing from browser)
+      # CORS
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     ports:
@@ -50,7 +49,9 @@ services:
           -S /tmp/varnish-secret \
           -s malloc,256M \
           -p default_ttl=3600 \
-          -p default_grace=3600
+          -p default_grace=3600 &
+        sleep 2 &&
+        varnishlog -g request -i ReqMethod,ReqURL,ReqHeader,BerespStatus,BerespHeader,ObjStatus,RespHeader -q 'ReqURL ~ "^/apis/registry"'
     depends_on:
       registry:
         condition: service_healthy

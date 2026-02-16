@@ -1,5 +1,6 @@
 package io.apicurio.registry.utils;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -24,6 +25,10 @@ public final class CollectionsUtil {
         var copy = new HashMap<String, String>();
         copy.putAll(map);
         return copy;
+    }
+
+    public static boolean isEmpty(Collection<?> collection) {
+        return collection == null || collection.isEmpty();
     }
 
     private CollectionsUtil() {

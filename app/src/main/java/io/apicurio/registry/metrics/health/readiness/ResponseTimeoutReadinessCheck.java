@@ -2,7 +2,9 @@ package io.apicurio.registry.metrics.health.readiness;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.AbstractErrorCounterHealthCheck;
+import io.apicurio.registry.util.Priorities;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Default;
 import jakarta.enterprise.inject.Instance;
@@ -28,6 +30,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_HEA
 @Readiness
 @Default
 @Provider
+@Priority(Priorities.RequestResponseFilters.APPLICATION)
 public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthCheck
         implements HealthCheck, ContainerRequestFilter, ContainerResponseFilter {
 

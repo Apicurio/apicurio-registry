@@ -190,10 +190,12 @@ public class SearchResourceImpl implements SearchResource {
     }
 
     private String sha256Hash(ContentHandle chandle) {
+        // TODO: ContentHandle::getSha256Hash()
         return DigestUtils.sha256Hex(chandle.bytes());
     }
 
     private String gidOrNull(String groupId) {
+        // TODO: Use io.apicurio.registry.model.GroupId
         if ("default".equalsIgnoreCase(groupId)) {
             return null;
         }

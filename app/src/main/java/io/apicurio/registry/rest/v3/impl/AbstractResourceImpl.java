@@ -4,6 +4,7 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -46,6 +47,7 @@ public abstract class AbstractResourceImpl {
     @ConfigProperty(name = "apicurio.apis.v3.base-href", defaultValue = "_")
     @Info(category = CATEGORY_API, description = "API base href (URI)", availableSince = "2.5.0.Final")
     String apiBaseHref;
+
 
     /**
      * Handle the content references based on the value of "HandleReferencesType" - this can either mean we
@@ -129,7 +131,7 @@ public abstract class AbstractResourceImpl {
         }
 
         String path = String.format("/apis/registry/v3/groups/%s/artifacts/%s/versions/%s/content?references=REWRITE",
-                URLEncoder.encode(reference.getGroupId(), StandardCharsets.UTF_8),
+                URLEncoder.encode(new GroupId(reference.getGroupId()).getRawGroupIdWithDefaultString(), StandardCharsets.UTF_8),
                 URLEncoder.encode(reference.getArtifactId(), StandardCharsets.UTF_8),
                 URLEncoder.encode(reference.getVersion(), StandardCharsets.UTF_8));
         return baseHref.resolve(path).toString();

@@ -8,6 +8,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static io.apicurio.registry.utils.CollectionsUtil.isEmpty;
+
 public class RegistryContentUtils {
 
     private static final Logger log = LoggerFactory.getLogger(RegistryContentUtils.class);
@@ -37,27 +40,114 @@ public class RegistryContentUtils {
     private RegistryContentUtils() {
     }
 
+
     /**
-     * Recursively resolve the references.
+     * TODO: Find a better place for this interface.
      */
-    public static Map<String, TypedContent> recursivelyResolveReferences(
-            List<ArtifactReferenceDto> references, Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
-        if (references == null || references.isEmpty()) {
+    @FunctionalInterface
+    public interface HasReferences {
+        List<ArtifactReferenceDto> getReferences();
+    }
+
+    /**
+     * Recursively resolve references.
+     * Generic version.
+     * <p>
+     * TODO: Use this also for recursivelyResolveReferencesWithContext(...)
+     */
+    public static <KEY, NODE extends HasReferences, VALUE> Map<KEY, VALUE> recursivelyResolveReferencesGeneric(
+            HasReferences root,
+            Function<ArtifactReferenceDto, KEY> keyExtractor,
+            Function<ArtifactReferenceDto, NODE> nodeLoader,
+            Function<NODE, VALUE> valueExtractor
+    ) {
+        if (root == null || isEmpty(root.getReferences())) {
             return Map.of();
         } else {
-            Map<String, TypedContent> result = new LinkedHashMap<>();
-            resolveReferences(result, references, loader);
+            Map<KEY, VALUE> result = new LinkedHashMap<>();
+            recursivelyResolveReferencesGenericInternal(result, root.getReferences(), keyExtractor, nodeLoader, valueExtractor);
             return result;
         }
+    }
+
+    private static <KEY, NODE extends HasReferences, VALUE> void recursivelyResolveReferencesGenericInternal(
+            Map<KEY, VALUE> partialRecursivelyResolvedReferences,
+            List<ArtifactReferenceDto> references,
+            Function<ArtifactReferenceDto, KEY> keyExtractor,
+            Function<ArtifactReferenceDto, NODE> nodeLoader,
+            Function<NODE, VALUE> valueExtractor
+    ) {
+        if (references != null && !references.isEmpty()) {
+            for (ArtifactReferenceDto reference : references) {
+                if (reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
+                    throw new IllegalStateException("Invalid reference: " + reference);
+                } else {
+                    var key = keyExtractor.apply(reference);
+                    if (!partialRecursivelyResolvedReferences.containsKey(key)) {
+                        try {
+                            var nested = nodeLoader.apply(reference);
+                            if (nested != null) {
+                                recursivelyResolveReferencesGenericInternal(
+                                        partialRecursivelyResolvedReferences,
+                                        nested.getReferences(),
+                                        keyExtractor,
+                                        nodeLoader,
+                                        valueExtractor
+                                );
+                                partialRecursivelyResolvedReferences.put(key, valueExtractor.apply(nested));
+                            }
+                        } catch (Exception ex) {
+                            log.error("Could not resolve reference {}.", reference, ex);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Recursively resolve the references.
+     * <p>
+     * TODO: Currently, we stop tree traversal only based on the reference name.
+     * But what happens if the same reference name is used to refer to two different artifacts in different branches of the tree?
+     * We should use the target GAV to stop the traversal.
+     */
+    public static Map<String, TypedContent> recursivelyResolveReferences(
+            List<ArtifactReferenceDto> references,
+            Function<ArtifactReferenceDto, ContentWrapperDto> loader
+    ) {
+        return recursivelyResolveReferencesGeneric(
+                () -> references,
+                ArtifactReferenceDto::getName,
+                loader,
+                cw -> TypedContent.create(cw.getContent(), cw.getArtifactType())
+        );
+    }
+
+    /**
+     * Collect the contentIds of all the references in the tree.
+     * The contentIds are distinct and sorted in natural order.
+     */
+    public static List<Long> recursivelyResolveReferenceContentIds(
+            StoredArtifactVersionDto root,
+            Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader
+    ) {
+        return recursivelyResolveReferencesGeneric(
+                root,
+                ArtifactReferenceDto::getName,
+                loader,
+                StoredArtifactVersionDto::getContentId
+        ).values().stream().distinct().sorted().toList();
     }
 
     /**
      * Recursively resolve the references. Instead of using the reference name as the key, it uses the full
      * coordinates of the artifact version. Re-writes each schema node content to use the full coordinates of
      * the artifact version instead of just using the original reference name.
-     * 
+     *
      * @return the main content rewritten to use the full coordinates of the artifact version and the full
-     *         tree of dependencies, also rewritten to use coordinates instead of the reference name.
+     * tree of dependencies, also rewritten to use coordinates instead of the reference name.
      */
     public static RewrittenContentHolder recursivelyResolveReferencesWithContext(
             ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory, TypedContent mainContent,
@@ -136,40 +226,14 @@ public class RegistryContentUtils {
         return new RewrittenContentHolder(rewrittenContent, partialRecursivelyResolvedReferences);
     }
 
-    private static void resolveReferences(Map<String, TypedContent> partialRecursivelyResolvedReferences,
-            List<ArtifactReferenceDto> references, Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
-        if (references != null && !references.isEmpty()) {
-            for (ArtifactReferenceDto reference : references) {
-                if (reference.getArtifactId() == null || reference.getName() == null
-                        || reference.getVersion() == null) {
-                    throw new IllegalStateException("Invalid reference: " + reference);
-                } else {
-                    if (!partialRecursivelyResolvedReferences.containsKey(reference.getName())) {
-                        try {
-                            var nested = loader.apply(reference);
-                            if (nested != null) {
-                                resolveReferences(partialRecursivelyResolvedReferences,
-                                        nested.getReferences(), loader);
-                                partialRecursivelyResolvedReferences.put(reference.getName(),
-                                        TypedContent.create(nested.getContent(), nested.getArtifactType()));
-                            }
-                        } catch (Exception ex) {
-                            log.error("Could not resolve reference " + reference + ".", ex);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /**
      * Canonicalize the given content.
      * <p>
      * WARNING: Fails silently.
      */
     private static TypedContent canonicalizeContent(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
-            String artifactType, TypedContent content,
-            Map<String, TypedContent> recursivelyResolvedReferences) {
+                                                    String artifactType, TypedContent content,
+                                                    Map<String, TypedContent> recursivelyResolvedReferences) {
         try {
             return artifactTypeUtilProviderFactory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
                     .canonicalize(content, recursivelyResolvedReferences);
@@ -187,8 +251,8 @@ public class RegistryContentUtils {
      * @throws RegistryException in the case of an error.
      */
     public static TypedContent canonicalizeContent(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
-            String artifactType, ContentWrapperDto data,
-            Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
+                                                   String artifactType, ContentWrapperDto data,
+                                                   Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         try {
             return canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
                     TypedContent.create(data.getContent(), data.getArtifactType()),
@@ -202,8 +266,8 @@ public class RegistryContentUtils {
      * @param loader can be null *if and only if* references are empty.
      */
     public static String canonicalContentHash(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
-            String artifactType, ContentWrapperDto data,
-            Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
+                                              String artifactType, ContentWrapperDto data,
+                                              Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         try {
             if (notEmpty(data.getReferences())) {
                 String serializedReferences = serializeReferences(data.getReferences());
@@ -338,7 +402,7 @@ public class RegistryContentUtils {
     }
 
     public static String concatArtifactVersionCoordinatesWithRefName(String groupId, String artifactId,
-            String version, String referenceName) {
+                                                                     String version, String referenceName) {
         return groupId + ":" + artifactId + ":" + version + ":" + referenceName;
     }
 
@@ -347,7 +411,7 @@ public class RegistryContentUtils {
         final Map<String, TypedContent> resolvedReferences;
 
         public RewrittenContentHolder(TypedContent rewrittenContent,
-                Map<String, TypedContent> resolvedReferences) {
+                                      Map<String, TypedContent> resolvedReferences) {
             this.rewrittenContent = rewrittenContent;
             this.resolvedReferences = resolvedReferences;
         }

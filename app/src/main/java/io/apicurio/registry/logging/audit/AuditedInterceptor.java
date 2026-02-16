@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.logging.audit;
 
+import io.apicurio.registry.util.Priorities;
 import io.apicurio.registry.rest.MethodMetadataInterceptor;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.Priority;
@@ -40,8 +41,7 @@ import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PRINCIPAL_ID;
  */
 @Audited
 @Interceptor
-@Priority(Interceptor.Priority.APPLICATION - 100)
-// Runs before other application interceptors, e.g. *PermissionInterceptor
+@Priority(Priorities.Interceptors.AUDIT)
 public class AuditedInterceptor {
 
     @Inject

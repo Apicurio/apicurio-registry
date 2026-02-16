@@ -270,11 +270,36 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.2.2.Final`
 |Registry cache enabled
-|`apicurio.http-caching.highly-cacheable.max-age-seconds`
+|`apicurio.http-caching.enabled`
+|`boolean`
+|`false`
+|`3.2.0`
+|Enable or disable HTTP caching entirely. When disabled, no server-side cache headers (ETag, Surrogate-Control, etc.) are sent, and cache strategies are not evaluated. Caching is automatically disabled if all max-age configurations are set to <= 0.
+|`apicurio.http-caching.extra-headers-enabled`
+|`boolean`
+|`true`
+|`3.2.0`
+|Send additional informational headers to help understand caching behavior. Extra headers include X-Cache-Cacheability which indicates the evaluated cacheability level. These headers are useful for development, troubleshooting, and making additional decisions in the cache configuration.
+|`apicurio.http-caching.high-cacheability.max-age-seconds`
 |`long`
-|`31536000`
-|`3.1.8`
-|HTTP cache expiration for highly cacheable REST API endpoints, in seconds. If set to 0, caching is disabled.
+|`864000`
+|`3.2.0`
+|Expiration for high cacheability operations, in seconds. If set to <= 0, caching is disabled for these operations.
+|`apicurio.http-caching.higher-quality-etags-enabled`
+|`boolean`
+|`true`
+|`3.2.0`
+|Provide higher quality ETags if possible, but they might be more expensive to compute. This feature trades more computation for potentially higher cacheability of some operations.
+|`apicurio.http-caching.low-cacheability.max-age-seconds`
+|`long`
+|`10`
+|`3.2.0`
+|Expiration for low cacheability operations, in seconds. If set to <= 0, caching is disabled for these operations.
+|`apicurio.http-caching.moderate-cacheability.max-age-seconds`
+|`long`
+|`30`
+|`3.2.0`
+|Expiration for moderate cacheability operations, in seconds. If set to <= 0, caching is disabled for these operations.
 |===
 
 == ccompat

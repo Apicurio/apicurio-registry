@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.logging;
 
+import io.apicurio.registry.util.Priorities;
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
 import jakarta.interceptor.AroundInvoke;
@@ -27,7 +28,7 @@ import org.slf4j.Logger;
  * @author eric.wittmann@gmail.com
  */
 @Interceptor
-@Priority(Interceptor.Priority.APPLICATION)
+@Priority(Priorities.Interceptors.APPLICATION)
 @Logged
 public class LoggingInterceptor {
 

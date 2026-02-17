@@ -40,6 +40,7 @@ readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
+readonly GRAY='\033[0;90m'
 readonly NC='\033[0m' # No Color
 
 # Test counters
@@ -174,7 +175,7 @@ print_info() {
 
 print_debug() {
     if [ "$DEBUG" = "true" ]; then
-        echo -e "${BLUE}[DEBUG]${NC} $1"
+        echo -e "${GRAY}$1${NC}" >&2
     fi
 }
 
@@ -185,16 +186,38 @@ print_debug() {
 # Extract headers from HTTP response
 get_headers() {
     local response="$1"
-    local headers=$(echo "$response" | sed '/^\r$/q')
-    print_debug "Headers:\n$headers"
+    local headers
+    headers=$(echo "$response" | sed '/^\r$/q')
+
+    if [ "$DEBUG" = "true" ]; then
+        print_debug "┌─ HTTP Headers ─────────────────────────────────────"
+        while IFS= read -r line; do
+            print_debug "│ $line"
+        done <<< "$headers"
+        print_debug "└────────────────────────────────────────────────────"
+    fi
+
     echo "$headers"
 }
 
 # Extract response body from HTTP response (with -D -)
 get_body() {
     local response="$1"
-    local body=$(echo "$response" | sed '1,/^\r$/d')
-    print_debug "Body:\n$body"
+    local body
+    body=$(echo "$response" | sed '1,/^\r$/d')
+
+    if [ "$DEBUG" = "true" ]; then
+        print_debug "┌─ Response Body ────────────────────────────────────"
+        if [ -n "$body" ]; then
+            while IFS= read -r line; do
+                print_debug "│ $line"
+            done <<< "$body"
+        else
+            print_debug "│ (empty)"
+        fi
+        print_debug "└────────────────────────────────────────────────────"
+    fi
+
     echo "$body"
 }
 
@@ -238,7 +261,12 @@ purge_cache() {
     local url="$1"
     local quiet="${2:-true}"
 
-    print_debug "Purging cache: $url"
+    if [ "$DEBUG" = "true" ]; then
+        print_debug "═══════════════════════════════════════════════════"
+        print_debug "PURGE request: $url"
+        print_debug "═══════════════════════════════════════════════════"
+    fi
+
     local response=$(curl -s -w "\n%{http_code}" -X PURGE "$url")
     local status=$(get_status_code "$response")
 
@@ -250,6 +278,19 @@ purge_cache() {
         else
             print_info "Note: PURGE returned HTTP $status"
         fi
+    fi
+}
+
+# Print debug info for HTTP GET request
+debug_request() {
+    local method="${1:-GET}"
+    local url="$2"
+
+    if [ "$DEBUG" = "true" ]; then
+        print_debug ""
+        print_debug "═══════════════════════════════════════════════════"
+        print_debug "$method request: $url"
+        print_debug "═══════════════════════════════════════════════════"
     fi
 }
 
@@ -477,6 +518,7 @@ test_suite_ids_globalids() {
     print_test "Cache MISS with HIGH cacheability headers"
     purge_cache "$endpoint" "true"
 
+    debug_request "GET" "$endpoint"
     local response=$(curl -s -D - "$endpoint")
     local headers=$(get_headers "$response")
 
@@ -489,6 +531,7 @@ test_suite_ids_globalids() {
     # Test 2: Cache HIT on second request
     print_test "Cache HIT on second request"
 
+    debug_request "GET" "$endpoint"
     response=$(curl -s -D - "$endpoint")
     headers=$(get_headers "$response")
 

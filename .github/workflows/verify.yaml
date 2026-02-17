@@ -60,6 +60,34 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
 
+  # Path filter for conditional macOS CLI test execution
+  detect-cli-changes:
+    name: Detect CLI Changes
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      cli: ${{ steps.filter.outputs.cli }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check for CLI changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            cli:
+              - 'cli/**'
+              - '.github/workflows/verify-cli-macos.yaml'
+
+  cli-tests-macos:
+    name: CLI Tests (macOS)
+    needs: detect-cli-changes
+    if: needs.detect-cli-changes.outputs.cli == 'true'
+    uses: ./.github/workflows/verify-cli-macos.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
   # ============================================================================
   # PHASE 4: Integration Tests (matrix-based parallel execution)
   # ============================================================================

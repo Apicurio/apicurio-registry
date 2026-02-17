@@ -20,6 +20,7 @@ import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.cache.strategy.VersionContentCacheStrategy;
+import io.apicurio.registry.rest.cache.strategy.interceptor.VersionContentCache;
 import io.apicurio.registry.rest.v3.GroupsResource;
 import io.apicurio.registry.rest.v3.beans.*;
 import io.apicurio.registry.rest.v3.impl.shared.ProtobufExporter;
@@ -73,6 +74,7 @@ import static io.apicurio.registry.rest.MethodParameterKeys.MPK_CANONICAL;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_EDITABLE_METADATA;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_GROUP_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_IF_EXISTS;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_REF_TYPE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_VERSION;
@@ -125,6 +127,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION, "3", MPK_REF_TYPE})
+    @VersionContentCache(versionExpressionParam = MPK_VERSION, refTypeParam = MPK_REF_TYPE)
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
             String versionExpression, ReferenceType refType) {
 

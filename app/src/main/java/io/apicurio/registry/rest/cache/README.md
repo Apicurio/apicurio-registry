@@ -186,7 +186,7 @@ Content that **can change** but does so infrequently:
 **When applied**:
 
 - Version state is DRAFT
-- Version expression is not a specific version (e.g., `latest`, `branch=main`)
+- Version expression is not a specific version (e.g., `branch=latest`, `branch=main`)
 - Query parameter `references` causes content transformation
 - Content has references to DRAFT versions (when dereferencing)
 
@@ -243,17 +243,18 @@ These endpoints return immutable content. Once created, content never changes.
 - `references=DEREFERENCE` or `references=REWRITE`: Reduces to MODERATE cacheability (content is transformed)
 - `returnArtifactType=true`: Does not affect cacheability
 
-**References by Identifier** (`HIGH` cacheability):
+**References by Identifier** (`HIGH` or `MODERATE`/`LOW` cacheability):
 
 - `GET /apis/registry/v3/ids/globalIds/{globalId}/references`
 - `GET /apis/registry/v3/ids/contentIds/{contentId}/references`
 - `GET /apis/registry/v3/ids/contentHashes/{contentHash}/references`
 
-Reference lists for immutable content are also immutable.
+OUTBOUND reference lists for immutable content are also immutable. INBOUND reference lists can change when new artifacts reference the content.
 
 **Query parameters**:
 
-- `refType=OUTBOUND|INBOUND`: Does not affect cacheability
+- `refType=OUTBOUND` (default): Maintains HIGH cacheability
+- `refType=INBOUND`: Reduces to MODERATE/LOW cacheability (new artifacts can create inbound references)
 
 **Version Content - Specific Versions** (`HIGH` cacheability):
 
@@ -263,7 +264,7 @@ When `{version}` is a specific version number (e.g., `1.0.0`, `2.5.3`) and the v
 
 **Conditions for HIGH cacheability**:
 
-1. Version expression is a concrete version number (not `latest`, not `branch=...`)
+1. Version expression is a concrete version number (not `branch=...`)
 2. Version state is not DRAFT
 3. `references=PRESERVE` (default)
 
@@ -275,6 +276,19 @@ ETag: "<content-id>"
 Vary: Accept
 X-Cache-Cacheability: HIGH
 ```
+
+**Version References** (`LOW` cacheability):
+
+- `GET /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/references`
+
+Currently implemented with LOW cacheability for all version types and reference directions.
+
+**Query parameters**:
+
+- `refType=OUTBOUND` (default): References from this version to other artifacts
+- `refType=INBOUND`: Artifacts that reference this version (can change over time)
+
+**Note**: Future optimizations may increase cacheability for specific versions with OUTBOUND references to HIGH, and use MODERATE for other cases when higher-quality ETags are available.
 
 ### Moderately Cacheable Endpoints
 

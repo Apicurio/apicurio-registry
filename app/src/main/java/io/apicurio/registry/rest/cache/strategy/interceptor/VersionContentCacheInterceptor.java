@@ -2,7 +2,7 @@ package io.apicurio.registry.rest.cache.strategy.interceptor;
 
 import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.rest.cache.HttpCachingConfig;
-import io.apicurio.registry.rest.cache.strategy.EntityIdContentCacheStrategy;
+import io.apicurio.registry.rest.cache.strategy.VersionContentCacheStrategy;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.util.Priorities;
@@ -13,20 +13,19 @@ import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
 
 import static io.apicurio.registry.rest.MethodMetadataInterceptor.getExtractedParameter;
-import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ENTITY_ID;
 import static io.apicurio.registry.rest.cache.HttpCaching.caching;
 import static io.apicurio.registry.utils.StringUtil.isEmpty;
 
 /**
- * Interceptor that implements HTTP caching for methods annotated with @EntityIdContentCache.
+ * Interceptor that implements HTTP caching for methods annotated with @VersionContentCache.
  * <p>
  * This interceptor runs after MethodMetadataInterceptor and uses the extracted parameters
- * to build an EntityIdContentCacheStrategy.
+ * to build a VersionContentCacheStrategy.
  */
-@EntityIdContentCache
+@VersionContentCache
 @Interceptor
 @Priority(Priorities.Interceptors.CACHE)
-public class EntityIdContentCacheInterceptor {
+public class VersionContentCacheInterceptor {
 
     @Inject
     HttpCachingConfig config;
@@ -35,21 +34,17 @@ public class EntityIdContentCacheInterceptor {
     public Object processCaching(InvocationContext context) throws Exception {
         if (config.isCachingEnabled()) {
 
-            EntityIdContentCache annotation = context.getMethod().getAnnotation(EntityIdContentCache.class);
+            VersionContentCache annotation = context.getMethod().getAnnotation(VersionContentCache.class);
             if (annotation == null) {
                 throw new UnreachableCodeException();
             }
 
-            var builder = EntityIdContentCacheStrategy.builder();
+            var builder = VersionContentCacheStrategy.builder();
 
-            builder.entityId(getExtractedParameter(context, MPK_ENTITY_ID, Object.class).orElseThrow(() -> new IllegalStateException("@EntityIdContentCache requires @MethodMetadata with extracted 'entityId' parameter")));
+            builder.versionExpression(getExtractedParameter(context, annotation.versionExpressionParam(), String.class).orElseThrow(() -> new IllegalStateException("@EntityIdContentCache requires @MethodMetadata with extracted 'entityId' parameter")));
 
             if (!isEmpty(annotation.referencesParam())) {
                 builder.references(getExtractedParameter(context, annotation.referencesParam(), HandleReferencesType.class).orElse(null));
-            }
-
-            if (!isEmpty(annotation.returnArtifactTypeParam())) {
-                builder.returnArtifactType(getExtractedParameter(context, annotation.returnArtifactTypeParam(), Boolean.class).orElse(null));
             }
 
             if (!isEmpty(annotation.refTypeParam())) {

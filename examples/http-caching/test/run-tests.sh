@@ -993,6 +993,118 @@ EOF
 }
 
 ###############################################################################
+# Test Suite: /groups/{groupId}/artifacts/{artifactId}/versions/{version}/references
+###############################################################################
+
+test_suite_version_references() {
+    print_header "Test Suite: /groups/.../versions/.../references"
+
+    local group_id="test"
+    local artifact_id="${ARTIFACT_ID_WITH_REFS}"
+    local version="1.0.0"
+    local endpoint="${VARNISH_URL}${BASE_PATH}/groups/${group_id}/artifacts/${artifact_id}/versions/${version}/references"
+
+    # Test 1: Cache MISS with LOW cacheability (current implementation)
+    print_test "Cache MISS with LOW cacheability"
+    purge_cache "$endpoint" "true"
+
+    local response=$(curl -s -D - "$endpoint")
+    local headers=$(get_headers "$response")
+    local body=$(get_body "$response")
+
+    check_header "$headers" "X-Debug-Cache" "MISS" "First request is cache MISS"
+    check_header "$headers" "Surrogate-Control" ".*max-age=${LOW_CACHEABILITY_TTL}.*" "Surrogate-Control max-age is \$LOW_CACHEABILITY_TTL"
+    check_header "$headers" "X-Cache-Cacheability" "LOW" "X-Cache-Cacheability is LOW (temporary implementation)"
+
+    # Verify body contains references
+    if echo "$body" | grep -q "${REFERENCED_ARTIFACT_ID}"; then
+        print_pass "Response contains reference to Address artifact"
+    else
+        print_fail "Response should contain reference"
+        print_debug "Body: $body"
+    fi
+
+    # Test 2: Cache HIT
+    print_test "Cache HIT on second request"
+
+    response=$(curl -s -D - "$endpoint")
+    headers=$(get_headers "$response")
+
+    check_header "$headers" "X-Debug-Cache" "HIT" "Second request is cache HIT"
+
+    # Test 3: Query parameter refType=OUTBOUND (currently also LOW)
+    print_test "Query parameter: refType=OUTBOUND"
+    purge_cache "${endpoint}?refType=OUTBOUND" "true"
+
+    response=$(curl -s -D - "${endpoint}?refType=OUTBOUND")
+    headers=$(get_headers "$response")
+    body=$(get_body "$response")
+
+    check_header "$headers" "X-Debug-Cache" "MISS" "First request with refType=OUTBOUND is MISS"
+    check_header "$headers" "X-Cache-Cacheability" "LOW" "Cacheability is LOW with refType=OUTBOUND (temporary)"
+    check_header "$headers" "ETag" ".*refType.*" "ETag includes refType parameter"
+
+    # Verify body contains outbound references
+    if echo "$body" | grep -q "${REFERENCED_ARTIFACT_ID}"; then
+        print_pass "Response contains outbound reference to Address artifact"
+    else
+        print_fail "Response should contain outbound reference"
+        print_debug "Body: $body"
+    fi
+
+    # Test 4: Query parameter refType=INBOUND (LOW cacheability)
+    print_test "Query parameter: refType=INBOUND (LOW cacheability)"
+    purge_cache "${endpoint}?refType=INBOUND" "true"
+
+    response=$(curl -s -D - "${endpoint}?refType=INBOUND")
+    headers=$(get_headers "$response")
+
+    check_header "$headers" "X-Debug-Cache" "MISS" "First request with refType=INBOUND is MISS"
+    check_header "$headers" "X-Cache-Cacheability" "LOW" "Cacheability is LOW with refType=INBOUND"
+    check_header "$headers" "ETag" ".*refType.*" "ETag includes refType parameter"
+    check_header "$headers" "Surrogate-Control" ".*max-age=${LOW_CACHEABILITY_TTL}.*" "Surrogate-Control max-age is \$LOW_CACHEABILITY_TTL for INBOUND"
+
+    # Test 5: Cache HIT for INBOUND references
+    print_test "Cache HIT for refType=INBOUND"
+
+    response=$(curl -s -D - "${endpoint}?refType=INBOUND")
+    headers=$(get_headers "$response")
+
+    check_header "$headers" "X-Debug-Cache" "HIT" "Second request with refType=INBOUND is cache HIT"
+
+    # Test 6: Different ETags for OUTBOUND vs INBOUND
+    print_test "Different ETags for OUTBOUND vs INBOUND"
+
+    local outbound_response=$(curl -s -D - "${endpoint}?refType=OUTBOUND")
+    local outbound_etag=$(get_header_value "$(get_headers "$outbound_response")" "ETag")
+
+    local inbound_response=$(curl -s -D - "${endpoint}?refType=INBOUND")
+    local inbound_etag=$(get_header_value "$(get_headers "$inbound_response")" "ETag")
+
+    if [ "$outbound_etag" != "$inbound_etag" ]; then
+        print_pass "ETags differ for OUTBOUND vs INBOUND (proper cache separation)"
+        print_debug "OUTBOUND ETag: $outbound_etag"
+        print_debug "INBOUND ETag: $inbound_etag"
+    else
+        print_fail "ETags should differ for different refType values"
+        print_debug "Both ETags: $outbound_etag"
+    fi
+
+    # Test 7: DRAFT version also has LOW cacheability (current implementation)
+    print_test "DRAFT version with refType=INBOUND (LOW cacheability)"
+    local draft_version="2.0.0-draft"
+    local draft_endpoint="${VARNISH_URL}${BASE_PATH}/groups/${group_id}/artifacts/${artifact_id}/versions/${draft_version}/references"
+    purge_cache "${draft_endpoint}?refType=INBOUND" "true"
+
+    response=$(curl -s -D - "${draft_endpoint}?refType=INBOUND")
+    headers=$(get_headers "$response")
+
+    check_header "$headers" "X-Debug-Cache" "MISS" "First request for DRAFT with refType=INBOUND is MISS"
+    check_header "$headers" "X-Cache-Cacheability" "LOW" "Cacheability is LOW for DRAFT version (temporary)"
+    check_header "$headers" "Surrogate-Control" ".*max-age=${LOW_CACHEABILITY_TTL}.*" "Surrogate-Control max-age is \$LOW_CACHEABILITY_TTL for DRAFT"
+}
+
+###############################################################################
 # Test Summary
 ###############################################################################
 
@@ -1034,6 +1146,7 @@ main() {
             test_suite_ids_refs_contentid
             test_suite_ids_refs_hash
             test_suite_version_content
+            test_suite_version_references
             ;;
         ids-globalids)
             test_suite_ids_globalids
@@ -1055,6 +1168,9 @@ main() {
             ;;
         version-content)
             test_suite_version_content
+            ;;
+        version-references)
+            test_suite_version_references
             ;;
         *)
             echo -e "${RED}Error: Unknown test suite: $TEST_SUITE${NC}"

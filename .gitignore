@@ -46,6 +46,7 @@ PROJECT_INDEX.json
 
 # Claude
 .claude
+claudedocs
 
 # Serena MCP
 .serena

@@ -7,10 +7,12 @@ import io.apicurio.registry.rest.cache.headers.XCacheCacheabilityHttpHeader;
 import io.apicurio.registry.rest.cache.strategy.CacheStrategy;
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.ws.rs.core.HttpHeaders;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.utils.TimeUtils.isPositive;
+import static java.util.Optional.ofNullable;
 
 public class HttpCaching {
 
@@ -26,8 +28,13 @@ public class HttpCaching {
         this.strategy = strategy;
     }
 
-    // TODO: Move to a utility class?
-    private static <T> T getBean(Class<T> beanClass) {
+    /**
+     * IMPORTANT: We can't dynamically access a bean using the CDI API, unless there is an injection point present somewhere,
+     * or the bean is one of the roots of the CDI graph.
+     * <p>
+     * My guess is that this is a limitation of how Quarkus processes the CDI graph at build time.
+     */
+    private static <T> T getBean(Class<T> beanClass) { // TODO: Move to a utility class?
         var instance = CDI.current().select(beanClass);
         if (!instance.isResolvable()) {
             throw new IllegalStateException("CDI context does not contain a single instance of '" + beanClass.getCanonicalName() + "'. " +
@@ -36,8 +43,10 @@ public class HttpCaching {
         return instance.get();
     }
 
-    // TODO: Move to a utility class?
-    public static <T> T getBeanOrNull(Class<T> beanClass) {
+    /**
+     * Variant of {@link #getBean(Class)} that returns null if the bean is not resolvable instead of throwing an exception.
+     */
+    public static <T> T getBeanOrNull(Class<T> beanClass) { // TODO: Move to a utility class?
         var instance = CDI.current().select(beanClass);
         if (!instance.isResolvable()) {
             log.debug("CDI context does not contain a single instance of '{}'. Found: {}", beanClass.getCanonicalName(),
@@ -67,7 +76,8 @@ public class HttpCaching {
     }
 
     private void checkETag() {
-        var httpHeaders = getBean(HttpHeaders.class);
+        var httpHeaders = ofNullable(ResteasyProviderFactory.getInstance().getContextData(HttpHeaders.class))
+                .orElseThrow(() -> new IllegalStateException("This method must be executed in the context of a JAX-RS request."));
         String ifNoneMatch = httpHeaders.getHeaderString(HttpHeaders.IF_NONE_MATCH);
         if (ifNoneMatch != null) {
             var etag = strategy.getETagBuilder().build();
@@ -90,7 +100,7 @@ public class HttpCaching {
 
             // Add ETag header
             var etagBuilder = strategy.getETagBuilder();
-            var etag = config.hashedETagsEnabled() ? etagBuilder.buildHashed() : etagBuilder.build();
+            var etag = config.getOpaqueETagsEnabled() ? etagBuilder.buildHashed() : etagBuilder.build();
             ETagHttpHeader.builder()
                     .etag(etag)
                     .build()

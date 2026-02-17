@@ -41,7 +41,7 @@ public class VersionContentCacheInterceptor {
 
             var builder = VersionContentCacheStrategy.builder();
 
-            builder.versionExpression(getExtractedParameter(context, annotation.versionExpressionParam(), String.class).orElseThrow(() -> new IllegalStateException("@EntityIdContentCache requires @MethodMetadata with extracted 'entityId' parameter")));
+            builder.versionExpression(getExtractedParameter(context, annotation.versionExpressionParam(), String.class).orElseThrow(() -> new IllegalStateException("@EntityIdContentCache requires 'versionExpressionParam' parameter.")));
 
             if (!isEmpty(annotation.referencesParam())) {
                 builder.references(getExtractedParameter(context, annotation.referencesParam(), HandleReferencesType.class).orElse(null));

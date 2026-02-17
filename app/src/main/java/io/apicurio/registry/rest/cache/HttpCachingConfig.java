@@ -7,6 +7,7 @@ import lombok.Getter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.time.Duration;
+import java.util.Optional;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_CACHE;
 
@@ -81,7 +82,15 @@ public class HttpCachingConfig {
     @Getter
     boolean extraHeadersEnabled;
 
-    public boolean hashedETagsEnabled() {
-        return ConfigUtils.isProfileActive("prod");
+    @ConfigProperty(name = "apicurio.http-caching.opaque-etags-enabled")
+    @Info(category = CATEGORY_CACHE, description = """
+            Hash raw ETag values before adding them to the header. \
+            Enabling this feature might marginally increase security, while disabling is useful for testing and debugging. \
+            If no value is provided, the feature is disabled when the `prod` profile is active.\
+            """, availableSince = "3.2.0")
+    Optional<Boolean> opaqueETagsEnabled;
+
+    public boolean getOpaqueETagsEnabled() {
+        return opaqueETagsEnabled.orElse(ConfigUtils.isProfileActive("prod"));
     }
 }

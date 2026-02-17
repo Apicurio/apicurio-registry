@@ -6,7 +6,9 @@ services:
     image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
     environment:
       QUARKUS_PROFILE: "prod"
+      # Caching
       APICURIO_HTTP_CACHING_ENABLED: "true"
+      APICURIO_HTTP_CACHING_OPAQUE_ETAGS_ENABLED: "false" # Needed for testing.
       # Enable Registry features that affect caching:
       APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED: "true"
       APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED: "true"

@@ -54,7 +54,6 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
 import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -117,9 +116,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     ProtobufExporter protobufExporter;
-
-    @Inject
-    HttpHeaders _ignored; // Do not remove, ensures it is available for dynamic CDI injection.
 
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,

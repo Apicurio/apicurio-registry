@@ -10,8 +10,8 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.RestConfig;
-import io.apicurio.registry.rest.cache.strategy.interceptor.EntityIdContentCache;
 import io.apicurio.registry.rest.cache.strategy.EntityIdContentCacheStrategy;
+import io.apicurio.registry.rest.cache.strategy.interceptor.EntityIdContentCache;
 import io.apicurio.registry.rest.impl.shared.CommonResourceOperations;
 import io.apicurio.registry.rest.v3.IdsResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -28,7 +28,6 @@ import io.apicurio.registry.types.VersionState;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
-import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 
 import java.util.List;
@@ -51,9 +50,6 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
     @Inject
     RestConfig restConfig;
-
-    @Inject
-    HttpHeaders _ignored; // Do not remove, ensures it is available for dynamic CDI injection.
 
     /**
      * @see io.apicurio.registry.rest.v3.IdsResource#getContentById(long)

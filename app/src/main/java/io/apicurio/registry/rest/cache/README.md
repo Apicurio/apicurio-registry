@@ -359,7 +359,7 @@ statistics and determine optimal default configuration for various workload patt
 **`apicurio.http-caching.enabled`**
 
 - Type: Boolean (optional)
-- Default: `true` if any TTL > 0, otherwise `false`
+- Default: `false`
 - Description: Master switch to enable/disable HTTP caching entirely
 
 When disabled, no cache headers are sent and no cache strategies are evaluated.

@@ -42,7 +42,7 @@ public class EntityIdContentCacheInterceptor {
 
             var builder = EntityIdContentCacheStrategy.builder();
 
-            builder.entityId(getExtractedParameter(context, MPK_ENTITY_ID, Object.class).orElseThrow(() -> new IllegalStateException("@EntityIdContentCache requires @MethodMetadata with extracted 'entityId' parameter")));
+            builder.entityId(getExtractedParameter(context, MPK_ENTITY_ID, Object.class).orElseThrow(() -> new IllegalStateException("@EntityIdContentCache requires @MethodMetadata with extracted `MPK_ENTITY_ID` parameter.")));
 
             if (!isEmpty(annotation.referencesParam())) {
                 builder.references(getExtractedParameter(context, annotation.referencesParam(), HandleReferencesType.class).orElse(null));

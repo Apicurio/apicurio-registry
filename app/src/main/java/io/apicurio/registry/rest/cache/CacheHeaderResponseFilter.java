@@ -31,7 +31,8 @@ public class CacheHeaderResponseFilter implements ContainerResponseFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
-        cacheContext.getStrategy().ifPresentOrElse(strategy -> {
+        var strategy = cacheContext.getStrategy();
+        if (strategy != null) {
             caching(strategy).applyCacheHeaders(new ResponseAdapter() {
                 @Override
                 public int getResponseStatus() {
@@ -43,8 +44,8 @@ public class CacheHeaderResponseFilter implements ContainerResponseFilter {
                     responseContext.getHeaders().putSingle(key, value);
                 }
             });
-        }, () -> {
+        } else {
             log.debug("No cache strategy found in context, skipping cache header application.");
-        });
+        }
     }
 }

@@ -289,7 +289,7 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`true`
 |`3.2.0`
-|Provide higher quality ETags if possible, but they might be more expensive to compute. This feature trades more computation for potentially higher cacheability of some operations.
+|Provide higher quality ETags if possible, but they might be more expensive to compute. This feature trades more computation for potentially higher cacheability of some operations. 
 |`apicurio.http-caching.low-cacheability.max-age-seconds`
 |`long`
 |`10`
@@ -300,6 +300,11 @@ The following {registry} configuration options are available for each component 
 |`30`
 |`3.2.0`
 |Expiration for moderate cacheability operations, in seconds. If set to <= 0, caching is disabled for these operations.
+|`apicurio.http-caching.opaque-etags-enabled`
+|`optional<boolean>`
+|
+|`3.2.0`
+|Hash raw ETag values before adding them to the header. Enabling this feature might marginally increase security, while disabling is useful for testing and debugging. If no value is provided, the feature is disabled when the `prod` profile is active.
 |===
 
 == ccompat

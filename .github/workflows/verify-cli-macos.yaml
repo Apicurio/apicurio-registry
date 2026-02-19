@@ -33,6 +33,28 @@ jobs:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .
 
+      - name: Install Pre-built Artifacts to Maven Repository
+        run: |
+          VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+
+          # Install parent POM
+          ./mvnw install:install-file -B -Dfile=pom.xml -DpomFile=pom.xml
+
+          # Install each dependency module
+          for module_path in \
+            config-index/definitions:apicurio-registry-config-definitions \
+            common:apicurio-registry-common \
+            java-sdk-common:apicurio-registry-java-sdk-common \
+            java-sdk:apicurio-registry-java-sdk; do
+
+            dir="${module_path%%:*}"
+            artifact="${module_path##*:}"
+
+            ./mvnw install:install-file -B \
+              -Dfile="${dir}/target/${artifact}-${VERSION}.jar" \
+              -DpomFile="${dir}/pom.xml"
+          done
+
       - name: Run CLI Tests
         run: |
           ./mvnw test -pl cli -Dtest=InstallCommandTest \

@@ -88,6 +88,9 @@ jobs:
             mcp/target/docker/
             java-sdk/target/
             java-sdk-v2/target/
+            config-index/definitions/target/
+            common/target/
+            java-sdk-common/target/
           retention-days: 1
 
   build-ui:

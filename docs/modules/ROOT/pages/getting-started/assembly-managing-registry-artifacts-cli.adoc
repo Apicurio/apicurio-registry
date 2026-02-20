@@ -11,7 +11,7 @@ ifndef::service-registry-downstream[]
 ====
 The CLI is currently in *dev-preview* status. The following limitations apply:
 
-* The CLI does not support Windows; you need a bash shell
+* The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet
 * The CLI currently implements only group management commands
 * Authentication configuration is not yet available
 * Future releases will include additional commands
@@ -34,7 +34,7 @@ endif::[]
 .Prerequisites
 * You have installed {registry} and it is running in your environment.
 * You have Java 11 or higher installed.
-* You have access to a bash shell (Linux).
+* You have access to a bash shell (Linux) or zsh shell (macOS).
 
 //INCLUDES
 
@@ -46,7 +46,7 @@ You can install the {registry} CLI to interact with {registry} from the command 
 
 .Prerequisites
 * You have Java 11 or higher installed on your system.
-* You have access to a bash shell.
+* You have access to a bash shell (Linux) or zsh shell (macOS).
 
 .Procedure
 ifndef::service-registry-downstream[]
@@ -69,12 +69,21 @@ $ cd ~/apicurio-cli
 $ ./acr install
 ----
 +
-This command installs the CLI files to `$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`, updates your `~/.bashrc` file, and configures bash completions.
+This command installs the CLI files to `$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`, updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS), and configures shell completions.
 . Reload your shell configuration:
++
+On Linux:
 +
 [source,bash]
 ----
 $ source ~/.bashrc
+----
++
+On macOS:
++
+[source,bash]
+----
+$ source ~/.zshrc
 ----
 . Verify the installation:
 +

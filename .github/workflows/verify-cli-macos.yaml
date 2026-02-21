@@ -1,0 +1,41 @@
+name: CLI Tests (macOS)
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '17'
+      image-tag:
+        type: string
+        required: true
+        description: 'Build artifact identifier (commit SHA)'
+
+jobs:
+  cli-tests-macos:
+    name: CLI Unit Tests (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ inputs.image-tag }}
+          path: .
+
+      - name: Run CLI Tests
+        run: |
+          ./mvnw test -pl cli -Dtest=InstallCommandTest \
+            --no-transfer-progress \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5

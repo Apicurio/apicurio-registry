@@ -89,6 +89,12 @@ func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) Delet
 	return nil
 }
 
+// Export export a Protobuf artifact version with dependencies as a ZIP file.
+// returns a *ItemArtifactsItemVersionsItemExportRequestBuilder when successful
+func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) Export() *ItemArtifactsItemVersionsItemExportRequestBuilder {
+	return NewItemArtifactsItemVersionsItemExportRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Get retrieves the metadata for a single version of the artifact.  The version metadata is a subset of the artifact metadata and only includes the metadata that is specific tothe version (for example, this doesn't include `modifiedOn`).This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 // returns a VersionMetaDataable when successful
 // returns a ProblemDetails error when the service returns a 400 status code

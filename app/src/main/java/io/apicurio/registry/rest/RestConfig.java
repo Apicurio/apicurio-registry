@@ -49,6 +49,11 @@ public class RestConfig {
     @Info(category = CATEGORY_REST, description = "Optional configuration to override default reference handling behavior. When not set, uses API defaults (PRESERVE for v3, false for v2, none for ccompat).", availableSince = "3.1.0")
     Optional<String> defaultReferenceHandling;
 
+    @Dynamic(label = "Draft production mode", description = "When selected, draft versions use real content hashes, are accessible via content lookups, and have rules evaluated.")
+    @ConfigProperty(name = "apicurio.rest.draft.production-mode.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_REST, description = "Enables production-like behavior for draft versions", availableSince = "3.0.x")
+    Supplier<Boolean> draftProductionModeEnabled;
+
     public int getDownloadMaxSize() {
         return this.downloadMaxSize;
     }
@@ -79,6 +84,10 @@ public class RestConfig {
 
     public Optional<String> getDefaultReferenceHandling() {
         return defaultReferenceHandling;
+    }
+
+    public boolean isDraftProductionModeEnabled() {
+        return draftProductionModeEnabled.get();
     }
 
 }

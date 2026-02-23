@@ -304,9 +304,12 @@ Get the current {registry} user.
 {registry} also provides compatibility with the following schema registries by including implementations of their respective REST APIs:
 
 * {registry} Core Registry API v2
-* Confluent Schema Registry API v7
+* Confluent Schema Registry API v7 and v8
 
-Applications using Confluent client libraries can use {registry} as a drop-in replacement.
+Applications using Confluent client libraries can use {registry} as a drop-in replacement by pointing to the `/apis/ccompat/v7` or `/apis/ccompat/v8` endpoints.
+
+NOTE: Some Confluent enterprise features such as Schema Linking, Data Contracts, and client-side encryption (KEK/DEK) are not supported. For details on supported and unsupported features, see xref:getting-started/assembly-confluent-schema-registry-compatibility.adoc[Confluent Schema Registry compatibility API].
+
 ifdef::rh-service-registry[]
 For more details, see link:https://developers.redhat.com/blog/2019/12/17/replacing-confluent-schema-registry-with-red-hat-integration-service-registry/[Replacing Confluent Schema Registry].
 endif::[]

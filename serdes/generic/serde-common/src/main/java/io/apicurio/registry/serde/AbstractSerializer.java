@@ -9,13 +9,12 @@ import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.data.SerdeMetadata;
 import io.apicurio.registry.serde.data.SerdeRecord;
+import io.apicurio.registry.serde.utils.BoundedCacheFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static io.apicurio.registry.serde.BaseSerde.MAGIC_BYTE;
@@ -46,16 +45,7 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
      * after the first serialization of a message type per topic.
      * Uses LRU eviction to prevent unbounded growth.
      */
-    private final Map<SchemaCacheKey, SchemaLookupResult<T>> fastPathCache = createBoundedCache(MAX_CACHE_SIZE);
-
-    private static <K, V> Map<K, V> createBoundedCache(int maxSize) {
-        return Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-                return size() > maxSize;
-            }
-        });
-    }
+    private final Map<SchemaCacheKey, SchemaLookupResult<T>> fastPathCache = BoundedCacheFactory.createLRU(MAX_CACHE_SIZE);
 
     private final BaseSerde<T, U> baseSerde;
 

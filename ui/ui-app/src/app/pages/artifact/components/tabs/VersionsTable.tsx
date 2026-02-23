@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionsTable.css";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { SortByDirection, ThProps } from "@patternfly/react-table";
 import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";

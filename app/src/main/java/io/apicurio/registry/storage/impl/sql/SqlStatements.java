@@ -416,6 +416,18 @@ public interface SqlStatements {
     public String selectContentById();
 
     /**
+     * A statement template for batch loading artifact version metadata. The REFERENCES_CONDITION placeholder
+     * is replaced at runtime with OR conditions for each reference.
+     */
+    public String selectArtifactVersionMetaDataBatch();
+
+    /**
+     * A statement template for batch loading content by multiple IDs. The (?) placeholder is replaced with
+     * actual IN clause values at runtime.
+     */
+    public String selectContentByIdBatch();
+
+    /**
      * A statement to select the bytes of a content row by contentHash
      */
     public String selectContentByContentHash();

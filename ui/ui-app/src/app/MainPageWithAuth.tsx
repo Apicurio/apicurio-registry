@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import { Page } from "@patternfly/react-core";
 import { AppHeader } from "@app/components";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router";
 import {
     AgentsPage,
     ArtifactPage,

@@ -97,6 +97,20 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     }
 
     @Override
+    @MethodMetadata(extractParameters = { "0", MPK_RULE })
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public GlobalConfigResponse deleteGlobalConfig() {
+        GlobalConfigResponse current = getGlobalConfig();
+        try {
+            storage.deleteGlobalRule(RuleType.COMPATIBILITY);
+        } catch (RuleNotFoundException e) {
+            // Already at default, nothing to delete
+        }
+        return current;
+    }
+
+    @Override
     @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID, "1", MPK_RULE })
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)

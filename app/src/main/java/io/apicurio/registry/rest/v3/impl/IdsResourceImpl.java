@@ -15,7 +15,7 @@ import io.apicurio.registry.rest.cache.ImmutableCache;
 import io.apicurio.registry.rest.v3.IdsResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
-import io.apicurio.registry.rest.v3.impl.shared.CommonResourceOperations;
+import io.apicurio.registry.rest.impl.shared.CommonResourceOperations;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -63,7 +63,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         ContentWrapperDto dto = storage.getContentById(contentId);
         boolean isEmptyContent = ContentTypes.isEmptyContentType(dto.getContentType());
         boolean isDraft = dto.getContentHash() != null && dto.getContentHash().startsWith("draft:");
-        if (isEmptyContent || isDraft) {
+        if (isEmptyContent || (isDraft && !restConfig.isDraftProductionModeEnabled())) {
             throw new ContentNotFoundException(contentId);
         }
         ContentHandle content = dto.getContent();
@@ -81,8 +81,10 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     public Response getContentByGlobalId(long globalId, HandleReferencesType references,
                                          Boolean returnArtifactType) {
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(globalId);
-        if (VersionState.DISABLED.equals(metaData.getState())
-                || VersionState.DRAFT.equals(metaData.getState())) {
+        if (VersionState.DISABLED.equals(metaData.getState())) {
+            throw new ArtifactNotFoundException(null, String.valueOf(globalId));
+        }
+        if (VersionState.DRAFT.equals(metaData.getState()) && !restConfig.isDraftProductionModeEnabled()) {
             throw new ArtifactNotFoundException(null, String.valueOf(globalId));
         }
 
@@ -135,7 +137,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
-        return common.getReferencesByContentHash(contentHash);
+        return common.getReferencesByContentHash(contentHash, V3ApiUtil::referenceDtoToReference);
     }
 
     /**

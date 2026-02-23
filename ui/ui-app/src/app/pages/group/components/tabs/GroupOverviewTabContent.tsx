@@ -77,7 +77,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
     });
     const [isExpanded] = useState(true);
 
-    const drawerRef: any = React.useRef<HTMLDivElement>();
+    const drawerRef: any = React.useRef<HTMLDivElement>(null);
 
     const search: SearchService = useSearchService();
     const logger: LoggerService = useLoggerService();

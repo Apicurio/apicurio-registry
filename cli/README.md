@@ -1,12 +1,12 @@
 # CLI for Apicurio Registry
 
-> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet. The CLI also does not support Windows and requires bash shell.
+> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet. The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet.
 
-## Installation:
+## Installation
 
 Prerequisites:
 
- - Bash
+ - Linux with bash or macOS with zsh
  - Java 11 or higher
 
 To install the Apicurio Registry CLI:
@@ -15,7 +15,7 @@ To install the Apicurio Registry CLI:
 2. Unzip the downloaded file to a location of your choice.
 3. You can run the CLI directly using `./acr`, or install it for the local user first (recommended):
 
-   1. Run `./acr install` to install the CLI. This will install the CLI files to default locations (`$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`), update the `~/.bashrc` file, and configure bash completions. Global installation is not supported yet.
+   1. Run `./acr install` to install the CLI. This will install the CLI files to default locations (`$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`), update the `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS), and configure shell completions. Global installation is not supported yet.
 4. If you do not have an instance of Apicurio Registry running, you use Docker:
 
    ```bash
@@ -38,8 +38,12 @@ Run `mvn clean install -pl cli -am` to build the CLI locally. The built zip file
 
 If you have not already installed the CLI, run:
 
-```
-unzip cli/target/apicurio-registry-cli-*.zip -d cli/target/cli && (pushd cli/target/cli && ./acr install ; popd) && source ~/.bashrc  
+```bash
+# On Linux (bash):
+unzip cli/target/apicurio-registry-cli-*.zip -d cli/target/cli && (pushd cli/target/cli && ./acr install ; popd) && source ~/.bashrc
+
+# On macOS (zsh):
+unzip cli/target/apicurio-registry-cli-*.zip -d cli/target/cli && (pushd cli/target/cli && ./acr install ; popd) && source ~/.zshrc
 ```
 
 If you have already installed the CLI, run:

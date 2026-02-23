@@ -1,5 +1,5 @@
 import { FunctionComponent, useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import "./ReferencesTabContent.css";
 import { EmptyState, EmptyStateBody, EmptyStateVariant } from "@patternfly/react-core";
 import { ReferenceList, ReferencesSort } from "./ReferenceList.tsx";

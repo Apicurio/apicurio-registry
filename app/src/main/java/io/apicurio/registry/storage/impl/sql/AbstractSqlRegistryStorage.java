@@ -612,7 +612,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
-        return contentRepository.ensureContentAndGetId(artifactType, contentDto, isDraft);
+        return contentRepository.ensureContentAndGetId(artifactType, contentDto, isDraft,
+                restConfig.isDraftProductionModeEnabled());
     }
 
     @Override
@@ -1101,6 +1102,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void deleteAllExpiredDownloads() throws RegistryStorageException {
         downloadRepository.deleteAllExpiredDownloads();
+    }
+
+    @Override
+    public void deleteAllOrphanedContent() throws RegistryStorageException {
+        handles.withHandleNoException(handle -> {
+            contentRepository.deleteAllOrphanedContentRaw(handle);
+            return null;
+        });
     }
 
     @Override

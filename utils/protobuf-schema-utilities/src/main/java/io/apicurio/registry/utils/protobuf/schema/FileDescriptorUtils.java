@@ -77,6 +77,7 @@ public class FileDescriptorUtils {
     private static final OptionElement.Kind stringKind = OptionElement.Kind.STRING;
     private static final OptionElement.Kind enumKind = OptionElement.Kind.ENUM;
     private static final FileDescriptor[] WELL_KNOWN_DEPENDENCIES;
+    private static final Map<String, ProtoFileElement> WELL_KNOWN_PROTO_ELEMENTS;
 
     static {
         // Support all the Protobuf WellKnownTypes
@@ -96,6 +97,14 @@ public class FileDescriptorUtils {
                 IntervalProto.getDescriptor().getFile(), ExprProto.getDescriptor().getFile(),
                 QuaternionProto.getDescriptor().getFile(), PostalAddressProto.getDescriptor().getFile(),
                 ProtobufSchemaMetadata.getDescriptor().getFile(), Decimals.getDescriptor().getFile() };
+
+        // Build a map of well-known type names to their ProtoFileElement representations
+        // This allows toDynamicSchema to resolve well-known types even when they're not in the
+        // dependencies map, preventing NPE when schemas import types like google/protobuf/timestamp.proto
+        WELL_KNOWN_PROTO_ELEMENTS = new HashMap<>();
+        for (FileDescriptor fd : WELL_KNOWN_DEPENDENCIES) {
+            WELL_KNOWN_PROTO_ELEMENTS.put(fd.getName(), fileDescriptorToProtoFile(fd.toProto()));
+        }
     }
 
     public static FileDescriptor[] baseDependencies() {
@@ -1538,6 +1547,10 @@ public class FileDescriptorUtils {
             }
             for (String ref : rootElem.getImports()) {
                 ProtoFileElement dep = dependencies.get(ref);
+                if (dep == null) {
+                    // Fall back to well-known types (e.g. google/protobuf/timestamp.proto)
+                    dep = WELL_KNOWN_PROTO_ELEMENTS.get(ref);
+                }
                 if (dep != null) {
                     schema.addDependency(ref);
                     schema.addSchema(toDynamicSchema(ref, dep, dependencies));
@@ -1545,6 +1558,10 @@ public class FileDescriptorUtils {
             }
             for (String ref : rootElem.getPublicImports()) {
                 ProtoFileElement dep = dependencies.get(ref);
+                if (dep == null) {
+                    // Fall back to well-known types (e.g. google/protobuf/timestamp.proto)
+                    dep = WELL_KNOWN_PROTO_ELEMENTS.get(ref);
+                }
                 if (dep != null) {
                     schema.addPublicDependency(ref);
                     schema.addSchema(toDynamicSchema(ref, dep, dependencies));

@@ -1,5 +1,5 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import "./SearchPage.css";
 import { PageSection, PageSectionVariants, Content } from "@patternfly/react-core";
 import {

@@ -96,19 +96,12 @@ public final class V3ApiUtil {
      * @param dto
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
+     * @deprecated Use {@link io.apicurio.registry.rest.ApiDtoUtils#setEditableMetaDataInArtifact} instead
      */
+    @Deprecated
     public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto dto,
             EditableArtifactMetaDataDto editableArtifactMetaData) {
-        if (editableArtifactMetaData.getName() != null) {
-            dto.setName(editableArtifactMetaData.getName());
-        }
-        if (editableArtifactMetaData.getDescription() != null) {
-            dto.setDescription(editableArtifactMetaData.getDescription());
-        }
-        if (editableArtifactMetaData.getLabels() != null && !editableArtifactMetaData.getLabels().isEmpty()) {
-            dto.setLabels(editableArtifactMetaData.getLabels());
-        }
-        return dto;
+        return io.apicurio.registry.rest.ApiDtoUtils.setEditableMetaDataInArtifact(dto, editableArtifactMetaData);
     }
 
     public static Comparator<ArtifactMetaDataDto> comparator(SortOrder sortOrder) {
@@ -117,16 +110,8 @@ public final class V3ApiUtil {
 
     public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1,
             ArtifactMetaDataDto metaDataDto2) {
-        String name1 = metaDataDto1.getName();
-        if (name1 == null) {
-            name1 = metaDataDto1.getArtifactId();
-        }
-        String name2 = metaDataDto2.getName();
-        if (name2 == null) {
-            name2 = metaDataDto2.getArtifactId();
-        }
-        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1)
-            : name1.compareToIgnoreCase(name2);
+        return io.apicurio.registry.rest.ApiDtoUtils.compareByName(
+                sortOrder == SortOrder.desc, metaDataDto1, metaDataDto2);
     }
 
     public static ArtifactSearchResults dtoToSearchResults(ArtifactSearchResultsDto dto) {

@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { Tooltip } from "@patternfly/react-core";
 import { DesktopIcon } from "@patternfly/react-icons";

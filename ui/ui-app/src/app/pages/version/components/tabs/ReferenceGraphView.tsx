@@ -34,7 +34,7 @@ import {
     DownloadIcon,
     InfoCircleIcon
 } from "@patternfly/react-icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ReferenceType, VersionMetaData } from "@sdk/lib/generated-client/models";
 import { ReferenceNodeData, useReferenceGraph, ArtifactCoordinates } from "@services/useReferenceGraph.ts";
 import { ReferenceGraphNode } from "./ReferenceGraphNode.tsx";

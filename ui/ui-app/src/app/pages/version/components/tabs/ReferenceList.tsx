@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./ReferenceList.css";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { ThProps } from "@patternfly/react-table";
 import { ResponsiveTable } from "@apicurio/common-ui-components";
 import { ArtifactReference } from "@sdk/lib/generated-client/models";

@@ -13,7 +13,7 @@ import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v2.IdsResource;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
-import io.apicurio.registry.rest.v2.impl.shared.CommonResourceOperations;
+import io.apicurio.registry.rest.impl.shared.CommonResourceOperations;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -136,7 +136,7 @@ public class IdsResourceImpl implements IdsResource {
      */
     @Override
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
-        return common.getReferencesByContentHash(contentHash);
+        return common.getReferencesByContentHash(contentHash, V2ApiUtil::referenceDtoToReference);
     }
 
     /**

@@ -1,0 +1,215 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="confluent-schema-registry-compatibility_{context}"]
+= Confluent Schema Registry compatibility API
+
+[role="_abstract"]
+{registry} provides a compatibility API layer that enables applications using Confluent Schema Registry clients to work seamlessly with {registry}. This chapter describes the supported features, limitations, and migration considerations.
+
+* xref:ccompat-overview_{context}[]
+* xref:ccompat-supported-features_{context}[]
+* xref:ccompat-unsupported-features_{context}[]
+* xref:ccompat-migration-considerations_{context}[]
+
+[id="ccompat-overview_{context}"]
+== Overview of the compatibility API
+
+[role="_abstract"]
+{registry} implements the Confluent Schema Registry REST API to provide drop-in compatibility for applications and tools designed for Confluent Schema Registry.
+
+.Supported API versions
+[%header,cols="1,2,2"]
+|===
+|Version
+|Endpoint
+|Status
+
+|v7
+|`/apis/ccompat/v7`
+|Fully supported
+
+|v8
+|`/apis/ccompat/v8`
+|Fully supported
+|===
+
+Applications using Confluent Schema Registry client libraries can use {registry} as a replacement by simply changing the schema registry URL to point to the appropriate {registry} ccompat endpoint.
+
+.Example configuration
+[source,properties]
+----
+# Confluent client configuration pointing to Apicurio Registry
+schema.registry.url=http://my-registry:8080/apis/ccompat/v7
+----
+
+[id="ccompat-supported-features_{context}"]
+== Supported features
+
+[role="_abstract"]
+The following Confluent Schema Registry features are fully supported in {registry}:
+
+.Fully supported API endpoints
+[%header,cols="2,3"]
+|===
+|Feature
+|Description
+
+|*Schemas API*
+|Full support for schema management including `GET /schemas`, `GET /schemas/ids/{id}`, `GET /schemas/types`, `GET /schemas/ids/{id}/subjects`, `GET /schemas/ids/{id}/versions`, and `GET /schemas/ids/{id}/schema`. Includes pagination with `offset` and `limit` parameters.
+
+|*Subjects API*
+|Complete CRUD operations for subjects including listing, registration, lookup, and deletion. Supports pagination with `offset`, `limit`, `deleted`, and `deletedOnly` parameters.
+
+|*Compatibility API*
+|Schema compatibility checking against specific versions or all versions. Supports `verbose` and `normalize` parameters.
+
+|*Config API*
+|Global and subject-level compatibility configuration. Supports `GET`, `PUT`, and `DELETE` operations, including `defaultToGlobal` parameter for subject config.
+
+|*Mode API*
+|Global and subject-level mode management (READWRITE, READONLY, READONLY_OVERRIDE, IMPORT). Supports `force` parameter for mode changes.
+
+|*Contexts API*
+|Returns the default context for Confluent client compatibility.
+|===
+
+.Supported schema types
+[%header,cols="1,2"]
+|===
+|Schema Type
+|Support Status
+
+|Apache Avro
+|Fully supported
+
+|JSON Schema
+|Fully supported
+
+|Google Protobuf
+|Fully supported
+|===
+
+.v8-specific features
+[%header,cols="2,3"]
+|===
+|Feature
+|Description
+
+|*X-Confluent-Accept-Unknown-Properties header*
+|When set to `true`, unknown JSON properties in request bodies are ignored. This provides forward compatibility for clients sending newer API requests.
+
+|*Enhanced pagination*
+|Full pagination support on schemas and subjects endpoints.
+|===
+
+[id="ccompat-unsupported-features_{context}"]
+== Unsupported features
+
+[role="_abstract"]
+The following Confluent Schema Registry features are *not supported* in {registry}. Applications relying on these features will need to use alternative approaches.
+
+.Unsupported features
+[%header,cols="2,2,3"]
+|===
+|Feature
+|Behavior
+|Alternative
+
+|*Schema Linking / Exporters*
+|`GET /exporters` returns an empty list. All other exporter operations return an error.
+|Use {registry} native import/export functionality or external replication tools.
+
+|*KEKs (Key Encryption Keys)*
+|Endpoints not present (404 error).
+|Implement encryption at the application layer or use external key management.
+
+|*DEKs (Data Encryption Keys)*
+|Endpoints not present (404 error).
+|Implement encryption at the application layer or use external key management.
+
+|*Cluster Metadata API*
+|Endpoints `/v1/metadata/id` and `/v1/metadata/config` not present.
+|Use {registry} system API for registry information.
+
+|*Data Contracts - Rules Enforcement*
+|`metadata` and `ruleSet` fields are accepted in requests but NOT enforced or stored. Schema rules are not executed.
+|Use {registry} native content rules (validity, compatibility, integrity) instead.
+|===
+
+[discrete]
+=== Schema Linking / Exporters
+
+Confluent Schema Linking uses schema exporters to replicate schemas between Schema Registry clusters. This is an enterprise feature that requires cluster-to-cluster replication infrastructure.
+
+{registry} provides alternative approaches for schema replication:
+
+* *Import/Export API*: Use the {registry} admin API to export all registry content to a ZIP file and import it into another instance.
+* *Kafka-based storage*: When using Kafka storage, schemas are stored in a Kafka topic that can be replicated using Kafka's native replication features.
+* *GitOps workflows*: Store schemas in Git and use CI/CD pipelines to sync across environments.
+
+[discrete]
+=== Data Contracts
+
+Confluent Data Contracts provide governance features including:
+
+* *Metadata*: Key-value pairs attached to schemas (owner, email, tags)
+* *RuleSets*: Validation and transformation rules using CEL or JSONata
+
+In {registry}, these fields are accepted in API requests for client compatibility but are not processed or stored. Instead, use {registry} native features:
+
+* *Labels*: Use artifact labels for metadata
+* *Content Rules*: Configure validity, compatibility, and integrity rules
+* *Groups*: Organize artifacts by group for governance
+
+[id="ccompat-migration-considerations_{context}"]
+== Migration considerations
+
+[role="_abstract"]
+When migrating from Confluent Schema Registry to {registry}, consider the following:
+
+.Migration checklist
+[%header,cols="1,3"]
+|===
+|Area
+|Consideration
+
+|*Basic Operations*
+|Schema registration, retrieval, and compatibility checks work identically. No changes required.
+
+|*Client Configuration*
+|Update `schema.registry.url` to point to {registry} ccompat endpoint.
+
+|*Schema Types*
+|Avro, JSON Schema, and Protobuf are fully supported.
+
+|*Authentication*
+|{registry} supports OIDC authentication. Update client security configuration as needed.
+
+|*Exporters / Schema Linking*
+|Not supported. Use {registry} import/export API or Kafka topic replication.
+
+|*Data Contracts*
+|Metadata and rules are not enforced. Migrate governance to {registry} native rules.
+
+|*Encryption (KEK/DEK)*
+|Not supported. Implement encryption at the application layer.
+|===
+
+.Example: Migrating a Kafka producer
+[source,java]
+----
+// Before: Confluent Schema Registry
+Properties props = new Properties();
+props.put("schema.registry.url", "http://confluent-registry:8081");
+
+// After: Apicurio Registry (using ccompat API)
+Properties props = new Properties();
+props.put("schema.registry.url", "http://apicurio-registry:8080/apis/ccompat/v7");
+----
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rest-api}
+* link:https://docs.confluent.io/platform/current/schema-registry/develop/api.html[Confluent Schema Registry API Reference]
+* link:https://docs.confluent.io/platform/current/schema-registry/fundamentals/data-contracts.html[Confluent Data Contracts Documentation]
+* link:https://docs.confluent.io/platform/current/schema-registry/schema-linking-cp.html[Confluent Schema Linking Documentation]

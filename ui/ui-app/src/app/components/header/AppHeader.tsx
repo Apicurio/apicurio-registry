@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import { Brand, Masthead, MastheadLogo, MastheadContent, MastheadMain, MastheadBrand } from "@patternfly/react-core";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { AppHeaderToolbar } from "@app/components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";

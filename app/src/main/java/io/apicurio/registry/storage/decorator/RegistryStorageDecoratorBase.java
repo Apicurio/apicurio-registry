@@ -234,6 +234,11 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     }
 
     @Override
+    public void deleteAllOrphanedContent() throws RegistryStorageException {
+        delegate.deleteAllOrphanedContent();
+    }
+
+    @Override
     public void setConfigProperty(DynamicConfigPropertyDto property) throws RegistryStorageException {
         delegate.setConfigProperty(property);
     }

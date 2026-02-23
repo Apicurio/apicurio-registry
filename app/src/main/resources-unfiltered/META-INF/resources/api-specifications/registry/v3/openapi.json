@@ -3164,6 +3164,74 @@
         }
       ]
     },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/export": {
+      "summary": "Export a Protobuf artifact version with dependencies as a ZIP file.",
+      "get": {
+        "tags": [
+          "Versions"
+        ],
+        "responses": {
+          "200": {
+            "description": "The Protobuf artifact and its dependencies exported as a ZIP file with package-structured directories.",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "exportArtifactVersion",
+        "summary": "Export artifact version as ZIP",
+        "description": "Exports a Protobuf artifact version with all its transitive dependencies as a ZIP file.\nThe files in the ZIP are organized by their package names to match the expected directory\nstructure for protoc compilation. Import statements are rewritten to use canonical\npackage-based paths.\n\nThis operation is only supported for PROTOBUF artifact types.\n\nThis operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n* Artifact is not of type PROTOBUF (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "description": "An expression resolvable to a specific version ID within the given group and artifact.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/search/groups": {
       "summary": "Search for groups in the registry.",
       "get": {

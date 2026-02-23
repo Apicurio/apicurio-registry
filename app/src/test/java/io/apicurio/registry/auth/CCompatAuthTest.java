@@ -163,6 +163,10 @@ public class CCompatAuthTest extends AbstractResourceTestBase {
         }
     }
 
+    /**
+     * Test that read-only users cannot call the register endpoint, but can use getId for lookups.
+     * The register endpoint now requires Write permission due to the fix for issue #7267.
+     */
     @Test
     public void testRegisterWithReadPermission() throws Exception {
         String readOnlyToken = acquireAuthToken(KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1");
@@ -175,11 +179,16 @@ public class CCompatAuthTest extends AbstractResourceTestBase {
             String subject = TestUtils.generateSubject();
             int schemaId1 = adminClient.register(subject, avroSchema);
 
-            // Read-only user should be able to "register" the same schema (which just looks it up)
-            int schemaId2 = readOnlyClient.register(subject, avroSchema);
+            // Read-only user should use getId() for lookups, not register()
+            int schemaId2 = readOnlyClient.getId(subject, avroSchema);
 
             // Both IDs should be the same since it's the same schema
             Assertions.assertEquals(schemaId1, schemaId2);
+
+            // Read-only user should NOT be able to call register, even for existing schemas
+            Assertions.assertThrows(Exception.class, () -> {
+                readOnlyClient.register(subject, avroSchema);
+            });
 
             // Read-only user should still NOT be able to create a new schema
             String newSubject = TestUtils.generateSubject();
@@ -205,10 +214,45 @@ public class CCompatAuthTest extends AbstractResourceTestBase {
             // Read-only user can retrieve the schema by content (simulating auto.register.schemas lookup)
             int retrievedId = readOnlyClient.getId(subject, avroSchema);
             Assertions.assertTrue(retrievedId > 0);
+        }
+    }
 
-            // Read-only user can also call register on existing schema (should succeed with READ permission)
-            int registeredId = readOnlyClient.register(subject, avroSchema);
-            Assertions.assertEquals(retrievedId, registeredId);
+    /**
+     * Test for issue #7267: Non-owners should not be able to create artifacts via ccompat API.
+     * This test verifies that when owner-based authorization is enabled, a non-owner developer
+     * cannot create new artifacts in a group or add new versions to artifacts they don't own.
+     */
+    @Test
+    public void testNonOwnerCannotCreateArtifactsInOwnersGroup() throws Exception {
+        String devToken = acquireAuthToken(KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1");
+        String adminToken = acquireAuthToken(KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1");
+        ParsedSchema avroSchema_v1 = new AvroSchemaProvider().parseSchema(AVRO_SCHEMA, null, false)
+                .orElseThrow(() -> new RuntimeException("Failed to parse Avro schema"));
+        ParsedSchema avroSchema_v2 = new AvroSchemaProvider().parseSchema(AVRO_SCHEMA_V2, null, false)
+                .orElseThrow(() -> new RuntimeException("Failed to parse Avro schema"));
+
+        try (var adminClient = buildClient(adminToken); var devClient = buildClient(devToken)) {
+            // Admin creates a subject/artifact (becomes the owner)
+            String adminSubject = TestUtils.generateSubject();
+            int schemaId = adminClient.register(adminSubject, avroSchema_v1);
+            Assertions.assertTrue(schemaId > 0);
+
+            // Developer (non-owner) tries to register a new version to the admin's artifact
+            // This should fail because the developer is not the owner
+            RestClientException exception = Assertions.assertThrows(RestClientException.class, () -> {
+                devClient.register(adminSubject, avroSchema_v2);
+            });
+            assertForbidden(exception);
+
+            // Developer can create their own subject/artifact (becomes the owner)
+            String devSubject = TestUtils.generateSubject();
+            int devSchemaId = devClient.register(devSubject, avroSchema_v1);
+            Assertions.assertTrue(devSchemaId > 0);
+
+            // Admin CAN update dev's artifact because admin role overrides ownership checks (RBAC > OBAC)
+            // This is expected behavior - admins should be able to manage any artifact
+            int updatedSchemaId = adminClient.register(devSubject, avroSchema_v2);
+            Assertions.assertTrue(updatedSchemaId > 0);
         }
     }
 

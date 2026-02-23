@@ -31,6 +31,6 @@
     "author": "Apicurio",
     "license": "Apache-2.0",
     "devDependencies": {
-        "rimraf": "6.1.2"
+        "rimraf": "6.1.3"
     }
 }

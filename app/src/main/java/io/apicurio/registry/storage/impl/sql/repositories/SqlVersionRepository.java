@@ -676,4 +676,43 @@ public class SqlVersionRepository {
             return utils.getContentHash(content, references);
         }
     }
+
+    /**
+     * Get all versions modified since the given timestamp. Used for asynchronous search index polling.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return List of version metadata for modified versions
+     */
+    public List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectVersionsModifiedSince())
+                    .bind(0, new java.sql.Timestamp(sinceTimestamp))
+                    .map(ArtifactVersionMetaDataDtoMapper.instance).list();
+        });
+    }
+
+    /**
+     * Get the timestamp of the most recently modified version.
+     *
+     * @return Timestamp in milliseconds since epoch, or 0 if no versions exist
+     */
+    public long getLatestVersionTimestamp() {
+        return handles.withHandle(handle -> {
+            java.sql.Timestamp ts = handle.createQuery(sqlStatements.selectLatestVersionTimestamp())
+                    .mapTo(java.sql.Timestamp.class).findOne().orElse(null);
+            return ts != null ? ts.getTime() : 0L;
+        });
+    }
+
+    /**
+     * Get all version globalIds. Used for periodic reconciliation in asynchronous search indexing.
+     *
+     * @return List of all globalIds
+     */
+    public List<Long> getAllVersionGlobalIds() {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectAllVersionGlobalIds())
+                    .mapTo(Long.class).list();
+        });
+    }
 }

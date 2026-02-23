@@ -1057,6 +1057,17 @@ public interface RegistryStorage extends DynamicConfigStorage {
     }
 
     /**
+     * Get all version globalIds. Only needed for ASYNCHRONOUS mode of Lucene search indexing, used for
+     * periodic reconciliation to detect deleted versions.
+     *
+     * @return List of all globalIds
+     */
+    default List<Long> getAllVersionGlobalIds() {
+        throw new UnsupportedOperationException(
+                "getAllVersionGlobalIds not supported by storage type: " + storageName());
+    }
+
+    /**
      * Legacy code: we used to have an enum that drove how to retrieve versions. This has since been converted
      * to a filtered set of states. For now, this class replicates the names of the old enum values, aiding in
      * converting existing code with fewer changes.

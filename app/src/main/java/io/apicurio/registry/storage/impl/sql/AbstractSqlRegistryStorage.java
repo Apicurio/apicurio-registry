@@ -836,6 +836,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
+        return versionRepository.getVersionsModifiedSince(sinceTimestamp);
+    }
+
+    @Override
+    public long getLatestVersionTimestamp() {
+        return versionRepository.getLatestVersionTimestamp();
+    }
+
+    @Override
+    public List<Long> getAllVersionGlobalIds() {
+        return versionRepository.getAllVersionGlobalIds();
+    }
+
+    @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
             EditableVersionMetaDataDto editableMetadata)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {

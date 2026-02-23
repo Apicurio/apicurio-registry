@@ -163,6 +163,7 @@ CREATE INDEX IDX_versions_3 ON versions (name);
 CREATE INDEX IDX_versions_5 ON versions (owner);
 CREATE INDEX IDX_versions_6 ON versions (createdOn);
 CREATE INDEX IDX_versions_7 ON versions (contentId);
+CREATE INDEX IDX_versions_8 ON versions (modifiedOn);
 
 CREATE TABLE version_labels (
     globalId   BIGINT       NOT NULL,

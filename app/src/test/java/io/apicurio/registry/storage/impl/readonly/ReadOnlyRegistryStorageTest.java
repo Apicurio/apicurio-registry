@@ -88,6 +88,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getBranches3", new State(false, s -> s.getBranches(null, 0, 0))),
                 entry("getBranchVersions4", new State(false, s -> s.getBranchVersions(null, null, 0, 0))),
                 entry("getBranchTip3", new State(false, s -> s.getBranchTip(null, null, null))),
+                entry("getAllVersionGlobalIds0", new State(false, RegistryStorage::getAllVersionGlobalIds)),
                 entry("getArtifactIds1", new State(false, s -> s.getArtifactIds(null))),
                 entry("getArtifactMetaData2", new State(false, s -> s.getArtifactMetaData(null, null))),
                 entry("getArtifactRule3", new State(false, s -> s.getArtifactRule(null, null, null))),
@@ -129,12 +130,14 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getGroupMetaData1", new State(false, s -> s.getGroupMetaData(null))),
                 entry("getInboundArtifactReferences3",
                         new State(false, s -> s.getInboundArtifactReferences(null, null, null))),
+                entry("getLatestVersionTimestamp0", new State(false, RegistryStorage::getLatestVersionTimestamp)),
                 entry("getRawConfigProperty1", new State(false, s -> s.getRawConfigProperty(null))),
                 entry("getRoleForPrincipal1", new State(false, s -> s.getRoleForPrincipal(null))),
                 entry("getRoleMapping1", new State(false, s -> s.getRoleMapping(null))),
                 entry("getRoleMappings0", new State(false, RegistryStorage::getRoleMappings)),
-                entry("searchRoleMappings2", new State(false, s -> s.searchRoleMappings(0, 20))),
+                entry("getVersionsModifiedSince1", new State(false, s -> s.getVersionsModifiedSince(System.currentTimeMillis()))),
                 entry("getStaleConfigProperties1", new State(false, s -> s.getStaleConfigProperties(null))),
+
                 entry("importBranch1", new State(true, s -> s.importBranch(null))),
                 entry("importArtifactRule1", new State(true, s -> s.importArtifactRule(null))),
                 entry("importArtifact1", new State(true, s -> s.importArtifact(null))),
@@ -168,6 +171,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("resetGlobalId0", new State(true, RegistryStorage::resetGlobalId)),
                 entry("searchArtifacts5", new State(false, s -> s.searchArtifacts(null, null, null, 0, 0))),
                 entry("searchGroups5", new State(false, s -> s.searchGroups(null, null, null, null, null))),
+                entry("searchRoleMappings2", new State(false, s -> s.searchRoleMappings(0, 20))),
                 entry("searchVersions5", new State(false, s -> s.searchVersions(null, null, null, 0, 0))),
                 entry("setConfigProperty1", new State(true, s -> {
                     var dto = new DynamicConfigPropertyDto();

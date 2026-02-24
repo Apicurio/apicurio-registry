@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.search;
 
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.cdi.Raw;
 import io.apicurio.registry.storage.RegistryStorage;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -48,7 +48,7 @@ public class LuceneSearchConfig {
     int ramBufferSizeMB;
 
     @Inject
-    @Current
+    @Raw
     RegistryStorage storage;
 
     private IndexUpdateMode resolvedMode;

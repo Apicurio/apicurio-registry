@@ -8,6 +8,7 @@ import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.search.LuceneIndexSearcher;
 import io.apicurio.registry.storage.impl.search.LuceneSearchConfig;
 import io.apicurio.registry.storage.impl.search.LuceneSearchService;
+import io.apicurio.registry.storage.impl.search.LuceneStartupIndexer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -35,6 +36,9 @@ public class LuceneSearchDecorator extends RegistryStorageDecoratorBase
     @Inject
     LuceneIndexSearcher indexSearcher;
 
+    @Inject
+    LuceneStartupIndexer startupIndexer;
+
     @Override
     public boolean isEnabled() {
         return config.isEnabled();
@@ -53,7 +57,8 @@ public class LuceneSearchDecorator extends RegistryStorageDecoratorBase
     @Override
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
-        if (indexSearcher.isInitialized() && searchService.canHandleFilters(filters)) {
+        if (startupIndexer.isReady() && indexSearcher.isInitialized()
+                && searchService.canHandleFilters(filters)) {
             try {
                 return searchService.searchVersions(filters, orderBy, orderDirection,
                         offset, limit);

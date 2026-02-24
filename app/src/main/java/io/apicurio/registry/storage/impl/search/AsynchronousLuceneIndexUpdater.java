@@ -52,6 +52,9 @@ public class AsynchronousLuceneIndexUpdater {
     @Inject
     LuceneIndexSearcher indexSearcher;
 
+    @Inject
+    LuceneStartupIndexer startupIndexer;
+
     private boolean isActive;
     private long lastPolledTimestamp;
     private int pollCount;
@@ -85,6 +88,16 @@ public class AsynchronousLuceneIndexUpdater {
             if (!storage.isReady()) {
                 log.debug("Skipping search index poll because storage is not ready.");
                 return;
+            }
+
+            if (!startupIndexer.isReady()) {
+                log.debug("Skipping poll - startup reindex not yet complete.");
+                return;
+            }
+
+            // Initialize lastPolledTimestamp from the startup indexer's completion time
+            if (lastPolledTimestamp == 0) {
+                lastPolledTimestamp = startupIndexer.getCompletedTimestamp();
             }
 
             // First run or empty index: do a full rebuild

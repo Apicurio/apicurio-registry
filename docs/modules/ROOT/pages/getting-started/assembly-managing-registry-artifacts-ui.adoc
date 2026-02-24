@@ -10,6 +10,7 @@ You can manage schema and API artifacts stored in {registry} by using the {regis
 * xref:configuring-registry-ui_{context}[]
 * xref:browsing-artifacts-using-console_{context}[]
 * xref:adding-artifacts-using-console_{context}[]
+* xref:deleting-artifacts-using-console_{context}[]
 * xref:configuring-rules-using-console_{context}[]
 * xref:changing-artifact-owner-using-console_{context}[]
 * xref:configuring-settings-using-console_{context}[]
@@ -192,15 +193,77 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 ... *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
 ... *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
 .. Now you can click the *Create* button to create the new version.
-. To delete an artifact, click *Delete* in the page header.
-+
-WARNING: Deleting an artifact deletes the artifact and all of its versions, and cannot be undone.
+. To delete an artifact or artifact version, see xref:deleting-artifacts-using-console_{context}[].
 
 [role="_additional-resources"]
 .Additional resources
 * xref:browsing-artifacts-using-console_{context}[]
+* xref:deleting-artifacts-using-console_{context}[]
 * xref:configuring-rules-using-console_{context}[]
 * {registry-rule-reference}
+
+
+
+
+
+[id="deleting-artifacts-using-console_{context}"]
+== Deleting artifacts and artifact versions using the {registry} web console
+
+[role="_abstract"]
+You can use the {registry} web console to delete artifacts and artifact versions stored in {registry}. You can delete an entire artifact, which removes all versions of that artifact, or delete a specific artifact version.
+
+IMPORTANT: Deletion of artifacts and artifact versions is disabled by default in {registry}. You must enable deletion in the {registry} web console *Settings* before you can delete artifacts or artifact versions.
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+* You are logged in to the {registry} web console:
++
+`{registry-url}`
+* Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a client application.
+
+[discrete]
+=== Enabling artifact and artifact version deletion
+
+Before you can delete artifacts or artifact versions, you must enable the deletion settings in the {registry} web console.
+
+.Procedure
+. In the {registry} web console, click the *Settings* tab.
+. In the *Additional properties* section, select the appropriate settings:
++
+** *Delete artifact*: Select this option to enable deletion of artifacts.
+** *Delete artifact version*: Select this option to enable deletion of artifact versions.
++
+NOTE: Both settings are disabled by default. You can enable either or both settings depending on your requirements.
+
+[discrete]
+=== Deleting an artifact
+
+WARNING: Deleting an artifact deletes the artifact and all of its versions, and this operation cannot be undone.
+
+.Procedure
+. On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find the artifact that you want to delete.
+. Click the artifact to view its details.
+. In the page header, click *Delete*.
+. Confirm the deletion when prompted.
+
+[discrete]
+=== Deleting an artifact version
+
+WARNING: Deleting an artifact version is permanent and cannot be undone. If you delete the only remaining version of an artifact, the entire artifact is also deleted.
+
+.Procedure
+. On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find the artifact that contains the version you want to delete.
+. Click the artifact to view its details.
+. Click the *Versions* tab to view a list of all artifact versions.
+. Find the version that you want to delete, and select *Delete version* from the Action menu (three vertical dots) for that version.
+. Confirm the deletion when prompted.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:configuring-settings-using-console_{context}[]
+* xref:adding-artifacts-using-console_{context}[]
+* xref:browsing-artifacts-using-console_{context}[]
 
 
 

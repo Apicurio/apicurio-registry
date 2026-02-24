@@ -7,13 +7,17 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -38,51 +42,96 @@ public class LuceneDocumentBuilder {
             byte[] contentBytes) {
         Document doc = new Document();
 
-        // === Stored Fields (for retrieval) ===
-        doc.add(new StoredField("globalId", versionMetadata.getGlobalId()));
-        doc.add(new StoredField("contentId", versionMetadata.getContentId()));
+        // === ID Fields ===
+        // globalId: StringField (indexed+stored for Term-based update/delete), LongPoint (range query),
+        // DocValues (sorting)
+        doc.add(new StringField("globalId", String.valueOf(versionMetadata.getGlobalId()),
+                Field.Store.YES));
+        doc.add(new LongPoint("globalId_query", versionMetadata.getGlobalId()));
+        doc.add(new NumericDocValuesField("globalId_sort", versionMetadata.getGlobalId()));
 
-        // === String Fields (exact match, filterable) ===
+        // contentId: StringField (indexed+stored), LongPoint (range query)
+        doc.add(new StringField("contentId", String.valueOf(versionMetadata.getContentId()),
+                Field.Store.YES));
+        doc.add(new LongPoint("contentId_query", versionMetadata.getContentId()));
+
+        // === String Fields (exact match, filterable, stored for result mapping) ===
         String groupId = versionMetadata.getGroupId() != null ? versionMetadata.getGroupId()
                 : "default";
         doc.add(new StringField("groupId", groupId, Field.Store.YES));
+        doc.add(new SortedDocValuesField("groupId_sort", new BytesRef(groupId)));
+
         doc.add(new StringField("artifactId", versionMetadata.getArtifactId(), Field.Store.YES));
+        doc.add(new SortedDocValuesField("artifactId_sort",
+                new BytesRef(versionMetadata.getArtifactId())));
+
         doc.add(new StringField("version", versionMetadata.getVersion(), Field.Store.YES));
+        doc.add(new SortedDocValuesField("version_sort",
+                new BytesRef(versionMetadata.getVersion())));
 
         if (versionMetadata.getArtifactType() != null) {
             doc.add(new StringField("artifactType", versionMetadata.getArtifactType(),
                     Field.Store.YES));
+            doc.add(new SortedDocValuesField("artifactType_sort",
+                    new BytesRef(versionMetadata.getArtifactType())));
         }
 
         if (versionMetadata.getState() != null) {
             doc.add(new StringField("state", versionMetadata.getState().name(), Field.Store.YES));
         }
 
-        // === Searchable Metadata Fields ===
-        if (versionMetadata.getName() != null && !versionMetadata.getName().isBlank()) {
-            // Name with higher weight for relevance
-            doc.add(new TextField("name", versionMetadata.getName(), Field.Store.NO));
+        // === Searchable Metadata Fields (stored for result mapping) ===
+        String name = versionMetadata.getName();
+        if (name != null && !name.isBlank()) {
+            doc.add(new TextField("name", name, Field.Store.YES));
         }
+        // Sort by name with fallback to version (matching SQL: coalesce(v.name, v.version))
+        String nameSort = (name != null && !name.isBlank()) ? name
+                : versionMetadata.getVersion();
+        doc.add(new SortedDocValuesField("name_sort", new BytesRef(nameSort)));
 
         if (versionMetadata.getDescription() != null
                 && !versionMetadata.getDescription().isBlank()) {
             doc.add(new TextField("description", versionMetadata.getDescription(),
-                    Field.Store.NO));
+                    Field.Store.YES));
         }
 
-        // Owner field
+        // Owner field (stored for result mapping)
         if (versionMetadata.getOwner() != null && !versionMetadata.getOwner().isBlank()) {
-            doc.add(new TextField("owner", versionMetadata.getOwner(), Field.Store.NO));
+            doc.add(new TextField("owner", versionMetadata.getOwner(), Field.Store.YES));
         }
 
-        // Labels - searchable as key=value pairs
-        if (versionMetadata.getLabels() != null && !versionMetadata.getLabels().isEmpty()) {
-            for (Map.Entry<String, String> label : versionMetadata.getLabels().entrySet()) {
+        // ModifiedBy (stored only, not searchable)
+        if (versionMetadata.getModifiedBy() != null
+                && !versionMetadata.getModifiedBy().isBlank()) {
+            doc.add(new StoredField("modifiedBy", versionMetadata.getModifiedBy()));
+        }
+
+        // ModifiedOn timestamp (queryable + stored + sortable)
+        if (versionMetadata.getModifiedOn() > 0) {
+            long modifiedOn = versionMetadata.getModifiedOn();
+            doc.add(new StoredField("modifiedOn", String.valueOf(modifiedOn)));
+            doc.add(new NumericDocValuesField("modifiedOn_sort", modifiedOn));
+        }
+
+        // VersionOrder (stored for result mapping)
+        doc.add(new StoredField("versionOrder", versionMetadata.getVersionOrder()));
+
+        // Labels - searchable as key=value pairs, stored as JSON for result mapping
+        Map<String, String> labels = versionMetadata.getLabels();
+        if (labels != null && !labels.isEmpty()) {
+            for (Map.Entry<String, String> label : labels.entrySet()) {
                 doc.add(new TextField("label_key", label.getKey(), Field.Store.NO));
                 doc.add(new TextField("label_value", label.getValue(), Field.Store.NO));
                 // Combined for "key=value" searches
                 doc.add(new TextField("label", label.getKey() + "=" + label.getValue(),
                         Field.Store.NO));
+            }
+            // Store labels as JSON for result retrieval
+            try {
+                doc.add(new StoredField("labels_json", objectMapper.writeValueAsString(labels)));
+            } catch (Exception e) {
+                log.warn("Failed to serialize labels to JSON", e);
             }
         }
 
@@ -99,14 +148,13 @@ public class LuceneDocumentBuilder {
 
         // === Timestamp for freshness tracking ===
         long indexedAt = System.currentTimeMillis();
-        doc.add(new LongPoint("indexedAt", indexedAt));
-        doc.add(new StoredField("indexedAt", indexedAt));
+        doc.add(new StoredField("indexedAt", String.valueOf(indexedAt)));
 
-        // Creation timestamp
+        // Creation timestamp (stored as string for retrieval + sortable)
         if (versionMetadata.getCreatedOn() > 0) {
             long createdOn = versionMetadata.getCreatedOn();
-            doc.add(new LongPoint("createdOn", createdOn));
-            doc.add(new StoredField("createdOn", createdOn));
+            doc.add(new StoredField("createdOn", String.valueOf(createdOn)));
+            doc.add(new NumericDocValuesField("createdOn_sort", createdOn));
         }
 
         log.debug("Built document for version {}/{}/{} (globalId={})", groupId,
@@ -114,6 +162,25 @@ public class LuceneDocumentBuilder {
                 versionMetadata.getGlobalId());
 
         return doc;
+    }
+
+    /**
+     * Deserializes a labels JSON string back into a Map.
+     *
+     * @param labelsJson The JSON string
+     * @return A map of label key-value pairs, or empty map if null/invalid
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, String> deserializeLabels(String labelsJson) {
+        if (labelsJson == null || labelsJson.isBlank()) {
+            return Collections.emptyMap();
+        }
+        try {
+            return objectMapper.readValue(labelsJson, Map.class);
+        } catch (Exception e) {
+            log.warn("Failed to deserialize labels JSON: {}", e.getMessage());
+            return Collections.emptyMap();
+        }
     }
 
     /**

@@ -171,6 +171,20 @@ public class LuceneIndexSearcher {
     }
 
     /**
+     * Returns the total number of documents matching the given query. More efficient than
+     * fetching results when only the count is needed.
+     *
+     * @param query The Lucene query to count matches for
+     * @return The number of matching documents
+     * @throws IOException if an error occurs during counting
+     */
+    public int count(Query query) throws IOException {
+        ensureInitialized();
+
+        return indexSearcher.count(query);
+    }
+
+    /**
      * Retrieves a document by its internal Lucene doc ID.
      *
      * @param docId The internal document ID

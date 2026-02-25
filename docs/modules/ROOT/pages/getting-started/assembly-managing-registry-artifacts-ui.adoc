@@ -115,9 +115,6 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 
 
 
-// Metadata created by nebel
-// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
-
 [id="adding-artifacts-using-console_{context}"]
 == Adding artifacts using the {registry} web console
 
@@ -204,8 +201,6 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 
 
 
-
-
 [id="deleting-artifacts-using-console_{context}"]
 == Deleting groups, artifacts, and artifact versions using the {registry} web console
 
@@ -222,12 +217,15 @@ IMPORTANT: Deletion of groups, artifacts, and artifact versions is disabled by d
 `{registry-url}`
 * Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a client application.
 
-[discrete]
+
+[id="enabling-deletion-using-console_{context}"]
 === Enabling deletion of groups, artifacts, and artifact versions
 
+[role="_abstract"]
 Before you can delete groups, artifacts, or artifact versions, you must enable the deletion settings in the {registry} web console.
 
 .Procedure
+
 . In the {registry} web console, click the *Settings* tab.
 . In the *Additional properties* section, select the appropriate settings:
 +
@@ -241,34 +239,49 @@ ifndef::service-registry-downstream[]
 TIP: Alternatively, if you are deploying {registry} on {kubernetes} using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see xref:getting-started/assembly-operator-config-reference.adoc[{operator} configuration reference].
 endif::[]
 
-[discrete]
+
+[id="deleting-group-using-console_{context}"]
 === Deleting a group
+
+[role="_abstract"]
+You can delete a group from {registry} using the web console.
 
 WARNING: Deleting a group deletes the group and all of its artifacts, including all versions of those artifacts. This operation cannot be undone.
 
 .Procedure
+
 . On the *Explore* tab, select *Groups* from the "Search for" menu to browse the list of groups stored in {registry}, or enter a search string to find the group that you want to delete.
 . Click the group to view its details.
 . In the page header, click *Delete*.
 . Confirm the deletion when prompted.
 
-[discrete]
+
+[id="deleting-artifact-using-console_{context}"]
 === Deleting an artifact
+
+[role="_abstract"]
+You can delete an artifact from {registry} using the web console.
 
 WARNING: Deleting an artifact deletes the artifact and all of its versions, and this operation cannot be undone.
 
 .Procedure
+
 . On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find the artifact that you want to delete.
 . Click the artifact to view its details.
 . In the page header, click *Delete*.
 . Confirm the deletion when prompted.
 
-[discrete]
+
+[id="deleting-artifact-version-using-console_{context}"]
 === Deleting an artifact version
+
+[role="_abstract"]
+You can delete a specific artifact version from {registry} using the web console.
 
 WARNING: Deleting an artifact version is permanent and cannot be undone. If you delete the only remaining version of an artifact, the entire artifact is also deleted.
 
 .Procedure
+
 . On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find the artifact that contains the version you want to delete.
 . Click the artifact to view its details.
 . Click the *Versions* tab to view a list of all artifact versions.
@@ -280,11 +293,6 @@ WARNING: Deleting an artifact version is permanent and cannot be undone. If you 
 * xref:configuring-settings-using-console_{context}[]
 * xref:adding-artifacts-using-console_{context}[]
 * xref:browsing-artifacts-using-console_{context}[]
-
-
-
-// Metadata created by nebel
-// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 [id="configuring-rules-using-console_{context}"]
 == Configuring content rules using the {registry} web console

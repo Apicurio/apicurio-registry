@@ -237,7 +237,9 @@ Before you can delete groups, artifacts, or artifact versions, you must enable t
 +
 NOTE: All three settings are disabled by default. You can enable any combination of these settings depending on your requirements.
 
-TIP: Alternatively, if you are deploying {registry} on {kubernetes} using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see xref:operator-config-reference_{context}[].
+ifndef::service-registry-downstream[]
+TIP: Alternatively, if you are deploying {registry} on {kubernetes} using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see xref:getting-started/assembly-operator-config-reference.adoc[{operator} configuration reference].
+endif::[]
 
 [discrete]
 === Deleting a group

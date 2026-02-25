@@ -193,7 +193,7 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 ... *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
 ... *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
 .. Now you can click the *Create* button to create the new version.
-. To delete an artifact or artifact version, see xref:deleting-artifacts-using-console_{context}[].
+. To delete a group, artifact, or artifact version, see xref:deleting-artifacts-using-console_{context}[].
 
 [role="_additional-resources"]
 .Additional resources
@@ -207,12 +207,12 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 
 
 [id="deleting-artifacts-using-console_{context}"]
-== Deleting artifacts and artifact versions using the {registry} web console
+== Deleting groups, artifacts, and artifact versions using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to delete artifacts and artifact versions stored in {registry}. You can delete an entire artifact, which removes all versions of that artifact, or delete a specific artifact version.
+You can use the {registry} web console to delete groups, artifacts, and artifact versions stored in {registry}. You can delete an entire group, which removes all artifacts in that group. You can delete an entire artifact, which removes all versions of that artifact. You can also delete a specific artifact version.
 
-IMPORTANT: Deletion of artifacts and artifact versions is disabled by default in {registry}. You must enable deletion in the {registry} web console *Settings* before you can delete artifacts or artifact versions.
+IMPORTANT: Deletion of groups, artifacts, and artifact versions is disabled by default in {registry}. You must enable deletion in the {registry} web console *Settings* before you can delete groups, artifacts, or artifact versions.
 
 .Prerequisites
 
@@ -223,18 +223,32 @@ IMPORTANT: Deletion of artifacts and artifact versions is disabled by default in
 * Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a client application.
 
 [discrete]
-=== Enabling artifact and artifact version deletion
+=== Enabling deletion of groups, artifacts, and artifact versions
 
-Before you can delete artifacts or artifact versions, you must enable the deletion settings in the {registry} web console.
+Before you can delete groups, artifacts, or artifact versions, you must enable the deletion settings in the {registry} web console.
 
 .Procedure
 . In the {registry} web console, click the *Settings* tab.
 . In the *Additional properties* section, select the appropriate settings:
 +
+** *Delete group*: Select this option to enable deletion of groups.
 ** *Delete artifact*: Select this option to enable deletion of artifacts.
 ** *Delete artifact version*: Select this option to enable deletion of artifact versions.
 +
-NOTE: Both settings are disabled by default. You can enable either or both settings depending on your requirements.
+NOTE: All three settings are disabled by default. You can enable any combination of these settings depending on your requirements.
+
+TIP: Alternatively, if you are deploying {registry} on {kubernetes} using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see xref:operator-config-reference_{context}[].
+
+[discrete]
+=== Deleting a group
+
+WARNING: Deleting a group deletes the group and all of its artifacts, including all versions of those artifacts. This operation cannot be undone.
+
+.Procedure
+. On the *Explore* tab, select *Groups* from the "Search for" menu to browse the list of groups stored in {registry}, or enter a search string to find the group that you want to delete.
+. Click the group to view its details.
+. In the page header, click *Delete*.
+. Confirm the deletion when prompted.
 
 [discrete]
 === Deleting an artifact

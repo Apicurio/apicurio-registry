@@ -48,6 +48,14 @@ public class LuceneSearchService {
     private static final Set<SearchFilterType> UNSUPPORTED_FILTER_TYPES = EnumSet.of(
             SearchFilterType.contentHash, SearchFilterType.canonicalHash);
 
+    /**
+     * Filter types that can only be handled by Lucene and have no SQL fallback. If a search
+     * includes any of these filters and Lucene is unavailable, an error should be returned
+     * rather than silently falling back to SQL (which would return incorrect results).
+     */
+    private static final Set<SearchFilterType> LUCENE_ONLY_FILTER_TYPES = EnumSet.of(
+            SearchFilterType.content);
+
     @Inject
     LuceneIndexSearcher indexSearcher;
 
@@ -71,6 +79,26 @@ public class LuceneSearchService {
             }
         }
         return true;
+    }
+
+    /**
+     * Checks whether the given filters include any that can only be served by Lucene. If this
+     * returns true and Lucene is unavailable, the caller should return an error rather than
+     * falling back to SQL (which would produce incorrect results).
+     *
+     * @param filters The set of search filters to check
+     * @return true if any filter requires Lucene, false otherwise
+     */
+    public boolean requiresLucene(Set<SearchFilter> filters) {
+        if (filters == null || filters.isEmpty()) {
+            return false;
+        }
+        for (SearchFilter filter : filters) {
+            if (LUCENE_ONLY_FILTER_TYPES.contains(filter.getType())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -194,6 +222,9 @@ public class LuceneSearchService {
 
         case description:
             return buildTextQuery("description", filter.getStringValue());
+
+        case content:
+            return buildTextQuery("content", filter.getStringValue());
 
         case labels:
             return buildLabelQuery(filter);

@@ -17,6 +17,8 @@ type VersionsRequestBuilderGetQueryParameters struct {
 	ArtifactId *string `uriparametername:"artifactId"`
 	// Filter by artifact type (`AVRO`, `JSON`, etc).
 	ArtifactType *string `uriparametername:"artifactType"`
+	// Full-text search of artifact content.  Requires the Lucene search index to be enabled.
+	Content *string `uriparametername:"content"`
 	// Filter by contentId.
 	ContentId *int64 `uriparametername:"contentId"`
 	// Filter by description.
@@ -101,7 +103,7 @@ type VersionsRequestBuilderPostRequestConfiguration struct {
 // NewVersionsRequestBuilderInternal instantiates a new VersionsRequestBuilder and sets the default values.
 func NewVersionsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *VersionsRequestBuilder {
 	m := &VersionsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/versions{?artifactId*,artifactType*,canonical*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*,state*,version*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/versions{?artifactId*,artifactType*,canonical*,content*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*,state*,version*}", pathParameters),
 	}
 	return m
 }

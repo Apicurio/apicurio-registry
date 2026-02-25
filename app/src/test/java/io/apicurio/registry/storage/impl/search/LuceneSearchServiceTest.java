@@ -150,6 +150,41 @@ public class LuceneSearchServiceTest {
     }
 
     @Test
+    void testSearchVersions_FilterByContent() throws IOException {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("Pet Store"));
+
+        VersionSearchResultsDto results = searchService.searchVersions(
+                filters, OrderBy.globalId, OrderDirection.asc, 0, 100);
+
+        assertTrue(results.getCount() > 0, "Should find versions with 'Pet Store' in content");
+        // Pet Store API v1 and v2 both have "Pet Store" in their content
+        assertEquals(2, results.getCount(), "Should find exactly 2 versions with 'Pet Store' in content");
+    }
+
+    @Test
+    void testSearchVersions_FilterByContent_NoMatch() throws IOException {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("nonexistent-content-string"));
+
+        VersionSearchResultsDto results = searchService.searchVersions(
+                filters, OrderBy.globalId, OrderDirection.asc, 0, 100);
+
+        assertEquals(0, results.getCount(), "Should not find any versions with nonexistent content");
+    }
+
+    @Test
+    void testSearchVersions_FilterByContent_CombinedWithOtherFilter() throws IOException {
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofContent("Pet Store"));
+        filters.add(SearchFilter.ofGroupId("group-a"));
+
+        VersionSearchResultsDto results = searchService.searchVersions(
+                filters, OrderBy.globalId, OrderDirection.asc, 0, 100);
+
+        assertEquals(2, results.getCount(),
+                "Should find 2 Pet Store versions in group-a");
+    }
+
+    @Test
     void testSearchVersions_FilterByState() throws IOException {
         Set<SearchFilter> filters = Set.of(SearchFilter.ofState(VersionState.DEPRECATED));
 
@@ -350,6 +385,14 @@ public class LuceneSearchServiceTest {
     }
 
     @Test
+    void testCanHandleFilters_ContentSupported() {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("search text"));
+
+        assertTrue(searchService.canHandleFilters(filters),
+                "Content filter should be handled by Lucene");
+    }
+
+    @Test
     void testCanHandleFilters_Empty() {
         assertTrue(searchService.canHandleFilters(Set.of()));
         assertTrue(searchService.canHandleFilters(null));
@@ -369,6 +412,44 @@ public class LuceneSearchServiceTest {
         Set<SearchFilter> filters = Set.of(SearchFilter.ofCanonicalHash("abc123"));
 
         assertFalse(searchService.canHandleFilters(filters));
+    }
+
+    // ======== requiresLucene Tests ========
+
+    @Test
+    void testRequiresLucene_ContentFilter() {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("search text"));
+
+        assertTrue(searchService.requiresLucene(filters),
+                "Content filter should require Lucene");
+    }
+
+    @Test
+    void testRequiresLucene_NonLuceneFilters() {
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofGroupId("g"));
+        filters.add(SearchFilter.ofName("n"));
+
+        assertFalse(searchService.requiresLucene(filters),
+                "Standard filters should not require Lucene");
+    }
+
+    @Test
+    void testRequiresLucene_EmptyFilters() {
+        assertFalse(searchService.requiresLucene(Set.of()),
+                "Empty filters should not require Lucene");
+        assertFalse(searchService.requiresLucene(null),
+                "Null filters should not require Lucene");
+    }
+
+    @Test
+    void testRequiresLucene_MixedFilters() {
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofGroupId("g"));
+        filters.add(SearchFilter.ofContent("search text"));
+
+        assertTrue(searchService.requiresLucene(filters),
+                "Mixed filters containing content should require Lucene");
     }
 
     // ======== Result Mapping Tests ========

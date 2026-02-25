@@ -3459,6 +3459,14 @@
               "$ref": "#/components/schemas/ArtifactType"
             },
             "in": "query"
+          },
+          {
+            "name": "content",
+            "description": "Full-text search of artifact content.  Requires the Lucene search index to be enabled.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
           }
         ],
         "responses": {

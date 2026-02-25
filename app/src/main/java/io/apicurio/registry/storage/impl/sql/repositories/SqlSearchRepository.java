@@ -231,6 +231,9 @@ public class SqlSearchRepository {
                         });
                         where.append(")");
                         break;
+                    case content:
+                        // Content search is handled by Lucene only; skip in SQL
+                        break;
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -395,6 +398,9 @@ public class SqlSearchRepository {
                             query.bind(idx, filter.getStringValue());
                         });
                         where.append(")");
+                        break;
+                    case content:
+                        // Content search is handled by Lucene only; skip in SQL
                         break;
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());

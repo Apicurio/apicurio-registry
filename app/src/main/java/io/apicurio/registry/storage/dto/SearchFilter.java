@@ -74,6 +74,10 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.contentHash, value);
     }
 
+    public static SearchFilter ofContent(String value) {
+        return new SearchFilter(SearchFilterType.content, value);
+    }
+
     public static SearchFilter ofState(VersionState state) {
         return new SearchFilter(SearchFilterType.state, state.name());
     }

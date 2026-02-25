@@ -52,7 +52,9 @@ public class LuceneSearchDecorator extends RegistryStorageDecoratorBase
     /**
      * Intercepts version search requests. When the Lucene index is initialized and all filters
      * are Lucene-compatible, the search is executed against the Lucene index. Otherwise, the
-     * request falls through to the underlying storage (SQL).
+     * request falls through to the underlying storage (SQL). If the filters include Lucene-only
+     * types (e.g. content search) and Lucene is unavailable, an error is thrown rather than
+     * silently returning incorrect results from SQL.
      */
     @Override
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
@@ -65,6 +67,12 @@ public class LuceneSearchDecorator extends RegistryStorageDecoratorBase
             } catch (Exception e) {
                 log.warn("Lucene search failed, falling back to SQL storage", e);
             }
+        }
+        // If the filters require Lucene but we can't use it, fail explicitly
+        if (searchService.requiresLucene(filters)) {
+            throw new RegistryStorageException(
+                    "Content search requires the Lucene search index, which is not available. "
+                    + "Enable the Lucene search index to use content search.");
         }
         // Fall through to SQL
         return delegate.searchVersions(filters, orderBy, orderDirection, offset, limit);

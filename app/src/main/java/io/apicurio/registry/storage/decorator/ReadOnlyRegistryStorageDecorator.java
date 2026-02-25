@@ -75,6 +75,12 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     }
 
     @Override
+    public long createOrGetContent(String artifactType, ContentWrapperDto content) throws RegistryStorageException {
+        checkReadOnly();
+        return delegate.createOrGetContent(artifactType, content);
+    }
+
+    @Override
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,

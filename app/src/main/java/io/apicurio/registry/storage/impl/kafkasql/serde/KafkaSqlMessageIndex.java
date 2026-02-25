@@ -32,6 +32,7 @@ public class KafkaSqlMessageIndex {
                 CreateArtifactVersion10Message.class, CreateArtifactRule4Message.class,
                 CreateGroupRule3Message.class, CreateArtifactVersionComment4Message.class,
                 CreateBranch4Message.class, CreateDownload1Message.class, CreateGlobalRule2Message.class,
+                CreateOrGetContent1Message.class,
                 CreateGroup1Message.class, CreateRoleMapping3Message.class, CreateSnapshot1Message.class,
                 DeleteAllExpiredDownloads0Message.class, DeleteAllUserData0Message.class,
                 DeleteArtifact2Message.class, DeleteArtifactRule3Message.class,

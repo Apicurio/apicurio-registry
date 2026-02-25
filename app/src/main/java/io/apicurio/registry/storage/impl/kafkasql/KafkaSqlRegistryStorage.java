@@ -468,6 +468,21 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
         return versionMetaDataDto;
     }
 
+    /**
+     * @see RegistryStorage#createOrGetContent(String, ContentWrapperDto)
+     */
+    @Override
+    public long createOrGetContent(String artifactType, ContentWrapperDto content)
+            throws RegistryStorageException {
+        var message = new CreateOrGetContent1Message(
+                artifactType,
+                content.getContentType(),
+                content.getContent().content(),
+                content.getReferences());
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        return (long) coordinator.waitForResponse(uuid);
+    }
+
     @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto contentDto) throws RegistryStorageException {

@@ -500,6 +500,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public long createOrGetContent(String artifactType, ContentWrapperDto content)
+            throws RegistryStorageException {
+        return contentRepository.ensureContentAndGetId(artifactType, content, false, false);
+    }
+
+    @Override
     public List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId) {
         return versionRepository.getArtifactVersionsByContentId(contentId);
     }

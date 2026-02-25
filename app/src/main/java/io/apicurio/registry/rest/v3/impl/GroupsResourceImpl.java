@@ -1191,6 +1191,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             Boolean dryRun, CreateArtifact data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         if (data.getFirstVersion() != null) {
+            // If a contentId is provided, resolve it from storage into inline content
+            if (data.getFirstVersion().getContent() != null) {
+                resolveContentId(data.getFirstVersion().getContent());
+            }
+
             boolean contentRequired = true;
             if (data.getArtifactType() != null) {
                 Set<String> contentTypes = factory.getArtifactTypeProvider(data.getArtifactType()).getContentTypes();
@@ -1372,6 +1377,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             CreateVersion data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        // If a contentId is provided, resolve it from storage into inline content
+        if (data.getContent() != null) {
+            resolveContentId(data.getContent());
+        }
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
@@ -1609,6 +1619,44 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             return data.getFirstVersion().getContent().getReferences();
         }
         return null;
+    }
+
+    /**
+     * Resolves a {@link VersionContent} that uses a {@code contentId} reference by fetching the content from
+     * storage and populating the inline content fields.  Validates mutual exclusivity: if {@code contentId}
+     * is provided, then {@code content}, {@code contentType}, and {@code references} must NOT be provided.
+     *
+     * @param versionContent the version content to resolve
+     */
+    private void resolveContentId(VersionContent versionContent) {
+        if (versionContent == null || versionContent.getContentId() == null) {
+            return;
+        }
+
+        // Validate mutual exclusivity
+        if (versionContent.getContent() != null && !versionContent.getContent().isEmpty()) {
+            throw new BadRequestException(
+                    "When 'contentId' is provided, 'content' must not be provided.");
+        }
+        if (versionContent.getContentType() != null && !versionContent.getContentType().isEmpty()) {
+            throw new BadRequestException(
+                    "When 'contentId' is provided, 'contentType' must not be provided.");
+        }
+        if (versionContent.getReferences() != null && !versionContent.getReferences().isEmpty()) {
+            throw new BadRequestException(
+                    "When 'contentId' is provided, 'references' must not be provided.");
+        }
+
+        // Fetch content from storage and populate the inline fields
+        ContentWrapperDto storedContent = storage.getContentById(versionContent.getContentId());
+        versionContent.setContent(storedContent.getContent().content());
+        versionContent.setContentType(storedContent.getContentType());
+        if (storedContent.getReferences() != null && !storedContent.getReferences().isEmpty()) {
+            versionContent.setReferences(
+                    storedContent.getReferences().stream()
+                            .map(V3ApiUtil::referenceDtoToReference)
+                            .collect(toList()));
+        }
     }
 
     private CreateArtifactResponse handleIfExists(String groupId, String artifactId,

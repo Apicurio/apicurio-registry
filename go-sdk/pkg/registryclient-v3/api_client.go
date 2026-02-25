@@ -2,6 +2,7 @@ package registryclientv3
 
 import (
 	i2490db7ea2391f99902722ae5e3ee4e973804d39fc1109d55d6f3ad4f7676186 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/admin"
+	i450b5063b6ad9e6031b8f5d687fc5995bb9c052a0edaf9358f33cc1315f45745 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/content"
 	i02856a41e6e1b8c46af566377659dd2b7d1212e8aed9df89a30e851a96f86fc2 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/groups"
 	iee154219761bfd4aa3d5ab154bb7dbca16db4be7b4f4e4c6237758fc59a1f230 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/ids"
 	i16223c3d64272984ac9b089a49f755b239267ef883920745d9328c825f277450 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/search"
@@ -53,6 +54,12 @@ func NewApiClient(requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa52901
 		return i4bcdc892e61ac17e2afc10b5e2b536b29f4fd6c1ad30f4a5a68df47495db3347.NewFormParseNodeFactory()
 	})
 	return m
+}
+
+// Content upload raw artifact content for later use.
+// returns a *ContentRequestBuilder when successful
+func (m *ApiClient) Content() *i450b5063b6ad9e6031b8f5d687fc5995bb9c052a0edaf9358f33cc1315f45745.ContentRequestBuilder {
+	return i450b5063b6ad9e6031b8f5d687fc5995bb9c052a0edaf9358f33cc1315f45745.NewContentRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Groups collection of the groups in the registry.

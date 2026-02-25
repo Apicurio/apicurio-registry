@@ -159,6 +159,18 @@ public interface RegistryStorage extends DynamicConfigStorage {
             throws ContentNotFoundException, RegistryStorageException;
 
     /**
+     * Ensures the given content exists in storage and returns its unique content ID. If the content already
+     * exists (based on content hash), the existing content ID is returned. Otherwise, the content is stored
+     * and a new content ID is assigned.
+     *
+     * @param artifactType the artifact type, used for canonical hash computation
+     * @param content the content to store
+     * @return the content ID
+     * @throws RegistryStorageException
+     */
+    long createOrGetContent(String artifactType, ContentWrapperDto content) throws RegistryStorageException;
+
+    /**
      * Get a list of all artifact versions that refer to the same content.
      *
      * @param contentId

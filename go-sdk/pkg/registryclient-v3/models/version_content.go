@@ -4,11 +4,14 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
+// VersionContent the content for an artifact version.  Either (`content` + `contentType` + optional `references`) OR `contentId` alone must be provided, but not both.
 type VersionContent struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
 	// Raw content of the artifact version or a valid (and accessible) URL where the content can be found.
 	content *string
+	// The unique identifier of previously uploaded content.  When this is provided, `content`, `contentType`, and `references` should NOT be provided.
+	contentId *int64
 	// The content-type, such as `application/json` or `text/xml`.
 	contentType *string
 	// Collection of references to other artifacts.
@@ -40,6 +43,12 @@ func (m *VersionContent) GetContent() *string {
 	return m.content
 }
 
+// GetContentId gets the contentId property value. The unique identifier of previously uploaded content.  When this is provided, `content`, `contentType`, and `references` should NOT be provided.
+// returns a *int64 when successful
+func (m *VersionContent) GetContentId() *int64 {
+	return m.contentId
+}
+
 // GetContentType gets the contentType property value. The content-type, such as `application/json` or `text/xml`.
 // returns a *string when successful
 func (m *VersionContent) GetContentType() *string {
@@ -57,6 +66,16 @@ func (m *VersionContent) GetFieldDeserializers() map[string]func(i878a80d2330e89
 		}
 		if val != nil {
 			m.SetContent(val)
+		}
+		return nil
+	}
+	res["contentId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetInt64Value()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetContentId(val)
 		}
 		return nil
 	}
@@ -104,6 +123,12 @@ func (m *VersionContent) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a
 		}
 	}
 	{
+		err := writer.WriteInt64Value("contentId", m.GetContentId())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteStringValue("contentType", m.GetContentType())
 		if err != nil {
 			return err
@@ -140,6 +165,11 @@ func (m *VersionContent) SetContent(value *string) {
 	m.content = value
 }
 
+// SetContentId sets the contentId property value. The unique identifier of previously uploaded content.  When this is provided, `content`, `contentType`, and `references` should NOT be provided.
+func (m *VersionContent) SetContentId(value *int64) {
+	m.contentId = value
+}
+
 // SetContentType sets the contentType property value. The content-type, such as `application/json` or `text/xml`.
 func (m *VersionContent) SetContentType(value *string) {
 	m.contentType = value
@@ -154,9 +184,11 @@ type VersionContentable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetContent() *string
+	GetContentId() *int64
 	GetContentType() *string
 	GetReferences() []ArtifactReferenceable
 	SetContent(value *string)
+	SetContentId(value *int64)
 	SetContentType(value *string)
 	SetReferences(value []ArtifactReferenceable)
 }

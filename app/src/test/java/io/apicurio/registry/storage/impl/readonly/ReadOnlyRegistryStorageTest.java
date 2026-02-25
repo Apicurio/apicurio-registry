@@ -61,6 +61,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("createDownload1", new State(true, s -> s.createDownload(null))),
                 entry("createGlobalRule2", new State(true, s -> s.createGlobalRule(null, null))),
                 entry("createGroup1", new State(true, s -> s.createGroup(null))),
+                entry("createOrGetContent2", new State(true, s -> s.createOrGetContent(null, null))),
                 entry("createRoleMapping3", new State(true, s -> s.createRoleMapping(null, null, null))),
                 entry("deleteAllExpiredDownloads0",
                         new State(true, RegistryStorage::deleteAllExpiredDownloads)),

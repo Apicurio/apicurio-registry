@@ -9,7 +9,7 @@ type CreateVersion struct {
 	additionalData map[string]any
 	// The branches property
 	branches []string
-	// The content property
+	// The content for an artifact version.  Either (`content` + `contentType` + optional `references`) OR `contentId` alone must be provided, but not both.
 	content VersionContentable
 	// The description property
 	description *string
@@ -48,7 +48,7 @@ func (m *CreateVersion) GetBranches() []string {
 	return m.branches
 }
 
-// GetContent gets the content property value. The content property
+// GetContent gets the content property value. The content for an artifact version.  Either (`content` + `contentType` + optional `references`) OR `contentId` alone must be provided, but not both.
 // returns a VersionContentable when successful
 func (m *CreateVersion) GetContent() VersionContentable {
 	return m.content
@@ -230,7 +230,7 @@ func (m *CreateVersion) SetBranches(value []string) {
 	m.branches = value
 }
 
-// SetContent sets the content property value. The content property
+// SetContent sets the content property value. The content for an artifact version.  Either (`content` + `contentType` + optional `references`) OR `contentId` alone must be provided, but not both.
 func (m *CreateVersion) SetContent(value VersionContentable) {
 	m.content = value
 }

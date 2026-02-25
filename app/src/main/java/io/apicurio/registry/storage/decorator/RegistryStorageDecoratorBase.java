@@ -39,6 +39,11 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     }
 
     @Override
+    public long createOrGetContent(String artifactType, ContentWrapperDto content) throws RegistryStorageException {
+        return delegate.createOrGetContent(artifactType, content);
+    }
+
+    @Override
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,

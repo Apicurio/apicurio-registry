@@ -10,6 +10,7 @@ import io.apicurio.registry.rest.client.models.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.Comment;
+import io.apicurio.registry.rest.v3.beans.ContentCreateResponse;
 import io.apicurio.registry.rest.v3.beans.CreateGroup;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
@@ -2071,6 +2072,241 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
             .delete("/registry/v3/groups/{groupId}")
             .then()
             .statusCode(204);
+    }
+
+    @Test
+    public void testUploadContent() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Upload content to the /content endpoint
+        ContentCreateResponse contentResponse = given()
+                .when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(artifactContent)
+                .post("/registry/v3/content")
+                .then()
+                .statusCode(200)
+                .body("contentId", notNullValue())
+                .extract().as(ContentCreateResponse.class);
+
+        assertNotNull(contentResponse.getContentId());
+
+        // Upload the same content again - should return the same contentId (dedup)
+        ContentCreateResponse contentResponse2 = given()
+                .when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(artifactContent)
+                .post("/registry/v3/content")
+                .then()
+                .statusCode(200)
+                .body("contentId", notNullValue())
+                .extract().as(ContentCreateResponse.class);
+
+        assertEquals(contentResponse.getContentId(), contentResponse2.getContentId());
+    }
+
+    @Test
+    public void testCreateArtifactWithContentId() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Step 1: Upload content to get a contentId
+        ContentCreateResponse contentResponse = given()
+                .when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(artifactContent)
+                .post("/registry/v3/content")
+                .then()
+                .statusCode(200)
+                .extract().as(ContentCreateResponse.class);
+
+        long contentId = contentResponse.getContentId();
+
+        // Step 2: Create an artifact using the contentId (no inline content)
+        io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = io.apicurio.registry.rest.v3.beans.CreateArtifact
+                .builder()
+                .artifactId("testCreateArtifactWithContentId/EmptyAPI")
+                .artifactType(ArtifactType.OPENAPI)
+                .firstVersion(io.apicurio.registry.rest.v3.beans.CreateVersion.builder()
+                        .content(io.apicurio.registry.rest.v3.beans.VersionContent.builder()
+                                .contentId(contentId)
+                                .build())
+                        .build())
+                .build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
+                .body("artifact.groupId", equalTo(GROUP))
+                .body("artifact.artifactId", equalTo("testCreateArtifactWithContentId/EmptyAPI"))
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI))
+                .body("version.version", equalTo("1"));
+
+        // Step 3: Verify the content is correct by fetching the artifact version content
+        given().when().pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testCreateArtifactWithContentId/EmptyAPI")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API"));
+    }
+
+    @Test
+    public void testCreateArtifactVersionWithContentId() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (testCreateArtifactVersionWithContentId)");
+
+        // Step 1: Create an artifact using inline content
+        createArtifact(GROUP, "testCreateArtifactVersionWithContentId/EmptyAPI", ArtifactType.OPENAPI,
+                artifactContent, ContentTypes.APPLICATION_JSON);
+
+        // Step 2: Upload updated content to get a contentId
+        ContentCreateResponse contentResponse = given()
+                .when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(updatedArtifactContent)
+                .post("/registry/v3/content")
+                .then()
+                .statusCode(200)
+                .extract().as(ContentCreateResponse.class);
+
+        long contentId = contentResponse.getContentId();
+
+        // Step 3: Create a new version using the contentId
+        io.apicurio.registry.rest.v3.beans.CreateVersion createVersion = io.apicurio.registry.rest.v3.beans.CreateVersion
+                .builder()
+                .content(io.apicurio.registry.rest.v3.beans.VersionContent.builder()
+                        .contentId(contentId)
+                        .build())
+                .build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testCreateArtifactVersionWithContentId/EmptyAPI")
+                .body(createVersion)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
+                .body("version", equalTo("2"))
+                .body("artifactType", equalTo(ArtifactType.OPENAPI));
+
+        // Step 4: Verify the content is the updated version
+        given().when().pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testCreateArtifactVersionWithContentId/EmptyAPI")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .body("openapi", equalTo("3.0.2"))
+                .body("info.title", equalTo("Empty API (testCreateArtifactVersionWithContentId)"));
+    }
+
+    @Test
+    public void testCreateArtifactWithContentIdMutualExclusivity() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Upload content to get a contentId
+        ContentCreateResponse contentResponse = given()
+                .when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(artifactContent)
+                .post("/registry/v3/content")
+                .then()
+                .statusCode(200)
+                .extract().as(ContentCreateResponse.class);
+
+        long contentId = contentResponse.getContentId();
+
+        // Try creating artifact with both contentId AND content (should fail with 400)
+        io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = io.apicurio.registry.rest.v3.beans.CreateArtifact
+                .builder()
+                .artifactId("testCreateArtifactWithContentIdMutualExclusivity/EmptyAPI")
+                .artifactType(ArtifactType.OPENAPI)
+                .firstVersion(io.apicurio.registry.rest.v3.beans.CreateVersion.builder()
+                        .content(io.apicurio.registry.rest.v3.beans.VersionContent.builder()
+                                .contentId(contentId)
+                                .content(artifactContent)
+                                .contentType(ContentTypes.APPLICATION_JSON)
+                                .build())
+                        .build())
+                .build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(400);
+
+        // Try creating artifact with contentId AND contentType only (should fail with 400)
+        createArtifact = io.apicurio.registry.rest.v3.beans.CreateArtifact
+                .builder()
+                .artifactId("testCreateArtifactWithContentIdMutualExclusivity/EmptyAPI-2")
+                .artifactType(ArtifactType.OPENAPI)
+                .firstVersion(io.apicurio.registry.rest.v3.beans.CreateVersion.builder()
+                        .content(io.apicurio.registry.rest.v3.beans.VersionContent.builder()
+                                .contentId(contentId)
+                                .contentType(ContentTypes.APPLICATION_JSON)
+                                .build())
+                        .build())
+                .build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(400);
+    }
+
+    @Test
+    public void testCreateArtifactVersionWithContentIdMutualExclusivity() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create an artifact first
+        createArtifact(GROUP, "testCreateVersionWithContentIdMutualExclusivity/EmptyAPI",
+                ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+
+        // Upload content to get a contentId
+        ContentCreateResponse contentResponse = given()
+                .when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(artifactContent)
+                .post("/registry/v3/content")
+                .then()
+                .statusCode(200)
+                .extract().as(ContentCreateResponse.class);
+
+        long contentId = contentResponse.getContentId();
+
+        // Try creating version with both contentId AND content (should fail with 400)
+        io.apicurio.registry.rest.v3.beans.CreateVersion createVersion = io.apicurio.registry.rest.v3.beans.CreateVersion
+                .builder()
+                .content(io.apicurio.registry.rest.v3.beans.VersionContent.builder()
+                        .contentId(contentId)
+                        .content(artifactContent)
+                        .contentType(ContentTypes.APPLICATION_JSON)
+                        .build())
+                .build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testCreateVersionWithContentIdMutualExclusivity/EmptyAPI")
+                .body(createVersion)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(400);
+    }
+
+    @Test
+    public void testUploadContentWithArtifactTypeHeader() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Upload content with explicit artifact type header
+        ContentCreateResponse contentResponse = given()
+                .when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
+                .body(artifactContent)
+                .post("/registry/v3/content")
+                .then()
+                .statusCode(200)
+                .body("contentId", notNullValue())
+                .extract().as(ContentCreateResponse.class);
+
+        assertNotNull(contentResponse.getContentId());
+
+        // Use the contentId to create an artifact and verify it works
+        io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = io.apicurio.registry.rest.v3.beans.CreateArtifact
+                .builder()
+                .artifactId("testUploadContentWithArtifactTypeHeader/EmptyAPI")
+                .artifactType(ArtifactType.OPENAPI)
+                .firstVersion(io.apicurio.registry.rest.v3.beans.CreateVersion.builder()
+                        .content(io.apicurio.registry.rest.v3.beans.VersionContent.builder()
+                                .contentId(contentResponse.getContentId())
+                                .build())
+                        .build())
+                .build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
     }
 
 }

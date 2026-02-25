@@ -4197,6 +4197,59 @@
         }
       ]
     },
+    "/content": {
+      "summary": "Upload raw artifact content for later use.",
+      "post": {
+        "tags": [
+          "Content"
+        ],
+        "requestBody": {
+          "description": "The raw content to upload.",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/FileContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "name": "X-Registry-ArtifactType",
+            "description": "Artifact type hint for canonical hash computation.",
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactType"
+            },
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentCreateResponse"
+                }
+              }
+            },
+            "description": "The content was successfully uploaded.  Includes the unique content identifier."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "uploadContent",
+        "summary": "Upload content",
+        "description": "Uploads raw artifact content to the registry, returning a unique content identifier.  The returned content identifier can then be used when creating artifacts or artifact versions.  This is useful when the content is very large and it is not practical to include the content inline when, e.g. creating an artifact.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
     "x-codegen-contextRoot": "/apis/registry/v3"
   },
   "components": {
@@ -5103,11 +5156,7 @@
         }
       },
       "VersionContent": {
-        "description": "",
-        "required": [
-          "content",
-          "contentType"
-        ],
+        "description": "The content for an artifact version.  Either (`content` + `contentType` + optional `references`) OR `contentId` alone must be provided, but not both.",
         "type": "object",
         "properties": {
           "content": {
@@ -5125,6 +5174,11 @@
           "contentType": {
             "description": "The content-type, such as `application/json` or `text/xml`.",
             "type": "string"
+          },
+          "contentId": {
+            "description": "The unique identifier of previously uploaded content.  When this is provided, `content`, `contentType`, and `references` should NOT be provided.",
+            "format": "int64",
+            "type": "integer"
           }
         }
       },
@@ -5674,6 +5728,20 @@
             "name": "ExampleType",
             "description": "A simple example of an Avro type.",
             "labels": {}
+          }
+        }
+      },
+      "ContentCreateResponse": {
+        "description": "Response from uploading content.  Contains the unique content identifier.",
+        "required": [
+          "contentId"
+        ],
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "description": "The unique identifier of the content.",
+            "format": "int64",
+            "type": "integer"
           }
         }
       },
@@ -6521,6 +6589,10 @@
     {
       "name": "AI",
       "description": "Operations related to AI/ML artifact management, including prompt template rendering, model schema queries, and LLM integration features."
+    },
+    {
+      "name": "Content",
+      "description": "Operations for uploading raw artifact content to the registry for later use in creating artifacts or artifact versions."
     }
   ],
   "x-codegen": {

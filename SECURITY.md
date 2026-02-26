@@ -17,7 +17,7 @@ If you discover a security vulnerability in Apicurio Registry, please report it 
 
 ### How to report
 
-Send an email to **[apicurio-registry-security@redhat.com](mailto:apicurio-registry-security@redhat.com)** with the following information:
+Send an email to **[apicurio.registry@redhat.com](mailto:apicurio.registry@redhat.com)** with the following information:
 
 - A description of the vulnerability
 - Steps to reproduce the issue (include screenshots or proof-of-concept code if possible)

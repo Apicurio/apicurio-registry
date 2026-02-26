@@ -92,7 +92,7 @@ The UI is built with React 19, PatternFly v6, and deployed as a separate contain
 - **Apache Kafka / Strimzi:** Schema registry for Kafka topics; KafkaSQL storage backend using Kafka itself as the data store
 - **Pulsar / NATS:** Schema resolution via dedicated serdes libraries
 - **Kubernetes:** Operator for lifecycle management, CRD-based content sync
-- **CI/CD pipelines:** Maven/Gradle plugins for schema registration during builds
+- **CI/CD pipelines:** Maven plugin for schema registration during builds
 - **OpenTelemetry:** Distributed tracing and metrics export
 - **OIDC providers:** Keycloak, Azure Entra ID, Okta for authentication
 - **CloudEvents:** The registry can be extended to support CloudEvents as an artifact type

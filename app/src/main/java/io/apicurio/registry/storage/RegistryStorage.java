@@ -30,6 +30,7 @@ import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
@@ -60,6 +61,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -1041,10 +1043,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param sinceTimestamp Timestamp in milliseconds since epoch
      * @return List of version metadata for changed versions
      */
-    default List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
-        throw new UnsupportedOperationException(
-                "getVersionsModifiedSince not supported by storage type: " + storageName());
-    }
+    List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp);
+
+    /**
+     * Count versions modified (created or updated) since the given timestamp. Used to cheaply
+     * determine whether to do an incremental update or a full rebuild of the search index.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return count of modified versions
+     */
+    long countVersionsModifiedSince(long sinceTimestamp);
 
     /**
      * Get the timestamp of the most recently modified version. Only needed for ASYNCHRONOUS mode of
@@ -1052,9 +1060,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      *
      * @return Timestamp in milliseconds, or 0 if no versions exist
      */
-    default long getLatestVersionTimestamp() {
-        return System.currentTimeMillis();
-    }
+    long getLatestVersionTimestamp();
 
     /**
      * Get all version globalIds. Only needed for ASYNCHRONOUS mode of Lucene search indexing, used for
@@ -1062,10 +1068,25 @@ public interface RegistryStorage extends DynamicConfigStorage {
      *
      * @return List of all globalIds
      */
-    default List<Long> getAllVersionGlobalIds() {
-        throw new UnsupportedOperationException(
-                "getAllVersionGlobalIds not supported by storage type: " + storageName());
-    }
+    List<Long> getAllVersionGlobalIds();
+
+    /**
+     * Streams all versions with their content. Used by the startup reindexer to populate the
+     * Lucene search index from scratch. The consumer is called once per version, with e.g. the
+     * JDBC cursor kept open for the duration.
+     *
+     * @param consumer receives each version's metadata and content
+     */
+    void forEachVersion(Consumer<VersionContentDto> consumer);
+
+    /**
+     * Streams versions modified since the given timestamp, with their content. Used for
+     * incremental search index updates to avoid N+1 content fetches.
+     *
+     * @param sinceTimestamp only include versions with modifiedOn >= this value (millis since epoch)
+     * @param consumer receives each version's metadata and content
+     */
+    void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer);
 
     /**
      * Legacy code: we used to have an enum that drove how to retrieve versions. This has since been converted

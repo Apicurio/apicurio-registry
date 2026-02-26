@@ -1,10 +1,8 @@
 package io.apicurio.registry.storage.impl.search;
 
 import io.apicurio.registry.cdi.Current;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -65,6 +63,7 @@ public class AsynchronousLuceneIndexUpdater {
 
         if (isActive) {
             log.info("Asynchronous search index updates ENABLED");
+            log.info("  - Initial delay: {}", config.getPollingInitialDelay());
             log.info("  - Polling interval: {}", config.getPollingInterval());
             log.info("  - Full rebuild threshold: {}", config.getFullRebuildThreshold());
         } else if (config.isEnabled()) {
@@ -78,7 +77,7 @@ public class AsynchronousLuceneIndexUpdater {
      */
     @Scheduled(concurrentExecution = SKIP,
             every = "{apicurio.search.lucene.polling-interval}",
-            delay = 10)
+            delayed = "{apicurio.search.lucene.polling-initial-delay}")
     void pollAndUpdateIndex() {
         if (!isActive) {
             return;
@@ -107,19 +106,19 @@ public class AsynchronousLuceneIndexUpdater {
                 return;
             }
 
-            // Normal incremental poll
-            List<ArtifactVersionMetaDataDto> modifiedVersions =
-                    storage.getVersionsModifiedSince(lastPolledTimestamp);
+            // Check how many versions changed — cheap COUNT query to avoid fetching a huge
+            // result set just to decide we need a full rebuild.
+            long modifiedCount = storage.countVersionsModifiedSince(lastPolledTimestamp);
 
-            if (modifiedVersions.isEmpty()) {
+            if (modifiedCount == 0) {
                 log.debug("No version changes detected since last poll.");
-            } else if (modifiedVersions.size() > config.getFullRebuildThreshold()) {
+            } else if (modifiedCount > config.getFullRebuildThreshold()) {
                 log.info("Large number of changes detected ({}), performing full index rebuild...",
-                        modifiedVersions.size());
+                        modifiedCount);
                 rebuildIndex();
             } else {
-                log.debug("Processing {} modified versions...", modifiedVersions.size());
-                applyIncrementalUpdates(modifiedVersions);
+                log.debug("Processing {} modified versions...", modifiedCount);
+                applyIncrementalUpdates(lastPolledTimestamp);
             }
 
             lastPolledTimestamp = System.currentTimeMillis();
@@ -136,7 +135,8 @@ public class AsynchronousLuceneIndexUpdater {
     }
 
     /**
-     * Rebuilds the entire index from scratch by querying all versions from the database.
+     * Rebuilds the entire index from scratch by streaming all versions with content from the
+     * database in a single cursor-based query.
      */
     private void rebuildIndex() {
         try {
@@ -147,22 +147,23 @@ public class AsynchronousLuceneIndexUpdater {
             indexWriter.deleteAll();
             indexWriter.commit();
 
-            // Get all versions from the database using the modified-since method with timestamp 0
-            List<ArtifactVersionMetaDataDto> allVersions = storage.getVersionsModifiedSince(0);
+            int[] counts = {0, 0}; // [indexed, errors]
 
-            int indexedCount = 0;
-            int errorCount = 0;
-            for (ArtifactVersionMetaDataDto versionMetadata : allVersions) {
+            storage.forEachVersion(versionContent -> {
                 try {
-                    indexVersion(versionMetadata);
-                    indexedCount++;
+                    ArtifactVersionMetaDataDto metadata = versionContent.toMetaDataDto();
+                    byte[] contentBytes = versionContent.getContent().bytes();
+                    Document doc = documentBuilder.buildVersionDocument(metadata, contentBytes);
+                    indexWriter.updateDocument(
+                            new Term("globalId", String.valueOf(metadata.getGlobalId())), doc);
+                    counts[0]++;
                 } catch (Exception e) {
-                    errorCount++;
+                    counts[1]++;
                     log.warn("Failed to index version {}/{}/{} (globalId={})",
-                            versionMetadata.getGroupId(), versionMetadata.getArtifactId(),
-                            versionMetadata.getVersion(), versionMetadata.getGlobalId(), e);
+                            versionContent.getGroupId(), versionContent.getArtifactId(),
+                            versionContent.getVersion(), versionContent.getGlobalId(), e);
                 }
-            }
+            });
 
             // Batch commit
             indexWriter.commit();
@@ -172,7 +173,7 @@ public class AsynchronousLuceneIndexUpdater {
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("Full index rebuild complete: {} versions indexed, {} errors, took {}ms",
-                    indexedCount, errorCount, duration);
+                    counts[0], counts[1], duration);
 
         } catch (Exception e) {
             log.error("Failed to rebuild search index", e);
@@ -180,59 +181,40 @@ public class AsynchronousLuceneIndexUpdater {
     }
 
     /**
-     * Applies incremental updates for a batch of modified versions.
+     * Applies incremental updates by streaming modified versions with their content from storage.
      *
-     * @param modifiedVersions The list of modified versions to index
+     * @param sinceTimestamp only index versions modified at or after this timestamp
      */
-    private void applyIncrementalUpdates(List<ArtifactVersionMetaDataDto> modifiedVersions) {
+    private void applyIncrementalUpdates(long sinceTimestamp) {
         try {
-            int indexedCount = 0;
-            int errorCount = 0;
+            int[] counts = {0, 0}; // [indexed, errors]
 
-            for (ArtifactVersionMetaDataDto versionMetadata : modifiedVersions) {
+            storage.forEachVersion(sinceTimestamp, versionContent -> {
                 try {
-                    indexVersion(versionMetadata);
-                    indexedCount++;
+                    ArtifactVersionMetaDataDto metadata = versionContent.toMetaDataDto();
+                    byte[] contentBytes = versionContent.getContent().bytes();
+                    Document doc = documentBuilder.buildVersionDocument(metadata, contentBytes);
+                    indexWriter.updateDocument(
+                            new Term("globalId", String.valueOf(metadata.getGlobalId())), doc);
+                    counts[0]++;
                 } catch (Exception e) {
-                    errorCount++;
+                    counts[1]++;
                     log.warn("Failed to index version {}/{}/{} (globalId={})",
-                            versionMetadata.getGroupId(), versionMetadata.getArtifactId(),
-                            versionMetadata.getVersion(), versionMetadata.getGlobalId(), e);
+                            versionContent.getGroupId(), versionContent.getArtifactId(),
+                            versionContent.getVersion(), versionContent.getGlobalId(), e);
                 }
-            }
+            });
 
             // Batch commit after all updates
             indexWriter.commit();
             indexSearcher.refresh();
 
             log.debug("Incremental update complete: {} versions indexed, {} errors",
-                    indexedCount, errorCount);
+                    counts[0], counts[1]);
 
         } catch (Exception e) {
             log.error("Failed to apply incremental index updates", e);
         }
-    }
-
-    /**
-     * Indexes a single version by fetching its content from storage. The version metadata is already
-     * provided from the poll query.
-     *
-     * @param versionMetadata The version metadata (already fetched)
-     * @throws IOException if indexing fails
-     */
-    private void indexVersion(ArtifactVersionMetaDataDto versionMetadata) throws IOException {
-        // Fetch content
-        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(
-                versionMetadata.getGroupId(), versionMetadata.getArtifactId(),
-                versionMetadata.getVersion());
-        ContentHandle content = storedVersion.getContent();
-
-        // Build Lucene document
-        Document doc = documentBuilder.buildVersionDocument(versionMetadata, content.bytes());
-
-        // Update index (using globalId as unique key) - no per-document commit in async mode
-        indexWriter.updateDocument(
-                new Term("globalId", String.valueOf(versionMetadata.getGlobalId())), doc);
     }
 
     /**

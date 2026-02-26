@@ -40,6 +40,7 @@ import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
@@ -101,6 +102,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
@@ -841,6 +843,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public long countVersionsModifiedSince(long sinceTimestamp) {
+        return versionRepository.countVersionsModifiedSince(sinceTimestamp);
+    }
+
+    @Override
     public long getLatestVersionTimestamp() {
         return versionRepository.getLatestVersionTimestamp();
     }
@@ -848,6 +855,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public List<Long> getAllVersionGlobalIds() {
         return versionRepository.getAllVersionGlobalIds();
+    }
+
+    @Override
+    public void forEachVersion(Consumer<VersionContentDto> consumer) {
+        versionRepository.forEachVersion(consumer);
+    }
+
+    @Override
+    public void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer) {
+        versionRepository.forEachVersion(sinceTimestamp, consumer);
     }
 
     @Override

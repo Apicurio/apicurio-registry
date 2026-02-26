@@ -30,8 +30,8 @@ import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.types.RuleType;
@@ -54,11 +54,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -67,9 +67,7 @@ import java.util.function.Function;
  * versions across different artifact types and states.
  *
  * <p>Only implements the methods that {@link LuceneStartupIndexer} calls during reindex:
- * {@link #searchVersions}, {@link #getArtifactVersionMetaData(String, String, String)}, and
- * {@link #getArtifactVersionContent(String, String, String)}. All other methods throw
- * {@link UnsupportedOperationException}.</p>
+ * {@link #forEachVersion}. All other methods throw {@link UnsupportedOperationException}.</p>
  */
 public class TestInMemoryRegistryStorage implements RegistryStorage {
 
@@ -141,63 +139,79 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     // ===== Methods used by LuceneStartupIndexer =====
 
     @Override
-    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
-        List<VersionEntry> sorted = versions.stream()
+    public void forEachVersion(Consumer<VersionContentDto> consumer) {
+        versions.stream()
                 .sorted(Comparator.comparingLong(e -> e.metadata().getGlobalId()))
-                .toList();
-        int total = sorted.size();
-        int fromIndex = Math.min(offset, total);
-        int toIndex = Math.min(offset + limit, total);
-        List<SearchedVersionDto> page = sorted.subList(fromIndex, toIndex).stream()
-                .map(e -> {
+                .forEach(e -> {
                     ArtifactVersionMetaDataDto m = e.metadata();
-                    return SearchedVersionDto.builder()
-                            .globalId(m.getGlobalId()).contentId(m.getContentId())
-                            .groupId(m.getGroupId()).artifactId(m.getArtifactId())
-                            .version(m.getVersion()).versionOrder(m.getVersionOrder())
-                            .artifactType(m.getArtifactType()).state(m.getState())
-                            .name(m.getName()).description(m.getDescription())
-                            .owner(m.getOwner()).modifiedBy(m.getModifiedBy())
-                            .createdOn(new Date(m.getCreatedOn()))
-                            .modifiedOn(new Date(m.getModifiedOn()))
-                            .labels(m.getLabels()).build();
-                })
-                .toList();
-        return VersionSearchResultsDto.builder().versions(page).count(total).build();
+                    VersionContentDto dto = VersionContentDto.builder()
+                            .groupId(m.getGroupId())
+                            .artifactId(m.getArtifactId())
+                            .version(m.getVersion())
+                            .versionOrder(m.getVersionOrder())
+                            .globalId(m.getGlobalId())
+                            .contentId(m.getContentId())
+                            .name(m.getName())
+                            .description(m.getDescription())
+                            .owner(m.getOwner())
+                            .createdOn(m.getCreatedOn())
+                            .modifiedBy(m.getModifiedBy())
+                            .modifiedOn(m.getModifiedOn())
+                            .artifactType(m.getArtifactType())
+                            .state(m.getState())
+                            .labels(m.getLabels())
+                            .content(ContentHandle.create(
+                                    e.content().getBytes(StandardCharsets.UTF_8)))
+                            .build();
+                    consumer.accept(dto);
+                });
     }
 
     @Override
-    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
-            String version) throws RegistryStorageException {
-        return versions.stream()
-                .filter(e -> groupId.equals(e.metadata().getGroupId())
-                        && artifactId.equals(e.metadata().getArtifactId())
-                        && version.equals(e.metadata().getVersion()))
-                .map(VersionEntry::metadata)
-                .findFirst()
-                .orElseThrow(() -> new RegistryStorageException(
-                        "Version not found: " + groupId + "/" + artifactId + "/" + version));
+    public void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer) {
+        versions.stream()
+                .filter(e -> e.metadata().getModifiedOn() >= sinceTimestamp)
+                .sorted(Comparator.comparingLong(e -> e.metadata().getGlobalId()))
+                .forEach(e -> {
+                    ArtifactVersionMetaDataDto m = e.metadata();
+                    VersionContentDto dto = VersionContentDto.builder()
+                            .groupId(m.getGroupId())
+                            .artifactId(m.getArtifactId())
+                            .version(m.getVersion())
+                            .versionOrder(m.getVersionOrder())
+                            .globalId(m.getGlobalId())
+                            .contentId(m.getContentId())
+                            .name(m.getName())
+                            .description(m.getDescription())
+                            .owner(m.getOwner())
+                            .createdOn(m.getCreatedOn())
+                            .modifiedBy(m.getModifiedBy())
+                            .modifiedOn(m.getModifiedOn())
+                            .artifactType(m.getArtifactType())
+                            .state(m.getState())
+                            .labels(m.getLabels())
+                            .content(ContentHandle.create(
+                                    e.content().getBytes(StandardCharsets.UTF_8)))
+                            .build();
+                    consumer.accept(dto);
+                });
     }
 
     @Override
-    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId,
-            String version) throws RegistryStorageException {
+    public long countVersionsModifiedSince(long sinceTimestamp) {
         return versions.stream()
-                .filter(e -> groupId.equals(e.metadata().getGroupId())
-                        && artifactId.equals(e.metadata().getArtifactId())
-                        && version.equals(e.metadata().getVersion()))
-                .map(e -> StoredArtifactVersionDto.builder()
-                        .globalId(e.metadata().getGlobalId())
-                        .version(e.metadata().getVersion())
-                        .versionOrder(e.metadata().getVersionOrder())
-                        .contentId(e.metadata().getContentId())
-                        .content(ContentHandle.create(
-                                e.content().getBytes(StandardCharsets.UTF_8)))
-                        .build())
-                .findFirst()
-                .orElseThrow(() -> new RegistryStorageException(
-                        "Content not found: " + groupId + "/" + artifactId + "/" + version));
+                .filter(e -> e.metadata().getModifiedOn() >= sinceTimestamp)
+                .count();
+    }
+
+    @Override
+    public long getLatestVersionTimestamp() {
+        return 0;
+    }
+
+    @Override
+    public List<Long> getAllVersionGlobalIds() {
+        return List.of();
     }
 
     @Override
@@ -221,6 +235,24 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     }
 
     // ===== Unused methods — throw UnsupportedOperationException =====
+
+    @Override
+    public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
+            String version) throws RegistryStorageException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId,
+            String version) throws RegistryStorageException {
+        throw new UnsupportedOperationException();
+    }
 
     @Override
     public void initialize() {
@@ -824,6 +856,11 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     @Override
     public boolean supportsDatabaseEvents() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
+        return List.of();
     }
 
     // ===== DynamicConfigStorage methods =====

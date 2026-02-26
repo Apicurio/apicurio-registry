@@ -1,16 +1,10 @@
 package io.apicurio.registry.storage.impl.search;
 
 import io.apicurio.registry.cdi.Current;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.SearchedVersionDto;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
@@ -18,9 +12,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Startup component that checks whether the Lucene search index is empty when the application
@@ -37,7 +28,7 @@ public class LuceneStartupIndexer {
 
     private static final Logger log = LoggerFactory.getLogger(LuceneStartupIndexer.class);
 
-    private static final int BATCH_SIZE = 100;
+    private static final int PROGRESS_LOG_INTERVAL = 100;
 
     @Inject
     LuceneSearchConfig config;
@@ -106,49 +97,36 @@ public class LuceneStartupIndexer {
     }
 
     /**
-     * Performs a full reindex by paginating through all versions in storage and indexing each one.
-     * Uses {@code storage.searchVersions()} for enumeration, which works for all storage types.
-     * During the reindex, the {@link io.apicurio.registry.storage.decorator.LuceneSearchDecorator}
-     * falls through to SQL because {@link #isReady()} returns false.
+     * Performs a full reindex by streaming all versions with their content from storage in a
+     * single cursor-based query. During the reindex, the
+     * {@link io.apicurio.registry.storage.decorator.LuceneSearchDecorator} falls through to SQL
+     * because {@link #isReady()} returns false.
      */
     private void reindex() {
         log.info("Starting startup reindex of Lucene search index...");
         long startTime = System.currentTimeMillis();
 
-        int offset = 0;
-        int indexedCount = 0;
-        int errorCount = 0;
+        int[] counts = {0, 0}; // [indexed, errors]
 
-        while (true) {
-            VersionSearchResultsDto results = storage.searchVersions(
-                    Collections.emptySet(), OrderBy.globalId, OrderDirection.asc,
-                    offset, BATCH_SIZE);
-
-            List<SearchedVersionDto> versions = results.getVersions();
-            if (versions.isEmpty()) {
-                break;
-            }
-
-            for (SearchedVersionDto searchedVersion : versions) {
-                try {
-                    indexVersion(searchedVersion);
-                    indexedCount++;
-                } catch (Exception e) {
-                    errorCount++;
-                    log.warn("Failed to index version {}/{}/{} (globalId={}) during startup reindex",
-                            searchedVersion.getGroupId(), searchedVersion.getArtifactId(),
-                            searchedVersion.getVersion(), searchedVersion.getGlobalId(), e);
+        storage.forEachVersion(versionContent -> {
+            try {
+                ArtifactVersionMetaDataDto metadata = versionContent.toMetaDataDto();
+                byte[] contentBytes = versionContent.getContent().bytes();
+                Document doc = documentBuilder.buildVersionDocument(metadata, contentBytes);
+                indexWriter.updateDocument(
+                        new Term("globalId", String.valueOf(metadata.getGlobalId())), doc);
+                counts[0]++;
+                if (counts[0] % PROGRESS_LOG_INTERVAL == 0) {
+                    log.info("Startup reindex progress: {} versions indexed so far ({} errors).",
+                            counts[0], counts[1]);
                 }
+            } catch (Exception e) {
+                counts[1]++;
+                log.warn("Failed to index version {}/{}/{} (globalId={}) during startup reindex",
+                        versionContent.getGroupId(), versionContent.getArtifactId(),
+                        versionContent.getVersion(), versionContent.getGlobalId(), e);
             }
-
-            offset += versions.size();
-            log.info("Startup reindex progress: {} versions indexed so far ({} errors).",
-                    indexedCount, errorCount);
-
-            if (versions.size() < BATCH_SIZE) {
-                break;
-            }
-        }
+        });
 
         try {
             indexWriter.commit();
@@ -159,31 +137,7 @@ public class LuceneStartupIndexer {
 
         long duration = System.currentTimeMillis() - startTime;
         log.info("Startup reindex complete: {} versions indexed, {} errors, took {}ms",
-                indexedCount, errorCount, duration);
-    }
-
-    /**
-     * Indexes a single version by fetching its full metadata and content from storage.
-     *
-     * @param searchedVersion the searched version DTO from the paginated query
-     * @throws Exception if indexing fails
-     */
-    private void indexVersion(SearchedVersionDto searchedVersion) throws Exception {
-        // Fetch full metadata
-        ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(
-                searchedVersion.getGroupId(), searchedVersion.getArtifactId(),
-                searchedVersion.getVersion());
-
-        // Fetch content
-        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(
-                searchedVersion.getGroupId(), searchedVersion.getArtifactId(),
-                searchedVersion.getVersion());
-        ContentHandle content = storedVersion.getContent();
-
-        // Build and index document
-        Document doc = documentBuilder.buildVersionDocument(metadata, content.bytes());
-        indexWriter.updateDocument(
-                new Term("globalId", String.valueOf(metadata.getGlobalId())), doc);
+                counts[0], counts[1], duration);
     }
 
     /**

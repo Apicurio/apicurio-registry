@@ -516,4 +516,35 @@ public class GitOpsRegistryStorage extends AbstractReadOnlyRegistryStorage {
     public boolean supportsDatabaseEvents() {
         return proxy((RegistryStorage::supportsDatabaseEvents));
     }
+
+    @Override
+    public List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
+        return proxy(storage -> storage.getVersionsModifiedSince(sinceTimestamp));
+    }
+
+    @Override
+    public long countVersionsModifiedSince(long sinceTimestamp) {
+        return proxy(storage -> storage.countVersionsModifiedSince(sinceTimestamp));
+    }
+
+    @Override
+    public long getLatestVersionTimestamp() {
+        return proxy(RegistryStorage::getLatestVersionTimestamp);
+    }
+
+    @Override
+    public List<Long> getAllVersionGlobalIds() {
+        return proxy(RegistryStorage::getAllVersionGlobalIds);
+    }
+
+    @Override
+    public void forEachVersion(Consumer<VersionContentDto> consumer) {
+        proxyAction(storage -> storage.forEachVersion(consumer));
+    }
+
+    @Override
+    public void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer) {
+        proxyAction(storage -> storage.forEachVersion(sinceTimestamp, consumer));
+    }
+
 }

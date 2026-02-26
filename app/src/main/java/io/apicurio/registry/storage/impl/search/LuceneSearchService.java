@@ -197,7 +197,7 @@ public class LuceneSearchService {
     private Query buildFilterQuery(SearchFilter filter) {
         switch (filter.getType()) {
         case groupId:
-            return new TermQuery(new Term("groupId", filter.getStringValue()));
+            return new TermQuery(new Term("groupId", filter.getStringValue() == null ? "default" : filter.getStringValue()));
 
         case artifactId:
             return new TermQuery(new Term("artifactId", filter.getStringValue()));

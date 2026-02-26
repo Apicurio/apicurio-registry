@@ -801,6 +801,11 @@ The following {registry} configuration options are available for each component 
 |
 |`3.2.0`
 |Path to where the search index file should be written
+|`apicurio.search.lucene.polling-initial-delay`
+|`duration`
+|`10s`
+|`3.2.0`
+|Initial delay before the first asynchronous search index poll
 |`apicurio.search.lucene.polling-interval`
 |`duration`
 |`30s`

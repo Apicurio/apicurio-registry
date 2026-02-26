@@ -5,6 +5,7 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -19,6 +20,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.VersionContentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
@@ -42,8 +44,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
@@ -692,6 +696,21 @@ public class SqlVersionRepository {
     }
 
     /**
+     * Count versions modified since the given timestamp. Used to cheaply determine whether to do
+     * an incremental update or a full rebuild.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return count of modified versions
+     */
+    public long countVersionsModifiedSince(long sinceTimestamp) {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.countVersionsModifiedSince())
+                    .bind(0, new java.sql.Timestamp(sinceTimestamp))
+                    .mapTo(Long.class).one();
+        });
+    }
+
+    /**
      * Get the timestamp of the most recently modified version.
      *
      * @return Timestamp in milliseconds since epoch, or 0 if no versions exist
@@ -713,6 +732,48 @@ public class SqlVersionRepository {
         return handles.withHandle(handle -> {
             return handle.createQuery(sqlStatements.selectAllVersionGlobalIds())
                     .mapTo(Long.class).list();
+        });
+    }
+
+    /**
+     * Streams all versions with their content through a single cursor-based SQL query. Used by the
+     * startup reindexer to populate the Lucene search index from scratch.
+     *
+     * @param consumer receives each version's metadata and content
+     */
+    public void forEachVersion(Consumer<VersionContentDto> consumer) {
+        handles.withHandle(handle -> {
+            Stream<VersionContentDto> stream = handle
+                    .createQuery(sqlStatements.selectAllVersionsWithContent())
+                    .setFetchSize(50)
+                    .map(VersionContentDtoMapper.instance)
+                    .stream();
+            try (stream) {
+                stream.forEach(consumer);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Streams versions modified since the given timestamp, with their content, through a single
+     * cursor-based SQL query. Used for incremental search index updates.
+     *
+     * @param sinceTimestamp only include versions with modifiedOn >= this value (millis since epoch)
+     * @param consumer receives each version's metadata and content
+     */
+    public void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer) {
+        handles.withHandle(handle -> {
+            Stream<VersionContentDto> stream = handle
+                    .createQuery(sqlStatements.selectVersionsWithContentModifiedSince())
+                    .bind(0, new java.sql.Timestamp(sinceTimestamp))
+                    .setFetchSize(50)
+                    .map(VersionContentDtoMapper.instance)
+                    .stream();
+            try (stream) {
+                stream.forEach(consumer);
+            }
+            return null;
         });
     }
 }

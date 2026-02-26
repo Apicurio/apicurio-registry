@@ -10,6 +10,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -39,6 +41,10 @@ public class LuceneSearchConfig {
     @Info(category = CATEGORY_SEARCH, description = "Asynchronous search index update polling interval", availableSince = "3.2.0")
     Duration pollingInterval;
 
+    @ConfigProperty(name = "apicurio.search.lucene.polling-initial-delay", defaultValue = "10s")
+    @Info(category = CATEGORY_SEARCH, description = "Initial delay before the first asynchronous search index poll", availableSince = "3.2.0")
+    Duration pollingInitialDelay;
+
     @ConfigProperty(name = "apicurio.search.lucene.full-rebuild-threshold", defaultValue = "1000")
     @Info(category = CATEGORY_SEARCH, description = "Threshold to reach before a full search index rebuild is required", availableSince = "3.2.0")
     int fullRebuildThreshold;
@@ -58,8 +64,18 @@ public class LuceneSearchConfig {
     void initialize() {
         if (enabled) {
             resolvedMode = determineUpdateMode();
-            resolvedIndexPath = indexPath.orElse(System.getProperty("java.io.tmpdir")
-                    + "/apicurio-registry-lucene");
+            resolvedIndexPath = indexPath.orElseGet(() -> {
+                try {
+                    File tempDir = File.createTempFile("apicurio-registry-lucene", "index");
+                    if (tempDir.exists()) {
+                        tempDir.delete();
+                    }
+                    tempDir.mkdirs();
+                    return tempDir.getAbsolutePath();
+                } catch (IOException e) {
+                    return System.getProperty("java.io.tmpdir") + "/apicurio-registry-lucene-" + System.currentTimeMillis();
+                }
+            });
 
             log.info("Lucene search index ENABLED");
             log.info("  - Update mode: {}", resolvedMode);
@@ -118,7 +134,6 @@ public class LuceneSearchConfig {
         switch (storageType) {
             case "kafkasql":
             case "gitops":
-            case "inmemory":
                 log.info("Storage type '{}' is inherently single-node, using SYNCHRONOUS indexing mode",
                         storageType);
                 return IndexUpdateMode.SYNCHRONOUS;
@@ -145,6 +160,15 @@ public class LuceneSearchConfig {
 
     public Duration getPollingInterval() {
         return pollingInterval;
+    }
+
+    /**
+     * Returns the initial delay before the first asynchronous search index poll.
+     *
+     * @return the polling initial delay
+     */
+    public Duration getPollingInitialDelay() {
+        return pollingInitialDelay;
     }
 
     public int getFullRebuildThreshold() {

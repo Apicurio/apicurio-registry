@@ -66,6 +66,7 @@ const GROUP_FILTER_TYPES: ChipFilterType[] = [
 const VERSION_FILTER_TYPES: ChipFilterType[] = [
     { value: FilterBy.artifactId, label: "Artifact Id", testId: "artifact-id-filter-typegroup" },
     { value: FilterBy.artifactType, label: "Type", testId: "type-filter-typegroup" },
+    { value: FilterBy.content, label: "Content", testId: "content-filter-typegroup" },
     { value: FilterBy.contentId, label: "Content Id", testId: "content-id-filter-typegroup" },
     { value: FilterBy.description, label: "Description", testId: "description-filter-typegroup" },
     { value: FilterBy.globalId, label: "Global  Id", testId: "global-id-filter-typegroup" },

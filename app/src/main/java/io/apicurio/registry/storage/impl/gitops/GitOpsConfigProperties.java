@@ -12,22 +12,22 @@ public class GitOpsConfigProperties {
 
     @ConfigProperty(name = "apicurio.gitops.id")
     @Info(category = CATEGORY_GITOPS, description = "Identifier of this Registry instance. Only data that references this identifier "
-            + "will be loaded.", availableSince = "3.0.0")
+            + "will be loaded.", availableSince = "3.0.0", experimental = true)
     @Getter
     String registryId;
 
     @ConfigProperty(name = "apicurio.gitops.workdir", defaultValue = "/tmp/apicurio-registry-gitops")
-    @Info(category = CATEGORY_GITOPS, description = "Path to GitOps working directory, which is used to store the local git repository.", availableSince = "3.0.0")
+    @Info(category = CATEGORY_GITOPS, description = "Path to GitOps working directory, which is used to store the local git repository.", availableSince = "3.0.0", experimental = true)
     @Getter
     String workDir;
 
     @ConfigProperty(name = "apicurio.gitops.repo.origin.uri")
-    @Info(category = CATEGORY_GITOPS, description = "URI of the remote git repository containing data to be loaded.", availableSince = "3.0.0")
+    @Info(category = CATEGORY_GITOPS, description = "URI of the remote git repository containing data to be loaded.", availableSince = "3.0.0", experimental = true)
     @Getter
     String originRepoURI;
 
     @ConfigProperty(name = "apicurio.gitops.repo.origin.branch", defaultValue = "main")
-    @Info(category = CATEGORY_GITOPS, description = "Name of the branch in the remote git repository containing data to be loaded.", availableSince = "3.0.0")
+    @Info(category = CATEGORY_GITOPS, description = "Name of the branch in the remote git repository containing data to be loaded.", availableSince = "3.0.0", experimental = true)
     @Getter
     String originRepoBranch;
 }

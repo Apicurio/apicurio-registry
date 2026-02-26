@@ -16,47 +16,47 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`false`
 |`3.0.0`
-|Whether the agent supports push notifications
+|Whether the agent supports push notifications _(experimental)_
 |`apicurio.a2a.agent.capabilities.streaming`
 |`boolean`
 |`false`
 |`3.0.0`
-|Whether the agent supports streaming
+|Whether the agent supports streaming _(experimental)_
 |`apicurio.a2a.agent.description`
 |`string`
 |`API and Schema Registry with A2A Agent support`
 |`3.0.0`
-|Description of the registry agent
+|Description of the registry agent _(experimental)_
 |`apicurio.a2a.agent.name`
 |`string`
 |`Apicurio Registry`
 |`3.0.0`
-|Name of the registry agent for A2A discovery
+|Name of the registry agent for A2A discovery _(experimental)_
 |`apicurio.a2a.agent.provider.organization`
 |`string`
 |`Apicurio`
 |`3.0.0`
-|Organization name for the agent provider
+|Organization name for the agent provider _(experimental)_
 |`apicurio.a2a.agent.provider.url`
 |`string`
 |`https://www.apicur.io`
 |`3.0.0`
-|URL for the agent provider
+|URL for the agent provider _(experimental)_
 |`apicurio.a2a.agent.url`
 |`optional<string>`
 |
 |`3.0.0`
-|Base URL for the registry agent's A2A endpoint
+|Base URL for the registry agent's A2A endpoint _(experimental)_
 |`apicurio.a2a.agent.version`
 |`optional<string>`
 |
 |`3.0.0`
-|Version of the registry agent (defaults to app version)
+|Version of the registry agent (defaults to app version) _(experimental)_
 |`apicurio.a2a.enabled`
 |`boolean`
 |`true`
 |`3.0.0`
-|Enable A2A protocol support
+|Enable A2A protocol support _(experimental)_
 |===
 
 == api
@@ -342,22 +342,22 @@ The following {registry} configuration options are available for each component 
 |`string`
 |
 |`3.0.0`
-|Identifier of this Registry instance. Only data that references this identifier will be loaded.
+|Identifier of this Registry instance. Only data that references this identifier will be loaded. _(experimental)_
 |`apicurio.gitops.repo.origin.branch`
 |`string`
 |`main`
 |`3.0.0`
-|Name of the branch in the remote git repository containing data to be loaded.
+|Name of the branch in the remote git repository containing data to be loaded. _(experimental)_
 |`apicurio.gitops.repo.origin.uri`
 |`string`
 |
 |`3.0.0`
-|URI of the remote git repository containing data to be loaded.
+|URI of the remote git repository containing data to be loaded. _(experimental)_
 |`apicurio.gitops.workdir`
 |`string`
 |`/tmp/apicurio-registry-gitops`
 |`3.0.0`
-|Path to GitOps working directory, which is used to store the local git repository.
+|Path to GitOps working directory, which is used to store the local git repository. _(experimental)_
 |===
 
 == health
@@ -1143,6 +1143,11 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.4`
 |
+|`apicurio.features.experimental.enabled`
+|`boolean`
+|`false`
+|`3.0.0`
+|Enable experimental features. When disabled, all features marked as experimental will be unavailable regardless of their individual configuration.
 |===
 
 == types
@@ -1219,7 +1224,7 @@ The following {registry} configuration options are available for each component 
 |`boolean [dynamic]`
 |`false`
 |`3.2.0`
-|Enabled to show the Agents tab in the UI
+|Enabled to show the Agents tab in the UI _(experimental)_
 |`apicurio.ui.features.breadcrumbs`
 |`string`
 |`true`

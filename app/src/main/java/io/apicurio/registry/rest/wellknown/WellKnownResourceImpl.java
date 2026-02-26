@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.wellknown;
 import io.apicurio.registry.a2a.A2AConfig;
 import io.apicurio.registry.a2a.AgentCardLabelExtractor;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
+import io.apicurio.registry.config.ExperimentalFeaturesConfig;
 import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResult;
@@ -60,6 +61,9 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Inject
     A2AConfig a2aConfig;
+
+    @Inject
+    ExperimentalFeaturesConfig experimentalConfig;
 
     @Inject
     RegistryAgentCardBuilder agentCardBuilder;
@@ -222,6 +226,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public Response getSchema(String type, String version) {
+        if (!experimentalConfig.isExperimentalFeaturesEnabled()) {
+            throw new NotFoundException("LLM schema endpoints require experimental features to be enabled");
+        }
+
         // Validate and normalize the type
         String schemaResourcePath = getSchemaResourcePath(type, version);
         if (schemaResourcePath == null) {

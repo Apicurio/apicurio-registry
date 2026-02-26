@@ -64,15 +64,17 @@ public class GenerateAllConfigPartial {
         final String description;
         final String type;
         final String defaultValue;
+        final boolean experimental;
         String availableSince;
 
-        public Option(String name, String category, String description, String type, String defaultValue, String availableSince) {
+        public Option(String name, String category, String description, String type, String defaultValue, String availableSince, boolean experimental) {
             this.name = name;
             this.category = category;
             this.description = description;
             this.type = type;
             this.defaultValue = defaultValue;
             this.availableSince = availableSince;
+            this.experimental = experimental;
         }
 
         public String getName() {
@@ -112,22 +114,25 @@ public class GenerateAllConfigPartial {
                     ", type='" + type + '\'' +
                     ", defaultValue='" + defaultValue + '\'' +
                     ", availableSince='" + availableSince + '\'' +
+                    ", experimental=" + experimental +
                     '}';
         }
 
         public String toMDLine() {
             String af = availableSince == null ? " " : " `" + availableSince + "` ";
-            return "| `" + name + "` | `" + category + "` | `" + type + "` | `" + defaultValue + "` |" + af + "| " + description + " |";
+            String desc = experimental ? description + " _(experimental)_" : description;
+            return "| `" + name + "` | `" + category + "` | `" + type + "` | `" + defaultValue + "` |" + af + "| " + desc + " |";
         }
 
         public String toAdoc() {
             String df = defaultValue == null || defaultValue.trim().isEmpty() ? "" : "`" + defaultValue + "`";
             String af = availableSince == null || availableSince.trim().isEmpty() ? "" : "`" + availableSince + "`";
+            String desc = experimental ? description + " _(experimental)_" : description;
             return "|`" + name + "`\n" +
                     "|`" + type + "`\n" +
                     "|" + df + "\n" +
                     "|" + af + "\n" +
-                    "|" + description + "\n";
+                    "|" + desc + "\n";
         }
     }
 
@@ -229,13 +234,18 @@ public class GenerateAllConfigPartial {
                                     .map(v -> v.value().toString())
                                     .orElse(""));
 
+                    var experimental = Optional.ofNullable(info.get().value("experimental"))
+                            .map(v -> (boolean) v.value())
+                            .orElse(false);
+
                     allConfiguration.put(configName, new Option(
                             configName,
                             category,
                             description,
                             resolveTypeName(type),
                             defaultValue,
-                            availableSince
+                            availableSince,
+                            experimental
                     ));
                     break;
             }
@@ -274,6 +284,10 @@ public class GenerateAllConfigPartial {
                             .map(v -> v.value().toString())
                             .orElse(""));
 
+            var experimental = Optional.ofNullable(info.get().value("experimental"))
+                    .map(v -> (boolean) v.value())
+                    .orElse(false);
+
             // Get the property prefixes from @RegistryProperties annotation
             var values = annotation.value("prefixes").asStringArray();
 
@@ -294,7 +308,8 @@ public class GenerateAllConfigPartial {
                         description,
                         "map<string, string>",
                         "",
-                        availableSince
+                        availableSince,
+                        experimental
                 ));
             }
         }
@@ -344,7 +359,8 @@ public class GenerateAllConfigPartial {
                                 opt.getDescription(),
                                 opt.getType(),
                                 opt.getDefaultValue(),
-                                opt.getAvailableFrom()
+                                opt.getAvailableFrom(),
+                                opt.experimental
                         ));
             } else {
                 if (key.startsWith("apicurio.")) {
@@ -355,7 +371,8 @@ public class GenerateAllConfigPartial {
                                     "",
                                     "unknown",
                                     value,
-                                    ""
+                                    "",
+                                    false
                             ));
                 } else {
                     // Skip Quarkus property and unknowns!

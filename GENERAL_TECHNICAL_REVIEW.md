@@ -15,13 +15,13 @@
 
 **Describe the roadmap process, how scope is determined for mid to long term features, as well as how the roadmap maps back to current contributions and maintainer ladder?**
 
-The roadmap is maintained as a [GitHub Project board](https://github.com/orgs/Apicurio/projects/6). Feature scope is determined through a combination of:
+The roadmap is maintained as a [GitHub Project board](https://github.com/orgs/Apicurio/projects/22/views/1). Feature scope is determined through a combination of:
 - Community feedback via GitHub issues and discussions
 - Production requirements from downstream distributions (Red Hat build of Apicurio Registry, IBM Event Streams)
 - Alignment with CNCF ecosystem standards (xRegistry specification, CloudEvents)
 - Maintainer consensus during regular planning sessions
 
-Contributors can progress through the maintainer ladder by consistently contributing quality code, reviews, and community engagement. The current maintainers are listed in [MAINTAINERS.md](MAINTAINERS.md).
+Contributors can progress through the maintainer ladder by consistently contributing quality code, reviews, and community engagement. The current maintainers are listed in the [project pom.xml](https://github.com/Apicurio/apicurio-registry/blob/main/pom.xml#L27-L69).
 
 **Describe the target persona or user(s) for the project?**
 
@@ -71,7 +71,7 @@ Community feedback is gathered through GitHub issues, discussions, and direct en
 - **Client SDKs:** Java, Go, and TypeScript SDKs generated from the OpenAPI spec via Kiota.
 - **CLI:** Command-line interface for scripting and automation.
 - **Serializer/Deserializer libraries:** Transparent schema resolution integrated into Kafka, Pulsar, and NATS client libraries.
-- **Maven/Gradle plugins:** Schema registration and download as part of the build process.
+- **Maven plugin:** Schema registration and download as part of the build process.
 - **Kubernetes operator:** Declarative deployment and content synchronization via CRDs.
 - **MCP Server:** AI/LLM tools can interact with the registry via the Model Context Protocol.
 
@@ -95,7 +95,7 @@ The UI is built with React 19, PatternFly v6, and deployed as a separate contain
 - **CI/CD pipelines:** Maven/Gradle plugins for schema registration during builds
 - **OpenTelemetry:** Distributed tracing and metrics export
 - **OIDC providers:** Keycloak, Azure Entra ID, Okta for authentication
-- **CloudEvents:** Event notifications for registry operations
+- **CloudEvents:** The registry can be extended to support CloudEvents as an artifact type
 
 ### Design
 
@@ -244,7 +244,6 @@ A formal CNCF security self-assessment has not yet been completed. We plan to co
 **Security Hygiene:**
 
 - Dependencies are managed via Renovate with automated PRs for updates
-- Dependabot security alerts are enabled on the GitHub repository
 - The project uses Quarkus's built-in security framework for OIDC, RBAC, and CORS
 - Container images are based on Red Hat UBI (Universal Base Image) minimal images
 - The CI pipeline runs Checkstyle and linting on every PR

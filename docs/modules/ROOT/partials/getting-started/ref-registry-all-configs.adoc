@@ -745,6 +745,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.2.6`
 |Skip SSL validation when downloading artifacts from URL
+|`apicurio.rest.artifact.references.default-handling`
+|`optional<string>`
+|
+|`3.1.0`
+|Optional configuration to override default reference handling behavior. When not set, uses API defaults (PRESERVE for v3, false for v2, none for ccompat).
 |`apicurio.rest.deletion.artifact-version.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -1098,6 +1103,31 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.0.0.Final`
 |SQL init
+|`apicurio.storage.connection.retry.backoff-multiplier`
+|`double`
+|`2.0`
+|`3.1.4`
+|Multiplier for exponential backoff between retry attempts
+|`apicurio.storage.connection.retry.enabled`
+|`boolean`
+|`true`
+|`3.1.4`
+|Enable connection retry with exponential backoff for transient database connection failures
+|`apicurio.storage.connection.retry.initial-delay-ms`
+|`long`
+|`1000`
+|`3.1.4`
+|Initial delay in milliseconds before first retry
+|`apicurio.storage.connection.retry.max-attempts`
+|`int`
+|`10`
+|`3.1.4`
+|Maximum number of connection retry attempts
+|`apicurio.storage.connection.retry.max-delay-ms`
+|`long`
+|`30000`
+|`3.1.4`
+|Maximum delay in milliseconds between retry attempts
 |`apicurio.storage.enable-automatic-group-creation`
 |`boolean`
 |`true`

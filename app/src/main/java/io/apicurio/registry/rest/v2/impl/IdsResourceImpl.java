@@ -10,6 +10,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.HeadersHack;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v2.IdsResource;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
 import io.apicurio.registry.rest.impl.shared.CommonResourceOperations;
@@ -49,6 +50,9 @@ public class IdsResourceImpl implements IdsResource {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
+    @Inject
+    RestConfig restConfig;
+
     private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String artifactId, String version,
             Response.ResponseBuilder builder) {
         HeadersHack.checkIfDeprecated(stateSupplier, null, artifactId, version, builder);
@@ -77,7 +81,15 @@ public class IdsResourceImpl implements IdsResource {
         }
 
         if (dereference == null) {
-            dereference = Boolean.FALSE;
+            // Check if admin has configured a default reference handling behavior
+            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+                // Convert v3 enum value to v2 boolean (DEREFERENCE -> true, others -> false)
+                dereference = "DEREFERENCE".equals(configuredDefault.get());
+            } else {
+                // No configuration - use existing default (no behavior change)
+                dereference = Boolean.FALSE;
+            }
         }
 
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);

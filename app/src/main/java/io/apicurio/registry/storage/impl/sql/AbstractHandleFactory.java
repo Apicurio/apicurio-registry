@@ -22,11 +22,15 @@ public abstract class AbstractHandleFactory implements HandleFactory {
 
     private Logger log;
 
-    protected void initialize(AgroalDataSource dataSource, String dataSourceId, Logger log) {
+    private ConnectionRetryConfig retryConfig;
+
+    protected void initialize(AgroalDataSource dataSource, String dataSourceId, Logger log,
+            ConnectionRetryConfig retryConfig) {
         // CDI error if there is no no-args constructor
         this.dataSource = dataSource;
         this.dataSourceId = dataSourceId;
         this.log = log;
+        this.retryConfig = retryConfig;
     }
 
     @Override
@@ -35,7 +39,8 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         try {
             // Create a new handle if necessary. Increment the "level" if a handle already exists.
             if (state.handle == null) {
-                Connection connection = dataSource.getConnection();
+                Connection connection = ConnectionRetryUtil.getConnectionWithRetry(dataSource, retryConfig,
+                        log);
                 // We must disable autocommit since we're managing the transactions ourselves.
                 connection.setAutoCommit(false);
                 state.handle = new HandleImpl(connection);

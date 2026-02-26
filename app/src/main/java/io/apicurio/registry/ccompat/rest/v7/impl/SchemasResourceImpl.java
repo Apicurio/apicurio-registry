@@ -68,6 +68,18 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             artifactType = versions.get(0).getArtifactType();
         }
 
+        // Apply default format if configured and no format was explicitly provided
+        if (format == null || format.isBlank()) {
+            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
+                    && "DEREFERENCE".equalsIgnoreCase(configuredDefault.get())) {
+                // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
+                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
+                    format = "resolved";
+                }
+            }
+        }
+
         // Apply format transformation if requested
         if (format != null && !format.isBlank()) {
             Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(references);
@@ -99,6 +111,18 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
             artifactType = versions.get(0).getArtifactType();
+        }
+
+        // Apply default format if configured and no format was explicitly provided
+        if (format == null || format.isBlank()) {
+            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
+                    && "DEREFERENCE".equals(configuredDefault.get())) {
+                // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
+                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
+                    format = "RESOLVED";
+                }
+            }
         }
 
         // Apply format transformation if requested

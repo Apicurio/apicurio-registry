@@ -8,6 +8,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -75,6 +76,9 @@ public abstract class AbstractResource {
 
     @Inject
     SecurityIdentity securityIdentity;
+
+    @Inject
+    RestConfig restConfig;
 
     protected String toSubjectWithGroupConcat(String groupId, String artifactId) {
         return (groupId == null ? "" : groupId) + cconfig.groupConcatSeparator + artifactId;

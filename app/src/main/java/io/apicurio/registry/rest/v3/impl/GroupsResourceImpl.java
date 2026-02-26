@@ -826,7 +826,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         if (references == null) {
-            references = HandleReferencesType.PRESERVE;
+            // Check if admin has configured a default reference handling behavior
+            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+                references = HandleReferencesType.fromValue(configuredDefault.get());
+            } else {
+                // No configuration - use existing default (no behavior change)
+                references = HandleReferencesType.PRESERVE;
+            }
         }
 
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(gav.getRawGroupIdWithNull(),

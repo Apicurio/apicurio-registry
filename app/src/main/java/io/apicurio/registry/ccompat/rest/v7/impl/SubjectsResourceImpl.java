@@ -39,6 +39,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.utils.VersionUtil;
 import jakarta.inject.Inject;
@@ -126,12 +127,26 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
                             ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
 
+                    // Apply default format if configured and no format was explicitly provided
+                    String effectiveFormat = format;
+                    if (effectiveFormat == null || effectiveFormat.isBlank()) {
+                        java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+                        if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
+                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                            // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
+                            if (ArtifactType.AVRO.equals(amd.getArtifactType())
+                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
+                                effectiveFormat = "RESOLVED";
+                            }
+                        }
+                    }
+
                     // Apply format transformation if requested
-                    if (format != null && !format.trim().isEmpty()) {
+                    if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
                                 storedArtifact.getReferences());
                         ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), format,
+                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
                                 resolvedReferences);
 
                         StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
@@ -438,12 +453,26 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(groupId,
                             artifactId, amd.getVersion());
 
+                    // Apply default format if configured and no format was explicitly provided
+                    String effectiveFormat = format;
+                    if (effectiveFormat == null || effectiveFormat.isBlank()) {
+                        java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+                        if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
+                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                            // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
+                            if (ArtifactType.AVRO.equals(amd.getArtifactType())
+                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
+                                effectiveFormat = "RESOLVED";
+                            }
+                        }
+                    }
+
                     // Apply format transformation if requested
-                    if (format != null && !format.trim().isEmpty()) {
+                    if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
                                 storedArtifact.getReferences());
                         ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), format,
+                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
                                 resolvedReferences);
 
                         // Create a new StoredArtifactVersionDto with the formatted content

@@ -16,9 +16,12 @@ public class HandleFactoryProducer {
     @Inject
     Logger logger;
 
+    @Inject
+    ConnectionRetryConfig retryConfig;
+
     @Produces
     @ApplicationScoped
     public HandleFactory produceHandleFactory() {
-        return new DefaultHandleFactory(dataSource, logger);
+        return new DefaultHandleFactory(dataSource, logger, retryConfig);
     }
 }

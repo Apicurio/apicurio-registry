@@ -135,7 +135,15 @@ public class GroupsResourceImpl implements GroupsResource {
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         if (dereference == null) {
-            dereference = Boolean.FALSE;
+            // Check if admin has configured a default reference handling behavior
+            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+                // Convert v3 enum value to v2 boolean (DEREFERENCE -> true, others -> false)
+                dereference = "DEREFERENCE".equals(configuredDefault.get());
+            } else {
+                // No configuration - use existing default (no behavior change)
+                dereference = Boolean.FALSE;
+            }
         }
 
         try {
@@ -647,7 +655,15 @@ public class GroupsResourceImpl implements GroupsResource {
         ParameterValidationUtils.requireParameter("version", version);
 
         if (dereference == null) {
-            dereference = Boolean.FALSE;
+            // Check if admin has configured a default reference handling behavior
+            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+                // Convert v3 enum value to v2 boolean (DEREFERENCE -> true, others -> false)
+                dereference = "DEREFERENCE".equals(configuredDefault.get());
+            } else {
+                // No configuration - use existing default (no behavior change)
+                dereference = Boolean.FALSE;
+            }
         }
 
         if ("latest".equals(version)) {

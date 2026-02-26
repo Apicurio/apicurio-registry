@@ -89,7 +89,14 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         }
 
         if (references == null) {
-            references = HandleReferencesType.PRESERVE;
+            // Check if admin has configured a default reference handling behavior
+            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+                references = HandleReferencesType.fromValue(configuredDefault.get());
+            } else {
+                // No configuration - use existing default (no behavior change)
+                references = HandleReferencesType.PRESERVE;
+            }
         }
 
         StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);

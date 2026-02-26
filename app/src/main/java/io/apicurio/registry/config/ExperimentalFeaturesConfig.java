@@ -14,7 +14,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYS
 public class ExperimentalFeaturesConfig {
 
     @ConfigProperty(name = "apicurio.features.experimental.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_SYSTEM, description = "Enable experimental features. When disabled, all features marked as experimental will be unavailable regardless of their individual configuration.", availableSince = "3.0.0")
+    @Info(category = CATEGORY_SYSTEM, description = "Enable experimental features. When disabled, all features marked as experimental will be unavailable regardless of their individual configuration.", availableSince = "3.2.0")
     boolean experimentalFeaturesEnabled;
 
     public boolean isExperimentalFeaturesEnabled() {

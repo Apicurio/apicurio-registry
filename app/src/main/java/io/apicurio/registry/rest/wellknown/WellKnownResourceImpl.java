@@ -227,7 +227,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public Response getSchema(String type, String version) {
         if (!experimentalConfig.isExperimentalFeaturesEnabled()) {
-            throw new NotFoundException("LLM schema endpoints require experimental features to be enabled");
+            throw new NotFoundException("Schema not found: " + type + "/" + version);
         }
 
         // Validate and normalize the type

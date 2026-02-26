@@ -63,7 +63,7 @@ public class A2AConfig {
     @PostConstruct
     void onConstruct() {
         if (enabled && !experimentalConfig.isExperimentalFeaturesEnabled()) {
-            log.info("A2A protocol support is enabled but the experimental features gate is disabled. "
+            log.debug("A2A protocol support is enabled but the experimental features gate is disabled. "
                     + "Set 'apicurio.features.experimental.enabled=true' to activate A2A.");
         }
     }

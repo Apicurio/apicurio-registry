@@ -215,7 +215,7 @@ IMPORTANT: Deletion of groups, artifacts, and artifact versions is disabled by d
 * You are logged in to the {registry} web console:
 +
 `{registry-url}`
-* Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a client application.
+* Artifacts have been added to {registry}.
 
 
 [id="enabling-deletion-using-console_{context}"]
@@ -223,6 +223,8 @@ IMPORTANT: Deletion of groups, artifacts, and artifact versions is disabled by d
 
 [role="_abstract"]
 Before you can delete groups, artifacts, or artifact versions, you must enable the deletion settings in the {registry} web console.
+
+WARNING: Enabling deletion allows users to permanently remove groups, artifacts, and artifact versions. Deleting a group removes all of its artifacts and their versions. Deleting an artifact removes all of its versions. These operations cannot be undone.
 
 .Procedure
 
@@ -236,7 +238,10 @@ Before you can delete groups, artifacts, or artifact versions, you must enable t
 NOTE: All three settings are disabled by default. You can enable any combination of these settings depending on your requirements.
 
 ifndef::service-registry-downstream[]
-TIP: Alternatively, if you are deploying {registry} on {kubernetes} using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see xref:getting-started/assembly-operator-config-reference.adoc[{operator} configuration reference].
+TIP: Alternatively, if you are deploying {registry} on Kubernetes using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see xref:getting-started/assembly-operator-config-reference.adoc[{operator} configuration reference].
+endif::[]
+ifdef::service-registry-downstream[]
+TIP: Alternatively, if you are deploying {registry} on OpenShift using the {operator}, you can enable deletion by setting `resourceDeleteEnabled` to `true` in the `ApicurioRegistry3` custom resource.
 endif::[]
 
 

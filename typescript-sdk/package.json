@@ -32,7 +32,7 @@
   "devDependencies": {
     "@apicurio/eslint-config": "1.0.0",
     "@kiota-community/kiota-gen": "1.0.2",
-    "@types/node": "25.3.0",
+    "@types/node": "25.3.1",
     "cross-env": "10.1.0",
     "eslint": "9.39.3",
     "rimraf": "6.1.3",

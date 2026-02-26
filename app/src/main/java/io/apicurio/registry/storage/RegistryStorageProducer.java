@@ -2,7 +2,6 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.config.ExperimentalFeaturesConfig;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
@@ -27,9 +26,6 @@ public class RegistryStorageProducer {
 
     @Inject
     Logger log;
-
-    @Inject
-    ExperimentalFeaturesConfig experimentalConfig;
 
     @Inject
     Instance<RegistryStorageDecorator> decorators;
@@ -92,10 +88,6 @@ public class RegistryStorageProducer {
             if ("kafkasql".equals(registryStorageType)) {
                 cachedRaw = kafkaSqlRegistryStorage.get();
             } else if ("gitops".equals(registryStorageType)) {
-                if (!experimentalConfig.isExperimentalFeaturesEnabled()) {
-                    throw new IllegalStateException(
-                            "GitOps storage is an experimental feature. Set 'apicurio.features.experimental.enabled=true' to use it.");
-                }
                 cachedRaw = gitOpsRegistryStorage.get();
             } else if ("sql".equals(registryStorageType)) {
                 cachedRaw = sqlRegistryStorage.get();

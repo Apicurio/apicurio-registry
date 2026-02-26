@@ -72,7 +72,7 @@ Community feedback is gathered through GitHub issues, discussions, and direct en
 - **CLI:** Command-line interface for scripting and automation.
 - **Serializer/Deserializer libraries:** Transparent schema resolution integrated into Kafka, Pulsar, and NATS client libraries.
 - **Maven plugin:** Schema registration and download as part of the build process.
-- **Kubernetes operator:** Declarative deployment and content synchronization via CRDs.
+- **Kubernetes operator:** Declarative deployment and lifecycle management via CRDs.
 - **MCP Server:** AI/LLM tools can interact with the registry via the Model Context Protocol.
 
 **Describe the user experience (UX) and user interface (UI) of the project.**
@@ -91,7 +91,7 @@ The UI is built with React 19, PatternFly v6, and deployed as a separate contain
 
 - **Apache Kafka / Strimzi:** Schema registry for Kafka topics; KafkaSQL storage backend using Kafka itself as the data store
 - **Pulsar / NATS:** Schema resolution via dedicated serdes libraries
-- **Kubernetes:** Operator for lifecycle management, CRD-based content sync
+- **Kubernetes:** Operator for lifecycle management; KubernetesOps storage variant for managing artifacts as ConfigMaps ([#7400](https://github.com/Apicurio/apicurio-registry/pull/7400))
 - **CI/CD pipelines:** Maven plugin for schema registration during builds
 - **OpenTelemetry:** Distributed tracing and metrics export
 - **OIDC providers:** Keycloak, Azure Entra ID, Okta for authentication
@@ -194,7 +194,7 @@ Additionally, the project implements the Confluent Schema Registry API (v7 and v
 - Set up TLS termination (typically via ingress/load balancer)
 
 *Describe compatibility of any new or changed APIs with API servers, including the Kubernetes API server:*
-The Registry v3 API does not interact with the Kubernetes API server. The Kubernetes operator uses standard CRDs for registry deployment and content synchronization.
+The Registry v3 API does not interact with the Kubernetes API server. The Kubernetes operator uses standard CRDs for registry deployment and lifecycle management. The KubernetesOps storage variant ([#7400](https://github.com/Apicurio/apicurio-registry/pull/7400)) reads artifacts from Kubernetes ConfigMaps using a read-only polling model, following the same proven pattern as the GitOps storage backend.
 
 *Describe versioning of any new or changed APIs, including how breaking changes are handled:*
 The REST API is versioned (v2, v3). Breaking changes are only introduced in major versions. The v2 API remains available for backward compatibility. Deprecation notices are published in release notes at least one major version before removal.

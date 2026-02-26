@@ -205,9 +205,9 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 == Deleting groups, artifacts, and artifact versions using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to delete groups, artifacts, and artifact versions stored in {registry}. You can delete an entire group, which removes all artifacts in that group. You can delete an entire artifact, which removes all versions of that artifact. You can also delete a specific artifact version.
+You can use the {registry} web console to delete groups, artifacts, and artifact versions stored in {registry}. You can delete an entire group, which removes all artifacts in that group. Deleting the complete artifact removes every version of that artifact. You can also delete a specific artifact version.
 
-IMPORTANT: Deletion of groups, artifacts, and artifact versions is disabled by default in {registry}. You must enable deletion in the {registry} web console *Settings* before you can delete groups, artifacts, or artifact versions.
+IMPORTANT: Deletion of groups, artifacts, and artifact versions is disabled by default in the {registry} web console. You must enable deletion in the {registry} web console *Settings* before you can delete groups, artifacts, or artifact versions.
 
 .Prerequisites
 

@@ -248,7 +248,7 @@
     <quickjs4j.version>0.0.14</quickjs4j.version>
 
     <nats.version>2.25.1</nats.version>
-    <snakeyaml.version>2.5</snakeyaml.version>
+    <snakeyaml.version>2.6</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
     <jgit.version>7.5.0.202512021534-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>

@@ -83,7 +83,7 @@ public class HttpCaching {
             var etag = strategy.getETagBuilder().build();
             var etagHeader = ETagHttpHeader.builder().etag(etag).build();
             if (etagHeader.matches(ifNoneMatch)) {
-                throw new CacheNotModifiedException();
+                throw CacheNotModifiedException.INSTANCE;
             }
         }
     }

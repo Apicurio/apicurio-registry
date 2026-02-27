@@ -86,7 +86,7 @@ public class HttpCachingConfig {
     @Info(category = CATEGORY_CACHE, description = """
             Hash raw ETag values before adding them to the header. \
             Enabling this feature might marginally increase security, while disabling is useful for testing and debugging. \
-            If no value is provided, the feature is disabled when the `prod` profile is active.\
+            If no value is provided, the feature is enabled when the `prod` profile is active.\
             """, availableSince = "3.2.0")
     Optional<Boolean> opaqueETagsEnabled;
 

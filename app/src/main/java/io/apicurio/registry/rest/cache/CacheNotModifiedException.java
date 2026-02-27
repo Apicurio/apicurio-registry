@@ -8,4 +8,9 @@ package io.apicurio.registry.rest.cache;
  * This exception is caught by CacheNotModifiedExceptionMapper and converted to a 304 response.
  */
 public class CacheNotModifiedException extends RuntimeException {
+
+    public static final CacheNotModifiedException INSTANCE = new CacheNotModifiedException();
+
+    private CacheNotModifiedException() {
+    }
 }

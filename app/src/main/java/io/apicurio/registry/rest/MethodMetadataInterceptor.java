@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
@@ -52,7 +53,7 @@ public class MethodMetadataInterceptor {
      * Context data key for storing extracted parameters.
      * Subsequent interceptors can retrieve the Map&lt;String, Object&gt; from the invocation context.
      */
-    public static final String EXTRACTED_PARAMETERS_KEY = "io.apicurio.registry.extractedParameters";
+    private static final String EXTRACTED_PARAMETERS_KEY = "io.apicurio.registry.extractedParameters";
 
     @AroundInvoke
     public Object extractMetadata(InvocationContext context) throws Exception {
@@ -96,11 +97,22 @@ public class MethodMetadataInterceptor {
         return context.proceed();
     }
 
-    @SuppressWarnings("unchecked")
     public static <T> Optional<T> getExtractedParameter(InvocationContext context, String key, Class<T> type) {
-        var value = ((Map<String, ?>) context.getContextData().getOrDefault(EXTRACTED_PARAMETERS_KEY, Map.of())).get(key);
-        if (type.isInstance(value)) {
-            return of(type.cast(value));
+        return getExtractedParameters(context).flatMap(eps -> {
+            var value = eps.get(key);
+            if (type.isInstance(value)) {
+                return of(type.cast(value));
+            }
+            return empty();
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Optional<Map<String, Object>> getExtractedParameters(InvocationContext context) {
+        var rawExtractedParameters = context.getContextData().get(EXTRACTED_PARAMETERS_KEY);
+        if (rawExtractedParameters instanceof Map) {
+            var extractedParameters = (Map<String, Object>) rawExtractedParameters;
+            return of(unmodifiableMap(extractedParameters));
         }
         return empty();
     }

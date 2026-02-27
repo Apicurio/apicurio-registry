@@ -16,8 +16,8 @@
 
 package io.apicurio.registry.logging.audit;
 
-import io.apicurio.registry.util.Priorities;
 import io.apicurio.registry.rest.MethodMetadataInterceptor;
+import io.apicurio.registry.util.Priorities;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
@@ -28,7 +28,9 @@ import jakarta.interceptor.InvocationContext;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.apicurio.registry.rest.MethodMetadataInterceptor.getExtractedParameters;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PRINCIPAL_ID;
+import static java.lang.String.valueOf;
 
 /**
  * Interceptor that executes around methods annotated with {@link Audited}
@@ -60,7 +62,9 @@ public class AuditedInterceptor {
             metadata.put(MPK_PRINCIPAL_ID, securityIdentity.getPrincipal().getName());
         }
 
-        extractMetaData(context, metadata);
+        getExtractedParameters(context).ifPresent(eps -> {
+            eps.forEach((k, v) -> metadata.put(k, valueOf(v)));
+        });
 
         String action = annotation.action();
         if (action.isEmpty()) {
@@ -76,25 +80,6 @@ public class AuditedInterceptor {
             throw e;
         } finally {
             auditLogService.log("apicurio.audit", action, result, metadata, null);
-        }
-    }
-
-    /**
-     * Extracts metadata from the context. Parameters that have been extracted by
-     * {@link MethodMetadataInterceptor} are read from the invocation context and
-     * converted to String values for the audit log.
-     *
-     * @param context  the invocation context
-     * @param metadata the map to populate with extracted metadata
-     */
-    @SuppressWarnings("unchecked")
-    protected void extractMetaData(InvocationContext context, Map<String, String> metadata) {
-        // Check if parameters were already extracted by MethodMetadataInterceptor
-        var extractedData = context.getContextData().get(MethodMetadataInterceptor.EXTRACTED_PARAMETERS_KEY);
-        if (extractedData instanceof Map) {
-            var extractedParams = (Map<String, Object>) extractedData;
-            // Convert Object values to String for audit logging
-            extractedParams.forEach((key, value) -> metadata.put(key, String.valueOf(value)));
         }
     }
 }

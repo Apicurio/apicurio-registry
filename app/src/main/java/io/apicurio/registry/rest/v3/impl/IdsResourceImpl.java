@@ -62,7 +62,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         ContentWrapperDto dto = storage.getContentById(contentId);
         boolean isEmptyContent = ContentTypes.isEmptyContentType(dto.getContentType());
         boolean isDraft = dto.getContentHash() != null && dto.getContentHash().startsWith("draft:");
-        if (isEmptyContent || isDraft && !restConfig.isDraftProductionModeEnabled()) {
+        if (isEmptyContent || (isDraft && !restConfig.isDraftProductionModeEnabled())) {
             throw new ContentNotFoundException(contentId);
         }
         return Response.ok().entity(dto.getContent())

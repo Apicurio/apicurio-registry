@@ -23,7 +23,7 @@ public class KubernetesOpsConfigProperties {
     }
 
     @ConfigProperty(name = "apicurio.kubernetesops.namespace")
-    @Info(category = CATEGORY_KUBERNETESOPS, description = "Kubernetes namespace to watch for ConfigMaps. Defaults to the current namespace if not specified.", availableSince = "3.0.0")
+    @Info(category = CATEGORY_KUBERNETESOPS, description = "Kubernetes namespace to watch for ConfigMaps. Defaults to the \"default\" namespace if not specified.", availableSince = "3.0.0")
     @Getter
     Optional<String> namespace;
 
@@ -32,14 +32,9 @@ public class KubernetesOpsConfigProperties {
     @Getter
     String registryIdLabel;
 
-    @ConfigProperty(name = "apicurio.kubernetesops.label.type", defaultValue = "apicurio.io/type")
-    @Info(category = CATEGORY_KUBERNETESOPS, description = "Label key used to identify the type of data in the ConfigMap.", availableSince = "3.0.0")
-    @Getter
-    String typeLabel;
-
     /**
      * Returns the namespace to use for watching ConfigMaps.
-     * Falls back to the default namespace if not explicitly configured.
+     * Defaults to the "default" Kubernetes namespace if not explicitly configured.
      */
     public String getEffectiveNamespace() {
         return namespace.orElse("default");

@@ -2,7 +2,6 @@ package io.apicurio.registry.storage.impl.kubernetesops;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.impl.gitops.model.Any;
-import io.apicurio.registry.storage.impl.gitops.model.Type;
 import io.apicurio.registry.storage.impl.polling.DataFile;
 import io.apicurio.registry.storage.impl.polling.DataFileProcessingState;
 import lombok.AllArgsConstructor;
@@ -76,14 +75,4 @@ public class ConfigMapDataFile implements DataFile {
                 .build();
     }
 
-    @Override
-    public boolean isType(Type type) {
-        return any.map(a -> type == a.getType()).orElse(false);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public <T> T getEntityUnchecked() {
-        return (T) any.get().getEntity();
-    }
 }

@@ -50,7 +50,7 @@ public class KafkaFacade implements AutoCloseable {
     }
 
     private boolean isRunning() {
-        return kafkaContainer != null && kafkaContainer.isRunning();
+        return kafkaContainer != null;
     }
 
     public void startIfNeeded() {
@@ -96,6 +96,10 @@ public class KafkaFacade implements AutoCloseable {
         if (client != null) {
             client.close();
             client = null;
+        }
+        if (kafkaContainer != null) {
+            kafkaContainer.stop();
+            kafkaContainer = null;
         }
     }
 }

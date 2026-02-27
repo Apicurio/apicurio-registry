@@ -60,14 +60,14 @@ public class KubernetesManager extends AbstractDataSourceManager {
     @Override
     public void start() throws Exception {
         log.info("Initializing KubernetesOps manager with registry ID: {}", config.getRegistryId());
-        log.info("Watching namespace: {} for ConfigMaps with label {}={}",
-                config.getEffectiveNamespace(), config.getRegistryIdLabel(), config.getRegistryId());
+        log.info("Watching namespace: {} for ConfigMaps with selector {}",
+                config.getEffectiveNamespace(), config.getLabelSelector());
     }
 
     @Override
     public PollResult poll() throws Exception {
         String namespace = config.getEffectiveNamespace();
-        String labelSelector = config.getRegistryIdLabel() + "=" + config.getRegistryId();
+        String labelSelector = config.getLabelSelector();
 
         var configMapList = kubernetesClient.configMaps()
                 .inNamespace(namespace)
@@ -141,7 +141,7 @@ public class KubernetesManager extends AbstractDataSourceManager {
 
         try {
             String namespace = config.getEffectiveNamespace();
-            String labelSelector = config.getRegistryIdLabel() + "=" + config.getRegistryId();
+            String labelSelector = config.getLabelSelector();
 
             log.info("Starting watch for ConfigMaps in namespace {} with selector {}",
                     namespace, labelSelector);
@@ -187,11 +187,18 @@ public class KubernetesManager extends AbstractDataSourceManager {
         }
     }
 
+    private static final long MAX_BACKOFF_MS = 300_000; // 5 minutes
+
     private void scheduleReconnect() {
         int attempts = reconnectAttempts.incrementAndGet();
         long delayMs = calculateBackoff(attempts, config.getWatchReconnectDelay());
 
-        log.info("Scheduling watch reconnect in {}ms (attempt {})", delayMs, attempts);
+        if (delayMs >= MAX_BACKOFF_MS) {
+            log.warn("Watch reconnect at max backoff ({}ms), attempt {}. "
+                    + "Check Kubernetes API server connectivity.", delayMs, attempts);
+        } else {
+            log.info("Scheduling watch reconnect in {}ms (attempt {})", delayMs, attempts);
+        }
 
         scheduler.schedule(this::startWatch, delayMs, TimeUnit.MILLISECONDS);
     }
@@ -199,7 +206,7 @@ public class KubernetesManager extends AbstractDataSourceManager {
     private long calculateBackoff(int attempts, java.time.Duration baseDelay) {
         long baseMs = baseDelay.toMillis();
         long delayMs = (long) (baseMs * Math.pow(2, Math.min(attempts - 1, 5)));
-        return Math.min(delayMs, 300_000); // Max 5 minutes
+        return Math.min(delayMs, MAX_BACKOFF_MS);
     }
 
     /**

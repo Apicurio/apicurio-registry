@@ -1,7 +1,9 @@
 package io.apicurio.registry.storage.impl.kubernetesops;
 
 import io.apicurio.common.apps.config.Info;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import lombok.Getter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -13,6 +15,9 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_KUB
 @ApplicationScoped
 public class KubernetesOpsConfigProperties {
 
+    @Inject
+    KubernetesClient kubernetesClient;
+
     @ConfigProperty(name = "apicurio.kubernetesops.id")
     @Info(category = CATEGORY_KUBERNETESOPS, description = "Identifier of this Registry instance. Only ConfigMaps with a label matching this identifier will be loaded.", availableSince = "3.0.0")
     Optional<String> registryId;
@@ -23,7 +28,7 @@ public class KubernetesOpsConfigProperties {
     }
 
     @ConfigProperty(name = "apicurio.kubernetesops.namespace")
-    @Info(category = CATEGORY_KUBERNETESOPS, description = "Kubernetes namespace to watch for ConfigMaps. Defaults to the \"default\" namespace if not specified.", availableSince = "3.0.0")
+    @Info(category = CATEGORY_KUBERNETESOPS, description = "Kubernetes namespace to watch for ConfigMaps. If not specified, auto-detects the pod's namespace or falls back to \"default\".", availableSince = "3.0.0")
     @Getter
     Optional<String> namespace;
 
@@ -34,10 +39,21 @@ public class KubernetesOpsConfigProperties {
 
     /**
      * Returns the namespace to use for watching ConfigMaps.
-     * Defaults to the "default" Kubernetes namespace if not explicitly configured.
+     * If not explicitly configured, auto-detects the pod's namespace via the Kubernetes client,
+     * or falls back to "default" if detection fails.
      */
     public String getEffectiveNamespace() {
-        return namespace.orElse("default");
+        return namespace.orElseGet(() -> {
+            String detected = kubernetesClient.getNamespace();
+            return detected != null ? detected : "default";
+        });
+    }
+
+    /**
+     * Returns the label selector string for filtering ConfigMaps by registry ID.
+     */
+    public String getLabelSelector() {
+        return registryIdLabel + "=" + getRegistryId();
     }
 
     @ConfigProperty(name = "apicurio.kubernetesops.watch.enabled", defaultValue = "true")

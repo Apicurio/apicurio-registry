@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import lombok.Getter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_KUBERNETESOPS;
@@ -43,4 +44,14 @@ public class KubernetesOpsConfigProperties {
     public String getEffectiveNamespace() {
         return namespace.orElse("default");
     }
+
+    @ConfigProperty(name = "apicurio.kubernetesops.watch.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_KUBERNETESOPS, description = "Enable Kubernetes Watch API for real-time ConfigMap change detection.", availableSince = "3.0.0")
+    @Getter
+    boolean watchEnabled;
+
+    @ConfigProperty(name = "apicurio.kubernetesops.watch.reconnect-delay", defaultValue = "PT10S")
+    @Info(category = CATEGORY_KUBERNETESOPS, description = "Base delay before reconnecting after watch failure. Uses exponential backoff.", availableSince = "3.0.0")
+    @Getter
+    Duration watchReconnectDelay;
 }

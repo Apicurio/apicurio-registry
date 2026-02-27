@@ -32,7 +32,7 @@ public class RegistryStorageProducer {
     Instance<RegistryStorageDecorator> decorators;
 
     @ConfigProperty(name = "apicurio.storage.kind")
-    @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops", availableSince = "3.0.0")
     String registryStorageType;
 
     private RegistryStorage cachedCurrent;
@@ -92,6 +92,8 @@ public class RegistryStorageProducer {
                 cachedRaw = kafkaSqlRegistryStorage.get();
             } else if ("gitops".equals(registryStorageType)) {
                 cachedRaw = gitOpsRegistryStorage.get();
+            } else if ("kubernetesops".equals(registryStorageType)) {
+                cachedRaw = kubernetesOpsRegistryStorage.get();
             } else if ("sql".equals(registryStorageType)) {
                 cachedRaw = sqlRegistryStorage.get();
             } else if ("kubernetesops".equals(registryStorageType)) {

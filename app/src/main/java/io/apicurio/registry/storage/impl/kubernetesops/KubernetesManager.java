@@ -29,6 +29,9 @@ import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.Watch;
+import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.WatcherException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -37,6 +40,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.io.FilenameUtils.concat;
@@ -57,6 +64,16 @@ public class KubernetesManager implements DataSourceManager {
     RegistryStorageContentUtils utils;
 
     private String previousResourceVersion = "";
+
+    private Watch configMapWatch;
+    private volatile boolean watchActive = false;
+    private final AtomicInteger reconnectAttempts = new AtomicInteger(0);
+    private Runnable refreshCallback;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "kubernetesops-watch-reconnect");
+        t.setDaemon(true);
+        return t;
+    });
 
     @Override
     public void start() throws Exception {
@@ -406,5 +423,102 @@ public class KubernetesManager implements DataSourceManager {
     private DataFile findFileByPathRef(ProcessingState state, DataFile base, String path) {
         path = concat(concat(base.getPath(), ".."), path);
         return state.getPathIndex().get(path);
+    }
+
+    /**
+     * Sets the callback to be invoked when watch events are received.
+     */
+    public void setRefreshCallback(Runnable callback) {
+        this.refreshCallback = callback;
+    }
+
+    /**
+     * Starts watching ConfigMaps for changes using the Kubernetes Watch API.
+     */
+    public void startWatch() {
+        if (!config.isWatchEnabled()) {
+            log.info("Watch disabled, using polling only");
+            return;
+        }
+
+        try {
+            String namespace = config.getEffectiveNamespace();
+            String labelSelector = config.getRegistryIdLabel() + "=" + config.getRegistryId();
+
+            log.info("Starting watch for ConfigMaps in namespace {} with selector {}",
+                    namespace, labelSelector);
+
+            configMapWatch = kubernetesClient.configMaps()
+                    .inNamespace(namespace)
+                    .withLabelSelector(labelSelector)
+                    .watch(new Watcher<ConfigMap>() {
+                        @Override
+                        public void eventReceived(Action action, ConfigMap configMap) {
+                            log.debug("ConfigMap event: {} on {}", action,
+                                    configMap.getMetadata().getName());
+
+                            if (action == Action.ADDED || action == Action.MODIFIED ||
+                                    action == Action.DELETED) {
+                                if (refreshCallback != null) {
+                                    refreshCallback.run();
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onClose(WatcherException e) {
+                            watchActive = false;
+                            if (e != null) {
+                                log.warn("Watch closed with error: {}", e.getMessage());
+                                scheduleReconnect();
+                            } else {
+                                log.info("Watch closed normally");
+                            }
+                        }
+                    });
+
+            watchActive = true;
+            reconnectAttempts.set(0);
+            log.info("Watch started successfully for ConfigMaps in namespace {}", namespace);
+
+        } catch (Exception e) {
+            log.error("Failed to start watch: {}", e.getMessage());
+            scheduleReconnect();
+        }
+    }
+
+    private void scheduleReconnect() {
+        int attempts = reconnectAttempts.incrementAndGet();
+        long delayMs = calculateBackoff(attempts, config.getWatchReconnectDelay());
+
+        log.info("Scheduling watch reconnect in {}ms (attempt {})", delayMs, attempts);
+
+        scheduler.schedule(this::startWatch, delayMs, TimeUnit.MILLISECONDS);
+    }
+
+    private long calculateBackoff(int attempts, java.time.Duration baseDelay) {
+        long baseMs = baseDelay.toMillis();
+        long delayMs = (long) (baseMs * Math.pow(2, Math.min(attempts - 1, 5)));
+        return Math.min(delayMs, 300_000); // Max 5 minutes
+    }
+
+    /**
+     * Stops the active watch if running.
+     */
+    public void stopWatch() {
+        if (configMapWatch != null) {
+            log.info("Stopping ConfigMap watch");
+            configMapWatch.close();
+            configMapWatch = null;
+            watchActive = false;
+        }
+        scheduler.shutdown();
+    }
+
+    /**
+     * Returns whether the watch is currently active.
+     */
+    public boolean isWatchActive() {
+        return watchActive;
     }
 }

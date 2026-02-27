@@ -90,8 +90,10 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
     /**
      * Called by scheduled refresh to check for changes and update storage.
      * Subclasses should call this method from their @Scheduled method.
+     * This method is synchronized to prevent concurrent execution from watch callbacks
+     * and scheduled polling, which could corrupt the inactive storage.
      */
-    protected void refresh() {
+    protected synchronized void refresh() {
         log.debug("Running {} refresh. Active database is {} and state is {}.",
                 storageName(), active == green ? "green" : "blue", state);
         switch (state) {
@@ -381,7 +383,7 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
 
     @Override
     public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule) {
-        return false;
+        return proxy(storage -> storage.isArtifactRuleExists(groupId, artifactId, rule));
     }
 
     @Override

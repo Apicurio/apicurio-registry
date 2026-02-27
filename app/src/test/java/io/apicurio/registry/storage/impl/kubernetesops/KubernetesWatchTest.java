@@ -54,14 +54,17 @@ class KubernetesWatchTest {
     void testWatchCallbackIsInvoked() {
         AtomicInteger callbackCount = new AtomicInteger(0);
 
+        // Register callback on the manager and trigger a ConfigMap change
+        // to verify the watch integration invokes the callback
         kubernetesManager.setRefreshCallback(callbackCount::incrementAndGet);
 
-        // Directly simulate a watch event by invoking the callback
-        // In a real Kubernetes cluster, this would be triggered by ConfigMap changes
-        Runnable refreshCallback = callbackCount::incrementAndGet;
-        refreshCallback.run();
+        // Simulate a ConfigMap change that the watch would detect
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+        configMapStore.load("git/smoke01");
 
-        assertEquals(1, callbackCount.get(), "Callback should be invoked once");
+        // Allow time for the watch event to propagate
+        await().atMost(Duration.ofSeconds(10))
+                .untilAtomic(callbackCount, org.hamcrest.Matchers.greaterThanOrEqualTo(1));
     }
 
     @Test

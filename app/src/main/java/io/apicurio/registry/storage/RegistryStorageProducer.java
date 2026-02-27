@@ -96,8 +96,6 @@ public class RegistryStorageProducer {
                 cachedRaw = kubernetesOpsRegistryStorage.get();
             } else if ("sql".equals(registryStorageType)) {
                 cachedRaw = sqlRegistryStorage.get();
-            } else if ("kubernetesops".equals(registryStorageType)) {
-                cachedRaw = kubernetesOpsRegistryStorage.get();
             } else {
                 throw new IllegalStateException(String
                         .format("No Registry storage variant defined for value %s", registryStorageType));

@@ -9,7 +9,6 @@ import io.quarkus.arc.Arc;
 import io.quarkus.arc.ManagedContext;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.quarkus.scheduler.Scheduled;
-import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -108,8 +107,4 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
         refresh();
     }
 
-    @PreDestroy
-    void onDestroy() {
-        kubernetesManager.stopWatch();
-    }
 }

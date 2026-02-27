@@ -35,7 +35,7 @@ public class KubernetesManager extends AbstractDataSourceManager {
     @Inject
     KubernetesClient kubernetesClient;
 
-    private String previousResourceVersion = "";
+    private volatile String previousResourceVersion = "";
 
     private Watch configMapWatch;
     private volatile boolean watchActive = false;

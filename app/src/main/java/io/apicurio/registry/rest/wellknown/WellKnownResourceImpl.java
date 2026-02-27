@@ -222,6 +222,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public Response getSchema(String type, String version) {
+        if (!a2aConfig.isEnabled()) {
+            throw new NotFoundException("Schema not found: " + type + "/" + version);
+        }
+
         // Validate and normalize the type
         String schemaResourcePath = getSchemaResourcePath(type, version);
         if (schemaResourcePath == null) {

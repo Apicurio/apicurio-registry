@@ -1,5 +1,7 @@
 package io.apicurio.registry.config;
 
+import io.apicurio.common.apps.config.ExperimentalConfigPropertyDef;
+import io.apicurio.common.apps.config.ExperimentalConfigPropertyList;
 import io.apicurio.common.apps.config.Info;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -17,6 +19,10 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYS
  * Centralized configuration for the global experimental features gate. When disabled (default), any
  * experimental feature that is individually enabled will cause the application to fail at startup with a
  * clear error message.
+ *
+ * <p>Boolean experimental toggle properties are auto-discovered at build time by scanning for
+ * {@code @Info(experimental=true)} annotations on {@code @ConfigProperty} fields. Non-boolean experimental
+ * features (e.g., GitOps storage variant) require special checks below.</p>
  */
 @Singleton
 public class ExperimentalFeaturesConfig {
@@ -26,6 +32,9 @@ public class ExperimentalFeaturesConfig {
 
     @Inject
     Config config;
+
+    @Inject
+    ExperimentalConfigPropertyList experimentalProperties;
 
     @ConfigProperty(name = "apicurio.features.experimental.enabled", defaultValue = "false")
     @Info(category = CATEGORY_SYSTEM, description = "Enable experimental features. When disabled, any experimental feature that is individually enabled will prevent the application from starting.", availableSince = "3.2.0")
@@ -40,12 +49,15 @@ public class ExperimentalFeaturesConfig {
 
         List<String> violations = new ArrayList<>();
 
-        // Check known experimental boolean toggle properties.
-        // Each experimental feature must have a single boolean toggle marked @Info(experimental=true).
-        checkBooleanToggle("apicurio.a2a.enabled", "A2A protocol support", violations);
-        checkBooleanToggle("apicurio.ui.features.agents.enabled", "UI Agents tab", violations);
+        // Auto-check all boolean experimental toggle properties discovered at build time
+        for (ExperimentalConfigPropertyDef prop : experimentalProperties.getExperimentalConfigProperties()) {
+            boolean value = config.getOptionalValue(prop.getName(), Boolean.class).orElse(false);
+            if (value) {
+                violations.add(prop.getName() + " (" + prop.getDescription() + ")");
+            }
+        }
 
-        // Check experimental storage variant (gitops)
+        // Special checks for non-boolean experimental features (e.g., storage variants)
         String storageKind = config.getOptionalValue("apicurio.storage.kind", String.class).orElse("sql");
         if ("gitops".equals(storageKind)) {
             violations.add("apicurio.storage.kind=gitops (GitOps storage)");
@@ -57,13 +69,6 @@ public class ExperimentalFeaturesConfig {
                             + "('apicurio.features.experimental.enabled') is not enabled. Either enable the "
                             + "experimental features gate or disable the following properties: "
                             + String.join(", ", violations));
-        }
-    }
-
-    private void checkBooleanToggle(String propertyName, String description, List<String> violations) {
-        boolean value = config.getOptionalValue(propertyName, Boolean.class).orElse(false);
-        if (value) {
-            violations.add(propertyName + " (" + description + ")");
         }
     }
 

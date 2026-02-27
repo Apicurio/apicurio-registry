@@ -607,7 +607,8 @@ public class SqlContentRepository {
         if (isDraft && !draftProductionMode) {
             contentHash = "draft:" + UUID.randomUUID().toString();
             canonicalContentHash = "draft:" + UUID.randomUUID().toString();
-            serializedReferences = null;
+            serializedReferences = notEmpty(references)
+                    ? RegistryContentUtils.serializeReferences(references) : null;
         } else if (notEmpty(references)) {
             final List<ArtifactReferenceDto> finalReferences = references;
             Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver = (refs) -> {

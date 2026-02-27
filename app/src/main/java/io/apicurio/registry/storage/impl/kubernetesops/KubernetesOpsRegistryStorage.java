@@ -73,20 +73,25 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
             return;
         }
 
-        lastRefreshTime = now;
         log.debug("Watch triggered refresh");
 
-        // Activate request context since the watch callback runs in a background thread
-        ManagedContext requestContext = Arc.container().requestContext();
-        if (requestContext.isActive()) {
-            refresh();
-        } else {
-            requestContext.activate();
-            try {
+        try {
+            // Activate request context since the watch callback runs in a background thread
+            ManagedContext requestContext = Arc.container().requestContext();
+            if (requestContext.isActive()) {
                 refresh();
-            } finally {
-                requestContext.terminate();
+            } else {
+                requestContext.activate();
+                try {
+                    refresh();
+                } finally {
+                    requestContext.terminate();
+                }
             }
+        } catch (Exception e) {
+            log.warn("Watch-triggered refresh failed: {}", e.getMessage());
+        } finally {
+            lastRefreshTime = System.currentTimeMillis();
         }
     }
 

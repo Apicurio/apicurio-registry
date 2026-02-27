@@ -14,8 +14,8 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_A2A
 @Singleton
 public class A2AConfig {
 
-    @ConfigProperty(name = "apicurio.a2a.enabled", defaultValue = "true")
-    @Info(category = CATEGORY_A2A, description = "Enable A2A protocol support", availableSince = "3.0.0")
+    @ConfigProperty(name = "apicurio.a2a.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_A2A, description = "Enable A2A protocol support", availableSince = "3.0.0", experimental = true)
     boolean enabled;
 
     @ConfigProperty(name = "apicurio.a2a.agent.name", defaultValue = "Apicurio Registry")

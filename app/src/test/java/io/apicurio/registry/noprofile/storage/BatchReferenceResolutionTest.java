@@ -198,6 +198,61 @@ public class BatchReferenceResolutionTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Test resolving a moderately deep reference chain (depth 10).
+     * This verifies that the default max-depth of 100 handles reasonable nesting.
+     */
+    @Test
+    public void testModerateDepthReferenceChain() throws Exception {
+        int depth = 10;
+        String[] artifactIds = new String[depth + 1];
+        CreateArtifactResponse[] responses = new CreateArtifactResponse[depth + 1];
+
+        // Create artifacts from the deepest (index 0) to the shallowest (index depth)
+        // Chain: artifact[depth] -> artifact[depth-1] -> ... -> artifact[0]
+        for (int i = 0; i <= depth; i++) {
+            artifactIds[i] = "deep-chain-" + i + "-" + TestUtils.generateArtifactId();
+        }
+
+        // Create the deepest artifact (no references)
+        responses[0] = createSimpleArtifact(artifactIds[0], "DeepRecord0");
+
+        // Create each subsequent artifact referencing the previous one
+        for (int i = 1; i <= depth; i++) {
+            ArtifactReference ref = createRef(artifactIds[i - 1],
+                    responses[i - 1].getVersion().getVersion(),
+                    "ref" + (i - 1) + ".avsc");
+            responses[i] = createArtifactWithReferences(artifactIds[i], "DeepRecord" + i,
+                    Collections.singletonList(ref));
+        }
+
+        // Verify we can retrieve references from the top-level artifact
+        List<ArtifactReference> topRefs = clientV3.groups()
+                .byGroupId(GROUP_ID)
+                .artifacts()
+                .byArtifactId(artifactIds[depth])
+                .versions()
+                .byVersionExpression("1")
+                .references()
+                .get();
+
+        Assertions.assertEquals(1, topRefs.size());
+
+        // Verify content can be retrieved (exercises full depth resolution)
+        try (InputStream content = clientV3.groups()
+                .byGroupId(GROUP_ID)
+                .artifacts()
+                .byArtifactId(artifactIds[depth])
+                .versions()
+                .byVersionExpression("1")
+                .content()
+                .get()) {
+            String contentStr = new String(content.readAllBytes(), StandardCharsets.UTF_8);
+            Assertions.assertNotNull(contentStr);
+            Assertions.assertTrue(contentStr.contains("DeepRecord" + depth));
+        }
+    }
+
+    /**
      * Test that circular references don't cause infinite loops.
      * The batch resolver should handle already-resolved references gracefully.
      */

@@ -845,6 +845,31 @@
         <quarkus.native.enabled>true</quarkus.native.enabled>
         <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
       </properties>
+      <dependencies>
+        <!-- Exclude Lucene from the native image classpath. Lucene's MMapDirectory
+             uses ScopedMemoryAccess JNI methods not available in GraalVM's static
+             libraries. The arc.exclude-types property (in application.properties)
+             removes the CDI beans; provided scope here removes the JARs so GraalVM
+             cannot reach Lucene classes at all. -->
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-core</artifactId>
+          <version>9.10.0</version>
+          <scope>provided</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-queryparser</artifactId>
+          <version>9.10.0</version>
+          <scope>provided</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-analysis-common</artifactId>
+          <version>9.10.0</version>
+          <scope>provided</scope>
+        </dependency>
+      </dependencies>
       <build>
         <plugins>
           <plugin>

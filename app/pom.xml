@@ -202,17 +202,14 @@
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>
-      <version>9.10.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-queryparser</artifactId>
-      <version>9.10.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-analysis-common</artifactId>
-      <version>9.10.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -854,19 +851,17 @@
         <dependency>
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-core</artifactId>
-          <version>9.10.0</version>
+          <version>${lucene.version}</version>
           <scope>provided</scope>
         </dependency>
         <dependency>
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-queryparser</artifactId>
-          <version>9.10.0</version>
           <scope>provided</scope>
         </dependency>
         <dependency>
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-analysis-common</artifactId>
-          <version>9.10.0</version>
           <scope>provided</scope>
         </dependency>
       </dependencies>

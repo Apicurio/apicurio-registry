@@ -345,19 +345,31 @@ KubernetesOps storage is *read-only*. You cannot create, update, or delete artif
 [discrete]
 === ConfigMap size limits
 
-Kubernetes ConfigMaps have a maximum size of *1 MiB* per ConfigMap. For large schemas:
+Kubernetes ConfigMaps have a maximum size of *1 MiB* per ConfigMap. This is a hard limit enforced by etcd, the backing store for all Kubernetes objects, and cannot be changed at the ConfigMap level.
 
-* Distribute content across multiple ConfigMaps
-* Consider using compressed content where possible
-* For very large schemas, evaluate if SQL storage is more appropriate
+Artifact content (schemas, API definitions) is stored inline in ConfigMap data values. This means a single large schema can consume most or all of a ConfigMap's capacity. Most schemas (Avro, JSON Schema, Protobuf) are well under this limit, but large OpenAPI or AsyncAPI specifications may approach it.
+
+NOTE: ConfigMaps are designed for configuration data, not large data payloads. Artifact content is data, and this storage variant uses ConfigMaps as a convenience to enable GitOps workflows where tools like ArgoCD or Flux can sync both the metadata and the content from a Git repository. This is a deliberate tradeoff: the seamless GitOps workflow requires content to be part of a Kubernetes resource manifest, and ConfigMaps are the most natural fit. The 1 MiB limit is the cost of that convenience.
+
+To work within these limits:
+
+* *Distribute content across multiple ConfigMaps*: Each ConfigMap matching the registry label is pooled together. Use one ConfigMap per artifact or per group to keep individual ConfigMaps small.
+* *Keep schemas focused*: Break large monolithic API definitions into smaller, modular schemas when possible.
+* *Monitor ConfigMap sizes*: Use `kubectl get configmap <name> -o json | wc -c` to check sizes before they hit the limit.
+
+If individual schemas consistently exceed 1 MiB, KubernetesOps storage is not the right fit. Consider:
+
+* *SQL storage* for full read/write capability with no size limits.
+* *GitOps storage* for the same read-only GitOps workflow, but reading directly from a Git repository with no size constraint per file.
 
 [discrete]
-=== Polling latency
+=== Update latency
 
-Changes are detected via polling, with a default interval of 30 seconds. This means:
+With Watch API enabled (the default), ConfigMap changes are detected in near real-time. When Watch is disabled, changes are detected via polling with a default interval of 30 seconds.
 
-* Updates are not immediate - expect up to one polling interval delay
-* Decrease `APICURIO_KUBERNETESOPS_REFRESH_EVERY` for faster updates (increases API load)
+* With Watch enabled, updates typically propagate within 1-2 seconds
+* With Watch disabled, expect up to one polling interval delay
+* Decrease `APICURIO_KUBERNETESOPS_REFRESH_EVERY` for faster fallback polling (increases API load)
 * Increase the interval for larger deployments to reduce Kubernetes API load
 
 [discrete]
@@ -418,9 +430,27 @@ On each detected change, the entire dataset is reloaded from ConfigMaps. This ap
 * May increase load times for large datasets
 
 [discrete]
-=== No watch API support
+=== Watch API and polling
 
-The current implementation uses polling rather than Kubernetes watch API. Future versions may add watch support for real-time updates.
+By default, KubernetesOps storage uses the Kubernetes Watch API for real-time ConfigMap change detection, with scheduled polling as a fallback. When a ConfigMap is created, modified, or deleted, the registry is notified immediately and reloads the data.
+
+If the watch connection is lost (for example, due to API server restarts or network issues), the registry automatically reconnects with exponential backoff. Scheduled polling continues as a safety net to ensure no changes are missed.
+
+.Environment variables for Watch configuration
+[.table-expandable,width="100%",cols="4,2,4",options="header"]
+|===
+|Environment Variable
+|Default
+|Description
+
+|`APICURIO_KUBERNETESOPS_WATCH_ENABLED`
+|`true`
+|Enable Watch API for real-time updates. Set to `false` to use polling only.
+
+|`APICURIO_KUBERNETESOPS_WATCH_RECONNECT_DELAY`
+|`10s`
+|Base delay before reconnecting after watch failure. Uses exponential backoff up to 5 minutes.
+|===
 
 [role="_additional-resources"]
 .Additional resources

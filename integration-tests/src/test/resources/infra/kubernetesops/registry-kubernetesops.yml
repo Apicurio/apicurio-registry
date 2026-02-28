@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: "apicurio-registry-e2e"
+  name: apicurio-registry-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: "apicurio-registry-e2e"
+  name: configmap-reader
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: "apicurio-registry-e2e"
+  name: configmap-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: apicurio-registry-sa
+    namespace: "apicurio-registry-e2e"
+roleRef:
+  kind: Role
+  name: configmap-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: apicurio-registry-kubernetesops
+  name: apicurio-registry-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apicurio-registry-kubernetesops
+  template:
+    metadata:
+      labels:
+        app: apicurio-registry-kubernetesops
+    spec:
+      serviceAccountName: apicurio-registry-sa
+      containers:
+        - env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: APICURIO_STORAGE_KIND
+              value: "kubernetesops"
+            - name: APICURIO_STORAGE_SQL_KIND
+              value: "h2"
+            - name: APICURIO_KUBERNETESOPS_ID
+              value: "e2e-test"
+            - name: APICURIO_KUBERNETESOPS_NAMESPACE
+              value: "apicurio-registry-e2e"
+            - name: APICURIO_KUBERNETESOPS_REFRESH_EVERY
+              value: "5s"
+            - name: APICURIO_KUBERNETESOPS_WATCH_ENABLED
+              value: "true"
+          image: registry-image
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/live
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          name: apicurio-registry-kubernetesops
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: apicurio-registry-kubernetesops
+  name: apicurio-registry-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 32586
+  selector:
+    app: apicurio-registry-kubernetesops
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

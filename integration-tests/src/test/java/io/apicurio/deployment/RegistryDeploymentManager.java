@@ -123,6 +123,12 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                     System.getProperty("registry-kafkasql-image"));
             KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
             testLogsIdentifier = "apicurio-registry-kafka";
+        } else if (Boolean.parseBoolean(System.getProperty("deployKubernetesOps"))) {
+            LOGGER.info(
+                    "Deploying KubernetesOps Registry Variant with image: {} ##################################################",
+                    System.getProperty("registry-kubernetesops-image"));
+            KubernetesOpsDeploymentManager.deployKubernetesOpsApp(System.getProperty("registry-kubernetesops-image"));
+            testLogsIdentifier = "apicurio-registry-kubernetesops";
         }
 
         // Deploy ALL Debezium infrastructure if requested (optimized for CI)

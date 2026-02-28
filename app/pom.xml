@@ -523,6 +523,7 @@
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <org.jboss.logging.provider>jboss</org.jboss.logging.provider>
+            <project.build.directory>${project.build.directory}</project.build.directory>
           </systemPropertyVariables>
         </configuration>
       </plugin>

@@ -13,8 +13,7 @@ public class AsyncLuceneSearchTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        String indexPath = System.getProperty("java.io.tmpdir") + "/apicurio-lucene-async-test-"
-                + ProcessHandle.current().pid() + "-" + System.nanoTime();
+        String indexPath = LuceneSearchTestProfile.resolveIndexPath("apicurio-lucene-async-test");
         return Map.of(
                 "apicurio.search.lucene.enabled", "true",
                 "apicurio.search.lucene.update-mode", "ASYNCHRONOUS",

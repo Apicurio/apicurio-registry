@@ -48,6 +48,7 @@ import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import jakarta.ws.rs.NotFoundException;
 
 import java.math.BigInteger;
 import java.net.URLDecoder;
@@ -85,9 +86,16 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Inject
     ObjectMapper objectMapper;
 
+    private void requireIcebergEnabled() {
+        if (!icebergConfig.isEnabled()) {
+            throw new NotFoundException("Iceberg REST Catalog API is disabled");
+        }
+    }
+
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public CatalogConfig getConfig() {
+        requireIcebergEnabled();
         CatalogConfig config = new CatalogConfig();
 
         Defaults defaults = new Defaults();
@@ -109,6 +117,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ListNamespacesResponse listNamespaces(String prefix, String parent, String pageToken,
             BigInteger pageSize) {
+        requireIcebergEnabled();
 
         int limit = pageSize != null ? pageSize.intValue() : 100;
         int offset = 0;
@@ -147,6 +156,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
     public CreateNamespaceResponse createNamespace(String prefix, CreateNamespaceRequest data) {
+        requireIcebergEnabled();
         List<String> namespace = data.getNamespace();
         String groupId = namespaceToGroupId(namespace);
 
@@ -180,6 +190,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public GetNamespaceResponse loadNamespaceMetadata(String prefix, String namespace) {
+        requireIcebergEnabled();
         String groupId = namespaceToGroupId(namespace);
         GroupMetaDataDto group = storage.getGroupMetaData(groupId);
 
@@ -203,6 +214,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public void namespaceExists(String prefix, String namespace) {
+        requireIcebergEnabled();
         String groupId = namespaceToGroupId(namespace);
         storage.getGroupMetaData(groupId);
     }
@@ -211,6 +223,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Admin)
     public void dropNamespace(String prefix, String namespace) {
+        requireIcebergEnabled();
         String groupId = namespaceToGroupId(namespace);
 
         // Check if namespace has tables by searching
@@ -231,6 +244,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public UpdateNamespacePropertiesResponse updateNamespaceProperties(String prefix, String namespace,
             UpdateNamespacePropertiesRequest data) {
+        requireIcebergEnabled();
 
         String groupId = namespaceToGroupId(namespace);
         GroupMetaDataDto group = storage.getGroupMetaData(groupId);
@@ -280,6 +294,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public ListTablesResponse listTables(String prefix, String namespace, String pageToken,
             BigInteger pageSize) {
+        requireIcebergEnabled();
 
         String groupId = namespaceToGroupId(namespace);
 
@@ -324,6 +339,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public LoadTableResponse createTable(String prefix, String namespace, String xIcebergAccessDelegation,
             CreateTableRequest data) {
+        requireIcebergEnabled();
 
         String groupId = namespaceToGroupId(namespace);
         String tableName = data.getName();
@@ -419,6 +435,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public LoadTableResponse loadTable(String prefix, String namespace, String table,
             String xIcebergAccessDelegation, String snapshots) {
+        requireIcebergEnabled();
 
         String groupId = namespaceToGroupId(namespace);
 
@@ -446,6 +463,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public void tableExists(String prefix, String namespace, String table) {
+        requireIcebergEnabled();
         String groupId = namespaceToGroupId(namespace);
         storage.getArtifactMetaData(groupId, table);
     }
@@ -454,6 +472,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Admin)
     public void dropTable(String prefix, String namespace, String table, Boolean purgeRequested) {
+        requireIcebergEnabled();
         String groupId = namespaceToGroupId(namespace);
         storage.deleteArtifact(groupId, table);
     }
@@ -462,6 +481,7 @@ public class IcebergApiResourceImpl implements ApisResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
     public void renameTable(String prefix, RenameTableRequest data) {
+        requireIcebergEnabled();
         TableIdentifier source = data.getSource();
         TableIdentifier destination = data.getDestination();
 

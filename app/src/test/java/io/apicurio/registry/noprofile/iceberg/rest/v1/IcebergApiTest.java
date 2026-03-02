@@ -2,6 +2,7 @@ package io.apicurio.registry.noprofile.iceberg.rest.v1;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -17,6 +18,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
  * Tests for the Iceberg REST Catalog API.
  */
 @QuarkusTest
+@TestProfile(IcebergExperimentalFeaturesProfile.class)
 public class IcebergApiTest extends AbstractResourceTestBase {
 
     private static final String ICEBERG_API_BASE = "";

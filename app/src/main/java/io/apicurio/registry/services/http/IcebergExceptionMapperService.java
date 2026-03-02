@@ -9,6 +9,7 @@ import io.apicurio.registry.storage.error.GroupNotEmptyException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -20,6 +21,11 @@ import jakarta.ws.rs.core.Response;
 public class IcebergExceptionMapperService {
 
     public Response mapException(Throwable t) {
+        if (t instanceof NotFoundException) {
+            return buildErrorResponse(404, "NotFoundException",
+                    t.getMessage() != null ? t.getMessage() : "Not found");
+        }
+
         if (t instanceof GroupNotFoundException) {
             return buildErrorResponse(404, "NoSuchNamespaceException",
                     "Namespace does not exist: " + ((GroupNotFoundException) t).getGroupId());

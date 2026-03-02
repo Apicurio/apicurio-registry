@@ -14,8 +14,8 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_ICE
 @ApplicationScoped
 public class IcebergConfig {
 
-    @ConfigProperty(name = "apicurio.iceberg.enabled", defaultValue = "true")
-    @Info(category = CATEGORY_ICEBERG, description = "Enable the Iceberg REST Catalog API", availableSince = "3.0.0")
+    @ConfigProperty(name = "apicurio.iceberg.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_ICEBERG, description = "Enable the Iceberg REST Catalog API", availableSince = "3.0.0", experimental = true)
     boolean enabled;
 
     @ConfigProperty(name = "apicurio.iceberg.warehouse")

@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.search;
 
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -9,6 +10,7 @@ import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -39,6 +41,9 @@ public class SynchronousLuceneIndexUpdater {
 
     @Inject
     LuceneDocumentBuilder documentBuilder;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory typeProviderFactory;
 
     @Inject
     LuceneIndexWriter indexWriter;
@@ -197,8 +202,16 @@ public class SynchronousLuceneIndexUpdater {
                 artifactId, version);
         ContentHandle content = storedVersion.getContent();
 
+        // Look up the structured content extractor for this artifact type
+        StructuredContentExtractor extractor = null;
+        if (versionMetadata.getArtifactType() != null) {
+            extractor = typeProviderFactory.getArtifactTypeProvider(
+                    versionMetadata.getArtifactType()).getStructuredContentExtractor();
+        }
+
         // Build Lucene document
-        Document doc = documentBuilder.buildVersionDocument(versionMetadata, content.bytes());
+        Document doc = documentBuilder.buildVersionDocument(versionMetadata, content.bytes(),
+                extractor);
 
         // Update index (using globalId as unique key)
         indexWriter.updateDocument(new Term("globalId", String.valueOf(globalId)), doc);

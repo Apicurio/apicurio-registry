@@ -1,5 +1,7 @@
 package io.apicurio.registry.storage.impl.search;
 
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
+import io.apicurio.registry.openapi.content.extract.OpenApiStructuredContentExtractor;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -452,6 +454,102 @@ public class LuceneSearchServiceTest {
                 "Mixed filters containing content should require Lucene");
     }
 
+    @Test
+    void testRequiresLucene_StructureFilter() {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofStructure("schema:Pet"));
+
+        assertTrue(searchService.requiresLucene(filters),
+                "Structure filter should require Lucene");
+    }
+
+    @Test
+    void testCanHandleFilters_StructureSupported() {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofStructure("schema:Pet"));
+
+        assertTrue(searchService.canHandleFilters(filters),
+                "Structure filter should be handled by Lucene");
+    }
+
+    // ======== Structure Filter Search Tests ========
+
+    @Test
+    void testSearchVersions_FilterByStructure_FullFormat() throws IOException {
+        // Index a document with structured elements
+        indexOpenApiWithStructure();
+
+        // Search by full format: type:kind:name
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofStructure("openapi:schema:pet"));
+
+        VersionSearchResultsDto results = searchService.searchVersions(
+                filters, OrderBy.globalId, OrderDirection.asc, 0, 100);
+
+        assertTrue(results.getCount() > 0,
+                "Should find version with 'openapi:schema:pet' structure");
+    }
+
+    @Test
+    void testSearchVersions_FilterByStructure_KindAndName() throws IOException {
+        // Index a document with structured elements
+        indexOpenApiWithStructure();
+
+        // Search by kind:name format
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofStructure("schema:Pet"));
+
+        VersionSearchResultsDto results = searchService.searchVersions(
+                filters, OrderBy.globalId, OrderDirection.asc, 0, 100);
+
+        assertTrue(results.getCount() > 0,
+                "Should find version with 'schema:Pet' structure");
+    }
+
+    @Test
+    void testSearchVersions_FilterByStructure_NameOnly() throws IOException {
+        // Index a document with structured elements
+        indexOpenApiWithStructure();
+
+        // Search by name only
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofStructure("Pet"));
+
+        VersionSearchResultsDto results = searchService.searchVersions(
+                filters, OrderBy.globalId, OrderDirection.asc, 0, 100);
+
+        assertTrue(results.getCount() > 0,
+                "Should find version with 'Pet' in structured elements");
+    }
+
+    @Test
+    void testSearchVersions_FilterByStructure_NoMatch() throws IOException {
+        // Index a document with structured elements
+        indexOpenApiWithStructure();
+
+        // Search for non-existent structure
+        Set<SearchFilter> filters = Set.of(
+                SearchFilter.ofStructure("openapi:schema:nonexistentschema"));
+
+        VersionSearchResultsDto results = searchService.searchVersions(
+                filters, OrderBy.globalId, OrderDirection.asc, 0, 100);
+
+        assertEquals(0, results.getCount(),
+                "Should not find any versions with nonexistent structure");
+    }
+
+    @Test
+    void testSearchVersions_FilterByStructure_CombinedWithGroupId() throws IOException {
+        // Index a document with structured elements
+        indexOpenApiWithStructure();
+
+        // Search by structure + group filter
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofStructure("schema:Pet"));
+        filters.add(SearchFilter.ofGroupId("struct-group"));
+
+        VersionSearchResultsDto results = searchService.searchVersions(
+                filters, OrderBy.globalId, OrderDirection.asc, 0, 100);
+
+        assertTrue(results.getCount() > 0,
+                "Should find version with 'schema:Pet' in struct-group");
+    }
+
     // ======== Result Mapping Tests ========
 
     @Test
@@ -562,6 +660,55 @@ public class LuceneSearchServiceTest {
                 metadata, contentBytes);
         indexWriter.updateDocument(
                 new Term("globalId", String.valueOf(globalId)), doc);
+    }
+
+    /**
+     * Indexes an OpenAPI document with structured content extraction for structure filter tests.
+     */
+    private void indexOpenApiWithStructure() throws IOException {
+        String openApiContent = """
+                {
+                  "openapi": "3.0.2",
+                  "info": { "title": "Pet Store", "version": "1.0" },
+                  "paths": {
+                    "/pets": {
+                      "get": { "operationId": "listPets" }
+                    }
+                  },
+                  "components": {
+                    "schemas": {
+                      "Pet": { "type": "object" },
+                      "Order": { "type": "object" }
+                    }
+                  }
+                }
+                """;
+
+        ArtifactVersionMetaDataDto metadata = ArtifactVersionMetaDataDto.builder()
+                .globalId(9001L)
+                .contentId(901L)
+                .groupId("struct-group")
+                .artifactId("pet-store-api")
+                .version("1.0.0")
+                .versionOrder(1)
+                .artifactType("OPENAPI")
+                .state(VersionState.ENABLED)
+                .name("Pet Store")
+                .description("Pet Store API with structured content")
+                .owner("user1")
+                .createdOn(System.currentTimeMillis())
+                .build();
+
+        byte[] contentBytes = openApiContent.getBytes(StandardCharsets.UTF_8);
+        StructuredContentExtractor extractor = new OpenApiStructuredContentExtractor();
+
+        org.apache.lucene.document.Document doc = documentBuilder.buildVersionDocument(
+                metadata, contentBytes, extractor);
+        indexWriter.updateDocument(
+                new Term("globalId", String.valueOf(9001L)), doc);
+
+        indexWriter.commit();
+        indexSearcher.refresh();
     }
 
     /**

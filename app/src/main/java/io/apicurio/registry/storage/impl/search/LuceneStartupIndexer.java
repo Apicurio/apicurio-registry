@@ -1,10 +1,12 @@
 package io.apicurio.registry.storage.impl.search;
 
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
@@ -39,6 +41,9 @@ public class LuceneStartupIndexer {
 
     @Inject
     LuceneDocumentBuilder documentBuilder;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory typeProviderFactory;
 
     @Inject
     LuceneIndexWriter indexWriter;
@@ -112,7 +117,16 @@ public class LuceneStartupIndexer {
             try {
                 ArtifactVersionMetaDataDto metadata = versionContent.toMetaDataDto();
                 byte[] contentBytes = versionContent.getContent().bytes();
-                Document doc = documentBuilder.buildVersionDocument(metadata, contentBytes);
+
+                // Look up the structured content extractor for this artifact type
+                StructuredContentExtractor extractor = null;
+                if (metadata.getArtifactType() != null) {
+                    extractor = typeProviderFactory.getArtifactTypeProvider(
+                            metadata.getArtifactType()).getStructuredContentExtractor();
+                }
+
+                Document doc = documentBuilder.buildVersionDocument(metadata, contentBytes,
+                        extractor);
                 indexWriter.updateDocument(
                         new Term("globalId", String.valueOf(metadata.getGlobalId())), doc);
                 counts[0]++;

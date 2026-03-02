@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.impl.search;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -9,6 +10,8 @@ import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +57,9 @@ public class SynchronousLuceneIndexUpdaterTest {
 
     @Mock
     private LuceneIndexSearcher indexSearcher;
+
+    @Mock
+    private ArtifactTypeUtilProviderFactory typeProviderFactory;
 
     @InjectMocks
     private SynchronousLuceneIndexUpdater updater;
@@ -136,8 +142,15 @@ public class SynchronousLuceneIndexUpdaterTest {
         when(storage.getArtifactVersionContent("group1", "artifact1", "1.0.0"))
                 .thenReturn(storedVersion);
 
+        // Mock type provider factory chain
+        ArtifactTypeUtilProvider typeProvider = mock(ArtifactTypeUtilProvider.class);
+        StructuredContentExtractor extractor = mock(StructuredContentExtractor.class);
+        when(typeProviderFactory.getArtifactTypeProvider("OPENAPI")).thenReturn(typeProvider);
+        when(typeProvider.getStructuredContentExtractor()).thenReturn(extractor);
+
         Document doc = new Document();
-        when(documentBuilder.buildVersionDocument(any(), any())).thenReturn(doc);
+        when(documentBuilder.buildVersionDocument(any(), any(byte[].class), any()))
+                .thenReturn(doc);
 
         // When
         updater.onVersionCreated(event);
@@ -145,7 +158,8 @@ public class SynchronousLuceneIndexUpdaterTest {
         // Then
         verify(storage).getArtifactVersionMetaData("group1", "artifact1", "1.0.0");
         verify(storage).getArtifactVersionContent("group1", "artifact1", "1.0.0");
-        verify(documentBuilder).buildVersionDocument(eq(metadata), any(byte[].class));
+        verify(documentBuilder).buildVersionDocument(eq(metadata), any(byte[].class),
+                eq(extractor));
 
         ArgumentCaptor<Term> termCaptor = ArgumentCaptor.forClass(Term.class);
         verify(indexWriter).updateDocument(termCaptor.capture(), eq(doc));
@@ -204,8 +218,15 @@ public class SynchronousLuceneIndexUpdaterTest {
         when(storage.getArtifactVersionContent("group1", "artifact1", "1.0.0"))
                 .thenReturn(storedVersion);
 
+        // Mock type provider factory chain
+        ArtifactTypeUtilProvider typeProvider = mock(ArtifactTypeUtilProvider.class);
+        StructuredContentExtractor extractor = mock(StructuredContentExtractor.class);
+        when(typeProviderFactory.getArtifactTypeProvider("OPENAPI")).thenReturn(typeProvider);
+        when(typeProvider.getStructuredContentExtractor()).thenReturn(extractor);
+
         Document doc = new Document();
-        when(documentBuilder.buildVersionDocument(any(), any())).thenReturn(doc);
+        when(documentBuilder.buildVersionDocument(any(), any(byte[].class), any()))
+                .thenReturn(doc);
 
         // When
         updater.onVersionStateChanged(event);
@@ -254,8 +275,15 @@ public class SynchronousLuceneIndexUpdaterTest {
         when(storage.getArtifactVersionContent(anyString(), anyString(), anyString()))
                 .thenReturn(storedVersion);
 
+        // Mock type provider factory chain
+        ArtifactTypeUtilProvider typeProvider = mock(ArtifactTypeUtilProvider.class);
+        StructuredContentExtractor extractor = mock(StructuredContentExtractor.class);
+        when(typeProviderFactory.getArtifactTypeProvider("OPENAPI")).thenReturn(typeProvider);
+        when(typeProvider.getStructuredContentExtractor()).thenReturn(extractor);
+
         Document doc = new Document();
-        when(documentBuilder.buildVersionDocument(any(), any())).thenReturn(doc);
+        when(documentBuilder.buildVersionDocument(any(), any(byte[].class), any()))
+                .thenReturn(doc);
 
         // When
         updater.onArtifactMetadataUpdated(event);

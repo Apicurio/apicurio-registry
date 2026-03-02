@@ -1,7 +1,9 @@
 package io.apicurio.registry.storage.impl.search;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
+import io.apicurio.registry.content.extract.StructuredElement;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.lucene.document.Document;
@@ -18,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,10 +39,11 @@ public class LuceneDocumentBuilder {
      *
      * @param versionMetadata The version metadata (globalId, version, state, etc.)
      * @param contentBytes The artifact content as bytes
+     * @param extractor The structured content extractor for the artifact type (may be null)
      * @return A Lucene Document ready for indexing
      */
     public Document buildVersionDocument(ArtifactVersionMetaDataDto versionMetadata,
-            byte[] contentBytes) {
+            byte[] contentBytes, StructuredContentExtractor extractor) {
         Document doc = new Document();
 
         // === ID Fields ===
@@ -141,9 +145,10 @@ public class LuceneDocumentBuilder {
         // Full content text search
         doc.add(new TextField("content", contentText, Field.Store.NO));
 
-        // Type-specific structured fields (basic implementation for Phase 1)
-        if (versionMetadata.getArtifactType() != null) {
-            indexStructuredContent(doc, contentText, versionMetadata.getArtifactType());
+        // Structured content extraction via the extractor
+        if (extractor != null && versionMetadata.getArtifactType() != null) {
+            indexStructuredElements(doc, contentBytes, versionMetadata.getArtifactType(),
+                    extractor);
         }
 
         // === Timestamp for freshness tracking ===
@@ -162,6 +167,19 @@ public class LuceneDocumentBuilder {
                 versionMetadata.getGlobalId());
 
         return doc;
+    }
+
+    /**
+     * Builds a Lucene Document without structured content extraction. Used when the extractor is
+     * not available (e.g. in tests or when the artifact type is unknown).
+     *
+     * @param versionMetadata The version metadata
+     * @param contentBytes The artifact content as bytes
+     * @return A Lucene Document ready for indexing
+     */
+    public Document buildVersionDocument(ArtifactVersionMetaDataDto versionMetadata,
+            byte[] contentBytes) {
+        return buildVersionDocument(versionMetadata, contentBytes, null);
     }
 
     /**
@@ -184,84 +202,50 @@ public class LuceneDocumentBuilder {
     }
 
     /**
-     * Indexes type-specific structured content. This is a basic implementation that will be
-     * enhanced in future phases.
+     * Indexes structured elements extracted from artifact content using the type-specific
+     * extractor. Each element is indexed in three fields:
+     * <ul>
+     * <li>{@code structure} - exact match: "{artifactType}:{kind}:{name}" (lowercased)</li>
+     * <li>{@code structure_text} - tokenized: "{kind} {name}" (for text search)</li>
+     * <li>{@code structure_kind} - exact match: "{artifactType}:{kind}" (lowercased)</li>
+     * </ul>
      *
      * @param doc The document to add fields to
-     * @param contentText The content as text
+     * @param contentBytes The content as bytes
      * @param artifactType The artifact type
+     * @param extractor The structured content extractor
      */
-    private void indexStructuredContent(Document doc, String contentText, String artifactType) {
+    private void indexStructuredElements(Document doc, byte[] contentBytes, String artifactType,
+            StructuredContentExtractor extractor) {
         try {
-            switch (artifactType.toUpperCase()) {
-            case "OPENAPI":
-            case "ASYNCAPI":
-            case "JSON":
-                // For JSON-based content, try to extract some basic structured fields
-                indexJsonContent(doc, contentText);
-                break;
+            ContentHandle contentHandle = ContentHandle.create(contentBytes);
+            List<StructuredElement> elements = extractor.extract(contentHandle);
 
-            case "AVRO":
-            case "PROTOBUF":
-                // For schema types, the content is already indexed as text
-                // Future enhancement: extract schema names, field names, etc.
-                break;
+            String artifactTypeLower = artifactType.toLowerCase();
+            for (StructuredElement element : elements) {
+                String kindLower = element.kind().toLowerCase();
+                String nameLower = element.name().toLowerCase();
 
-            default:
-                // For other types, rely on full-text content indexing
-                break;
+                // Exact match: "artifactType:kind:name"
+                String structureValue = artifactTypeLower + ":" + kindLower + ":" + nameLower;
+                doc.add(new StringField("structure", structureValue, Field.Store.NO));
+
+                // Tokenized text: "kind name" (for text search)
+                String structureText = element.kind() + " " + element.name();
+                doc.add(new TextField("structure_text", structureText, Field.Store.NO));
+
+                // Kind facet: "artifactType:kind"
+                String structureKind = artifactTypeLower + ":" + kindLower;
+                doc.add(new StringField("structure_kind", structureKind, Field.Store.NO));
+            }
+
+            if (!elements.isEmpty()) {
+                log.debug("Indexed {} structured elements for artifact type {}",
+                        elements.size(), artifactType);
             }
         } catch (Exception e) {
-            log.warn("Failed to index structured content for artifact type {}: {}", artifactType,
-                    e.getMessage());
-            // Don't fail the entire indexing operation, just log and continue
-        }
-    }
-
-    /**
-     * Indexes JSON-based content by extracting common fields. This is a basic implementation for
-     * Phase 1.
-     *
-     * @param doc The document to add fields to
-     * @param jsonContent The JSON content as text
-     */
-    private void indexJsonContent(Document doc, String jsonContent) {
-        try {
-            JsonNode root = objectMapper.readTree(jsonContent);
-
-            // Extract title/name if present
-            if (root.has("title")) {
-                doc.add(new TextField("content_title", root.get("title").asText(),
-                        Field.Store.NO));
-            }
-
-            // Extract description if present
-            if (root.has("description")) {
-                doc.add(new TextField("content_description", root.get("description").asText(),
-                        Field.Store.NO));
-            }
-
-            // For OpenAPI/AsyncAPI, extract API paths (basic implementation)
-            if (root.has("paths")) {
-                JsonNode paths = root.get("paths");
-                paths.fieldNames().forEachRemaining(path -> {
-                    doc.add(new StringField("openapi_path", path, Field.Store.NO));
-                    doc.add(new TextField("openapi_path_text", path, Field.Store.NO));
-                });
-            }
-
-            // For AsyncAPI, extract channels
-            if (root.has("channels")) {
-                JsonNode channels = root.get("channels");
-                channels.fieldNames().forEachRemaining(channel -> {
-                    doc.add(new StringField("asyncapi_channel", channel, Field.Store.NO));
-                    doc.add(new TextField("asyncapi_channel_text", channel, Field.Store.NO));
-                });
-            }
-
-        } catch (Exception e) {
-            log.debug("Content is not valid JSON or failed to parse: {}", e.getMessage());
-            // Not all JSON artifact types will have these fields, which is fine
+            log.warn("Failed to index structured elements for artifact type {}: {}",
+                    artifactType, e.getMessage());
         }
     }
 }

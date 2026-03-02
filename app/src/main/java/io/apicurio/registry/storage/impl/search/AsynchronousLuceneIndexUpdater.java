@@ -1,8 +1,10 @@
 package io.apicurio.registry.storage.impl.search;
 
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -43,6 +45,9 @@ public class AsynchronousLuceneIndexUpdater {
 
     @Inject
     LuceneDocumentBuilder documentBuilder;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory typeProviderFactory;
 
     @Inject
     LuceneIndexWriter indexWriter;
@@ -153,7 +158,16 @@ public class AsynchronousLuceneIndexUpdater {
                 try {
                     ArtifactVersionMetaDataDto metadata = versionContent.toMetaDataDto();
                     byte[] contentBytes = versionContent.getContent().bytes();
-                    Document doc = documentBuilder.buildVersionDocument(metadata, contentBytes);
+
+                    // Look up the structured content extractor for this artifact type
+                    StructuredContentExtractor extractor = null;
+                    if (metadata.getArtifactType() != null) {
+                        extractor = typeProviderFactory.getArtifactTypeProvider(
+                                metadata.getArtifactType()).getStructuredContentExtractor();
+                    }
+
+                    Document doc = documentBuilder.buildVersionDocument(metadata, contentBytes,
+                            extractor);
                     indexWriter.updateDocument(
                             new Term("globalId", String.valueOf(metadata.getGlobalId())), doc);
                     counts[0]++;
@@ -193,7 +207,16 @@ public class AsynchronousLuceneIndexUpdater {
                 try {
                     ArtifactVersionMetaDataDto metadata = versionContent.toMetaDataDto();
                     byte[] contentBytes = versionContent.getContent().bytes();
-                    Document doc = documentBuilder.buildVersionDocument(metadata, contentBytes);
+
+                    // Look up the structured content extractor for this artifact type
+                    StructuredContentExtractor extractor = null;
+                    if (metadata.getArtifactType() != null) {
+                        extractor = typeProviderFactory.getArtifactTypeProvider(
+                                metadata.getArtifactType()).getStructuredContentExtractor();
+                    }
+
+                    Document doc = documentBuilder.buildVersionDocument(metadata, contentBytes,
+                            extractor);
                     indexWriter.updateDocument(
                             new Term("globalId", String.valueOf(metadata.getGlobalId())), doc);
                     counts[0]++;

@@ -77,6 +77,8 @@ public class LuceneStartupIndexerStorageTest {
         injectField(startupIndexer, LuceneStartupIndexer.class, "config", config);
         injectField(startupIndexer, LuceneStartupIndexer.class, "storage", storage);
         injectField(startupIndexer, LuceneStartupIndexer.class, "documentBuilder", documentBuilder);
+        injectField(startupIndexer, LuceneStartupIndexer.class, "typeProviderFactory",
+                new io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl(true));
         injectField(startupIndexer, LuceneStartupIndexer.class, "indexWriter", indexWriter);
         injectField(startupIndexer, LuceneStartupIndexer.class, "indexSearcher", indexSearcher);
     }

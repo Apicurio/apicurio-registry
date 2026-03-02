@@ -54,7 +54,7 @@ public class LuceneSearchService {
      * rather than silently falling back to SQL (which would return incorrect results).
      */
     private static final Set<SearchFilterType> LUCENE_ONLY_FILTER_TYPES = EnumSet.of(
-            SearchFilterType.content);
+            SearchFilterType.content, SearchFilterType.structure);
 
     @Inject
     LuceneIndexSearcher indexSearcher;
@@ -226,6 +226,9 @@ public class LuceneSearchService {
         case content:
             return buildTextQuery("content", filter.getStringValue());
 
+        case structure:
+            return buildStructureQuery(filter.getStringValue());
+
         case labels:
             return buildLabelQuery(filter);
 
@@ -281,6 +284,42 @@ public class LuceneSearchService {
             log.warn("Failed to parse query for field '{}': {}", field, e.getMessage());
             // Fallback to simple term query with lowercased value
             return new TermQuery(new Term(field, value.toLowerCase()));
+        }
+    }
+
+    /**
+     * Builds a query for the structure field using the faceted format. Supports three formats:
+     * <ul>
+     * <li>{@code type:kind:name} - exact match on the structure field</li>
+     * <li>{@code kind:name} - wildcard match on any artifact type</li>
+     * <li>{@code name} - text search on the structure_text field</li>
+     * </ul>
+     *
+     * @param value The structure filter value
+     * @return A Lucene query for structured element search
+     */
+    private Query buildStructureQuery(String value) {
+        if (value == null || value.isBlank()) {
+            return new MatchAllDocsQuery();
+        }
+
+        String lowered = value.toLowerCase().trim();
+        String[] parts = lowered.split(":", -1);
+
+        if (parts.length == 3) {
+            // Full format: type:kind:name - exact match on structure field
+            return new TermQuery(new Term("structure", lowered));
+        } else if (parts.length == 2) {
+            // Partial format: kind:name - build a boolean query that combines
+            // kind matching with name matching across any artifact type
+            BooleanQuery.Builder builder = new BooleanQuery.Builder();
+            // Use text search on structure_text for "kind name"
+            String textQuery = parts[0] + " " + parts[1];
+            builder.add(buildTextQuery("structure_text", textQuery), BooleanClause.Occur.MUST);
+            return builder.build();
+        } else {
+            // Plain name: text search on structure_text field
+            return buildTextQuery("structure_text", lowered);
         }
     }
 

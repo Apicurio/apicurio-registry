@@ -240,7 +240,7 @@ public class SearchResourceImpl implements SearchResource {
     public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit,
             SortOrder order, VersionSortBy orderby, List<String> labels, String description, String groupId,
             Long globalId, Long contentId, String artifactId, String name, VersionState state,
-            String artifactType, String content) {
+            String artifactType, String content, String structure) {
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
         }
@@ -309,6 +309,9 @@ public class SearchResourceImpl implements SearchResource {
         }
         if (!StringUtil.isEmpty(content)) {
             filters.add(SearchFilter.ofContent(content));
+        }
+        if (!StringUtil.isEmpty(structure)) {
+            filters.add(SearchFilter.ofStructure(structure));
         }
 
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),

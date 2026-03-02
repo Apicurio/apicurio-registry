@@ -74,6 +74,7 @@ const VERSION_FILTER_TYPES: ChipFilterType[] = [
     { value: FilterBy.labels, label: "Label", testId: "label-filter-typegroup" },
     { value: FilterBy.name, label: "Name", testId: "name-filter-typegroup" },
     { value: FilterBy.state, label: "State", testId: "state-filter-typegroup" },
+    { value: FilterBy.structure, label: "Structure", testId: "structure-filter-typegroup" },
     { value: FilterBy.version, label: "Version", testId: "version-filter-typegroup" },
 ];
 const FILTER_TYPE_LOOKUP: any = {};

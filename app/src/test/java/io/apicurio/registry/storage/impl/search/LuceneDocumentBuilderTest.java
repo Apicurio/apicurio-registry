@@ -1,5 +1,8 @@
 package io.apicurio.registry.storage.impl.search;
 
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
+import io.apicurio.registry.openapi.content.extract.OpenApiStructuredContentExtractor;
+import io.apicurio.registry.asyncapi.content.extract.AsyncApiStructuredContentExtractor;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.types.VersionState;
 import org.apache.lucene.document.Document;
@@ -118,10 +121,11 @@ public class LuceneDocumentBuilderTest {
     }
 
     @Test
-    void testBuildVersionDocument_OpenApiContent() {
+    void testBuildVersionDocument_OpenApiContent_WithExtractor() {
         // Given
         ArtifactVersionMetaDataDto metadata = createTestMetadata();
         metadata.setArtifactType("OPENAPI");
+        StructuredContentExtractor extractor = new OpenApiStructuredContentExtractor();
 
         String openApiContent = """
                 {
@@ -139,31 +143,40 @@ public class LuceneDocumentBuilderTest {
         byte[] content = openApiContent.getBytes(StandardCharsets.UTF_8);
 
         // When
-        Document doc = builder.buildVersionDocument(metadata, content);
+        Document doc = builder.buildVersionDocument(metadata, content, extractor);
 
-        // Then
-        IndexableField[] pathFields = doc.getFields("openapi_path");
-        assertTrue(pathFields.length >= 1, "Should have indexed OpenAPI paths");
+        // Then - verify structure fields are present
+        IndexableField[] structureFields = doc.getFields("structure");
+        assertTrue(structureFields.length >= 2, "Should have indexed structured elements");
 
-        // Check that paths were indexed
+        // Check that paths were indexed as structure fields
         boolean hasUsersPath = false;
         boolean hasOrdersPath = false;
-        for (IndexableField field : pathFields) {
+        for (IndexableField field : structureFields) {
             String value = field.stringValue();
-            if ("/users".equals(value))
+            if ("openapi:path:/users".equals(value))
                 hasUsersPath = true;
-            if ("/orders".equals(value))
+            if ("openapi:path:/orders".equals(value))
                 hasOrdersPath = true;
         }
-        assertTrue(hasUsersPath, "Should have indexed /users path");
-        assertTrue(hasOrdersPath, "Should have indexed /orders path");
+        assertTrue(hasUsersPath, "Should have indexed /users path as structure field");
+        assertTrue(hasOrdersPath, "Should have indexed /orders path as structure field");
+
+        // Verify structure_text fields are also present
+        IndexableField[] structureTextFields = doc.getFields("structure_text");
+        assertTrue(structureTextFields.length >= 2, "Should have structure_text fields");
+
+        // Verify structure_kind fields are also present
+        IndexableField[] structureKindFields = doc.getFields("structure_kind");
+        assertTrue(structureKindFields.length >= 2, "Should have structure_kind fields");
     }
 
     @Test
-    void testBuildVersionDocument_AsyncApiContent() {
+    void testBuildVersionDocument_AsyncApiContent_WithExtractor() {
         // Given
         ArtifactVersionMetaDataDto metadata = createTestMetadata();
         metadata.setArtifactType("ASYNCAPI");
+        StructuredContentExtractor extractor = new AsyncApiStructuredContentExtractor();
 
         String asyncApiContent = """
                 {
@@ -180,24 +193,24 @@ public class LuceneDocumentBuilderTest {
         byte[] content = asyncApiContent.getBytes(StandardCharsets.UTF_8);
 
         // When
-        Document doc = builder.buildVersionDocument(metadata, content);
+        Document doc = builder.buildVersionDocument(metadata, content, extractor);
 
-        // Then
-        IndexableField[] channelFields = doc.getFields("asyncapi_channel");
-        assertTrue(channelFields.length >= 1, "Should have indexed AsyncAPI channels");
+        // Then - verify structure fields are present
+        IndexableField[] structureFields = doc.getFields("structure");
+        assertTrue(structureFields.length >= 2, "Should have indexed structured elements");
 
-        // Check that channels were indexed
+        // Check that channels were indexed as structure fields
         boolean hasUserEvents = false;
         boolean hasOrderEvents = false;
-        for (IndexableField field : channelFields) {
+        for (IndexableField field : structureFields) {
             String value = field.stringValue();
-            if ("user.events".equals(value))
+            if ("asyncapi:channel:user.events".equals(value))
                 hasUserEvents = true;
-            if ("order.events".equals(value))
+            if ("asyncapi:channel:order.events".equals(value))
                 hasOrderEvents = true;
         }
-        assertTrue(hasUserEvents, "Should have indexed user.events channel");
-        assertTrue(hasOrderEvents, "Should have indexed order.events channel");
+        assertTrue(hasUserEvents, "Should have indexed user.events channel as structure field");
+        assertTrue(hasOrderEvents, "Should have indexed order.events channel as structure field");
     }
 
     @Test
@@ -213,6 +226,49 @@ public class LuceneDocumentBuilderTest {
         // Then - should not throw exception, just skip structured extraction
         assertNotNull(doc);
         assertEquals("test-artifact", doc.get("artifactId"));
+    }
+
+    @Test
+    void testBuildVersionDocument_InvalidJsonContent_WithExtractor() {
+        // Given
+        ArtifactVersionMetaDataDto metadata = createTestMetadata();
+        metadata.setArtifactType("OPENAPI");
+        StructuredContentExtractor extractor = new OpenApiStructuredContentExtractor();
+        byte[] content = "not valid json".getBytes(StandardCharsets.UTF_8);
+
+        // When
+        Document doc = builder.buildVersionDocument(metadata, content, extractor);
+
+        // Then - should not throw exception, no structure fields
+        assertNotNull(doc);
+        assertEquals("test-artifact", doc.get("artifactId"));
+        IndexableField[] structureFields = doc.getFields("structure");
+        assertEquals(0, structureFields.length, "Invalid content should produce no structure fields");
+    }
+
+    @Test
+    void testBuildVersionDocument_NoExtractor() {
+        // Given
+        ArtifactVersionMetaDataDto metadata = createTestMetadata();
+        metadata.setArtifactType("OPENAPI");
+
+        String openApiContent = """
+                {
+                  "openapi": "3.0.0",
+                  "info": { "title": "Test" },
+                  "paths": { "/test": {} }
+                }
+                """;
+        byte[] content = openApiContent.getBytes(StandardCharsets.UTF_8);
+
+        // When - calling without extractor
+        Document doc = builder.buildVersionDocument(metadata, content);
+
+        // Then - no structure fields since no extractor was provided
+        assertNotNull(doc);
+        IndexableField[] structureFields = doc.getFields("structure");
+        assertEquals(0, structureFields.length,
+                "Without extractor, no structure fields should be indexed");
     }
 
     @Test

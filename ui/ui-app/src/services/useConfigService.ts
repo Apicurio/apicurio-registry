@@ -75,6 +75,7 @@ export interface UiConfig {
     contextPath?: string;
     navPrefixPath?: string;
     oaiDocsUrl?: string;
+    jsonSchemaDocsUrl?: string;
     editorsUrl?: string;
 }
 
@@ -222,6 +223,7 @@ export interface ConfigService {
     artifactsUrl(): string;
     uiContextPath(): string|undefined;
     uiOaiDocsUrl(): string;
+    uiJsonSchemaDocsUrl(): string;
     uiEditorsUrl(): string;
     uiNavPrefixPath(): string|undefined;
     features(): FeaturesConfig;
@@ -289,6 +291,12 @@ export class ConfigServiceImpl implements ConfigService {
         console.info("=====> DOCS URL: ", registryConfig.ui?.oaiDocsUrl);
         console.info("=====> Context Path: ", this.uiContextPath());
         return registryConfig.ui?.oaiDocsUrl || (this.uiContextPath() + "docs");
+    }
+
+    public uiJsonSchemaDocsUrl(): string {
+        console.info("=====> JSON Schema DOCS URL: ", registryConfig.ui?.jsonSchemaDocsUrl);
+        console.info("=====> Context Path: ", this.uiContextPath());
+        return registryConfig.ui?.jsonSchemaDocsUrl || (this.uiContextPath() + "docs-json");
     }
 
     public uiEditorsUrl(): string {

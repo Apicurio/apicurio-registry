@@ -4,6 +4,7 @@ var ApicurioRegistryConfig = {
     },
     ui: {
         oaiDocsUrl: "http://localhost:8889",
+        jsonSchemaDocsUrl: "http://localhost:8890",
         editorsUrl: "http://localhost:9011"
     },
     auth: {

@@ -160,7 +160,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     const showDocumentationTab = (): boolean => {
-        return artifact?.artifactType === "OPENAPI" && artifactVersion?.state !== "DISABLED";
+        if (artifactVersion?.state === "DISABLED") {
+            return false;
+        }
+        return artifact?.artifactType === "OPENAPI" || artifact?.artifactType === "JSON";
     };
 
     const doDownloadVersion = (): void => {

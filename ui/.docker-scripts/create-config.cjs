@@ -11,6 +11,7 @@ const REGISTRY_API_URL=process.env["REGISTRY_API_URL"] || "http://localhost:8080
 const CONTEXT_PATH=process.env["REGISTRY_CONTEXT_PATH"];
 const NAV_PREFIX_PATH=process.env["REGISTRY_NAV_PREFIX_PATH"];
 const DOCS_URL=process.env["REGISTRY_DOCS_URL"];
+const JSON_SCHEMA_DOCS_URL=process.env["REGISTRY_JSON_SCHEMA_DOCS_URL"];
 const EDITORS_URL=process.env["REGISTRY_EDITORS_URL"];
 
 const AUTH_TYPE=process.env["REGISTRY_AUTH_TYPE"];
@@ -55,6 +56,9 @@ if (NAV_PREFIX_PATH) {
 }
 if (DOCS_URL) {
     CONFIG.ui.oaiDocsUrl = DOCS_URL;
+}
+if (JSON_SCHEMA_DOCS_URL) {
+    CONFIG.ui.jsonSchemaDocsUrl = JSON_SCHEMA_DOCS_URL;
 }
 if (EDITORS_URL) {
     CONFIG.ui.editorsUrl = EDITORS_URL;

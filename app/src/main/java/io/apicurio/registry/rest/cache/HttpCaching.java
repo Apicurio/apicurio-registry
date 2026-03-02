@@ -125,7 +125,7 @@ public class HttpCaching {
                                 .build()
                                 .apply(adapter);
 
-                        VaryHttpHeader.builder().build().apply(adapter);
+                        VaryHttpHeader.builder().headers(config.getVaryHeaders()).build().apply(adapter);
                     } else {
                         log.debug("Skipping adding cache headers for a high cacheability response because " +
                                         "`apicurio.http-caching.high-cacheability.max-age-seconds={}`.",
@@ -141,7 +141,7 @@ public class HttpCaching {
                                 .build()
                                 .apply(adapter);
 
-                        VaryHttpHeader.builder().build().apply(adapter);
+                        VaryHttpHeader.builder().headers(config.getVaryHeaders()).build().apply(adapter);
                     } else {
                         log.debug("Skipping adding cache headers for a moderate cacheability response because " +
                                         "`apicurio.http-caching.moderate-cacheability.max-age-seconds={}`.",
@@ -157,7 +157,7 @@ public class HttpCaching {
                                 .build()
                                 .apply(adapter);
 
-                        VaryHttpHeader.builder().build().apply(adapter);
+                        VaryHttpHeader.builder().headers(config.getVaryHeaders()).build().apply(adapter);
                     } else {
                         log.debug("Skipping adding cache headers for a low cacheability response because " +
                                         "`apicurio.http-caching.low-cacheability.max-age-seconds={}`.",

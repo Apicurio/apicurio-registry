@@ -7,6 +7,7 @@ import lombok.Getter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_CACHE;
@@ -18,7 +19,8 @@ public class HttpCachingConfig {
     @Info(category = CATEGORY_CACHE, description = """
             Enable or disable HTTP caching entirely. \
             When disabled, no server-side cache headers (ETag, Surrogate-Control, etc.) are sent, and cache strategies are not evaluated. \
-            Caching is automatically disabled if all max-age configurations are set to <= 0.\
+            At least one of the max-age configurations must be set to > 0, otherwise caching is automatically disabled \
+            and this property has no effect.\
             """, availableSince = "3.2.0")
     boolean enabled;
 
@@ -93,4 +95,12 @@ public class HttpCachingConfig {
     public boolean getOpaqueETagsEnabled() {
         return opaqueETagsEnabled.orElse(ConfigUtils.isProfileActive("prod"));
     }
+
+    @ConfigProperty(name = "apicurio.http-caching.vary-headers", defaultValue = "Accept,Accept-Encoding,Authorization")
+    @Info(category = CATEGORY_CACHE, description = """
+            Comma-separated list of request header names to include in the Vary response header. \
+            The Vary header tells caches that the response varies based on the values of the listed request headers.\
+            """, availableSince = "3.2.0")
+    @Getter
+    List<String> varyHeaders;
 }

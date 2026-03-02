@@ -274,7 +274,7 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`false`
 |`3.2.0`
-|Enable or disable HTTP caching entirely. When disabled, no server-side cache headers (ETag, Surrogate-Control, etc.) are sent, and cache strategies are not evaluated. Caching is automatically disabled if all max-age configurations are set to <= 0.
+|Enable or disable HTTP caching entirely. When disabled, no server-side cache headers (ETag, Surrogate-Control, etc.) are sent, and cache strategies are not evaluated. At least one of the max-age configurations must be set to > 0, otherwise caching is automatically disabled and this property has no effect.
 |`apicurio.http-caching.extra-headers-enabled`
 |`boolean`
 |`true`
@@ -304,7 +304,12 @@ The following {registry} configuration options are available for each component 
 |`optional<boolean>`
 |
 |`3.2.0`
-|Hash raw ETag values before adding them to the header. Enabling this feature might marginally increase security, while disabling is useful for testing and debugging. If no value is provided, the feature is disabled when the `prod` profile is active.
+|Hash raw ETag values before adding them to the header. Enabling this feature might marginally increase security, while disabling is useful for testing and debugging. If no value is provided, the feature is enabled when the `prod` profile is active.
+|`apicurio.http-caching.vary-headers`
+|`list<string>`
+|`Accept,Accept-Encoding,Authorization`
+|`3.2.0`
+|Comma-separated list of request header names to include in the Vary response header. The Vary header tells caches that the response varies based on the values of the listed request headers.
 |===
 
 == ccompat

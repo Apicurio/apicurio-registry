@@ -12,5 +12,6 @@ public class CacheNotModifiedException extends RuntimeException {
     public static final CacheNotModifiedException INSTANCE = new CacheNotModifiedException();
 
     private CacheNotModifiedException() {
+        super(null, null, true, false); // disable stack trace and suppression
     }
 }

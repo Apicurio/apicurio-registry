@@ -3,6 +3,7 @@ package io.apicurio.registry.noprofile.rest.v3;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateGroup;
@@ -467,6 +468,180 @@ public class DraftContentTest extends AbstractResourceTestBase {
         UserInterfaceConfig config = clientV3.system().uiConfig().get();
         Assertions.assertNotNull(config);
         Assertions.assertTrue(config.getFeatures().getDraftMutability());
+    }
+
+    @Test
+    public void testCreateDraftArtifactVersionWithReferences() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a JSON Schema artifact to be referenced
+        String jsonSchemaContent = """
+                {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "User",
+                    "type": "object",
+                    "properties": {
+                        "id": { "type": "string" },
+                        "name": { "type": "string" }
+                    },
+                    "required": ["id", "name"]
+                }
+                """;
+        String referencedArtifactId = "test-user-schema-" + UUID.randomUUID().toString();
+
+        CreateArtifact createReferenced = TestUtils.clientCreateArtifact(referencedArtifactId,
+                ArtifactType.JSON, jsonSchemaContent, ContentTypes.APPLICATION_JSON);
+        createReferenced.getFirstVersion().setVersion("1.0.0");
+        createReferenced.getFirstVersion().setIsDraft(false);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createReferenced);
+
+        // Create an OpenAPI artifact (non-draft, no references)
+        String openapiContent = """
+                {
+                    "openapi": "3.0.0",
+                    "info": { "title": "User API", "version": "1.0.0" },
+                    "paths": {}
+                }
+                """;
+        String mainArtifactId = "test-openapi-" + UUID.randomUUID().toString();
+
+        CreateArtifact createMain = TestUtils.clientCreateArtifact(mainArtifactId,
+                ArtifactType.OPENAPI, openapiContent, ContentTypes.APPLICATION_JSON);
+        createMain.getFirstVersion().setVersion("1.0.0");
+        createMain.getFirstVersion().setIsDraft(false);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createMain);
+
+        // Create a DRAFT version with references
+        String openapiContentV2 = """
+                {
+                    "openapi": "3.0.0",
+                    "info": { "title": "User API", "version": "1.0.1" },
+                    "paths": {
+                        "/users/{userId}": {
+                            "get": {
+                                "summary": "Get user by ID",
+                                "responses": {
+                                    "200": {
+                                        "description": "OK",
+                                        "content": {
+                                            "application/json": {
+                                                "schema": { "$ref": "user" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                """;
+
+        ArtifactReference ref = new ArtifactReference();
+        ref.setGroupId(groupId);
+        ref.setArtifactId(referencedArtifactId);
+        ref.setVersion("1.0.0");
+        ref.setName("user");
+
+        CreateVersion createVersion = TestUtils.clientCreateVersion(openapiContentV2,
+                ContentTypes.APPLICATION_JSON);
+        createVersion.setVersion("1.0.1");
+        createVersion.setIsDraft(true);
+        createVersion.getContent().setReferences(List.of(ref));
+
+        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(mainArtifactId).versions().post(createVersion);
+
+        Assertions.assertNotNull(vmd);
+        Assertions.assertEquals(VersionState.DRAFT, vmd.getState());
+
+        // Verify references are persisted for the draft version
+        List<io.apicurio.registry.rest.client.models.ArtifactReference> refs = clientV3.groups()
+                .byGroupId(groupId).artifacts().byArtifactId(mainArtifactId).versions()
+                .byVersionExpression("1.0.1").references().get();
+        Assertions.assertNotNull(refs);
+        Assertions.assertEquals(1, refs.size(),
+                "Draft version should have 1 reference but had " + refs.size());
+        Assertions.assertEquals(referencedArtifactId, refs.get(0).getArtifactId());
+        Assertions.assertEquals("1.0.0", refs.get(0).getVersion());
+    }
+
+    @Test
+    public void testCreateDraftArtifactWithReferences() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a JSON Schema artifact to be referenced
+        String jsonSchemaContent = """
+                {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "Order",
+                    "type": "object",
+                    "properties": {
+                        "orderId": { "type": "string" },
+                        "amount": { "type": "number" }
+                    },
+                    "required": ["orderId", "amount"]
+                }
+                """;
+        String referencedArtifactId = "test-order-schema-" + UUID.randomUUID().toString();
+
+        CreateArtifact createReferenced = TestUtils.clientCreateArtifact(referencedArtifactId,
+                ArtifactType.JSON, jsonSchemaContent, ContentTypes.APPLICATION_JSON);
+        createReferenced.getFirstVersion().setVersion("1.0.0");
+        createReferenced.getFirstVersion().setIsDraft(false);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createReferenced);
+
+        // Create an OpenAPI artifact with isDraft=true and references in the first version
+        String openapiContent = """
+                {
+                    "openapi": "3.0.0",
+                    "info": { "title": "Order API", "version": "1.0.0" },
+                    "paths": {
+                        "/orders": {
+                            "post": {
+                                "summary": "Create order",
+                                "requestBody": {
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "order" }
+                                        }
+                                    }
+                                },
+                                "responses": { "201": { "description": "Created" } }
+                            }
+                        }
+                    }
+                }
+                """;
+
+        ArtifactReference ref = new ArtifactReference();
+        ref.setGroupId(groupId);
+        ref.setArtifactId(referencedArtifactId);
+        ref.setVersion("1.0.0");
+        ref.setName("order");
+
+        String mainArtifactId = "test-order-api-" + UUID.randomUUID().toString();
+
+        CreateArtifact createMain = TestUtils.clientCreateArtifact(mainArtifactId,
+                ArtifactType.OPENAPI, openapiContent, ContentTypes.APPLICATION_JSON);
+        createMain.getFirstVersion().setVersion("1.0.0");
+        createMain.getFirstVersion().setIsDraft(true);
+        createMain.getFirstVersion().getContent().setReferences(List.of(ref));
+
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createMain);
+
+        Assertions.assertNotNull(car);
+        Assertions.assertNotNull(car.getVersion());
+        Assertions.assertEquals(VersionState.DRAFT, car.getVersion().getState());
+
+        // Verify references are persisted for the draft first version
+        List<io.apicurio.registry.rest.client.models.ArtifactReference> refs = clientV3.groups()
+                .byGroupId(groupId).artifacts().byArtifactId(mainArtifactId).versions()
+                .byVersionExpression("1.0.0").references().get();
+        Assertions.assertNotNull(refs);
+        Assertions.assertEquals(1, refs.size(),
+                "Draft first version should have 1 reference but had " + refs.size());
+        Assertions.assertEquals(referencedArtifactId, refs.get(0).getArtifactId());
+        Assertions.assertEquals("1.0.0", refs.get(0).getVersion());
     }
 
 }

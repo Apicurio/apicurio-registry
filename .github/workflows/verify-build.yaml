@@ -64,6 +64,15 @@ jobs:
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "[ERROR] Build produced uncommitted or untracked files. Generated files must either be committed or added to .gitignore as appropriate."
+            git --no-pager diff
+            git status
+            exit 1
+          fi
+
       - name: Build Docker Image
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm \

@@ -4,6 +4,7 @@ import io.apicurio.registry.iceberg.rest.v1.beans.ErrorModel;
 import io.apicurio.registry.iceberg.rest.v1.beans.IcebergErrorResponse;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.error.GroupNotEmptyException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -54,6 +55,10 @@ public class IcebergExceptionMapperService {
         if (t instanceof GroupNotEmptyException) {
             return buildErrorResponse(409, "NamespaceNotEmptyException",
                     "Namespace is not empty: " + ((GroupNotEmptyException) t).getGroupId());
+        }
+
+        if (t instanceof CommitFailedException) {
+            return buildErrorResponse(409, "CommitFailedException", t.getMessage());
         }
 
         if (t instanceof IllegalArgumentException) {

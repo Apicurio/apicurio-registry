@@ -1,7 +1,8 @@
 package io.apicurio.registry.rest.wellknown;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.a2a.A2AConfig;
-import io.apicurio.registry.a2a.AgentCardLabelExtractor;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
@@ -45,7 +46,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -136,36 +136,39 @@ public class WellKnownResourceImpl implements WellKnownResource {
             filters.add(SearchFilter.ofName(name));
         }
 
-        // Filter by skills (stored as labels: a2a.skill.<id>=<name>)
+        // Filter by skills (indexed as structured content: agent_card:skill:<id>)
         if (skills != null && !skills.isEmpty()) {
             for (String skill : skills) {
-                filters.add(SearchFilter.ofLabel(AgentCardLabelExtractor.LABEL_SKILL_PREFIX + skill));
+                filters.add(SearchFilter.ofStructure("agent_card:skill:" + skill));
             }
         }
 
-        // Filter by capabilities (stored as labels: a2a.capability.<name>=<value>)
+        // Filter by capabilities (indexed as structured content: agent_card:capability:<name>)
         if (capabilities != null && !capabilities.isEmpty()) {
             for (String capability : capabilities) {
                 // Parse capability:value format (e.g., "streaming:true")
                 String[] parts = capability.split(":", 2);
                 String capKey = parts[0];
                 String capValue = parts.length > 1 ? parts[1] : "true";
-                filters.add(SearchFilter.ofLabel(
-                        AgentCardLabelExtractor.LABEL_CAPABILITY_PREFIX + capKey, capValue));
+                SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + capKey);
+                if ("false".equals(capValue)) {
+                    filter = filter.negated();
+                }
+                filters.add(filter);
             }
         }
 
-        // Filter by input modes
+        // Filter by input modes (indexed as structured content: agent_card:inputmode:<mode>)
         if (inputModes != null && !inputModes.isEmpty()) {
             for (String mode : inputModes) {
-                filters.add(SearchFilter.ofLabel(AgentCardLabelExtractor.LABEL_INPUT_MODE_PREFIX + mode, "true"));
+                filters.add(SearchFilter.ofStructure("agent_card:inputmode:" + mode));
             }
         }
 
-        // Filter by output modes
+        // Filter by output modes (indexed as structured content: agent_card:outputmode:<mode>)
         if (outputModes != null && !outputModes.isEmpty()) {
             for (String mode : outputModes) {
-                filters.add(SearchFilter.ofLabel(AgentCardLabelExtractor.LABEL_OUTPUT_MODE_PREFIX + mode, "true"));
+                filters.add(SearchFilter.ofStructure("agent_card:outputmode:" + mode));
             }
         }
 
@@ -185,24 +188,46 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .build();
     }
 
+    /**
+     * Converts a searched artifact DTO into an agent search result by fetching and parsing the latest
+     * version content to extract skills and capabilities.
+     */
     private AgentSearchResult convertToAgentSearchResult(SearchedArtifactDto artifact) {
-        Map<String, String> labels = artifact.getLabels();
-
-        // Extract skills from labels
         List<String> skills = new ArrayList<>();
-        if (labels != null) {
-            for (Map.Entry<String, String> entry : labels.entrySet()) {
-                if (entry.getKey().startsWith(AgentCardLabelExtractor.LABEL_SKILL_PREFIX)) {
-                    skills.add(entry.getKey().substring(AgentCardLabelExtractor.LABEL_SKILL_PREFIX.length()));
+        boolean streaming = false;
+        boolean pushNotifications = false;
+
+        // Fetch and parse the latest version content to extract skills and capabilities
+        try {
+            GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
+            GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
+                    (g, branchId) -> storage.getBranchTip(g, branchId,
+                            RetrievalBehavior.SKIP_DISABLED_LATEST));
+            StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(stored.getContent().content());
+
+            // Extract skills
+            JsonNode skillsNode = root.path("skills");
+            if (skillsNode.isArray()) {
+                for (JsonNode skill : skillsNode) {
+                    if (skill.has("id") && skill.get("id").isTextual()) {
+                        skills.add(skill.get("id").asText());
+                    }
                 }
             }
-        }
 
-        // Extract capabilities from labels
-        boolean streaming = "true".equals(
-                labels != null ? labels.get(AgentCardLabelExtractor.LABEL_CAPABILITY_PREFIX + "streaming") : null);
-        boolean pushNotifications = "true".equals(
-                labels != null ? labels.get(AgentCardLabelExtractor.LABEL_CAPABILITY_PREFIX + "pushNotifications") : null);
+            // Extract capabilities
+            JsonNode capabilitiesNode = root.path("capabilities");
+            if (capabilitiesNode.isObject()) {
+                streaming = capabilitiesNode.path("streaming").asBoolean(false);
+                pushNotifications = capabilitiesNode.path("pushNotifications").asBoolean(false);
+            }
+        } catch (Exception e) {
+            // If content parsing fails, return result with empty skills/capabilities
+        }
 
         return AgentSearchResult.builder()
                 .groupId(artifact.getGroupId())

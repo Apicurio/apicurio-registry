@@ -7,7 +7,9 @@ import io.apicurio.registry.json.content.canon.JsonContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.NoopContentDereferencer;
 import io.apicurio.registry.content.extract.AgentCardContentExtractor;
+import io.apicurio.registry.content.extract.AgentCardStructuredContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
@@ -87,5 +89,10 @@ public class AgentCardArtifactTypeUtilProvider extends AbstractArtifactTypeUtilP
     @Override
     protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
         return new DefaultReferenceArtifactIdentifierExtractor();
+    }
+
+    @Override
+    protected StructuredContentExtractor createStructuredContentExtractor() {
+        return new AgentCardStructuredContentExtractor();
     }
 }

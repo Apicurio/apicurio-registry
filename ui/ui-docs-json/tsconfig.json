@@ -22,7 +22,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@app/*": [ "./src/app/*" ]
+      "@app/*": [ "./src/app/*" ],
+      "@stoplight/json-schema-viewer": [ "./node_modules/@stoplight/json-schema-viewer/index.d.ts" ]
     }
   },
   "include": [

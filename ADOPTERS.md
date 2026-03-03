@@ -28,6 +28,7 @@ Please include:
 | Organization | Type | Description | Since | Website |
 |---|---|---|---|---|
 | Axual | Vendor | Axual provides mission-critical streaming platforms based on open source Apache Kafka and open source Apicurio Registry | 2021 | [axual.com](https://axual.com) |
+| Castor | End-user | Castor uses Apicurio as its central schema registry, facilitating schema management and distribution for event streaming and inter-service communication purposes | 2024 | [castoredc.com](https://www.castoredc.com/) |
 | IBM | Vendor | Apicurio Registry is included as the schema registry component in IBM Event Streams | 2020 | [ibm.com/products/event-automation](https://www.ibm.com/products/event-automation) |
 | Red Hat | Vendor | Red Hat build of Apicurio Registry, part of Red Hat Application Foundations | 2020 | [redhat.com](https://www.redhat.com) |
 <!-- Add your organization here! -->

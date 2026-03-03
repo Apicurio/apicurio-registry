@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.util.Priorities;
 import jakarta.annotation.Priority;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
@@ -25,21 +26,25 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
+import static java.util.Collections.unmodifiableMap;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 
 /**
  * CDI interceptor that extracts method parameters based on {@link MethodMetadata} annotation
  * and stores them in the invocation context for use by subsequent interceptors.
  * <p>
- * This interceptor runs with high priority (APPLICATION - 200) to ensure parameter data
- * is available to other interceptors like {@link io.apicurio.registry.logging.audit.AuditedInterceptor}
- * and {@link io.apicurio.registry.rest.cache.ImmutableCacheInterceptor}.
+ * This interceptor runs with high priority to ensure parameter data
+ * is available to other interceptors.
  * <p>
  * The extracted parameters are stored in the invocation context under the key
  * {@link #EXTRACTED_PARAMETERS_KEY} as a {@code Map<String, Object>}.
  */
 @MethodMetadata
 @Interceptor
-@Priority(Interceptor.Priority.APPLICATION - 200)
+@Priority(Priorities.Interceptors.METHOD_METADATA)
 public class MethodMetadataInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(MethodMetadataInterceptor.class);
@@ -48,7 +53,7 @@ public class MethodMetadataInterceptor {
      * Context data key for storing extracted parameters.
      * Subsequent interceptors can retrieve the Map&lt;String, Object&gt; from the invocation context.
      */
-    public static final String EXTRACTED_PARAMETERS_KEY = "io.apicurio.registry.extractedParameters";
+    private static final String EXTRACTED_PARAMETERS_KEY = "io.apicurio.registry.extractedParameters";
 
     @AroundInvoke
     public Object extractMetadata(InvocationContext context) throws Exception {
@@ -90,5 +95,25 @@ public class MethodMetadataInterceptor {
         }
 
         return context.proceed();
+    }
+
+    public static <T> Optional<T> getExtractedParameter(InvocationContext context, String key, Class<T> type) {
+        return getExtractedParameters(context).flatMap(eps -> {
+            var value = eps.get(key);
+            if (type.isInstance(value)) {
+                return of(type.cast(value));
+            }
+            return empty();
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Optional<Map<String, Object>> getExtractedParameters(InvocationContext context) {
+        var rawExtractedParameters = context.getContextData().get(EXTRACTED_PARAMETERS_KEY);
+        if (rawExtractedParameters instanceof Map) {
+            var extractedParameters = (Map<String, Object>) rawExtractedParameters;
+            return of(unmodifiableMap(extractedParameters));
+        }
+        return empty();
     }
 }

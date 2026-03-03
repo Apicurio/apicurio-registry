@@ -21,12 +21,13 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 /**
- * Integration tests for searching versions via the Lucene index. Uses a QuarkusTestProfile that
- * enables Lucene search with synchronous indexing, so that all version searches are routed through
- * the Lucene index instead of SQL. Tests cover filtering, pagination, sorting, and result mapping.
+ * Integration tests for searching versions via the Elasticsearch index. Uses a QuarkusTestProfile
+ * that enables Elasticsearch search indexing, so that all version searches are routed through
+ * the Elasticsearch index instead of SQL. Tests cover filtering, pagination, sorting, and result
+ * mapping. Quarkus Dev Services auto-starts an Elasticsearch container for the tests.
  */
 @QuarkusTest
-@TestProfile(LuceneSearchTestProfile.class)
+@TestProfile(ElasticsearchSearchTestProfile.class)
 public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
 
     @Test

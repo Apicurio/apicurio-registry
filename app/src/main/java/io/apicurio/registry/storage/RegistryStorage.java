@@ -1037,8 +1037,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
     boolean supportsDatabaseEvents();
 
     /**
-     * Get all versions modified (created or updated) since the given timestamp. Only needed for
-     * ASYNCHRONOUS mode of Lucene search indexing.
+     * Get all versions modified (created or updated) since the given timestamp. Used by
+     * search index implementations.
      *
      * @param sinceTimestamp Timestamp in milliseconds since epoch
      * @return List of version metadata for changed versions
@@ -1055,16 +1055,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
     long countVersionsModifiedSince(long sinceTimestamp);
 
     /**
-     * Get the timestamp of the most recently modified version. Only needed for ASYNCHRONOUS mode of
-     * Lucene search indexing.
+     * Get the timestamp of the most recently modified version. Used by search index
+     * implementations.
      *
      * @return Timestamp in milliseconds, or 0 if no versions exist
      */
     long getLatestVersionTimestamp();
 
     /**
-     * Get all version globalIds. Only needed for ASYNCHRONOUS mode of Lucene search indexing, used for
-     * periodic reconciliation to detect deleted versions.
+     * Get all version globalIds. Used by search index implementations for reconciliation to
+     * detect deleted versions.
      *
      * @return List of all globalIds
      */
@@ -1072,7 +1072,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     /**
      * Streams all versions with their content. Used by the startup reindexer to populate the
-     * Lucene search index from scratch. The consumer is called once per version, with e.g. the
+     * search index from scratch. The consumer is called once per version, with e.g. the
      * JDBC cursor kept open for the duration.
      *
      * @param consumer receives each version's metadata and content

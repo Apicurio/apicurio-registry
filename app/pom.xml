@@ -198,18 +198,10 @@
       <artifactId>commons-codec</artifactId>
     </dependency>
 
-    <!-- Apache Lucene for content search indexing -->
+    <!-- Elasticsearch Java client for content search indexing -->
     <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-queryparser</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-analysis-common</artifactId>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-elasticsearch-java-client</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -842,36 +834,7 @@
       <properties>
         <quarkus.native.enabled>true</quarkus.native.enabled>
         <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
-        <!-- Exclude Lucene search beans from native builds. Lucene's MMapDirectory uses
-             ScopedMemoryAccess JNI methods not available in GraalVM native image. Setting
-             this as a Maven property ensures Quarkus picks it up during the native build,
-             unlike %native. profile prefix in application.properties which is not a real
-             Quarkus config profile. -->
-        <quarkus.arc.exclude-types>io.apicurio.registry.storage.impl.search.**,io.apicurio.registry.storage.decorator.LuceneSearchDecorator,io.apicurio.registry.storage.decorator.SearchIndexEventDecorator,io.apicurio.registry.metrics.health.readiness.LuceneIndexReadinessCheck</quarkus.arc.exclude-types>
       </properties>
-      <dependencies>
-        <!-- Exclude Lucene JARs from the native image classpath. Lucene's MMapDirectory
-             uses ScopedMemoryAccess JNI methods not available in GraalVM's static
-             libraries. The arc.exclude-types property (above) removes the CDI beans;
-             provided scope here removes the JARs so GraalVM cannot trace into Lucene
-             classes at all. -->
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-          <version>${lucene.version}</version>
-          <scope>provided</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-queryparser</artifactId>
-          <scope>provided</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-analysis-common</artifactId>
-          <scope>provided</scope>
-        </dependency>
-      </dependencies>
       <build>
         <plugins>
           <plugin>

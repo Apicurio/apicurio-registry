@@ -7,7 +7,7 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.search.ArtifactMetadataUpdatedEvent;
-import io.apicurio.registry.storage.impl.search.LuceneSearchConfig;
+import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.storage.impl.search.VersionCreatedEvent;
 import io.apicurio.registry.storage.impl.search.VersionDeletedEvent;
 import io.apicurio.registry.storage.impl.search.VersionStateChangedEvent;
@@ -23,7 +23,7 @@ import java.util.List;
 
 /**
  * Storage decorator that fires CDI events for search index updates. These events are observed by
- * SynchronousLuceneIndexUpdater when synchronous indexing is enabled.
+ * the ElasticsearchIndexUpdater when search indexing is enabled.
  */
 @ApplicationScoped
 public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
@@ -32,7 +32,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
     private static final Logger log = LoggerFactory.getLogger(SearchIndexEventDecorator.class);
 
     @Inject
-    LuceneSearchConfig config;
+    ElasticsearchSearchConfig config;
 
     @Inject
     Event<VersionCreatedEvent> versionCreatedEvent;
@@ -48,7 +48,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
 
     @Override
     public boolean isEnabled() {
-        // Only enable if Lucene search is enabled
+        // Only enable if search indexing is enabled
         return config.isEnabled();
     }
 

@@ -232,7 +232,7 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        // Content search is handled by Lucene only; skip in SQL
+                        // Content search is handled by the search index only; skip in SQL
                         break;
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
@@ -400,7 +400,7 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        // Content search is handled by Lucene only; skip in SQL
+                        // Content search is handled by the search index only; skip in SQL
                         break;
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());

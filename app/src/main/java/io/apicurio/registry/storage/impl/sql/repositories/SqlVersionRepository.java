@@ -737,7 +737,7 @@ public class SqlVersionRepository {
 
     /**
      * Streams all versions with their content through a single cursor-based SQL query. Used by the
-     * startup reindexer to populate the Lucene search index from scratch.
+     * startup reindexer to populate the search index from scratch.
      *
      * @param consumer receives each version's metadata and content
      */

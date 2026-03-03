@@ -66,7 +66,7 @@ import java.util.function.Function;
  * pre-configured data simulating a populated registry with two groups, three artifacts, and five
  * versions across different artifact types and states.
  *
- * <p>Only implements the methods that {@link LuceneStartupIndexer} calls during reindex:
+ * <p>Only implements the methods that the startup indexer calls during reindex:
  * {@link #forEachVersion}. All other methods throw {@link UnsupportedOperationException}.</p>
  */
 public class TestInMemoryRegistryStorage implements RegistryStorage {
@@ -136,7 +136,7 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
         return versions.size();
     }
 
-    // ===== Methods used by LuceneStartupIndexer =====
+    // ===== Methods used by the startup indexer =====
 
     @Override
     public void forEachVersion(Consumer<VersionContentDto> consumer) {

@@ -1,5 +1,7 @@
 package io.apicurio.registry.storage.impl.search;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.Refresh;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
@@ -15,58 +17,53 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.Term;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * Observes CDI events for version changes and updates the Lucene search index synchronously. Only active
- * when Lucene search is enabled and update mode is SYNCHRONOUS.
+ * Observes CDI events for version changes and updates the Elasticsearch search index. All updates
+ * are synchronous since all registry nodes share a single Elasticsearch cluster.
  */
 @ApplicationScoped
-public class SynchronousLuceneIndexUpdater {
+public class ElasticsearchIndexUpdater {
 
-    private static final Logger log = LoggerFactory.getLogger(SynchronousLuceneIndexUpdater.class);
+    private static final Logger log = LoggerFactory.getLogger(ElasticsearchIndexUpdater.class);
 
     @Inject
-    LuceneSearchConfig config;
+    ElasticsearchSearchConfig config;
 
     @Inject
     @Current
     RegistryStorage storage;
 
     @Inject
-    LuceneDocumentBuilder documentBuilder;
+    ElasticsearchDocumentBuilder documentBuilder;
 
     @Inject
     ArtifactTypeUtilProviderFactory typeProviderFactory;
 
     @Inject
-    LuceneIndexWriter indexWriter;
-
-    @Inject
-    LuceneIndexSearcher indexSearcher;
+    ElasticsearchClient client;
 
     private boolean isActive;
 
     @PostConstruct
     void initialize() {
-        isActive = config.isEnabled() && config.getUpdateMode() == IndexUpdateMode.SYNCHRONOUS;
+        isActive = config.isEnabled();
 
         if (isActive) {
-            log.info("Synchronous search index updates ENABLED");
-        } else if (config.isEnabled()) {
-            log.info("Synchronous search index updates DISABLED (mode is {})",
-                    config.getUpdateMode());
+            log.info("Elasticsearch search index updates ENABLED");
         }
     }
 
     /**
      * Observes version creation and immediately indexes the new version.
+     *
+     * @param event the version created event
      */
     public void onVersionCreated(@Observes VersionCreatedEvent event) {
         if (!isActive) {
@@ -74,24 +71,26 @@ public class SynchronousLuceneIndexUpdater {
         }
 
         try {
-            log.debug("Indexing newly created version: {}/{}/{}", event.getGroupId(),
-                    event.getArtifactId(), event.getVersion());
+            log.debug("Indexing newly created version: {}/{}/{}",
+                    event.getGroupId(), event.getArtifactId(), event.getVersion());
 
             indexVersion(event.getGroupId(), event.getArtifactId(), event.getVersion(),
                     event.getGlobalId());
 
-            log.debug("Successfully indexed version {}/{}/{} (globalId={})", event.getGroupId(),
-                    event.getArtifactId(), event.getVersion(), event.getGlobalId());
+            log.debug("Successfully indexed version {}/{}/{} (globalId={})",
+                    event.getGroupId(), event.getArtifactId(), event.getVersion(),
+                    event.getGlobalId());
 
         } catch (Exception e) {
             log.error("Failed to index new version {}/{}/{}", event.getGroupId(),
                     event.getArtifactId(), event.getVersion(), e);
-            // Don't throw - logging is sufficient, don't break version creation
         }
     }
 
     /**
      * Observes artifact metadata updates and re-indexes all affected versions.
+     *
+     * @param event the artifact metadata updated event
      */
     public void onArtifactMetadataUpdated(@Observes ArtifactMetadataUpdatedEvent event) {
         if (!isActive) {
@@ -102,7 +101,6 @@ public class SynchronousLuceneIndexUpdater {
             log.debug("Re-indexing versions for artifact with updated metadata: {}/{}",
                     event.getGroupId(), event.getArtifactId());
 
-            // Get all versions of this artifact
             VersionSearchResultsDto versions = storage.searchVersions(
                     Set.of(SearchFilter.ofGroupId(event.getGroupId()),
                             SearchFilter.ofArtifactId(event.getArtifactId())),
@@ -124,13 +122,15 @@ public class SynchronousLuceneIndexUpdater {
                     event.getGroupId(), event.getArtifactId());
 
         } catch (Exception e) {
-            log.error("Failed to re-index versions for artifact {}/{}", event.getGroupId(),
-                    event.getArtifactId(), e);
+            log.error("Failed to re-index versions for artifact {}/{}",
+                    event.getGroupId(), event.getArtifactId(), e);
         }
     }
 
     /**
      * Observes version deletion and removes from index.
+     *
+     * @param event the version deleted event
      */
     public void onVersionDeleted(@Observes VersionDeletedEvent event) {
         if (!isActive) {
@@ -138,25 +138,28 @@ public class SynchronousLuceneIndexUpdater {
         }
 
         try {
-            log.debug("Removing deleted version from index: {}/{}/{}", event.getGroupId(),
-                    event.getArtifactId(), event.getVersion());
+            log.debug("Removing deleted version from index: {}/{}/{}",
+                    event.getGroupId(), event.getArtifactId(), event.getVersion());
 
-            indexWriter.deleteDocuments(new Term("globalId", String.valueOf(event.getGlobalId())));
+            client.delete(d -> d
+                    .index(config.getIndexName())
+                    .id(String.valueOf(event.getGlobalId()))
+                    .refresh(Refresh.WaitFor)
+            );
 
-            indexWriter.commit();
-            indexSearcher.refresh();
-
-            log.debug("Successfully removed version {}/{}/{} from index", event.getGroupId(),
-                    event.getArtifactId(), event.getVersion());
+            log.debug("Successfully removed version {}/{}/{} from index",
+                    event.getGroupId(), event.getArtifactId(), event.getVersion());
 
         } catch (Exception e) {
-            log.error("Failed to remove version from index: {}/{}/{}", event.getGroupId(),
-                    event.getArtifactId(), event.getVersion(), e);
+            log.error("Failed to remove version from index: {}/{}/{}",
+                    event.getGroupId(), event.getArtifactId(), event.getVersion(), e);
         }
     }
 
     /**
      * Observes version state changes and updates the index.
+     *
+     * @param event the version state changed event
      */
     public void onVersionStateChanged(@Observes VersionStateChangedEvent event) {
         if (!isActive) {
@@ -168,7 +171,6 @@ public class SynchronousLuceneIndexUpdater {
                     event.getGroupId(), event.getArtifactId(), event.getVersion(),
                     event.getOldState(), event.getNewState());
 
-            // Re-index the version with new state
             indexVersion(event.getGroupId(), event.getArtifactId(), event.getVersion(),
                     event.getGlobalId());
 
@@ -184,47 +186,43 @@ public class SynchronousLuceneIndexUpdater {
     /**
      * Indexes a single version by fetching its metadata and content from storage.
      *
-     * @param groupId The group ID
-     * @param artifactId The artifact ID
-     * @param version The version string
-     * @param globalId The global ID
+     * @param groupId the group ID
+     * @param artifactId the artifact ID
+     * @param version the version string
+     * @param globalId the global ID
      * @throws IOException if indexing fails
      */
     private void indexVersion(String groupId, String artifactId, String version, long globalId)
             throws IOException {
 
-        // Fetch version metadata
-        ArtifactVersionMetaDataDto versionMetadata = storage.getArtifactVersionMetaData(groupId,
-                artifactId, version);
+        ArtifactVersionMetaDataDto versionMetadata = storage.getArtifactVersionMetaData(
+                groupId, artifactId, version);
 
-        // Fetch content
-        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(groupId,
-                artifactId, version);
+        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(
+                groupId, artifactId, version);
         ContentHandle content = storedVersion.getContent();
 
-        // Look up the structured content extractor for this artifact type
         StructuredContentExtractor extractor = null;
         if (versionMetadata.getArtifactType() != null) {
             extractor = typeProviderFactory.getArtifactTypeProvider(
                     versionMetadata.getArtifactType()).getStructuredContentExtractor();
         }
 
-        // Build Lucene document
-        Document doc = documentBuilder.buildVersionDocument(versionMetadata, content.bytes(),
-                extractor);
+        Map<String, Object> doc = documentBuilder.buildVersionDocument(versionMetadata,
+                content.bytes(), extractor);
 
-        // Update index (using globalId as unique key)
-        indexWriter.updateDocument(new Term("globalId", String.valueOf(globalId)), doc);
-
-        // Commit and refresh immediately (synchronous mode)
-        indexWriter.commit();
-        indexSearcher.refresh();
+        client.index(i -> i
+                .index(config.getIndexName())
+                .id(String.valueOf(globalId))
+                .document(doc)
+                .refresh(Refresh.WaitFor)
+        );
     }
 
     /**
-     * Checks if synchronous indexing is active.
+     * Checks if index updating is active.
      *
-     * @return true if active, false otherwise
+     * @return true if active
      */
     public boolean isActive() {
         return isActive;

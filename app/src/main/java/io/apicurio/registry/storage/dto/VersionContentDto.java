@@ -45,7 +45,7 @@ public class VersionContentDto {
 
     /**
      * Converts this DTO to an {@link ArtifactVersionMetaDataDto}, which is the format expected
-     * by {@code LuceneDocumentBuilder.buildVersionDocument()}.
+     * by the search index document builder.
      *
      * @return a new ArtifactVersionMetaDataDto populated from this DTO's fields
      */

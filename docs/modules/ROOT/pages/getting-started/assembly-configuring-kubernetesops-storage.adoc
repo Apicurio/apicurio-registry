@@ -21,6 +21,8 @@ This chapter explains how to configure {registry} to use Kubernetes ConfigMaps a
 [id="kubernetesops-overview_{context}"]
 == Overview of KubernetesOps storage
 
+IMPORTANT: KubernetesOps storage is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it.
+
 [role="_abstract"]
 KubernetesOps storage is a read-only storage variant that loads registry data from Kubernetes ConfigMaps. It extends the proven GitOps storage pattern to use ConfigMaps instead of Git repositories, enabling Kubernetes-native workflows for managing schemas and APIs.
 
@@ -109,6 +111,10 @@ This section explains how to configure {registry} to use KubernetesOps storage.
 |Default
 |Description
 
+|`APICURIO_FEATURES_EXPERIMENTAL_ENABLED`
+|`false`
+|*Required*. Must be set to `true` to enable KubernetesOps storage. This feature is currently experimental.
+
 |`APICURIO_STORAGE_KIND`
 |-
 |Set to `kubernetesops` to enable KubernetesOps storage.
@@ -146,6 +152,8 @@ spec:
         - name: registry
           image: apicurio/apicurio-registry:latest
           env:
+            - name: APICURIO_FEATURES_EXPERIMENTAL_ENABLED
+              value: "true"
             - name: APICURIO_STORAGE_KIND
               value: "kubernetesops"
             - name: APICURIO_KUBERNETESOPS_ID

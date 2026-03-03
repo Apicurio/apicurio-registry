@@ -3,6 +3,8 @@ package io.apicurio.registry.storage.impl.kubernetesops;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.StorageMetricsApply;
+import io.apicurio.registry.storage.StorageEvent;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.impl.polling.AbstractPollingRegistryStorage;
 import io.apicurio.registry.storage.impl.polling.DataSourceManager;
 import io.quarkus.arc.Arc;
@@ -10,6 +12,7 @@ import io.quarkus.arc.ManagedContext;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -37,6 +40,9 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
     @Inject
     KubernetesOpsConfigProperties config;
 
+    @Inject
+    Event<StorageEvent> storageEvent;
+
     @ConfigProperty(name = "apicurio.storage.kind")
     @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops", availableSince = "3.0.0")
     String registryStorageType;
@@ -63,6 +69,8 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
         if (config.isWatchEnabled()) {
             kubernetesManager.startWatch();
         }
+
+        storageEvent.fireAsync(StorageEvent.builder().type(StorageEventType.READY).build());
     }
 
     private void triggerRefreshFromWatch() {

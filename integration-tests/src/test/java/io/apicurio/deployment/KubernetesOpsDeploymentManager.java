@@ -46,22 +46,35 @@ public class KubernetesOpsDeploymentManager {
 
         // Wait for the Deployment to create at least one pod before waiting for readiness.
         // Without this, waitUntilReady can fail immediately if no pods exist yet.
-        int maxWait = 60;
+        String podName = null;
+        int maxWait = 120;
         for (int i = 0; i < maxWait; i++) {
             var pods = kubernetesClient.pods().inNamespace(TEST_NAMESPACE)
                     .withLabel("app", "apicurio-registry-kubernetesops").list();
             if (!pods.getItems().isEmpty()) {
-                LOGGER.info("Pod created, waiting for readiness...");
+                podName = pods.getItems().get(0).getMetadata().getName();
+                LOGGER.info("Pod '{}' created, waiting for readiness...", podName);
                 break;
             }
             Thread.sleep(1000);
         }
 
-        // Now wait for the pod to become ready
-        kubernetesClient.pods().inNamespace(TEST_NAMESPACE)
-                .withLabel("app", "apicurio-registry-kubernetesops")
-                .waitUntilReady(360, TimeUnit.SECONDS);
+        if (podName == null) {
+            throw new RuntimeException(
+                    "No pod created for apicurio-registry-kubernetesops after " + maxWait + " seconds");
+        }
 
-        LOGGER.info("Registry pod is ready");
+        // Wait for the specific pod by name to avoid the name:[null] issue with label-based waits
+        kubernetesClient.pods().inNamespace(TEST_NAMESPACE)
+                .withName(podName)
+                .waitUntilReady(600, TimeUnit.SECONDS);
+
+        LOGGER.info("Registry pod '{}' is ready", podName);
+
+        // Set up test networking so tests connect to the correct host
+        RegistryDeploymentManager.setupTestNetworking();
+
+        // Wait for the registry HTTP endpoint to be accessible
+        RegistryDeploymentManager.waitForRegistryReady();
     }
 }

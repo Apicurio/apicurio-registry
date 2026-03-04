@@ -89,10 +89,15 @@ metadata:
   name: apicurio-registry-service
 spec:
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 8080
       targetPort: 8080
       nodePort: 32586
+    - name: management
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
   selector:
     app: apicurio-registry-memory
   type: LoadBalancer

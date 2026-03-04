@@ -78,6 +78,7 @@
         <configuration>
           <kiotaVersion>${kiota.version}</kiotaVersion>
           <kiotaTimeout>${kiota.timeout}</kiotaTimeout>
+          <baseURL>${kiota.base.url}</baseURL>
           <file>../common/src/main/resources/META-INF/openapi.json</file>
           <namespace>io.apicurio.registry.rest.client</namespace>
           <clientClass>RegistryClient</clientClass>

@@ -51,6 +51,7 @@ jobs:
       - name: Build Native executables
         env:
           SKIP_TESTS: "true"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         run: |
           ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
 

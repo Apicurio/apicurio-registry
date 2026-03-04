@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.impl.gitops.YAMLObjectMapper;
+import io.apicurio.registry.util.YAMLObjectMapper;
 import io.apicurio.registry.storage.util.KubernetesOpsTestProfile;
 import io.apicurio.registry.types.RuleType;
 import io.fabric8.kubernetes.client.KubernetesClient;

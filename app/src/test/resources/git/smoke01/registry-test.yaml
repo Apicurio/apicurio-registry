@@ -1,7 +1,0 @@
-$type: registry-v0
-id: test
-globalRules:
-  - type: VALIDITY
-    enabled: true
-    config: FULL
-settings: [ ]

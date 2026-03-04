@@ -17,31 +17,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageBehaviorProperties;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.DownloadContextDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.OutboxEvent;
-import io.apicurio.registry.storage.dto.RoleMappingDto;
-import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionContentDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.CommitFailedException;
@@ -55,21 +31,7 @@ import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.mappers.DatabaseLockMapper;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlArtifactRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlBranchRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlCleanupRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlCommentRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlConfigRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlDownloadRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlEventRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlRoleMappingRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlSequenceRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlContentRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlExportRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlGroupRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlRuleRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlSearchRepository;
-import io.apicurio.registry.storage.impl.sql.repositories.SqlVersionRepository;
+import io.apicurio.registry.storage.impl.sql.repositories.*;
 import io.apicurio.registry.storage.importing.DataImporter;
 import io.apicurio.registry.storage.importing.v2.SqlDataUpgrader;
 import io.apicurio.registry.storage.importing.v3.SqlDataImporter;
@@ -140,6 +102,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     SecurityIdentity securityIdentity;
 
     HandleFactory handles;
+
+    /**
+     * Tracks which handle factory is currently configured in the shared repositories.
+     * Since repositories are @ApplicationScoped singletons shared by multiple storage instances
+     * (e.g., blue/green in polling storage), we must reconfigure before operating if another
+     * instance has since changed them.
+     */
+    private static volatile HandleFactory currentlyConfiguredHandles;
 
     @Inject
     StorageBehaviorProperties storageBehaviorProps;
@@ -321,11 +291,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     /**
-     * Configure all repositories to use the specified HandleFactory.
-     * This ensures that storage implementations using a different datasource (like GitOps)
-     * can override the default CDI-injected HandleFactory.
+     * We're using the SQL repository pattern where the repositories are @ApplicationScoped.
+     * This means that when we're using blue/green storages, they use the same repository instances.
+     * The repository contains the handle field, which determines which underlying database it operates on.
+     * However, this means that if we want to switch blue<-->green, we need to also set the database handle in the repositories.
+     * <p>
+     * To do this, method `configureRepositories` must not only be called on initialization,
+     * but also potentially on any database operation using `ensureConfigured`.
+     * <p>
+     * This adds overhead and is janky, but properly fixing it is out of scope of the current change.
+     * TODO: Make SQL repository instances plain classes, and use one instance per storage.
+     * This means we lose CDI in the repositories, but that can be solved by passing the beans during initialization.
      */
+    protected void ensureConfigured() {
+        if (currentlyConfiguredHandles != handles) {
+            configureRepositories(handles);
+        }
+    }
+
     protected void configureRepositories(HandleFactory handleFactory) {
+        currentlyConfiguredHandles = handleFactory;
         artifactRepository.setHandleFactory(handleFactory);
         versionRepository.setHandleFactory(handleFactory);
         groupRepository.setHandleFactory(handleFactory);
@@ -489,6 +474,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public ContentWrapperDto getContentById(long contentId)
             throws ContentNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return contentRepository.getContentById(contentId);
     }
 
@@ -500,11 +486,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public ContentWrapperDto getContentByHash(String contentHash)
             throws ContentNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return contentRepository.getContentByHash(contentHash);
     }
 
     @Override
     public List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId) {
+        ensureConfigured();
         return versionRepository.getArtifactVersionsByContentId(contentId);
     }
 
@@ -513,6 +501,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public List<Long> getEnabledArtifactContentIds(String groupId, String artifactId) {
+        ensureConfigured();
         return contentRepository.getEnabledArtifactContentIds(groupId, artifactId);
     }
 
@@ -522,6 +511,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
             List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
+        ensureConfigured();
         log.debug("Inserting an artifact row for: {} {}", groupId, artifactId);
 
         Date createdOn = new Date();
@@ -623,11 +613,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public List<String> deleteArtifact(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return artifactRepository.deleteArtifact(groupId, artifactId);
     }
 
     @Override
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
+        ensureConfigured();
         artifactRepository.deleteArtifacts(groupId);
     }
 
@@ -636,6 +628,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws VersionAlreadyExistsException, RegistryStorageException {
+        ensureConfigured();
         log.debug("Creating new artifact version for {} {} (version {}).", groupId, artifactId, version);
 
         Date createdOn = new Date();
@@ -673,6 +666,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             String version, String artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
             int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData) {
+        ensureConfigured();
 
         Date createdOn = new Date();
         long contentId = ensureContentAndGetId(artifactType, content, isDraft);
@@ -736,23 +730,27 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public long countActiveArtifactVersions(String groupId, String artifactId)
             throws RegistryStorageException {
+        ensureConfigured();
         return versionRepository.countActiveArtifactVersions(groupId, artifactId);
     }
 
     @Override
     public Set<String> getArtifactIds(Integer limit) { // TODO Paging and order by
+        ensureConfigured();
         return artifactRepository.getArtifactIds(limit);
     }
 
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, int offset, int limit) {
+        ensureConfigured();
         return searchRepository.searchArtifacts(filters, orderBy, orderDirection, offset, limit);
     }
 
     @Override
     public ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return artifactRepository.getArtifactMetaData(groupId, artifactId);
     }
 
@@ -763,6 +761,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId,
             boolean canonical, TypedContent content, List<ArtifactReferenceDto> references)
             throws ArtifactNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return versionRepository.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical, content,
                 references);
     }
@@ -770,17 +769,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactMetaData(String groupId, String artifactId,
             EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
+        ensureConfigured();
         artifactRepository.updateArtifactMetaData(groupId, artifactId, metaData);
     }
 
     @Override
     public List<RuleType> getArtifactRules(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return ruleRepository.getArtifactRules(groupId, artifactId);
     }
 
     @Override
     public List<RuleType> getGroupRules(String groupId) throws RegistryStorageException {
+        ensureConfigured();
         return ruleRepository.getGroupRules(groupId);
     }
 
@@ -788,34 +790,40 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void createArtifactRule(String groupId, String artifactId, RuleType rule,
             RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException {
+        ensureConfigured();
         ruleRepository.createArtifactRule(groupId, artifactId, rule, config);
     }
 
     @Override
     public void createGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
             throws RegistryStorageException {
+        ensureConfigured();
         ruleRepository.createGroupRule(groupId, rule, config);
     }
 
     @Override
     public void deleteArtifactRules(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
+        ensureConfigured();
         ruleRepository.deleteArtifactRules(groupId, artifactId);
     }
 
     @Override
     public void deleteGroupRules(String groupId) throws RegistryStorageException {
+        ensureConfigured();
         ruleRepository.deleteGroupRules(groupId);
     }
 
     @Override
     public RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return ruleRepository.getArtifactRule(groupId, artifactId, rule);
     }
 
     @Override
     public RuleConfigurationDto getGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        ensureConfigured();
         return ruleRepository.getGroupRule(groupId, rule);
     }
 
@@ -823,29 +831,34 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void updateArtifactRule(String groupId, String artifactId, RuleType rule,
             RuleConfigurationDto config)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        ensureConfigured();
         ruleRepository.updateArtifactRule(groupId, artifactId, rule, config);
     }
 
     @Override
     public void updateGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
             throws RegistryStorageException {
+        ensureConfigured();
         ruleRepository.updateGroupRule(groupId, rule, config);
     }
 
     @Override
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException {
+        ensureConfigured();
         ruleRepository.deleteArtifactRule(groupId, artifactId, rule);
     }
 
     @Override
     public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        ensureConfigured();
         ruleRepository.deleteGroupRule(groupId, rule);
     }
 
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return getArtifactVersions(groupId, artifactId,
                 storageBehaviorProps.getDefaultArtifactRetrievalBehavior());
     }
@@ -853,18 +866,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> filterBy)
             throws ArtifactNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return versionRepository.getArtifactVersions(groupId, artifactId, filterBy);
     }
 
     @Override
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+        ensureConfigured();
         return searchRepository.searchVersions(filters, orderBy, orderDirection, offset, limit);
     }
 
     @Override
     public StoredArtifactVersionDto getArtifactVersionContent(long globalId)
             throws ArtifactNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return versionRepository.getArtifactVersionContent(globalId);
     }
 
@@ -872,12 +888,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId,
             String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return versionRepository.getArtifactVersionContent(groupId, artifactId, version);
     }
 
     @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content) throws RegistryStorageException {
+        ensureConfigured();
         log.debug("Updating content for artifact version: {} {} @ {}", groupId, artifactId, version);
 
         // Put the new content in the DB and get the unique content ID back.
@@ -889,18 +907,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        ensureConfigured();
         versionRepository.deleteArtifactVersion(groupId, artifactId, version);
     }
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
             throws VersionNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return versionRepository.getArtifactVersionMetaData(globalId);
     }
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
             String version) {
+        ensureConfigured();
         return versionRepository.getArtifactVersionMetaData(groupId, artifactId, version);
     }
 
@@ -938,40 +959,47 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
             EditableVersionMetaDataDto editableMetadata)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        ensureConfigured();
         versionRepository.updateArtifactVersionMetaData(groupId, artifactId, version, editableMetadata);
     }
 
     @Override
     public CommentDto createArtifactVersionComment(String groupId, String artifactId, String version,
             String value) {
+        ensureConfigured();
         return commentRepository.createArtifactVersionComment(groupId, artifactId, version, value);
     }
 
     @Override
     public List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version) {
+        ensureConfigured();
         return commentRepository.getArtifactVersionComments(groupId, artifactId, version);
     }
 
     @Override
     public void deleteArtifactVersionComment(String groupId, String artifactId, String version,
             String commentId) {
+        ensureConfigured();
         commentRepository.deleteArtifactVersionComment(groupId, artifactId, version, commentId);
     }
 
     @Override
     public void updateArtifactVersionComment(String groupId, String artifactId, String version,
             String commentId, String value) {
+        ensureConfigured();
         commentRepository.updateArtifactVersionComment(groupId, artifactId, version, commentId, value);
     }
 
     @Override
     public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
+        ensureConfigured();
         return versionRepository.getArtifactVersionState(groupId, artifactId, version);
     }
 
     @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             VersionState newState, boolean dryRun) {
+        ensureConfigured();
         // Get the current state before updating.
         VersionState currentState = versionRepository.getArtifactVersionState(groupId, artifactId, version);
 
@@ -998,65 +1026,77 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
+        ensureConfigured();
         return ruleRepository.getGlobalRules();
     }
 
     @Override
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
             throws RuleAlreadyExistsException, RegistryStorageException {
+        ensureConfigured();
         ruleRepository.createGlobalRule(rule, config);
     }
 
     @Override
     public void deleteGlobalRules() throws RegistryStorageException {
+        ensureConfigured();
         ruleRepository.deleteGlobalRules();
     }
 
     @Override
     public RuleConfigurationDto getGlobalRule(RuleType rule)
             throws RuleNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return ruleRepository.getGlobalRule(rule);
     }
 
     @Override
     public void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
             throws RuleNotFoundException, RegistryStorageException {
+        ensureConfigured();
         ruleRepository.updateGlobalRule(rule, config);
     }
 
     @Override
     public void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException {
+        ensureConfigured();
         ruleRepository.deleteGlobalRule(rule);
     }
 
     @Override
     public List<DynamicConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
+        ensureConfigured();
         return configRepository.getConfigProperties();
     }
 
     @Override
     public DynamicConfigPropertyDto getConfigProperty(String propertyName) throws RegistryStorageException {
+        ensureConfigured();
         return configRepository.getConfigProperty(propertyName);
     }
 
     @Override
     public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
+        ensureConfigured();
         return configRepository.getRawConfigProperty(propertyName);
     }
 
     @Override
     public void setConfigProperty(DynamicConfigPropertyDto propertyDto) throws RegistryStorageException {
+        ensureConfigured();
         configRepository.setConfigProperty(propertyDto);
     }
 
     @Override
     public void deleteConfigProperty(String propertyName) throws RegistryStorageException {
+        ensureConfigured();
         configRepository.deleteConfigProperty(propertyName);
     }
 
     @Override
     public List<DynamicConfigPropertyDto> getStaleConfigProperties(Instant lastRefresh)
             throws RegistryStorageException {
+        ensureConfigured();
         return configRepository.getStaleConfigProperties(lastRefresh);
     }
 
@@ -1074,6 +1114,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void createGroup(GroupMetaDataDto group)
             throws GroupAlreadyExistsException, RegistryStorageException {
+        ensureConfigured();
         groupRepository.createGroup(group);
     }
 
@@ -1084,6 +1125,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException {
+        ensureConfigured();
         groupRepository.deleteGroup(groupId);
     }
 
@@ -1093,17 +1135,20 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto) {
+        ensureConfigured();
         groupRepository.updateGroupMetaData(groupId, dto);
     }
 
     @Override
     public List<String> getGroupIds(Integer limit) throws RegistryStorageException {
+        ensureConfigured();
         return groupRepository.getGroupIds(limit);
     }
 
     @Override
     public GroupMetaDataDto getGroupMetaData(String groupId)
             throws GroupNotFoundException, RegistryStorageException {
+        ensureConfigured();
         return groupRepository.getGroupMetaData(groupId);
     }
 
@@ -1113,6 +1158,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     @Override
     public void exportData(String groupId, Function<Entity, Void> handler) throws RegistryStorageException {
+        ensureConfigured();
         // Export a simple manifest file
         ManifestEntity manifest = new ManifestEntity();
         if (securityIdentity != null && securityIdentity.getPrincipal() != null) {
@@ -1150,6 +1196,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
+        ensureConfigured();
         DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId,
                 preserveContentId);
         dataImporter.importData(entities, () -> {
@@ -1158,6 +1205,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void upgradeData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
+        ensureConfigured();
         DataImporter dataImporter = new SqlDataUpgrader(log, utils, this, preserveGlobalId,
                 preserveContentId);
         dataImporter.importData(entities, () -> {
@@ -1166,11 +1214,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public long countArtifacts() throws RegistryStorageException {
+        ensureConfigured();
         return artifactRepository.countArtifacts();
     }
 
     @Override
     public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+        ensureConfigured();
         return versionRepository.countArtifactVersions(groupId, artifactId);
     }
 
@@ -1181,63 +1231,75 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public long countTotalArtifactVersions() throws RegistryStorageException {
+        ensureConfigured();
         return versionRepository.countTotalArtifactVersions();
     }
 
     @Override
     public void createRoleMapping(String principalId, String role, String principalName)
             throws RegistryStorageException {
+        ensureConfigured();
         roleMappingRepository.createRoleMapping(principalId, role, principalName);
     }
 
     @Override
     public void deleteRoleMapping(String principalId) throws RegistryStorageException {
+        ensureConfigured();
         roleMappingRepository.deleteRoleMapping(principalId);
     }
 
     @Override
     public RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException {
+        ensureConfigured();
         return roleMappingRepository.getRoleMapping(principalId);
     }
 
     @Override
     public String getRoleForPrincipal(String principalId) throws RegistryStorageException {
+        ensureConfigured();
         return roleMappingRepository.getRoleForPrincipal(principalId);
     }
 
     @Override
     public List<RoleMappingDto> getRoleMappings() throws RegistryStorageException {
+        ensureConfigured();
         return roleMappingRepository.getRoleMappings();
     }
 
     @Override
     public RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit)
             throws RegistryStorageException {
+        ensureConfigured();
         return roleMappingRepository.searchRoleMappings(offset, limit);
     }
 
     @Override
     public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
+        ensureConfigured();
         roleMappingRepository.updateRoleMapping(principalId, role);
     }
 
     @Override
     public String createDownload(DownloadContextDto context) throws RegistryStorageException {
+        ensureConfigured();
         return downloadRepository.createDownload(context);
     }
 
     @Override
     public DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException {
+        ensureConfigured();
         return downloadRepository.consumeDownload(downloadId);
     }
 
     @Override
     public void deleteAllExpiredDownloads() throws RegistryStorageException {
+        ensureConfigured();
         downloadRepository.deleteAllExpiredDownloads();
     }
 
     @Override
     public void deleteAllOrphanedContent() throws RegistryStorageException {
+        ensureConfigured();
         handles.withHandleNoException(handle -> {
             contentRepository.deleteAllOrphanedContentRaw(handle);
             return null;
@@ -1246,178 +1308,212 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void deleteAllUserData() {
+        ensureConfigured();
         cleanupRepository.deleteAllUserData();
     }
 
     @Override
     public boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException {
+        ensureConfigured();
         return artifactRepository.isArtifactExists(groupId, artifactId);
     }
 
     @Override
     public boolean isGroupExists(String groupId) throws RegistryStorageException {
+        ensureConfigured();
         return groupRepository.isGroupExists(groupId);
     }
 
     @Override
     public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId,
             String version) {
+        ensureConfigured();
         return contentRepository.getContentIdsReferencingArtifactVersion(groupId, artifactId, version);
     }
 
     @Override
     public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId,
             String version) {
+        ensureConfigured();
         return contentRepository.getGlobalIdsReferencingArtifactVersion(groupId, artifactId, version);
     }
 
     @Override
     public List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId) {
+        ensureConfigured();
         return contentRepository.getGlobalIdsReferencingArtifact(groupId, artifactId);
     }
 
     @Override
     public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId,
             String version) {
+        ensureConfigured();
         return contentRepository.getInboundArtifactReferences(groupId, artifactId, version);
     }
 
     @Override
     public boolean isArtifactVersionExists(String groupId, String artifactId, String version)
             throws RegistryStorageException {
+        ensureConfigured();
         return versionRepository.isArtifactVersionExists(groupId, artifactId, version);
     }
 
     @Override
     public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, Integer offset, Integer limit) {
+        ensureConfigured();
         return groupRepository.searchGroups(filters, orderBy, orderDirection, offset, limit);
     }
 
     @Override
     public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
+        ensureConfigured();
         return contentRepository.getContentByReference(reference);
     }
 
     @Override
     public void resetGlobalId() {
+        ensureConfigured();
         sequenceRepository.resetGlobalId();
     }
 
     @Override
     public void resetContentId() {
+        ensureConfigured();
         sequenceRepository.resetContentId();
     }
 
     @Override
     public void resetCommentId() {
+        ensureConfigured();
         sequenceRepository.resetCommentId();
     }
 
     @Override
     public void importGroupRule(GroupRuleEntity entity) {
+        ensureConfigured();
         ruleRepository.importGroupRule(entity);
     }
 
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
+        ensureConfigured();
         ruleRepository.importArtifactRule(entity);
     }
 
     @Override
     public void importArtifact(ArtifactEntity entity) {
+        ensureConfigured();
         artifactRepository.importArtifact(entity);
     }
 
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
+        ensureConfigured();
         versionRepository.importArtifactVersion(entity);
     }
 
     @Override
     public void importContent(ContentEntity entity) {
+        ensureConfigured();
         contentRepository.importContent(entity);
     }
 
     @Override
     public void importGlobalRule(GlobalRuleEntity entity) {
+        ensureConfigured();
         ruleRepository.importGlobalRule(entity);
     }
 
     @Override
     public void importGroup(GroupEntity entity) {
+        ensureConfigured();
         groupRepository.importGroup(entity);
     }
 
     @Override
     public void importComment(CommentEntity entity) {
+        ensureConfigured();
         commentRepository.importCommentRaw(entity);
     }
 
     @Override
     public boolean isEmpty() {
+        ensureConfigured();
         return contentRepository.isEmpty();
     }
 
     @Override
     public long nextContentId() {
+        ensureConfigured();
         return sequenceRepository.nextContentId();
     }
 
     @Override
     public long nextGlobalId() {
+        ensureConfigured();
         return sequenceRepository.nextGlobalId();
     }
 
     @Override
     public long nextCommentId() {
+        ensureConfigured();
         return sequenceRepository.nextCommentId();
     }
 
     @Override
     public boolean isContentExists(String contentHash) throws RegistryStorageException {
+        ensureConfigured();
         return contentRepository.isContentExists(contentHash);
     }
 
     @Override
     public boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule)
             throws RegistryStorageException {
+        ensureConfigured();
         return ruleRepository.isArtifactRuleExists(groupId, artifactId, rule);
     }
 
     @Override
     public boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException {
+        ensureConfigured();
         return ruleRepository.isGlobalRuleExists(rule);
     }
 
     @Override
     public boolean isRoleMappingExists(String principalId) {
+        ensureConfigured();
         return roleMappingRepository.isRoleMappingExists(principalId);
     }
 
     @Override
     public void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash) {
+        ensureConfigured();
         contentRepository.updateContentCanonicalHash(newCanonicalHash, contentId, contentHash);
     }
 
     @Override
     public Optional<Long> contentIdFromHash(String contentHash) {
+        ensureConfigured();
         return contentRepository.contentIdFromHash(contentHash);
     }
 
     @Override
     public BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description,
             List<String> versions) {
+        ensureConfigured();
         return branchRepository.createBranch(ga, branchId, description, versions);
     }
 
     @Override
     public void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto) {
+        ensureConfigured();
         branchRepository.updateBranchMetaData(ga, branchId, dto);
     }
 
     @Override
     public BranchSearchResultsDto getBranches(GA ga, int offset, int limit) {
+        ensureConfigured();
         // Check artifact exists first
         getArtifactMetaData(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
         return branchRepository.getBranches(ga, offset, limit);
@@ -1425,57 +1521,68 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId) {
+        ensureConfigured();
         return branchRepository.getBranchMetaData(ga, branchId);
     }
 
     @Override
     public VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit) {
+        ensureConfigured();
         return branchRepository.getBranchVersions(ga, branchId, offset, limit);
     }
 
     @Override
     public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
+        ensureConfigured();
         branchRepository.appendVersionToBranch(ga, branchId, version);
     }
 
     @Override
     public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
+        ensureConfigured();
         branchRepository.replaceBranchVersions(ga, branchId, versions);
     }
 
     @Override
     public GAV getBranchTip(GA ga, BranchId branchId, Set<VersionState> filterBy) {
+        ensureConfigured();
         return branchRepository.getBranchTip(ga, branchId, filterBy);
     }
 
     @Override
     public void deleteBranch(GA ga, BranchId branchId) {
+        ensureConfigured();
         branchRepository.deleteBranch(ga, branchId);
     }
 
     @Override
     public void importBranch(BranchEntity entity) {
+        ensureConfigured();
         branchRepository.importBranch(entity);
     }
 
     @Override
     public String triggerSnapshotCreation() throws RegistryStorageException {
+        ensureConfigured();
         throw new RegistryStorageException(
                 "Directly triggering the snapshot creation is not supported for sql storages.");
     }
 
     @Override
     public String createSnapshot(String location) throws RegistryStorageException {
+        ensureConfigured();
         return exportRepository.createSnapshot(location);
     }
 
     @Override
     public String createEvent(OutboxEvent event) {
+        ensureConfigured();
         return eventRepository.createEvent(event);
     }
 
     @Override
     public boolean supportsDatabaseEvents() {
+        ensureConfigured();
         return eventRepository.supportsDatabaseEvents();
     }
 

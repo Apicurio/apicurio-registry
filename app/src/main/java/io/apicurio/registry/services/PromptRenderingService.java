@@ -2,8 +2,8 @@ package io.apicurio.registry.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.util.YAMLObjectMapper;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,7 +25,6 @@ public class PromptRenderingService {
 
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{([^}]+)\\}\\}");
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
-    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     @Inject
     Logger log;
@@ -78,7 +77,7 @@ public class PromptRenderingService {
 
         // Try YAML first (which also handles JSON)
         try {
-            return YAML_MAPPER.readTree(text);
+            return YAMLObjectMapper.MAPPER.readTree(text);
         } catch (Exception e) {
             // Fall back to JSON
             return JSON_MAPPER.readTree(text);

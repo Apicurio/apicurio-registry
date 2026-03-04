@@ -1,0 +1,9 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: bar
+artifactId: person
+artifactType: JSON
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/Person.json

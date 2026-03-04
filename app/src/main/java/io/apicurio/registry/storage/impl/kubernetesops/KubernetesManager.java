@@ -1,9 +1,9 @@
 package io.apicurio.registry.storage.impl.kubernetesops;
 
-import io.apicurio.registry.storage.impl.gitops.ProcessingState;
-import io.apicurio.registry.storage.impl.polling.AbstractDataSourceManager;
-import io.apicurio.registry.storage.impl.polling.DataFile;
-import io.apicurio.registry.storage.impl.polling.PollResult;
+import io.apicurio.registry.storage.impl.polling.AbstractPollingDataSourceManager;
+import io.apicurio.registry.storage.impl.polling.PollingDataFile;
+import io.apicurio.registry.storage.impl.polling.PollingResult;
+import io.apicurio.registry.storage.impl.polling.ProcessingState;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
@@ -24,13 +24,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @ApplicationScoped
-public class KubernetesManager extends AbstractDataSourceManager {
+public class KubernetesManager extends AbstractPollingDataSourceManager<String> {
 
     @Inject
     Logger log;
 
     @Inject
-    KubernetesOpsConfigProperties config;
+    KubernetesOpsConfig config;
 
     @Inject
     KubernetesClient kubernetesClient;
@@ -48,24 +48,20 @@ public class KubernetesManager extends AbstractDataSourceManager {
     });
 
     @Override
-    protected String getRegistryId() {
-        return config.getRegistryId();
-    }
-
-    @Override
-    protected long getCommitTime(Object marker) {
+    protected long getCommitTime(String marker) {
         return Instant.now().getEpochSecond();
     }
 
     @Override
     public void start() throws Exception {
+        start(config);
         log.info("Initializing KubernetesOps manager with registry ID: {}", config.getRegistryId());
         log.info("Watching namespace: {} for ConfigMaps with selector {}",
                 config.getEffectiveNamespace(), config.getLabelSelector());
     }
 
     @Override
-    public PollResult poll() throws Exception {
+    public PollingResult<String> poll() throws Exception {
         String namespace = config.getEffectiveNamespace();
         String labelSelector = config.getLabelSelector();
 
@@ -77,21 +73,21 @@ public class KubernetesManager extends AbstractDataSourceManager {
         String currentResourceVersion = configMapList.getMetadata().getResourceVersion();
 
         if (currentResourceVersion.equals(previousResourceVersion)) {
-            return PollResult.noChanges(currentResourceVersion);
+            return PollingResult.noChanges(currentResourceVersion);
         }
 
         log.debug("Detected change in ConfigMaps: resourceVersion {} -> {}",
                 previousResourceVersion, currentResourceVersion);
 
-        List<DataFile> files = new ArrayList<>();
-        ProcessingState tempState = new ProcessingState(null);
+        List<PollingDataFile> files = new ArrayList<>();
+        ProcessingState tempState = new ProcessingState(config, null);
 
         for (ConfigMap configMap : configMapList.getItems()) {
             Map<String, String> data = configMap.getData();
 
             if (data != null) {
                 for (Map.Entry<String, String> entry : data.entrySet()) {
-                    String dataKey = entry.getKey();
+                    String dataKey = entry.getKey(); // TODO: Shouldn't this also contain a ConfigMap identifier to ensure uniqueness across multiple ConfigMaps?
                     String content = entry.getValue();
 
                     ConfigMapDataFile file = ConfigMapDataFile.create(tempState, dataKey, content);
@@ -109,19 +105,8 @@ public class KubernetesManager extends AbstractDataSourceManager {
             }
         }
 
-        return PollResult.withChanges(currentResourceVersion, files);
-    }
-
-    @Override
-    public void commitChange(Object marker) {
-        if (marker instanceof String) {
-            previousResourceVersion = (String) marker;
-        }
-    }
-
-    @Override
-    public Object getPreviousMarker() {
-        return previousResourceVersion;
+        return PollingResult.withChanges(currentResourceVersion, files,
+                () -> previousResourceVersion = currentResourceVersion);
     }
 
     /**

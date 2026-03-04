@@ -1,151 +1,181 @@
 package io.apicurio.registry.storage.impl.gitops;
 
-import io.apicurio.registry.storage.impl.polling.AbstractDataSourceManager;
-import io.apicurio.registry.storage.impl.polling.DataFile;
-import io.apicurio.registry.storage.impl.polling.PollResult;
-import io.apicurio.registry.storage.impl.gitops.model.GitFile;
+import io.apicurio.registry.storage.impl.polling.AbstractPollingDataSourceManager;
+import io.apicurio.registry.storage.impl.polling.PollingDataFile;
+import io.apicurio.registry.storage.impl.polling.PollingResult;
+import io.apicurio.registry.storage.impl.polling.ProcessingState;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.URIish;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
+/**
+ * Reads data from a local Git repository on a mounted volume.
+ * <p>
+ * This manager does NOT fetch or pull from a remote. It expects the Git repository
+ * to be maintained externally (e.g., by a sidecar container or manual setup).
+ * It reads from the Git object store using a pinned commit SHA, which is safe
+ * for concurrent reads even while an external process is pulling new data.
+ * <p>
+ * Change detection works by comparing the current HEAD SHA with the last loaded SHA.
+ */
 @ApplicationScoped
-public class GitManager extends AbstractDataSourceManager {
+public class GitManager extends AbstractPollingDataSourceManager<RevCommit> {
 
     @Inject
     Logger log;
 
     @Inject
-    GitOpsConfigProperties config;
+    GitOpsConfig config;
 
-    private Git git;
-
-    private String originRemoteName;
+    private Repository repository;
 
     private RevCommit previousCommit;
 
     @Override
-    protected String getRegistryId() {
-        return config.getRegistryId();
+    protected long getCommitTime(RevCommit marker) {
+        return marker.getCommitTime();
     }
 
     @Override
-    protected long getCommitTime(Object marker) {
-        return ((RevCommit) marker).getCommitTime();
+    public void start() throws IOException {
+        start(config);
+        tryOpenRepository();
     }
 
-    public void start() throws IOException, URISyntaxException, GitAPIException {
-        initRepo();
-    }
+    private void tryOpenRepository() {
+        Path repoPath = config.getRepoPath();
 
-    private void initRepo() throws IOException, GitAPIException, URISyntaxException {
-
-        var workDirPath = Paths.get(config.getWorkDir());
-        var gitPath = workDirPath.resolve("repo").resolve(".git");
-
-        if (Files.exists(gitPath.resolve("config"))) {
-            git = Git.open(gitPath.toFile());
-        } else {
-            git = Git.init().setGitDir(gitPath.toFile()).setInitialBranch(UUID.randomUUID().toString())
-                    .call();
+        if (!Files.exists(repoPath)) {
+            log.warn("GitOps repository directory does not exist: {}. "
+                    + "Waiting for it to appear on the volume.", repoPath);
+            return;
         }
 
-        var previousOID = git.getRepository().resolve("refs/heads/empty");
-        if (previousOID == null) {
+        try {
+            FileRepositoryBuilder builder = new FileRepositoryBuilder();
 
-            git.commit().setMessage("empty").setAllowEmpty(true).call();
+            // Support both bare repos and repos with working tree
+            Path gitDir = repoPath.resolve(".git");
+            if (Files.isDirectory(gitDir)) {
+                builder.setGitDir(gitDir.toFile());
+            } else {
+                builder.setGitDir(repoPath.toFile());
+            }
 
-            git.checkout().setName("empty").setCreateBranch(true).setForced(true).setOrphan(true).call();
-
-            previousOID = git.getRepository().resolve("refs/heads/empty");
-        }
-
-        previousCommit = git.getRepository().parseCommit(previousOID);
-        originRemoteName = ensureRemote(config.getOriginRepoURI());
-    }
-
-    private String ensureRemote(String repoURI) throws GitAPIException, URISyntaxException {
-        var repoURIish = new URIish(repoURI);
-        var remote = git.remoteList().call().stream()
-                .filter(r -> r.getURIs().stream().allMatch(u -> u.equals(repoURIish))).findAny();
-        if (remote.isPresent()) {
-            return remote.get().getName();
-        } else {
-            var name = UUID.randomUUID().toString();
-            git.remoteAdd().setName(name).setUri(repoURIish).call();
-            return name;
+            repository = builder.setMustExist(true).build();
+            log.info("Opened GitOps repository at {}", repoPath);
+        } catch (IOException e) {
+            log.warn("GitOps repository at {} is not a valid Git repository yet: {}. "
+                    + "Will retry on next poll.", repoPath, e.getMessage());
         }
     }
 
     @Override
-    public PollResult poll() throws Exception {
-        var updatedRef = "refs/remotes/" + originRemoteName + "/" + config.getOriginRepoBranch();
-        var fetchRef = "refs/heads/" + config.getOriginRepoBranch() + ":" + updatedRef;
-
-        git.fetch().setRemote(originRemoteName).setRefSpecs(fetchRef).setDepth(1).setForceUpdate(true).call();
-
-        var updatedOID = git.getRepository().resolve(updatedRef);
-        if (updatedOID == null) {
-            throw new RuntimeException(String.format("Could not resolve %s", updatedRef));
-        }
-        RevCommit updatedCommit = git.getRepository().parseCommit(updatedOID);
-
-        if (updatedCommit.equals(previousCommit)) {
-            return PollResult.noChanges(updatedCommit);
+    public PollingResult<RevCommit> poll() throws Exception {
+        if (repository == null) {
+            tryOpenRepository();
+            if (repository == null) {
+                return PollingResult.noChanges(null);
+            }
         }
 
-        log.debug("Detected change: {} -> {}", updatedCommit.name(),
-                previousCommit != null ? previousCommit.name() : "null");
+        // Check if the repository directory still exists (handles deletion/unmount)
+        if (!Files.exists(config.getRepoPath())) {
+            log.warn("GitOps repository directory was removed: {}. "
+                    + "Closing repository and waiting for it to reappear.", config.getRepoPath());
+            closeRepository();
+            return PollingResult.noChanges(null);
+        }
 
-        List<DataFile> files = new ArrayList<>();
-        ProcessingState tempState = new ProcessingState(null);
+        try {
+            return doPoll();
+        } catch (IOException e) {
+            log.warn("GitOps repository read failed: {}. "
+                    + "Closing repository and will retry on next poll.", e.getMessage());
+            closeRepository();
+            return PollingResult.noChanges(null);
+        }
+    }
 
-        try (TreeWalk treeWalk = new TreeWalk(git.getRepository())) {
-            treeWalk.addTree(updatedCommit.getTree());
+    private PollingResult<RevCommit> doPoll() throws IOException {
+        // Resolve HEAD to get the current commit
+        String branch = config.getRepoBranch();
+        ObjectId headId = repository.resolve("refs/heads/" + branch);
+        if (headId == null) {
+            // Try resolving HEAD directly (works for bare repos)
+            headId = repository.resolve("HEAD");
+        }
+        if (headId == null) {
+            log.debug("Could not resolve HEAD for branch '{}'. Repository may be empty.", branch);
+            return PollingResult.noChanges(null);
+        }
+
+        RevCommit currentCommit;
+        try (RevWalk revWalk = new RevWalk(repository)) {
+            currentCommit = revWalk.parseCommit(headId);
+        }
+
+        // Check if anything changed since last load
+        if (currentCommit.equals(previousCommit)) {
+            return PollingResult.noChanges(currentCommit);
+        }
+
+        log.info("Detected change: {} -> {}", previousCommit != null ? previousCommit.name() : "(initial)",
+                currentCommit.name());
+
+        // Walk the tree at the pinned commit SHA and collect files.
+        // Registry metadata files (*.registry.yaml/json) are loaded eagerly and parsed.
+        // All other files are loaded lazily — their content is only read from the Git
+        // object store when actually accessed (e.g., when referenced as content by an artifact).
+        List<PollingDataFile> files = new ArrayList<>();
+        ProcessingState tempState = new ProcessingState(config, null);
+
+        try (TreeWalk treeWalk = new TreeWalk(repository)) {
+            treeWalk.addTree(currentCommit.getTree());
             treeWalk.setRecursive(true);
 
             while (treeWalk.next()) {
+                String filePath = treeWalk.getPathString();
                 var objectId = treeWalk.getObjectId(0);
-                try (InputStream data = git.getRepository().getObjectDatabase().open(objectId).openStream()) {
-                    var file = GitFile.create(tempState, treeWalk.getPathString(), data);
-                    files.add(file);
+
+                if (config.isMetadataFile(filePath)) {
+                    // Eagerly load and parse metadata files
+                    try (InputStream data = repository.getObjectDatabase().open(objectId).openStream()) {
+                        files.add(GitDataFile.create(tempState, filePath, data));
+                    }
+                } else {
+                    // Lazily reference all other files — content loaded on demand
+                    files.add(GitDataFile.createLazy(filePath, repository.getObjectDatabase(), objectId));
                 }
             }
         }
 
-        return PollResult.withChanges(updatedCommit, files);
+        return PollingResult.withChanges(currentCommit, files, () -> previousCommit = currentCommit);
     }
 
-    @Override
-    public void commitChange(Object marker) {
-        if (marker instanceof RevCommit) {
-            previousCommit = (RevCommit) marker;
+    private void closeRepository() {
+        if (repository != null) {
+            repository.close();
+            repository = null;
         }
-    }
-
-    @Override
-    public Object getPreviousMarker() {
-        return previousCommit;
     }
 
     @PreDestroy
     public void close() {
-        if (git != null) {
-            git.close();
-        }
+        closeRepository();
     }
 }

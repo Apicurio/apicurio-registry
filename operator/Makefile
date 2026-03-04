@@ -251,6 +251,23 @@ endif
 	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment-type=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
 
+GROUPS ?=
+EXCLUDED_GROUPS ?=
+
+.PHONY: test-remote-group
+test-remote-group: ## Run remote tests filtered by JUnit tag groups
+ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
+	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
+else
+	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
+endif
+	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) \
+		-Dtest.operator.deployment-type=remote \
+		-Dtest.operator.catalog-image=$(CATALOG_IMAGE) \
+		$(if $(GROUPS),-Dgroups=$(GROUPS)) \
+		$(if $(EXCLUDED_GROUPS),-DexcludedGroups=$(EXCLUDED_GROUPS))
+
+
 .PHONY: image-build
 image-build: ## TODO
 	docker build -f controller/src/main/docker/Dockerfile.jvm -t $(IMAGE) controller/target

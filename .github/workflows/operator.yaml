@@ -15,22 +15,19 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  REGISTRY_APP_IMAGE: ttl.sh/apicurio-registry-${{ github.sha }}:8h
+  IMAGE: ttl.sh/apicurio-registry-3-operator-${{ github.sha }}:8h
+  BUNDLE_IMAGE: ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h
+  CATALOG_IMAGE: ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h
+
 jobs:
 
-  operator-build-test:
-    name: Build and Test Operator
+  operator-build:
+    name: Build Operator
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
-
-      # We need tho push the bundle image because opm always pulls; the catalog image because OLM
-      # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
-      - name: Configure env. variables
-        run: |
-          echo "REGISTRY_APP_IMAGE=ttl.sh/apicurio-registry-${{ github.sha }}:8h" >> $GITHUB_ENV
-          echo "IMAGE=ttl.sh/apicurio-registry-3-operator-${{ github.sha }}:8h" >> $GITHUB_ENV
-          echo "BUNDLE_IMAGE=ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h" >> $GITHUB_ENV
-          echo "CATALOG_IMAGE=ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h" >> $GITHUB_ENV
 
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v4
@@ -50,54 +47,169 @@ jobs:
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
-        with:
-          # Do not use the "docker" driver, it is causing port-forwarding errors. I have no clue why :(
-          # TODO: I might've been wrong, check this again later.
-          driver: 'none'
-          ingress-enable: 'true'
-          olm-enable: 'true'
-          olm-v1-enable: 'true'
-          start-args: '--alsologtostderr --v=2' # Debug
-
-      - name: Build and run local tests on Minikube
-        # Speed up the PR check by running both local and remote tests on push to main,
-        # and only run remote tests against a PR.
-        # TODO: Is this ok?
-        if: github.event_name == 'push'
-        working-directory: operator
-        run: |
-          make BUILD_OPTS=--no-transfer-progress build
-
-      - name: Build temporary operator image
+      # We need to push the bundle image because opm always pulls; the catalog image because OLM
+      # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
+      - name: Build and push temporary operator image
         working-directory: operator
         run: |
           make image-build image-push
 
-      - name: Build temporary operator bundle
+      - name: Build and push temporary operator bundle
         working-directory: operator
         run: |
           make bundle
 
-      - name: Build temporary operator catalog
+      - name: Build and push temporary operator catalog
         working-directory: operator
         run: |
           make catalog
 
-      - name: Run remote and OLM v1 tests on Minikube
+      - name: Generate install file for tests
         working-directory: operator
         run: |
-          make BUILD_OPTS="--no-transfer-progress -Dtest.operator.olm-version=1" test-remote-all
+          make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
-      - name: Run OLM v0 smoke tests on Minikube
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: operator-build-artifacts
+          path: |
+            operator/controller/target/
+            operator/model/target/
+            operator/olm-tests/target/
+          retention-days: 1
+
+  operator-test-local:
+    name: Local Tests
+    runs-on: ubuntu-latest
+    needs: operator-build
+    # Only run local tests on push to main
+    if: github.event_name == 'push'
+    steps:
+
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+        with:
+          driver: 'none'
+          ingress-enable: 'true'
+          olm-enable: 'false'
+          olm-v1-enable: 'false'
+
+      - name: Build and run local tests on Minikube
         working-directory: operator
         run: |
-          make BUILD_OPTS="--no-transfer-progress -Dgroups=OLM" test-remote-all
+          make BUILD_OPTS=--no-transfer-progress build
+
+  operator-test:
+    name: Remote Tests (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    needs: operator-build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: smoke
+            groups: "smoke"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: kafka
+            groups: "kafka"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: auth
+            groups: "auth"
+            excluded-groups: "kafka"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: database
+            groups: "database"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: feature
+            groups: "feature"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: olm-v1
+            groups: "OLM"
+            olm-enable: "true"
+            olm-v1-enable: "true"
+            extra-build-opts: "-Dtest.operator.olm-version=1"
+          - name: olm-v0
+            groups: "OLM"
+            olm-enable: "true"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+    steps:
+
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: operator-build-artifacts
+          path: operator/
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+        with:
+          driver: 'none'
+          ingress-enable: 'true'
+          olm-enable: ${{ matrix.olm-enable }}
+          olm-v1-enable: ${{ matrix.olm-v1-enable }}
+          start-args: '--alsologtostderr --v=2'
+
+      - name: Run ${{ matrix.name }} tests on Minikube
+        working-directory: operator
+        run: |
+          make BUILD_OPTS="--no-transfer-progress ${{ matrix.extra-build-opts }}" \
+            GROUPS="${{ matrix.groups }}" \
+            EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
+            test-remote-group
+
+  operator-check-install:
+    name: Check Install File
+    runs-on: ubuntu-latest
+    needs: operator-build
+    steps:
+
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Build for install file generation
+        run: mvn -B clean package -pl operator/controller -am -Pprod -DskipTests -Dmaven.javadoc.skip
 
       - name: Update install file
         working-directory: operator
         run: |
-          # We need to remove unset the variables to generate a clean install file.
+          # We need to unset the variables to generate a clean install file.
           # See https://github.com/actions/runner/issues/1126
           unset REGISTRY_APP_IMAGE
           unset IMAGE
@@ -115,31 +227,10 @@ jobs:
             echo "No changes to the install file.";
           fi
 
-      # Uncomment if you need to debug the tests:
-
-  #      - name: Install debug tools on failure
-  #        if: failure()
-  #        run: |
-  #          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  #          echo >> /home/runner/.bashrc
-  #          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
-  #          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-  #          brew install derailed/k9s/k9s
-  #          . ~/.bashrc
-  #          # Run tests e.g.:
-  #          # make BUILD_OPTS=--no-transfer-progress test-remote-all &> 1.log &
-  #          # tail -f 1.log
-  #
-  #      - name: Setup tmate session on failure
-  #        if: failure()
-  #        uses: mxschmitt/action-tmate@v3
-  #        with:
-  #          limit-access-to-actor: true
-
   operator-publish:
     name: Publish Operator
     runs-on: ubuntu-latest
-    needs: operator-build-test
+    needs: [operator-test, operator-check-install]
     if: github.event_name == 'push'
     steps:
 

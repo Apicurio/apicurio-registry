@@ -1,0 +1,77 @@
+services:
+
+  # Initialize the example repository as a bare Git repo
+  git-init:
+    container_name: git-init
+    image: alpine/git:latest
+    volumes:
+      - git-repo:/repos/example
+      - ./example-repo:/example-repo:ro
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        if [ ! -d /repos/example/.git ]; then
+          echo "Initializing example Git repository..."
+          cd /repos/example
+          git init
+          git config user.email "gitops@example"
+          git config user.name "GitOps Init"
+          cp -r /example-repo/* .
+          git add -A
+          git commit -m "Initial commit with example schemas"
+          echo "Example repository initialized."
+        else
+          echo "Repository already initialized, skipping."
+        fi
+
+  # Apicurio Registry (GitOps mode)
+  registry:
+    container_name: registry-gitops
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
+    environment:
+      QUARKUS_PROFILE: "prod"
+      # GitOps storage
+      APICURIO_STORAGE_KIND: "gitops"
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_POLLING_STORAGE_ID: "${APICURIO_POLLING_STORAGE_ID:-prod}"
+      APICURIO_GITOPS_WORKSPACE: "/repos"
+      APICURIO_GITOPS_REPO_DIR: "example"
+      APICURIO_GITOPS_REPO_BRANCH: "main"
+      # Faster startup for the example (lower debounce)
+      APICURIO_POLLING_STORAGE_POLL_PERIOD: "PT5S"
+      APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: "PT5S"
+      APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: "PT30S"
+      # Logging
+      LOG_LEVEL: "INFO"
+      QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
+      # CORS
+      QUARKUS_HTTP_CORS: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    volumes:
+      - git-repo:/repos/example:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      git-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  # Apicurio Registry UI
+  ui:
+    container_name: registry-ui
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    ports:
+      - "8888:8080"
+    depends_on:
+      registry:
+        condition: service_healthy
+
+volumes:
+  git-repo:

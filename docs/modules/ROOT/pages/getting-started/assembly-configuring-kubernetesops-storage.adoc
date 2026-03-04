@@ -119,17 +119,17 @@ This section explains how to configure {registry} to use KubernetesOps storage.
 |-
 |Set to `kubernetesops` to enable KubernetesOps storage.
 
-|`APICURIO_KUBERNETESOPS_ID`
-|-
-|*Required*. Unique identifier for this registry instance. Only ConfigMaps with matching label will be loaded.
+|`APICURIO_POLLING_STORAGE_ID`
+|`main`
+|Unique identifier for this registry instance. Only ConfigMaps with matching label will be loaded.
 
 |`APICURIO_KUBERNETESOPS_NAMESPACE`
 |Current namespace
 |Kubernetes namespace to watch for ConfigMaps.
 
-|`APICURIO_KUBERNETESOPS_REFRESH_EVERY`
-|`30s`
-|How often to poll for ConfigMap changes. Supports duration format (e.g., `10s`, `1m`).
+|`APICURIO_POLLING_STORAGE_POLL_PERIOD`
+|`PT10S`
+|Minimum period between polls for ConfigMap changes. Uses ISO 8601 duration format (e.g., `PT10S`, `PT1M`).
 
 |`APICURIO_KUBERNETESOPS_LABEL_REGISTRY_ID`
 |`apicurio.io/registry-id`
@@ -156,12 +156,12 @@ spec:
               value: "true"
             - name: APICURIO_STORAGE_KIND
               value: "kubernetesops"
-            - name: APICURIO_KUBERNETESOPS_ID
+            - name: APICURIO_POLLING_STORAGE_ID
               value: "my-registry"
             - name: APICURIO_KUBERNETESOPS_NAMESPACE
               value: "apicurio"
-            - name: APICURIO_KUBERNETESOPS_REFRESH_EVERY
-              value: "30s"
+            - name: APICURIO_POLLING_STORAGE_POLL_PERIOD
+              value: "PT10S"
 ----
 
 . Create the required RBAC resources as described in xref:kubernetesops-rbac-requirements_{context}[].
@@ -377,7 +377,7 @@ With Watch API enabled (the default), ConfigMap changes are detected in near rea
 
 * With Watch enabled, updates typically propagate within 1-2 seconds
 * With Watch disabled, expect up to one polling interval delay
-* Decrease `APICURIO_KUBERNETESOPS_REFRESH_EVERY` for faster fallback polling (increases API load)
+* Decrease `APICURIO_POLLING_STORAGE_POLL_PERIOD` for faster fallback polling (increases API load)
 * Increase the interval for larger deployments to reduce Kubernetes API load
 
 [discrete]

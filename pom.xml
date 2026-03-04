@@ -219,7 +219,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.3.1</apicurio-data-models.version>
+    <apicurio-data-models.version>2.4.0</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>
@@ -246,9 +246,9 @@
     <pulsar-clients.version>3.3.9</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
     <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
-    <quickjs4j.version>0.0.14</quickjs4j.version>
+    <quickjs4j.version>0.0.15</quickjs4j.version>
 
-    <nats.version>2.25.1</nats.version>
+    <nats.version>2.25.2</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
     <jgit.version>7.5.0.202512021534-r</jgit.version>
@@ -316,7 +316,7 @@
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>1.21.4</pulsar.testcontainers.version>
     <keycloak.testcontainers.version>3.9.1</keycloak.testcontainers.version>
-    <embedded-postgres.version>2.2.1</embedded-postgres.version>
+    <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
     <strimzi-test-container.version>0.115.0</strimzi-test-container.version>

@@ -183,6 +183,7 @@ jobs:
         working-directory: operator
         run: |
           make BUILD_OPTS="--no-transfer-progress ${{ matrix.extra-build-opts }}" \
+            REMOTE_TESTS_ALL_INSTALL_FILE=controller/target/test-install.yaml \
             GROUPS="${{ matrix.groups }}" \
             EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
             test-remote-group

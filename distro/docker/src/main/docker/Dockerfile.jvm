@@ -16,7 +16,7 @@ RUN chmod -R "ug=rwx" /deployments \
 # Set user for running the container, according to OpenShift best practices
 USER 1001
 
-EXPOSE 8080 9000 8778 9779
+EXPOSE 8080 8778 9779
 
 # Quarkus fast-jar: run from quarkus-app directory
 WORKDIR /deployments/quarkus-app

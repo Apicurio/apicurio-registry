@@ -1,7 +1,6 @@
 scrape_configs:
   - job_name: apicurio-registry
     scrape_interval: 3s
-    metrics_path: '/metrics'
     static_configs:
       - targets:
-          - 'app:9000'
+          - 'app:8080'

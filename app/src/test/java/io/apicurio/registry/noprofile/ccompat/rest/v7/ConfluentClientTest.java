@@ -293,8 +293,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         }
 
         retry(() -> {
-            HealthUtils.assertIsReady(managementTestPort);
-            HealthUtils.assertIsLive(managementTestPort);
+            HealthUtils.assertIsReady(testPort);
+            HealthUtils.assertIsLive(testPort);
         });
 
         String subject = generateArtifactId();

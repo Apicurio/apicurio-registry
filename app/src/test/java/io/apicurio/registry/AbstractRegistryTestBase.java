@@ -25,9 +25,6 @@ public abstract class AbstractRegistryTestBase {
     @ConfigProperty(name = "quarkus.http.test-port")
     public int testPort;
 
-    @ConfigProperty(name = "quarkus.management.test-port")
-    public int managementTestPort;
-
     protected String generateArtifactId() {
         return TestUtils.generateArtifactId();
     }

@@ -69,10 +69,7 @@ public class ResourceFactory {
 
         var readinessProbe = DEFAULT_READINESS_PROBE;
         var livenessProbe = DEFAULT_LIVENESS_PROBE;
-        var containerPort = List.of(
-                new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build(),
-                new ContainerPortBuilder().withName("management").withProtocol("TCP").withContainerPort(9000).build()
-        );
+        var containerPort = List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build());
 
         Optional<TLSSpec> tlsSpec = ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)
@@ -88,10 +85,7 @@ public class ResourceFactory {
             if (keystore.isValid() && keystorePassword.isValid()) {
                 readinessProbe = TLS_DEFAULT_READINESS_PROBE;
                 livenessProbe = TLS_DEFAULT_LIVENESS_PROBE;
-                containerPort = List.of(
-                        new ContainerPortBuilder().withName("https").withProtocol("TCP").withContainerPort(8443).build(),
-                        new ContainerPortBuilder().withName("management").withProtocol("TCP").withContainerPort(9000).build()
-                );
+                containerPort = List.of(new ContainerPortBuilder().withName("https").withProtocol("TCP").withContainerPort(8443).build());
             }
         }
 

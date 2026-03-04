@@ -14,6 +14,6 @@ RUN chown -R 1001:0 /work \
 # See https://docs.openshift.com/container-platform/4.12/openshift_images/create-images.html#use-uid_create-images
 USER 1001:0
 
-EXPOSE 8080 9000
+EXPOSE 8080
 
 CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]

@@ -63,7 +63,7 @@ spec:
             failureThreshold: 3
             httpGet:
               path: /health/live
-              port: 9000
+              port: 8080
               scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 10
@@ -74,14 +74,11 @@ spec:
             - containerPort: 8080
               name: http
               protocol: TCP
-            - containerPort: 9000
-              name: management
-              protocol: TCP
           readinessProbe:
             failureThreshold: 3
             httpGet:
               path: /health/ready
-              port: 9000
+              port: 8080
               scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 10

@@ -43,9 +43,11 @@ jobs:
       - name: Build
         run: mvn -B clean package -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip
 
-      - name: Build temporary operand image
+      # We need to push the operand image to ttl.sh so test matrix jobs on separate runners can pull it.
+      - name: Build and push temporary operand image
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
+          docker push "$REGISTRY_APP_IMAGE"
 
       # We need to push the bundle image because opm always pulls; the catalog image because OLM
       # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.

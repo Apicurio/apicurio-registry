@@ -103,6 +103,12 @@ public class KubernetesManager extends AbstractDataSourceManager {
         log.debug("Found {} data files across {} ConfigMaps",
                 files.size(), configMapList.getItems().size());
 
+        if (!tempState.isSuccessful()) {
+            for (String error : tempState.getErrors()) {
+                log.warn("ConfigMap parse error: {}", error);
+            }
+        }
+
         return PollResult.withChanges(currentResourceVersion, files);
     }
 

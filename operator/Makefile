@@ -258,7 +258,7 @@ EXCLUDED_GROUPS ?=
 test-remote-group: ## Run remote tests filtered by JUnit tag groups
 ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
 	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
-else
+else ifneq ($(REMOTE_TESTS_ALL_INSTALL_FILE),controller/target/test-install.yaml)
 	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
 endif
 	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) \

@@ -20,15 +20,18 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               requests:
@@ -67,15 +70,18 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               requests:
@@ -109,15 +115,18 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               requests:
@@ -151,15 +160,18 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               requests:
@@ -198,15 +210,18 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               requests:
@@ -248,15 +263,18 @@ cases:
               - containerPort: 8081
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               requests:
@@ -296,15 +314,18 @@ cases:
               - containerPort: 8443
                 name: https
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               requests:
@@ -342,15 +363,18 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               requests:
@@ -395,6 +419,9 @@ cases:
             ports:
               - containerPort: 8080
                 name: http
+                protocol: TCP
+              - containerPort: 9000
+                name: management
                 protocol: TCP
             readinessProbe:
               exec:
@@ -446,6 +473,9 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
@@ -490,15 +520,18 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources: { }
 
@@ -528,15 +561,18 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               requests:
@@ -568,15 +604,18 @@ cases:
               - containerPort: 8080
                 name: http
                 protocol: TCP
+              - containerPort: 9000
+                name: management
+                protocol: TCP
             readinessProbe:
               httpGet:
                 path: /health/ready
-                port: 8080
+                port: 9000
                 scheme: HTTP
             livenessProbe:
               httpGet:
                 path: /health/live
-                port: 8080
+                port: 9000
                 scheme: HTTP
             resources:
               limits:

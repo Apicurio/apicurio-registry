@@ -7,7 +7,6 @@ import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.client.KubernetesClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +26,7 @@ public class KafkaSql {
     public static String ENV_KAFKASQL_BOOTSTRAP_SERVERS = "APICURIO_KAFKASQL_BOOTSTRAP_SERVERS";
 
     public static void configureKafkaSQL(ApicurioRegistry3 primary, Deployment deployment,
-                                         Map<String, EnvVar> env, KubernetesClient client) {
+                                         Map<String, EnvVar> env) {
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
                 .map(StorageSpec::getKafkasql).ifPresent(kafkasql -> {
                     // KafkaAccess secret takes precedence over manual configuration
@@ -36,7 +35,7 @@ public class KafkaSql {
                             log.warn("Both 'kafkaAccessSecretName' and 'bootstrapServers' are set. "
                                     + "'kafkaAccessSecretName' takes precedence.");
                         }
-                        KafkaSqlAccess.configureKafkaSQLFromAccessSecret(primary, deployment, env, client,
+                        KafkaSqlAccess.configureKafkaSQLFromAccessSecret(env,
                                 kafkasql.getKafkaAccessSecretName());
                         return;
                     }

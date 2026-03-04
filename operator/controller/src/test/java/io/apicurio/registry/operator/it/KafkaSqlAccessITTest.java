@@ -1,13 +1,23 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.PodCondition;
+import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
+import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.time.Duration;
+import java.util.List;
 
 import static io.apicurio.registry.operator.Tags.KAFKA;
 import static io.apicurio.registry.operator.Tags.SLOW;
@@ -22,11 +32,39 @@ public class KafkaSqlAccessITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlAccessITTest.class);
 
+    private static boolean kafkaAccessOperatorInstalled = false;
+
     @BeforeAll
     public static void beforeAll() throws Exception {
         if (!strimziInstalled) {
             applyStrimziResources();
         }
+        if (!kafkaAccessOperatorInstalled) {
+            installKafkaAccessOperator();
+        }
+    }
+
+    private static void installKafkaAccessOperator() throws IOException {
+        var kafkaAccessOperatorURL = new URL(
+                "https://github.com/strimzi/kafka-access-operator/releases/download/0.3.0/kafka-access-operator-0.3.0.yaml");
+        try (BufferedInputStream in = new BufferedInputStream(kafkaAccessOperatorURL.openStream())) {
+            List<HasMetadata> resources = Serialization.unmarshal(in);
+            resources.forEach(r -> {
+                if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding crb) {
+                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+                } else if (r.getKind().equals("RoleBinding") && r instanceof RoleBinding rb) {
+                    rb.getSubjects().forEach(s -> s.setNamespace(namespace));
+                }
+                log.info("Creating Kafka Access Operator resource kind {} in namespace {}", r.getKind(),
+                        namespace);
+                client.resource(r).inNamespace(namespace).createOrReplace();
+                await().atMost(Duration.ofMinutes(2)).ignoreExceptions().until(() -> {
+                    assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
+                    return true;
+                });
+            });
+        }
+        kafkaAccessOperatorInstalled = true;
     }
 
     @Test
@@ -38,9 +76,9 @@ public class KafkaSqlAccessITTest extends ITBase {
 
         // Wait for the Kafka broker pod to be ready
         await().ignoreExceptions().untilAsserted(() ->
-                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0").get().getStatus()
-                        .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
-                        .containsOnly("True"));
+                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0").get()
+                        .getStatus().getConditions()).filteredOn(c -> "Ready".equals(c.getType()))
+                        .map(PodCondition::getStatus).containsOnly("True"));
 
         // Create the KafkaUser
         client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/access/apicurio-registry.kafkauser.yaml"))

@@ -1,7 +1,8 @@
 package io.apicurio.registry.storage.impl.gitops.model;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.impl.gitops.ProcessingState;
+import io.apicurio.registry.storage.impl.polling.DataFile;
+import io.apicurio.registry.storage.impl.polling.DataFileProcessingState;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -22,7 +23,7 @@ import static lombok.AccessLevel.PRIVATE;
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
-public class GitFile {
+public class GitFile implements DataFile {
 
     private static final Logger log = LoggerFactory.getLogger(GitFile.class);
 
@@ -36,7 +37,7 @@ public class GitFile {
     @Setter
     private boolean processed;
 
-    public static GitFile create(ProcessingState state, String path, InputStream stream) {
+    public static GitFile create(DataFileProcessingState state, String path, InputStream stream) {
 
         var data = ContentHandle.create(stream);
 
@@ -44,10 +45,12 @@ public class GitFile {
                 .any(Any.from(state, path, data)).build();
     }
 
+    @Override
     public boolean isType(Type type) {
         return any.map(a -> type == a.getType()).orElse(false);
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public <T> T getEntityUnchecked() {
         return (T) any.get().getEntity();

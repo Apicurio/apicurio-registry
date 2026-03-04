@@ -62,6 +62,9 @@ public class ExperimentalFeaturesConfig {
         if ("gitops".equals(storageKind)) {
             violations.add("apicurio.storage.kind=gitops (GitOps storage)");
         }
+        if ("kubernetesops".equals(storageKind)) {
+            violations.add("apicurio.storage.kind=kubernetesops (KubernetesOps storage)");
+        }
 
         if (!violations.isEmpty()) {
             throw new IllegalStateException(

@@ -5,6 +5,7 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
+import io.fabric8.kubernetes.client.dsl.base.ResourceDefinitionContext;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -107,9 +108,28 @@ public class KafkaSqlAccessITTest extends ITBase {
                 () -> assertThat(client.secrets().inNamespace(namespace).withName(userName).get())
                         .isNotNull());
 
-        // Create the KafkaAccess resource
-        client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/access/example-kafkaaccess.yaml"))
-                .inNamespace(namespace).create();
+        // Create the KafkaAccess resource using genericKubernetesResources with explicit
+        // resource definition since there is no Java model for KafkaAccess on the classpath
+        var kafkaAccessContext = new ResourceDefinitionContext.Builder()
+                .withGroup("access.strimzi.io")
+                .withVersion("v1alpha1")
+                .withKind("KafkaAccess")
+                .withPlural("kafkaaccesses")
+                .withNamespaced(true)
+                .build();
+        var kafkaAccessResource = new io.fabric8.kubernetes.api.model.GenericKubernetesResourceBuilder()
+                .withApiVersion("access.strimzi.io/v1alpha1")
+                .withKind("KafkaAccess")
+                .withNewMetadata().withName("my-kafka-access").withNamespace(namespace).endMetadata()
+                .addToAdditionalProperties("spec", java.util.Map.of(
+                        "kafka", java.util.Map.of("name", "example-cluster", "listener", "tls"),
+                        "user", java.util.Map.of("kind", "KafkaUser", "apiGroup", "kafka.strimzi.io",
+                                "name", "apicurio-registry")))
+                .build();
+        client.genericKubernetesResources(kafkaAccessContext)
+                .inNamespace(namespace)
+                .resource(kafkaAccessResource)
+                .create();
 
         final var kafkaAccessSecretName = "my-kafka-access";
 

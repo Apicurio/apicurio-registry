@@ -123,6 +123,12 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                     System.getProperty("registry-kafkasql-image"));
             KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
             testLogsIdentifier = "apicurio-registry-kafka";
+        } else if (Boolean.parseBoolean(System.getProperty("deployKubernetesOps"))) {
+            LOGGER.info(
+                    "Deploying KubernetesOps Registry Variant with image: {} ##################################################",
+                    System.getProperty("registry-kubernetesops-image"));
+            KubernetesOpsDeploymentManager.deployKubernetesOpsApp(System.getProperty("registry-kubernetesops-image"));
+            testLogsIdentifier = "apicurio-registry-kubernetesops";
         }
 
         // Deploy ALL Debezium infrastructure if requested (optimized for CI)
@@ -192,7 +198,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         waitForRegistryReady();
     }
 
-    private static void setupTestNetworking() {
+    static void setupTestNetworking() {
         // For openshift, a route to the application is created we use it to set up the networking needs.
         if (Boolean.parseBoolean(System.getProperty("openshift.resources"))) {
 
@@ -234,7 +240,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
      * Waits for the Apicurio Registry to be ready by checking the REST API health endpoint.
      * Uses the external LoadBalancer service to check readiness via localhost.
      */
-    private static void waitForRegistryReady() {
+    static void waitForRegistryReady() {
         LOGGER.info("Waiting for Apicurio Registry to be accessible via LoadBalancer ##################################################");
 
         try {

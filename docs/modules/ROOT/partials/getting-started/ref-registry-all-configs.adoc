@@ -558,6 +558,42 @@ The following {registry} configuration options are available for each component 
 |Temporary work directory to use when importing data.
 |===
 
+== kubernetesops
+.kubernetesops configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.kubernetesops.id`
+|`optional<string>`
+|
+|`3.0.0`
+|Identifier of this Registry instance. Only ConfigMaps with a label matching this identifier will be loaded.
+|`apicurio.kubernetesops.label.registry-id`
+|`string`
+|`apicurio.io/registry-id`
+|`3.0.0`
+|Label key used to identify ConfigMaps belonging to this registry instance.
+|`apicurio.kubernetesops.namespace`
+|`optional<string>`
+|
+|`3.0.0`
+|Kubernetes namespace to watch for ConfigMaps. If not specified, auto-detects the pod's namespace or falls back to "default".
+|`apicurio.kubernetesops.watch.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable Kubernetes Watch API for real-time ConfigMap change detection.
+|`apicurio.kubernetesops.watch.reconnect-delay`
+|`duration`
+|`PT10S`
+|`3.0.0`
+|Base delay before reconnecting after watch failure. Uses exponential backoff.
+|===
+
 == limits
 .limits configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -1150,9 +1186,9 @@ The following {registry} configuration options are available for each component 
 |Enable automatic creation of group when creating an artifact
 |`apicurio.storage.kind`
 |`string`
-|`sql`
+|
 |`3.0.0`
-|The type of storage to use for the registry
+|Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops
 |`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
 |`false`

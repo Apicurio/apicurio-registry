@@ -3,7 +3,7 @@ package io.apicurio.registry.storage.impl.gitops.model;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.impl.gitops.ProcessingState;
+import io.apicurio.registry.storage.impl.polling.DataFileProcessingState;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -33,7 +33,7 @@ public class Any {
 
     private Object entity;
 
-    public static Optional<Any> from(ProcessingState state, String path, ContentHandle content) {
+    public static Optional<Any> from(DataFileProcessingState state, String path, ContentHandle content) {
         try {
             var raw = MAPPER.readTree(content.bytes());
             var typeNode = raw.get("$type");

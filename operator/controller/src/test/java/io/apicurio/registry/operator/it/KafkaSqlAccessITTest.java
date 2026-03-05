@@ -65,6 +65,7 @@ public class KafkaSqlAccessITTest extends ITBase {
             }
         }
 
+        allResources.removeIf(java.util.Objects::isNull);
         allResources.forEach(r -> {
             if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding crb) {
                 crb.getSubjects().forEach(s -> s.setNamespace(namespace));

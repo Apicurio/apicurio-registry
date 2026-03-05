@@ -24,12 +24,12 @@ public class Constants {
     public static final Probe DEFAULT_LIVENESS_PROBE = new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/health/live").withPort(new IntOrString(9000)).withScheme("HTTP").build()).build();
 
     public static final Probe TLS_DEFAULT_READINESS_PROBE = new ProbeBuilder().withNewHttpGet()
-            .withScheme("HTTP").withPath("/health/ready").withNewPort().withValue(9000).endPort().endHttpGet()
+            .withScheme("HTTPS").withPath("/health/ready").withNewPort().withValue(9000).endPort().endHttpGet()
             .withInitialDelaySeconds(15).withTimeoutSeconds(5).withPeriodSeconds(10).withSuccessThreshold(1)
             .withFailureThreshold(3).build();
 
     public static final Probe TLS_DEFAULT_LIVENESS_PROBE = new ProbeBuilder().withNewHttpGet()
-            .withScheme("HTTP").withPath("/health/live").withNewPort().withValue(9000).endPort().endHttpGet()
+            .withScheme("HTTPS").withPath("/health/live").withNewPort().withValue(9000).endPort().endHttpGet()
             .withInitialDelaySeconds(15).withTimeoutSeconds(5).withPeriodSeconds(10).withSuccessThreshold(1)
             .withFailureThreshold(3).build();
 }

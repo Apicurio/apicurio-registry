@@ -94,12 +94,15 @@ public class TlsITTest extends ITBase {
 
         // Network Policy
         await().ignoreExceptions().until(() -> {
-            NetworkPolicyIngressRule networkPolicyIngressRule = client.network().v1().networkPolicies().inNamespace(namespace)
-                    .withName("simple-app-networkpolicy").get().getSpec().getIngress()
-                    .get(0);
-            Assertions.assertEquals(1, networkPolicyIngressRule.getPorts().size());
+            var networkPolicyIngressRules = client.network().v1().networkPolicies().inNamespace(namespace)
+                    .withName("simple-app-networkpolicy").get().getSpec().getIngress();
 
-            assertThat(networkPolicyIngressRule.getPorts().get(0).getPort().getIntVal()).isEqualTo(8443);
+            Assertions.assertEquals(2, networkPolicyIngressRules.size());
+
+            assertThat(networkPolicyIngressRules)
+                    .flatMap(NetworkPolicyIngressRule::getPorts)
+                    .map(p -> p.getPort().getIntVal())
+                    .containsExactlyInAnyOrder(8443, 9000);
             return true;
         });
 
@@ -167,12 +170,12 @@ public class TlsITTest extends ITBase {
             var networkPolicyIngressRules = client.network().v1().networkPolicies().inNamespace(namespace)
                     .withName("simple-app-networkpolicy").get().getSpec().getIngress();
 
-            Assertions.assertEquals(2, networkPolicyIngressRules.size());
+            Assertions.assertEquals(3, networkPolicyIngressRules.size());
 
             assertThat(networkPolicyIngressRules)
                     .flatMap(NetworkPolicyIngressRule::getPorts)
                     .map(p -> p.getPort().getIntVal())
-                    .containsExactlyInAnyOrder(8080, 8443);
+                    .containsExactlyInAnyOrder(8080, 8443, 9000);
             return true;
         });
 

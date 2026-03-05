@@ -231,6 +231,7 @@ print_header "HTTP Caching CI Test Runner"
 
 export VARNISH_URL="http://localhost:8081"
 export REGISTRY_URL="http://localhost:8080"
+export REGISTRY_MANAGEMENT_URL="http://localhost:9000"
 
 # Export docker image environment variables if specified
 if [ -n "$REGISTRY_IMAGE" ]; then
@@ -280,8 +281,8 @@ chmod +x test/run-tests.sh
 if [ "$USE_DEV_MODE" = "true" ]; then
     print_header "Checking Dev Environment"
 
-    print_info "Checking if Registry is running on $REGISTRY_URL..."
-    if ! curl -sf "${REGISTRY_URL}/health/live" > /dev/null 2>&1; then
+    print_info "Checking if Registry is running on $REGISTRY_MANAGEMENT_URL..."
+    if ! curl -sf "${REGISTRY_MANAGEMENT_URL}/health/live" > /dev/null 2>&1; then
         print_error "Registry is not running at ${REGISTRY_URL}"
         print_info "In dev mode, you need to start Registry manually:"
         print_info "cd app & mvn quarkus:dev -Dapicurio.rest.mutability.artifact-version-content.enabled=true"
@@ -313,7 +314,7 @@ if [ "$USE_DEV_MODE" = "false" ]; then
     print_info "Waiting for Registry to be healthy..."
     start_time=$(date +%s)
     while true; do
-        if curl -sf "${REGISTRY_URL}/health/live" > /dev/null 2>&1; then
+        if curl -sf "${REGISTRY_MANAGEMENT_URL}/health/live" > /dev/null 2>&1; then
             print_success "Registry is ready"
             break
         fi
@@ -336,7 +337,7 @@ fi
 print_info "Waiting for Varnish to be healthy..."
 start_time=$(date +%s)
 while true; do
-    if curl -sf "${VARNISH_URL}/health/live" > /dev/null 2>&1; then
+    if curl -sf "${VARNISH_URL}/apis/registry/v3/system/info" > /dev/null 2>&1; then
         print_success "Varnish is ready"
         break
     fi
@@ -370,10 +371,10 @@ docker compose -f "$COMPOSE_FILE" ps
 
 echo ""
 print_info "Registry health check:"
-curl -sf "${REGISTRY_URL}/health/live" && echo " ✓" || echo " ✗"
+curl -sf "${REGISTRY_MANAGEMENT_URL}/health/live" && echo " ✓" || echo " ✗"
 
-print_info "Varnish health check (via cached endpoint):"
-curl -sf "${VARNISH_URL}/health/live" && echo " ✓" || echo " ✗"
+print_info "Varnish health check:"
+curl -sf "${VARNISH_URL}/apis/registry/v3/system/info" > /dev/null && echo " ✓" || echo " ✗"
 
 echo ""
 

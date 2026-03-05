@@ -6,6 +6,7 @@ import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.fabric8.kubernetes.client.dsl.base.ResourceDefinitionContext;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -62,11 +63,15 @@ public class KafkaSqlAccessITTest extends ITBase {
         for (String fileName : KAFKA_ACCESS_INSTALL_FILES) {
             var url = new URL(KAFKA_ACCESS_OPERATOR_RAW_BASE + fileName);
             try (BufferedInputStream in = new BufferedInputStream(url.openStream())) {
-                allResources.addAll(client.load(in).get());
+                Object parsed = Serialization.unmarshal(in);
+                if (parsed instanceof List<?> list) {
+                    list.stream().filter(HasMetadata.class::isInstance)
+                            .map(HasMetadata.class::cast).forEach(allResources::add);
+                } else if (parsed instanceof HasMetadata hm) {
+                    allResources.add(hm);
+                }
             }
         }
-
-        allResources.removeIf(java.util.Objects::isNull);
         allResources.forEach(r -> {
             if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding crb) {
                 crb.getSubjects().forEach(s -> s.setNamespace(namespace));

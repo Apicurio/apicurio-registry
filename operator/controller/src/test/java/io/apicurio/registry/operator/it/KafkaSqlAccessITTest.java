@@ -17,6 +17,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 import static io.apicurio.registry.operator.Tags.KAFKA;
@@ -32,6 +33,18 @@ public class KafkaSqlAccessITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlAccessITTest.class);
 
+    private static final String KAFKA_ACCESS_OPERATOR_VERSION = "0.2.0";
+    private static final String KAFKA_ACCESS_OPERATOR_RAW_BASE =
+            "https://raw.githubusercontent.com/strimzi/kafka-access-operator/"
+                    + KAFKA_ACCESS_OPERATOR_VERSION + "/packaging/install/";
+    private static final String[] KAFKA_ACCESS_INSTALL_FILES = {
+            "010-ServiceAccount.yaml",
+            "020-ClusterRole.yaml",
+            "030-ClusterRoleBinding.yaml",
+            "040-Crd-kafkaaccess.yaml",
+            "050-Deployment.yaml"
+    };
+
     private static boolean kafkaAccessOperatorInstalled = false;
 
     @BeforeAll
@@ -45,25 +58,29 @@ public class KafkaSqlAccessITTest extends ITBase {
     }
 
     private static void installKafkaAccessOperator() throws IOException {
-        var kafkaAccessOperatorURL = new URL(
-                "https://github.com/strimzi/kafka-access-operator/releases/download/0.3.0/kafka-access-operator-0.3.0.yaml");
-        try (BufferedInputStream in = new BufferedInputStream(kafkaAccessOperatorURL.openStream())) {
-            List<HasMetadata> resources = Serialization.unmarshal(in);
-            resources.forEach(r -> {
-                if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding crb) {
-                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
-                } else if (r.getKind().equals("RoleBinding") && r instanceof RoleBinding rb) {
-                    rb.getSubjects().forEach(s -> s.setNamespace(namespace));
-                }
-                log.info("Creating Kafka Access Operator resource kind {} in namespace {}", r.getKind(),
-                        namespace);
-                client.resource(r).inNamespace(namespace).createOrReplace();
-                await().atMost(Duration.ofMinutes(2)).ignoreExceptions().until(() -> {
-                    assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
-                    return true;
-                });
-            });
+        List<HasMetadata> allResources = new ArrayList<>();
+        for (String fileName : KAFKA_ACCESS_INSTALL_FILES) {
+            var url = new URL(KAFKA_ACCESS_OPERATOR_RAW_BASE + fileName);
+            try (BufferedInputStream in = new BufferedInputStream(url.openStream())) {
+                List<HasMetadata> resources = Serialization.unmarshal(in);
+                allResources.addAll(resources);
+            }
         }
+
+        allResources.forEach(r -> {
+            if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding crb) {
+                crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+            } else if (r.getKind().equals("RoleBinding") && r instanceof RoleBinding rb) {
+                rb.getSubjects().forEach(s -> s.setNamespace(namespace));
+            }
+            log.info("Creating Kafka Access Operator resource kind {} in namespace {}", r.getKind(),
+                    namespace);
+            client.resource(r).inNamespace(namespace).createOrReplace();
+            await().atMost(Duration.ofMinutes(2)).ignoreExceptions().until(() -> {
+                assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
+                return true;
+            });
+        });
         kafkaAccessOperatorInstalled = true;
     }
 

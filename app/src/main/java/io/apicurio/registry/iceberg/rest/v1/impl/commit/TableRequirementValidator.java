@@ -84,8 +84,12 @@ public final class TableRequirementValidator {
             String groupId, String artifactId) {
         requireMetadataExists(currentMetadata, groupId, artifactId, "assert-table-uuid");
         String expectedUuid = (String) req.get("uuid");
+        if (expectedUuid == null) {
+            throw new IllegalArgumentException(
+                    "assert-table-uuid requirement is missing required 'uuid' field");
+        }
         String actualUuid = (String) currentMetadata.get("table-uuid");
-        if (!String.valueOf(expectedUuid).equals(String.valueOf(actualUuid))) {
+        if (!expectedUuid.equals(actualUuid)) {
             throw new CommitFailedException(groupId, artifactId,
                     "Requirement failed: assert-table-uuid - expected " + expectedUuid + " but was "
                             + actualUuid);
@@ -166,7 +170,11 @@ public final class TableRequirementValidator {
         if (value instanceof Number) {
             return ((Number) value).longValue();
         }
-        return Long.parseLong(value.toString());
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Expected a numeric value but got: " + value, e);
+        }
     }
 
     private static boolean equalsLong(Long a, Long b) {

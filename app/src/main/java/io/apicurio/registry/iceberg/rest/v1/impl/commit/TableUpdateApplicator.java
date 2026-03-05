@@ -316,7 +316,8 @@ public final class TableUpdateApplicator {
         if (value instanceof List) {
             return new ArrayList<>((List<Object>) value);
         }
-        return new ArrayList<>();
+        throw new IllegalArgumentException(
+                "Expected a list for metadata field '" + key + "' but got: " + value.getClass().getName());
     }
 
     private static int toInt(Object value) {
@@ -326,7 +327,11 @@ public final class TableUpdateApplicator {
         if (value instanceof Number) {
             return ((Number) value).intValue();
         }
-        return Integer.parseInt(value.toString());
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Expected a numeric value but got: " + value, e);
+        }
     }
 
     private static long toLong(Object value) {
@@ -336,6 +341,10 @@ public final class TableUpdateApplicator {
         if (value instanceof Number) {
             return ((Number) value).longValue();
         }
-        return Long.parseLong(value.toString());
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Expected a numeric value but got: " + value, e);
+        }
     }
 }

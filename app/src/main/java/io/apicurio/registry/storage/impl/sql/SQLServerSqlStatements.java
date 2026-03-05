@@ -137,7 +137,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
 
     @Override
     public String selectMaxVersionOrderForUpdate() {
-        return "SELECT TOP 1 v.versionOrder FROM versions v WITH (UPDLOCK, HOLDLOCK) "
+        return "SELECT v.versionOrder FROM versions v WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE v.groupId = ? AND v.artifactId = ? "
                 + "ORDER BY v.versionOrder DESC";
     }

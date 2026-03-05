@@ -87,6 +87,11 @@ public interface Constants {
     String DEBEZIUM_MYSQL_SNAPSHOT = "debezium-mysql-snapshot";
 
     /**
+     * Tag for kubernetesops tests, the test will be executed only when the storage variant is kubernetesops.
+     */
+    String KUBERNETES_OPS = "kubernetesopsit";
+
+    /**
      * Tag for slow-running tests
      */
     String SLOW = "slow";

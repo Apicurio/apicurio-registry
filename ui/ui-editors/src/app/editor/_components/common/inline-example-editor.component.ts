@@ -81,4 +81,9 @@ export class InlineExampleEditorComponent extends TextAreaEditorComponent implem
         }
     }
 
+    protected getValueForSave(): string {
+        // Preserve the raw editor text so example parsing can decide how to coerce it based on schema type.
+        return this.codeEditor.first.text;
+    }
+
 }

@@ -69,6 +69,15 @@ public class RegistryStorageDecoratorBase extends RegistryStorageDecoratorReadOn
     }
 
     @Override
+    public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder) {
+        return delegate.createArtifactVersionIfLatest(groupId, artifactId, version, artifactType, content,
+                metaData, branches, isDraft, owner, expectedBaseVersionOrder);
+    }
+
+    @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content) throws RegistryStorageException {
         delegate.updateArtifactVersionContent(groupId, artifactId, version, artifactType, content);

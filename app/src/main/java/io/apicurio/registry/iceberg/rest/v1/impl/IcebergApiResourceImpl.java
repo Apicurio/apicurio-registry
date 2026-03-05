@@ -48,12 +48,10 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.GroupNotEmptyException;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.types.VersionState;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -546,17 +544,9 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .references(Collections.emptyList())
                 .build();
 
-        ArtifactVersionMetaDataDto newVersionMeta = storage.createArtifactVersion(groupId, table, null,
-                ArtifactType.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(), null,
-                false, false, getCurrentUser());
-
-        // Concurrency check: if another commit was interleaved, the versionOrder will jump
-        if (newVersionMeta.getVersionOrder() != baseVersionOrder + 1) {
-            storage.updateArtifactVersionState(groupId, table, newVersionMeta.getVersion(),
-                    VersionState.DISABLED, false);
-            throw new CommitFailedException(groupId, table,
-                    "Concurrent commit detected - another commit was applied first");
-        }
+        ArtifactVersionMetaDataDto newVersionMeta = storage.createArtifactVersionIfLatest(groupId, table,
+                null, ArtifactType.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(),
+                null, false, getCurrentUser(), baseVersionOrder);
 
         // Update artifact labels if table-uuid or location changed
         updateArtifactLabelsIfNeeded(groupId, table, currentMetadata, newMetadata);

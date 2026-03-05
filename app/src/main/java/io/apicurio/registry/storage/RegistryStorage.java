@@ -33,6 +33,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -192,6 +193,19 @@ public interface RegistryStorage extends DynamicConfigStorage {
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws ArtifactNotFoundException, VersionAlreadyExistsException, RegistryStorageException;
+
+    /**
+     * Creates a new artifact version only if the current latest versionOrder matches the expected base
+     * version order. Used for atomic commit operations where concurrent writes must be detected and rejected.
+     *
+     * @throws CommitFailedException if the current versionOrder does not match expectedBaseVersionOrder
+     */
+    ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder)
+            throws ArtifactNotFoundException, VersionAlreadyExistsException, CommitFailedException,
+            RegistryStorageException;
 
     /**
      * Get all artifact ids. --- Note: This should only be used in older APIs such as the registry V1 REST API

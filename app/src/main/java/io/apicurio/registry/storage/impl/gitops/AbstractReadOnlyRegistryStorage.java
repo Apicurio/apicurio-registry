@@ -68,6 +68,15 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     }
 
     @Override
+    public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder) throws RegistryStorageException {
+        readOnlyViolation();
+        return null;
+    }
+
+    @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto contentDto) throws RegistryStorageException {
         readOnlyViolation();

@@ -43,6 +43,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -656,6 +657,47 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         createdOn, contentId, branches, isDraft);
                 return versionDto;
             });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new VersionAlreadyExistsException(groupId, artifactId, version);
+            }
+            throw ex;
+        }
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder) {
+
+        Date createdOn = new Date();
+        long contentId = ensureContentAndGetId(artifactType, content, isDraft);
+
+        try {
+            return handles.withHandle(handle -> {
+                // Lock the artifact's versions and get current max versionOrder
+                Integer currentMax = handle
+                        .createQuery(sqlStatements.selectMaxVersionOrderForUpdate())
+                        .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Integer.class)
+                        .findFirst()
+                        .orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
+
+                // Reject if someone committed in between
+                if (currentMax != expectedBaseVersionOrder) {
+                    throw new CommitFailedException(groupId, artifactId,
+                            "Concurrent commit detected: expected versionOrder "
+                                    + expectedBaseVersionOrder + " but found " + currentMax);
+                }
+
+                // Safe to proceed — we hold the FOR UPDATE lock
+                boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+                return createArtifactVersionRaw(handle, isFirstVersion, groupId, artifactId, version,
+                        metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData,
+                        owner, createdOn, contentId, branches, isDraft);
+            });
+        } catch (CommitFailedException ex) {
+            throw ex;
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {
                 throw new VersionAlreadyExistsException(groupId, artifactId, version);

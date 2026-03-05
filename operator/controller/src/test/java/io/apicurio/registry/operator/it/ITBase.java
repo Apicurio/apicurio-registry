@@ -67,7 +67,7 @@ public abstract class ITBase {
     public static final String CRD_FILE = "../model/target/classes/META-INF/fabric8/apicurioregistries3.registry.apicur.io-v1.yml";
     public static final String REMOTE_TESTS_INSTALL_FILE = "test.operator.install-file";
 
-    public static final Duration POLL_INTERVAL_DURATION = ofSeconds(5);
+    public static final Duration POLL_INTERVAL_DURATION = ofSeconds(3);
     public static final Duration SHORT_DURATION = ofSeconds(30);
     // NOTE: When running remote tests, some extra time might be needed to pull an image before the pod can be run.
     // TODO: Consider changing the duration based on test type or the situation.
@@ -164,7 +164,7 @@ public abstract class ITBase {
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get())
                     .isNull();
         };
-        await().during(SHORT_DURATION.dividedBy(2)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
+        await().during(ofSeconds(5)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
         check.run();
     }
 
@@ -183,7 +183,7 @@ public abstract class ITBase {
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-service").get()).isNull();
         };
-        await().during(SHORT_DURATION.dividedBy(2)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
+        await().during(ofSeconds(5)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
         check.run();
     }
 
@@ -202,7 +202,7 @@ public abstract class ITBase {
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get()).isNull();
         };
-        await().during(SHORT_DURATION.dividedBy(2)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
+        await().during(ofSeconds(5)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
         check.run();
     }
 
@@ -297,7 +297,7 @@ public abstract class ITBase {
         // Wait until the operator pod name remains stable, we're occasionally having timeout when trying to access pod logs.
         // TODO: Handle pod restarts/redeployments.
         // TODO: Allow configuring wait time dilatation.
-        await().atMost(MEDIUM_DURATION.multipliedBy(2)).during(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(MEDIUM_DURATION.multipliedBy(2)).during(ofSeconds(10)).ignoreExceptions().untilAsserted(() -> {
             var operatorPods = client.pods()
                     .withLabels(Labels.getOperatorSelectorLabels())
                     .list().getItems();

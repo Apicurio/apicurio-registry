@@ -5,7 +5,6 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
-import io.fabric8.kubernetes.client.utils.Serialization;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -62,8 +61,7 @@ public class KafkaSqlAccessITTest extends ITBase {
         for (String fileName : KAFKA_ACCESS_INSTALL_FILES) {
             var url = new URL(KAFKA_ACCESS_OPERATOR_RAW_BASE + fileName);
             try (BufferedInputStream in = new BufferedInputStream(url.openStream())) {
-                List<HasMetadata> resources = Serialization.unmarshal(in);
-                allResources.addAll(resources);
+                allResources.addAll(client.load(in).get());
             }
         }
 

@@ -56,7 +56,6 @@ import jakarta.ws.rs.NotAllowedException;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.InputStream;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Date;

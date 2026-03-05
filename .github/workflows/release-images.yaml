@@ -150,26 +150,6 @@ jobs:
               -t quay.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 
-      - name: Build Native executables
-        env:
-          SKIP_TESTS: "true"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
-        run: |
-          cd registry
-          ./mvnw package --no-transfer-progress -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests=true
-
-      - name: Build and Push Native image for testing
-        run: |
-          cd registry
-          docker build --push -f ./distro/docker/target/docker/Dockerfile.native \
-              -t docker.io/apicurio/apicurio-registry-native:latest \
-              -t docker.io/apicurio/apicurio-registry-native:latest-release \
-              -t docker.io/apicurio/apicurio-registry-native:$RELEASE_VERSION \
-              -t quay.io/apicurio/apicurio-registry-native:latest \
-              -t quay.io/apicurio/apicurio-registry-native:latest-release \
-              -t quay.io/apicurio/apicurio-registry-native:$RELEASE_VERSION \
-            app/
-
   # Slack notification using reusable workflow
   notify-slack:
     name: Slack Notification

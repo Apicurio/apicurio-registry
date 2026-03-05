@@ -15,7 +15,7 @@
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>
-    <quarkus.version>3.27.0</quarkus.version>
+    <quarkus.version>3.27.2</quarkus.version>
     <compiler-plugin.version>3.13.0</compiler-plugin.version>
     <surefire-plugin.version>3.5.2</surefire-plugin.version>
   </properties>

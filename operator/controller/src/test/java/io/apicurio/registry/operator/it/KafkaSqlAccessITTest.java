@@ -99,9 +99,9 @@ public class KafkaSqlAccessITTest extends ITBase {
         });
 
         // Wait for the Kafka Access Operator pod to be ready
-        await().atMost(Duration.ofMinutes(2)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(Duration.ofMinutes(3)).ignoreExceptions().untilAsserted(() -> {
             var pods = client.pods().inNamespace(namespace)
-                    .withLabel("app.kubernetes.io/name", "kafka-access-operator").list().getItems();
+                    .withLabel("app", "strimzi-access-operator").list().getItems();
             assertThat(pods).hasSize(1);
             assertThat(client.resource(pods.get(0)).isReady()).isTrue();
         });

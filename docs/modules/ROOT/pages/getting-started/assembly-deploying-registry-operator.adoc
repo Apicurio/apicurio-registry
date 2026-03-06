@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="deploying-registry-operator_{context}"]
 = Deploying {registry} using the Operator
@@ -18,7 +19,7 @@ This chapter explains how to deploy and configure {registry} instances using the
 * xref:configuring-registry-ui-component_{context}[]
 * xref:advanced-registry-configuration_{context}[]
 
-.Prerequisites
+*Prerequisites*
 * {installing-the-registry-openshift}
 
 //INCLUDES
@@ -60,11 +61,11 @@ IMPORTANT: The default in-memory storage is not suitable for production environm
 This section shows how to deploy a basic {registry} instance using in-memory storage. This configuration is
 suitable for development and testing environments only.
 
-.Prerequisites
+*Prerequisites*
 * You must have cluster administrator access to an {kubernetes} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
 
-.Procedure
+*Procedure*
 
 . In the {kubernetes} web console, log in using an account with cluster administrator privileges.
 
@@ -96,7 +97,7 @@ NOTE: Replace the `host` values with appropriate hostnames for your environment.
 
 . Click *Networking* > *Ingresses* (or *Routes*) to access the route for the {registry} web console.
 
-.Verification
+*Verification*
 
 * Access the {registry} web console using the configured hostname and verify that the UI loads successfully.
 
@@ -106,13 +107,13 @@ NOTE: Replace the `host` values with appropriate hostnames for your environment.
 This section explains how to deploy {registry} with PostgreSQL database storage. This configuration is suitable
 for production environments.
 
-.Prerequisites
+*Prerequisites*
 * You must have cluster administrator access to an {kubernetes} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have a PostgreSQL database available with a database created for {registry}.
 * You must have created a Kubernetes Secret containing the PostgreSQL database password.
 
-.Procedure
+*Procedure*
 
 . Create a Secret containing the database password:
 +
@@ -161,7 +162,7 @@ NOTE: Update the `url` to match your PostgreSQL service name, namespace, port, a
 
 . Click *Create* and wait for the {registry} deployment to be created.
 
-.Verification
+*Verification*
 
 * Access the {registry} web console and create a test artifact to verify that data is being persisted to
 the database.
@@ -170,8 +171,7 @@ the database.
 [role="_additional-resources"]
 .Additional resources
 
-* For information on PostgreSQL Operators available on OpenShift, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#installing-postgresql-operatorhub_{context}[Installing a PostgreSQL database from the OpenShift OperatorHub]
-in {installing-the-registry-storage-openshift}.
+* xref:getting-started/assembly-installing-registry-storage-openshift.adoc#installing-postgresql-operatorhub_{context}[Installing a PostgreSQL database from the OpenShift OperatorHub]
 
 [id="deploying-registry-mysql_{context}"]
 == Deploying {registry} with MySQL storage
@@ -179,13 +179,13 @@ in {installing-the-registry-storage-openshift}.
 This section explains how to deploy {registry} with MySQL database storage. This configuration is suitable
 for production environments.
 
-.Prerequisites
+*Prerequisites*
 * You must have cluster administrator access to an {kubernetes} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have a MySQL database available with a database created for {registry}.
 * You must have created a Kubernetes Secret containing the MySQL database password.
 
-.Procedure
+*Procedure*
 
 . Create a Secret containing the database password:
 +
@@ -234,7 +234,7 @@ NOTE: Update the `url` to match your MySQL service name, namespace, port, and da
 
 . Click *Create* and wait for the {registry} deployment to be created.
 
-.Verification
+*Verification*
 
 * Access the {registry} web console and create a test artifact to verify that data is being persisted to
 the database.
@@ -247,12 +247,12 @@ This section explains how to deploy {registry} with KafkaSQL storage. KafkaSQL u
 data store with an in-memory H2 database for caching. This configuration is suitable for production environments
 when using persistent Kafka storage.
 
-.Prerequisites
+*Prerequisites*
 * You must have cluster administrator access to an {kubernetes} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have a Kafka cluster available. For OpenShift, see {installing-the-registry-storage-openshift}.
 
-.Procedure
+*Procedure*
 
 . Obtain the Kafka bootstrap servers address from your Kafka cluster. For example, with {kafka-streams}:
 `my-cluster-kafka-bootstrap.my-project.svc:9092`
@@ -306,7 +306,7 @@ spec:
 WARNING: You must configure the Kafka topic used by {registry} with `cleanup.policy: delete` and infinite retention
 (`retention.ms: -1` and `retention.bytes: -1`), otherwise data loss might occur.
 
-.Verification
+*Verification*
 
 * Access the {registry} web console and create a test artifact to verify that data is being persisted to Kafka.
 * Restart the {registry} pod and verify that the artifact still exists after the cache is rebuilt from Kafka.
@@ -372,8 +372,7 @@ spec:
 [role="_additional-resources"]
 .Additional resources
 
-* For more information on Kafka storage configuration, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#setting-up-kafka-streams-storage_{context}[Configuring {registry} with Kafka storage on OpenShift]
-in {installing-the-registry-storage-openshift}.
+* xref:getting-started/assembly-installing-registry-storage-openshift.adoc#setting-up-kafka-streams-storage_{context}[Configuring {registry} with Kafka storage on OpenShift]
 
 [id="configuring-registry-authentication_{context}"]
 == Configuring authentication and authorization
@@ -381,12 +380,12 @@ in {installing-the-registry-storage-openshift}.
 This section explains how to configure {registry} with OIDC authentication and role-based authorization using
 an identity provider such as {keycloak}.
 
-.Prerequisites
+*Prerequisites*
 * You must have cluster administrator access to an {kubernetes} cluster.
-* You must have already deployed {registry}. See xref:deploying-registry-inmemory_{context}[].
+* You must have already deployed {registry}. See xref:deploying-registry-inmemory_{context}[]
 * You must have an OIDC identity provider configured with appropriate clients for {registry}.
 
-.Procedure
+*Procedure*
 
 . Configure two clients in your identity provider:
 ** Backend API client (e.g., `registry-client-api`) - Used by the {registry-app}.
@@ -471,7 +470,7 @@ spec:
       # ... other auth settings
 ----
 
-.Verification
+*Verification*
 
 * Access the {registry} web console and verify that you are redirected to the identity provider login page.
 * Log in with different users having different roles and verify that authorization is enforced correctly.
@@ -520,8 +519,7 @@ NOTE: Set `tlsVerificationType` to `none` to disable TLS verification (not recom
 [role="_additional-resources"]
 .Additional resources
 
-* For more information on {registry} security configuration, see
-{registry-name-full} security in xref:getting-started/assembly-configuring-registry-security.adoc[].
+* xref:getting-started/assembly-configuring-registry-security.adoc[]
 
 [id="configuring-registry-ingress_{context}"]
 == Configuring Ingress and networking
@@ -787,5 +785,5 @@ spec:
 [role="_additional-resources"]
 .Additional resources
 
-* For the complete configuration reference, see xref:getting-started/assembly-operator-config-reference.adoc[].
-* For more information on configuring {registry}, see {registry-overview}.
+* xref:getting-started/assembly-operator-config-reference.adoc[]
+* {registry-overview}

@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="managing-registry-artifacts-ui_{context}"]
 = Managing {registry} content using the web console
@@ -26,10 +27,9 @@ You can manage schema and API artifacts stored in {registry} by using the {regis
 [role="_abstract"]
 You can set optional environment variables to configure the {registry} web console specifically for your deployment environment or to customize its behavior.
 
-.Prerequisites
+*Prerequisites*
 * You have already installed {registry}.
 
-[discrete]
 === Configuring the web console deployment environment
 
 When you access the {registry} web console in your browser, some initial configuration settings are loaded. The following configuration settings are required:
@@ -38,12 +38,11 @@ When you access the {registry} web console in your browser, some initial configu
 
 Typically the {operator} will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
 
-.Procedure
+*Procedure*
 Configure the following environment variables to override the default URL:
 
 * `REGISTRY_API_URL`: Specifies the URL for the core {registry} server REST API v3. For example, `\https://registry-api.my-domain.com/apis/registry/v3`
 
-[discrete]
 === Configuring the web console in read-only mode
 
 You can configure the {registry} web console in read-only mode as an optional feature. This mode disables all features in the {registry} web console that allow users to make changes to registered artifacts. For example, this includes the following:
@@ -54,7 +53,7 @@ You can configure the {registry} web console in read-only mode as an optional fe
 * Updating artifact metadata
 * Deleting an artifact
 
-.Procedure
+*Procedure*
 Configure the following environment variable:
 
 * `REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
@@ -70,7 +69,7 @@ Configure the following environment variable:
 [role="_abstract"]
 You can use the {registry} web console to browse the schema and API artifacts stored in {registry}. This section shows a simple example of viewing {registry} groups, artifacts, versions, and rules.
 
-.Prerequisites
+*Prerequisites*
 
 * {registry} is installed and running in your environment.
 * You are logged in to the {registry} web console:
@@ -78,7 +77,7 @@ You can use the {registry} web console to browse the schema and API artifacts st
 `{registry-url}`
 * Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a client application.
 
-.Procedure
+*Procedure*
 
 . On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find an artifact. You can select from the list to search by specific criteria such as name, group, labels, or global ID.
 +
@@ -123,14 +122,14 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 [role="_abstract"]
 You can use the {registry} web console to upload schema and API artifacts to {registry}. This section shows simple examples of creating {registry} artifacts and adding new artifact versions.
 
-.Prerequisites
+*Prerequisites*
 
 * {registry} is installed and running in your environment.
 * You are logged in to the {registry} web console:
 +
 `{registry-url}`
 
-.Procedure
+*Procedure*
 
 . On the *Explore* tab, click *Create artifact*, and complete the *Create artifact* wizard:
 +
@@ -213,7 +212,7 @@ WARNING: Deleting an artifact deletes the artifact and all of its versions, and 
 [role="_abstract"]
 You can use the {registry} web console to configure optional rules to prevent invalid or incompatible content from being added to {registry}. All configured artifact-specific, group-specific, or global rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact-specific rules override any configured group-specific rules, which in turn override any global rules. This section shows a simple example of configuring global, group-specific, and artifact-specific rules.
 
-.Prerequisites
+*Prerequisites*
 
 * {registry} is installed and running in your environment.
 * You are logged in to the {registry} web console:
@@ -222,7 +221,7 @@ You can use the {registry} web console to configure optional rules to prevent in
 * Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a Java client application.
 * When role-based authorization is enabled, you have administrator access for global rules configuration.
 
-.Procedure (group-specific rules)
+*Procedure (group-specific rules)*
 . On the *Explore* tab, browse the list of groups in {registry} by selecting *Groups* from the "Search for" menu.
 +
 . Click a group to view its details and content rules.
@@ -233,7 +232,7 @@ You can use the {registry} web console to configure optional rules to prevent in
 image::images/getting-started/registry-web-console-group-rules.png[Configure group-specific rules in Registry web console]
 
 
-.Procedure (artifact-specific rules)
+*Procedure (artifact-specific rules)*
 . On the *Explore* tab, browse the list of artifacts in {registry} by selecting *Artifacts* from the "Search for" menu.
 +
 . Click an artifact from the list to view its details and content rules.
@@ -244,7 +243,7 @@ image::images/getting-started/registry-web-console-group-rules.png[Configure gro
 image::images/getting-started/registry-web-console-artifact-rules.png[Configure rules in Registry web console]
 
 
-.Procedure (global rules)
+*Procedure (global rules)*
 . To access global rules, click the *Global rules* tab.
 . Click *Enable* to configure global validity, compatibility, or integrity rules for all artifact content, and select the appropriate rule configuration from the list.
 +
@@ -280,14 +279,14 @@ ifdef::rh-service-registry[]
 link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
 endif::[] 
 
-.Prerequisites
+*Prerequisites*
 
 * The {registry} is deployed and the artifact is created.
 * You are logged in to the {registry} web console as the artifact's current owner or as an administrator:
 +
 `{registry-url}`
 
-.Procedure
+*Procedure*
 
 
 . On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find the artifact. You can select from the list to search by criteria such as name, group, labels, or global ID.
@@ -325,14 +324,14 @@ As an administrator, you can use the {registry} web console to configure dynamic
 NOTE: Authentication and authorization settings are only displayed in the web console if authentication was already enabled when the {registry} was deployed. For more details, see
 xref:../getting-started/assembly-configuring-the-registry.adoc[].
 
-.Prerequisites
+*Prerequisites*
 
 * The {registry} is already deployed.
 * You are logged in to the {registry} web console with administrator access:
 +
 `{registry-url}`
 
-.Procedure
+*Procedure*
 
 . In the {registry} web console, click the *Settings* tab.
 
@@ -430,7 +429,7 @@ As an administrator, you can use the {registry} web console to export data from 
 
 The following example shows how to export and import existing data in a `.zip` file from one {registry} instance to another instance. All the artifact data contained in the {registry} instance is exported in the `.zip` file.
 
-.Prerequisites
+*Prerequisites*
 
 * {registry} instances have been created as follows:
 ** The source instance that you are exporting from contains at least one schema or API artifact
@@ -439,7 +438,7 @@ The following example shows how to export and import existing data in a `.zip` f
 +
 `{registry-url}`
 
-.Procedure
+*Procedure*
 
 . In the web console for the source {registry} instance, view the *Explore* tab.
 

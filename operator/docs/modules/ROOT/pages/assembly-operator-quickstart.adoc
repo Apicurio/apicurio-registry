@@ -1,8 +1,10 @@
+:_mod-docs-content-type: ASSEMBLY
 include::partial$shared/all-attributes.adoc[]
 
 [id="operator-quickstart"]
 = {operator} quickstart
 
+[role="_abstract"]
 You can quickly install the {operator} on the command line by using Custom Resource Definitions (CRDs).
 
 The quickstart example deploys your {registry} instance with 

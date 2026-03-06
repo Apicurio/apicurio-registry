@@ -9,18 +9,18 @@ One of the supported {registry} storage options is Apache Kafka, which uses a Ka
 If you encounter a problem when using this storage option and want to report it to {registry} developers, you might need to provide an export of the data present in the `kafkasql-journal` topic for analysis.
 This document contains information on how to create such a topic export using the `kcat` tool (formerly known as `kafkacat`).
 
-.Prerequisites
+*Prerequisites*
 * Kafka has been installed and is running in your environment.
 * You have deployed {registry} with data stored in the `kafkasql-journal` topic.
 * The `kafkasql-journal` topic is still present.
 
 == Setting up kcat on {kubernetes-with-article} work pod
 
-.Prerequisites
+*Prerequisites*
 * Your environment is {kubernetes}.
 * You have logged in to the cluster using the `{kubernetes-client}` command line interface.
 
-.Procedure
+*Procedure*
 . Select a {kubernetes-namespace} where an ephemeral work pod will be started. This can be the same or a different {kubernetes-namespace} from where the Kafka cluster is deployed:
 +
 ifndef::service-registry-downstream[]
@@ -153,5 +153,5 @@ java -jar target/apicurio-registry-tools-kafkasql-topic-import-$VERSION-jar-with
 
 [role="_additional-resources"]
 .Additional resources
-* For more details about `kcat`, see the https://github.com/edenhill/kcat[kcat repository].
-* You can provide additional parameters to configure `kcat` for accessing Kafka, in the `-X property=value` format. For the list of parameters, see the https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md[librdkafka configuration reference]. 
+* https://github.com/edenhill/kcat[kcat repository]
+* You can provide additional parameters to configure `kcat` for accessing Kafka, in the `-X property=value` format. For the list of parameters, see the https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md[librdkafka configuration reference]

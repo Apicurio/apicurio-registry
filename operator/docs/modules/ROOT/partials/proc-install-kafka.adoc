@@ -5,14 +5,14 @@ The recommended Kafka storage option requires that you provide connection inform
 
 If you do not already have Kafka installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the link:{LinkOperatorHub}[{NameOperatorHub}].
 
-.Prerequisites
+*Prerequisites*
 
 * You must have cluster administrator access to an OpenShift cluster
 ifdef::service-registry[]
 * See link:https://access.redhat.com/documentation/en-us/red_hat_amq/7.7/html/using_amq_streams_on_openshift/getting-started-str[Using AMQ Streams on OpenShift] for detailed information on installing {kafka-streams}. This section shows a simple example of installing using the OpenShift OperatorHub.
 endif::[]
 
-.Procedure
+*Procedure*
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 

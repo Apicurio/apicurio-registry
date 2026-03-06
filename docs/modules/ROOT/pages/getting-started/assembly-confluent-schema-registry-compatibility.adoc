@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="confluent-schema-registry-compatibility_{context}"]
 = Confluent Schema Registry compatibility API
@@ -136,7 +137,6 @@ The following Confluent Schema Registry features are *not supported* in {registr
 |Use {registry} native content rules (validity, compatibility, integrity) instead.
 |===
 
-[discrete]
 === Schema Linking / Exporters
 
 Confluent Schema Linking uses schema exporters to replicate schemas between Schema Registry clusters. This is an enterprise feature that requires cluster-to-cluster replication infrastructure.
@@ -147,7 +147,6 @@ Confluent Schema Linking uses schema exporters to replicate schemas between Sche
 * *Kafka-based storage*: When using Kafka storage, schemas are stored in a Kafka topic that can be replicated using Kafka's native replication features.
 * *GitOps workflows*: Store schemas in Git and use CI/CD pipelines to sync across environments.
 
-[discrete]
 === Data Contracts
 
 Confluent Data Contracts provide governance features including:

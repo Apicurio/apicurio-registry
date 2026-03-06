@@ -6,11 +6,11 @@ You can use any PostgreSQL database available on your OpenShift cluster, but it 
 
 You can install your preferred PostgresQL Operator, but this section shows how to install the *PostgreSQL Operator by Dev4Ddevs.com* and create a new database for {registry}.
 
-.Prerequisites
+*Prerequisites*
 
 * You must have cluster administrator access to an OpenShift cluster.
 
-.Procedure
+*Procedure*
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 

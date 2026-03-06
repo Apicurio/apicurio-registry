@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="registry-rule-reference_{context}"]
 = {registry} content rule reference
@@ -13,7 +14,7 @@ This chapter provides reference information on the supported content rule types,
 
 [role="_additional-resources"]
 .Additional resources
-* For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
 //INCLUDES
 

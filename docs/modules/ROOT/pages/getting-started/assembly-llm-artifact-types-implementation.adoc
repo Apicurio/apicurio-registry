@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="llm-artifact-types-implementation_{context}"]
 = LLM Artifact Types Implementation Guide
@@ -16,8 +17,8 @@ This chapter provides detailed implementation documentation for the built-in AI/
 
 [role="_additional-resources"]
 .Additional resources
-* For usage documentation, see xref:registry-artifact-types_{context}[]
-* For creating custom artifact types, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/custom-artifact-type[Custom Artifact Type Example]
+* xref:registry-artifact-types_{context}[]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/custom-artifact-type[Custom Artifact Type Example]
 * link:https://prompty.ai/specification/page/[Microsoft Prompty Specification]
 * link:https://github.com/tensorflow/model-card-toolkit[Google Model Card Toolkit]
 * link:https://modelcontextprotocol.io/specification/2025-06-18/server/prompts[MCP Prompts Specification]
@@ -946,5 +947,5 @@ APICURIO_ARTIFACT_TYPES_CONFIG_FILE=/path/to/config.json
 
 [role="_additional-resources"]
 .Additional resources
-* For a complete custom artifact type example, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/custom-artifact-type[TOML Custom Artifact Type Example]
-* For the npm package documentation, see link:https://www.npmjs.com/package/@apicurio/artifact-type-builtins[@apicurio/artifact-type-builtins on npm]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/custom-artifact-type[TOML Custom Artifact Type Example]
+* link:https://www.npmjs.com/package/@apicurio/artifact-type-builtins[@apicurio/artifact-type-builtins on npm]

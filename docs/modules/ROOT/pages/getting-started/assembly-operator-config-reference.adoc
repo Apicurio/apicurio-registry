@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="operator-config-reference_{context}"]
 = {operator} configuration reference
@@ -898,9 +899,7 @@ and can be used with the link:https://github.com/fabric8io/kubernetes-client[Fab
 [role="_additional-resources"]
 .Additional resources
 
-* For deployment examples, see xref:getting-started/assembly-deploying-registry-operator.adoc[].
-* For Kubernetes PodTemplateSpec documentation, see
-https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplateSpec
-* For Kubernetes EnvVar documentation, see
-https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core
-* You can also explore the link:https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/model/src/main/java/io/apicurio/registry/operator/api/v1[{operator} Java model source code in GitHub]
+* xref:getting-started/assembly-deploying-registry-operator.adoc[]
+* https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplateSpec[Kubernetes PodTemplateSpec documentation]
+* https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core[Kubernetes EnvVar documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/model/src/main/java/io/apicurio/registry/operator/api/v1[{operator} Java model source code in GitHub]

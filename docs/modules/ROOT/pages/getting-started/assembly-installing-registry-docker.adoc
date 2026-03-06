@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="installing-the-registry-docker_{context}"]
 = Installing {registry} using Docker
@@ -10,14 +11,14 @@ This chapter explains how to install and run {registry} using Docker with the fo
 * xref:installing-registry-sql-storage_{context}[]
 * xref:installing-registry-kafka-storage_{context}[]
 
-.Prerequisites
+*Prerequisites*
 * {registry-overview}
 
 NOTE: You can install more than one replica of {registry} depending on your environment. The number of replicas depends on your storage option, for example, your Kafka or database cluster configuration, and on the number and type of artifacts stored in {registry}.
 
 [role="_additional-resources"]
 .Additional resources
-* For details on building from source, see https://github.com/Apicurio/apicurio-registry.
+* https://github.com/Apicurio/apicurio-registry.
 
 //INCLUDES
 
@@ -33,12 +34,12 @@ This section explains how to install and run {registry} with simple in-memory st
 
 NOTE: The in-memory storage option is suitable for development only. All data is lost when the container image is restarted.
 
-.Prerequisites
+*Prerequisites*
 
 * You must have Docker installed and the Docker daemon running.
 * Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
 
-.Procedure
+*Procedure*
 
 . Get the {registry} container image:
 +
@@ -74,8 +75,8 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 
 [role="_additional-resources"]
 .Additional resources
-* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
-* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[].
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
 
 
 
@@ -88,7 +89,7 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 [role="_abstract"]
 This section explains how to install and run {registry} with storage in a PostgreSQL database from a container image. This storage option is suitable for production environments.
 
-.Prerequisites
+*Prerequisites*
 
 * You must have Docker installed and the Docker daemon running.
 * Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
@@ -101,7 +102,7 @@ $ postgres -D /usr/local/pgsql/data
 +
 For more details, see https://www.postgresql.org/docs/12/server-start.html
 
-.Procedure
+*Procedure*
 . Get the {registry} container image:
 +
 [source,bash]
@@ -144,9 +145,9 @@ $ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-
 
 [role="_additional-resources"]
 .Additional resources
-* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
-* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[].
-* For more details on PostgreSQL, see the link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation].
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
+* link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation]
 
 
 // Metadata created by nebel
@@ -160,12 +161,12 @@ This section explains how to use file-based secrets for database credentials wit
 This approach follows Docker's recommended secret management practices and is more secure than passing credentials as
 environment variables.
 
-.Prerequisites
+*Prerequisites*
 
 * You must have Docker and Docker Compose installed.
 * You must already have a database server installed and running (PostgreSQL, MySQL, or Microsoft SQL Server).
 
-.Overview
+*Overview*
 
 Instead of passing credentials and secrets as environment variables (which can be exposed in process lists and container
 inspection), you can use file-based secrets. {registry} supports a generic `_FILE` suffix pattern that works with
@@ -175,7 +176,7 @@ Environment variables are automatically converted to configuration properties by
 `APICURIO_DATASOURCE_PASSWORD_FILE` becomes the property `apicurio.datasource.password.file`. The
 FileBasedSecretsConfigSource reads the file path from these properties and loads the actual values from the files.
 
-.How it works
+*How it works*
 
 To use file-based secrets for any configuration property:
 
@@ -186,7 +187,7 @@ To use file-based secrets for any configuration property:
 
 This works for **any** configuration property, not just the examples listed below.
 
-.Common file-based credential variables
+*Common file-based credential variables*
 
 Some commonly used file-based credential environment variables (and their corresponding properties):
 
@@ -226,7 +227,7 @@ When a `_FILE` variant is set, {registry} reads the value from the specified fil
 environment variable. Configuration precedence: System properties (400) > File-based secrets (350) > Environment
 variables (300) > application.properties (250).
 
-.Procedure
+*Procedure*
 
 . Create a directory for your secret files:
 +
@@ -285,7 +286,7 @@ services:
 $ docker compose up -d
 ----
 
-.File format
+*File format*
 
 Secret files should contain only the credential value in plain text (UTF-8 encoding). Leading and trailing whitespace
 is automatically trimmed. For example:
@@ -295,7 +296,7 @@ is automatically trimmed. For example:
 mypassword
 ----
 
-.Security considerations
+*Security considerations*
 
 * Ensure secret files have restrictive permissions (e.g., `chmod 600`)
 * Never commit secret files to version control (add them to `.gitignore`)
@@ -305,11 +306,8 @@ mypassword
 
 [role="_additional-resources"]
 .Additional resources
-* For a complete Docker Compose example with secrets, see
-  link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/docker-compose/pg-secrets[PostgreSQL with
-  file-based secrets example].
-* For more details on Docker Compose secrets, see
-  link:https://docs.docker.com/compose/how-tos/use-secrets/[Docker Compose secrets documentation].
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/docker-compose/pg-secrets[PostgreSQL with file-based secrets example]
+* link:https://docs.docker.com/compose/how-tos/use-secrets/[Docker Compose secrets documentation]
 
 
 // Metadata created by nebel
@@ -322,7 +320,7 @@ mypassword
 [role="_abstract"]
 This topic explains how to install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses a Kafka topic for storage, along with an in-memory H2 database. This storage option is suitable for production environments.
 
-.Prerequisites
+*Prerequisites*
 
 * You must have Docker installed and the Docker daemon running.
 * Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
@@ -337,7 +335,7 @@ $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &
 +
 For more details, see https://kafka.apache.org/quickstart.
 
-.Procedure
+*Procedure*
 . Get the {registry} container image:
 +
 [source,bash]
@@ -375,8 +373,8 @@ $ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-
 
 [role="_additional-resources"]
 .Additional resources
-* For more REST API sample requests, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
-* For demonstration examples, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[].
-* For more details on Apache Kafka, see https://kafka.apache.org/documentation/.
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
+* https://kafka.apache.org/documentation/.
 
 

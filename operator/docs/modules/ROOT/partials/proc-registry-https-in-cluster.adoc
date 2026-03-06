@@ -1,7 +1,9 @@
+:_mod-docs-content-type: PROCEDURE
 [id="registry-https-in-cluster"]
 // Do not forget to update link text in related xref(s). Antora does not support automatic name if the link has a fragment.
 = Configuring an HTTPS connection to {registry} from inside the OpenShift cluster
 
+[role="_abstract"]
 The following procedure shows how to configure {registry} deployment to expose a port for HTTPS connections from inside the OpenShift cluster.
 
 WARNING: This kind of connection is not directly available outside of the cluster.
@@ -9,10 +11,10 @@ Routing is based on hostname, which is encoded in the case of an HTTPS connectio
 Therefore, edge termination or other configuration is still needed.
 See xref:registry-https-outside-cluster[].
 
-.Prerequisites
+*Prerequisites*
 * You must have already installed the {operator}.
 
-.Procedure
+*Procedure*
 . Generate a `keystore` with a self-signed certificate.
 You can skip this step if you are using your own certificates.
 +
@@ -75,7 +77,7 @@ curl -k https://172.30.230.78:8443/health
 NOTE: In the Kubernetes secret containing the HTTPS certificate and key, the names `tls.crt` and `tls.key` must be used for the provided values.
 This is currently not configurable.
 
-.Disabling HTTP
+*Disabling HTTP*
 If you enabled HTTPS using the procedure in this section, you can also disable the default HTTP connection by setting the `spec.security.https.disableHttp` to `true`. This removes the HTTP port 8080 from the {registry} pod container, `Service`, and the `NetworkPolicy`  (if present).
 
 Importantly, `Ingress` is also removed because the {operator} currently does not support configuring HTTPS in `Ingress`.

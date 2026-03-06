@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="registry-artifact-reference_{context}"]
 = {registry} artifact reference
@@ -15,7 +16,7 @@ This chapter provides reference information on the supported artifact types, sta
 
 [role="_additional-resources"]
 .Additional resources
-* For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
 //INCLUDES
 
@@ -74,7 +75,6 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |http://www.w3.org/2001/XMLSchema
 |===
 
-[discrete]
 === AI/ML artifact types
 
 {registry} includes built-in support for AI/ML artifact types designed for LLMOps and prompt engineering workflows.
@@ -101,8 +101,8 @@ Content types: `application/x-yaml`, `application/json`, `text/x-prompt-template
 
 [role="_additional-resources"]
 .Additional resources
-* For detailed examples and SDK integration, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/llm-artifact-types[LLM artifact types example]
-* For a complete support chat application with RAG, see link:https://github.com/carlesarnal/apicurio-registry-support-chat[Apicurio Registry Support Chat]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/llm-artifact-types[LLM artifact types example]
+* link:https://github.com/carlesarnal/apicurio-registry-support-chat[Apicurio Registry Support Chat]
 
 
 
@@ -186,13 +186,13 @@ When a group is created in {registry}, a set of metadata properties is created a
 |Optional list of user-defined name-value pairs associated with the group. The name and value must be strings, for example, `my-key` and `my-value`.
 |===
 
-.Updating group metadata
+*Updating group metadata*
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
 * You can update the `state` property only by using the {registry} REST API.
 
 [role="_additional-resources"]
 .Additional resources
-For more details, see the `/groups/\{groupId\}` endpoint in the {registry-rest-api}.
+* {registry-rest-api}
 
 
 
@@ -263,12 +263,12 @@ When an artifact is added to {registry}, a set of metadata properties is created
 |The name of the user who owns the artifact.
 |===
 
-.Updating artifact metadata
+*Updating artifact metadata*
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
 
 [role="_additional-resources"]
 .Additional resources
-For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoint in the {registry-rest-api}.
+* {registry-rest-api}
 
 
 
@@ -345,12 +345,12 @@ When an artifact version is added to a {registry} artifact, a set of metadata pr
 |The state of the artifact version: `ENABLED`, `DISABLED`, or `DEPRECATED`. Defaults to `ENABLED`.
 |===
 
-.Updating artifact version metadata
+*Updating artifact version metadata*
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
 * You can update the `state` property only by using the {registry} REST API.
 
 [role="_additional-resources"]
 .Additional resources
-For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}/versions/\{versionId\}` endpoint in the {registry-rest-api}.
+* {registry-rest-api}
 
 

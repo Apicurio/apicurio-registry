@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="managing-registry-artifacts-api_{context}"]
 = Managing {registry} content using the REST API
@@ -14,7 +15,7 @@ This chapter shows examples of how to use the Core Registry API v3 to perform th
 * xref:managing-artifact-references-using-rest-api_{context}[]
 * xref:exporting-importing-using-rest-api_{context}[]
 
-.Prerequisites
+*Prerequisites*
 * {registry-overview}
 
 [role="_additional-resources"]
@@ -33,11 +34,11 @@ This chapter shows examples of how to use the Core Registry API v3 to perform th
 [role="_abstract"]
 This section shows a simple curl-based example of using the Core Registry API v3 to add and retrieve a simple schema artifact in {registry}.
 
-.Prerequisites
+*Prerequisites*
 
 * {registry} is installed and running in your environment.
 
-.Procedure
+*Procedure*
 
 . Add an artifact to {registry} using the `/groups/\{groupId\}/artifacts` operation. The following example `curl` command adds a simple schema artifact for a share price application:
 +
@@ -84,7 +85,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the {registry-rest-api}.
+* {registry-rest-api}
 
 
 
@@ -101,11 +102,11 @@ If you do not specify an artifact version number when adding schema and API arti
 
 This section shows a simple curl-based example of using the Core Registry API v3 to add and retrieve a custom Apache Avro schema version in {registry}. You can specify custom version numbers to create artifacts, or to add artifact versions.
 
-.Prerequisites
+*Prerequisites*
 
 * {registry} is installed and running in your environment.
 
-.Procedure
+*Procedure*
 
 . Add an artifact version in the registry using the `/groups/\{groupId\}/artifacts` operation. The following example `curl` command adds a simple artifact for a share price application:
 +
@@ -153,7 +154,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the {registry-rest-api}.
+* {registry-rest-api}
 
 
 
@@ -212,11 +213,11 @@ This example then creates a schema artifact named `Item`, which includes a refer
 }
 ----
 
-.Prerequisites
+*Prerequisites*
 
 * {registry} is installed and running in your environment.
 
-.Procedure
+*Procedure*
 . Add the `ItemId` schema artifact that you want to create the nested artifact reference to using the `/groups/\{groupId\}/artifacts` operation:
 +
 [source,bash]
@@ -316,8 +317,7 @@ NOTE: Circular dependencies are allowed by some artifact types (e.g. JSON Schema
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the {registry-rest-api}.
-* For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
+* {registry-rest-api}
 
 
 
@@ -332,14 +332,14 @@ As an administrator, you can use the Core Registry API v3 to export data from on
 
 This section shows a simple curl-based example of using the Core Registry API v3 to export and import existing data in `.zip` format from one {registry} instance to another. All the artifact data contained in the {registry} instance is exported in the `.zip` file.
 
-.Prerequisites
+*Prerequisites*
 
 * {registry} is installed and running in your environment.
 * {registry} instances have been created:
 ** The source instance that you want to export data from contains at least one schema or API artifact.
 ** The target instance that you want to import data into is empty to preserve unique IDs.
 
-.Procedure
+*Procedure*
 . Export the {registry} data from your existing source {registry} instance:
 +
 [source,bash]
@@ -367,7 +367,7 @@ host name on which the target {registry} is deployed. For example: `\http://my-t
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the `admin` endpoint in the {registry-rest-api}.
+* {registry-rest-api}
 //* For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].
 
 

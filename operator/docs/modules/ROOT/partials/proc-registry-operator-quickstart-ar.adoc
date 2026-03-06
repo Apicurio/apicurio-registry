@@ -1,13 +1,15 @@
+:_mod-docs-content-type: PROCEDURE
 [id="registry-operator-quickstart"]
 = {operator} quickstart
 
+[role="_abstract"]
 You can quickly deploy the {operator} on the command line, without the Operator Lifecycle Manager, by executing a single command.
 
 ifdef::apicurio-registry-operator-dev[]
 NOTE: This procedure deploys the latest {operator} development version. To deploy a version that has already been released, see install files in https://github.com/Apicurio/apicurio-registry-operator/tree/main/install[{operator} GitHub repository].
 endif::[]
 
-.Procedure
+*Procedure*
 . Choose the `$NAMESPACE` to use:
 +
 [source,bash]

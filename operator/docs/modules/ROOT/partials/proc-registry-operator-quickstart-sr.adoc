@@ -1,14 +1,16 @@
+:_mod-docs-content-type: PROCEDURE
 [id="registry-operator-quickstart"]
 = Quickstart {operator} installation
 
+[role="_abstract"]
 You can quickly install and deploy the {operator} on the command line, without the Operator Lifecycle Manager, by using a downloaded set of installation files and example CRDs. 
 
-.Prerequisites
+*Prerequisites*
 
 * You are logged in to an OpenShift cluster with administrator access.
-* You have the OpenShift `oc` command-line client installed. For more details, see the {LinkOCPCLIDocs}[{NameOCPCLIDocs}].
+* You have the OpenShift `oc` command-line client installed. For more details, see the {LinkOCPCLIDocs}[{NameOCPCLIDocs}]
 
-.Procedure
+*Procedure*
 
 . Browse to link:{LinkRedHatIntegrationDownloads}[{NameRedHatIntegrationDownloads}], select the product version, and download the examples in the {registry} CRDs `.zip` file.
 

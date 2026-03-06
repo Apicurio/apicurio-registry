@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="intro-to-registry-rules_{context}"]
 = {registry} content rules
@@ -61,7 +62,7 @@ When a rule is executed, it is provided with the content of the current version 
 
 [role="_additional-resources"]
 .Additional resources
-For more details, see {registry-rule-reference}.
+* {registry-rule-reference}
 
 [id="registry-rules-config_{context}"]
 === Content rule configuration
@@ -69,14 +70,12 @@ Administrators can configure {registry} global rules, group-specific rules, and 
 
 {registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the group-specific rules.  If no rules are configured at the group level, then {registry} applies the globally configured rules. If no global rules are configured, then no rules are applied.
 
-[discrete]
 ==== Configure group and artifact specific rules
 You can configure group-specific and artifact-specific rules using the {registry} web console or REST API. For details, see the following:
 
 * {managing-registry-artifacts-ui}
 * link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
-[discrete]
 ==== Configure global rules
 Administrators can configure global rules in several ways:
 
@@ -84,7 +83,7 @@ Administrators can configure global rules in several ways:
 * Use the {registry} web console
 * Set default global rules using {registry} application properties
 
-.Configure default global rules
+*Configure default global rules*
 Administrators can configure {registry} at the application level to enable or disable global rules. You can configure default global rules at installation time without post-install configuration using the following application property format:
 ----
 apicurio.rules.global.<ruleName>

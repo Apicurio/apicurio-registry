@@ -6,10 +6,10 @@ If you are deploying to Kubernetes, you can use command line tools to install Op
 
 image::operator-hub-search-ar.png[]
 
-.Prerequisites
+*Prerequisites*
 * You must have cluster administrator access to a Kubernetes cluster.
 
-.Procedure
+*Procedure*
 . Go to https://operatorhub.io/operator/apicurio-registry[OperatorHub.io - Apicurio Registry] page.
 . Select the *Version* you want to install
 . Read the information about the Operator, and click *Install*.

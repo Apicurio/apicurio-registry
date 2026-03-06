@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="using-flink-catalog_{context}"]
 = Using {registry} with Apache Flink
@@ -13,7 +14,7 @@ This chapter explains how to use {registry} as a catalog in Apache Flink to mana
 * xref:registry-flink-catalog-schema-types_{context}[]
 
 
-.Prerequisites
+*Prerequisites*
 * A running {registry} instance
 * Apache Flink 1.17 or later
 
@@ -287,6 +288,6 @@ The {registry} Flink Catalog supports automatic conversion of the following sche
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/flink[Flink Catalog source code]
-* For information on {registry} groups and artifacts, see {registry-overview}
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/flink[Flink Catalog source code]
+* {registry-overview}
 

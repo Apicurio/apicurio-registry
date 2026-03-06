@@ -39,7 +39,7 @@ export const JsonSchemaViewer: FunctionComponent<JsonSchemaViewerProps> = (props
     const rootType = schema?.type;
 
     return (
-        <Card className={`json-schema-viewer ${className || ""}`}>
+        <Card className={`json-schema-viewer ${className || ""}`} isPlain={true}>
             <CardHeader>
                 <CardTitle>
                     <Flex>

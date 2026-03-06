@@ -1,5 +1,34 @@
 .json-schema-visualizer {
     height: 100%;
-    padding: 16px;
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+}
+
+.json-schema-visualizer .json-schema-panel-left {
+    flex: 1;
     overflow-y: auto;
+    border-right: 1px solid var(--pf-t--global--border--color--default);
+    min-width: 0;
+}
+
+.json-schema-visualizer .json-schema-panel-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.json-schema-visualizer .json-schema-panel-right-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--pf-t--global--text--color--subtle);
+    flex-shrink: 0;
+}
+
+.json-schema-visualizer .json-schema-panel-right-editor {
+    flex: 1;
+    min-height: 0;
 }

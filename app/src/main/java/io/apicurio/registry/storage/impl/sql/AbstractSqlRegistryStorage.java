@@ -1013,7 +1013,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * DataExporter class when exporting all Registry data.
      */
     @Override
-    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
+    public void exportData(String groupId, Function<Entity, Void> handler) throws RegistryStorageException {
         // Export a simple manifest file
         ManifestEntity manifest = new ManifestEntity();
         if (securityIdentity != null && securityIdentity.getPrincipal() != null) {
@@ -1025,16 +1025,28 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         manifest.dbVersion = "" + DB_VERSION;
         handler.apply(manifest);
 
-        // Delegate all export operations to the export repository
-        exportRepository.exportContent(handler);
-        exportRepository.exportGroups(handler);
-        exportRepository.exportGroupRules(handler);
-        exportRepository.exportArtifacts(handler);
-        exportRepository.exportArtifactVersions(handler);
-        exportRepository.exportVersionComments(handler);
-        exportRepository.exportBranches(handler);
-        exportRepository.exportArtifactRules(handler);
-        exportRepository.exportGlobalRules(handler);
+        if (groupId != null) {
+            // Group-scoped export: exclude global rules, filter everything by groupId
+            exportRepository.exportContent(groupId, handler);
+            exportRepository.exportGroups(groupId, handler);
+            exportRepository.exportGroupRules(groupId, handler);
+            exportRepository.exportArtifacts(groupId, handler);
+            exportRepository.exportArtifactVersions(groupId, handler);
+            exportRepository.exportVersionComments(groupId, handler);
+            exportRepository.exportBranches(groupId, handler);
+            exportRepository.exportArtifactRules(groupId, handler);
+        } else {
+            // Full export: all data including global rules
+            exportRepository.exportContent(handler);
+            exportRepository.exportGroups(handler);
+            exportRepository.exportGroupRules(handler);
+            exportRepository.exportArtifacts(handler);
+            exportRepository.exportArtifactVersions(handler);
+            exportRepository.exportVersionComments(handler);
+            exportRepository.exportBranches(handler);
+            exportRepository.exportArtifactRules(handler);
+            exportRepository.exportGlobalRules(handler);
+        }
     }
 
     @Override

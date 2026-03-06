@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="using-the-registry-sdk_{context}"]
 = Managing {registry} content using a SDK
@@ -66,11 +67,11 @@ You can write a client application to manage artifacts stored in {registry} by u
 
 === Using the {registry} Java SDK
 
-.Prerequisites
+*Prerequisites*
 * {registry} is installed and running in your environment.
-* You have created a Maven project for your Java client application. For more details, see https://maven.apache.org/index.html[Apache Maven].
+* You have created a Maven project for your Java client application. For more details, see https://maven.apache.org/index.html[Apache Maven]
 
-.Procedure
+*Procedure*
 . Add the following dependency to your Maven project:
 +
 [source,xml,subs="+quotes,attributes"]
@@ -90,32 +91,32 @@ import io.vertx.core.Vertx;public class ClientExample {
 
     public static void main(String[] args) throws Exception {
         // Create a registry client
-        String registryUrl = "https://my-registry.my-domain.com/apis/registry/v3"; <1>
-        Vertx vertx = Vertx.vertx(); <2>
+        String registryUrl = "https://my-registry.my-domain.com/apis/registry/v3";
+        Vertx vertx = Vertx.vertx();
         VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
         vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
 
-        RegistryClient client = new RegistryClient(vertXRequestAdapter); <3>
+        RegistryClient client = new RegistryClient(vertXRequestAdapter);
 
         // Use client here
 
-        vertx.close(); <4>
+        vertx.close();
     }
 }
 ----
 +
-<1> If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client will automatically append `/apis/registry/v3`.
-<2> Create a new Vertx object (needed by the VertxRequestAdapter)
-<3> For more options when creating a {registry} client, see the Java client configuration in the next section.
-<4> When you are done with the client, close the Vertx object to free its resources.
+. If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client will automatically append `/apis/registry/v3`.
+. Create a new Vertx object (needed by the VertxRequestAdapter)
+. For more options when creating a {registry} client, see the Java client configuration in the next section.
+. When you are done with the client, close the Vertx object to free its resources.
 
 When the client is created, you can use all of the operations available in the {registry} REST API in the client. For more details, see the {registry-rest-api}.
 
 [role="_additional-resources"]
 .Additional resources
-* For an open source example of how to use and customize the {registry} client, see the https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry REST client demonstration].
+* https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry REST client demonstration]
 
-* For details on how to use the {registry} Kafka client serializers/deserializers (SerDes) in producer and consumer applications, see {kafka-client-serdes}.
+* {kafka-client-serdes}
 
 
 
@@ -146,12 +147,10 @@ You must also provide an authentication server to authenticate the requests.
 |`baseUrl, Map<String Object> configs, Auth auth`
 |===
 
-[discrete]
 === Custom header configuration
 To configure custom headers, you must add the `apicurio.registry.request.headers` prefix to the `configs` map key. For example, a `configs` map key of `apicurio.registry.request.headers.Authorization` with a value of `Basic: YWxhZGRpbjpvcGVuc2VzYW1` sets the `Authorization` header with the same value.
 
 
-[discrete]
 === TLS configuration options
 You can configure Transport Layer Security (TLS) authentication for the {registry} Java client using the following properties:
 
@@ -166,7 +165,6 @@ You can configure Transport Layer Security (TLS) authentication for the {registr
 
 [role="_additional-resources"]
 .Additional resources
-* For details on how to configure authentication for {registry} Kafka client serializers/deserializers (SerDes), see
-{kafka-client-serdes}.
+* {kafka-client-serdes}
 
 

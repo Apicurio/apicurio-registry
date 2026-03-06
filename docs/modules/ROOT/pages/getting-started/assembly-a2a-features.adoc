@@ -1,7 +1,9 @@
 // A2A (Agent-to-Agent) Protocol Features Documentation
+:_mod-docs-content-type: ASSEMBLY
 [id="assembly-a2a-features"]
 = A2A Protocol Features in Apicurio Registry
 
+[role="_abstract"]
 Apicurio Registry implements the A2A (Agent-to-Agent) protocol, enabling AI agent discovery, orchestration, and lifecycle management. This document provides comprehensive documentation of all A2A features.
 
 == Overview

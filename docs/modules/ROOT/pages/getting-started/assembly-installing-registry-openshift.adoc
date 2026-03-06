@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="installing-registry-ocp_{context}"]
 = Installing {registry} on OpenShift
@@ -11,7 +12,7 @@ This chapter explains how to install {registry} on OpenShift Container Platform:
 
 [role="_additional-resources"]
 .Additional resources
-* For details on building from source, see https://github.com/Apicurio/apicurio-registry.
+* https://github.com/Apicurio/apicurio-registry.
 
 //INCLUDES
 
@@ -30,11 +31,11 @@ You can install the {operator} on your OpenShift cluster from the OperatorHub. T
 NOTE: You can install more than one replica of {registry} depending on your environment. The number of replicas depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
 
 
-.Prerequisites
+*Prerequisites*
 
 * You must have cluster administrator access to an OpenShift cluster.
 
-.Procedure
+*Procedure*
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 

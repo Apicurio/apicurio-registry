@@ -1,6 +1,8 @@
+:_mod-docs-content-type: PROCEDURE
 [id="registry-operator-distribution-bundle"]
 = {operator} distribution bundle
 
+[role="_abstract"]
 Since version `1.0.0`, the {operator} project is distributed with an additional archive file containing installation files for the Operator, with example `ApicurioRegistry` custom resource files. In addition, full {operator} documentation and license information are included. 
 
 Docker images for the Operator and the Operand are distributed using a public registry.

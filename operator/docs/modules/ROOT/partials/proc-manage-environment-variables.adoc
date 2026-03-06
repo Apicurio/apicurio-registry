@@ -4,7 +4,7 @@
 
 {operator} manages most common {registry} configuration, but there are some options that it does not support yet. If a high-level configuration option is not available in the `ApicurioRegistry` CR, you can use an environment variable to adjust it. You can update these by setting an environment variable directly in the `ApicurioRegistry` CR, in the `spec.configuration.env` field. These are then forwarded to the `Deployment` resource of {registry}.
 
-.Procedure
+*Procedure*
 
 You can manage {registry} environment variables by using the OpenShift web console or CLI.
 

@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="installing-registry-storage_{context}"]
 = Installing {registry} storage on OpenShift
@@ -6,17 +7,17 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 This chapter explains how to install and configure your chosen registry storage option:
 
-.Kafka storage
+*Kafka storage*
 * xref:installing-kafka-streams-operatorhub_{context}[]
 * xref:setting-up-kafka-streams-storage_{context}[]
 * xref:registry-kafka-topic-names_{context}[]
 * xref:configuring-kafka-oauth_{context}[]
 
-.PostgreSQL database storage
+*PostgreSQL database storage*
 * xref:installing-postgresql-operatorhub_{context}[]
 * xref:setting-up-postgresql-storage_{context}[]
 
-.Prerequisites
+*Prerequisites*
 * {installing-the-registry-openshift}
 
 //INCLUDES
@@ -35,12 +36,12 @@ This chapter explains how to install and configure your chosen registry storage 
 If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
 
 
-.Prerequisites
+*Prerequisites*
 
 * You must have cluster administrator access to an OpenShift cluster
 
 
-.Procedure
+*Procedure*
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
@@ -74,12 +75,12 @@ This section explains how to configure Kafka-based storage for {registry} using 
 
 You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
 
-.Prerequisites
+*Prerequisites*
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry}. See {installing-the-registry-openshift}.
-* You must have already installed {kafka-streams}. See xref:installing-kafka-streams-operatorhub_{context}[].
+* You must have already installed {kafka-streams}. See xref:installing-kafka-streams-operatorhub_{context}[]
 
-.Procedure
+*Procedure*
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
@@ -159,7 +160,7 @@ WARNING: You must configure the Kafka topic used by {registry} (named `kafkasql-
 .Additional resources
 
 ifdef::apicurio-registry[]
-* For more details on installing Strimzi and on creating Kafka clusters and topics, see https://strimzi.io/docs/overview/latest/
+* https://strimzi.io/docs/overview/latest/
 endif::[]
 
 
@@ -203,10 +204,10 @@ When using Kafka-based storage in {kafka-streams}, {registry} supports accessing
 When you set these environment variables, the Kafka producer and consumer applications in {registry} will use this configuration to authenticate to the Kafka cluster over OAuth.
 
 
-.Prerequisites
-* You must have already configured Kafka-based storage of {registry} data in {kafka-streams}. See xref:setting-up-kafka-streams-storage_{context}[].
+*Prerequisites*
+* You must have already configured Kafka-based storage of {registry} data in {kafka-streams}. See xref:setting-up-kafka-streams-storage_{context}[]
 
-.Procedure
+*Procedure*
 
 * Set the following environment variables in your {registry} deployment:
 +
@@ -231,8 +232,7 @@ When you set these environment variables, the Kafka producer and consumer applic
 
 
 .Additional resources
-* For an example of how to set {registry} environment variables on OpenShift, see
-_Configuring {registry} health checks on OpenShift_ in xref:getting-started/assembly-configuring-the-registry.adoc[]
+* xref:getting-started/assembly-configuring-the-registry.adoc[]
 
 
 
@@ -248,11 +248,11 @@ If you do not already have a PostgreSQL database Operator installed, you can ins
 
 
 
-.Prerequisites
+*Prerequisites*
 
 * You must have cluster administrator access to an OpenShift cluster.
 
-.Procedure
+*Procedure*
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
@@ -292,12 +292,12 @@ IMPORTANT: You must read the documentation from your chosen *PostgreSQL* Operato
 [role="_abstract"]
 This section explains how to configure storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. This section shows a simple example using the PostgreSQL Operator by Dev4Ddevs.com.
 
-.Prerequisites
+*Prerequisites*
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry}. See {installing-the-registry-openshift}.
-* You must have already installed a PostgreSQL Operator on OpenShift. For example, see xref:installing-postgresql-operatorhub_{context}[].
+* You must have already installed a PostgreSQL Operator on OpenShift. For example, see xref:installing-postgresql-operatorhub_{context}[]
 
-.Procedure
+*Procedure*
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 

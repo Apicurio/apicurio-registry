@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="intro-to-the-registry_{context}"]
 = Introduction to {registry}
@@ -41,7 +42,6 @@ ifndef::apicurio-registry[]
 endif::[]
 
 
-[discrete]
 === {registry} capabilities
 
 * Multiple payload formats for standard event schema and API specifications such as Apache Avro, JSON Schema, Google Protobuf, AsyncAPI, OpenAPI, and more.
@@ -115,7 +115,6 @@ Artifacts have metadata, both generated and editable.  Standard metadata for an 
 - labels
 - owner
 
-[discrete]
 === Artifact Versions
 Every artifact is composed of zero or more _artifact version_s.  Only artifact versions have actual
 content (as well as metadata).  These versions represent the evolution of the content of an artifact,
@@ -144,7 +143,6 @@ Artifact Versions have metadata, both generated and editable.  Standard metadata
 - state
 
 
-[discrete]
 === Groups of schemas and APIs
 
 An _artifact group_ is an optional named collection of schema or API artifacts. Each group contains a logically related set of schemas or API designs, typically managed by a single entity, belonging to a particular application or organization.
@@ -174,11 +172,10 @@ NOTE: Specifying a group is optional when using the {registry} web console, and 
 [role="_additional-resources"]
 .Additional resources
 
-* For information on supported artifact types, see {registry-artifact-reference}.
-* For information on the Core Registry API, see the {registry-rest-api}.
+* {registry-artifact-reference}
+* {registry-rest-api}
 
 
-[discrete]
 === References to other schemas and APIs
 
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API components, and then referencing them from multiple locations. For example, you can specify a reference in JSON Schema or OpenAPI using a `$ref` statement, or in Google Protobuf using an `import` statement, or in Apache Avro using a nested namespace.
@@ -225,7 +222,6 @@ An artifact reference is stored in {registry} as a collection of artifact metada
 
 You can manage artifact references using the {registry} core REST API, Maven plug-in, and Java serializers/deserializers (SerDes). {registry} stores the artifact references along with the artifact content. {registry} also maintains a collection of all artifact references so you can search them or list all references for a specific artifact.
 
-[discrete]
 ==== Supported artifact types
 {registry} currently supports artifact references for the following artifact types only:
 
@@ -238,10 +234,9 @@ You can manage artifact references using the {registry} core REST API, Maven plu
 [role="_additional-resources"]
 .Additional resources
 
-* For details on managing artifact references, see:
-** {managing-registry-artifacts-api}.
-** {managing-registry-artifacts-maven}.
-* For a Java example, see the https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[Apicurio Registry SerDes with references demonstration].
+* {managing-registry-artifacts-api}
+* {managing-registry-artifacts-maven}
+* https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[Apicurio Registry SerDes with references demonstration]
 
 
 
@@ -299,7 +294,6 @@ Get the {registry} version and the limits on resources for the {registry} server
 Users::
 Get the current {registry} user.
 
-[discrete]
 === Compatibility with other schema registry REST APIs
 {registry} also provides compatibility with the following schema registries by including implementations of their respective REST APIs:
 
@@ -316,8 +310,8 @@ endif::[]
 
 [role="_additional-resources"]
 .Additional resources
-* For more information on the Core Registry API v3, see the {registry-rest-api}.
-* For API documentation on the Core Registry API v3 and all compatible APIs, browse to the `/apis` endpoint of your {registry}, for example, `\http://MY-REGISTRY-URL/apis`.
+* {registry-rest-api}
+* {registry-rest-api}
 
 
 
@@ -356,7 +350,7 @@ ifdef::apicurio-registry[]
 * {installing-the-registry-storage-openshift}
 endif::[]
 ifdef::rh-service-registry[]
-* For more details on storage options, see link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
+* link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
 endif::[]
 
 
@@ -449,7 +443,7 @@ These applications demonstrate use cases such as the following examples:
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
 
 
 
@@ -477,8 +471,8 @@ ifdef::apicurio-registry[]
 |===
 
 .Additional resources
-* For details on building from source code and running Docker images, see link:https://github.com/Apicurio/apicurio-registry[]
-* For details on using the Operator to deploy, see link:https://github.com/Apicurio/apicurio-registry/tree/main/operator[]
+* link:https://github.com/Apicurio/apicurio-registry[]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/operator[]
 
 endif::[]
 

@@ -1,13 +1,15 @@
+:_mod-docs-content-type: PROCEDURE
 [id="registry-quickstart"]
 = Quickstart {registry} instance deployment
 
+[role="_abstract"]
 To create your {registry} instance deployment, use the SQL database storage option to connect to an existing PostgreSQL database. 
 
-.Prerequisites
+*Prerequisites*
 * Ensure that the {operator} is installed.
 * You have a PostgreSQL database that is reachable from your OpenShift cluster.  
 
-.Procedure
+*Procedure*
 . Open the `examples/apicurioregistry_sql_cr.yaml` file in an editor and view the `ApicurioRegistry` custom resource (CR):
 +
 .Example CR for SQL storage

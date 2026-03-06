@@ -1,6 +1,8 @@
+:_mod-docs-content-type: PROCEDURE
 [id="registry-security-keycloak"]
 = Securing {registry} using the {keycloak} Operator
 
+[role="_abstract"]
 The following procedure shows how to configure a {registry} REST API and web console to be protected by {keycloak}.
 
 {registry} supports the following user roles:
@@ -22,7 +24,7 @@ The following procedure shows how to configure a {registry} REST API and web con
 
 NOTE: There is a related configuration option in the `ApicurioRegistry` CRD that you can use to set the web console to read-only mode. However, this configuration does not affect the REST API.
 
-.Prerequisites
+*Prerequisites*
 * You must have already installed the {operator}.
 * You must install the {keycloak} Operator or have {keycloak} accessible from your OpenShift cluster.
 
@@ -30,7 +32,7 @@ IMPORTANT: The example configuration in this procedure is intended for developme
 
 ifdef::apicurio-registry[]
 
-.Procedure
+*Procedure*
 . In the OpenShift web console, click *Installed Operators* and *{keycloak} Operator*, and then the *Keycloak* tab.
 
 . To create the {keycloak} instance, see the https://www.keycloak.org/operator/basic-deployment[Keycloak documentation on how to create a basic deployment].
@@ -47,7 +49,7 @@ IMPORTANT: You must customize this `KeycloakRealmImport` resource with values su
 endif::[]
 ifdef::service-registry[]
 
-.Procedure
+*Procedure*
 . In the OpenShift web console, click *Installed Operators* and *{keycloak} Operator*, and then the *Keycloak* tab.
 
 . Click *Create Keycloak* to provision a new {keycloak} instance for securing a {registry} deployment. You can use the default value, for example:

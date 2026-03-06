@@ -1,6 +1,8 @@
+:_mod-docs-content-type: PROCEDURE
 [id="registry-quickstart"]
 = Quickstart {registry} instance deployment
 
+[role="_abstract"]
 To quickly create a new {registry} instance deployment, use the in-memory storage option,
 which does not require an external storage to be configured as a prerequisite.
 
@@ -8,10 +10,10 @@ ifdef::apicurio-registry-operator-dev[]
 NOTE: This procedure deploys the latest {operator} development version. To deploy a version that has already been released, see install files in https://github.com/Apicurio/apicurio-registry-operator/tree/main/install[{operator} GitHub repository].
 endif::[]
 
-.Prerequisites
+*Prerequisites*
 * Ensure that the {operator} is already installed.
 
-.Procedure
+*Procedure*
 . Use a `$NAMESPACE` where the {operator} is deployed:
 +
 [source,bash]

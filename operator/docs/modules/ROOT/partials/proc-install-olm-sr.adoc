@@ -7,10 +7,10 @@ The recommended way to install {operator} is to use the link:{LinkOLMDocs}[{Name
 
 image::operator-hub-search-sr.png[]
 
-.Prerequisites
+*Prerequisites*
 * You must have cluster administrator access to an OpenShift cluster.
 
-.Procedure
+*Procedure*
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
 . Create a new OpenShift project:

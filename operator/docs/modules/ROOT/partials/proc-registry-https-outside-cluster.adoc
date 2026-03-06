@@ -1,13 +1,15 @@
+:_mod-docs-content-type: PROCEDURE
 [id="registry-https-outside-cluster"]
 = Configuring an HTTPS connection to {registry} from outside the OpenShift cluster
 
+[role="_abstract"]
 The following procedure shows how to configure {registry} deployment to expose an HTTPS edge-terminated route for connections from outside the OpenShift cluster.
 
-.Prerequisites
+*Prerequisites*
 * You must have already installed the {operator}.
-* Read the https://docs.openshift.com/container-platform/latest/networking/routes/secured-routes.html[OpenShift documentation for creating secured routes].
+* Read the https://docs.openshift.com/container-platform/latest/networking/routes/secured-routes.html[OpenShift documentation for creating secured routes]
 
-.Procedure
+*Procedure*
 . Add a second *Route* in addition to the HTTP route created by the {operator}. For example:
 +
 [source,yaml]

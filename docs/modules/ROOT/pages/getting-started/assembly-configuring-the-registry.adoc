@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="configuring-the-registry_{context}"]
 = Configuring your {registry} deployment
@@ -23,10 +24,9 @@ NOTE: For a list of all available configuration options, see {registry-config-re
 [role="_abstract"]
 You can set optional environment variables to configure the {registry} web console specifically for your deployment environment or to customize its behavior.
 
-.Prerequisites
+*Prerequisites*
 * You have already installed {registry}.
 
-[discrete]
 === Configuring the web console deployment environment
 
 When you access the {registry} web console in your browser, some initial configuration settings are loaded. The following configuration settings are required:
@@ -35,12 +35,11 @@ When you access the {registry} web console in your browser, some initial configu
 
 Typically the {operator} will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
 
-.Procedure
+*Procedure*
 Configure the following environment variables to override the default URL:
 
 * `REGISTRY_API_URL`: Specifies the URL for the core {registry} server REST API v3. For example, `\https://registry-api.my-domain.com/apis/registry/v3`
 
-[discrete]
 === Configuring the web console in read-only mode
 
 You can configure the {registry} web console in read-only mode as an optional feature. This mode disables all features in the {registry} web console that allow users to make changes to registered artifacts. For example, this includes the following:
@@ -51,7 +50,7 @@ You can configure the {registry} web console in read-only mode as an optional fe
 * Updating artifact metadata
 * Deleting an artifact
 
-.Procedure
+*Procedure*
 Configure the following environment variable:
 
 * `REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
@@ -71,11 +70,10 @@ You can configure {registry} to export telemetry data using OpenTelemetry (OTel)
 
 IMPORTANT: The individual signal properties (`QUARKUS_OTEL_TRACES_ENABLED`, `QUARKUS_OTEL_METRICS_ENABLED`, `QUARKUS_OTEL_LOGS_ENABLED`) are build-time properties and cannot be changed at runtime. All signals are already enabled in the {registry} build. Use `QUARKUS_OTEL_SDK_DISABLED=false` to enable telemetry at runtime.
 
-.Prerequisites
+*Prerequisites*
 * You have already installed {registry}.
 * You have an OpenTelemetry-compatible backend available (for example, Jaeger, Grafana Tempo, or OpenTelemetry Collector).
 
-[discrete]
 === Enabling OpenTelemetry
 
 To enable OpenTelemetry observability, configure the following environment variables:
@@ -99,7 +97,6 @@ environment:
   QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
 ----
 
-[discrete]
 === Configuring trace sampling for production
 
 In production environments, you should configure trace sampling to reduce overhead and control the volume of trace data:
@@ -125,7 +122,6 @@ environment:
   QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"
 ----
 
-[discrete]
 === Configuring structured logging with trace context
 
 When using JSON logging format, {registry} automatically includes trace context (trace ID and span ID) in log entries. This enables correlation between logs and traces.
@@ -138,7 +134,6 @@ environment:
   QUARKUS_LOG_CONSOLE_JSON: "true"
 ----
 
-[discrete]
 === OpenTelemetry features in {registry}
 
 When OpenTelemetry is enabled, {registry} provides the following observability features:
@@ -153,7 +148,6 @@ When OpenTelemetry is enabled, {registry} provides the following observability f
 
 * *Log correlation*: When JSON logging is enabled, trace context is automatically injected into log entries for easy correlation.
 
-[discrete]
 === Performance considerations
 
 OpenTelemetry instrumentation adds a small performance overhead. The following table shows the measured impact when all telemetry signals are enabled with 100% sampling:
@@ -214,7 +208,6 @@ To reproduce these benchmarks, run the following commands from the project root:
     -DOpenTelemetryPerformanceTest=enabled
 ----
 
-[discrete]
 === Backwards compatibility
 
 OpenTelemetry support is fully backwards compatible:
@@ -243,12 +236,12 @@ You can configure optional environment variables for liveness and readiness prob
 
 IMPORTANT: The default values of the liveness and readiness environment variables are designed for most cases and should only be changed if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. These values should be kept as low as possible to avoid unnecessary overhead.
 
-.Prerequisites
+*Prerequisites*
 * You must have an OpenShift cluster with cluster administrator access.
 * You must have already installed {registry} on OpenShift.
 * You must have already installed and configured your chosen {registry} storage in either {kafka-streams} or PostgreSQL.
 
-.Procedure
+*Procedure*
 
 . In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
 
@@ -286,7 +279,6 @@ This section describes the available environment variables for {registry} health
 
 IMPORTANT: The following environment variables are provided for reference only. The default values are designed for most cases and should only be changed if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. These values should be kept as low as possible to avoid unnecessary overhead.
 
-[discrete]
 === Liveness environment variables
 
 .Environment variables for {registry} liveness probes
@@ -317,7 +309,6 @@ IMPORTANT: The following environment variables are provided for reference only. 
 
 NOTE: Because OpenShift automatically restarts a Pod that fails a liveness check, the liveness settings, unlike readiness settings, do not directly affect behavior of {registry} on OpenShift.
 
-[discrete]
 === Readiness environment variables
 
 .Environment variables for {registry} readiness probes

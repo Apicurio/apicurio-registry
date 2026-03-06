@@ -3,7 +3,7 @@
 
 You can configure the {kafka-streams} Operator and {operator} to use an encrypted Transport Layer Security (TLS) connection.
 
-.Prerequisites
+*Prerequisites*
 
 * You have installed the {operator} using the OperatorHub or command line.
 * You have installed the {kafka-streams} Operator or have Kafka accessible from your OpenShift cluster.

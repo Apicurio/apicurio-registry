@@ -1,4 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
+:_mod-docs-content-type: ASSEMBLY
 
 [id="configuring-kubernetesops-storage_{context}"]
 = Configuring {registry} with KubernetesOps storage
@@ -12,7 +13,7 @@ This chapter explains how to configure {registry} to use Kubernetes ConfigMaps a
 * xref:kubernetesops-rbac-requirements_{context}[]
 * xref:kubernetesops-limitations_{context}[]
 
-.Prerequisites
+*Prerequisites*
 * You have installed {registry} on Kubernetes or OpenShift.
 * You have access to create ConfigMaps and RBAC resources in your cluster.
 
@@ -26,7 +27,6 @@ IMPORTANT: KubernetesOps storage is an *experimental* feature. You must enable t
 [role="_abstract"]
 KubernetesOps storage is a read-only storage variant that loads registry data from Kubernetes ConfigMaps. It extends the proven GitOps storage pattern to use ConfigMaps instead of Git repositories, enabling Kubernetes-native workflows for managing schemas and APIs.
 
-[discrete]
 === Architecture
 
 KubernetesOps storage uses a polling-based architecture with blue-green database switching:
@@ -42,7 +42,6 @@ This architecture provides:
 * *Kubernetes-native integration*: Manages artifacts using standard Kubernetes tools (`kubectl`, ArgoCD, Flux)
 * *GitOps compatibility*: ConfigMaps can be managed via GitOps tools that sync Kubernetes manifests from Git
 
-[discrete]
 === When to use KubernetesOps storage
 
 KubernetesOps storage is ideal when:
@@ -52,7 +51,6 @@ KubernetesOps storage is ideal when:
 * You need a read-only registry where all changes flow through your GitOps pipeline
 * You want to avoid external dependencies (like a Git server) from within your cluster
 
-[discrete]
 === Comparison with other storage options
 
 .Storage option comparison
@@ -96,11 +94,11 @@ KubernetesOps storage is ideal when:
 [role="_abstract"]
 This section explains how to configure {registry} to use KubernetesOps storage.
 
-.Prerequisites
+*Prerequisites*
 * You have a Kubernetes or OpenShift cluster with cluster administrator access.
 * You have installed {registry}.
 
-.Procedure
+*Procedure*
 
 . Configure the following environment variables in your {registry} deployment:
 +
@@ -175,14 +173,12 @@ spec:
 [role="_abstract"]
 ConfigMaps for KubernetesOps storage must use a specific YAML format with `$type` markers to identify the type of each file. This format is identical to the GitOps storage format.
 
-[discrete]
 === ConfigMap requirements
 
 * ConfigMaps must have the registry ID label (e.g., `apicurio.io/registry-id: my-registry`)
 * Each data entry key should be a relative path (e.g., `test/artifact.yaml`)
 * YAML files must contain a `$type` field identifying the entity type
 
-[discrete]
 === Entity types
 
 The following `$type` values are supported:
@@ -206,7 +202,6 @@ The following `$type` values are supported:
 |Content metadata linking to actual schema/API data
 |===
 
-[discrete]
 === Example: Registry configuration
 
 [source,yaml]
@@ -228,7 +223,6 @@ data:
     settings: []
 ----
 
-[discrete]
 === Example: Group definition
 
 [source,yaml]
@@ -248,7 +242,6 @@ data:
     description: "Event schemas for the platform"
 ----
 
-[discrete]
 === Example: Artifact with content
 
 [source,yaml]
@@ -345,12 +338,10 @@ For multi-namespace scenarios, create a ClusterRole and ClusterRoleBinding inste
 [role="_abstract"]
 KubernetesOps storage has specific limitations and considerations you should understand before deployment.
 
-[discrete]
 === Read-only storage
 
 KubernetesOps storage is *read-only*. You cannot create, update, or delete artifacts through the {registry} REST API or web console. All changes must be made by updating ConfigMaps.
 
-[discrete]
 === ConfigMap size limits
 
 Kubernetes ConfigMaps have a maximum size of *1 MiB* per ConfigMap. This is a hard limit enforced by etcd, the backing store for all Kubernetes objects, and cannot be changed at the ConfigMap level.
@@ -370,7 +361,6 @@ If individual schemas consistently exceed 1 MiB, KubernetesOps storage is not th
 * *SQL storage* for full read/write capability with no size limits.
 * *GitOps storage* for the same read-only GitOps workflow, but reading directly from a Git repository with no size constraint per file.
 
-[discrete]
 === Update latency
 
 With Watch API enabled (the default), ConfigMap changes are detected in near real-time. When Watch is disabled, changes are detected via polling with a default interval of 30 seconds.
@@ -380,7 +370,6 @@ With Watch API enabled (the default), ConfigMap changes are detected in near rea
 * Decrease `APICURIO_KUBERNETESOPS_REFRESH_EVERY` for faster fallback polling (increases API load)
 * Increase the interval for larger deployments to reduce Kubernetes API load
 
-[discrete]
 === Scalability estimates
 
 .Expected performance by deployment size
@@ -418,7 +407,6 @@ For very large registries (5000+ artifacts), consider:
 * GitOps storage if Git-based workflows are required
 * Custom partitioning strategies
 
-[discrete]
 === Memory usage
 
 The blue-green architecture requires maintaining two copies of the database in memory:
@@ -428,7 +416,6 @@ The blue-green architecture requires maintaining two copies of the database in m
 
 This doubles the memory footprint compared to single-database storage. Plan your resource limits accordingly.
 
-[discrete]
 === Full reload behavior
 
 On each detected change, the entire dataset is reloaded from ConfigMaps. This approach:
@@ -437,7 +424,6 @@ On each detected change, the entire dataset is reloaded from ConfigMaps. This ap
 * Simplifies error recovery
 * May increase load times for large datasets
 
-[discrete]
 === Watch API and polling
 
 By default, KubernetesOps storage uses the Kubernetes Watch API for real-time ConfigMap change detection, with scheduled polling as a fallback. When a ConfigMap is created, modified, or deleted, the registry is notified immediately and reloads the data.

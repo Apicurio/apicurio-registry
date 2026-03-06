@@ -272,6 +272,27 @@ A commit request contains two parts:
 
 This ensures that concurrent writers cannot silently overwrite each other's changes. Clients that receive a `409` response should reload the current table metadata, revalidate their changes, and retry the commit.
 
+All changes within a single commit -- including the new version and any artifact-level label updates -- are applied atomically within a single storage transaction. If any part of the commit fails, the entire operation is rolled back and no partial state is persisted.
+
+=== Conflict handling and retries
+
+When a commit fails with a `409 Conflict` response, the appropriate client behavior is:
+
+. Reload the current table metadata using the `LoadTable` endpoint.
+. Revalidate the intended changes against the new metadata.
+. Rebuild the commit request with updated requirements.
+. Retry the commit.
+
+Most Iceberg client libraries (such as the Apache Iceberg Java SDK) handle this retry loop automatically.
+
+=== KafkaSQL storage considerations
+
+When {registry} is deployed with the KafkaSQL storage backend, all write operations -- including commits -- are serialized through a Kafka journal topic. This has the following implications:
+
+* *Ordering*: Commits to the same table are totally ordered through Kafka partitioning. This means the optimistic concurrency check is always evaluated against the true latest state.
+* *Failed commits*: When a commit fails (for example, due to a concurrent write detected by the version-order check), the Kafka message remains in the journal. This is expected and harmless: during journal replay (such as when a new replica starts up), the message is re-consumed, the same version-order check fails again, and the message is silently discarded since no HTTP thread is waiting for a response.
+* *Atomicity*: The version creation and any artifact-level metadata updates are performed in a single SQL transaction. If the transaction fails, no data is written and the Kafka message becomes a no-op on replay.
+
 === Requirements
 
 Requirements are assertions about the current state of the table. Each requirement has a `type` field that specifies the kind of assertion.

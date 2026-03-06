@@ -106,6 +106,7 @@ import java.util.function.Function;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
+import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
 
 /**
@@ -669,7 +670,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
             String version, String artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
-            int expectedBaseVersionOrder) {
+            int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData) {
 
         Date createdOn = new Date();
         long contentId = ensureContentAndGetId(artifactType, content, isDraft);
@@ -692,9 +693,33 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 // Safe to proceed — we hold the FOR UPDATE lock
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
-                return createArtifactVersionRaw(handle, isFirstVersion, groupId, artifactId, version,
+                ArtifactVersionMetaDataDto result = createArtifactVersionRaw(handle, isFirstVersion,
+                        groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData,
                         owner, createdOn, contentId, branches, isDraft);
+
+                // Atomically update artifact-level metadata in the same transaction
+                if (artifactMetaData != null && artifactMetaData.getLabels() != null) {
+                    Map<String, String> labels = artifactMetaData.getLabels();
+                    handle.createUpdate(sqlStatements.updateArtifactLabels())
+                            .bind(0, RegistryContentUtils.serializeLabels(labels))
+                            .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).execute();
+                    handle.createUpdate(sqlStatements.deleteArtifactLabels())
+                            .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+                    if (!labels.isEmpty()) {
+                        labels.forEach((k, v) -> {
+                            handle.createUpdate(sqlStatements.insertArtifactLabel())
+                                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                                    .bind(2, limitStr(k.toLowerCase(), 256))
+                                    .bind(3, limitStr(asLowerCase(v), 512)).execute();
+                        });
+                    }
+                    handle.createUpdate(sqlStatements.updateArtifactModifiedByOn())
+                            .bind(0, owner).bind(1, createdOn)
+                            .bind(2, normalizeGroupId(groupId)).bind(3, artifactId).execute();
+                }
+
+                return result;
             });
         } catch (CommitFailedException ex) {
             throw ex;

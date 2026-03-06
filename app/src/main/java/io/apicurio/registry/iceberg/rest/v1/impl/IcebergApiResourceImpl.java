@@ -544,12 +544,14 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .references(Collections.emptyList())
                 .build();
 
-        ArtifactVersionMetaDataDto newVersionMeta = storage.createArtifactVersionIfLatest(groupId, table,
-                null, ArtifactType.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(),
-                null, false, getCurrentUser(), baseVersionOrder);
+        // Compute artifact label updates before the atomic write so that the version
+        // creation and the label update happen in the same storage transaction.
+        EditableArtifactMetaDataDto artifactMetaData = buildArtifactMetaDataIfNeeded(
+                currentMetadata, newMetadata);
 
-        // Update artifact labels if table-uuid or location changed
-        updateArtifactLabelsIfNeeded(groupId, table, currentMetadata, newMetadata);
+        storage.createArtifactVersionIfLatest(groupId, table,
+                null, ArtifactType.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(),
+                null, false, getCurrentUser(), baseVersionOrder, artifactMetaData);
 
         // Build and return the response
         return buildLoadTableResponse(newMetadata);
@@ -594,7 +596,13 @@ public class IcebergApiResourceImpl implements ApisResource {
         return response;
     }
 
-    private void updateArtifactLabelsIfNeeded(String groupId, String artifactId,
+    /**
+     * Computes the artifact-level metadata update needed after a commit, or returns {@code null}
+     * if no update is necessary. The result is passed to
+     * {@code createArtifactVersionIfLatest} so the label update happens atomically within the
+     * same storage transaction as the version creation.
+     */
+    private EditableArtifactMetaDataDto buildArtifactMetaDataIfNeeded(
             Map<String, Object> oldMetadata, Map<String, Object> newMetadata) {
         String oldUuid = (String) oldMetadata.get("table-uuid");
         String newUuid = (String) newMetadata.get("table-uuid");
@@ -617,9 +625,9 @@ public class IcebergApiResourceImpl implements ApisResource {
             if (newLocation != null) {
                 labels.put("location", newLocation);
             }
-            storage.updateArtifactMetaData(groupId, artifactId,
-                    EditableArtifactMetaDataDto.builder().labels(labels).build());
+            return EditableArtifactMetaDataDto.builder().labels(labels).build();
         }
+        return null;
     }
 
     @Override

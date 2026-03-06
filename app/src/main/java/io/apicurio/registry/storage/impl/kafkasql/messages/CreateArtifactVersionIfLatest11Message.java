@@ -4,6 +4,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.impl.kafkasql.AbstractMessage;
 import lombok.AllArgsConstructor;
@@ -37,6 +38,9 @@ public class CreateArtifactVersionIfLatest11Message extends AbstractMessage {
     private boolean isDraft;
     private String owner;
     private int expectedBaseVersionOrder;
+    // Added for atomic artifact metadata updates. Null-safe for backward compatibility
+    // with existing journal messages (old messages deserialize this as null).
+    private EditableArtifactMetaDataDto artifactMetaData;
 
     /**
      * @see io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage#dispatchTo(RegistryStorage)
@@ -48,7 +52,7 @@ public class CreateArtifactVersionIfLatest11Message extends AbstractMessage {
                 .content(handle).references(references).build()
             : null;
         return storage.createArtifactVersionIfLatest(groupId, artifactId, version, artifactType, contentDto,
-                metaData, branches, isDraft, owner, expectedBaseVersionOrder);
+                metaData, branches, isDraft, owner, expectedBaseVersionOrder, artifactMetaData);
     }
 
 }

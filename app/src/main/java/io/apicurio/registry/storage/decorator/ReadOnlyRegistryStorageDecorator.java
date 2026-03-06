@@ -112,10 +112,10 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorRe
     public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
             String version, String artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
-            int expectedBaseVersionOrder) {
+            int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData) {
         checkReadOnly();
         return delegate.createArtifactVersionIfLatest(groupId, artifactId, version, artifactType, content,
-                metaData, branches, isDraft, owner, expectedBaseVersionOrder);
+                metaData, branches, isDraft, owner, expectedBaseVersionOrder, artifactMetaData);
     }
 
     @Override

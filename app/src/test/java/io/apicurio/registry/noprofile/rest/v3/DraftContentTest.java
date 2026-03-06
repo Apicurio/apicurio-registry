@@ -644,4 +644,93 @@ public class DraftContentTest extends AbstractResourceTestBase {
         Assertions.assertEquals("1.0.0", refs.get(0).getVersion());
     }
 
+    @Test
+    public void testSearchByContentAfterDraftToEnabled() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        // Create the artifact with a non-draft first version.
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Create a draft version with V2 content.
+        CreateVersion createVersion = TestUtils.clientCreateVersion(AVRO_CONTENT_V2,
+                ContentTypes.APPLICATION_JSON);
+        createVersion.setVersion("2.0");
+        createVersion.setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
+
+        // Verify the draft version is NOT found by content search.
+        VersionSearchResults results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V2), ContentTypes.APPLICATION_JSON);
+        Assertions.assertEquals(0, results.getCount(),
+                "Draft version should not be found by content search");
+
+        // Transition the draft version to ENABLED.
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(io.apicurio.registry.rest.client.models.VersionState.ENABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("2.0").state().put(newState);
+
+        // Search by exact content - should now find the version.
+        results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V2), ContentTypes.APPLICATION_JSON);
+        Assertions.assertEquals(1, results.getCount(),
+                "Enabled version should be found by content search");
+
+        // Search by canonical content - should also find the version.
+        results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V2), ContentTypes.APPLICATION_JSON, config -> {
+                    config.queryParameters.canonical = true;
+                    config.queryParameters.artifactType = ArtifactType.AVRO;
+                });
+        Assertions.assertEquals(1, results.getCount(),
+                "Enabled version should be found by canonical content search");
+    }
+
+    @Test
+    public void testSearchByContentAfterDraftToEnabled_Deduplication() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId1 = TestUtils.generateArtifactId();
+        String artifactId2 = TestUtils.generateArtifactId();
+
+        // Create artifact 1 with a non-draft version containing V1 content.
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId1, ArtifactType.AVRO,
+                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Create artifact 2 with a draft version containing the same V1 content.
+        createArtifact = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.AVRO, AVRO_CONTENT_V1,
+                ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        createArtifact.getFirstVersion().setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Verify only 1 version is found by content search (the non-draft one).
+        VersionSearchResults results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V1), ContentTypes.APPLICATION_JSON, config -> {
+                    config.queryParameters.groupId = groupId;
+                });
+        Assertions.assertEquals(1, results.getCount(),
+                "Only the non-draft version should be found by content search");
+
+        // Transition the draft version to ENABLED.
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(io.apicurio.registry.rest.client.models.VersionState.ENABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).versions()
+                .byVersionExpression("1.0").state().put(newState);
+
+        // Both versions should now be found (they should share the same content row).
+        results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V1), ContentTypes.APPLICATION_JSON, config -> {
+                    config.queryParameters.groupId = groupId;
+                });
+        Assertions.assertEquals(2, results.getCount(),
+                "Both versions should be found after draft is enabled");
+    }
+
 }

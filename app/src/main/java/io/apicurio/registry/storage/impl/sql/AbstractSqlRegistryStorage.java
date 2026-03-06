@@ -873,7 +873,28 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             VersionState newState, boolean dryRun) {
+        // Get the current state before updating.
+        VersionState currentState = versionRepository.getArtifactVersionState(groupId, artifactId, version);
+
+        // Delegate to the version repository to update the state.
         versionRepository.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
+
+        // When transitioning from DRAFT to a non-DRAFT state, recalculate content hashes.
+        // Draft content uses fake hashes ("draft:" + UUID) to prevent content-based search.
+        // Once the version is no longer a draft, we need real hashes so that searches work.
+        if (!dryRun && currentState == VersionState.DRAFT && newState != VersionState.DRAFT) {
+            ArtifactVersionMetaDataDto versionMeta = versionRepository.getArtifactVersionMetaData(groupId,
+                    artifactId, version);
+            ContentWrapperDto contentDto = contentRepository.getContentById(versionMeta.getContentId());
+            if (contentDto.getContentHash() != null && contentDto.getContentHash().startsWith("draft:")) {
+                String artifactType = versionMeta.getArtifactType();
+                long newContentId = ensureContentAndGetId(artifactType, contentDto, false);
+                if (newContentId != versionMeta.getContentId()) {
+                    versionRepository.updateArtifactVersionContent(groupId, artifactId, version,
+                            newContentId);
+                }
+            }
+        }
     }
 
     @Override

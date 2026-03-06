@@ -67,20 +67,3 @@ jobs:
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
-
-  publish-native-image:
-    name: Publish Native Docker Image
-    uses: ./.github/workflows/reusable-docker-build.yaml
-    with:
-      image-name: 'apicurio/apicurio-registry-native'
-      dockerfile: './distro/docker/target/docker/Dockerfile.native'
-      context: './app'
-      tag: 'latest-snapshot'
-      platforms: 'linux/amd64'
-      maven-build: true
-      maven-args: 'package -Pnative -Dquarkus.native.container-build=true -Pprod -DskipTests --no-transfer-progress'
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}

@@ -34,7 +34,7 @@ services:
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/ready"]
       interval: 10s
       timeout: 5s
       retries: 5

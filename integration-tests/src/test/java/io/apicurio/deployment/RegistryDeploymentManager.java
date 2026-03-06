@@ -249,7 +249,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             Thread.sleep(10000); // Give minikube tunnel time to set up the route
 
             // Try to connect to the Registry REST API
-            String registryUrl = "http://" + System.getProperty("quarkus.http.test-host") + ":8080/health/ready";
+            String registryUrl = "http://" + System.getProperty("quarkus.http.test-host") + ":9000/health/ready";
             LOGGER.info("Checking Registry readiness at: {}", registryUrl);
 
             int maxAttempts = 30;

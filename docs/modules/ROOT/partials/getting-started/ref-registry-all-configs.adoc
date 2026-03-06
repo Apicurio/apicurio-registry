@@ -832,16 +832,6 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.rest.artifact.download.max-size.bytes`
-|`int`
-|`1000000`
-|`2.2.6`
-|Max size of the artifact allowed to be downloaded from URL
-|`apicurio.rest.artifact.download.ssl-validation.disabled`
-|`boolean`
-|`false`
-|`2.2.6`
-|Skip SSL validation when downloading artifacts from URL
 |`apicurio.rest.artifact.references.default-handling`
 |`optional<string>`
 |

@@ -353,18 +353,23 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#exportData(java.lang.Boolean)
+     * @see io.apicurio.registry.rest.v3.AdminResource#exportData(java.lang.Boolean, java.lang.String)
      */
     @Override
     @MethodMetadata(extractParameters = {"0", MPK_FOR_BROWSER})
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
-    public Response exportData(Boolean forBrowser) {
+    public Response exportData(Boolean forBrowser, String groupId) {
+        // If a groupId is specified, validate that the group exists (throws GroupNotFoundException -> 404)
+        if (groupId != null) {
+            storage.getGroupMetaData(groupId);
+        }
+
         String acceptHeader = request.getHeader("Accept");
         if (Boolean.TRUE.equals(forBrowser) || MediaType.APPLICATION_JSON.equals(acceptHeader)) {
             long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
             DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT)
-                    .expires(expires).build();
+                    .groupId(groupId).expires(expires).build();
             String downloadId = storage.createDownload(downloadCtx);
             String downloadHref = createDownloadHref(downloadId);
             DownloadRef downloadRef = new DownloadRef();
@@ -372,7 +377,7 @@ public class AdminResourceImpl implements AdminResource {
             downloadRef.setHref(downloadHref);
             return Response.ok(downloadRef).type(MediaType.APPLICATION_JSON_TYPE).build();
         } else {
-            return exporter.exportData();
+            return exporter.exportData(groupId);
         }
     }
 

@@ -332,4 +332,162 @@ public class AvroSchemaParserDuplicateReferencesTest {
         Assertions.assertTrue(uniqueReferenceNames.contains("io.example.Point"));
         Assertions.assertTrue(uniqueReferenceNames.contains("io.example.Address"));
     }
+
+    /**
+     * Test that calling getSchemaFromData twice with the same schema returns the same cached
+     * ParsedSchema instance, avoiding redundant serialization work.
+     */
+    @Test
+    public void testGetSchemaFromDataReturnsCachedInstance() {
+        Schema.Parser schemaParser = new Schema.Parser();
+        String schemaJson = """
+            {
+              "type": "record",
+              "name": "Simple",
+              "namespace": "io.example",
+              "fields": [
+                {"name": "id", "type": "int"},
+                {"name": "name", "type": "string"}
+              ]
+            }
+            """;
+        Schema schema = schemaParser.parse(schemaJson);
+
+        GenericRecord record1 = new GenericData.Record(schema);
+        record1.put("id", 1);
+        record1.put("name", "first");
+
+        GenericRecord record2 = new GenericData.Record(schema);
+        record2.put("id", 2);
+        record2.put("name", "second");
+
+        Record<GenericRecord> wrappedRecord1 = createRecord(record1);
+        Record<GenericRecord> wrappedRecord2 = createRecord(record2);
+
+        ParsedSchema<Schema> result1 = parser.getSchemaFromData(wrappedRecord1);
+        ParsedSchema<Schema> result2 = parser.getSchemaFromData(wrappedRecord2);
+
+        // Same schema type should return the exact same cached instance
+        Assertions.assertSame(result1, result2,
+                "Expected the same ParsedSchema instance for the same schema type (cached)");
+    }
+
+    /**
+     * Test that calling getSchemaFromData with different schemas returns different ParsedSchema
+     * instances.
+     */
+    @Test
+    public void testGetSchemaFromDataReturnsDifferentInstancesForDifferentSchemas() {
+        Schema.Parser schemaParser = new Schema.Parser();
+        String schemaJsonA = """
+            {
+              "type": "record",
+              "name": "TypeA",
+              "namespace": "io.example",
+              "fields": [{"name": "id", "type": "int"}]
+            }
+            """;
+        String schemaJsonB = """
+            {
+              "type": "record",
+              "name": "TypeB",
+              "namespace": "io.example",
+              "fields": [{"name": "value", "type": "string"}]
+            }
+            """;
+        Schema schemaA = schemaParser.parse(schemaJsonA);
+        Schema schemaB = schemaParser.parse(schemaJsonB);
+
+        GenericRecord recordA = new GenericData.Record(schemaA);
+        recordA.put("id", 1);
+
+        GenericRecord recordB = new GenericData.Record(schemaB);
+        recordB.put("value", "hello");
+
+        ParsedSchema<Schema> resultA = parser.getSchemaFromData(createRecord(recordA));
+        ParsedSchema<Schema> resultB = parser.getSchemaFromData(createRecord(recordB));
+
+        Assertions.assertNotSame(resultA, resultB,
+                "Expected different ParsedSchema instances for different schema types");
+        Assertions.assertEquals("io.example.TypeA", resultA.getParsedSchema().getFullName());
+        Assertions.assertEquals("io.example.TypeB", resultB.getParsedSchema().getFullName());
+    }
+
+    /**
+     * Test that calling getSchemaFromData with dereference=true and dereference=false returns
+     * different results, each independently cached.
+     */
+    @Test
+    public void testGetSchemaFromDataDereferenceProducesDifferentCachedResults() {
+        Schema.Parser schemaParser = new Schema.Parser();
+        String nestedJson = """
+            {
+              "type": "record",
+              "name": "Nested",
+              "namespace": "io.example",
+              "fields": [{"name": "value", "type": "int"}]
+            }
+            """;
+        schemaParser.parse(nestedJson);
+
+        String parentJson = """
+            {
+              "type": "record",
+              "name": "Parent",
+              "namespace": "io.example",
+              "fields": [
+                {"name": "id", "type": "int"},
+                {"name": "child", "type": "io.example.Nested"}
+              ]
+            }
+            """;
+        Schema parentSchema = schemaParser.parse(parentJson);
+
+        GenericRecord nested = new GenericData.Record(
+                parentSchema.getField("child").schema());
+        nested.put("value", 42);
+
+        GenericRecord parent = new GenericData.Record(parentSchema);
+        parent.put("id", 1);
+        parent.put("child", nested);
+
+        Record<GenericRecord> wrappedRecord = createRecord(parent);
+
+        ParsedSchema<Schema> nonDeref = parser.getSchemaFromData(wrappedRecord, false);
+        ParsedSchema<Schema> deref = parser.getSchemaFromData(wrappedRecord, true);
+
+        // Dereferenced and non-dereferenced should be different objects
+        Assertions.assertNotSame(nonDeref, deref,
+                "Expected different ParsedSchema instances for dereferenced vs non-dereferenced");
+
+        // Non-dereferenced should have references
+        Assertions.assertFalse(nonDeref.getSchemaReferences().isEmpty(),
+                "Non-dereferenced result should have schema references");
+
+        // Dereferenced should have no references (full schema inlined)
+        Assertions.assertTrue(deref.getSchemaReferences() == null || deref.getSchemaReferences().isEmpty(),
+                "Dereferenced result should have no schema references");
+
+        // Verify caching: calling again should return the same instances
+        ParsedSchema<Schema> nonDeref2 = parser.getSchemaFromData(wrappedRecord, false);
+        ParsedSchema<Schema> deref2 = parser.getSchemaFromData(wrappedRecord, true);
+        Assertions.assertSame(nonDeref, nonDeref2,
+                "Expected cached instance for non-dereferenced call");
+        Assertions.assertSame(deref, deref2,
+                "Expected cached instance for dereferenced call");
+    }
+
+    private Record<GenericRecord> createRecord(GenericRecord genericRecord) {
+        return new Record<GenericRecord>() {
+            @Override
+            public GenericRecord payload() {
+                return genericRecord;
+            }
+
+            @Override
+            public Metadata metadata() {
+                return null;
+            }
+        };
+    }
 }

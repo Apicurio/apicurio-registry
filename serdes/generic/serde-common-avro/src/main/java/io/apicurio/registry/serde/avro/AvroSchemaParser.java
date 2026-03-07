@@ -12,11 +12,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
 
     private AvroDatumProvider<U> avroDatumProvider;
+    private final ConcurrentHashMap<Schema, ParsedSchema<Schema>> schemaCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Schema, ParsedSchema<Schema>> dereferencedSchemaCache = new ConcurrentHashMap<>();
 
     public AvroSchemaParser(AvroDatumProvider<U> avroDatumProvider) {
         this.avroDatumProvider = avroDatumProvider;
@@ -45,23 +48,25 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     @Override
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
         Schema schema = avroDatumProvider.toSchema(data.payload());
-        final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(schema);
+        return schemaCache.computeIfAbsent(schema, s -> {
+            final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(s);
 
-        // Deduplicate references based on referenceName to handle cases where
-        // multiple fields reference the same nested schema (e.g., Debezium PostGIS Point geometry)
-        final List<ParsedSchema<Schema>> deduplicatedReferences = resolvedReferences.stream()
-                .collect(Collectors.toMap(
-                        ParsedSchema::referenceName,
-                        ref -> ref,
-                        (existing, replacement) -> existing))
-                .values()
-                .stream()
-                .collect(Collectors.toList());
+            // Deduplicate references based on referenceName to handle cases where
+            // multiple fields reference the same nested schema (e.g., Debezium PostGIS Point geometry)
+            final List<ParsedSchema<Schema>> deduplicatedReferences = resolvedReferences.stream()
+                    .collect(Collectors.toMap(
+                            ParsedSchema::referenceName,
+                            ref -> ref,
+                            (existing, replacement) -> existing))
+                    .values()
+                    .stream()
+                    .collect(Collectors.toList());
 
-        return new ParsedSchemaImpl<Schema>().setParsedSchema(schema).setReferenceName(schema.getFullName())
-                .setSchemaReferences(deduplicatedReferences)
-                .setRawSchema(IoUtil.toBytes(schema.toString(deduplicatedReferences.stream()
-                        .map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false)));
+            return new ParsedSchemaImpl<Schema>().setParsedSchema(s).setReferenceName(s.getFullName())
+                    .setSchemaReferences(deduplicatedReferences)
+                    .setRawSchema(IoUtil.toBytes(s.toString(deduplicatedReferences.stream()
+                            .map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false)));
+        });
     }
 
     /**
@@ -71,9 +76,10 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data, boolean dereference) {
         if (dereference) {
             Schema schema = avroDatumProvider.toSchema(data.payload());
-
-            return new ParsedSchemaImpl<Schema>().setParsedSchema(schema)
-                    .setReferenceName(schema.getFullName()).setRawSchema(IoUtil.toBytes(schema.toString()));
+            return dereferencedSchemaCache.computeIfAbsent(schema, s ->
+                    new ParsedSchemaImpl<Schema>().setParsedSchema(s)
+                            .setReferenceName(s.getFullName())
+                            .setRawSchema(IoUtil.toBytes(s.toString())));
         } else {
             return getSchemaFromData(data);
         }

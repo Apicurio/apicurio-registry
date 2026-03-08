@@ -440,12 +440,6 @@
       </plugin>
 
       <plugin>
-        <groupId>kr.motd.maven</groupId>
-        <artifactId>os-maven-plugin</artifactId>
-        <version>1.7.1</version>
-      </plugin>
-
-      <plugin>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-codegen-maven-plugin</artifactId>
         <version>${version.apicurio-codegen-plugin}</version>
@@ -458,7 +452,7 @@
       </plugin>
 
       <plugin>
-        <groupId>org.xolstice.maven.plugins</groupId>
+        <groupId>io.github.ascopes</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
         <version>${proto-plugin.version}</version>
       </plugin>
@@ -618,18 +612,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>kr.motd.maven</groupId>
-        <artifactId>os-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>detect</goal>
-            </goals>
-            <phase>initialize</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-codegen-maven-plugin</artifactId>
         <executions>
@@ -737,20 +719,21 @@
       </plugin>
 
       <plugin>
-        <groupId>org.xolstice.maven.plugins</groupId>
+        <groupId>io.github.ascopes</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
-        <extensions>true</extensions>
         <executions>
           <execution>
             <id>gencode</id>
             <goals>
-              <goal>compile</goal>
-              <goal>test-compile</goal>
+              <goal>generate</goal>
+              <goal>generate-test</goal>
             </goals>
             <phase>generate-sources</phase>
             <configuration>
-              <protoSourceRoot>./src/test/resources/schema</protoSourceRoot>
-              <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+              <sourceDirectories>
+                <sourceDirectory>./src/test/resources/schema</sourceDirectory>
+              </sourceDirectories>
+              <protoc>${protobuf.version}</protoc>
             </configuration>
           </execution>
         </executions>

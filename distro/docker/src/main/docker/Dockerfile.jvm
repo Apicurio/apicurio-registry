@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:latest
+FROM eclipse-temurin:17.0.18_8-jre-ubi10-minimal
 
 ENV JAVA_APP_DIR=/deployments \
     APP_URL="${docker.app.file}" \

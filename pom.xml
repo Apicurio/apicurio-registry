@@ -255,6 +255,7 @@
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>5.8.0</semver4j.version>
     <slf4j.version>2.0.17</slf4j.version>
+    <json-smart.version>2.5.2</json-smart.version>
 
     <!-- Kafka Connect -->
     <connect.version>3.9.2</connect.version>
@@ -716,6 +717,11 @@
             <artifactId>commons-logging</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>net.minidev</groupId>
+        <artifactId>json-smart</artifactId>
+        <version>${json-smart.version}</version>
       </dependency>
 
       <!-- GraphQL -->

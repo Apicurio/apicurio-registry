@@ -230,6 +230,10 @@
       <artifactId>commons-beanutils</artifactId>
       <version>${commons-beanutils.version}</version>
     </dependency>
+    <dependency>
+      <groupId>net.minidev</groupId>
+      <artifactId>json-smart</artifactId>
+    </dependency>
 
     <!-- Test Only -->
     <dependency>

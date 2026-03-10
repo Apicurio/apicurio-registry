@@ -20,6 +20,7 @@ public class ElasticsearchSearchTestProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.of(
+                "apicurio.features.experimental.enabled", "true",
                 "apicurio.search.index.enabled", "true",
                 "quarkus.elasticsearch.devservices.enabled", "true"
         );

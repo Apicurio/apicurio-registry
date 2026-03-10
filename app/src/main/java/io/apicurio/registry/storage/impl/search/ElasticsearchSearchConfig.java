@@ -18,7 +18,7 @@ public class ElasticsearchSearchConfig {
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchSearchConfig.class);
 
     @ConfigProperty(name = "apicurio.search.index.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_SEARCH, description = "Enable search indexing", availableSince = "3.2.0")
+    @Info(category = CATEGORY_SEARCH, description = "Enable search indexing", availableSince = "3.2.0", experimental = true)
     boolean enabled;
 
     @ConfigProperty(name = "apicurio.search.index.elasticsearch.index-name",

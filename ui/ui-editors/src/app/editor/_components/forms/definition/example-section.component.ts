@@ -21,8 +21,7 @@ import {CommandService} from "../../../_services/command.service";
 import {AbstractBaseComponent} from "../../common/base-component";
 import {DocumentService} from "../../../_services/document.service";
 import {SelectionService} from "../../../_services/selection.service";
-import {ModelUtils} from "../../../_util/model.util";
-import {StringUtils} from "apicurio-ts-core";
+import {ExampleTextValue, ModelUtils} from "../../../_util/model.util";
 
 
 @Component({
@@ -48,31 +47,20 @@ export class DefinitionExampleSectionComponent extends AbstractBaseComponent {
     }
 
     /**
-     * Returns the example.  Converts to a string if the example is an object.
+     * Returns the example formatted for the UI editor:
+     * plain strings are preserved as-is, while non-string values are JSON-stringified.
      */
-    public example(): string {
-        let value: string = this.definition.example;
-        if (value !== null && (typeof value === "object" || Array.isArray(value))) {
-            value = JSON.stringify(value, null,  4);
-        }
-        return value;
+    public example(): ExampleTextValue {
+        return ModelUtils.stringifyExampleValue(this.definition.example);
     }
 
     /**
      * Called when the user changes the example.
-     * @param newExample
      */
     public onExampleChange(newExample: string): void {
         console.info("[DefinitionExampleSectionComponent] User changed the data type example.");
-        let newValue: any = newExample;
-        if (StringUtils.isJSON(newValue)) {
-            try {
-                newValue = JSON.parse(newValue);
-            } catch (e) {
-                console.info("[DefinitionExampleSectionComponent] Failed to parse example: ", e);
-            }
-        }
-        let command: ICommand = CommandFactory.createChangePropertyCommand(this.definition,"example", newValue);
+        const newValue = ModelUtils.parseExampleValue(this.definition.type, newExample);
+        const command = CommandFactory.createChangePropertyCommand(this.definition, "example", newValue);
         this.commandService.emit(command);
     }
 

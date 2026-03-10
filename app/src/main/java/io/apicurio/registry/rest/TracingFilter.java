@@ -1,6 +1,8 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.util.Priorities;
 import io.opentelemetry.api.trace.Span;
+import jakarta.annotation.Priority;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.ext.Provider;
@@ -11,6 +13,7 @@ import jakarta.ws.rs.ext.Provider;
  * This filter adds custom attributes for better observability and debugging.
  */
 @Provider
+@Priority(Priorities.RequestResponseFilters.APPLICATION)
 public class TracingFilter implements ContainerRequestFilter {
 
     private static final String HEADER_GROUP_ID = "X-Registry-GroupId";

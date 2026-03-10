@@ -17,6 +17,10 @@
 
 import {AaiSchema, Library, Node, OasSchema, ReferenceUtil} from "@apicurio/data-models";
 import {ApiEditorUser} from "../_models/editor-user.model";
+import {StringUtils} from "apicurio-ts-core";
+
+// UI-facing text representation of an example value before it is parsed back into its schema type.
+export type ExampleTextValue = string | null | undefined;
 
 export class ModelUtils {
 
@@ -117,6 +121,72 @@ export class ModelUtils {
     public static generateExampleFromSchema(schema: OasSchema | AaiSchema): any {
         let generator: ExampleGenerator = new ExampleGenerator();
         return generator.generate(schema);
+    }
+
+    /**
+     * Converts a schema example value to a string suitable for display/editing.
+     * Keeps strings as-is and JSON-stringifies all other non-null values.
+     */
+    public static stringifyExampleValue(value: unknown): ExampleTextValue {
+        if (value === null) {
+            return null;
+        }
+        if (value === undefined) {
+            return undefined;
+        }
+        if (typeof value === "string") {
+            return value;
+        }
+        return JSON.stringify(value, null, 4);
+    }
+
+    /**
+     * Parses a user-provided example string according to the schema type.
+     */
+    public static parseExampleValue(type: string | null | undefined, value: string): unknown {
+        // Preserve nullish values as-is so callers can decide how to handle missing examples.
+        if (value === null || value === undefined) {
+            return value;
+        }
+        // String examples are edited as plain text in the UI, so do not coerce them.
+        if (type === "string") {
+            return value;
+        }
+
+        const trimmed: string = value.trim();
+        // Treat an empty editor value as clearing the example.
+        if (trimmed.length === 0) {
+            return null;
+        }
+
+        // Numeric schema types should round-trip as numbers instead of quoted strings.
+        if (type === "integer" || type === "number" || type === "float") {
+            const parsed = Number(trimmed);
+            return Number.isNaN(parsed) ? value : parsed;
+        }
+
+        // Boolean schema types accept only the JSON literals true/false.
+        if (type === "boolean") {
+            if (trimmed === "true") {
+                return true;
+            }
+            if (trimmed === "false") {
+                return false;
+            }
+            return value;
+        }
+
+        // For object/array/null/quoted JSON string inputs, defer to JSON.parse.
+        if (trimmed === "null" || StringUtils.isJSON(trimmed) || trimmed.startsWith("\"")) {
+            try {
+                return JSON.parse(trimmed);
+            } catch (e) {
+                console.info("[ModelUtils] Failed to parse example: ", e);
+            }
+        }
+
+        // Fall back to the raw text when the input does not match a typed coercion rule.
+        return value;
     }
 
 }

@@ -16,11 +16,11 @@
 
 package io.apicurio.registry.logging.audit;
 
+import io.apicurio.registry.util.Priorities;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ContainerResponseContext;
@@ -39,7 +39,7 @@ import java.util.Optional;
  * Filters REST API requests and responses to generate audit logs for failed requests
  */
 @Provider
-@Priority(Priorities.AUTHENTICATION)
+@Priority(Priorities.RequestResponseFilters.AUDIT)
 @ApplicationScoped
 public class HttpRequestsAuditFilter implements ContainerRequestFilter, ContainerResponseFilter {
 

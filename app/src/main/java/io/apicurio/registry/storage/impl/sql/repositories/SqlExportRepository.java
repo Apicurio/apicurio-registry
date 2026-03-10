@@ -204,6 +204,124 @@ public class SqlExportRepository {
     }
 
     /**
+     * Export content entities belonging to artifacts in the specified group.
+     */
+    public void exportContent(String groupId, Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<ContentEntity> stream = handle.createQuery(sqlStatements.exportContentByGroup())
+                    .bind(0, groupId).setFetchSize(50).map(ContentEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Export the group entity for the specified group.
+     */
+    public void exportGroups(String groupId, Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<GroupEntity> stream = handle.createQuery(sqlStatements.exportGroupsByGroupId())
+                    .bind(0, groupId).setFetchSize(50).map(GroupEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Export group rule entities for the specified group.
+     */
+    public void exportGroupRules(String groupId, Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<GroupRuleEntity> stream = handle.createQuery(sqlStatements.exportGroupRulesByGroupId())
+                    .bind(0, groupId).setFetchSize(50).map(GroupRuleEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Export artifact entities for the specified group.
+     */
+    public void exportArtifacts(String groupId, Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<ArtifactEntity> stream = handle.createQuery(sqlStatements.exportArtifactsByGroupId())
+                    .bind(0, groupId).setFetchSize(50).map(ArtifactEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Export artifact version entities for the specified group.
+     */
+    public void exportArtifactVersions(String groupId, Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<ArtifactVersionEntity> stream = handle
+                    .createQuery(sqlStatements.exportArtifactVersionsByGroupId()).bind(0, groupId)
+                    .setFetchSize(50).map(ArtifactVersionEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Export version comment entities for versions in the specified group.
+     */
+    public void exportVersionComments(String groupId, Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<CommentEntity> stream = handle
+                    .createQuery(sqlStatements.exportVersionCommentsByGroupId()).bind(0, groupId)
+                    .setFetchSize(50).map(CommentEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Export branch entities for the specified group.
+     */
+    public void exportBranches(String groupId, Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<BranchEntity> stream = handle.createQuery(sqlStatements.exportBranchesByGroupId())
+                    .bind(0, groupId).setFetchSize(50).map(BranchEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(branch -> {
+                    branch.versions = getBranchVersionNumbersRaw(branch);
+                    handler.apply(branch);
+                });
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Export artifact rule entities for the specified group.
+     */
+    public void exportArtifactRules(String groupId, Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<ArtifactRuleEntity> stream = handle
+                    .createQuery(sqlStatements.exportArtifactRulesByGroupId()).bind(0, groupId)
+                    .setFetchSize(50).map(ArtifactRuleEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    /**
      * Create a database snapshot.
      */
     public String createSnapshot(String location) throws RegistryStorageException {

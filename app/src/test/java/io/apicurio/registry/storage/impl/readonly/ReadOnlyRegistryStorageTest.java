@@ -83,7 +83,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("deleteGlobalRules0", new State(true, RegistryStorage::deleteGlobalRules)),
                 entry("deleteGroup1", new State(true, s -> s.deleteGroup(null))),
                 entry("deleteRoleMapping1", new State(true, s -> s.deleteRoleMapping(null))),
-                entry("exportData1", new State(false, s -> s.exportData(null))),
+                entry("exportData2", new State(false, s -> s.exportData(null, null))),
                 entry("forEachVersion1", new State(false, s -> s.forEachVersion(null))),
                 entry("forEachVersion2", new State(false, s -> s.forEachVersion(System.currentTimeMillis(), null))),
                 entry("getContentByHash1", new State(false, s -> s.getContentByHash(null))),

@@ -29,5 +29,10 @@ public class Constants {
      */
     static final String SQL = "sqlit";
 
+    /**
+     * Tag for kubernetesops tests profile.
+     */
+    static final String KUBERNETES_OPS = "kubernetesopsit";
+
     public static final String TEST_PROFILE = Optional.ofNullable(System.getProperty("groups")).orElse("");
 }

@@ -827,6 +827,71 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportContentByGroup()
+     */
+    @Override
+    public String exportContentByGroup() {
+        return "SELECT DISTINCT c.contentId, c.canonicalHash, c.contentHash, c.contentType, c.content, c.refs "
+                + "FROM content c JOIN versions v ON v.contentId = c.contentId WHERE v.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroupsByGroupId()
+     */
+    @Override
+    public String exportGroupsByGroupId() {
+        return "SELECT * FROM " + groupsTable() + " g WHERE g.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroupRulesByGroupId()
+     */
+    @Override
+    public String exportGroupRulesByGroupId() {
+        return "SELECT * FROM group_rules r WHERE r.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactsByGroupId()
+     */
+    @Override
+    public String exportArtifactsByGroupId() {
+        return "SELECT * FROM artifacts WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactVersionsByGroupId()
+     */
+    @Override
+    public String exportArtifactVersionsByGroupId() {
+        return "SELECT * FROM versions WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportVersionCommentsByGroupId()
+     */
+    @Override
+    public String exportVersionCommentsByGroupId() {
+        return "SELECT c.* FROM version_comments c JOIN versions v ON v.globalId = c.globalId WHERE v.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportBranchesByGroupId()
+     */
+    @Override
+    public String exportBranchesByGroupId() {
+        return "SELECT * FROM branches WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactRulesByGroupId()
+     */
+    @Override
+    public String exportArtifactRulesByGroupId() {
+        return "SELECT * FROM artifact_rules r WHERE r.groupId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importArtifactRule()
      */
     @Override

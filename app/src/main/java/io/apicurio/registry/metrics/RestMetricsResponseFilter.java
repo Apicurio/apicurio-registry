@@ -1,10 +1,12 @@
 package io.apicurio.registry.metrics;
 
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.util.Priorities;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Path;
@@ -44,6 +46,7 @@ import static java.util.Optional.ofNullable;
 @Provider
 @PreMatching
 @ApplicationScoped
+@Priority(Priorities.RequestResponseFilters.APPLICATION)
 public class RestMetricsResponseFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
     private static final String TIMER_SAMPLE_CONTEXT_PROPERTY_NAME = "request-timer-sample";

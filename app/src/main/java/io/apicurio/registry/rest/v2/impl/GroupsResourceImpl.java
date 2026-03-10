@@ -19,7 +19,6 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
-import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
@@ -50,7 +49,6 @@ import io.apicurio.registry.util.ArtifactIdGenerator;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.utils.ArtifactIdValidator;
 import io.apicurio.registry.utils.IoUtil;
-import io.apicurio.registry.utils.JAXRSClientUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -59,32 +57,24 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
-import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jose4j.base64url.Base64;
 
-import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.*;
+import static io.apicurio.registry.rest.headers.Headers.checkIfDeprecated;
 import static io.apicurio.registry.rest.v2.impl.V2ApiUtil.defaultGroupIdToNull;
 
 /**
@@ -941,8 +931,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_TYPE, "2", MPK_ARTIFACT_ID, "3",
             MPK_VERSION, "4", MPK_IF_EXISTS, "5", MPK_CANONICAL, "6", MPK_DESCRIPTION, "7",
-            MPK_DESCRIPTION_ENCODED, "8", MPK_NAME, "9", MPK_NAME_ENCODED, "10", MPK_FROM_URL, "11",
-            MPK_CONTENT_HASH})
+            MPK_DESCRIPTION_ENCODED, "8", MPK_NAME, "9", MPK_NAME_ENCODED, "10", MPK_CONTENT_HASH})
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public ArtifactMetaData createArtifact(String groupId, String xRegistryArtifactType,
@@ -963,8 +952,7 @@ public class GroupsResourceImpl implements GroupsResource {
     @Override
     @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_TYPE, "2", MPK_ARTIFACT_ID, "3",
             MPK_VERSION, "4", MPK_IF_EXISTS, "5", MPK_CANONICAL, "6", MPK_DESCRIPTION, "7",
-            MPK_DESCRIPTION_ENCODED, "8", MPK_NAME, "9", MPK_NAME_ENCODED, "10", MPK_FROM_URL, "11",
-            MPK_CONTENT_HASH})
+            MPK_DESCRIPTION_ENCODED, "8", MPK_NAME, "9", MPK_NAME_ENCODED, "10", MPK_CONTENT_HASH})
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public ArtifactMetaData createArtifact(String groupId, String xRegistryArtifactType,
@@ -974,75 +962,16 @@ public class GroupsResourceImpl implements GroupsResource {
             ArtifactContent data) {
         ParameterValidationUtils.requireParameter("content", data.getContent());
 
-        Client client = null;
-        InputStream content;
-        try {
-            try {
-                URL url = new URL(data.getContent());
-                client = JAXRSClientUtil.getJAXRSClient(restConfig.getDownloadSkipSSLValidation());
-                content = fetchContentFromURL(client, url.toURI());
-            } catch (MalformedURLException | URISyntaxException e) {
-                content = IoUtil.toStream(data.getContent());
-            }
+        InputStream content = IoUtil.toStream(data.getContent());
 
-            return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId,
-                    xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded,
-                    xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm,
-                    content, data.getReferences());
-        } catch (KeyManagementException kme) {
-            throw new RuntimeException(kme);
-        } catch (NoSuchAlgorithmException nsae) {
-            throw new RuntimeException(nsae);
-        } finally {
-            if (client != null) {
-                client.close();
-            }
-        }
+        return this.createArtifactWithRefs(groupId, xRegistryArtifactType, xRegistryArtifactId,
+                xRegistryVersion, ifExists, canonical, xRegistryDescription, xRegistryDescriptionEncoded,
+                xRegistryName, xRegistryNameEncoded, xRegistryContentHash, xRegistryHashAlgorithm,
+                content, data.getReferences());
     }
 
     public enum RegistryHashAlgorithm {
         SHA256, MD5
-    }
-
-    /**
-     * Return an InputStream for the resource to be downloaded
-     *
-     * @param url
-     */
-    private InputStream fetchContentFromURL(Client client, URI url) {
-        try {
-            // 1. Registry issues HTTP HEAD request to the target URL.
-            List<Object> contentLengthHeaders = client.target(url).request().head().getHeaders()
-                    .get("Content-Length");
-
-            if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
-                throw new BadRequestException(
-                        "Requested resource URL does not provide 'Content-Length' in the headers");
-            }
-
-            // 2. According to HTTP specification, target server must return Content-Length header.
-            int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
-
-            // 3. Registry analyzes value of Content-Length to check if file with declared size could be
-            // processed securely.
-            if (contentLength > restConfig.getDownloadMaxSize()) {
-                throw new BadRequestException("Requested resource is bigger than "
-                        + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
-            }
-
-            if (contentLength <= 0) {
-                throw new BadRequestException("Requested resource URL is providing 'Content-Length' <= 0.");
-            }
-
-            // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes
-            // specified by HTTP HEAD from step 1.
-            return new BufferedInputStream(client.target(url).request().get().readEntity(InputStream.class),
-                    contentLength);
-        } catch (BadRequestException bre) {
-            throw bre;
-        } catch (Exception e) {
-            throw new BadRequestException("Errors downloading the artifact content.", e);
-        }
     }
 
     /**
@@ -1324,20 +1253,6 @@ public class GroupsResourceImpl implements GroupsResource {
 
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType,
                 vmdDto);
-    }
-
-    /**
-     * Check to see if the artifact version is deprecated.
-     *
-     * @param stateSupplier
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @param builder
-     */
-    private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String groupId, String artifactId,
-            String version, Response.ResponseBuilder builder) {
-        HeadersHack.checkIfDeprecated(stateSupplier, groupId, artifactId, version, builder);
     }
 
     /**

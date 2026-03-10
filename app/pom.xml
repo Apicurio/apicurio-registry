@@ -137,6 +137,10 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-kubernetes-client</artifactId>
+    </dependency>
 
     <!-- Persistence -->
     <dependency>
@@ -407,6 +411,11 @@
       <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-test-kubernetes-client</artifactId>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 
@@ -666,26 +675,27 @@
               <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/ccompat/v8/openapi.json</inputSpec>
             </configuration>
           </execution>
+          <execution>
+            <id>generate-api-iceberg-v1</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <projectSettings>
+                <javaPackage>io.apicurio.registry.iceberg.rest.v1</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
+              </projectSettings>
+              <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/iceberg/v1/openapi.json</inputSpec>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <executions>
-          <execution>
-            <id>generate-reflection-registry</id>
-            <goals>
-              <goal>java</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <mainClass>io.apicurio.registry.utils.reflectgen.ReflectionRegistryGenerator</mainClass>
-              <arguments>
-                <argument>${project.basedir}/target/generated-sources/reflection/io/apicurio/registry/ApicurioRegisterForReflection.java</argument>
-              </arguments>
-              <includePluginDependencies>true</includePluginDependencies>
-            </configuration>
-          </execution>
           <!-- LLM Artifact Types: npm install -->
           <execution>
             <id>llm-artifact-types-npm-install</id>
@@ -718,18 +728,6 @@
             </configuration>
           </execution>
         </executions>
-        <dependencies>
-          <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-utils-reflectgen</artifactId>
-            <version>${project.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-data-models</artifactId>
-            <version>${apicurio-data-models.version}</version>
-          </dependency>
-        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -744,7 +742,6 @@
             <configuration>
               <sources>
                 <source>${project.basedir}/target/generated-sources/jaxrs</source>
-                <source>${project.basedir}/target/generated-sources/reflection</source>
               </sources>
             </configuration>
           </execution>
@@ -823,41 +820,4 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>native</id>
-      <activation>
-        <property>
-          <name>native</name>
-        </property>
-      </activation>
-      <properties>
-        <quarkus.native.enabled>true</quarkus.native.enabled>
-        <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-                <configuration>
-                  <systemPropertyVariables>
-                    <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
-                    <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                    <maven.home>${maven.home}</maven.home>
-                  </systemPropertyVariables>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-  </profiles>
 </project>

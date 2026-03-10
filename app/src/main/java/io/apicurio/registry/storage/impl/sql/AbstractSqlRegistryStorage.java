@@ -905,7 +905,28 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             VersionState newState, boolean dryRun) {
+        // Get the current state before updating.
+        VersionState currentState = versionRepository.getArtifactVersionState(groupId, artifactId, version);
+
+        // Delegate to the version repository to update the state.
         versionRepository.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
+
+        // When transitioning from DRAFT to a non-DRAFT state, recalculate content hashes.
+        // Draft content uses fake hashes ("draft:" + UUID) to prevent content-based search.
+        // Once the version is no longer a draft, we need real hashes so that searches work.
+        if (!dryRun && currentState == VersionState.DRAFT && newState != VersionState.DRAFT) {
+            ArtifactVersionMetaDataDto versionMeta = versionRepository.getArtifactVersionMetaData(groupId,
+                    artifactId, version);
+            ContentWrapperDto contentDto = contentRepository.getContentById(versionMeta.getContentId());
+            if (contentDto.getContentHash() != null && contentDto.getContentHash().startsWith("draft:")) {
+                String artifactType = versionMeta.getArtifactType();
+                long newContentId = ensureContentAndGetId(artifactType, contentDto, false);
+                if (newContentId != versionMeta.getContentId()) {
+                    versionRepository.updateArtifactVersionContent(groupId, artifactId, version,
+                            newContentId);
+                }
+            }
+        }
     }
 
     @Override
@@ -1024,7 +1045,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * DataExporter class when exporting all Registry data.
      */
     @Override
-    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
+    public void exportData(String groupId, Function<Entity, Void> handler) throws RegistryStorageException {
         // Export a simple manifest file
         ManifestEntity manifest = new ManifestEntity();
         if (securityIdentity != null && securityIdentity.getPrincipal() != null) {
@@ -1036,16 +1057,28 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         manifest.dbVersion = "" + DB_VERSION;
         handler.apply(manifest);
 
-        // Delegate all export operations to the export repository
-        exportRepository.exportContent(handler);
-        exportRepository.exportGroups(handler);
-        exportRepository.exportGroupRules(handler);
-        exportRepository.exportArtifacts(handler);
-        exportRepository.exportArtifactVersions(handler);
-        exportRepository.exportVersionComments(handler);
-        exportRepository.exportBranches(handler);
-        exportRepository.exportArtifactRules(handler);
-        exportRepository.exportGlobalRules(handler);
+        if (groupId != null) {
+            // Group-scoped export: exclude global rules, filter everything by groupId
+            exportRepository.exportContent(groupId, handler);
+            exportRepository.exportGroups(groupId, handler);
+            exportRepository.exportGroupRules(groupId, handler);
+            exportRepository.exportArtifacts(groupId, handler);
+            exportRepository.exportArtifactVersions(groupId, handler);
+            exportRepository.exportVersionComments(groupId, handler);
+            exportRepository.exportBranches(groupId, handler);
+            exportRepository.exportArtifactRules(groupId, handler);
+        } else {
+            // Full export: all data including global rules
+            exportRepository.exportContent(handler);
+            exportRepository.exportGroups(handler);
+            exportRepository.exportGroupRules(handler);
+            exportRepository.exportArtifacts(handler);
+            exportRepository.exportArtifactVersions(handler);
+            exportRepository.exportVersionComments(handler);
+            exportRepository.exportBranches(handler);
+            exportRepository.exportArtifactRules(handler);
+            exportRepository.exportGlobalRules(handler);
+        }
     }
 
     @Override

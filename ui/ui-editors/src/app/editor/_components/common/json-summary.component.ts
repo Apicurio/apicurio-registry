@@ -19,12 +19,12 @@ import {Component, Input, OnChanges, SimpleChanges, ViewEncapsulation} from "@an
 
 @Component({
     selector: "json-summary",
-    template: `<span class="json-summary" [innerHTML]="convertedData" [class.empty]="isEmpty()"></span>`,
+    template: `<span class="json-summary" [textContent]="convertedData" [class.empty]="isEmpty()"></span>`,
     encapsulation: ViewEncapsulation.None
 })
 export class JsonSummaryComponent implements OnChanges {
     @Input("data")
-    data: string;
+    data: unknown;
     @Input("emptyText")
     emptyText: string = "No value.";
 
@@ -33,6 +33,9 @@ export class JsonSummaryComponent implements OnChanges {
     ngOnChanges(changes: SimpleChanges): void {
         if (this.isEmpty()) {
             this.convertedData = this.emptyText;
+        } else if (typeof this.data === "string") {
+            // Keep plain strings unquoted so example summaries match what users type in the UI.
+            this.convertedData = this.data;
         } else {
             this.convertedData = JSON.stringify(this.data);
         }

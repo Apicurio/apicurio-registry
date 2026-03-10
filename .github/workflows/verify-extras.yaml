@@ -44,9 +44,9 @@ jobs:
             -Dmaven.javadoc.skip=true
 
       - name: Run examples/http-caching tests
-        working-directory: examples/http-caching
+        working-directory: examples/http-caching/test
         run: |
-          ./run-tests.sh --registry-image apicurio/apicurio-registry:${{ inputs.image-tag }}
+          ./setup-and-run-tests.sh --registry-image apicurio/apicurio-registry:${{ inputs.image-tag }} --debug
 
       - name: Collect logs
         if: failure()

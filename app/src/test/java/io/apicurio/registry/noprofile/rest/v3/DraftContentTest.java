@@ -3,6 +3,7 @@ package io.apicurio.registry.noprofile.rest.v3;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateGroup;
@@ -467,6 +468,269 @@ public class DraftContentTest extends AbstractResourceTestBase {
         UserInterfaceConfig config = clientV3.system().uiConfig().get();
         Assertions.assertNotNull(config);
         Assertions.assertTrue(config.getFeatures().getDraftMutability());
+    }
+
+    @Test
+    public void testCreateDraftArtifactVersionWithReferences() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a JSON Schema artifact to be referenced
+        String jsonSchemaContent = """
+                {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "User",
+                    "type": "object",
+                    "properties": {
+                        "id": { "type": "string" },
+                        "name": { "type": "string" }
+                    },
+                    "required": ["id", "name"]
+                }
+                """;
+        String referencedArtifactId = "test-user-schema-" + UUID.randomUUID().toString();
+
+        CreateArtifact createReferenced = TestUtils.clientCreateArtifact(referencedArtifactId,
+                ArtifactType.JSON, jsonSchemaContent, ContentTypes.APPLICATION_JSON);
+        createReferenced.getFirstVersion().setVersion("1.0.0");
+        createReferenced.getFirstVersion().setIsDraft(false);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createReferenced);
+
+        // Create an OpenAPI artifact (non-draft, no references)
+        String openapiContent = """
+                {
+                    "openapi": "3.0.0",
+                    "info": { "title": "User API", "version": "1.0.0" },
+                    "paths": {}
+                }
+                """;
+        String mainArtifactId = "test-openapi-" + UUID.randomUUID().toString();
+
+        CreateArtifact createMain = TestUtils.clientCreateArtifact(mainArtifactId,
+                ArtifactType.OPENAPI, openapiContent, ContentTypes.APPLICATION_JSON);
+        createMain.getFirstVersion().setVersion("1.0.0");
+        createMain.getFirstVersion().setIsDraft(false);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createMain);
+
+        // Create a DRAFT version with references
+        String openapiContentV2 = """
+                {
+                    "openapi": "3.0.0",
+                    "info": { "title": "User API", "version": "1.0.1" },
+                    "paths": {
+                        "/users/{userId}": {
+                            "get": {
+                                "summary": "Get user by ID",
+                                "responses": {
+                                    "200": {
+                                        "description": "OK",
+                                        "content": {
+                                            "application/json": {
+                                                "schema": { "$ref": "user" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                """;
+
+        ArtifactReference ref = new ArtifactReference();
+        ref.setGroupId(groupId);
+        ref.setArtifactId(referencedArtifactId);
+        ref.setVersion("1.0.0");
+        ref.setName("user");
+
+        CreateVersion createVersion = TestUtils.clientCreateVersion(openapiContentV2,
+                ContentTypes.APPLICATION_JSON);
+        createVersion.setVersion("1.0.1");
+        createVersion.setIsDraft(true);
+        createVersion.getContent().setReferences(List.of(ref));
+
+        VersionMetaData vmd = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(mainArtifactId).versions().post(createVersion);
+
+        Assertions.assertNotNull(vmd);
+        Assertions.assertEquals(VersionState.DRAFT, vmd.getState());
+
+        // Verify references are persisted for the draft version
+        List<io.apicurio.registry.rest.client.models.ArtifactReference> refs = clientV3.groups()
+                .byGroupId(groupId).artifacts().byArtifactId(mainArtifactId).versions()
+                .byVersionExpression("1.0.1").references().get();
+        Assertions.assertNotNull(refs);
+        Assertions.assertEquals(1, refs.size(),
+                "Draft version should have 1 reference but had " + refs.size());
+        Assertions.assertEquals(referencedArtifactId, refs.get(0).getArtifactId());
+        Assertions.assertEquals("1.0.0", refs.get(0).getVersion());
+    }
+
+    @Test
+    public void testCreateDraftArtifactWithReferences() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create a JSON Schema artifact to be referenced
+        String jsonSchemaContent = """
+                {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "Order",
+                    "type": "object",
+                    "properties": {
+                        "orderId": { "type": "string" },
+                        "amount": { "type": "number" }
+                    },
+                    "required": ["orderId", "amount"]
+                }
+                """;
+        String referencedArtifactId = "test-order-schema-" + UUID.randomUUID().toString();
+
+        CreateArtifact createReferenced = TestUtils.clientCreateArtifact(referencedArtifactId,
+                ArtifactType.JSON, jsonSchemaContent, ContentTypes.APPLICATION_JSON);
+        createReferenced.getFirstVersion().setVersion("1.0.0");
+        createReferenced.getFirstVersion().setIsDraft(false);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createReferenced);
+
+        // Create an OpenAPI artifact with isDraft=true and references in the first version
+        String openapiContent = """
+                {
+                    "openapi": "3.0.0",
+                    "info": { "title": "Order API", "version": "1.0.0" },
+                    "paths": {
+                        "/orders": {
+                            "post": {
+                                "summary": "Create order",
+                                "requestBody": {
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "order" }
+                                        }
+                                    }
+                                },
+                                "responses": { "201": { "description": "Created" } }
+                            }
+                        }
+                    }
+                }
+                """;
+
+        ArtifactReference ref = new ArtifactReference();
+        ref.setGroupId(groupId);
+        ref.setArtifactId(referencedArtifactId);
+        ref.setVersion("1.0.0");
+        ref.setName("order");
+
+        String mainArtifactId = "test-order-api-" + UUID.randomUUID().toString();
+
+        CreateArtifact createMain = TestUtils.clientCreateArtifact(mainArtifactId,
+                ArtifactType.OPENAPI, openapiContent, ContentTypes.APPLICATION_JSON);
+        createMain.getFirstVersion().setVersion("1.0.0");
+        createMain.getFirstVersion().setIsDraft(true);
+        createMain.getFirstVersion().getContent().setReferences(List.of(ref));
+
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createMain);
+
+        Assertions.assertNotNull(car);
+        Assertions.assertNotNull(car.getVersion());
+        Assertions.assertEquals(VersionState.DRAFT, car.getVersion().getState());
+
+        // Verify references are persisted for the draft first version
+        List<io.apicurio.registry.rest.client.models.ArtifactReference> refs = clientV3.groups()
+                .byGroupId(groupId).artifacts().byArtifactId(mainArtifactId).versions()
+                .byVersionExpression("1.0.0").references().get();
+        Assertions.assertNotNull(refs);
+        Assertions.assertEquals(1, refs.size(),
+                "Draft first version should have 1 reference but had " + refs.size());
+        Assertions.assertEquals(referencedArtifactId, refs.get(0).getArtifactId());
+        Assertions.assertEquals("1.0.0", refs.get(0).getVersion());
+    }
+
+    @Test
+    public void testSearchByContentAfterDraftToEnabled() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        // Create the artifact with a non-draft first version.
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Create a draft version with V2 content.
+        CreateVersion createVersion = TestUtils.clientCreateVersion(AVRO_CONTENT_V2,
+                ContentTypes.APPLICATION_JSON);
+        createVersion.setVersion("2.0");
+        createVersion.setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
+
+        // Verify the draft version is NOT found by content search.
+        VersionSearchResults results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V2), ContentTypes.APPLICATION_JSON);
+        Assertions.assertEquals(0, results.getCount(),
+                "Draft version should not be found by content search");
+
+        // Transition the draft version to ENABLED.
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(io.apicurio.registry.rest.client.models.VersionState.ENABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("2.0").state().put(newState);
+
+        // Search by exact content - should now find the version.
+        results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V2), ContentTypes.APPLICATION_JSON);
+        Assertions.assertEquals(1, results.getCount(),
+                "Enabled version should be found by content search");
+
+        // Search by canonical content - should also find the version.
+        results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V2), ContentTypes.APPLICATION_JSON, config -> {
+                    config.queryParameters.canonical = true;
+                    config.queryParameters.artifactType = ArtifactType.AVRO;
+                });
+        Assertions.assertEquals(1, results.getCount(),
+                "Enabled version should be found by canonical content search");
+    }
+
+    @Test
+    public void testSearchByContentAfterDraftToEnabled_Deduplication() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId1 = TestUtils.generateArtifactId();
+        String artifactId2 = TestUtils.generateArtifactId();
+
+        // Create artifact 1 with a non-draft version containing V1 content.
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId1, ArtifactType.AVRO,
+                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Create artifact 2 with a draft version containing the same V1 content.
+        createArtifact = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.AVRO, AVRO_CONTENT_V1,
+                ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        createArtifact.getFirstVersion().setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        // Verify only 1 version is found by content search (the non-draft one).
+        VersionSearchResults results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V1), ContentTypes.APPLICATION_JSON, config -> {
+                    config.queryParameters.groupId = groupId;
+                });
+        Assertions.assertEquals(1, results.getCount(),
+                "Only the non-draft version should be found by content search");
+
+        // Transition the draft version to ENABLED.
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(io.apicurio.registry.rest.client.models.VersionState.ENABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).versions()
+                .byVersionExpression("1.0").state().put(newState);
+
+        // Both versions should now be found (they should share the same content row).
+        results = clientV3.search().versions()
+                .post(asInputStream(AVRO_CONTENT_V1), ContentTypes.APPLICATION_JSON, config -> {
+                    config.queryParameters.groupId = groupId;
+                });
+        Assertions.assertEquals(2, results.getCount(),
+                "Both versions should be found after draft is enabled");
     }
 
 }

@@ -3420,6 +3420,14 @@ spec:
 
                               Required if `app.storage.type` is `kafkasql`.
                             type: string
+                          kafkaAccessSecretName:
+                            description: Name of a Kubernetes Secret produced by the
+                              Strimzi Kafka Access Operator (type `servicebinding.io/kafka`).
+                              When set, the operator reads connection details (bootstrap
+                              servers, TLS certificates, SASL credentials) from this
+                              secret instead of requiring manual configuration via
+                              `bootstrapServers`, `tls`, and `auth`.
+                            type: string
                           tls:
                             description: Configure KafkaSQL storage when the access
                               to the Kafka cluster is secured using TLS.

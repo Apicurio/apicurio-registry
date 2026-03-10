@@ -122,18 +122,7 @@ jobs:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
-  # PHASE 7: Native Build (reuses build artifacts)
-  # ============================================================================
-  native:
-    name: Native Build
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    uses: ./.github/workflows/verify-native.yaml
-    with:
-      image-tag: ${{ github.sha }}
-
-  # ============================================================================
-  # PHASE 8: Publish Images (only on push to main)
+  # PHASE 7: Publish Images (only on push to main)
   # ============================================================================
   publish:
     name: Publish Images

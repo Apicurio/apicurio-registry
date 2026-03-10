@@ -14,7 +14,7 @@ services:
       QUARKUS_LOG_LEVEL: "INFO"
       APICURIO_LOG_LEVEL: "DEBUG"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5

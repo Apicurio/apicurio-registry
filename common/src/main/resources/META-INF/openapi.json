@@ -574,6 +574,14 @@
               "type": "boolean"
             },
             "in": "query"
+          },
+          {
+            "name": "groupId",
+            "description": "If specified, only data belonging to this group will be exported. Global rules will be excluded.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
           }
         ],
         "responses": {
@@ -592,6 +600,9 @@
             },
             "description": "Response when the export is successful."
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           },
@@ -604,7 +615,7 @@
         },
         "operationId": "exportData",
         "summary": "Export registry data",
-        "description": "Exports registry data as a ZIP archive."
+        "description": "Exports registry data as a ZIP archive.  If a `groupId` query parameter is provided, only data belonging to the specified group will be exported and global rules will be excluded."
       }
     },
     "/admin/import": {

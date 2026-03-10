@@ -726,7 +726,6 @@
             <id>gencode</id>
             <goals>
               <goal>generate</goal>
-              <goal>generate-test</goal>
             </goals>
             <phase>generate-sources</phase>
             <configuration>

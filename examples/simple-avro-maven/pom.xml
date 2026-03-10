@@ -34,7 +34,7 @@
     <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
-      <version>0.15.0</version>
+      <version>0.17.1</version>
     </dependency>
     <dependency>
       <groupId>javax.ws.rs</groupId>

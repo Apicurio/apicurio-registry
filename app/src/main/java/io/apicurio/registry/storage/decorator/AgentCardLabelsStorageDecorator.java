@@ -41,7 +41,6 @@ public class AgentCardLabelsStorageDecorator extends RegistryStorageDecoratorBas
         return RegistryStorageDecoratorOrderConstants.AGENT_CARD_LABELS_DECORATOR;
     }
 
-    @Override
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
@@ -54,11 +53,10 @@ public class AgentCardLabelsStorageDecorator extends RegistryStorageDecoratorBas
             versionMetaData = mergeAgentCardLabels(versionContent, versionMetaData);
         }
 
-        return super.createArtifact(groupId, artifactId, artifactType, artifactMetaData, version,
+        return delegate.createArtifact(groupId, artifactId, artifactType, artifactMetaData, version,
                 versionContent, versionMetaData, versionBranches, versionIsDraft, dryRun, owner);
     }
 
-    @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
@@ -69,7 +67,7 @@ public class AgentCardLabelsStorageDecorator extends RegistryStorageDecoratorBas
             metaData = mergeAgentCardLabels(content, metaData);
         }
 
-        return super.createArtifactVersion(groupId, artifactId, version, artifactType, content, metaData,
+        return delegate.createArtifactVersion(groupId, artifactId, version, artifactType, content, metaData,
                 branches, isDraft, dryRun, owner);
     }
 

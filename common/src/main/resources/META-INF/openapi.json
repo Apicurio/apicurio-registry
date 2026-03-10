@@ -5482,6 +5482,10 @@
           "agents": {
             "description": "",
             "type": "boolean"
+          },
+          "searchIndex": {
+            "description": "",
+            "type": "boolean"
           }
         },
         "example": {

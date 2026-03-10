@@ -22,6 +22,7 @@ import { SearchType } from "@app/pages/search/SearchType.ts";
 import { plural } from "pluralize";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy, SearchFilter } from "@services/useSearchService.ts";
+import { useConfigService } from "@services/useConfigService.ts";
 import {
     ArtifactSearchResults,
     ArtifactSortBy,
@@ -86,6 +87,8 @@ VERSION_FILTER_TYPES.forEach(filterType => {
  * Models the toolbar for the Search page.
  */
 export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (props: SearchPageToolbarProps) => {
+    const config = useConfigService();
+
     const filterCriteria: ChipFilterCriteria[] = props.filters.map(c => {
         return {
             filterBy: FILTER_TYPE_LOOKUP[c.by],
@@ -114,7 +117,9 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
             ];
             break;
         case SearchType.VERSION:
-            filterTypes = VERSION_FILTER_TYPES;
+            filterTypes = config.featureSearchIndex()
+                ? VERSION_FILTER_TYPES
+                : VERSION_FILTER_TYPES.filter(ft => ft.value !== FilterBy.content && ft.value !== FilterBy.structure);
             sortItems = [
                 VersionSortByObject.GroupId,
                 VersionSortByObject.ArtifactId,

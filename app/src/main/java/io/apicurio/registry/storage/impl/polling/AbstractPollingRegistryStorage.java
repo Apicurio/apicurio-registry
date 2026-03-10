@@ -492,6 +492,36 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
     }
 
     @Override
+    public void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer) {
+        proxyAction(storage -> storage.forEachVersion(sinceTimestamp, consumer));
+    }
+
+    @Override
+    public void forEachVersion(Consumer<VersionContentDto> consumer) {
+        proxyAction(storage -> storage.forEachVersion(consumer));
+    }
+
+    @Override
+    public List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
+        return proxy(storage -> storage.getVersionsModifiedSince(sinceTimestamp));
+    }
+
+    @Override
+    public long countVersionsModifiedSince(long sinceTimestamp) {
+        return proxy(storage -> storage.countVersionsModifiedSince(sinceTimestamp));
+    }
+
+    @Override
+    public long getLatestVersionTimestamp() {
+        return proxy(RegistryStorage::getLatestVersionTimestamp);
+    }
+
+    @Override
+    public List<Long> getAllVersionGlobalIds() {
+        return proxy(RegistryStorage::getAllVersionGlobalIds);
+    }
+
+    @Override
     public String triggerSnapshotCreation() throws RegistryStorageException {
         return proxy((RegistryStorage::triggerSnapshotCreation));
     }

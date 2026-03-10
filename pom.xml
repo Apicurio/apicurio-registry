@@ -605,6 +605,11 @@
         <artifactId>kafka-oauth-client</artifactId>
         <version>${kafka-oauth-client.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.strimzi</groupId>
+        <artifactId>kafka-oauth-common</artifactId>
+        <version>${kafka-oauth-client.version}</version>
+      </dependency>
 
       <!-- Third Party Libraries -->
       <dependency>

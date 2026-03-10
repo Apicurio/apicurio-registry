@@ -241,6 +241,7 @@
     <commons-codec.version>1.21.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
+    <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
     <debezium.version>2.7.4.Final</debezium.version>
     <pulsar-clients.version>3.3.9</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
@@ -593,13 +594,19 @@
         <version>${connect.version}</version>
       </dependency>
 
-      <!-- Third Party Libraries -->
+      <!-- Overrides of versions from the Quarkus BOM -->
       <dependency>
-        <!-- Overrides the version from the Quarkus BOM -->
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>
         <version>${kafka-clients.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.strimzi</groupId>
+        <artifactId>kafka-oauth-client</artifactId>
+        <version>${kafka-oauth-client.version}</version>
+      </dependency>
+
+      <!-- Third Party Libraries -->
       <dependency>
         <groupId>io.nats</groupId>
         <artifactId>jnats</artifactId>

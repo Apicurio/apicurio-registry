@@ -316,8 +316,8 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
     }
 
     @Override
-    public void exportData(Function<Entity, Void> handler) {
-        proxyAction(storage -> storage.exportData(handler));
+    public void exportData(String groupId, Function<Entity, Void> handler) {
+        proxyAction(storage -> storage.exportData(groupId, handler));
     }
 
     @Override

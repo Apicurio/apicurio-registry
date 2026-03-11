@@ -167,6 +167,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         return type === ArtifactTypes.OPENAPI
             || type === ArtifactTypes.ASYNCAPI
             || type === ArtifactTypes.AGENT_CARD
+            || type === ArtifactTypes.JSON
             || type === ArtifactTypes.MODEL_SCHEMA
             || type === ArtifactTypes.PROMPT_TEMPLATE;
     };

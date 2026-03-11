@@ -268,10 +268,6 @@ NOTE: For each configuration property you can override the value by using the co
 |New Option
 |`registry.rest.artifact.deletion.enabled`
 |`apicurio.rest.artifact.deletion.enabled`
-|`registry.rest.artifact.download.maxSize`
-|`apicurio.rest.artifact.download.max-size.bytes`
-|`registry.rest.artifact.download.skipSSLValidation`
-|`apicurio.rest.artifact.download.ssl-validation.disabled`
 |===
 
 === store

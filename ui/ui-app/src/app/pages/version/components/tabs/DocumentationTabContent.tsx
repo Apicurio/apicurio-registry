@@ -5,6 +5,7 @@ import YAML from "yaml";
 import {
     AgentCardVisualizer,
     AsyncApiVisualizer,
+    JsonSchemaVisualizer,
     ModelSchemaVisualizer,
     OpenApiVisualizer,
     PromptTemplateVisualizer
@@ -12,7 +13,7 @@ import {
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 
 enum VisualizerType {
-    OPENAPI, ASYNCAPI, AGENT_CARD, MODEL_SCHEMA, PROMPT_TEMPLATE, OTHER
+    OPENAPI, ASYNCAPI, AGENT_CARD, JSON_SCHEMA, MODEL_SCHEMA, PROMPT_TEMPLATE, OTHER
 }
 
 const getVisualizerType = (artifactType: string): VisualizerType => {
@@ -24,6 +25,9 @@ const getVisualizerType = (artifactType: string): VisualizerType => {
     }
     if (artifactType === ArtifactTypes.AGENT_CARD) {
         return VisualizerType.AGENT_CARD;
+    }
+    if (artifactType === ArtifactTypes.JSON) {
+        return VisualizerType.JSON_SCHEMA;
     }
     if (artifactType === ArtifactTypes.MODEL_SCHEMA) {
         return VisualizerType.MODEL_SCHEMA;
@@ -89,6 +93,9 @@ export const DocumentationTabContent: FunctionComponent<DocumentationTabContentP
             </If>
             <If condition={visualizerType === VisualizerType.AGENT_CARD}>
                 <AgentCardVisualizer spec={parsedContent} />
+            </If>
+            <If condition={visualizerType === VisualizerType.JSON_SCHEMA}>
+                <JsonSchemaVisualizer spec={parsedContent} />
             </If>
             <If condition={visualizerType === VisualizerType.MODEL_SCHEMA}>
                 <ModelSchemaVisualizer spec={parsedContent} />

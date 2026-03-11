@@ -312,15 +312,15 @@ check_services() {
     # Check Registry
     echo ""
     echo "Checking if services are running..."
-    if ! curl -sf "${REGISTRY_URL}/health/live" > /dev/null; then
-        echo -e "${RED}ERROR: Registry is not running at ${REGISTRY_URL}${NC}"
+    if ! curl -sf "${REGISTRY_MANAGEMENT_URL:-http://localhost:9000}/health/live" > /dev/null; then
+        echo -e "${RED}ERROR: Registry is not running (management port at ${REGISTRY_MANAGEMENT_URL:-http://localhost:9000})${NC}"
         echo "Start it with: docker compose -f docker-compose.yaml up OR or mvn quarkus:dev"
         exit 1
     fi
     echo -e "${GREEN}✓${NC} Registry is running"
 
     # Check Varnish
-    if ! curl -sf "${VARNISH_URL}/health/live" > /dev/null; then
+    if ! curl -sf "${VARNISH_URL}/apis/registry/v3/system/info" > /dev/null; then
         echo -e "${RED}ERROR: Varnish is not running at ${VARNISH_URL}${NC}"
         echo "Start it with: docker compose -f docker-compose[-dev].yaml up"
         exit 1

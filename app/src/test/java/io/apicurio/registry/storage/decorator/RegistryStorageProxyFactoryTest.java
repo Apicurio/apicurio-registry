@@ -4,8 +4,6 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
 import java.lang.reflect.Method;
 import java.util.List;
 

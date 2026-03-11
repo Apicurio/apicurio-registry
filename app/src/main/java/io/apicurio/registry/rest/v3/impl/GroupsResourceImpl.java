@@ -57,6 +57,7 @@ import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -109,6 +110,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     io.apicurio.registry.services.PromptRenderingService promptRenderingService;
+
+    @Inject
+    io.apicurio.registry.services.EmbeddedSchemaService embeddedSchemaService;
 
     @Inject
     ProtobufExporter protobufExporter;
@@ -1294,6 +1298,30 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             final String owner = securityIdentity.getPrincipal().getName();
 
+            // Auto-extract embedded schemas for LLM artifact types
+            ContentHandle effectiveContent = content;
+            String effectiveContentType = contentType;
+            List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
+            if ("MODEL_SCHEMA".equals(artifactType)) {
+                var extraction = embeddedSchemaService.extractModelSchemaEmbeddedSchemas(
+                        storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                        content, contentType, owner);
+                if (extraction != null) {
+                    effectiveContent = extraction.getModifiedContent();
+                    effectiveContentType = extraction.getContentType();
+                    autoReferences.addAll(extraction.getReferences());
+                }
+            } else if ("PROMPT_TEMPLATE".equals(artifactType)) {
+                var extraction = embeddedSchemaService.extractPromptTemplateEmbeddedSchemas(
+                        storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                        content, contentType, owner);
+                if (extraction != null) {
+                    effectiveContent = extraction.getModifiedContent();
+                    effectiveContentType = extraction.getContentType();
+                    autoReferences.addAll(extraction.getReferences());
+                }
+            }
+
             // Create the artifact (with optional first version)
             EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
                     .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
@@ -1303,11 +1331,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             List<String> firstVersionBranches = null;
             boolean firstVersionIsDraft = false;
             if (data.getFirstVersion() != null) {
-                // Convert references to DTOs
+                // Convert references to DTOs and merge with auto-extracted references
                 final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
+                referencesAsDtos.addAll(autoReferences);
 
                 firstVersion = data.getFirstVersion().getVersion();
-                firstVersionContent = ContentWrapperDto.builder().content(content).contentType(contentType)
+                firstVersionContent = ContentWrapperDto.builder().content(effectiveContent).contentType(effectiveContentType)
                         .references(referencesAsDtos).build();
                 firstVersionMetaData = EditableVersionMetaDataDto.builder()
                         .description(data.getFirstVersion().getDescription())
@@ -1323,8 +1352,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
                 if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
+                    TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
                     rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
-                            artifactType, typedContent, RuleApplicationType.CREATE, references,
+                            artifactType, effectiveTypedContent, RuleApplicationType.CREATE, references,
                             resolvedReferences);
                 }
             }
@@ -1411,9 +1441,36 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String ct = data.getContent().getContentType();
         boolean isDraft = data.getIsDraft() != null && data.getIsDraft();
 
-        // Transform the given references into dtos
+        final String owner = securityIdentity.getPrincipal().getName();
+
+        // Auto-extract embedded schemas for LLM artifact types
+        ContentHandle effectiveContent = content;
+        String effectiveContentType = ct;
+        List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
+        if ("MODEL_SCHEMA".equals(artifactType)) {
+            var extraction = embeddedSchemaService.extractModelSchemaEmbeddedSchemas(
+                    storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                    content, ct, owner);
+            if (extraction != null) {
+                effectiveContent = extraction.getModifiedContent();
+                effectiveContentType = extraction.getContentType();
+                autoReferences.addAll(extraction.getReferences());
+            }
+        } else if ("PROMPT_TEMPLATE".equals(artifactType)) {
+            var extraction = embeddedSchemaService.extractPromptTemplateEmbeddedSchemas(
+                    storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                    content, ct, owner);
+            if (extraction != null) {
+                effectiveContent = extraction.getModifiedContent();
+                effectiveContentType = extraction.getContentType();
+                autoReferences.addAll(extraction.getReferences());
+            }
+        }
+
+        // Transform the given references into dtos and merge with auto-extracted references
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(
                 data.getContent().getReferences());
+        referencesAsDtos.addAll(autoReferences);
 
         // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
@@ -1421,17 +1478,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
-            TypedContent typedContent = TypedContent.create(content, ct);
+            TypedContent typedContent = TypedContent.create(effectiveContent, effectiveContentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
                     typedContent, RuleApplicationType.UPDATE, data.getContent().getReferences(),
                     resolvedReferences);
         }
 
-        final String owner = securityIdentity.getPrincipal().getName();
-
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
                 .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
-        ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(ct).content(content)
+        ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(effectiveContentType).content(effectiveContent)
                 .references(referencesAsDtos).build();
 
         ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(

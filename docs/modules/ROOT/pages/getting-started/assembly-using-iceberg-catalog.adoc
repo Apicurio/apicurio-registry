@@ -9,11 +9,15 @@ This chapter explains how to use {registry} as an Apache Iceberg REST Catalog to
 * xref:registry-iceberg-catalog-overview_{context}[]
 * xref:registry-iceberg-catalog-config_{context}[]
 * xref:registry-iceberg-catalog-rest-api_{context}[]
+* xref:registry-iceberg-catalog-commit-table_{context}[]
+* xref:registry-iceberg-catalog-error-handling_{context}[]
+* xref:registry-iceberg-catalog-auth_{context}[]
 * xref:registry-iceberg-catalog-query-engines_{context}[]
+* xref:registry-iceberg-catalog-limitations_{context}[]
 
 
 .Prerequisites
-* A running {registry} instance
+* A running {registry} instance with `apicurio.features.experimental.enabled=true` and `apicurio.iceberg.enabled=true`
 * Query engines or tools that support the Iceberg REST Catalog specification (Apache Spark, Trino, ClickHouse, DuckDB, Flink)
 
 
@@ -37,15 +41,15 @@ The catalog maps {registry} concepts to Iceberg concepts as follows:
 |Artifact (type: `ICEBERG_TABLE`)
 |Table
 |An Iceberg table registered in {registry}. The artifact content contains the full TableMetadata JSON.
-|Artifact (type: `ICEBERG_VIEW`)
-|View
-|An Iceberg view registered in {registry}. The artifact content contains the ViewMetadata JSON.
 |Artifact Content
 |TableMetadata / ViewMetadata
 |The metadata JSON stored as artifact content, containing schema, partition spec, sort order, snapshots, and other Iceberg metadata.
 |Group Labels
 |Namespace Properties
 |Key-value properties associated with a namespace, stored as group labels.
+|Artifact Version
+|Table Commit
+|Each commit to an Iceberg table creates a new artifact version in {registry}. The version content contains the updated TableMetadata JSON.
 |Artifact Labels
 |Table Properties
 |Key-value properties associated with a table, stored as artifact labels.
@@ -70,8 +74,8 @@ This section describes the configuration options available for the {registry} Ic
 |Description
 |`apicurio.iceberg.enabled`
 |`APICURIO_ICEBERG_ENABLED`
-|`true`
-|Enables or disables the Iceberg REST Catalog API.
+|`false`
+|Enables or disables the Iceberg REST Catalog API. This is an experimental feature and also requires `apicurio.features.experimental.enabled=true`.
 |`apicurio.iceberg.warehouse`
 |`APICURIO_ICEBERG_WAREHOUSE`
 |Empty string
@@ -85,6 +89,7 @@ This section describes the configuration options available for the {registry} Ic
 .Example: Configuring {registry} for Iceberg
 [source,properties]
 ----
+apicurio.features.experimental.enabled=true
 apicurio.iceberg.enabled=true
 apicurio.iceberg.warehouse=s3://my-bucket/warehouse
 apicurio.iceberg.default-prefix=production
@@ -244,6 +249,346 @@ curl -X DELETE http://localhost:8080/apis/iceberg/v1/default/namespaces/my_datab
 ----
 
 
+[id='registry-iceberg-catalog-commit-table_{context}']
+== Committing updates to a table
+
+[role="_abstract"]
+The CommitTable operation is the core mechanism for updating Iceberg table metadata. It enables atomic metadata updates with optimistic concurrency control, which is the foundation of Iceberg's snapshot isolation model.
+
+A commit request contains two parts:
+
+* *Requirements* -- preconditions that must be satisfied for the commit to proceed. If any requirement is not met, the commit fails with a `409 Conflict` response and no changes are applied.
+* *Updates* -- mutations to apply to the table metadata. All updates within a single commit are applied atomically to produce one new metadata version.
+
+=== Concurrency control
+
+{registry} uses optimistic concurrency to detect conflicting commits. When a commit is processed:
+
+. The current table metadata is loaded and its version is recorded.
+. All requirements are validated against the current metadata.
+. All updates are applied in-memory to produce new metadata.
+. The new metadata is stored as a new artifact version.
+. If another commit was interleaved between steps 1 and 4, the conflict is detected and the commit fails with a `409 Conflict` response.
+
+This ensures that concurrent writers cannot silently overwrite each other's changes. Clients that receive a `409` response should reload the current table metadata, revalidate their changes, and retry the commit.
+
+All changes within a single commit -- including the new version and any artifact-level label updates -- are applied atomically within a single storage transaction. If any part of the commit fails, the entire operation is rolled back and no partial state is persisted.
+
+=== Conflict handling and retries
+
+When a commit fails with a `409 Conflict` response, the appropriate client behavior is:
+
+. Reload the current table metadata using the `LoadTable` endpoint.
+. Revalidate the intended changes against the new metadata.
+. Rebuild the commit request with updated requirements.
+. Retry the commit.
+
+Most Iceberg client libraries (such as the Apache Iceberg Java SDK) handle this retry loop automatically.
+
+=== KafkaSQL storage considerations
+
+When {registry} is deployed with the KafkaSQL storage backend, all write operations -- including commits -- are serialized through a Kafka journal topic. This has the following implications:
+
+* *Ordering*: Commits to the same table are totally ordered through Kafka partitioning. This means the optimistic concurrency check is always evaluated against the true latest state.
+* *Failed commits*: When a commit fails (for example, due to a concurrent write detected by the version-order check), the Kafka message remains in the journal. This is expected and harmless: during journal replay (such as when a new replica starts up), the message is re-consumed, the same version-order check fails again, and the message is silently discarded since no HTTP thread is waiting for a response.
+* *Atomicity*: The version creation and any artifact-level metadata updates are performed in a single SQL transaction. If the transaction fails, no data is written and the Kafka message becomes a no-op on replay.
+
+=== Requirements
+
+Requirements are assertions about the current state of the table. Each requirement has a `type` field that specifies the kind of assertion.
+
+.Supported requirement types
+[.table-expandable,width="100%",cols="3,3,5",options="header"]
+|===
+|Type
+|Fields
+|Description
+|`assert-create`
+|(none)
+|Asserts that the table does not exist. Fails if the table already has metadata.
+|`assert-table-uuid`
+|`uuid`
+|Asserts that the table UUID matches the expected value.
+|`assert-ref-snapshot-id`
+|`ref`, `snapshot-id`
+|Asserts that a named reference points to the expected snapshot. For the `main` ref, this checks `current-snapshot-id`.
+|`assert-current-schema-id`
+|`current-schema-id`
+|Asserts that the current schema ID matches the expected value.
+|`assert-last-assigned-field-id`
+|`last-assigned-field-id`
+|Asserts that the last assigned column ID matches the expected value.
+|`assert-last-assigned-partition-id`
+|`last-assigned-partition-id`
+|Asserts that the last assigned partition field ID matches the expected value.
+|`assert-default-spec-id`
+|`default-spec-id`
+|Asserts that the default partition spec ID matches the expected value.
+|`assert-default-sort-order-id`
+|`default-sort-order-id`
+|Asserts that the default sort order ID matches the expected value.
+|===
+
+=== Updates
+
+Updates are mutations applied to the table metadata. Each update has an `action` field that specifies the type of mutation.
+
+.Supported update actions
+[.table-expandable,width="100%",cols="3,3,5",options="header"]
+|===
+|Action
+|Fields
+|Description
+|`assign-uuid`
+|`uuid`
+|Sets the table UUID.
+|`upgrade-format-version`
+|`format-version`
+|Upgrades the table format version (cannot downgrade).
+|`add-schema`
+|`schema`
+|Adds a new schema to the table. The `last-column-id` is updated based on the highest field ID in the schema.
+|`set-current-schema`
+|`schema-id`
+|Sets the current schema ID.
+|`add-spec`
+|`spec`
+|Adds a new partition spec. The `last-partition-id` is updated based on the highest field ID in the spec.
+|`set-default-spec`
+|`spec-id`
+|Sets the default partition spec ID.
+|`add-sort-order`
+|`sort-order`
+|Adds a new sort order to the table.
+|`set-default-sort-order`
+|`order-id`
+|Sets the default sort order ID.
+|`add-snapshot`
+|`snapshot`
+|Adds a new snapshot. Updates the snapshot log and increments `last-sequence-number`.
+|`set-snapshot-ref`
+|`ref-name`, `snapshot-id`, `type`
+|Sets a named snapshot reference. If the ref name is `main`, `current-snapshot-id` is also updated.
+|`remove-snapshots`
+|`snapshot-ids`
+|Removes snapshots by their IDs.
+|`remove-snapshot-ref`
+|`ref-name`
+|Removes a named snapshot reference.
+|`set-location`
+|`location`
+|Sets the table location.
+|`set-properties`
+|`updates`
+|Merges key-value pairs into the table properties.
+|`remove-properties`
+|`removals`
+|Removes keys from the table properties.
+|===
+
+=== Example: Adding a schema and setting it as current
+
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requirements": [
+      {"type": "assert-current-schema-id", "current-schema-id": 0}
+    ],
+    "updates": [
+      {
+        "action": "add-schema",
+        "schema": {
+          "type": "struct",
+          "schema-id": 1,
+          "fields": [
+            {"id": 1, "name": "id", "required": true, "type": "long"},
+            {"id": 2, "name": "name", "required": true, "type": "string"},
+            {"id": 3, "name": "email", "required": false, "type": "string"},
+            {"id": 4, "name": "created_at", "required": true, "type": "timestamp"},
+            {"id": 5, "name": "updated_at", "required": false, "type": "timestamp"}
+          ]
+        }
+      },
+      {"action": "set-current-schema", "schema-id": 1}
+    ]
+  }'
+----
+
+=== Example: Adding a snapshot and updating the main branch
+
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requirements": [
+      {"type": "assert-ref-snapshot-id", "ref": "main", "snapshot-id": -1}
+    ],
+    "updates": [
+      {
+        "action": "add-snapshot",
+        "snapshot": {
+          "snapshot-id": 3051729675574597004,
+          "timestamp-ms": 1709550000000,
+          "summary": {"operation": "append"},
+          "manifest-list": "s3://my-bucket/warehouse/my_database/users/metadata/snap-3051729675574597004.avro"
+        }
+      },
+      {
+        "action": "set-snapshot-ref",
+        "ref-name": "main",
+        "snapshot-id": 3051729675574597004,
+        "type": "branch"
+      }
+    ]
+  }'
+----
+
+=== Example: Setting and removing table properties
+
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requirements": [],
+    "updates": [
+      {
+        "action": "set-properties",
+        "updates": {
+          "write.format.default": "parquet",
+          "write.parquet.compression-codec": "zstd"
+        }
+      },
+      {
+        "action": "remove-properties",
+        "removals": ["deprecated-key"]
+      }
+    ]
+  }'
+----
+
+=== Error responses
+
+.CommitTable error responses
+[.table-expandable,width="100%",cols="2,3,5",options="header"]
+|===
+|HTTP Status
+|Error Type
+|Description
+|`200`
+|--
+|Commit succeeded. Returns the updated `LoadTableResponse` with the new table metadata.
+|`400`
+|`BadRequestException`
+|The request contains an unknown requirement type or update action.
+|`404`
+|`NoSuchTableException`
+|The table does not exist.
+|`409`
+|`CommitFailedException`
+|A requirement was not met, or a concurrent commit was detected.
+|===
+
+
+[id='registry-iceberg-catalog-error-handling_{context}']
+== Error handling
+
+[role="_abstract"]
+All Iceberg REST Catalog API endpoints return errors in the Iceberg error format. The following table lists the error types that can be returned by the API.
+
+.Iceberg REST Catalog API error types
+[.table-expandable,width="100%",cols="2,3,5",options="header"]
+|===
+|HTTP Status
+|Error Type
+|Description
+|`400`
+|`BadRequestException`
+|The request is malformed or contains invalid parameters.
+|`404`
+|`NotFoundException`
+|A generic resource was not found.
+|`404`
+|`NoSuchNamespaceException`
+|The specified namespace does not exist.
+|`404`
+|`NoSuchTableException`
+|The specified table does not exist.
+|`409`
+|`AlreadyExistsException`
+|A namespace or table with the same name already exists.
+|`409`
+|`NamespaceNotEmptyException`
+|The namespace cannot be dropped because it still contains tables.
+|`409`
+|`CommitFailedException`
+|A commit requirement was not met, or a concurrent commit was detected.
+|`500`
+|`InternalServerError`
+|An unexpected internal error occurred.
+|===
+
+
+[id='registry-iceberg-catalog-auth_{context}']
+== Authentication and authorization
+
+[role="_abstract"]
+When {registry} is configured with authentication enabled, the Iceberg REST Catalog API enforces the same role-based access control as the core {registry} API. Each endpoint requires a minimum authorization level.
+
+.Iceberg REST Catalog API authorization levels
+[.table-expandable,width="100%",cols="4,2,5",options="header"]
+|===
+|Operation
+|Minimum Level
+|Notes
+|Get catalog configuration
+|Read
+|
+|List namespaces
+|Read
+|
+|Load namespace metadata
+|Read
+|
+|Check if namespace exists
+|Read
+|
+|Create a namespace
+|Write
+|
+|Update namespace properties
+|Write
+|
+|Drop a namespace
+|Admin
+|Namespace must be empty.
+|List tables in a namespace
+|Read
+|
+|Create a table
+|Write
+|
+|Load a table
+|Read
+|
+|Check if table exists
+|Read
+|
+|Commit updates to a table
+|Write
+|
+|Drop a table
+|Admin
+|
+|Rename a table
+|Write
+|
+|===
+
+
 [id='registry-iceberg-catalog-query-engines_{context}']
 == Using {registry} with query engines
 
@@ -389,6 +734,9 @@ The following table lists all Iceberg REST Catalog API endpoints supported by {r
 |GET
 |`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
 |Load a table
+|POST
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
+|Commit updates to a table (atomic metadata update with optimistic concurrency)
 |HEAD
 |`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
 |Check if table exists
@@ -399,6 +747,19 @@ The following table lists all Iceberg REST Catalog API endpoints supported by {r
 |`/apis/iceberg/v1/{prefix}/tables/rename`
 |Rename a table
 |===
+
+
+[id='registry-iceberg-catalog-limitations_{context}']
+== Limitations
+
+[role="_abstract"]
+The {registry} Iceberg REST Catalog implementation has the following limitations:
+
+* *Views are not supported.* Only Iceberg tables are currently supported. The `ICEBERG_VIEW` artifact type is reserved for future use.
+* *Multi-table transactions are not supported.* Each CommitTable operation is scoped to a single table. Cross-table atomic commits are not available.
+* *Server-side content management.* {registry} stores table metadata but does not manage data files. Clients are responsible for writing data files to the configured warehouse location.
+* *Rename is not atomic.* Renaming a table creates the destination and then deletes the source as two separate operations. If the delete fails, both the source and destination may temporarily exist.
+* *Experimental feature.* The Iceberg REST Catalog API requires `apicurio.features.experimental.enabled=true` and may change in future releases.
 
 
 [role="_additional-resources"]

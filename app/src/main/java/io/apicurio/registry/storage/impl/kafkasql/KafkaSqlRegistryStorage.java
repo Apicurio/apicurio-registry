@@ -469,6 +469,25 @@ public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBas
     }
 
     @Override
+    public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto contentDto,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData)
+            throws RegistryStorageException {
+        String content = contentDto != null ? contentDto.getContent().content() : null;
+        String contentType = contentDto != null ? contentDto.getContentType() : null;
+        List<ArtifactReferenceDto> references = contentDto != null ? contentDto.getReferences() : null;
+        var message = new CreateArtifactVersionIfLatest11Message(groupId, artifactId, version, artifactType,
+                contentType, content, references, metaData, branches, isDraft, owner,
+                expectedBaseVersionOrder, artifactMetaData);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        ArtifactVersionMetaDataDto versionMetaDataDto = (ArtifactVersionMetaDataDto) coordinator
+                .waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(versionMetaDataDto)));
+        return versionMetaDataDto;
+    }
+
+    @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto contentDto) throws RegistryStorageException {
         String content = contentDto != null ? contentDto.getContent().content() : null;

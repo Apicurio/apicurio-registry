@@ -8,6 +8,7 @@ import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.iceberg.rest.v1.ApisResource;
 import io.apicurio.registry.iceberg.rest.v1.beans.CatalogConfig;
+import io.apicurio.registry.iceberg.rest.v1.beans.CommitTableRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.Config;
 import io.apicurio.registry.iceberg.rest.v1.beans.CreateNamespaceRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.CreateNamespaceResponse;
@@ -19,11 +20,15 @@ import io.apicurio.registry.iceberg.rest.v1.beans.ListTablesResponse;
 import io.apicurio.registry.iceberg.rest.v1.beans.LoadTableResponse;
 import io.apicurio.registry.iceberg.rest.v1.beans.Overrides;
 import io.apicurio.registry.iceberg.rest.v1.beans.Properties;
+import io.apicurio.registry.iceberg.rest.v1.beans.Requirement;
 import io.apicurio.registry.iceberg.rest.v1.beans.RenameTableRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.TableIdentifier;
 import io.apicurio.registry.iceberg.rest.v1.beans.TableMetadata;
+import io.apicurio.registry.iceberg.rest.v1.beans.Update;
 import io.apicurio.registry.iceberg.rest.v1.beans.UpdateNamespacePropertiesRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.UpdateNamespacePropertiesResponse;
+import io.apicurio.registry.iceberg.rest.v1.impl.commit.TableRequirementValidator;
+import io.apicurio.registry.iceberg.rest.v1.impl.commit.TableUpdateApplicator;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -33,6 +38,7 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
@@ -43,6 +49,7 @@ import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.GroupNotEmptyException;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -475,6 +482,152 @@ public class IcebergApiResourceImpl implements ApisResource {
         requireIcebergEnabled();
         String groupId = namespaceToGroupId(namespace);
         storage.deleteArtifact(groupId, table);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public LoadTableResponse commitTable(String prefix, String namespace, String table,
+            CommitTableRequest data) {
+        requireIcebergEnabled();
+
+        String groupId = namespaceToGroupId(namespace);
+
+        // Load current metadata and record the base version order
+        GAV branchTip = storage.getBranchTip(new GA(groupId, table), BranchId.LATEST,
+                RetrievalBehavior.SKIP_DISABLED_LATEST);
+        ArtifactVersionMetaDataDto currentVersionMeta = storage.getArtifactVersionMetaData(groupId, table,
+                branchTip.getRawVersionId());
+        int baseVersionOrder = currentVersionMeta.getVersionOrder();
+
+        StoredArtifactVersionDto currentArtifact = storage.getArtifactVersionContent(groupId, table,
+                branchTip.getRawVersionId());
+        String currentMetadataJson = currentArtifact.getContent().content();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> currentMetadata;
+        try {
+            currentMetadata = objectMapper.readValue(currentMetadataJson, Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse current table metadata", e);
+        }
+
+        // Validate requirements
+        List<Map<String, Object>> requirements = parseObjectList(data.getRequirements());
+        TableRequirementValidator.validate(requirements, currentMetadata, groupId, table);
+
+        // Deep-copy metadata and apply updates
+        @SuppressWarnings("unchecked")
+        Map<String, Object> newMetadata;
+        try {
+            String metadataCopy = objectMapper.writeValueAsString(currentMetadata);
+            newMetadata = objectMapper.readValue(metadataCopy, Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to copy table metadata", e);
+        }
+
+        List<Map<String, Object>> updates = parseObjectList(data.getUpdates());
+        TableUpdateApplicator.apply(updates, newMetadata);
+
+        // Serialize new metadata
+        String newMetadataJson;
+        try {
+            newMetadataJson = objectMapper.writeValueAsString(newMetadata);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize updated table metadata", e);
+        }
+
+        // Create new artifact version
+        ContentWrapperDto content = ContentWrapperDto.builder()
+                .content(ContentHandle.create(newMetadataJson))
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .references(Collections.emptyList())
+                .build();
+
+        // Compute artifact label updates before the atomic write so that the version
+        // creation and the label update happen in the same storage transaction.
+        EditableArtifactMetaDataDto artifactMetaData = buildArtifactMetaDataIfNeeded(
+                currentMetadata, newMetadata);
+
+        storage.createArtifactVersionIfLatest(groupId, table,
+                null, ArtifactType.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(),
+                null, false, getCurrentUser(), baseVersionOrder, artifactMetaData);
+
+        // Build and return the response
+        return buildLoadTableResponse(newMetadata);
+    }
+
+    private <T> List<Map<String, Object>> parseObjectList(List<T> items) {
+        if (items == null) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (T item : items) {
+            if (item instanceof Requirement) {
+                result.add(((Requirement) item).getAdditionalProperties());
+            } else if (item instanceof Update) {
+                result.add(((Update) item).getAdditionalProperties());
+            } else if (item instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) item;
+                result.add(map);
+            }
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private LoadTableResponse buildLoadTableResponse(Map<String, Object> metadata) {
+        TableMetadata tableMetadata;
+        try {
+            String json = objectMapper.writeValueAsString(metadata);
+            tableMetadata = objectMapper.readValue(json, TableMetadata.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert metadata to TableMetadata", e);
+        }
+
+        LoadTableResponse response = new LoadTableResponse();
+        response.setMetadata(tableMetadata);
+        String location = (String) metadata.get("location");
+        if (location != null) {
+            response.setMetadataLocation(location + "/metadata/v1.metadata.json");
+        }
+        response.setConfig(new Config());
+        return response;
+    }
+
+    /**
+     * Computes the artifact-level metadata update needed after a commit, or returns {@code null}
+     * if no update is necessary. The result is passed to
+     * {@code createArtifactVersionIfLatest} so the label update happens atomically within the
+     * same storage transaction as the version creation.
+     */
+    private EditableArtifactMetaDataDto buildArtifactMetaDataIfNeeded(
+            Map<String, Object> oldMetadata, Map<String, Object> newMetadata) {
+        String oldUuid = (String) oldMetadata.get("table-uuid");
+        String newUuid = (String) newMetadata.get("table-uuid");
+        String oldLocation = (String) oldMetadata.get("location");
+        String newLocation = (String) newMetadata.get("location");
+
+        boolean needsUpdate = false;
+        if (newUuid != null && !newUuid.equals(oldUuid)) {
+            needsUpdate = true;
+        }
+        if (newLocation != null && !newLocation.equals(oldLocation)) {
+            needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+            Map<String, String> labels = new HashMap<>();
+            if (newUuid != null) {
+                labels.put("table-uuid", newUuid);
+            }
+            if (newLocation != null) {
+                labels.put("location", newLocation);
+            }
+            return EditableArtifactMetaDataDto.builder().labels(labels).build();
+        }
+        return null;
     }
 
     @Override

@@ -187,7 +187,7 @@
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio.version>3.16.4</okio.version>
+    <okio.version>3.17.0</okio.version>
     <kotlin-stdlib.version>2.3.10</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.34.0</protobuf.version>
@@ -285,7 +285,7 @@
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
     <version.license-maven-plugin>2.7.1</version.license-maven-plugin>
     <version.exec-maven-plugin>3.6.3</version.exec-maven-plugin>
-    <version.apicurio-codegen-plugin>1.2.9.Final</version.apicurio-codegen-plugin>
+    <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->

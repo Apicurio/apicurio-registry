@@ -4,6 +4,7 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -12,35 +13,43 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 public class RegistryStorageProxyFactoryTest {
 
     @Test
     void unoverriddenMethodGoesDirectlyToRawStorage() {
-        var raw = new StubStorage();
+        var raw = mock(RegistryStorage.class);
+        when(raw.storageName()).thenReturn("stub");
+
         var decorator = new TestDecorator();
         var proxy = RegistryStorageProxyFactory.createProxy(raw, List.of(decorator));
 
         // storageName() is not overridden by TestDecorator, so it should go to raw
         assertEquals("stub", proxy.storageName());
-        assertEquals(1, raw.storageNameCallCount);
+        verify(raw).storageName();
     }
 
     @Test
     void overriddenMethodGoesThoughDecorator() {
-        var raw = new StubStorage();
+        var raw = mock(RegistryStorage.class);
         var decorator = new TestDecorator();
         var proxy = RegistryStorageProxyFactory.createProxy(raw, List.of(decorator));
 
-        // isReadOnly() is overridden by TestDecorator
+        // isReadOnly() is overridden by TestDecorator to return true
         assertTrue(proxy.isReadOnly());
-        assertEquals(0, raw.isReadOnlyCallCount); // raw should NOT be called
+        verifyNoInteractions(raw); // raw should NOT be called
     }
 
     @Test
     void correctOrderingWithMultipleDecorators() {
-        var raw = new StubStorage();
-        raw.configValue = "raw";
+        var raw = mock(RegistryStorage.class);
+        var rawDto = new DynamicConfigPropertyDto();
+        rawDto.setName("raw");
+        when(raw.getConfigProperty("test")).thenReturn(rawDto);
 
         var first = new ConfigCachingDecorator("first");
         var second = new ConfigCachingDecorator("second");
@@ -56,12 +65,8 @@ public class RegistryStorageProxyFactoryTest {
 
     @Test
     void exceptionTypesArePreserved() {
-        var raw = new StubStorage() {
-            @Override
-            public String storageName() {
-                throw new RegistryStorageException("test error");
-            }
-        };
+        var raw = mock(RegistryStorage.class);
+        when(raw.storageName()).thenThrow(new RegistryStorageException("test error"));
 
         var proxy = RegistryStorageProxyFactory.createProxy(raw, List.of());
         assertThrows(RegistryStorageException.class, proxy::storageName);
@@ -69,7 +74,7 @@ public class RegistryStorageProxyFactoryTest {
 
     @Test
     void emptyDecoratorListReturnsRawStorage() {
-        var raw = new StubStorage();
+        var raw = mock(RegistryStorage.class);
         var result = RegistryStorageProxyFactory.createProxy(raw, List.of());
         // With no decorators, the factory returns rawStorage directly
         assertEquals(raw, result);
@@ -129,34 +134,6 @@ public class RegistryStorageProxyFactoryTest {
                 result.setName(result.getName() + ":" + tag);
             }
             return result;
-        }
-    }
-
-    /**
-     * A stub that provides minimal implementations for the methods we test.
-     */
-    static class StubStorage extends AbstractStubStorage {
-        int storageNameCallCount = 0;
-        int isReadOnlyCallCount = 0;
-        String configValue = "default";
-
-        @Override
-        public String storageName() {
-            storageNameCallCount++;
-            return "stub";
-        }
-
-        @Override
-        public boolean isReadOnly() {
-            isReadOnlyCallCount++;
-            return false;
-        }
-
-        @Override
-        public DynamicConfigPropertyDto getConfigProperty(String propertyName) {
-            var dto = new DynamicConfigPropertyDto();
-            dto.setName(configValue);
-            return dto;
         }
     }
 }

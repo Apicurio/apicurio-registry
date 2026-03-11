@@ -218,7 +218,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.5.1</apicurio-data-models.version>
+    <apicurio-data-models.version>2.5.2</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>
@@ -237,7 +237,7 @@
     <swagger-parser-v3.version>2.1.39</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
-    <lombok.version>1.18.42</lombok.version>
+    <lombok.version>1.18.44</lombok.version>
     <commons-codec.version>1.21.0</commons-codec.version>
     <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
@@ -296,7 +296,7 @@
     <apicurio-maven-plugin.version>0.0.5</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.0.1</proto-plugin.version>
+    <proto-plugin.version>5.0.2</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->

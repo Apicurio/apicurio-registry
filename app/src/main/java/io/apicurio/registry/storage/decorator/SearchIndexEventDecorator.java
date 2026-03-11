@@ -58,7 +58,6 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         return RegistryStorageDecoratorOrderConstants.SEARCH_INDEX_EVENT_DECORATOR;
     }
 
-    @Override
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
@@ -66,7 +65,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
             throws RegistryStorageException {
 
         // Call delegate to perform the actual creation
-        Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> result = super.createArtifact(groupId,
+        Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> result = delegate.createArtifact(groupId,
                 artifactId, artifactType, artifactMetaData, version, versionContent, versionMetaData,
                 versionBranches, versionIsDraft, dryRun, owner);
 
@@ -80,14 +79,13 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         return result;
     }
 
-    @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId,
             String version, String artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft,
             boolean dryRun, String owner) throws RegistryStorageException {
 
         // Call delegate to perform the actual creation
-        ArtifactVersionMetaDataDto versionMeta = super.createArtifactVersion(groupId, artifactId,
+        ArtifactVersionMetaDataDto versionMeta = delegate.createArtifactVersion(groupId, artifactId,
                 version, artifactType, content, metaData, branches, isDraft, dryRun, owner);
 
         // Fire event for search indexing (if not a dry run)
@@ -99,7 +97,6 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         return versionMeta;
     }
 
-    @Override
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
             throws RegistryStorageException {
 
@@ -109,30 +106,28 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         long globalId = versionMeta.getGlobalId();
 
         // Call delegate to perform the actual deletion
-        super.deleteArtifactVersion(groupId, artifactId, version);
+        delegate.deleteArtifactVersion(groupId, artifactId, version);
 
         // Fire event for search index update
         versionDeletedEvent.fire(new VersionDeletedEvent(groupId, artifactId, version, globalId));
     }
 
-    @Override
     public void updateArtifactMetaData(String groupId, String artifactId,
             EditableArtifactMetaDataDto metaData) throws RegistryStorageException {
 
         // Call delegate to perform the actual update
-        super.updateArtifactMetaData(groupId, artifactId, metaData);
+        delegate.updateArtifactMetaData(groupId, artifactId, metaData);
 
         // Fire event for search index update (affects all versions of this artifact)
         artifactMetadataUpdatedEvent
                 .fire(new ArtifactMetadataUpdatedEvent(groupId, artifactId));
     }
 
-    @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
             EditableVersionMetaDataDto metaData) throws RegistryStorageException {
 
         // Call delegate to perform the actual update
-        super.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
+        delegate.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
 
         // Version metadata updated - fire event to re-index this version
         ArtifactVersionMetaDataDto versionMeta = delegate.getArtifactVersionMetaData(groupId,
@@ -141,7 +136,6 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
                 versionMeta.getGlobalId(), versionMeta.getContentId()));
     }
 
-    @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             VersionState newState, boolean dryRun) {
 
@@ -152,7 +146,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         long globalId = versionMeta.getGlobalId();
 
         // Call delegate to perform the actual update
-        super.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
+        delegate.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
 
         // Fire event for search index update
         versionStateChangedEvent.fire(

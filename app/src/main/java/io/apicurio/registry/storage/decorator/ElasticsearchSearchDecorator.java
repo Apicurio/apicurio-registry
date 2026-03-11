@@ -53,7 +53,6 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
      * index-only types (e.g. content search) and ES is unavailable, an error is thrown rather
      * than silently returning incorrect results from SQL.
      */
-    @Override
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, int offset, int limit)
             throws RegistryStorageException {

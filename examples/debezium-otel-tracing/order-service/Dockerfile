@@ -1,7 +1,7 @@
 # Dockerfile for Order Service
 # Uses the Quarkus fast-jar deployment format
 
-FROM registry.access.redhat.com/ubi8/openjdk-17-runtime:1.19
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime:latest
 
 ENV LANGUAGE='en_US:en'
 

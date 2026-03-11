@@ -706,61 +706,273 @@ calls to the REST API, set the following options to `true`:
 == Configuring {registry} Cross-Origin Resource Sharing (CORS)
 
 [role="_abstract"]
-Cross-Origin Resource Sharing (CORS) is a browser security feature that controls how web applications running at one origin can request resources from a different origin. {registry} includes built-in CORS support that you can configure to allow the {registry} web console or other client applications to access the {registry} REST API from different domains.
+If you are building a browser-based application (React, Angular, Vue, or plain JavaScript) that calls the {registry} REST API, you must configure Cross-Origin Resource Sharing (CORS) to allow your application to communicate with {registry} from a different origin.
+Without the correct CORS configuration on the {registry} server, the browser blocks API calls from your application, even though the same requests succeed from a non-browser client like `curl`.
+{registry} includes built-in CORS support based on the Quarkus HTTP CORS filter that you can configure for your deployment.
 
-CORS configuration in {registry} is based on the underlying Quarkus HTTP CORS filter. By default, {registry} enables CORS and allows requests from `http://localhost:8888` and `http://127.0.0.1:8888` for local development.
+* xref:registry-cors-understanding_{context}[]
+* xref:registry-cors-defaults_{context}[]
+* xref:registry-cors-env-vars_{context}[]
+* xref:registry-cors-local-dev_{context}[]
+* xref:registry-cors-production_{context}[]
+* xref:registry-cors-authentication_{context}[]
+* xref:registry-cors-operator_{context}[]
+* xref:registry-cors-troubleshooting_{context}[]
 
-.Prerequisites
-* {registry} is installed and running.
 
-.Procedure
+[id="registry-cors-understanding_{context}"]
+=== Understanding CORS
 
-Configure the following environment variables to customize CORS behavior for your {registry} deployment:
+Browsers enforce a same-origin policy that prevents a web page served from one origin (for example, `\https://my-app.example.com`) from making HTTP requests to a different origin (for example, `\https://registry.example.com`).
+CORS is the mechanism by which a server explicitly allows cross-origin requests by including specific HTTP response headers such as `Access-Control-Allow-Origin`.
 
-.Configuration for {registry} CORS
-[.table-expandable,width="100%",cols="4,6,3",options="header"]
+Consider a typical scenario where your browser application runs at `\https://my-app.example.com` and {registry} runs at `\https://registry.example.com`.
+When your JavaScript code calls the {registry} REST API:
+
+[source,javascript]
+----
+fetch("https://registry.example.com/apis/registry/v3/groups")
+----
+
+The browser first sends a preflight `OPTIONS` request to {registry}, asking whether {registry} allows the cross-origin request.
+{registry} must respond with the correct headers for the browser to allow the request:
+
+* `Access-Control-Allow-Origin` matching your application's origin
+* `Access-Control-Allow-Methods` listing the HTTP methods you use
+* `Access-Control-Allow-Headers` listing any custom headers your request includes
+
+If {registry} does not respond with these headers, the browser blocks the request and you see an error similar to this example:
+
+----
+Access to fetch at 'https://registry.example.com/apis/registry/v3/groups'
+from origin 'https://my-app.example.com' has been blocked by CORS policy:
+No 'Access-Control-Allow-Origin' header is present on the requested resource.
+----
+
+
+[id="registry-cors-defaults_{context}"]
+=== {registry} CORS defaults
+
+{registry} ships with CORS enabled by default, configured for the bundled {registry} web console.
+The default settings from `application.properties` are:
+
+.Default {registry} CORS configuration properties
+[.table-expandable,width="100%",cols="4,6",options="header"]
+|===
+|Property
+|Default value
+
+|`quarkus.http.cors`
+|`true`
+
+|`quarkus.http.cors.origins`
+|`\http://localhost:8888,\http://127.0.0.1:8888`
+
+|`quarkus.http.cors.methods`
+|`GET,PUT,POST,PATCH,DELETE,OPTIONS`
+
+|`quarkus.http.cors.headers`
+|`x-registry-name`, `x-registry-name-encoded`, `x-registry-description`, `x-registry-description-encoded`, `x-registry-version`, `x-registry-artifactid`, `x-registry-artifacttype`, `x-registry-hash-algorithm`, `x-registry-content-hash`, `access-control-request-method`, `access-control-allow-credentials`, `access-control-allow-origin`, `access-control-allow-headers`, `authorization`, `content-type`, `content-encoding`, `user-agent`
+|===
+
+The default allowed origins (`localhost:8888` and `127.0.0.1:8888`) match the bundled {registry} web console.
+If your application runs on a different host, port, or protocol, {registry} rejects preflight requests from your origin.
+You must add your application's origin to the allowed list.
+
+
+[id="registry-cors-env-vars_{context}"]
+=== Configuring CORS environment variables
+
+You can override the default CORS settings by using environment variables.
+Using environment variables is the recommended approach when you run {registry} in a container.
+
+.{registry} CORS environment variables
+[.table-expandable,width="100%",cols="3,5,4",options="header"]
 |===
 |Environment variable
 |Description
-|Default
+|Example
 
 |`QUARKUS_HTTP_CORS`
-|Enables or disables the CORS filter. Set to `true` to enable CORS support.
+|Enables or disables the CORS filter.
 |`true`
 
 |`QUARKUS_HTTP_CORS_ORIGINS`
-|A comma-separated list of allowed origins for CORS requests. Use `*` to allow all origins, or specify explicit origins such as `\https://my-ui.example.com`. For multiple origins, use a comma-separated list, for example: `\https://ui1.example.com,\https://ui2.example.com`.
-|`http://localhost:8888,http://127.0.0.1:8888`
+|A comma-separated list of allowed origins, or `*` to allow all origins.
+|`\https://my-app.example.com,\https://other.example.com`
 
 |`QUARKUS_HTTP_CORS_METHODS`
-|A comma-separated list of HTTP methods allowed for CORS requests.
+|A comma-separated list of allowed HTTP methods.
 |`GET,PUT,POST,PATCH,DELETE,OPTIONS`
 
 |`QUARKUS_HTTP_CORS_HEADERS`
-|A comma-separated list of HTTP headers allowed in CORS requests. This includes custom {registry} headers used for artifact metadata.
-|See note below
+|A comma-separated list of allowed request headers.
+|`authorization,content-type`
 |===
 
-NOTE: The default allowed headers include: `x-registry-name`, `x-registry-name-encoded`, `x-registry-description`, `x-registry-description-encoded`, `x-registry-version`, `x-registry-artifactid`, `x-registry-artifacttype`, `x-registry-hash-algorithm`, `x-registry-content-hash`, `access-control-request-method`, `access-control-allow-credentials`, `access-control-allow-origin`, `access-control-allow-headers`, `authorization`, `content-type`, `content-encoding`, `user-agent`.
+NOTE: Setting `QUARKUS_HTTP_CORS_ORIGINS` by using an environment variable completely overrides the default origins from `application.properties`. The default methods and headers still apply unless you also override them.
 
-.Example: Allow all origins (development only)
+For the full set of Quarkus CORS options, see the link:https://quarkus.io/guides/http-reference#cors-filter[Quarkus HTTP Reference - CORS Filter].
+
+
+[id="registry-cors-local-dev_{context}"]
+=== Configuring CORS for local development
+
+During local development, you can allow all origins by using `*` as the value for `QUARKUS_HTTP_CORS_ORIGINS`.
+
+Use a Docker Compose configuration like this example to run {registry} with CORS open for all origins:
+
 [source,yaml]
 ----
-environment:
-  QUARKUS_HTTP_CORS_ORIGINS: "*"
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    environment:
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    ports:
+      - "8080:8080"
+
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    ports:
+      - "8888:8080"
+    depends_on:
+      - apicurio-registry
 ----
 
-WARNING: Using `*` to allow all origins is not recommended for production deployments. Always specify explicit allowed origins in production environments.
+Start the deployment by running:
 
-.Example: Allow specific origins (production)
+[source,bash]
+----
+docker compose -f docker-compose-no-auth.yaml up
+----
+
+With {registry} running on `localhost:8080`, you can call the API from any origin:
+
+[source,javascript]
+----
+// List all groups in the registry
+const response = await fetch("http://localhost:8080/apis/registry/v3/groups");
+const data = await response.json();
+console.log(data);
+----
+
+WARNING: Using `QUARKUS_HTTP_CORS_ORIGINS: "*"` is acceptable for local development but should not be used in production. A wildcard origin allows any website to make requests to your {registry} instance.
+
+
+[id="registry-cors-production_{context}"]
+=== Configuring CORS for production
+
+In production, you should explicitly list the origins that are allowed to access the {registry} REST API.
+
+To allow a single origin:
+
 [source,yaml]
 ----
-environment:
-  QUARKUS_HTTP_CORS_ORIGINS: "https://registry-ui.example.com,https://admin.example.com"
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    environment:
+      QUARKUS_HTTP_CORS_ORIGINS: "https://my-app.example.com"
+    ports:
+      - "8080:8080"
 ----
 
-.Example: Kubernetes operator configuration
-If you are using the {registry} Operator, you can configure CORS in the `ApicurioRegistry3` custom resource:
+To allow multiple origins, separate them with commas:
+
+[source,yaml]
+----
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    environment:
+      QUARKUS_HTTP_CORS_ORIGINS: "https://my-app.example.com,https://admin.example.com"
+    ports:
+      - "8080:8080"
+----
+
+TIP: If you still want to access the bundled {registry} web console, include its origin in the list. For example: `\https://my-app.example.com,\https://registry-ui.example.com`.
+
+
+[id="registry-cors-authentication_{context}"]
+=== Configuring CORS with authentication
+
+When you use OIDC authentication (for example, {keycloak}), CORS and authentication work together.
+Your browser application must send an `Authorization` header with a bearer token, and the {registry} CORS configuration must allow that header for authenticated cross-origin requests to succeed.
+
+The `authorization` header is already included in the default allowed headers, so you typically only need to configure the allowed origins.
+
+Use a Docker Compose configuration like this example to run {registry} with {keycloak} and CORS configured for browser-based applications:
+
+[source,yaml]
+----
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.7
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: "localhost"
+      KC_HOSTNAME_PORT: "8080"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+    command:
+      - start-dev
+      - --import-realm
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./realm.json:/opt/keycloak/data/import/realm.json
+
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    environment:
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      QUARKUS_OIDC_TENANT_ENABLED: "true"
+      QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak:8080/realms/registry"
+      QUARKUS_OIDC_CLIENT_ID: "registry-api"
+      APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
+      QUARKUS_OIDC_TLS_VERIFICATION: "none"
+      QUARKUS_HTTP_CORS_ORIGINS: "http://localhost:8888,http://localhost:3000"
+      QUARKUS_PROFILE: "prod"
+    ports:
+      - "8081:8080"
+    depends_on:
+      - keycloak
+
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      REGISTRY_API_URL: "http://localhost:8081/apis/registry/v3"
+      REGISTRY_AUTH_TYPE: "oidc"
+      REGISTRY_AUTH_URL: "http://localhost:8080/realms/registry"
+    ports:
+      - "8888:8080"
+    depends_on:
+      - apicurio-registry
+      - keycloak
+----
+
+When you configure CORS with authentication, keep these points in mind:
+
+* The default CORS allowed headers already include the `authorization` header. You do not need to add it manually unless you override `QUARKUS_HTTP_CORS_HEADERS`.
+* If you override `QUARKUS_HTTP_CORS_HEADERS`, make sure to include `authorization` in your list.
+* When you use `QUARKUS_HTTP_CORS_ORIGINS: "*"` with credentials, some browsers reject the request. Use explicit origins when authentication is involved.
+
+NOTE: Authentication is a complex topic with many possible configurations ({keycloak}, Microsoft Entra ID, and other OIDC providers). For a complete guide to configuring authentication, see xref:registry-security-settings_{context}[].
+
+
+[id="registry-cors-operator_{context}"]
+=== Configuring CORS with the {kubernetes} Operator
+
+When you deploy {registry} by using the {kubernetes} Operator, you can set CORS environment variables in the `ApicurioRegistry3` custom resource.
+
+To configure explicit origins:
+
 [source,yaml]
 ----
 apiVersion: registry.apicur.io/v1
@@ -771,13 +983,58 @@ spec:
   app:
     env:
       - name: QUARKUS_HTTP_CORS_ORIGINS
-        value: https://ui.example.com
+        value: "https://my-app.example.com,https://admin.example.com"
 ----
 
-NOTE: When using the {registry} Operator with an Ingress configured for the UI component, the operator automatically configures CORS allowed origins based on the Ingress host. If you explicitly set `QUARKUS_HTTP_CORS_ORIGINS` in the CR, your configuration takes precedence.
+The {registry} Operator includes built-in logic for automatic CORS origin detection:
+
+. If you set `QUARKUS_HTTP_CORS_ORIGINS` in the `spec.app.env` section, those origins are used.
+. If you do not configure origins, the operator automatically detects the UI Ingress host and adds both `\http://` and `\https://` variants of that host to the allowed origins.
+. If no Ingress host is found, the operator defaults to `*` (allow all origins).
+
+In many {kubernetes} deployments, you do not need to configure CORS manually because the operator handles it automatically based on your Ingress configuration.
+
+
+[id="registry-cors-troubleshooting_{context}"]
+=== Troubleshooting CORS errors
+
+.Common CORS errors and fixes
+[%header,cols="3,3,4"]
+|===
+|Error
+|Cause
+|Fix
+
+|"No Access-Control-Allow-Origin header is present on the requested resource"
+|Your application's origin is not in the {registry} allowed origins list.
+|Add your application's origin to `QUARKUS_HTTP_CORS_ORIGINS`. Include the protocol and port (for example, `\https://my-app.example.com:3000`, not only the hostname `my-app.example.com`).
+
+|Preflight request fails with 403
+|The HTTP method or a request header is not allowed by the CORS configuration.
+|Check that `QUARKUS_HTTP_CORS_METHODS` includes the HTTP method your application uses, and that `QUARKUS_HTTP_CORS_HEADERS` includes any custom headers your application sends.
+
+|CORS works without authentication but fails with authentication enabled
+|You might have overridden `QUARKUS_HTTP_CORS_HEADERS` without including `authorization`.
+|Make sure `authorization` is in your `QUARKUS_HTTP_CORS_HEADERS` list.
+
+|Credentials or cookies are not sent
+|When you use `Access-Control-Allow-Origin: *`, some browsers do not send credentials (cookies, authorization headers).
+|Use explicit origins instead of `*` when your application needs to send credentials.
+|===
+
+You can use your browser developer tools to diagnose CORS issues:
+
+. Open your browser developer tools (F12).
+. Go to the *Network* tab.
+. Look for the failed request, which often shows as `(blocked:cors)` or has a red status.
+. Look for a preceding `OPTIONS` request (the preflight) and inspect its response headers.
+. Check whether `Access-Control-Allow-Origin` is present and matches your application's origin.
+. Check whether `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` include the values your application needs.
 
 [role="_additional-resources"]
 .Additional resources
-* For detailed information about all available Quarkus CORS configuration options, see the link:https://quarkus.io/guides/http-reference#cors-filter[Quarkus HTTP Reference - CORS Filter] documentation.
+* link:https://quarkus.io/guides/http-reference#cors-filter[Quarkus HTTP Reference - CORS Filter]
+* link:https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS[MDN: Cross-Origin Resource Sharing (CORS)]
+* xref:registry-security-settings_{context}[]
 
 

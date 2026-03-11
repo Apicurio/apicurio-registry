@@ -313,7 +313,7 @@ abstract class AbstractStubStorage implements RegistryStorage {
     }
 
     @Override
-    public void exportData(Function<Entity, Void> handler) {
+    public void exportData(String groupId, Function<Entity, Void> handler) {
     }
 
     @Override

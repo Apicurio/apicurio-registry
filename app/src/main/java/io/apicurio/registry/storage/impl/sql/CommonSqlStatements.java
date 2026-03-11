@@ -201,6 +201,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? FOR UPDATE";
     }
 
+    @Override
+    public String selectMaxVersionOrderForUpdate() {
+        return "SELECT v.versionOrder FROM versions v "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "ORDER BY v.versionOrder DESC FOR UPDATE";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByContentHash()
      */

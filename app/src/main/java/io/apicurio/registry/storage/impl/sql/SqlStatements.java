@@ -497,6 +497,12 @@ public interface SqlStatements {
      */
     public String selectArtifactVersionStateForUpdate();
 
+    /**
+     * A statement used to select the max versionOrder for an artifact with row-level locking. Used for atomic
+     * conditional version creation.
+     */
+    public String selectMaxVersionOrderForUpdate();
+
     /*
      * The next few statements support globalId and contentId management.
      */

@@ -1,0 +1,39 @@
+.model-schema-viewer {
+    height: 100%;
+}
+
+.model-schema-viewer .model-name {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.model-schema-viewer .model-description {
+    color: var(--pf-t--global--text--color--subtle);
+    font-size: 14px;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.model-schema-viewer .model-basic-info {
+    margin-bottom: 16px;
+}
+
+.model-schema-viewer .section-divider {
+    margin: 16px 0;
+}
+
+.model-schema-viewer .section-content {
+    margin-top: 8px;
+}
+
+.model-schema-viewer .schema-json {
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: 13px;
+    overflow: auto;
+    max-height: 300px;
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 8px;
+}

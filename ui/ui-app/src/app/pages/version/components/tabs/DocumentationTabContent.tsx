@@ -2,11 +2,17 @@ import { FunctionComponent, useState } from "react";
 import { ErrorTabContent } from "@app/pages";
 import { If } from "@apicurio/common-ui-components";
 import YAML from "yaml";
-import { AgentCardVisualizer, AsyncApiVisualizer, OpenApiVisualizer } from "@app/pages/version/components/tabs/visualizers";
+import {
+    AgentCardVisualizer,
+    AsyncApiVisualizer,
+    ModelSchemaVisualizer,
+    OpenApiVisualizer,
+    PromptTemplateVisualizer
+} from "@app/pages/version/components/tabs/visualizers";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 
 enum VisualizerType {
-    OPENAPI, ASYNCAPI, AGENT_CARD, OTHER
+    OPENAPI, ASYNCAPI, AGENT_CARD, MODEL_SCHEMA, PROMPT_TEMPLATE, OTHER
 }
 
 const getVisualizerType = (artifactType: string): VisualizerType => {
@@ -18,6 +24,12 @@ const getVisualizerType = (artifactType: string): VisualizerType => {
     }
     if (artifactType === ArtifactTypes.AGENT_CARD) {
         return VisualizerType.AGENT_CARD;
+    }
+    if (artifactType === ArtifactTypes.MODEL_SCHEMA) {
+        return VisualizerType.MODEL_SCHEMA;
+    }
+    if (artifactType === ArtifactTypes.PROMPT_TEMPLATE) {
+        return VisualizerType.PROMPT_TEMPLATE;
     }
     return VisualizerType.OTHER;
 };
@@ -45,6 +57,9 @@ const parseContent = (artifactContent: string): any => {
 export type DocumentationTabContentProps = {
     versionContent: string;
     artifactType: string;
+    groupId?: string;
+    artifactId?: string;
+    version?: string;
 };
 
 
@@ -74,6 +89,17 @@ export const DocumentationTabContent: FunctionComponent<DocumentationTabContentP
             </If>
             <If condition={visualizerType === VisualizerType.AGENT_CARD}>
                 <AgentCardVisualizer spec={parsedContent} />
+            </If>
+            <If condition={visualizerType === VisualizerType.MODEL_SCHEMA}>
+                <ModelSchemaVisualizer spec={parsedContent} />
+            </If>
+            <If condition={visualizerType === VisualizerType.PROMPT_TEMPLATE}>
+                <PromptTemplateVisualizer
+                    spec={parsedContent}
+                    groupId={props.groupId || "default"}
+                    artifactId={props.artifactId || ""}
+                    version={props.version || ""}
+                />
             </If>
             <If condition={visualizerType === VisualizerType.OTHER}>
                 <h1>Unsupported Type: { props.artifactType }</h1>

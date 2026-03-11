@@ -1,6 +1,8 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { getRegistryClient } from "@utils/rest.utils.ts";
+import { createAuthOptions, createEndpoint, getRegistryClient } from "@utils/rest.utils.ts";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { RenderPromptResponse } from "@models/RenderPromptResponse.ts";
+import axios from "axios";
 import { Paging } from "@models/Paging.ts";
 import {
     AddVersionToBranch,
@@ -410,6 +412,29 @@ const updateArtifactVersionState = async (config: ConfigService, auth: AuthServi
         .versions.byVersionExpression(version).state.put({ state });
 };
 
+const renderPromptTemplate = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, variables: Record<string, any>): Promise<RenderPromptResponse> => {
+    groupId = normalizeGroupId(groupId);
+    const baseHref = config.artifactsUrl();
+    const endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version/render", {
+        groupId, artifactId, version
+    });
+    const options = await createAuthOptions(auth);
+    return axios.post(endpoint, { variables }, {
+        ...options,
+        headers: {
+            ...options.headers,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+    }).then(response => response.data as RenderPromptResponse)
+        .catch(error => {
+            if (error?.response?.data) {
+                return Promise.reject(error.response.data);
+            }
+            return Promise.reject(error);
+        });
+};
+
 const normalizeGroupId = (groupId: string|null): string => {
     return groupId || "default";
 };
@@ -464,6 +489,8 @@ export interface GroupsService {
     getArtifactBranchVersions(groupId: string|null, artifactId: string, branchId: string, paging: Paging): Promise<VersionSearchResults>;
     appendArtifactBranchVersion(groupId: string|null, artifactId: string, branchId: string, data: AddVersionToBranch): Promise<void>;
     replaceArtifactBranchVersions(groupId: string|null, artifactId: string, branchId: string, data: ReplaceBranchVersions): Promise<void>;
+
+    renderPromptTemplate(groupId: string|null, artifactId: string, version: string, variables: Record<string, any>): Promise<RenderPromptResponse>;
 }
 
 
@@ -606,6 +633,10 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         },
         replaceArtifactBranchVersions(groupId: string|null, artifactId: string, branchId: string, data: ReplaceBranchVersions): Promise<void> {
             return replaceArtifactBranchVersions(config, auth, groupId, artifactId, branchId, data);
+        },
+
+        renderPromptTemplate(groupId: string|null, artifactId: string, version: string, variables: Record<string, any>): Promise<RenderPromptResponse> {
+            return renderPromptTemplate(config, auth, groupId, artifactId, version, variables);
         }
 
     };

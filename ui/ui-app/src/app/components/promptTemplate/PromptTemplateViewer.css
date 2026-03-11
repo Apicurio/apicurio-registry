@@ -1,0 +1,107 @@
+.prompt-template-viewer {
+    height: 100%;
+}
+
+.prompt-template-viewer .template-name {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.prompt-template-viewer .template-description {
+    color: var(--pf-t--global--text--color--subtle);
+    font-size: 14px;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.prompt-template-viewer .template-basic-info {
+    margin-bottom: 16px;
+}
+
+.prompt-template-viewer .section-divider {
+    margin: 16px 0;
+}
+
+.prompt-template-viewer .section-content {
+    margin-top: 8px;
+}
+
+.prompt-template-viewer .template-preview {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    padding: 16px;
+    border-radius: 4px;
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-top: 8px;
+    line-height: 1.6;
+}
+
+.prompt-template-viewer .template-variable {
+    background-color: #0066cc;
+    color: white;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.prompt-template-viewer .template-block {
+    background-color: #6a3d9a;
+    color: white;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.prompt-template-viewer .variables-table-wrapper {
+    margin-top: 8px;
+    overflow-x: auto;
+}
+
+.prompt-template-viewer .variables-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.prompt-template-viewer .variables-table th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--pf-t--global--border--color--default);
+    font-weight: 600;
+    color: var(--pf-t--global--text--color--subtle);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.prompt-template-viewer .variables-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+    vertical-align: top;
+}
+
+.prompt-template-viewer .variables-table tbody tr:hover {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.prompt-template-viewer .variables-table code {
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: 13px;
+    padding: 1px 4px;
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    border-radius: 3px;
+}
+
+.prompt-template-viewer .output-schema-json {
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: 13px;
+    overflow: auto;
+    max-height: 300px;
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 8px;
+}

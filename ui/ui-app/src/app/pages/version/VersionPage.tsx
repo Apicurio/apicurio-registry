@@ -160,7 +160,15 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     const showDocumentationTab = (): boolean => {
-        return artifact?.artifactType === "OPENAPI" && artifactVersion?.state !== "DISABLED";
+        if (artifactVersion?.state === "DISABLED") {
+            return false;
+        }
+        const type = artifact?.artifactType;
+        return type === ArtifactTypes.OPENAPI
+            || type === ArtifactTypes.ASYNCAPI
+            || type === ArtifactTypes.AGENT_CARD
+            || type === ArtifactTypes.MODEL_SCHEMA
+            || type === ArtifactTypes.PROMPT_TEMPLATE;
     };
 
     const doDownloadVersion = (): void => {
@@ -387,7 +395,13 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             />
         </Tab>,
         <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
-            <DocumentationTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />
+            <DocumentationTabContent
+                versionContent={versionContent}
+                artifactType={artifact?.artifactType as string}
+                groupId={groupId}
+                artifactId={artifactId}
+                version={version}
+            />
         </Tab>,
         <Tab data-testid="version-content-tab" eventKey="content" title="Content" key="content" tabContentId="tab-content">
             <ContentTabContent versionContent={versionContent} artifactType={artifact?.artifactType as string} />

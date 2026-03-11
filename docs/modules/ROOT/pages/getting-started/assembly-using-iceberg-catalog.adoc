@@ -10,11 +10,14 @@ This chapter explains how to use {registry} as an Apache Iceberg REST Catalog to
 * xref:registry-iceberg-catalog-config_{context}[]
 * xref:registry-iceberg-catalog-rest-api_{context}[]
 * xref:registry-iceberg-catalog-commit-table_{context}[]
+* xref:registry-iceberg-catalog-error-handling_{context}[]
+* xref:registry-iceberg-catalog-auth_{context}[]
 * xref:registry-iceberg-catalog-query-engines_{context}[]
+* xref:registry-iceberg-catalog-limitations_{context}[]
 
 
 .Prerequisites
-* A running {registry} instance
+* A running {registry} instance with `apicurio.features.experimental.enabled=true` and `apicurio.iceberg.enabled=true`
 * Query engines or tools that support the Iceberg REST Catalog specification (Apache Spark, Trino, ClickHouse, DuckDB, Flink)
 
 
@@ -38,9 +41,6 @@ The catalog maps {registry} concepts to Iceberg concepts as follows:
 |Artifact (type: `ICEBERG_TABLE`)
 |Table
 |An Iceberg table registered in {registry}. The artifact content contains the full TableMetadata JSON.
-|Artifact (type: `ICEBERG_VIEW`)
-|View
-|An Iceberg view registered in {registry}. The artifact content contains the ViewMetadata JSON.
 |Artifact Content
 |TableMetadata / ViewMetadata
 |The metadata JSON stored as artifact content, containing schema, partition spec, sort order, snapshots, and other Iceberg metadata.
@@ -493,6 +493,102 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
 |===
 
 
+[id='registry-iceberg-catalog-error-handling_{context}']
+== Error handling
+
+[role="_abstract"]
+All Iceberg REST Catalog API endpoints return errors in the Iceberg error format. The following table lists the error types that can be returned by the API.
+
+.Iceberg REST Catalog API error types
+[.table-expandable,width="100%",cols="2,3,5",options="header"]
+|===
+|HTTP Status
+|Error Type
+|Description
+|`400`
+|`BadRequestException`
+|The request is malformed or contains invalid parameters.
+|`404`
+|`NotFoundException`
+|A generic resource was not found.
+|`404`
+|`NoSuchNamespaceException`
+|The specified namespace does not exist.
+|`404`
+|`NoSuchTableException`
+|The specified table does not exist.
+|`409`
+|`AlreadyExistsException`
+|A namespace or table with the same name already exists.
+|`409`
+|`NamespaceNotEmptyException`
+|The namespace cannot be dropped because it still contains tables.
+|`409`
+|`CommitFailedException`
+|A commit requirement was not met, or a concurrent commit was detected.
+|`500`
+|`InternalServerError`
+|An unexpected internal error occurred.
+|===
+
+
+[id='registry-iceberg-catalog-auth_{context}']
+== Authentication and authorization
+
+[role="_abstract"]
+When {registry} is configured with authentication enabled, the Iceberg REST Catalog API enforces the same role-based access control as the core {registry} API. Each endpoint requires a minimum authorization level.
+
+.Iceberg REST Catalog API authorization levels
+[.table-expandable,width="100%",cols="4,2,5",options="header"]
+|===
+|Operation
+|Minimum Level
+|Notes
+|Get catalog configuration
+|Read
+|
+|List namespaces
+|Read
+|
+|Load namespace metadata
+|Read
+|
+|Check if namespace exists
+|Read
+|
+|Create a namespace
+|Write
+|
+|Update namespace properties
+|Write
+|
+|Drop a namespace
+|Admin
+|Namespace must be empty.
+|List tables in a namespace
+|Read
+|
+|Create a table
+|Write
+|
+|Load a table
+|Read
+|
+|Check if table exists
+|Read
+|
+|Commit updates to a table
+|Write
+|
+|Drop a table
+|Admin
+|
+|Rename a table
+|Write
+|
+|===
+
+
 [id='registry-iceberg-catalog-query-engines_{context}']
 == Using {registry} with query engines
 
@@ -651,6 +747,19 @@ The following table lists all Iceberg REST Catalog API endpoints supported by {r
 |`/apis/iceberg/v1/{prefix}/tables/rename`
 |Rename a table
 |===
+
+
+[id='registry-iceberg-catalog-limitations_{context}']
+== Limitations
+
+[role="_abstract"]
+The {registry} Iceberg REST Catalog implementation has the following limitations:
+
+* *Views are not supported.* Only Iceberg tables are currently supported. The `ICEBERG_VIEW` artifact type is reserved for future use.
+* *Multi-table transactions are not supported.* Each CommitTable operation is scoped to a single table. Cross-table atomic commits are not available.
+* *Server-side content management.* {registry} stores table metadata but does not manage data files. Clients are responsible for writing data files to the configured warehouse location.
+* *Rename is not atomic.* Renaming a table creates the destination and then deletes the source as two separate operations. If the delete fails, both the source and destination may temporarily exist.
+* *Experimental feature.* The Iceberg REST Catalog API requires `apicurio.features.experimental.enabled=true` and may change in future releases.
 
 
 [role="_additional-resources"]

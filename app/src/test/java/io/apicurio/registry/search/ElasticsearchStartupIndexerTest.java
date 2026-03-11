@@ -26,16 +26,6 @@ import org.junit.jupiter.api.Test;
 @TestProfile(ElasticsearchSearchTestProfile.class)
 public class ElasticsearchStartupIndexerTest extends AbstractResourceTestBase {
 
-    /**
-     * Override to set RestAssured base URI to the server root (without "/apis") so that
-     * health check endpoint tests can access "/health/ready" directly.
-     */
-    @Override
-    protected void setupRestAssured() {
-        RestAssured.baseURI = "http://localhost:" + testPort;
-        RestAssured.registerParser(ArtifactMediaTypes.BINARY.toString(), Parser.JSON);
-    }
-
     @Inject
     ElasticsearchStartupIndexer startupIndexer;
 
@@ -52,11 +42,12 @@ public class ElasticsearchStartupIndexerTest extends AbstractResourceTestBase {
 
     /**
      * Verifies the ElasticsearchIndexReadinessCheck reports UP via the Quarkus health
-     * endpoint.
+     * endpoint. Health checks are served on the management port, not the main HTTP port.
      */
     @Test
     public void testReadinessCheckReportsUp() {
         RestAssured.given()
+                .baseUri("http://localhost:" + managementTestPort)
                 .when().get("/health/ready")
                 .then()
                 .statusCode(200);
@@ -64,11 +55,12 @@ public class ElasticsearchStartupIndexerTest extends AbstractResourceTestBase {
 
     /**
      * Verifies that the ElasticsearchIndexReadinessCheck is present in the health check
-     * response and reports status UP.
+     * response and reports status UP. Health checks are served on the management port.
      */
     @Test
     public void testElasticsearchReadinessCheckPresent() {
         String body = RestAssured.given()
+                .baseUri("http://localhost:" + managementTestPort)
                 .when().get("/health/ready")
                 .then()
                 .statusCode(200)

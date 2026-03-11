@@ -1,7 +1,7 @@
 # Dockerfile for running the pre-built Quarkus consumer application
 # NOTE: Run 'mvn clean package -DskipTests' in this directory before building the image
 
-FROM registry.access.redhat.com/ubi10/openjdk-21-runtime:latest
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:latest
 
 ENV LANGUAGE='en_US:en'
 

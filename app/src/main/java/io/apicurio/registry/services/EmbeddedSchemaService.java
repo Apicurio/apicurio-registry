@@ -97,14 +97,15 @@ public class EmbeddedSchemaService {
             // Extract "input" schema
             if (rootObj.has("input") && rootObj.get("input").isObject() && hasSchemaProperties(rootObj.get("input"))) {
                 String schemaArtifactId = artifactId + "-input-schema";
-                String refName = schemaArtifactId;
+                String version = "1";
+                String refName = buildReferenceName(groupId, schemaArtifactId, version);
                 JsonNode inputSchema = rootObj.get("input");
 
                 if (autoRegisterSchema(storage, groupId, schemaArtifactId, inputSchema,
                         "Input schema for " + artifactId, owner)) {
                     rootObj.set("input", createRefNode(refName));
                     references.add(ArtifactReferenceDto.builder()
-                            .groupId(groupId).artifactId(schemaArtifactId).version("1").name(refName)
+                            .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
                             .build());
                     modified = true;
                 }
@@ -113,14 +114,15 @@ public class EmbeddedSchemaService {
             // Extract "output" schema
             if (rootObj.has("output") && rootObj.get("output").isObject() && hasSchemaProperties(rootObj.get("output"))) {
                 String schemaArtifactId = artifactId + "-output-schema";
-                String refName = schemaArtifactId;
+                String version = "1";
+                String refName = buildReferenceName(groupId, schemaArtifactId, version);
                 JsonNode outputSchema = rootObj.get("output");
 
                 if (autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
                         "Output schema for " + artifactId, owner)) {
                     rootObj.set("output", createRefNode(refName));
                     references.add(ArtifactReferenceDto.builder()
-                            .groupId(groupId).artifactId(schemaArtifactId).version("1").name(refName)
+                            .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
                             .build());
                     modified = true;
                 }
@@ -162,14 +164,15 @@ public class EmbeddedSchemaService {
             // Extract "outputSchema"
             if (rootObj.has("outputSchema") && rootObj.get("outputSchema").isObject() && hasSchemaProperties(rootObj.get("outputSchema"))) {
                 String schemaArtifactId = artifactId + "-output-schema";
-                String refName = schemaArtifactId;
+                String version = "1";
+                String refName = buildReferenceName(groupId, schemaArtifactId, version);
                 JsonNode outputSchema = rootObj.get("outputSchema");
 
                 if (autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
                         "Output schema for prompt template " + artifactId, owner)) {
                     rootObj.set("outputSchema", createRefNode(refName));
                     references.add(ArtifactReferenceDto.builder()
-                            .groupId(groupId).artifactId(schemaArtifactId).version("1").name(refName)
+                            .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
                             .build());
                     modified = true;
                 }
@@ -262,6 +265,16 @@ public class EmbeddedSchemaService {
         // Must have at least one schema-like field
         return node.has("type") || node.has("properties") || node.has("items")
                 || node.has("oneOf") || node.has("anyOf") || node.has("allOf");
+    }
+
+    /**
+     * Build a fully-qualified reference name following Apicurio Registry conventions.
+     * Format: {groupId}:{artifactId}:{version}
+     * This makes references self-describing and resolvable by consumers like the render service.
+     */
+    private String buildReferenceName(String groupId, String artifactId, String version) {
+        String effectiveGroupId = groupId != null ? groupId : "default";
+        return effectiveGroupId + ":" + artifactId + ":" + version;
     }
 
     private ObjectNode createRefNode(String refName) {

@@ -1,4 +1,4 @@
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { ErrorTabContent } from "@app/pages";
 import { If } from "@apicurio/common-ui-components";
 import YAML from "yaml";
@@ -11,6 +11,7 @@ import {
     PromptTemplateVisualizer
 } from "@app/pages/version/components/tabs/visualizers";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 
 enum VisualizerType {
     OPENAPI, ASYNCAPI, AGENT_CARD, JSON_SCHEMA, MODEL_SCHEMA, PROMPT_TEMPLATE, OTHER
@@ -70,10 +71,27 @@ export type DocumentationTabContentProps = {
 /**
  * Models the content of the Documentation tab on the artifact details page.
  */
+const needsDereference = (artifactType: string): boolean => {
+    return artifactType === ArtifactTypes.MODEL_SCHEMA || artifactType === ArtifactTypes.PROMPT_TEMPLATE;
+};
+
 export const DocumentationTabContent: FunctionComponent<DocumentationTabContentProps> = (props: DocumentationTabContentProps) => {
-    const [parsedContent] = useState(parseContent(props.versionContent));
+    const [parsedContent, setParsedContent] = useState(parseContent(props.versionContent));
     const [visualizerType] = useState(getVisualizerType(props.artifactType));
     const [error] = useState<any>();
+    const groups: GroupsService = useGroupsService();
+
+    useEffect(() => {
+        if (needsDereference(props.artifactType) && props.groupId && props.artifactId && props.version) {
+            groups.getArtifactVersionContentDereferenced(props.groupId, props.artifactId, props.version)
+                .then(content => {
+                    setParsedContent(parseContent(content));
+                })
+                .catch(() => {
+                    // Fall back to raw content if dereference fails
+                });
+        }
+    }, [props.artifactType, props.groupId, props.artifactId, props.version]);
 
     const isError = () : boolean => {
         return !!error;

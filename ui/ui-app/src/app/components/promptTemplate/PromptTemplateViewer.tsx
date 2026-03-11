@@ -1,4 +1,5 @@
 import React, { FunctionComponent } from "react";
+import { Link } from "react-router";
 import "./PromptTemplateViewer.css";
 import {
     Card,
@@ -16,6 +17,7 @@ import {
     LabelGroup,
     Title
 } from "@patternfly/react-core";
+import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
 
 export interface PromptVariable {
     name?: string;
@@ -216,7 +218,11 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <Title headingLevel="h3" size="md">Recommended Models</Title>
                         <LabelGroup className="section-content">
                             {meta.recommendedModels.map((model, index) => (
-                                <Label key={index} color="purple" isCompact>{model}</Label>
+                                <Label key={index} color="purple" isCompact>
+                                    <Link to={`/explore/default/${encodeURIComponent(model)}`} className="model-link">
+                                        {model}
+                                    </Link>
+                                </Label>
                             ))}
                         </LabelGroup>
                     </>
@@ -275,9 +281,9 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                     <>
                         <Divider className="section-divider" />
                         <Title headingLevel="h3" size="md">Output Schema</Title>
-                        <pre className="output-schema-json">
-                            {JSON.stringify(promptTemplate.outputSchema, null, 2)}
-                        </pre>
+                        <div className="section-content">
+                            <JsonSchemaProperties schema={promptTemplate.outputSchema} depth={0} />
+                        </div>
                     </>
                 )}
             </CardBody>

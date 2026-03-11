@@ -98,7 +98,12 @@ export const DocumentationTabContent: FunctionComponent<DocumentationTabContentP
                 <JsonSchemaVisualizer spec={parsedContent} />
             </If>
             <If condition={visualizerType === VisualizerType.MODEL_SCHEMA}>
-                <ModelSchemaVisualizer spec={parsedContent} />
+                <ModelSchemaVisualizer
+                    spec={parsedContent}
+                    groupId={props.groupId || "default"}
+                    artifactId={props.artifactId || ""}
+                    version={props.version || ""}
+                />
             </If>
             <If condition={visualizerType === VisualizerType.PROMPT_TEMPLATE}>
                 <PromptTemplateVisualizer

@@ -4,6 +4,9 @@ import { ModelSchemaViewer, ModelSchema } from "@app/components/modelSchema";
 
 export type ModelSchemaVisualizerProps = {
     spec: any;
+    groupId: string;
+    artifactId: string;
+    version: string;
     className?: string;
 };
 

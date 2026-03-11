@@ -17,6 +17,7 @@ import {
     LabelGroup,
     Title
 } from "@patternfly/react-core";
+import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
 
 export interface ModelSchemaMetadata {
     contextWindow?: number;
@@ -25,16 +26,16 @@ export interface ModelSchemaMetadata {
     pricing?: {
         input?: number;
         output?: number;
+        inputTokens?: number;
+        outputTokens?: number;
         currency?: string;
         unit?: string;
     };
     trainingDataCutoff?: string;
     supportedLanguages?: string[];
-    deprecation?: {
-        deprecated?: boolean;
-        sunset_date?: string;
-        replacement_model?: string;
-    };
+    deprecated?: boolean;
+    deprecationDate?: string;
+    successorModel?: string;
 }
 
 export interface ModelSchema {
@@ -55,6 +56,9 @@ export type ModelSchemaViewerProps = {
 export const ModelSchemaViewer: FunctionComponent<ModelSchemaViewerProps> = (props: ModelSchemaViewerProps) => {
     const { modelSchema, className } = props;
     const meta = modelSchema.metadata;
+
+    const inputPrice = meta?.pricing?.inputTokens ?? meta?.pricing?.input;
+    const outputPrice = meta?.pricing?.outputTokens ?? meta?.pricing?.output;
 
     return (
         <Card className={`model-schema-viewer ${className || ""}`}>
@@ -123,24 +127,24 @@ export const ModelSchemaViewer: FunctionComponent<ModelSchemaViewerProps> = (pro
                     </>
                 )}
 
-                {meta?.pricing && (
+                {meta?.pricing && (inputPrice !== undefined || outputPrice !== undefined) && (
                     <>
                         <Divider className="section-divider" />
                         <Title headingLevel="h3" size="md">Pricing</Title>
                         <DescriptionList isCompact className="section-content">
-                            {meta.pricing.input !== undefined && (
+                            {inputPrice !== undefined && (
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Input</DescriptionListTerm>
                                     <DescriptionListDescription>
-                                        {meta.pricing.currency || "USD"} {meta.pricing.input} / {meta.pricing.unit || "1K tokens"}
+                                        {meta.pricing!.currency || "USD"} {inputPrice} / {meta.pricing!.unit || "1M tokens"}
                                     </DescriptionListDescription>
                                 </DescriptionListGroup>
                             )}
-                            {meta.pricing.output !== undefined && (
+                            {outputPrice !== undefined && (
                                 <DescriptionListGroup>
                                     <DescriptionListTerm>Output</DescriptionListTerm>
                                     <DescriptionListDescription>
-                                        {meta.pricing.currency || "USD"} {meta.pricing.output} / {meta.pricing.unit || "1K tokens"}
+                                        {meta.pricing!.currency || "USD"} {outputPrice} / {meta.pricing!.unit || "1M tokens"}
                                     </DescriptionListDescription>
                                 </DescriptionListGroup>
                             )}
@@ -162,7 +166,7 @@ export const ModelSchemaViewer: FunctionComponent<ModelSchemaViewerProps> = (pro
                     </>
                 )}
 
-                {meta?.deprecation?.deprecated && (
+                {meta?.deprecated && (
                     <>
                         <Divider className="section-divider" />
                         <Title headingLevel="h3" size="md">Deprecation</Title>
@@ -173,16 +177,16 @@ export const ModelSchemaViewer: FunctionComponent<ModelSchemaViewerProps> = (pro
                                     <Label color="orange" isCompact>Deprecated</Label>
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
-                            {meta.deprecation.sunset_date && (
+                            {meta.deprecationDate && (
                                 <DescriptionListGroup>
-                                    <DescriptionListTerm>Sunset Date</DescriptionListTerm>
-                                    <DescriptionListDescription>{meta.deprecation.sunset_date}</DescriptionListDescription>
+                                    <DescriptionListTerm>Deprecation Date</DescriptionListTerm>
+                                    <DescriptionListDescription>{meta.deprecationDate}</DescriptionListDescription>
                                 </DescriptionListGroup>
                             )}
-                            {meta.deprecation.replacement_model && (
+                            {meta.successorModel && (
                                 <DescriptionListGroup>
-                                    <DescriptionListTerm>Replacement</DescriptionListTerm>
-                                    <DescriptionListDescription>{meta.deprecation.replacement_model}</DescriptionListDescription>
+                                    <DescriptionListTerm>Successor Model</DescriptionListTerm>
+                                    <DescriptionListDescription>{meta.successorModel}</DescriptionListDescription>
                                 </DescriptionListGroup>
                             )}
                         </DescriptionList>
@@ -193,9 +197,7 @@ export const ModelSchemaViewer: FunctionComponent<ModelSchemaViewerProps> = (pro
                     <>
                         <Divider className="section-divider" />
                         <ExpandableSection toggleText="Input Schema">
-                            <pre className="schema-json">
-                                {JSON.stringify(modelSchema.input, null, 2)}
-                            </pre>
+                            <JsonSchemaProperties schema={modelSchema.input} depth={0} />
                         </ExpandableSection>
                     </>
                 )}
@@ -204,9 +206,7 @@ export const ModelSchemaViewer: FunctionComponent<ModelSchemaViewerProps> = (pro
                     <>
                         <Divider className="section-divider" />
                         <ExpandableSection toggleText="Output Schema">
-                            <pre className="schema-json">
-                                {JSON.stringify(modelSchema.output, null, 2)}
-                            </pre>
+                            <JsonSchemaProperties schema={modelSchema.output} depth={0} />
                         </ExpandableSection>
                     </>
                 )}

@@ -27,13 +27,3 @@
     margin-top: 8px;
 }
 
-.model-schema-viewer .schema-json {
-    font-family: var(--pf-t--global--font--family--mono);
-    font-size: 13px;
-    overflow: auto;
-    max-height: 300px;
-    background-color: var(--pf-t--global--background--color--secondary--default);
-    padding: 12px;
-    border-radius: 4px;
-    margin-top: 8px;
-}

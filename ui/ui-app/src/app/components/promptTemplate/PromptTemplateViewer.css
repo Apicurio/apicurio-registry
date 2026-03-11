@@ -95,13 +95,11 @@
     border-radius: 3px;
 }
 
-.prompt-template-viewer .output-schema-json {
-    font-family: var(--pf-t--global--font--family--mono);
-    font-size: 13px;
-    overflow: auto;
-    max-height: 300px;
-    background-color: var(--pf-t--global--background--color--secondary--default);
-    padding: 12px;
-    border-radius: 4px;
-    margin-top: 8px;
+.prompt-template-viewer .model-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.prompt-template-viewer .model-link:hover {
+    text-decoration: underline;
 }

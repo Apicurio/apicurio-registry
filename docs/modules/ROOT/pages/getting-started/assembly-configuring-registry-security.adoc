@@ -1022,7 +1022,16 @@ In many {kubernetes} deployments, you do not need to configure CORS manually bec
 |Use explicit origins instead of `*` when your application needs to send credentials.
 |===
 
-You can use your browser developer tools to diagnose CORS issues:
+[id="registry-cors-diagnosing_{context}"]
+==== Diagnosing CORS errors with browser developer tools
+
+[role="_abstract"]
+You can use your browser developer tools to identify the cause of CORS errors.
+
+*Prerequisites*
+* {registry} is installed and running.
+
+*Procedure*
 
 . Open your browser developer tools (F12).
 . Go to the *Network* tab.

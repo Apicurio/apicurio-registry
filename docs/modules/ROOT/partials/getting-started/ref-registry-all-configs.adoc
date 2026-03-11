@@ -897,7 +897,7 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`false`
 |`3.2.0`
-|Enable search indexing
+|Enable search indexing _(experimental)_
 |===
 
 == semver

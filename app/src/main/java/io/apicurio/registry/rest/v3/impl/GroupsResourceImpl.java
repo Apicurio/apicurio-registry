@@ -53,14 +53,10 @@ import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
-import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.BufferedInputStream;
-import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.URI;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -1710,47 +1706,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return references.stream()
                 .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
                 .map(V3ApiUtil::referenceToDto).collect(toList());
-    }
-
-    /**
-     * Return an InputStream for the resource to be downloaded
-     *
-     * @param url
-     */
-    private InputStream fetchContentFromURL(Client client, URI url) {
-        try {
-            // 1. Registry issues HTTP HEAD request to the target URL.
-            List<Object> contentLengthHeaders = client.target(url).request().head().getHeaders()
-                    .get("Content-Length");
-
-            if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
-                throw new BadRequestException(
-                        "Requested resource URL does not provide 'Content-Length' in the headers");
-            }
-
-            // 2. According to HTTP specification, target server must return Content-Length header.
-            int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
-
-            // 3. Registry analyzes value of Content-Length to check if file with declared size could be
-            // processed securely.
-            if (contentLength > restConfig.getDownloadMaxSize()) {
-                throw new BadRequestException("Requested resource is bigger than "
-                        + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
-            }
-
-            if (contentLength <= 0) {
-                throw new BadRequestException("Requested resource URL is providing 'Content-Length' <= 0.");
-            }
-
-            // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes
-            // specified by HTTP HEAD from step 1.
-            return new BufferedInputStream(client.target(url).request().get().readEntity(InputStream.class),
-                    contentLength);
-        } catch (BadRequestException bre) {
-            throw bre;
-        } catch (Exception e) {
-            throw new BadRequestException("Errors downloading the artifact content.", e);
-        }
     }
 
     /**

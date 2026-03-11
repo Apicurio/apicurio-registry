@@ -12,12 +12,14 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_SETUP;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_SETUP)
 public class PodTemplateSpecITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(PodTemplateSpecITTest.class);

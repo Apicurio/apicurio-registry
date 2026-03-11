@@ -15,6 +15,9 @@ public abstract class AbstractRestMetricsTest {
     @ConfigProperty(name = "quarkus.http.test-port")
     public int testPort;
 
+    @ConfigProperty(name = "quarkus.management.test-port")
+    public int managementTestPort;
+
     protected String baseURI;
 
     @BeforeEach
@@ -27,6 +30,7 @@ public abstract class AbstractRestMetricsTest {
     protected String metrics(boolean refresh) {
         if (refresh || metrics == null) {
             metrics = given()
+                    .baseUri("http://localhost:" + managementTestPort)
                     .when().get("/metrics")
                     .then()
                     .log().all().

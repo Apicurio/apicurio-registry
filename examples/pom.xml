@@ -84,7 +84,7 @@
     <maven.compiler.target>17</maven.compiler.target>
 
     <!-- Kafka -->
-    <kafka.version>3.5.0</kafka.version>
+    <kafka.version>3.9.2</kafka.version>
 
     <!-- RestEasy -->
     <resteasy.version>4.5.8.Final</resteasy.version>
@@ -114,8 +114,7 @@
     <version.avro>1.11.0</version.avro>
     <protobuf.version>4.30.2</protobuf.version>
     <!-- Proto -->
-    <proto-plugin.version>0.6.1</proto-plugin.version>
-    <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
+    <proto-plugin.version>5.0.1</proto-plugin.version>
   </properties>
 
   <build>

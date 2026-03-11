@@ -6,6 +6,12 @@ package io.apicurio.registry.resolver.data;
  */
 public interface Record<T> {
 
+    /**
+     * Returns the metadata associated with this record, or {@code null} if no metadata is available.
+     * Callers must handle a {@code null} return value.
+     *
+     * @return the record metadata, or {@code null}
+     */
     Metadata metadata();
 
     T payload();

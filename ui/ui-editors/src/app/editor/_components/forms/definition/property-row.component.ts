@@ -38,6 +38,7 @@ import {
 import Oas20PropertySchema = Oas20Schema.Oas20PropertySchema;
 import Oas30PropertySchema = Oas30Schema.Oas30PropertySchema;
 import {DropDownOption, DropDownOptionValue} from "../../common/drop-down.component";
+import {ExampleTextValue, ModelUtils} from "../../../_util/model.util";
 
 
 @Component({
@@ -94,8 +95,12 @@ export class PropertyRowComponent extends AbstractRowComponent<Oas20PropertySche
         return this.item.description
     }
 
-    public example(): string {
-        return this.item.example
+    /**
+     * Returns the example formatted for the property editor:
+     * plain strings are preserved as-is, while non-string values are JSON-stringified.
+     */
+    public example(): ExampleTextValue {
+        return ModelUtils.stringifyExampleValue(this.item.example);
     }
 
     public minimum(): number {
@@ -245,8 +250,12 @@ export class PropertyRowComponent extends AbstractRowComponent<Oas20PropertySche
         this.commandService.emit(command);
     }
 
+    /**
+     * Parses the UI text value back into the most appropriate schema-aware example type.
+     */
     public setExample(example: string): void {
-        let command: ICommand = CommandFactory.createChangePropertyCommand<string>(this.item, "example", example);
+        const newValue = ModelUtils.parseExampleValue(this.item.type, example);
+        const command = CommandFactory.createChangePropertyCommand(this.item, "example", newValue);
         this.commandService.emit(command);
     }
 

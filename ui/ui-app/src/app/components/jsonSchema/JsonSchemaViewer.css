@@ -1,0 +1,28 @@
+.json-schema-viewer {
+    height: 100%;
+}
+
+.json-schema-viewer .json-schema-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.json-schema-viewer .json-schema-description {
+    color: var(--pf-t--global--text--color--subtle);
+    font-size: 14px;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.json-schema-viewer .json-schema-meta {
+    margin-bottom: 16px;
+}
+
+.json-schema-viewer .section-divider {
+    margin: 16px 0;
+}
+
+.json-schema-viewer .json-schema-section-title {
+    margin-bottom: 8px;
+}

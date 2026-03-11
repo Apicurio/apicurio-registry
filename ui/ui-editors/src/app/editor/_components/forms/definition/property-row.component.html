@@ -15,7 +15,7 @@
         </div>
         <div class="example" (click)="toggleExample()" [class.selected]="isEditingExample()">
             <span class="fa fa-angle-right" [class.fa-angle-down]="isEditingExample()"></span>
-            <markdown-summary [data]="example()" emptyText="No example."></markdown-summary>
+            <json-summary [data]="item.example" emptyText="No example."></json-summary>
         </div>
         <div class="actions">
             <div class="dropdown dropdown-kebab-pf" dropdown>
@@ -200,9 +200,11 @@
                     </div>
                     <div class="property-example" *ngIf="isEditingExample()">
                         <div class="form-label">Example</div>
-                        <inline-markdown-editor [value]="item.example" [noValueMessage]="'No example.'"
-                                                [baseNode]="item" nodePath="example"
-                                                (onChange)="setExample($event)"></inline-markdown-editor>
+                        <inline-example-editor [value]="example()"
+                                               [schema]="item"
+                                               [baseNode]="item" nodePath="example"
+                                               [noValueMessage]="'No example.'"
+                                               (onChange)="setExample($event)"></inline-example-editor>
                     </div>
                 </div>
             </form>

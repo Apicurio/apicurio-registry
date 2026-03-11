@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.util.Priorities;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -20,7 +21,7 @@ import org.slf4j.Logger;
  */
 @Authorized
 @Interceptor
-@Priority(Interceptor.Priority.APPLICATION)
+@Priority(Priorities.Interceptors.AUTHORIZATION)
 public class AuthorizedInterceptor {
 
     @Inject

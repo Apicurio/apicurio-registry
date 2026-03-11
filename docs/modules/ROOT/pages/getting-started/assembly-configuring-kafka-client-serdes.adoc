@@ -287,6 +287,11 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |Used by serializers and deserializers. Configures to use the specified `IdOption` as the identifier for artifacts. Options are `globalId` and `contentId`. Instructs the serializer to write the specified ID to Kafka, and instructs the deserializer to use this ID to find the schema.
 |`String`
 |`contentId`
+|`CANONICALIZE`
+|`apicurio.registry.canonicalize`
+|Used by serializers only. Specifies whether the serializer should canonicalize schema content when looking up or creating an artifact version in the registry by content. When set to `true`, semantically equivalent schemas with different formatting will match. When `false`, schema content is compared as-is. NOTE: In versions prior to 3.1.0, canonicalization was always attempted as a fallback. Starting with 3.1.0, this property must be explicitly set to `true` if canonicalized lookups are desired.
+|`boolean`
+|`false`
 |===
 
 [discrete]

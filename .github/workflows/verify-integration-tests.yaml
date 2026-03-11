@@ -25,6 +25,8 @@ jobs:
             profile: debezium-all
           - storage: kafkasql
             profile: kafkasql-snapshotting
+          - storage: kubernetesops
+            profile: kubernetesopsit
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -61,6 +63,10 @@ jobs:
             kafkasql)
               echo "remote-profile=remote-kafka" >> $GITHUB_OUTPUT
               echo "image-prop=registry-kafkasql-image" >> $GITHUB_OUTPUT
+              ;;
+            kubernetesops)
+              echo "remote-profile=remote-kubernetesops" >> $GITHUB_OUTPUT
+              echo "image-prop=registry-kubernetesops-image" >> $GITHUB_OUTPUT
               ;;
           esac
 

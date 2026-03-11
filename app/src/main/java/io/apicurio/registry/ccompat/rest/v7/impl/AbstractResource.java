@@ -191,7 +191,6 @@ public abstract class AbstractResource {
 
     protected ArtifactVersionMetaDataDto lookupSchema(String groupId, String artifactId, String schema,
             List<SchemaReference> schemaReferences, String schemaType, boolean normalize) {
-        // FIXME simplify logic
         try {
             final String type = schemaType == null ? ArtifactType.AVRO : schemaType;
             final String contentType = type.equals(ArtifactType.PROTOBUF) ? ContentTypes.APPLICATION_PROTOBUF
@@ -206,43 +205,62 @@ public abstract class AbstractResource {
                     amd = storage.getArtifactVersionMetaDataByContent(groupId, artifactId, true,
                             typedSchemaContent, artifactReferences);
                 } catch (ArtifactNotFoundException ex) {
-                    if (type.equals(ArtifactType.AVRO)) {
-                        // When comparing using content, sometimes the references might be inlined into the
-                        // content, try to dereference the existing content and compare as a fallback. See
-                        // https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
-                        // If using this method there is no matching content either, just re-throw the
-                        // exception.
-                        // This approach only works for schema types with dereference support (for now, only
-                        // Avro in the ccompat API).
-                        amd = storage.getArtifactVersions(groupId, artifactId).stream().filter(version -> {
-                            StoredArtifactVersionDto artifactVersion = storage
-                                    .getArtifactVersionContent(groupId, artifactId, version);
-                            TypedContent typedArtifactVersion = TypedContent
-                                    .create(artifactVersion.getContent(), artifactVersion.getContentType());
-                            Map<String, TypedContent> artifactVersionReferences = RegistryContentUtils
-                                    .recursivelyResolveReferences(artifactVersion.getReferences(),
-                                            storage::getContentByReference);
-                            String dereferencedExistingContentSha = DigestUtils
-                                    .sha256Hex(artifactTypeProvider.getContentDereferencer()
-                                            .dereference(typedArtifactVersion, artifactVersionReferences)
-                                            .getContent().content());
-                            return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
-                        }).findAny().map(
-                                version -> storage.getArtifactVersionMetaData(groupId, artifactId, version))
-                                .orElseThrow(() -> ex);
-                    } else {
-                        throw ex;
+                    amd = avroDereferenceFallback(groupId, artifactId, schema, type,
+                            artifactTypeProvider, ex);
+                }
+            } else {
+                try {
+                    amd = storage.getArtifactVersionMetaDataByContent(groupId, artifactId, false,
+                            typedSchemaContent, artifactReferences);
+                } catch (ArtifactNotFoundException ex) {
+                    // Canonical hash fallback: when the raw hash doesn't match (e.g. due to whitespace or
+                    // key ordering differences), try canonical hash comparison. This handles the case where
+                    // the Confluent client re-serializes the schema before sending the lookup request.
+                    // See https://github.com/Apicurio/apicurio-registry/issues/4831
+                    try {
+                        amd = storage.getArtifactVersionMetaDataByContent(groupId, artifactId, true,
+                                typedSchemaContent, artifactReferences);
+                    } catch (ArtifactNotFoundException ex2) {
+                        amd = avroDereferenceFallback(groupId, artifactId, schema, type,
+                                artifactTypeProvider, ex2);
                     }
                 }
-
-            } else {
-                amd = storage.getArtifactVersionMetaDataByContent(groupId, artifactId, false,
-                        typedSchemaContent, artifactReferences);
             }
 
             return amd;
         } catch (SchemaParseException | AvroTypeException ex) {
             throw new UnprocessableEntityException(ex.getMessage());
+        }
+    }
+
+    /**
+     * Avro dereference fallback: when comparing using content, sometimes the references might be inlined
+     * into the content. Try to dereference the existing content and compare as a fallback. This approach only
+     * works for Avro schemas (the only type with dereference support in the ccompat API). See
+     * https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
+     */
+    private ArtifactVersionMetaDataDto avroDereferenceFallback(String groupId, String artifactId,
+            String schema, String type, ArtifactTypeUtilProvider artifactTypeProvider,
+            ArtifactNotFoundException originalException) {
+        if (type.equals(ArtifactType.AVRO)) {
+            return storage.getArtifactVersions(groupId, artifactId).stream().filter(version -> {
+                StoredArtifactVersionDto artifactVersion = storage
+                        .getArtifactVersionContent(groupId, artifactId, version);
+                TypedContent typedArtifactVersion = TypedContent
+                        .create(artifactVersion.getContent(), artifactVersion.getContentType());
+                Map<String, TypedContent> artifactVersionReferences = RegistryContentUtils
+                        .recursivelyResolveReferences(artifactVersion.getReferences(),
+                                storage::getContentByReference);
+                String dereferencedExistingContentSha = DigestUtils
+                        .sha256Hex(artifactTypeProvider.getContentDereferencer()
+                                .dereference(typedArtifactVersion, artifactVersionReferences)
+                                .getContent().content());
+                return dereferencedExistingContentSha.equals(DigestUtils.sha256Hex(schema));
+            }).findAny().map(
+                    version -> storage.getArtifactVersionMetaData(groupId, artifactId, version))
+                    .orElseThrow(() -> originalException);
+        } else {
+            throw originalException;
         }
     }
 

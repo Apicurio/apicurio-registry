@@ -532,6 +532,26 @@ public interface SqlStatements {
     public String exportBranches();
 
     /*
+     * The next few statements support exporting data from a single group.
+     */
+
+    public String exportContentByGroup();
+
+    public String exportGroupsByGroupId();
+
+    public String exportGroupRulesByGroupId();
+
+    public String exportArtifactsByGroupId();
+
+    public String exportArtifactVersionsByGroupId();
+
+    public String exportVersionCommentsByGroupId();
+
+    public String exportBranchesByGroupId();
+
+    public String exportArtifactRulesByGroupId();
+
+    /*
      * The next few statements support importing data into the DB.
      */
 

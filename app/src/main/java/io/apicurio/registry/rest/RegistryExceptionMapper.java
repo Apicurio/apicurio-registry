@@ -3,6 +3,7 @@ package io.apicurio.registry.rest;
 import io.apicurio.registry.services.http.CCompatExceptionMapperService;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
 import io.apicurio.registry.services.http.CoreV2RegistryExceptionMapperService;
+import io.apicurio.registry.services.http.IcebergExceptionMapperService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +28,9 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     @Inject
     CCompatExceptionMapperService ccompatMapper;
 
+    @Inject
+    IcebergExceptionMapperService icebergMapper;
+
     @Context
     HttpServletRequest request;
 
@@ -40,6 +44,8 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             res = ccompatMapper.mapException(t);
         } else if (isV2Endpoint()) {
             res = coreV2Mapper.mapException(t);
+        } else if (isIcebergEndpoint()) {
+            res = icebergMapper.mapException(t);
         } else {
             res = coreMapper.mapException(t);
         }
@@ -72,6 +78,16 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     private boolean isV2Endpoint() {
         if (this.request != null) {
             return this.request.getRequestURI().contains("/apis/registry/v2");
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if the endpoint that caused the error is an Iceberg REST Catalog endpoint.
+     */
+    private boolean isIcebergEndpoint() {
+        if (this.request != null) {
+            return this.request.getRequestURI().contains("/apis/iceberg");
         }
         return false;
     }

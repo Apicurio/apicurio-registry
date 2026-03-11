@@ -17,7 +17,6 @@ public final class MethodParameterKeys {
     // Used to extract entity ID for ETag generation in HTTP caching
     public static final String MPK_ENTITY_ID = "entityId";
     public static final String MPK_FOR_BROWSER = "for_browser";
-    public static final String MPK_FROM_URL = "from_url";
     public static final String MPK_GROUP_ID = "group_id";
     public static final String MPK_IF_EXISTS = "if_exists";
     public static final String MPK_NAME = "name";
@@ -25,6 +24,7 @@ public final class MethodParameterKeys {
     public static final String MPK_OWNER = "owner";
     public static final String MPK_PRINCIPAL_ID = "principal_id";
     public static final String MPK_PROPERTY_CONFIGURATION = "property_configuration";
+    public static final String MPK_REF_TYPE = "refType";
     public static final String MPK_ROLE_MAPPING = "role_mapping";
     public static final String MPK_RULE = "rule";
     public static final String MPK_RULE_TYPE = "rule_type";

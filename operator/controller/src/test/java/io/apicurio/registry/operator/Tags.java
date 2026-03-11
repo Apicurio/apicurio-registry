@@ -25,6 +25,9 @@ public final class Tags {
     /** Feature-specific tests (ingress, TLS, env vars, etc.) */
     public static final String FEATURE = "feature";
 
+    /** Feature tests with heavy infrastructure setup (multi-namespace, TLS, operator restarts) */
+    public static final String FEATURE_SETUP = "feature-setup";
+
     /** Slow tests that take significant time */
     public static final String SLOW = "slow";
 

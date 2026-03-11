@@ -21,7 +21,7 @@ services:
       - ./artifact-types-config.json:/custom-artifact-types/artifact-types-config.json:ro
       - ./toml-artifact-type/dist:/custom-artifact-types/dist:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -1,7 +1,14 @@
 package io.apicurio.registry.storage.dto;
 
 import io.apicurio.registry.content.ContentHandle;
-import lombok.*;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils.HasReferences;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.List;
 
@@ -12,7 +19,7 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class ContentWrapperDto {
+public class ContentWrapperDto implements HasReferences {
 
     private String contentType;
     private ContentHandle content;

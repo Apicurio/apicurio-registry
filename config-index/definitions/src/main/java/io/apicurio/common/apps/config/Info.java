@@ -57,4 +57,11 @@ public @interface Info {
      */
     @Nonbinding
     String[] dependsOn() default {};
+
+    /**
+     * Marks this configuration property as experimental. Experimental properties may be changed or removed
+     * in future versions and require the global experimental features gate to be enabled.
+     */
+    @Nonbinding
+    boolean experimental() default false;
 }

@@ -18,6 +18,8 @@ package apicurio.common.app.components.config.index;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
 import io.apicurio.common.apps.config.DynamicConfigPropertyList;
+import io.apicurio.common.apps.config.ExperimentalConfigPropertyDef;
+import io.apicurio.common.apps.config.ExperimentalConfigPropertyList;
 import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.runtime.annotations.Recorder;
 
@@ -30,5 +32,11 @@ public class DynamicPropertiesInfoRecorder {
             List<DynamicConfigPropertyDef> dynamicProperties) {
 
         return new RuntimeValue<>(new DynamicConfigPropertyList(dynamicProperties));
+    }
+
+    public RuntimeValue<ExperimentalConfigPropertyList> initializeExperimentalPropertiesInfo(
+            List<ExperimentalConfigPropertyDef> experimentalProperties) {
+
+        return new RuntimeValue<>(new ExperimentalConfigPropertyList(experimentalProperties));
     }
 }

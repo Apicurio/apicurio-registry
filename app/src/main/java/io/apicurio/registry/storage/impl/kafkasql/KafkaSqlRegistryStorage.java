@@ -16,7 +16,7 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
-import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorReadOnlyBase;
+import io.apicurio.registry.storage.decorator.ReadOnlyDelegatingStorage;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
@@ -85,7 +85,7 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @StorageMetricsApply
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
-public class KafkaSqlRegistryStorage extends RegistryStorageDecoratorReadOnlyBase implements RegistryStorage {
+public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implements RegistryStorage {
 
     @Inject
     Logger log;

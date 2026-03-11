@@ -631,10 +631,11 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * should be used to stream the data from the storage to some output source (e.g. a HTTP response). It is
      * important that the full dataset is *not* kept in memory.
      *
+     * @param groupId if non-null, only data belonging to this group will be exported (global rules excluded)
      * @param handler
      * @throws RegistryStorageException
      */
-    void exportData(Function<Entity, Void> handler) throws RegistryStorageException;
+    void exportData(String groupId, Function<Entity, Void> handler) throws RegistryStorageException;
 
     /**
      * Called to import previously exported data into the registry.

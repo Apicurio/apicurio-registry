@@ -206,8 +206,8 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     }
 
     @Override
-    public void exportData(Function<Entity, Void> handler) throws RegistryStorageException {
-        delegate.exportData(handler);
+    public void exportData(String groupId, Function<Entity, Void> handler) throws RegistryStorageException {
+        delegate.exportData(groupId, handler);
     }
 
     @Override

@@ -31,12 +31,21 @@ public class DataExporter {
      * Exports all registry data.
      */
     public Response exportData() {
+        return exportData(null);
+    }
+
+    /**
+     * Exports registry data, optionally filtered by group.
+     *
+     * @param groupId if non-null, only data belonging to this group will be exported
+     */
+    public Response exportData(String groupId) {
         StreamingOutput stream = os -> {
             try {
                 ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
                 EntityWriter writer = new EntityWriter(zip);
                 AtomicInteger errorCounter = new AtomicInteger(0);
-                storage.exportData(entity -> {
+                storage.exportData(groupId, entity -> {
                     try {
                         writer.writeEntity(entity);
                     } catch (Exception e) {

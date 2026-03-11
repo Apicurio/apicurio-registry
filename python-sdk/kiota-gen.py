@@ -35,7 +35,7 @@ def generate_kiota_client_files(setup_kwargs):
         exit(1)
 
     kiota_release_name = f"{kiota_os_name}-{kiota_arch_name}.zip"
-    # Detecting the Kiota version from a .csproj file so that it can be updated by automatic tool (e.g. Dependabot)
+    # Detecting the Kiota version from a .csproj file so that it can be updated by an automatic tool
     kiota_version = (
         ET.parse(os.path.join(sys.path[0], "python-sdk.csproj"))
         .getroot()

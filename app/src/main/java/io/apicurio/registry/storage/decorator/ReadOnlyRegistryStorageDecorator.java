@@ -96,6 +96,15 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
                 branches, isDraft, dryRun, owner);
     }
 
+    public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData) {
+        checkReadOnly();
+        return delegate.createArtifactVersionIfLatest(groupId, artifactId, version, artifactType, content,
+                metaData, branches, isDraft, owner, expectedBaseVersionOrder, artifactMetaData);
+    }
+
     public void updateArtifactMetaData(String groupId, String artifactId,
             EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         checkReadOnly();

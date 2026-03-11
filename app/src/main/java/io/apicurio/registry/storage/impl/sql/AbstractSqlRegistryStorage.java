@@ -43,6 +43,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -105,6 +106,7 @@ import java.util.function.Function;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
+import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
 
 /**
@@ -656,6 +658,71 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         createdOn, contentId, branches, isDraft);
                 return versionDto;
             });
+        } catch (Exception ex) {
+            if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                throw new VersionAlreadyExistsException(groupId, artifactId, version);
+            }
+            throw ex;
+        }
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData) {
+
+        Date createdOn = new Date();
+        long contentId = ensureContentAndGetId(artifactType, content, isDraft);
+
+        try {
+            return handles.withHandle(handle -> {
+                // Lock the artifact's versions and get current max versionOrder
+                Integer currentMax = handle
+                        .createQuery(sqlStatements.selectMaxVersionOrderForUpdate())
+                        .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Integer.class)
+                        .findFirst()
+                        .orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
+
+                // Reject if someone committed in between
+                if (currentMax != expectedBaseVersionOrder) {
+                    throw new CommitFailedException(groupId, artifactId,
+                            "Concurrent commit detected: expected versionOrder "
+                                    + expectedBaseVersionOrder + " but found " + currentMax);
+                }
+
+                // Safe to proceed — we hold the FOR UPDATE lock
+                boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+                ArtifactVersionMetaDataDto result = createArtifactVersionRaw(handle, isFirstVersion,
+                        groupId, artifactId, version,
+                        metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData,
+                        owner, createdOn, contentId, branches, isDraft);
+
+                // Atomically update artifact-level metadata in the same transaction
+                if (artifactMetaData != null && artifactMetaData.getLabels() != null) {
+                    Map<String, String> labels = artifactMetaData.getLabels();
+                    handle.createUpdate(sqlStatements.updateArtifactLabels())
+                            .bind(0, RegistryContentUtils.serializeLabels(labels))
+                            .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).execute();
+                    handle.createUpdate(sqlStatements.deleteArtifactLabels())
+                            .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+                    if (!labels.isEmpty()) {
+                        labels.forEach((k, v) -> {
+                            handle.createUpdate(sqlStatements.insertArtifactLabel())
+                                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                                    .bind(2, limitStr(k.toLowerCase(), 256))
+                                    .bind(3, limitStr(asLowerCase(v), 512)).execute();
+                        });
+                    }
+                    handle.createUpdate(sqlStatements.updateArtifactModifiedByOn())
+                            .bind(0, owner).bind(1, createdOn)
+                            .bind(2, normalizeGroupId(groupId)).bind(3, artifactId).execute();
+                }
+
+                return result;
+            });
+        } catch (CommitFailedException ex) {
+            throw ex;
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {
                 throw new VersionAlreadyExistsException(groupId, artifactId, version);

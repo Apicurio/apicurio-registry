@@ -33,7 +33,10 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
@@ -307,6 +310,16 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
             String version, String artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft,
             boolean dryRun, String owner) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData)
+            throws ArtifactNotFoundException, VersionAlreadyExistsException, CommitFailedException,
+            RegistryStorageException {
         throw new UnsupportedOperationException();
     }
 

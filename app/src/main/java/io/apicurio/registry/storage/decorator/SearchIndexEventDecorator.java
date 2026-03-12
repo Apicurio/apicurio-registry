@@ -15,9 +15,11 @@ import io.apicurio.registry.storage.impl.search.ArtifactDeletedEvent;
 import io.apicurio.registry.storage.impl.search.ArtifactMetadataUpdatedEvent;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.storage.impl.search.GroupDeletedEvent;
+import io.apicurio.registry.storage.impl.search.ReindexRequestedEvent;
 import io.apicurio.registry.storage.impl.search.VersionCreatedEvent;
 import io.apicurio.registry.storage.impl.search.VersionDeletedEvent;
 import io.apicurio.registry.storage.impl.search.VersionStateChangedEvent;
+import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.types.VersionState;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
@@ -61,6 +63,9 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
 
     @Inject
     Event<AllDataDeletedEvent> allDataDeletedEvent;
+
+    @Inject
+    Event<ReindexRequestedEvent> reindexRequestedEvent;
 
     @Override
     public boolean isEnabled() {
@@ -113,7 +118,6 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         return versionMeta;
     }
 
-    @Override
     public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
             String version, String artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
@@ -230,5 +234,25 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         // Fire event for search index update
         versionStateChangedEvent.fire(
                 new VersionStateChangedEvent(groupId, artifactId, version, globalId, oldState, newState));
+    }
+
+    public void importData(EntityInputStream entities, boolean preserveGlobalId,
+            boolean preserveContentId) {
+
+        // Call delegate to perform the actual import
+        delegate.importData(entities, preserveGlobalId, preserveContentId);
+
+        // Fire event to trigger a full reindex of the search index
+        reindexRequestedEvent.fire(new ReindexRequestedEvent());
+    }
+
+    public void upgradeData(EntityInputStream entities, boolean preserveGlobalId,
+            boolean preserveContentId) {
+
+        // Call delegate to perform the actual upgrade
+        delegate.upgradeData(entities, preserveGlobalId, preserveContentId);
+
+        // Fire event to trigger a full reindex of the search index
+        reindexRequestedEvent.fire(new ReindexRequestedEvent());
     }
 }

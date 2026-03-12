@@ -12,6 +12,7 @@ import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -216,5 +217,34 @@ public class ElasticsearchStartupIndexer {
      */
     public boolean isReady() {
         return ready;
+    }
+
+    /**
+     * Triggers a full reindex of the search index by clearing all existing documents
+     * and rebuilding from the database. Used after bulk operations like data import
+     * or upgrade that bypass the normal per-entity event mechanism.
+     */
+    public void triggerReindex() {
+        try {
+            log.info("Triggering full reindex of Elasticsearch search index...");
+            indexManager.deleteAllDocuments();
+            reindex();
+            log.info("Full reindex triggered by import/upgrade completed successfully.");
+        } catch (Exception e) {
+            log.error("Full reindex triggered by import/upgrade failed. "
+                    + "The search index may be out of sync with the database.", e);
+        }
+    }
+
+    /**
+     * Observes the {@link ReindexRequestedEvent} CDI event and triggers a full reindex.
+     *
+     * @param event the reindex requested event
+     */
+    public void onReindexRequested(@Observes ReindexRequestedEvent event) {
+        if (!config.isEnabled()) {
+            return;
+        }
+        triggerReindex();
     }
 }

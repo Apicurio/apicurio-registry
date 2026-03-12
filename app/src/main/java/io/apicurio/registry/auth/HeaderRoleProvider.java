@@ -7,8 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.Context;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.util.Objects;
-
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUTH;
 
 @RequestScoped
@@ -25,18 +23,33 @@ public class HeaderRoleProvider implements RoleProvider {
     @Context
     HttpServletRequest request;
 
+    /**
+     * Checks if the header value matches any of the configured roles.
+     * This supports multiple role mappings (e.g., Azure AD groups and app roles).
+     */
     @Override
     public boolean isReadOnly() {
-        return Objects.equals(request.getHeader(roleHeader), authConfig.readOnlyRole);
+        String headerValue = request.getHeader(roleHeader);
+        return headerValue != null && authConfig.getReadOnlyRoles().contains(headerValue);
     }
 
+    /**
+     * Checks if the header value matches any of the configured developer roles.
+     * This supports multiple role mappings (e.g., Azure AD groups and app roles).
+     */
     @Override
     public boolean isDeveloper() {
-        return Objects.equals(request.getHeader(roleHeader), authConfig.developerRole);
+        String headerValue = request.getHeader(roleHeader);
+        return headerValue != null && authConfig.getDeveloperRoles().contains(headerValue);
     }
 
+    /**
+     * Checks if the header value matches any of the configured admin roles.
+     * This supports multiple role mappings (e.g., Azure AD groups and app roles).
+     */
     @Override
     public boolean isAdmin() {
-        return Objects.equals(request.getHeader(roleHeader), authConfig.adminRole);
+        String headerValue = request.getHeader(roleHeader);
+        return headerValue != null && authConfig.getAdminRoles().contains(headerValue);
     }
 }

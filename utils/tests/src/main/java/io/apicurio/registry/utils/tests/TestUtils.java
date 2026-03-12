@@ -212,7 +212,7 @@ public class TestUtils {
                 onTimeout.run();
                 TimeoutException exception = new TimeoutException(
                         "Timeout after " + timeoutMs + " ms waiting for " + description);
-                exception.printStackTrace();
+                log.warn("Timeout waiting for: {}", description, exception);
                 throw exception;
             }
             long sleepTime = Math.min(pollIntervalMs, timeLeft);

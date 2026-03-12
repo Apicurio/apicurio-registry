@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.util.Priorities;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -20,7 +21,7 @@ import org.slf4j.Logger;
  */
 @Authorized
 @Interceptor
-@Priority(Interceptor.Priority.APPLICATION)
+@Priority(Priorities.Interceptors.AUTHORIZATION)
 public class AuthorizedInterceptor {
 
     @Inject
@@ -59,8 +60,21 @@ public class AuthorizedInterceptor {
             }
         }
 
+        // If proxy authorization is trusted, skip local authorization checks
+        // This only applies to requests authenticated via proxy headers
+        if (authConfig.proxyHeaderAuthEnabled
+                && authConfig.proxyHeaderTrustProxyAuthorization
+                && securityIdentity != null
+                && !securityIdentity.isAnonymous()
+                && securityIdentity.getCredential(ProxyHeaderCredential.class) != null) {
+
+            log.debug("Trusting proxy authorization for user: {}, skipping local authorization checks",
+                    securityIdentity.getPrincipal().getName());
+            return context.proceed();
+        }
+
         // If authentication is not enabled, just do it.
-        if (!authConfig.oidcAuthEnabled && !authConfig.basicAuthEnabled) {
+        if (!authConfig.oidcAuthEnabled && !authConfig.basicAuthEnabled && !authConfig.proxyHeaderAuthEnabled) {
             return context.proceed();
         }
 

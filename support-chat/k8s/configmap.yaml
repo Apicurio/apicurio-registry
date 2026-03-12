@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apicurio-support-chat-config
+  labels:
+    app: apicurio-support-chat
+data:
+  REGISTRY_URL: "http://apicurio-registry:8080"
+  REGISTRY_GROUP: "default"
+  OLLAMA_URL: "http://ollama:11434"
+  OLLAMA_MODEL: "llama3.2"
+  OLLAMA_EMBEDDING_MODEL: "nomic-embed-text"

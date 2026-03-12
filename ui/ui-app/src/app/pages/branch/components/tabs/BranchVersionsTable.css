@@ -1,3 +1,7 @@
 .branch-versions-table table tbody tr:first-child {
     background-color: #f8f8ff;
 }
+
+.branch-versions-table > table > thead {
+    border-bottom: 1px solid #ccc;
+}

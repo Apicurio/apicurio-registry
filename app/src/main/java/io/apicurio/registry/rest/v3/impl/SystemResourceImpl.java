@@ -80,6 +80,7 @@ public class SystemResourceImpl implements SystemResource {
                         .deleteArtifact(restConfig.isArtifactDeletionEnabled())
                         .deleteVersion(restConfig.isArtifactVersionDeletionEnabled())
                         .draftMutability(restConfig.isArtifactVersionMutabilityEnabled())
+                        .agents(uiConfig.featureAgents.get())
                         .settings("true".equals(uiConfig.featureSettings)).build())
                 .build();
     }
@@ -101,6 +102,8 @@ public class SystemResourceImpl implements SystemResource {
             if (!"f5".equals(uiConfig.authOidcLogoutUrl)) {
                 options.put("logoutUrl", uiConfig.authOidcLogoutUrl);
             }
+            // Only include loadUserInfo if explicitly configured
+            uiConfig.loadUserInfo.ifPresent(loadUserInfo -> options.put("loadUserInfo", String.valueOf(loadUserInfo)));
             rval.setOptions(options);
         }
         return rval;

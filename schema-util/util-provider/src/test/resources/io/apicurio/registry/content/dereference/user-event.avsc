@@ -1,0 +1,19 @@
+{
+    "type": "record",
+    "name": "UserEvent",
+    "namespace": "com.example",
+    "fields": [
+        {
+            "name": "userId",
+            "type": "string"
+        },
+        {
+            "name": "eventType",
+            "type": "string"
+        },
+        {
+            "name": "timestamp",
+            "type": "long"
+        }
+    ]
+}

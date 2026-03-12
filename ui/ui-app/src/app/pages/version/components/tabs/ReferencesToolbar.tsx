@@ -92,11 +92,11 @@ export const ReferencesToolbar: FunctionComponent<ReferencesToolbarProps> = (pro
                                 onChange={(_evt, value) => setFilterValue(value)}
                                 data-testid="toolbar-filter-value"
                                 aria-label="search input example"/>
-                            <Button variant={ButtonVariant.control}
+                            <Button icon={<SearchIcon/>} variant={ButtonVariant.control}
                                 onClick={onFilterSubmit}
                                 data-testid="toolbar-btn-filter-search"
                                 aria-label="search button for search input">
-                                <SearchIcon/>
+                                
                             </Button>
                         </InputGroup>
                     </Form>
@@ -105,7 +105,7 @@ export const ReferencesToolbar: FunctionComponent<ReferencesToolbarProps> = (pro
                     <Switch
                         id="simple-switch"
                         label="View artifacts that reference this artifact"
-                        labelOff="View artifacts that reference this artifact"
+                        
                         isChecked={ props.referenceType === ReferenceTypeObject.INBOUND }
                         onChange={ props.onToggleReferenceType }
                         data-testid="reference-type-toggle"
@@ -133,7 +133,7 @@ export const ReferencesToolbar: FunctionComponent<ReferencesToolbarProps> = (pro
                         />
                     </ToggleGroup>
                 </ToolbarItem>
-                <ToolbarItem className="paging-item" align={{ default: "alignRight" }}>
+                <ToolbarItem className="paging-item" align={{ default: "alignEnd" }}>
                     <Pagination
                         variant="top"
                         dropDirection="down"

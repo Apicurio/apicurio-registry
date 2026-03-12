@@ -39,7 +39,7 @@ export const BranchVersionsToolbar: FunctionComponent<BranchVersionsToolbarProps
     return (
         <Toolbar id="branch-versions-toolbar-1" className="branch-versions-toolbar">
             <ToolbarContent>
-                <ToolbarItem className="paging-item" align={{ default: "alignRight" }}>
+                <ToolbarItem className="paging-item" align={{ default: "alignEnd" }}>
                     <Pagination
                         variant="top"
                         dropDirection="down"

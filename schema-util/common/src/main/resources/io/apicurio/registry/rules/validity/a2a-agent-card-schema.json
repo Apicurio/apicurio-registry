@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://a2a-protocol.org/schemas/agent-card.json",
+  "title": "A2A Agent Card",
+  "description": "Schema for A2A (Agent-to-Agent) protocol Agent Card documents",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name of the agent"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of what the agent does"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of the agent"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Base URL for the agent's A2A endpoint"
+    },
+    "provider": {
+      "type": "object",
+      "description": "Information about the agent's provider/organization",
+      "properties": {
+        "organization": {
+          "type": "string",
+          "description": "Name of the organization providing the agent"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the organization's website"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Agent capabilities",
+      "properties": {
+        "streaming": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the agent supports streaming responses"
+        },
+        "pushNotifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the agent supports push notifications"
+        }
+      },
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "skills": {
+      "type": "array",
+      "description": "List of skills/capabilities the agent provides",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the skill"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the skill"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what the skill does"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tags for categorizing the skill"
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Example prompts or use cases for the skill"
+          }
+        }
+      }
+    },
+    "defaultInputModes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Supported input modes (e.g., 'text', 'image', 'audio')"
+    },
+    "defaultOutputModes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Supported output modes (e.g., 'text', 'image', 'audio')"
+    },
+    "authentication": {
+      "type": "object",
+      "description": "Authentication configuration",
+      "properties": {
+        "schemes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Supported authentication schemes (e.g., 'bearer', 'api-key', 'oauth2')"
+        },
+        "credentials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Required credentials for authentication"
+        }
+      }
+    },
+    "supportsExtendedAgentCard": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the agent supports extended agent card discovery"
+    }
+  }
+}

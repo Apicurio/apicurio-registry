@@ -1,5 +1,6 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import "./ReferenceList.css";
+import { Link } from "react-router";
 import { ThProps } from "@patternfly/react-table";
 import { ResponsiveTable } from "@apicurio/common-ui-components";
 import { ArtifactReference } from "@sdk/lib/generated-client/models";
@@ -100,7 +101,7 @@ export const ReferenceList: FunctionComponent<ReferenceListProps> = (
     }, [sort]);
 
     return (
-        <div className="design-list">
+        <div className="reference-list">
             <ResponsiveTable
                 ariaLabel="list of designs"
                 columns={columns}
@@ -109,13 +110,13 @@ export const ReferenceList: FunctionComponent<ReferenceListProps> = (
                 minimumColumnWidth={350}
                 renderHeader={({ column, Th }) => (
                     <Th sort={sortParams(column)}
-                        className="design-list-header"
+                        className="reference-list-header"
                         key={`header-${column.id}`}
                         width={column.width}
                         modifier="truncate">{column.label}</Th>
                 )}
                 renderCell={({ row, colIndex, Td }) => (
-                    <Td className="design-list-cell" key={`cell-${colIndex}-${nextRowIndex()}`}
+                    <Td className="reference-list-cell" key={`cell-${colIndex}-${nextRowIndex()}`}
                         style={{ maxWidth: "0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                         children={renderColumnData(row as ArtifactReference, colIndex) as any} />
                 )}

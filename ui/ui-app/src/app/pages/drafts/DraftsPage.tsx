@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./DraftsPage.css";
-import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
+import { PageSection, PageSectionVariants, Content } from "@patternfly/react-core";
 import { ConfirmDeleteModal, InvalidContentModal, RootPageHeader } from "@app/components";
 import {
     DRAFTS_PAGE_IDX, DraftsList, DraftsPageEmptyState,
@@ -263,15 +263,15 @@ export const DraftsPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_drafts-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_drafts-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={DRAFTS_PAGE_IDX} />
                 </PageSection>
-                <PageSection className="ps_drafts-description" variant={PageSectionVariants.light}>
-                    <TextContent>
+                <PageSection hasBodyWrapper={false} className="ps_drafts-description" >
+                    <Content>
                         Browse drafts (available to be edited) for this Registry instance.
-                    </TextContent>
+                    </Content>
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true}>
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true}>
                     <ListWithToolbar
                         toolbar={toolbar}
                         emptyState={emptyState}

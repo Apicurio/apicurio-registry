@@ -1,61 +1,60 @@
-.group-list {
+.explore-group-list {
 }
 
-.group-list .group-list-item {
-    background-color: white;
+.explore-group-list .explore-group-list-item {
     margin-bottom: 2px;
 }
 
-.group-list .group-list-item.default-group {
+.explore-group-list .explore-group-list-item.default-group {
     margin-top: 10px;
     margin-bottom: 10px;
     border-top: 2px #ccc dashed;
     border-bottom: 2px #ccc dashed;
 }
-.group-list .group-list-item.default-group > div {
+.explore-group-list .explore-group-list-item.default-group > div {
     padding-bottom: 10px;
 }
-.group-list .group-list-item.default-group > div > div {
+.explore-group-list .explore-group-list-item.default-group > div > div {
     padding-top: 10px;
 }
 
-.group-list .group-list-item .type-icon-cell {
+.explore-group-list .explore-group-list-item .type-icon-cell {
     flex: initial;
 }
 
-.group-list .group-list-item .type-icon-cell > .type-icon {
+.explore-group-list .explore-group-list-item .type-icon-cell > .type-icon {
     margin-top: 5px;
 }
 
-.group-list .group-list-item .content-cell {
+.explore-group-list .explore-group-list-item .content-cell {
 }
 
-.group-list .group-list-item .content-cell .group-title {
+.explore-group-list .explore-group-list-item .content-cell .group-title {
 }
 
-.group-list .group-list-item .content-cell .group-title a, .group-list .group-list-item .content-cell .group-title a:hover {
+.explore-group-list .explore-group-list-item .content-cell .group-title a, .explore-group-list .explore-group-list-item .content-cell .group-title a:hover {
     text-decoration: none;
 }
 
-.group-list .group-list-item .content-cell .group-title .group {
+.explore-group-list .explore-group-list-item .content-cell .group-title .group {
     color: #2b9af3;
     font-weight: bold;
 }
 
-.group-list .group-list-item .content-cell .group-title .name {
+.explore-group-list .explore-group-list-item .content-cell .group-title .name {
     color: #2b9af3;
     font-weight: bold;
     font-size: 18px;
     margin-right: 10px;
 }
 
-.group-list .group-list-item .content-cell .group-description {
+.explore-group-list .explore-group-list-item .content-cell .group-description {
     font-size: 13px;
 }
 
-.group-list .group-list-item .content-cell .group-tags {
+.explore-group-list .explore-group-list-item .content-cell .group-tags {
 }
 
-.group-list .group-list-item .content-cell .group-tags > span {
+.explore-group-list .explore-group-list-item .content-cell .group-tags > span {
     margin-right: 5px;
 }

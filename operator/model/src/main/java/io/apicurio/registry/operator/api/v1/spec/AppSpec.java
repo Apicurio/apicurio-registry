@@ -75,6 +75,17 @@ public class AppSpec extends ComponentSpec {
     private TLSSpec tls;
 
     /**
+     * Configure OpenTelemetry observability for Apicurio Registry.
+     */
+    @JsonProperty("otel")
+    @JsonPropertyDescription("""
+            Configure OpenTelemetry observability for Apicurio Registry.
+            When enabled, Registry exports distributed traces and metrics to an OpenTelemetry collector.
+            """)
+    @JsonSetter(nulls = SKIP)
+    private OTelSpec otel;
+
+    /**
      * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt
      * to update the fields automatically.
      */

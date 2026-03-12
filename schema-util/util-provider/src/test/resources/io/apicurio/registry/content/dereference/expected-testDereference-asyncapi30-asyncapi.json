@@ -1,0 +1,48 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "User Service API",
+        "version": "1.0.0",
+        "description": "API for user-related events"
+    },
+    "channels": {
+        "userSignedUp": {
+            "address": "user/signedup",
+            "messages": {
+                "userSignedUpMessage": {
+                    "$ref": "#/components/messages/UserSignedUp"
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "User": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "email"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "displayName": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "messages": {
+            "UserSignedUp": {
+                "payload": {
+                    "$ref": "#/components/schemas/User"
+                }
+            }
+        }
+    }
+}

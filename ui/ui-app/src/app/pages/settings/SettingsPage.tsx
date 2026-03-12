@@ -7,7 +7,7 @@ import {
     PageSection,
     PageSectionVariants,
     SearchInput,
-    TextContent
+    Content
 } from "@patternfly/react-core";
 import { RootPageHeader } from "@app/components";
 import {
@@ -64,7 +64,8 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
         label: "Web console settings",
         propertyNames: [
             "apicurio.download.href.ttl.seconds",
-            "apicurio.ui.features.read-only.enabled"
+            "apicurio.ui.features.read-only.enabled",
+            "apicurio.ui.features.agents.enabled"
         ]
     },
     {
@@ -169,14 +170,14 @@ export const SettingsPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_settings-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_settings-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={SETTINGS_PAGE_IDX} />
                 </PageSection>
-                <PageSection className="ps_settings-description" variant={PageSectionVariants.light}>
-                    <TextContent>
+                <PageSection hasBodyWrapper={false} className="ps_settings-description" >
+                    <Content>
                         Configure global settings for this Registry instance.
-                    </TextContent>
-                    <TextContent style={{ marginTop: "10px", marginBottom: "5px", maxWidth: "450px" }}>
+                    </Content>
+                    <Content style={{ marginTop: "10px", marginBottom: "5px", maxWidth: "450px" }}>
                         <SearchInput placeholder={"Filter by keyword"}
                             aria-label="Filter by keyword"
                             value={filterValue}
@@ -188,9 +189,9 @@ export const SettingsPage: FunctionComponent<PageProperties> = () => {
                                 setSearchCriteria("");
                             }}
                         />
-                    </TextContent>
+                    </Content>
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true} data-testid="config-groups">
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true} data-testid="config-groups">
                     <IfNotEmpty collection={searchedProperties} emptyStateMessage={"No settings found matching your search criteria."}>
                         {
                             propertyGroups().map(group =>

@@ -26,31 +26,6 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Cache Kiota binary
-        uses: actions/cache@v4
-        id: kiota-cache
-        with:
-          path: ~/.kiota
-          key: kiota-1.28.0-linux-x64
-
-      - name: Download Kiota binary
-        if: steps.kiota-cache.outputs.cache-hit != 'true'
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 10
-          command: |
-            mkdir -p ~/.kiota
-            curl -L --retry 3 --retry-delay 5 \
-              -o ~/.kiota/kiota-linux-x64.zip \
-              https://github.com/microsoft/kiota/releases/download/v1.28.0/linux-x64.zip
-            unzip -o ~/.kiota/kiota-linux-x64.zip -d ~/.kiota/
-            chmod +x ~/.kiota/kiota
-
-      - name: Add Kiota to PATH
-        run: echo "$HOME/.kiota" >> $GITHUB_PATH
-
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -64,10 +39,22 @@ jobs:
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
 
+      - name: Load Docker Image
+        uses: apicurio/apicurio-github-actions/load-docker-image@v2
+        with:
+          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ inputs.image-tag }}
+
       - name: Run Unit Tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         run: |
-          ./mvnw verify --no-transfer-progress \
-            -Pprod -DskipCommitIdPlugin=false \
-            -Dkiota.system=true \
+          ./mvnw verify \
+            --no-transfer-progress \
+            -Pprod \
+            -DskipCommitIdPlugin=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
-            -Dmaven.wagon.http.retryHandler.count=5
+            -Dmaven.wagon.http.retryHandler.count=5 \
+            -Dtest.app.image=apicurio/apicurio-registry:${{ inputs.image-tag }}

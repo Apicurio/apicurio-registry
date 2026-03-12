@@ -22,6 +22,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -43,6 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Tag(Constants.MIGRATION)
 @Disabled
 public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
+
+    private static final Logger log = LoggerFactory.getLogger(GenerateCanonicalHashImportIT.class);
 
     @Test
     public void testGeneratingCanonicalHashOnImport() throws Exception {
@@ -171,7 +175,7 @@ public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
 
             return new ByteArrayInputStream(outputStream.toByteArray());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to generate exported ZIP", e);
         }
         return null;
     }

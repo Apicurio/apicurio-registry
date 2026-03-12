@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
-import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
+import { Link, useLocation, useParams } from "react-router";
 import {
     ContentTabContent,
     DocumentationTabContent,
@@ -16,6 +16,7 @@ import {
 } from "@app/pages";
 import { ReferencesTabContent } from "@app/pages/version/components/tabs/ReferencesTabContent.tsx";
 import {
+    ChangeVersionStateModal,
     ConfirmDeleteModal,
     EditMetaDataModal,
     GenerateClientModal,
@@ -36,7 +37,8 @@ import {
     Labels,
     RuleViolationProblemDetails,
     SearchedVersion,
-    VersionMetaData
+    VersionMetaData,
+    VersionState
 } from "@sdk/lib/generated-client/models";
 import { DraftsService, useDraftsService } from "@services/useDraftsService.ts";
 import { CreateDraft, Draft } from "@models/drafts";
@@ -67,6 +69,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
+    const [isChangeStateModalOpen, setIsChangeStateModalOpen] = useState(false);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
@@ -157,7 +160,13 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     const showDocumentationTab = (): boolean => {
-        return artifact?.artifactType === "OPENAPI" && artifactVersion?.state !== "DISABLED";
+        if (artifactVersion?.state === "DISABLED") {
+            return false;
+        }
+        return artifact?.artifactType === ArtifactTypes.OPENAPI
+            || artifact?.artifactType === ArtifactTypes.ASYNCAPI
+            || artifact?.artifactType === ArtifactTypes.AGENT_CARD
+            || artifact?.artifactType === ArtifactTypes.JSON;
     };
 
     const doDownloadVersion = (): void => {
@@ -245,6 +254,33 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             setPageError(toPageError(error, "Error editing artifact metadata."));
         });
         onEditModalClose();
+    };
+
+    const openChangeStateModal = (): void => {
+        setIsChangeStateModalOpen(true);
+    };
+
+    const onChangeStateModalClose = (): void => {
+        setIsChangeStateModalOpen(false);
+    };
+
+    const doChangeState = (newState: VersionState): void => {
+        onChangeStateModalClose();
+        pleaseWait(true, "Changing version state, please wait...");
+        groups.updateArtifactVersionState(groupId as string, artifactId as string, version as string, newState).then(() => {
+            pleaseWait(false);
+            setArtifactVersion({
+                ...artifactVersion,
+                state: newState
+            } as VersionMetaData);
+        }).catch(error => {
+            pleaseWait(false);
+            if (error && (error.status === 400 || error.status === 409)) {
+                handleInvalidContentError(error);
+            } else {
+                setPageError(toPageError(error, "Error changing version state."));
+            }
+        });
     };
 
     const handleInvalidContentError = (error: any): void => {
@@ -353,6 +389,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 artifact={artifact as ArtifactMetaData}
                 version={artifactVersion as VersionMetaData}
                 onEditMetaData={openEditMetaDataModal}
+                onChangeState={openChangeStateModal}
             />
         </Tab>,
         <Tab data-testid="version-documentation-tab" eventKey="documentation" title="Documentation" key="documentation" className="documentation-tab" tabContentId="tab-documentation">
@@ -384,13 +421,13 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_explore-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
                 </PageSection>
                 <IfFeature feature="breadcrumbs" is={true}>
-                    <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
+                    <PageSection hasBodyWrapper={false} className="ps_header-breadcrumbs"  children={breadcrumbs} />
                 </IfFeature>
-                <PageSection className="ps_artifact-version-header" variant={PageSectionVariants.light}>
+                <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <VersionPageHeader
                         onEdit={onEditDraft}
                         onDelete={onDeleteVersion}
@@ -407,7 +444,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                         onGenerateClient={() => setIsGenerateClientModalOpen(true)}
                     />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.light} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
+                <PageSection hasBodyWrapper={false}  isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
                         id="artifact-page-tabs"
                         unmountOnExit={true}
@@ -458,6 +495,12 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             <FinalizeDryRunSuccessModal
                 isOpen={isFinalizeDryRunSuccessModalOpen}
                 onClose={() => setIsFinalizeDryRunSuccessModalOpen(false)} />
+            <ChangeVersionStateModal
+                isOpen={isChangeStateModalOpen}
+                currentState={artifactVersion?.state as VersionState}
+                onClose={onChangeStateModalClose}
+                onChangeState={doChangeState}
+            />
             <PleaseWaitModal
                 message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />

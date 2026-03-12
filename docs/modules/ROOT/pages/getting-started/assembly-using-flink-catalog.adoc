@@ -1,0 +1,292 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="using-flink-catalog_{context}"]
+= Using {registry} with Apache Flink
+
+[role="_abstract"]
+This chapter explains how to use {registry} as a catalog in Apache Flink to manage schemas for your streaming applications:
+
+* xref:registry-flink-catalog-overview_{context}[]
+* xref:registry-flink-catalog-config_{context}[]
+* xref:registry-flink-catalog-sql_{context}[]
+* xref:registry-flink-catalog-table-api_{context}[]
+* xref:registry-flink-catalog-schema-types_{context}[]
+
+
+.Prerequisites
+* A running {registry} instance
+* Apache Flink 1.17 or later
+
+
+[id='registry-flink-catalog-overview_{context}']
+== Overview of the {registry} Flink Catalog
+
+[role="_abstract"]
+The {registry} Flink Catalog provides seamless integration between {registry} and Apache Flink, enabling you to manage and discover schemas directly from your Flink SQL and Table API applications.
+
+The catalog maps {registry} concepts to Flink concepts as follows:
+
+.Mapping between {registry} and Flink concepts
+[.table-expandable,width="100%",cols="3,3,5",options="header"]
+|===
+|{registry} Concept
+|Flink Concept
+|Description
+|Group
+|Database
+|A logical namespace for organizing artifacts. Each group in {registry} appears as a database in Flink.
+|Artifact
+|Table
+|A schema registered in {registry}. Each artifact appears as a table in Flink with columns derived from the schema.
+|Schema Content
+|Table Schema
+|The schema content (Avro, JSON Schema) is automatically converted to Flink's type system.
+|===
+
+
+[id='registry-flink-catalog-config_{context}']
+== Configuring the {registry} Flink Catalog
+
+[role="_abstract"]
+This section describes the configuration options available for the {registry} Flink Catalog.
+
+.Required configuration properties
+[.table-expandable,width="100%",cols="4,4,3,5",options="header"]
+|===
+|Property
+|Type
+|Default
+|Description
+|`registry.url`
+|String
+|None (required)
+|Base URL of the {registry} API, for example `\http://localhost:8080/apis/registry/v3`.
+|===
+
+.Optional configuration properties
+[.table-expandable,width="100%",cols="4,4,3,5",options="header"]
+|===
+|Property
+|Type
+|Default
+|Description
+|`default-database`
+|String
+|`default`
+|The default database (group) to use when none is specified.
+|`registry.auth.type`
+|String
+|`none`
+|Authentication type: `none`, `basic`, or `oauth2`.
+|`registry.auth.username`
+|String
+|None
+|Username for basic authentication.
+|`registry.auth.password`
+|String
+|None
+|Password for basic authentication.
+|`registry.auth.token-endpoint`
+|String
+|None
+|OAuth2 token endpoint URL.
+|`registry.auth.client-id`
+|String
+|None
+|OAuth2 client ID.
+|`registry.auth.client-secret`
+|String
+|None
+|OAuth2 client secret.
+|`cache.ttl.ms`
+|Long
+|`300000` (5 minutes)
+|Cache time-to-live in milliseconds for schema caching.
+|===
+
+
+[id='registry-flink-catalog-sql_{context}']
+== Using the catalog with Flink SQL
+
+[role="_abstract"]
+You can register and use the {registry} Flink Catalog directly in Flink SQL.
+
+.Registering the catalog in Flink SQL
+[source,sql]
+----
+CREATE CATALOG apicurio WITH (
+  'type' = 'apicurio',
+  'registry.url' = 'http://localhost:8080/apis/registry/v3'
+);
+
+USE CATALOG apicurio;
+----
+
+.Listing databases (groups)
+[source,sql]
+----
+SHOW DATABASES;
+----
+
+.Using a specific database
+[source,sql]
+----
+USE my_group;
+SHOW TABLES;
+----
+
+.Querying a table
+[source,sql]
+----
+SELECT * FROM my_artifact;
+----
+
+.Example with authentication
+[source,sql]
+----
+CREATE CATALOG apicurio_secure WITH (
+  'type' = 'apicurio',
+  'registry.url' = 'http://localhost:8080/apis/registry/v3',
+  'registry.auth.type' = 'oauth2',
+  'registry.auth.token-endpoint' = 'http://keycloak:8080/realms/registry/protocol/openid-connect/token',
+  'registry.auth.client-id' = 'registry-client',
+  'registry.auth.client-secret' = 'my-secret'
+);
+----
+
+
+[id='registry-flink-catalog-table-api_{context}']
+== Using the catalog with the Flink Table API
+
+[role="_abstract"]
+You can also use the {registry} Flink Catalog programmatically with the Flink Table API in Java.
+
+.Registering the catalog using Java Table API
+[source,java,subs="+quotes,attributes"]
+----
+import io.apicurio.registry.flink.CatalogConfig;
+import io.apicurio.registry.flink.ApicurioCatalog;
+import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.table.api.TableEnvironment;
+
+// Create Table Environment
+EnvironmentSettings settings = EnvironmentSettings.newInstance()
+    .inStreamingMode()
+    .build();
+TableEnvironment tableEnv = TableEnvironment.create(settings);
+
+// Configure the catalog
+CatalogConfig config = CatalogConfig.builder()
+    .name("apicurio")
+    .url("http://localhost:8080/apis/registry/v3")
+    .defaultDatabase("default")
+    .build();
+
+// Register the catalog
+ApicurioCatalog catalog = new ApicurioCatalog(config);
+tableEnv.registerCatalog("apicurio", catalog);
+tableEnv.useCatalog("apicurio");
+----
+
+.Example with OAuth2 authentication
+[source,java,subs="+quotes,attributes"]
+----
+CatalogConfig config = CatalogConfig.builder()
+    .name("apicurio")
+    .url("http://localhost:8080/apis/registry/v3")
+    .authType("oauth2")
+    .tokenEndpoint("http://keycloak:8080/realms/registry/protocol/openid-connect/token")
+    .clientId("registry-client")
+    .clientSecret("my-secret")
+    .build();
+----
+
+.Example with basic authentication
+[source,java,subs="+quotes,attributes"]
+----
+CatalogConfig config = CatalogConfig.builder()
+    .name("apicurio")
+    .url("http://localhost:8080/apis/registry/v3")
+    .authType("basic")
+    .username("my-user")
+    .password("my-password")
+    .build();
+----
+
+
+[id='registry-flink-catalog-schema-types_{context}']
+== Supported schema types
+
+[role="_abstract"]
+The {registry} Flink Catalog supports automatic conversion of the following schema types to Flink's type system.
+
+.Supported schema types
+[.table-expandable,width="100%",cols="3,3,5",options="header"]
+|===
+|Schema Type
+|Artifact Type
+|Description
+|Apache Avro
+|`AVRO`
+|Full support for Avro schemas. Avro types are mapped to corresponding Flink types.
+|JSON Schema
+|`JSON`
+|Support for JSON Schema. JSON Schema types are mapped to Flink types.
+|===
+
+.Avro to Flink type mapping
+[.table-expandable,width="100%",cols="4,4",options="header"]
+|===
+|Avro Type
+|Flink Type
+|`null`
+|`NULL`
+|`boolean`
+|`BOOLEAN`
+|`int`
+|`INT`
+|`long`
+|`BIGINT`
+|`float`
+|`FLOAT`
+|`double`
+|`DOUBLE`
+|`bytes`
+|`BYTES`
+|`string`
+|`STRING`
+|`array`
+|`ARRAY<...>`
+|`map`
+|`MAP<STRING, ...>`
+|`record`
+|`ROW<...>`
+|===
+
+.JSON Schema to Flink type mapping
+[.table-expandable,width="100%",cols="4,4",options="header"]
+|===
+|JSON Schema Type
+|Flink Type
+|`null`
+|`NULL`
+|`boolean`
+|`BOOLEAN`
+|`integer`
+|`BIGINT`
+|`number`
+|`DOUBLE`
+|`string`
+|`STRING`
+|`array`
+|`ARRAY<...>`
+|`object`
+|`ROW<...>`
+|===
+
+
+[role="_additional-resources"]
+.Additional resources
+* For more details, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/flink[Flink Catalog source code]
+* For information on {registry} groups and artifacts, see {registry-overview}
+

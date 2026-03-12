@@ -1,6 +1,7 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.client.RegistryV2ClientFactory;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -83,6 +84,136 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.groups().byGroupId(groupId).artifacts().get();
         });
         assertTrue(exception.getMessage().contains("unauthorized"));
+    }
+
+    /**
+     * Test that authentication errors (401) return properly formatted ProblemDetails responses
+     * with all required fields populated according to RFC 7807.
+     * This verifies the fix for issue #7022 where the Kiota SDK was throwing generic ApiException
+     * instead of properly typed ProblemDetails exceptions.
+     */
+    @Test
+    public void testInvalidCredentialsReturnsProblemDetails() throws Exception {
+        // Create client with invalid credentials
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString()));
+
+        // Attempt to list artifacts (requires authentication)
+        var exception = Assertions.assertThrows(Exception.class, () -> {
+            client.groups().byGroupId(groupId).artifacts().get();
+        });
+
+        // Verify the exception is a ProblemDetails instance (not generic ApiException)
+        Assertions.assertEquals(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+                exception.getClass(),
+                "Expected ProblemDetails exception, not generic ApiException");
+
+        // Cast to ProblemDetails and verify all required fields
+        io.apicurio.registry.rest.client.models.ProblemDetails problemDetails =
+            (io.apicurio.registry.rest.client.models.ProblemDetails) exception;
+
+        // Verify status code is 401
+        Assertions.assertEquals(401, problemDetails.getStatus(),
+                "Expected HTTP 401 Unauthorized status");
+
+        // Verify title is present and non-empty
+        Assertions.assertNotNull(problemDetails.getTitle(),
+                "ProblemDetails title should not be null");
+        Assertions.assertFalse(problemDetails.getTitle().isEmpty(),
+                "ProblemDetails title should not be empty");
+
+        // Verify detail is present (typically includes exception class and message)
+        Assertions.assertNotNull(problemDetails.getDetail(),
+                "ProblemDetails detail should not be null");
+
+        // Verify name is present (typically the exception class name)
+        Assertions.assertNotNull(problemDetails.getName(),
+                "ProblemDetails name should not be null");
+        Assertions.assertTrue(problemDetails.getName().contains("Exception"),
+                "ProblemDetails name should contain 'Exception'");
+
+        // Attempt to create an artifact (also requires authentication)
+        String artifactId = TestUtils.generateArtifactId();
+        var exception2 = Assertions.assertThrows(Exception.class, () -> {
+            createArtifact.setArtifactId(artifactId);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        });
+
+        // Verify POST requests also return ProblemDetails
+        Assertions.assertEquals(io.apicurio.registry.rest.client.models.ProblemDetails.class,
+                exception2.getClass(),
+                "POST request should also return ProblemDetails for 401 errors");
+
+        io.apicurio.registry.rest.client.models.ProblemDetails problemDetails2 =
+            (io.apicurio.registry.rest.client.models.ProblemDetails) exception2;
+        Assertions.assertEquals(401, problemDetails2.getStatus());
+        Assertions.assertNotNull(problemDetails2.getTitle());
+        Assertions.assertNotNull(problemDetails2.getName());
+    }
+
+    /**
+     * Test that authentication errors (401) return properly formatted AuthError responses
+     * in the V2 API with all required fields populated according to RFC 7807.
+     * This is the V2 API variant of testInvalidCredentialsReturnsProblemDetails.
+     */
+    @Test
+    public void testInvalidCredentialsReturnsAuthErrorV2() throws Exception {
+        // Create V2 client with invalid credentials
+        var clientV2 = RegistryV2ClientFactory.create(RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                .basicAuth(KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, UUID.randomUUID().toString()));
+
+        // Attempt to list artifacts (requires authentication)
+        var exception = Assertions.assertThrows(Exception.class, () -> {
+            clientV2.groups().byGroupId(groupId).artifacts().get();
+        });
+
+        // Verify the exception is an AuthError instance (not generic ApiException)
+        Assertions.assertEquals(io.apicurio.registry.rest.client.v2.models.AuthError.class,
+                exception.getClass(),
+                "Expected AuthError exception, not generic ApiException");
+
+        // Cast to AuthError and verify all required fields
+        io.apicurio.registry.rest.client.v2.models.AuthError authError =
+            (io.apicurio.registry.rest.client.v2.models.AuthError) exception;
+
+        // Verify status code is 401
+        Assertions.assertEquals(401, authError.getStatus(),
+                "Expected HTTP 401 Unauthorized status");
+
+        // Verify title is present and non-empty
+        Assertions.assertNotNull(authError.getTitle(),
+                "AuthError title should not be null");
+        Assertions.assertFalse(authError.getTitle().isEmpty(),
+                "AuthError title should not be empty");
+
+        // Verify name is present (typically the exception class name)
+        Assertions.assertNotNull(authError.getName(),
+                "AuthError name should not be null");
+        Assertions.assertTrue(authError.getName().contains("Exception"),
+                "AuthError name should contain 'Exception'");
+
+        // Attempt to create an artifact using V2 API (also requires authentication)
+        String artifactId = TestUtils.generateArtifactId();
+        var exception2 = Assertions.assertThrows(Exception.class, () -> {
+            io.apicurio.registry.rest.client.v2.models.ArtifactContent content =
+                new io.apicurio.registry.rest.client.v2.models.ArtifactContent();
+            content.setContent(ARTIFACT_CONTENT);
+            clientV2.groups().byGroupId(groupId).artifacts().post(content, config -> {
+                config.headers.add("X-Registry-ArtifactId", artifactId);
+                config.headers.add("X-Registry-ArtifactType", "JSON");
+            });
+        });
+
+        // Verify POST requests also return AuthError
+        Assertions.assertEquals(io.apicurio.registry.rest.client.v2.models.AuthError.class,
+                exception2.getClass(),
+                "POST request should also return AuthError for 401 errors");
+
+        io.apicurio.registry.rest.client.v2.models.AuthError authError2 =
+            (io.apicurio.registry.rest.client.v2.models.AuthError) exception2;
+        Assertions.assertEquals(401, authError2.getStatus());
+        Assertions.assertNotNull(authError2.getTitle());
+        Assertions.assertNotNull(authError2.getName());
     }
 
     @Test

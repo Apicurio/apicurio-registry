@@ -51,9 +51,15 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |`KCONNECT`
 |Apache Kafka Connect schema
 |`2.0.0`
+|`MODEL_SCHEMA`
+|AI/ML model input/output schema definitions
+|`v1`
 |`OPENAPI`
 |OpenAPI specification
 |`2.0.0`, `3.0.0` -> `3.0.3`, `3.1.0`
+|`PROMPT_TEMPLATE`
+|LLM prompt templates with variable schemas
+|`v1`
 |`PROTOBUF`
 |Google protocol buffers schema
 |`proto2`, `proto3`
@@ -67,6 +73,36 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |XML Schema Definition
 |http://www.w3.org/2001/XMLSchema
 |===
+
+[discrete]
+=== AI/ML artifact types
+
+{registry} includes built-in support for AI/ML artifact types designed for LLMOps and prompt engineering workflows.
+
+==== MODEL_SCHEMA
+Defines and validates AI/ML model input/output schemas and metadata. Use this artifact type to:
+
+* Document model input/output contracts using JSON Schema
+* Track model capabilities (chat, vision, function calling)
+* Store provider information and context window limits
+* Ensure backward compatibility when updating model schemas
+
+Content types: `application/json`, `application/x-yaml`
+
+==== PROMPT_TEMPLATE
+Version-controlled prompt templates with variable schemas. Use this artifact type to:
+
+* Store prompt templates with `{{variable}}` syntax
+* Define variable schemas with types, constraints, and defaults
+* Track prompt evolution with version history
+* Validate prompts have all required variables defined
+
+Content types: `application/x-yaml`, `application/json`, `text/x-prompt-template`
+
+[role="_additional-resources"]
+.Additional resources
+* For detailed examples and SDK integration, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/llm-artifact-types[LLM artifact types example]
+* For a complete support chat application with RAG, see link:https://github.com/carlesarnal/apicurio-registry-support-chat[Apicurio Registry Support Chat]
 
 
 

@@ -1,4 +1,5 @@
 export * from "./ChangeOwnerModal";
+export * from "./ChangeVersionStateModal";
 export * from "./ConfirmDeleteModal";
 export * from "./CreateArtifactModal";
 export * from "./CreateBranchModal";
@@ -10,3 +11,4 @@ export * from "./EditMetaDataModal";
 export * from "./InvalidContentModal";
 export * from "./LabelsFormGroup";
 export * from "./GenerateClientModal";
+export * from "./VersionCompareModal";

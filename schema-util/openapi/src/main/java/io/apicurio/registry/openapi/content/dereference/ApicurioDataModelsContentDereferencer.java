@@ -22,11 +22,11 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
         try {
             JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
             Document doc = Library.readDocument((ObjectNode) node);
-            ReferenceInliner inliner = new ReferenceInliner(resolvedReferences);
-            Library.visitTree(doc, inliner, TraverserDirection.down);
+            RegistryReferenceResolver resolver = new RegistryReferenceResolver(resolvedReferences);
+            Document dereferencedDoc = Library.dereferenceDocument(doc, resolver, false);
 
             // Preserve the original content format (YAML or JSON)
-            String dereferencedContent = writeDocumentPreservingFormat(doc, content.getContentType());
+            String dereferencedContent = writeDocumentPreservingFormat(dereferencedDoc, content.getContentType());
             return TypedContent.create(ContentHandle.create(dereferencedContent), content.getContentType());
         } catch (IOException e) {
             throw new RuntimeException(e);

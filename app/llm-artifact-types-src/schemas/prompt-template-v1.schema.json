@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apicur.io/schemas/prompt-template/v1",
+  "title": "Prompt Template Schema",
+  "description": "Schema for PROMPT_TEMPLATE artifact type in Apicurio Registry. Defines the structure for LLM prompt templates with variable substitution support. Aligned with Microsoft Prompty specification for interoperability.",
+  "type": "object",
+  "required": ["templateId", "template"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "Reference to this schema for validation"
+    },
+    "templateId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the prompt template. Maps to Prompty 'name' field."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-friendly display name for the prompt template. Maps to Prompty 'name' field."
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of what this prompt template does. Maps to Prompty 'description' field."
+    },
+    "version": {
+      "type": "string",
+      "description": "Version identifier for the prompt template. Maps to Prompty 'version' field."
+    },
+    "authors": {
+      "type": "array",
+      "description": "Contributors to this prompt template. Aligns with Prompty 'authors' field.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "description": "Categorization tags for discoverability. Aligns with Prompty 'tags' field.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "template": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The prompt template content with {{variable}} placeholders for substitution. Supports Jinja2/Mustache-style syntax."
+    },
+    "templateFormat": {
+      "type": "string",
+      "enum": ["mustache", "jinja2", "handlebars"],
+      "default": "mustache",
+      "description": "Template processing engine. Default is 'mustache' ({{variable}} syntax). Aligns with Prompty template processing."
+    },
+    "variables": {
+      "type": "object",
+      "description": "Schema definitions for template variables. Maps to Prompty 'inputs' field.",
+      "additionalProperties": {
+        "$ref": "#/$defs/VariableSchema"
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "description": "Alternative name for 'variables' - aligns with Prompty 'inputs' field. Use 'variables' or 'inputs' but not both.",
+      "additionalProperties": {
+        "$ref": "#/$defs/VariableSchema"
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "JSON Schema defining the expected output format from the LLM. Maps to Prompty 'outputs' field."
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Alternative name for 'outputSchema' - aligns with Prompty 'outputs' field."
+    },
+    "model": {
+      "$ref": "#/$defs/ModelConfiguration"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata for the prompt template",
+      "additionalProperties": true
+    },
+    "mcp": {
+      "$ref": "#/$defs/MCPConfiguration"
+    }
+  },
+  "$defs": {
+    "VariableSchema": {
+      "type": "object",
+      "description": "Schema definition for a template variable/input",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean", "array", "object"],
+          "description": "The data type of the variable"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether this variable must be provided when rendering the template"
+        },
+        "default": {
+          "description": "Default value for the variable if not provided"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this variable represents"
+        },
+        "enum": {
+          "type": "array",
+          "description": "List of allowed values for this variable"
+        },
+        "minimum": {
+          "type": "number",
+          "description": "Minimum value for numeric variables"
+        },
+        "maximum": {
+          "type": "number",
+          "description": "Maximum value for numeric variables"
+        },
+        "$ref": {
+          "type": "string",
+          "format": "uri-reference",
+          "description": "Reference to an external schema definition"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ModelConfiguration": {
+      "type": "object",
+      "description": "Model configuration for the prompt. Aligns with Prompty 'model' section.",
+      "properties": {
+        "api": {
+          "type": "string",
+          "enum": ["chat", "completion"],
+          "default": "chat",
+          "description": "API type to use with the model"
+        },
+        "configuration": {
+          "type": "object",
+          "description": "Model-specific configuration",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Provider type (e.g., 'azure_openai', 'openai')"
+            },
+            "azure_deployment": {
+              "type": "string",
+              "description": "Azure OpenAI deployment name"
+            },
+            "azure_endpoint": {
+              "type": "string",
+              "description": "Azure OpenAI endpoint URL"
+            }
+          },
+          "additionalProperties": true
+        },
+        "parameters": {
+          "$ref": "#/$defs/ModelParameters"
+        },
+        "response": {
+          "type": "string",
+          "enum": ["first", "all"],
+          "default": "first",
+          "description": "Response mode for model output"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ModelParameters": {
+      "type": "object",
+      "description": "Model inference parameters. Aligns with Prompty model parameters.",
+      "properties": {
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Sampling temperature (0-2)"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum tokens to generate"
+        },
+        "top_p": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Nucleus sampling parameter"
+        },
+        "frequency_penalty": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 2,
+          "description": "Frequency penalty for token repetition"
+        },
+        "presence_penalty": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 2,
+          "description": "Presence penalty for topic diversity"
+        },
+        "stop": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Stop sequences"
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Random seed for reproducibility"
+        },
+        "response_format": {
+          "type": "object",
+          "description": "Output format specification (e.g., JSON mode)"
+        }
+      },
+      "additionalProperties": true
+    },
+    "MCPConfiguration": {
+      "type": "object",
+      "description": "Model Context Protocol (MCP) integration configuration. When enabled, this prompt template can be served as an MCP prompt.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this prompt template should be exposed as an MCP prompt"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name to use when exposing this prompt via MCP. Defaults to templateId if not specified."
+        },
+        "description": {
+          "type": "string",
+          "description": "The description to use when exposing this prompt via MCP. Defaults to the template description if not specified."
+        },
+        "arguments": {
+          "type": "array",
+          "description": "MCP prompt arguments. If not specified, arguments are auto-derived from the variables section.",
+          "items": {
+            "$ref": "#/$defs/MCPArgument"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "MCPArgument": {
+      "type": "object",
+      "description": "An argument for an MCP prompt",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the argument"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the argument"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether this argument is required"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "x-prompty-compatibility": {
+    "description": "This schema is designed for interoperability with Microsoft Prompty specification",
+    "fieldMappings": {
+      "templateId": "name",
+      "variables": "inputs",
+      "outputSchema": "outputs"
+    },
+    "reference": "https://prompty.ai/specification/page/"
+  },
+  "additionalProperties": true
+}

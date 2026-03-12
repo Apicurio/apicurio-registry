@@ -7,11 +7,13 @@ import {
     DescriptionListTerm,
     Form,
     FormGroup,
-    Modal,
     Popover,
     Radio,
     TextInput
 } from "@patternfly/react-core";
+import {
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { OutlinedQuestionCircleIcon } from "@patternfly/react-icons";
 import "./GrantAccessModal.css";
 import { Principal } from "@services/useConfigService.ts";
@@ -166,7 +168,7 @@ export const GrantAccessModal: FunctionComponent<GrantAccessModalProps> = (props
 
                 <FormGroup
                     label="Account"
-                    labelIcon={
+                    labelHelp={
                         <Popover aria-label="Account help"
                             headerContent={
                                 <span>Account help</span>

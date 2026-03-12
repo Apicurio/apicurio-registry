@@ -5,11 +5,9 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateHeader,
-    EmptyStateIcon,
     EmptyStateVariant,
     PageSection,
-    PageSectionVariants
+    
 } from "@patternfly/react-core";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -23,9 +21,8 @@ export const NotFoundPage: FunctionComponent<PageProperties> = () => {
     const appNavigation: AppNavigation = useAppNavigation();
 
     return  (
-        <PageSection className="ps_rules-header" variant={PageSectionVariants.light}>
-            <EmptyState variant={EmptyStateVariant.full}>
-                <EmptyStateHeader titleText="404 Error: page not found" headingLevel="h4" icon={<EmptyStateIcon icon={ExclamationCircleIcon} />} />
+        <PageSection hasBodyWrapper={false} className="ps_rules-header" >
+            <EmptyState  headingLevel="h4" icon={ExclamationCircleIcon}  titleText="404 Error: page not found" variant={EmptyStateVariant.full}>
                 <EmptyStateBody>
                     This page couldn't be found.  If you think this is a bug, please report the issue.
                 </EmptyStateBody>

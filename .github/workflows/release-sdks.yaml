@@ -101,8 +101,8 @@ jobs:
       - name: Publish to PyPI
         working-directory: registry/python-sdk
         env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
-        run: poetry publish
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: make publish
 
       - name: Notify on completion
         if: always()
@@ -137,26 +137,41 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+          cache: false
 
-      - name: Clone Go SDK Repository
+      - name: Release Go SDK
+        working-directory: registry
         run: |
-          git clone https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry-go-sdk.git go-sdk
-          cd go-sdk
-          git checkout main
+          git tag "v${{ needs.prepare.outputs.release-version }}"
+          git tag "go-sdk/v${{ needs.prepare.outputs.release-version }}"
+          git push origin "v${{ needs.prepare.outputs.release-version }}"
+          git push origin "go-sdk/v${{ needs.prepare.outputs.release-version }}"
 
-      - name: Update Go SDK
-        run: |
-          # Copy updated SDK files
-          rm -rf go-sdk/v3/
-          cp -r registry/go-sdk/* go-sdk/
+          # Retry up to 5 times with increasing sleep intervals.
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          SUCCESS=false
 
-      - name: Create Tag and Push
-        working-directory: go-sdk
-        run: |
-          git add .
-          git commit -m "Release ${{ needs.prepare.outputs.release-version }}" || true
-          git tag v${{ needs.prepare.outputs.release-version }}
-          git push origin main --tags
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
+            if GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry/go-sdk/v3@v${{ needs.prepare.outputs.release-version }}"; then
+              SUCCESS=true
+              echo "Successfully verified Go module."
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                SLEEP_TIME=$((RETRY_COUNT * 10))
+                echo "Failed. Retrying in $SLEEP_TIME seconds..."
+                sleep $SLEEP_TIME
+              fi
+            fi
+          done
+
+          if [ "$SUCCESS" = false ]; then
+            echo "ERROR: Failed to verify Go module after $MAX_RETRIES attempts."
+            exit 1
+          fi
 
       - name: Notify on completion
         if: always()

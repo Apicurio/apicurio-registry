@@ -6,10 +6,12 @@ import {
     FormGroup,
     Grid,
     GridItem,
-    Modal,
     TextArea,
     TextInput
 } from "@patternfly/react-core";
+import {
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { If } from "@apicurio/common-ui-components";
 import { ArtifactLabel, LabelsFormGroup } from "@app/components";
 import { Labels } from "@sdk/lib/generated-client/models";

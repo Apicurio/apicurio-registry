@@ -476,6 +476,148 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Test for issue #7068: Protobuf compatibility check should return detailed errors.
+     * Previously, incompatibility errors returned generic messages like
+     * "The new version of the protobuf artifact is not backward compatible".
+     * Now they should return specific messages like
+     * "Conflict, field id changed, message Person, before: 4, after 5".
+     */
+    @Test
+    public void testProtobufCompatibilityReturnsDetailedErrors() throws Exception {
+        String artifactId = generateArtifactId();
+
+        String personV1 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+            }
+            """;
+
+        // Incompatible change - changes field ID
+        String personV2FieldIdChanged = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 5;
+            }
+            """;
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.PROTOBUF, personV1, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Enable backward compatibility rule
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Incompatible update should fail with detailed error message
+        RuleViolationProblemDetails exception = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> {
+                    createArtifactVersion(artifactId, personV2FieldIdChanged,
+                            ContentTypes.APPLICATION_PROTOBUF);
+                });
+
+        // Verify that the detailed error is present in the causes
+        Assertions.assertNotNull(exception.getCauses(), "Causes should not be null");
+        Assertions.assertFalse(exception.getCauses().isEmpty(), "Causes should not be empty");
+
+        // Check that at least one cause contains the detailed field id change message
+        boolean hasDetailedError = exception.getCauses().stream()
+                .anyMatch(cause -> cause.getDescription() != null
+                        && cause.getDescription().contains("field id changed"));
+
+        Assertions.assertTrue(hasDetailedError,
+                "Should contain detailed error about field id change. Actual causes: "
+                        + exception.getCauses());
+
+        // Verify context is extracted (should be /Person)
+        boolean hasContext = exception.getCauses().stream()
+                .anyMatch(cause -> cause.getContext() != null && cause.getContext().contains("Person"));
+
+        Assertions.assertTrue(hasContext, "Should contain context path. Actual causes: "
+                + exception.getCauses());
+    }
+
+    /**
+     * Test for issue #7068: Protobuf compatibility check should return multiple detailed errors.
+     * When there are multiple incompatibilities, all should be reported.
+     */
+    @Test
+    public void testProtobufCompatibilityReturnsMultipleDetailedErrors() throws Exception {
+        String artifactId = generateArtifactId();
+
+        String personV1 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+              string email = 3;
+            }
+            """;
+
+        // Multiple incompatible changes - changes field ID and field type
+        String personV2MultipleErrors = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 5;
+              int64 email = 3;
+            }
+            """;
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.PROTOBUF, personV1, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Enable backward compatibility rule
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Incompatible update should fail with multiple detailed error messages
+        RuleViolationProblemDetails exception = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> {
+                    createArtifactVersion(artifactId, personV2MultipleErrors,
+                            ContentTypes.APPLICATION_PROTOBUF);
+                });
+
+        // Verify that multiple detailed errors are present
+        Assertions.assertNotNull(exception.getCauses(), "Causes should not be null");
+        Assertions.assertTrue(exception.getCauses().size() >= 2,
+                "Should have at least 2 causes for multiple incompatibilities. Actual: "
+                        + exception.getCauses().size());
+
+        // Check for field id change error
+        boolean hasFieldIdError = exception.getCauses().stream()
+                .anyMatch(cause -> cause.getDescription() != null
+                        && cause.getDescription().contains("field id changed"));
+
+        // Check for field type change error
+        boolean hasFieldTypeError = exception.getCauses().stream()
+                .anyMatch(cause -> cause.getDescription() != null
+                        && cause.getDescription().contains("Field type changed"));
+
+        Assertions.assertTrue(hasFieldIdError,
+                "Should contain detailed error about field id change. Actual causes: "
+                        + exception.getCauses());
+        Assertions.assertTrue(hasFieldTypeError,
+                "Should contain detailed error about field type change. Actual causes: "
+                        + exception.getCauses());
+    }
+
+    /**
      * Test that updating a compatibility rule from a restrictive level to NONE allows incompatible changes.
      * This verifies that the NONE configuration properly disables the rule.
      */

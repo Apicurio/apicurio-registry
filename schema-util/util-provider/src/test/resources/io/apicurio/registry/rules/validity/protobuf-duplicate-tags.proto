@@ -1,0 +1,7 @@
+syntax = "proto3";
+package schema;
+
+message TestSchema {
+    string field1 = 1;
+    string field2 = 1;
+}

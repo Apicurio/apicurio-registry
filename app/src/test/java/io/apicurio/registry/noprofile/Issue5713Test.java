@@ -2,7 +2,6 @@ package io.apicurio.registry.noprofile;
 
 import com.microsoft.kiota.RequestAdapter;
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.v2.RegistryClient;
 import io.apicurio.registry.rest.client.v2.models.ArtifactContent;
 import io.apicurio.registry.rest.client.v2.models.ArtifactMetaData;
@@ -71,11 +70,6 @@ message Decimal {
         RegistryClient clientV2 = createRestClientV2(vertx);
         String groupId = "default";
         String artifactId = "testIssue5713-value";
-
-        // Create a group
-        CreateGroup createGroup = new CreateGroup();
-        createGroup.setGroupId(groupId);
-        clientV3.groups().post(createGroup);
 
         ArtifactContent body = new ArtifactContent();
         body.setContent(PROTO_SIMPLE);

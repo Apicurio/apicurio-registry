@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.1.5-SNAPSHOT</version>
+    <version>3.2.0-SNAPSHOT</version>
   </parent>
   <artifactId>apicurio-registry-integration-tests</artifactId>
 
@@ -571,6 +571,45 @@
         <skipTests>false</skipTests>
         <groups>kafkasqlit</groups>
       </properties>
+    </profile>
+
+    <profile>
+      <id>kubernetesopsit</id>
+      <properties>
+        <skipTests>false</skipTests>
+        <groups>kubernetesopsit</groups>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>remote-kubernetesops</id>
+      <properties>
+        <skipTests>false</skipTests>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <registry-kubernetesops-image>quay.io/apicurio/apicurio-registry:latest-snapshot</registry-kubernetesops-image>
+                    <cluster.tests>true</cluster.tests>
+                    <deployKubernetesOps>true</deployKubernetesOps>
+                    <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
+                    <quarkus.http.test-host>localhost</quarkus.http.test-host>
+                    <quarkus.http.test-port>8080</quarkus.http.test-port>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
 
     <profile>

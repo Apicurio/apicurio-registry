@@ -1,7 +1,5 @@
 package io.apicurio.registry.rest.v3.impl;
 
-import io.apicurio.registry.rest.v3.GroupsResource;
-
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -17,70 +15,19 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rest.ConflictException;
-import io.apicurio.registry.rest.HeadersHack;
-import io.apicurio.registry.rest.InvalidParameterValueException;
+import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.RestConfig;
-import io.apicurio.registry.rest.v3.beans.AddVersionToBranch;
-import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
-import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
-import io.apicurio.registry.rest.v3.beans.BranchMetaData;
-import io.apicurio.registry.rest.v3.beans.BranchSearchResults;
-import io.apicurio.registry.rest.v3.beans.Comment;
-import io.apicurio.registry.rest.v3.beans.CreateArtifact;
-import io.apicurio.registry.rest.v3.beans.CreateArtifactResponse;
-import io.apicurio.registry.rest.v3.beans.CreateBranch;
-import io.apicurio.registry.rest.v3.beans.CreateGroup;
-import io.apicurio.registry.rest.v3.beans.CreateRule;
-import io.apicurio.registry.rest.v3.beans.CreateVersion;
-import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
-import io.apicurio.registry.rest.v3.beans.EditableBranchMetaData;
-import io.apicurio.registry.rest.v3.beans.EditableGroupMetaData;
-import io.apicurio.registry.rest.v3.beans.EditableVersionMetaData;
-import io.apicurio.registry.rest.v3.beans.GroupMetaData;
-import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
-import io.apicurio.registry.rest.v3.beans.GroupSortBy;
-import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
-import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
-import io.apicurio.registry.rest.v3.beans.NewComment;
-import io.apicurio.registry.rest.v3.beans.ReplaceBranchVersions;
-import io.apicurio.registry.rest.v3.beans.Rule;
-import io.apicurio.registry.rest.v3.beans.SortOrder;
-import io.apicurio.registry.rest.v3.beans.VersionContent;
-import io.apicurio.registry.rest.v3.beans.VersionMetaData;
-import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
-import io.apicurio.registry.rest.v3.beans.VersionSortBy;
-import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
-import io.apicurio.registry.rest.v3.beans.ReferenceGraph;
-import io.apicurio.registry.rest.v3.beans.ReferenceGraphEdge;
-import io.apicurio.registry.rest.v3.beans.ReferenceGraphMetadata;
-import io.apicurio.registry.rest.v3.beans.ReferenceGraphNode;
-import io.apicurio.registry.types.ReferenceGraphDirection;
+import io.apicurio.registry.rest.cache.strategy.VersionContentCacheStrategy;
+import io.apicurio.registry.rest.cache.strategy.interceptor.VersionContentCache;
+import io.apicurio.registry.rest.v3.GroupsResource;
+import io.apicurio.registry.rest.v3.beans.*;
+import io.apicurio.registry.rest.v3.impl.shared.ProtobufExporter;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchMetaDataDto;
-import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
-import io.apicurio.registry.storage.dto.CommentDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.RuleConfigurationDto;
-import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
@@ -90,6 +37,7 @@ import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.ReferenceGraphDirection;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
@@ -105,38 +53,41 @@ import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
-import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.BufferedInputStream;
-import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_CANONICAL;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_EDITABLE_METADATA;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_GROUP_ID;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_IF_EXISTS;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_RULE_TYPE;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_CANONICAL;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_EDITABLE_METADATA;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_GROUP_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_IF_EXISTS;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_REF_TYPE;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_VERSION;
+import static io.apicurio.registry.rest.cache.HttpCaching.caching;
+import static io.apicurio.registry.rest.headers.Headers.checkIfDeprecated;
+import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.recursivelyResolveReferenceContentIds;
+import static io.apicurio.registry.utils.Cell.cellWithLoader;
 import static java.util.stream.Collectors.toList;
 
 /**
  * Implements the {@link GroupsResource} JAX-RS interface.
  */
 @ApplicationScoped
-@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
+@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
+// TODO: Split this into multiple implementation classes, similar to the storage repositories.
 public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
@@ -158,9 +109,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     SecurityIdentity securityIdentity;
 
-    public enum RegistryHashAlgorithm {
-        SHA256, MD5
-    }
+    @Inject
+    io.apicurio.registry.services.PromptRenderingService promptRenderingService;
+
+    @Inject
+    ProtobufExporter protobufExporter;
 
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
@@ -168,6 +121,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION, "3", MPK_REF_TYPE})
+    @VersionContentCache(versionExpressionParam = MPK_VERSION, refTypeParam = MPK_REF_TYPE)
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
             String versionExpression, ReferenceType refType) {
 
@@ -197,9 +152,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public ReferenceGraph getArtifactVersionReferencesGraph(String groupId, String artifactId,
             String versionExpression, ReferenceGraphDirection direction, BigInteger depth) {
 
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         // Check if the artifact exists first to provide the correct exception type
         if (!storage.isArtifactExists(new GroupId(groupId).getRawGroupIdWithNull(), artifactId)) {
@@ -490,6 +445,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * Creates a unique node ID from group, artifact, and version.
      */
     private String createNodeId(String groupId, String artifactId, String version) {
+        // TODO: Use io.apicurio.registry.model.GAV
         String group = (groupId != null) ? groupId : "default";
         return group + ":" + artifactId + ":" + version;
     }
@@ -499,6 +455,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * Used for detecting circular references at the artifact level.
      */
     private String createArtifactKey(String groupId, String artifactId) {
+        // TODO: Use io.apicurio.registry.model.GA
         String group = (groupId != null) ? groupId : "default";
         return group + ":" + artifactId;
     }
@@ -507,7 +464,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @see io.apicurio.registry.rest.v3.GroupsResource#deleteArtifact(java.lang.String, java.lang.String)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifact(String groupId, String artifactId) {
         if (!restConfig.isArtifactDeletionEnabled()) {
@@ -515,8 +473,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     (String[]) null);
         }
 
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         storage.deleteArtifact(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
     }
@@ -528,8 +486,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         ArtifactMetaDataDto dto = storage.getArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(),
                 artifactId);
@@ -541,11 +499,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      java.lang.String, io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_EDITABLE_METADATA })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_EDITABLE_METADATA})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaData data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         if (data.getOwner() != null) {
             if (data.getOwner().trim().isEmpty()) {
@@ -572,7 +531,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupById(String groupId) {
         if (!restConfig.isGroupDeletionEnabled()) {
@@ -588,14 +548,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      io.apicurio.registry.rest.v3.beans.EditableGroupMetaData)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void updateGroupById(String groupId, EditableGroupMetaData data) {
-        requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
 
         EditableGroupMetaDataDto dto = new EditableGroupMetaDataDto();
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
+        dto.setOwner(data.getOwner());
         storage.updateGroupMetaData(new GroupId(groupId).getRawGroupIdWithNull(), dto);
     }
 
@@ -628,6 +590,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
     public GroupMetaData createGroup(CreateGroup data) {
+        // Validate that the user is not trying to create the reserved "default" group
+        if (new GroupId(data.getGroupId()).isDefaultGroup()) {
+            throw new BadRequestException("The group name 'default' is reserved and cannot be used.");
+        }
+
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder().groupId(data.getGroupId())
                 .description(data.getDescription()).labels(data.getLabels());
 
@@ -642,18 +609,19 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public List<RuleType> listGroupRules(String groupId) {
-        requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
 
         return storage.getGroupRules(new GroupId(groupId).getRawGroupIdWithNull());
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_RULE })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_RULE})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void createGroupRule(String groupId, CreateRule data) {
-        requireParameter("groupId", groupId);
-        requireParameter("ruleType", data.getRuleType());
-        requireParameter("config", data.getConfig());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("ruleType", data.getRuleType());
+        ParameterValidationUtils.requireParameter("config", data.getConfig());
 
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
@@ -674,12 +642,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_RULE_TYPE, "2", KEY_RULE })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_RULE_TYPE, "2", MPK_RULE})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public Rule updateGroupRuleConfig(String groupId, RuleType ruleType, Rule data) {
-        requireParameter("groupId", groupId);
-        requireParameter("ruleType", ruleType);
-        requireParameter("config", data.getConfig());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("ruleType", ruleType);
+        ParameterValidationUtils.requireParameter("config", data.getConfig());
 
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
@@ -694,10 +663,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupRules(String groupId) {
-        requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
 
         storage.deleteGroupRules(new GroupId(groupId).getRawGroupIdWithNull());
     }
@@ -705,8 +675,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public Rule getGroupRuleConfig(String groupId, RuleType ruleType) {
-        requireParameter("groupId", groupId);
-        requireParameter("ruleType", ruleType);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("ruleType", ruleType);
 
         RuleConfigurationDto dto = storage.getGroupRule(new GroupId(groupId).getRawGroupIdWithNull(),
                 ruleType);
@@ -717,11 +687,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_RULE_TYPE })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_RULE_TYPE})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteGroupRule(String groupId, RuleType rule) {
-        requireParameter("groupId", groupId);
-        requireParameter("rule", rule);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("rule", rule);
 
         storage.deleteGroupRule(new GroupId(groupId).getRawGroupIdWithNull(), rule);
     }
@@ -732,8 +703,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<RuleType> listArtifactRules(String groupId, String artifactId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         return storage.getArtifactRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
     }
@@ -742,13 +713,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @see io.apicurio.registry.rest.v3.GroupsResource#createArtifactRule(String, String, CreateRule)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_RULE })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_RULE})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void createArtifactRule(String groupId, String artifactId, CreateRule data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("ruleType", data.getRuleType());
-        requireParameter("config", data.getConfig());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("ruleType", data.getRuleType());
+        ParameterValidationUtils.requireParameter("config", data.getConfig());
 
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
@@ -770,11 +742,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      java.lang.String)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactRules(String groupId, String artifactId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         storage.deleteArtifactRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
     }
@@ -786,9 +759,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Rule getArtifactRuleConfig(String groupId, String artifactId, RuleType ruleType) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("ruleType", ruleType);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("ruleType", ruleType);
 
         RuleConfigurationDto dto = storage.getArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(),
                 artifactId, ruleType);
@@ -803,14 +776,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      Rule)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_RULE_TYPE, "3",
-            KEY_RULE })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_RULE_TYPE, "3",
+            MPK_RULE})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType ruleType, Rule data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("ruleType", ruleType);
-        requireParameter("config", data.getConfig());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("ruleType", ruleType);
+        ParameterValidationUtils.requireParameter("config", data.getConfig());
 
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
@@ -829,12 +803,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      io.apicurio.registry.types.RuleType)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_RULE_TYPE })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_RULE_TYPE})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactRule(String groupId, String artifactId, RuleType rule) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("rule", rule);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("rule", rule);
 
         storage.deleteArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, rule);
     }
@@ -847,48 +822,70 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response getArtifactVersionContent(String groupId, String artifactId, String versionExpression,
             HandleReferencesType references) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        if (references == null) {
+            // Check if admin has configured a default reference handling behavior
+            java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+                references = HandleReferencesType.fromValue(configuredDefault.get());
+            } else {
+                // No configuration - use existing default (no behavior change)
+                references = HandleReferencesType.PRESERVE;
+            }
+        }
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
-
-        if (references == null) {
-            references = HandleReferencesType.PRESERVE;
-        }
 
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(gav.getRawGroupIdWithNull(),
                 gav.getRawArtifactId(), gav.getRawVersionId());
         if (VersionState.DISABLED.equals(metaData.getState())) {
             throw new VersionNotFoundException(groupId, artifactId, versionExpression);
         }
-        StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
-                gav.getRawArtifactId(), gav.getRawVersionId());
+
+        final var artifactCell = cellWithLoader(() -> storage.getArtifactVersionContent(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId()));
+
+        caching(
+                VersionContentCacheStrategy.builder()
+                        .contentId(metaData.getContentId())
+                        .references(references)
+                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
+                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
+                        ))
+                        .versionExpression(versionExpression)
+                        .versionState(metaData.getState())
+                        .build()
+        ).prepare();
 
         // Throw 404 if the version actually has "no content" based on the content-type
-        if (ContentTypes.isEmptyContentType(artifact.getContentType())) {
-            throw new ContentNotFoundException(artifact.getContentId());
+        if (ContentTypes.isEmptyContentType(artifactCell.get().getContentType())) {
+            throw new ContentNotFoundException(artifactCell.get().getContentId());
         }
 
-        TypedContent contentToReturn = TypedContent.create(artifact.getContent(), artifact.getContentType());
+        TypedContent contentToReturn = TypedContent.create(artifactCell.get().getContent(), artifactCell.get().getContentType());
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
-                artifact.getReferences());
+                artifactCell.get().getReferences());
 
-        Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(),
-                artifact.getContentType());
+        var builder = Response.ok().entity(contentToReturn.getContent())
+                .type(contentToReturn.getContentType());
+
         checkIfDeprecated(metaData::getState, groupId, artifactId, versionExpression, builder);
         return builder.build();
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionContent(String groupId, String artifactId, String versionExpression,
             VersionContent data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         if (!restConfig.isArtifactVersionMutabilityEnabled()) {
             throw new NotAllowedException("Artifact version content update operation is not enabled.",
@@ -911,7 +908,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String artifactType = vmd.getArtifactType();
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
         boolean isEmptyContent = artifactTypeProvider.getContentTypes().isEmpty();
-        ContentHandle content = ContentHandle.create(data.getContent());
+        ContentHandle content = ContentHandle.create(resolveContent(data));
 
         if (isEmptyContent) {
             // TODO fail the request if content is sent to an artifact that requires empty content??
@@ -940,7 +937,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      java.lang.String, java.lang.String)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersion(String groupId, String artifactId, String version) {
         if (!restConfig.isArtifactVersionDeletionEnabled()) {
@@ -948,9 +946,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     HttpMethod.GET, (String[]) null);
         }
 
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
@@ -966,9 +964,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionMetaData getArtifactVersionMetaData(String groupId, String artifactId, String version) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
@@ -983,14 +981,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.EditableVersionMetaData)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3",
-            KEY_EDITABLE_METADATA })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION, "3",
+            MPK_EDITABLE_METADATA})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String versionExpression,
             EditableVersionMetaData data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
@@ -1007,9 +1006,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public WrappedVersionState getArtifactVersionState(String groupId, String artifactId,
             String versionExpression) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", versionExpression);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
@@ -1020,14 +1019,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3", "dryRun" })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION, "3", "dryRun"})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write, dryRunParam = 3)
     public void updateArtifactVersionState(String groupId, String artifactId, String versionExpression,
             Boolean dryRun, WrappedVersionState data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("versionExpression", versionExpression);
-        requireParameter("body.state", data.getState());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("body.state", data.getState());
 
         if (data.getState() == VersionState.DRAFT) {
             throw new BadRequestException("Illegal state transition: cannot transition to DRAFT state.");
@@ -1072,13 +1072,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.NewComment)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public Comment addArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             NewComment data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
@@ -1093,15 +1094,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      java.lang.String, java.lang.String, java.lang.String)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3",
-            "comment_id" })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION, "3",
+            "comment_id"})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("versionExpression", versionExpression);
-        requireParameter("commentId", commentId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("commentId", commentId);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
@@ -1117,9 +1119,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<Comment> getArtifactVersionComments(String groupId, String artifactId, String version) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), version,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
@@ -1134,16 +1136,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *      io.apicurio.registry.rest.v3.beans.NewComment)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", KEY_VERSION, "3",
-            "comment_id" })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION, "3",
+            "comment_id"})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void updateArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId, NewComment data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("versionExpression", versionExpression);
-        requireParameter("commentId", commentId);
-        requireParameter("value", data.getValue());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("commentId", commentId);
+        ParameterValidationUtils.requireParameter("value", data.getValue());
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
@@ -1156,7 +1159,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public ArtifactSearchResults listArtifactsInGroup(String groupId, BigInteger limit, BigInteger offset,
             SortOrder order, ArtifactSortBy orderby) {
-        requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
 
         if (orderby == null) {
             orderby = ArtifactSortBy.name;
@@ -1184,7 +1187,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @see io.apicurio.registry.rest.v3.GroupsResource#deleteArtifactsInGroup(java.lang.String)
      */
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void deleteArtifactsInGroup(String groupId) {
         if (!restConfig.isArtifactDeletionEnabled()) {
@@ -1192,17 +1196,18 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     (String[]) null);
         }
 
-        requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
 
         storage.deleteArtifacts(new GroupId(groupId).getRawGroupIdWithNull());
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_IF_EXISTS, "2", KEY_CANONICAL, "3", "dryRun" })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_IF_EXISTS, "2", MPK_CANONICAL, "3", "dryRun"})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write, dryRunParam = 3)
     public CreateArtifactResponse createArtifact(String groupId, IfArtifactExists ifExists, Boolean canonical,
             Boolean dryRun, CreateArtifact data) {
-        requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
         if (data.getFirstVersion() != null) {
             boolean contentRequired = true;
             if (data.getArtifactType() != null) {
@@ -1210,10 +1215,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 contentRequired = !contentTypes.isEmpty();
             }
             if (contentRequired) {
-                requireParameter("body.firstVersion.content", data.getFirstVersion().getContent());
-                requireParameter("body.firstVersion.content.content",
+                ParameterValidationUtils.requireParameter("body.firstVersion.content", data.getFirstVersion().getContent());
+                ParameterValidationUtils.requireParameter("body.firstVersion.content.content",
                         data.getFirstVersion().getContent().getContent());
-                requireParameter("body.firstVersion.content.contentType",
+                ParameterValidationUtils.requireParameter("body.firstVersion.content.contentType",
                         data.getFirstVersion().getContent().getContentType());
             } else {
                 if (data.getFirstVersion().getContent() == null) {
@@ -1225,14 +1230,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 if (data.getFirstVersion().getContent().getContentType() == null) {
                     data.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
                 }
-                requireParameterValue("body.firstVersion.content.contentType", ContentTypes.APPLICATION_EMPTY,
+                ParameterValidationUtils.requireParameterValue("body.firstVersion.content.contentType", ContentTypes.APPLICATION_EMPTY,
                         data.getFirstVersion().getContent().getContentType());
             }
             if (data.getFirstVersion().getBranches() == null) {
                 data.getFirstVersion().setBranches(Collections.emptyList());
             }
         } else {
-            requireParameter("body.artifactType", data.getArtifactType());
+            ParameterValidationUtils.requireParameter("body.artifactType", data.getArtifactType());
         }
 
         if (!ArtifactIdValidator.isGroupIdAllowed(groupId)) {
@@ -1318,8 +1323,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                         .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
-                // Apply any configured rules unless it is a DRAFT version
-                if (!firstVersionIsDraft) {
+                // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
+                if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
                     rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
                             artifactType, typedContent, RuleApplicationType.CREATE, references,
                             resolvedReferences);
@@ -1348,8 +1353,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionSearchResults listArtifactVersions(String groupId, String artifactId, BigInteger offset,
             BigInteger limit, SortOrder order, VersionSortBy orderby) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
         if (orderby == null) {
             orderby = VersionSortBy.createdOn;
         }
@@ -1366,7 +1371,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         storage.getArtifactMetaData(gid.getRawGroupIdWithNull(), artifactId);
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = order == null || order == SortOrder.desc ? OrderDirection.asc
+        final OrderDirection oDir = order == null || order == SortOrder.asc ? OrderDirection.asc
             : OrderDirection.desc;
 
         Set<SearchFilter> filters = Set.of(
@@ -1378,20 +1383,21 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID, "2", "dryRun" })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", "dryRun"})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write, dryRunParam = 2)
     public VersionMetaData createArtifactVersion(String groupId, String artifactId, Boolean dryRun,
             CreateVersion data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
         boolean isEmptyContent = artifactTypeProvider.getContentTypes().isEmpty();
         if (!isEmptyContent) {
-            requireParameter("body.content", data.getContent());
-            requireParameter("body.content.content", data.getContent().getContent());
-            requireParameter("body.content.contentType", data.getContent().getContentType());
+            ParameterValidationUtils.requireParameter("body.content", data.getContent());
+            ParameterValidationUtils.requireParameter("body.content.content", data.getContent().getContent());
+            ParameterValidationUtils.requireParameter("body.content.contentType", data.getContent().getContentType());
         } else {
             if (data.getContent() == null) {
                 data.setContent(new VersionContent());
@@ -1400,7 +1406,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             data.getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
         }
 
-        ContentHandle content = ContentHandle.create(data.getContent().getContent());
+        ContentHandle content = ContentHandle.create(resolveContent(data.getContent()));
         if (!isEmptyContent && content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
@@ -1411,8 +1417,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(
                 data.getContent().getReferences());
 
-        // Apply rules unless the version is DRAFT
-        if (!isDraft) {
+        // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
+        if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
             // Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
@@ -1438,12 +1444,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public BranchMetaData createBranch(String groupId, String artifactId, CreateBranch data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("branchId", data.getBranchId());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("branchId", data.getBranchId());
 
         GA ga = new GA(groupId, artifactId);
         BranchId bid = new BranchId(data.getBranchId());
@@ -1456,8 +1463,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public BranchSearchResults listBranches(String groupId, String artifactId, BigInteger offset,
             BigInteger limit) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         if (offset == null) {
             offset = BigInteger.valueOf(0);
@@ -1474,8 +1481,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public BranchMetaData getBranchMetaData(String groupId, String artifactId, String branchId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         BranchMetaDataDto branch = storage.getBranchMetaData(new GA(groupId, artifactId),
                 new BranchId(branchId));
@@ -1483,13 +1490,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateBranchMetaData(String groupId, String artifactId, String branchId,
             EditableBranchMetaData data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("branchId", branchId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("branchId", branchId);
 
         EditableBranchMetaDataDto dto = EditableBranchMetaDataDto.builder().description(data.getDescription())
                 .build();
@@ -1497,12 +1505,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteBranch(String groupId, String artifactId, String branchId) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("branchId", branchId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("branchId", branchId);
 
         storage.deleteBranch(new GA(groupId, artifactId), new BranchId(branchId));
     }
@@ -1511,9 +1520,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionSearchResults listBranchVersions(String groupId, String artifactId, String branchId,
             BigInteger offset, BigInteger limit) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("branchId", branchId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("branchId", branchId);
 
         if (offset == null) {
             offset = BigInteger.valueOf(0);
@@ -1534,14 +1543,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void replaceBranchVersions(String groupId, String artifactId, String branchId,
             ReplaceBranchVersions data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("branchId", branchId);
-        requireParameter("versions", data.getVersions());
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("branchId", branchId);
+        ParameterValidationUtils.requireParameter("versions", data.getVersions());
 
         GA ga = new GA(groupId, artifactId);
         BranchId bid = new BranchId(branchId);
@@ -1553,13 +1563,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_GROUP_ID, "1", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void addVersionToBranch(String groupId, String artifactId, String branchId,
             AddVersionToBranch data) {
-        requireParameter("groupId", groupId);
-        requireParameter("artifactId", artifactId);
-        requireParameter("branchId", branchId);
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("branchId", branchId);
 
         GA ga = new GA(groupId, artifactId);
         BranchId bid = new BranchId(branchId);
@@ -1571,20 +1582,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     // ========== Not endpoints: ==========
-
-    /**
-     * Check to see if the artifact version is deprecated.
-     *
-     * @param stateSupplier
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @param builder
-     */
-    private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String groupId, String artifactId,
-            String version, Response.ResponseBuilder builder) {
-        HeadersHack.checkIfDeprecated(stateSupplier, groupId, artifactId, version, builder);
-    }
 
     /**
      * Looks up the artifact type for the given artifact.
@@ -1604,9 +1601,29 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return null;
     }
 
+    /**
+     * Resolves the content from a {@link VersionContent}, decoding from base64 if the encoding
+     * property is set to "base64".
+     *
+     * @param vc the version content
+     * @return the resolved content string
+     */
+    private String resolveContent(VersionContent vc) {
+        String content = vc.getContent();
+        if (VersionContent.Encoding.base64.equals(vc.getEncoding())) {
+            try {
+                byte[] decoded = Base64.getDecoder().decode(content);
+                content = new String(decoded, StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Invalid base64-encoded content");
+            }
+        }
+        return content;
+    }
+
     private ContentHandle getContent(CreateArtifact data) {
         if (data.getFirstVersion() != null && data.getFirstVersion().getContent() != null) {
-            return ContentHandle.create(data.getFirstVersion().getContent().getContent());
+            return ContentHandle.create(resolveContent(data.getFirstVersion().getContent()));
         }
         return null;
     }
@@ -1616,18 +1633,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             return data.getFirstVersion().getContent().getReferences();
         }
         return null;
-    }
-
-    private static void requireParameter(String parameterName, Object parameterValue) {
-        if (parameterValue == null) {
-            throw new MissingRequiredParameterException(parameterName);
-        }
-    }
-
-    private static void requireParameterValue(String parameterName, String expectedValue, String actualValue) {
-        if (actualValue != null && expectedValue != null && !actualValue.equals(expectedValue)) {
-            throw new InvalidParameterValueException(parameterName, actualValue, expectedValue);
-        }
     }
 
     private CreateArtifactResponse handleIfExists(String groupId, String artifactId,
@@ -1651,7 +1656,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         try {
             // Find the version
             TypedContent content = TypedContent.create(
-                    ContentHandle.create(theVersion.getContent().getContent()),
+                    ContentHandle.create(resolveContent(theVersion.getContent())),
                     theVersion.getContent().getContentType());
             List<ArtifactReferenceDto> referenceDtos = toReferenceDtos(
                     theVersion.getContent().getReferences());
@@ -1681,7 +1686,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Map<String, String> labels = theVersion.getLabels();
         List<ArtifactReference> references = theVersion.getContent().getReferences();
         String contentType = theVersion.getContent().getContentType();
-        ContentHandle content = ContentHandle.create(theVersion.getContent().getContent());
+        ContentHandle content = ContentHandle.create(resolveContent(theVersion.getContent()));
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
 
         String artifactType = lookupArtifactType(groupId, artifactId);
@@ -1692,8 +1697,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        // Apply rules only if not a draft version
-        if (!isDraftVersion) {
+        // Apply rules only if not a draft version (unless draft production mode is enabled)
+        if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
             final TypedContent typedContent = TypedContent.create(content, contentType);
@@ -1726,44 +1731,75 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * Return an InputStream for the resource to be downloaded
-     *
-     * @param url
+     * @see io.apicurio.registry.rest.v3.GroupsResource#renderPromptTemplate(java.lang.String,
+     *      java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.RenderPromptRequest)
      */
-    private InputStream fetchContentFromURL(Client client, URI url) {
-        try {
-            // 1. Registry issues HTTP HEAD request to the target URL.
-            List<Object> contentLengthHeaders = client.target(url).request().head().getHeaders()
-                    .get("Content-Length");
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public io.apicurio.registry.rest.v3.beans.RenderPromptResponse renderPromptTemplate(
+            String groupId, String artifactId, String versionExpression,
+            io.apicurio.registry.rest.v3.beans.RenderPromptRequest data) {
 
-            if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
-                throw new BadRequestException(
-                        "Requested resource URL does not provide 'Content-Length' in the headers");
-            }
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("data", data);
+        ParameterValidationUtils.requireParameter("variables", data.getVariables());
 
-            // 2. According to HTTP specification, target server must return Content-Length header.
-            int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
 
-            // 3. Registry analyzes value of Content-Length to check if file with declared size could be
-            // processed securely.
-            if (contentLength > restConfig.getDownloadMaxSize()) {
-                throw new BadRequestException("Requested resource is bigger than "
-                        + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
-            }
+        // Verify the artifact exists and is of type PROMPT_TEMPLATE
+        ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-            if (contentLength <= 0) {
-                throw new BadRequestException("Requested resource URL is providing 'Content-Length' <= 0.");
-            }
-
-            // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes
-            // specified by HTTP HEAD from step 1.
-            return new BufferedInputStream(client.target(url).request().get().readEntity(InputStream.class),
-                    contentLength);
-        } catch (BadRequestException bre) {
-            throw bre;
-        } catch (Exception e) {
-            throw new BadRequestException("Errors downloading the artifact content.", e);
+        String artifactType = versionMetaData.getArtifactType();
+        if (!"PROMPT_TEMPLATE".equals(artifactType)) {
+            throw new BadRequestException(
+                    "Artifact type must be PROMPT_TEMPLATE, but was: " + artifactType);
         }
+
+        // Get the content
+        StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        // Convert variables map - Variables bean uses additionalProperties for dynamic keys
+        Map<String, Object> variables = data.getVariables().getAdditionalProperties();
+
+        // Render the template
+        return promptRenderingService.render(
+                storedArtifact.getContent(),
+                variables,
+                gav.getRawGroupIdWithNull() != null ? gav.getRawGroupIdWithNull() : "default",
+                gav.getRawArtifactId(),
+                gav.getRawVersionId());
     }
 
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#exportArtifactVersion(java.lang.String,
+     *      java.lang.String, java.lang.String)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public Response exportArtifactVersion(String groupId, String artifactId, String versionExpression) {
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        // Verify the artifact exists and is of type PROTOBUF
+        ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        String artifactType = versionMetaData.getArtifactType();
+        if (!"PROTOBUF".equals(artifactType)) {
+            throw new BadRequestException(
+                    "Export as ZIP is only supported for PROTOBUF artifacts, but artifact type was: " + artifactType);
+        }
+
+        return protobufExporter.exportVersionAsZip(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+    }
 }

@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactOverviewTabContent.css";
 import "@app/styles/empty.css";
-import { ArtifactTypeIcon, IfAuth, IfFeature } from "@app/components";
+import { ArtifactTypeIcon, IfAuth, IfFeature, VersionCompareModal } from "@app/components";
 import {
     Button,
     Card,
@@ -19,12 +19,10 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateIcon,
     EmptyStateVariant,
     Flex,
     FlexItem,
     Label,
-    Title,
     Truncate
 } from "@patternfly/react-core";
 import { PencilAltIcon, PlusCircleIcon } from "@patternfly/react-icons";
@@ -79,11 +77,37 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         versions: []
     });
     const [isExpanded] = useState(true);
+    const [selectedVersions, setSelectedVersions] = useState<SearchedVersion[]>([]);
+    const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
 
-    const drawerRef: any = React.useRef<HTMLDivElement>();
+    const drawerRef: any = React.useRef<HTMLDivElement>(null);
 
     const search: SearchService = useSearchService();
     const logger: LoggerService = useLoggerService();
+
+    const handleSelectVersion = (version: SearchedVersion, isSelected: boolean): void => {
+        if (isSelected) {
+            if (selectedVersions.length < 2) {
+                setSelectedVersions([...selectedVersions, version]);
+            }
+        } else {
+            setSelectedVersions(selectedVersions.filter(v => v.version !== version.version));
+        }
+    };
+
+    const handleClearSelection = (): void => {
+        setSelectedVersions([]);
+    };
+
+    const handleCompareVersions = (): void => {
+        if (selectedVersions.length === 2) {
+            setIsCompareModalOpen(true);
+        }
+    };
+
+    const handleCloseCompareModal = (): void => {
+        setIsCompareModalOpen(false);
+    };
 
     const description = (): string => {
         return props.artifact.description || "No description";
@@ -99,7 +123,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         setLoading(true);
 
         const filters: SearchFilter[] = [
-            { by: FilterBy.groupId, value: props.artifact.groupId! },
+            { by: FilterBy.groupId, value: props.artifact.groupId || "default" },
             { by: FilterBy.artifactId, value: props.artifact.artifactId! }
         ];
 
@@ -136,14 +160,15 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         <ArtifactVersionsToolbar
             results={results}
             paging={paging}
+            selectedVersions={selectedVersions}
             onPageChange={setPaging}
-            onFilterChange={setFilterValue} />
+            onFilterChange={setFilterValue}
+            onCompareVersions={handleCompareVersions}
+            onClearSelection={handleClearSelection} />
     );
 
     const emptyState = (
-        <EmptyState variant={EmptyStateVariant.sm}>
-            <EmptyStateIcon icon={PlusCircleIcon}/>
-            <Title headingLevel="h5" size="lg">No versions found</Title>
+        <EmptyState titleText="No versions found" icon={PlusCircleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
                 There are currently no versions in this artifact.  Create some versions in the artifact to view them here.
             </EmptyStateBody>
@@ -162,7 +187,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
 
     const panelContent = (
         <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
-            <DrawerHead hasNoPadding={true}>
+            <DrawerHead className="__drawer-head">
                 <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
                     <div className="artifact-basics">
                         <div className="title-and-type">
@@ -171,11 +196,11 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                                     <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                         <IfFeature feature="readOnly" isNot={true}>
-                                            <Button id="edit-action"
+                                            <Button icon={<PencilAltIcon />} id="edit-action"
                                                 data-testid="artifact-btn-edit"
                                                 onClick={props.onEditMetaData}
                                                 style={{ padding: "0" }}
-                                                variant="link"><PencilAltIcon />{" "}Edit</Button>
+                                                variant="link">{" "}Edit</Button>
                                         </IfFeature>
                                     </IfAuth>
                                 </FlexItem>
@@ -221,10 +246,10 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                                         <span>
                                             <IfAuth isAdminOrOwner={true} owner={props.artifact.owner}>
                                                 <IfFeature feature="readOnly" isNot={true}>
-                                                    <Button id="edit-action"
+                                                    <Button icon={<PencilAltIcon />} id="edit-action"
                                                         data-testid="artifact-btn-change-owner"
                                                         onClick={props.onChangeOwner}
-                                                        variant="link"><PencilAltIcon /></Button>
+                                                        variant="link"></Button>
                                                 </IfFeature>
                                             </IfAuth>
                                         </span>
@@ -282,6 +307,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                     <VersionsTable
                         artifact={props.artifact}
                         versions={results.versions!}
+                        selectedVersions={selectedVersions}
                         onSort={onSort}
                         sortBy={sortBy}
                         sortOrder={sortOrder}
@@ -289,6 +315,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                         onView={props.onViewVersion}
                         onAddToBranch={props.onAddVersionToBranch}
                         onEditDraft={props.onEditDraft}
+                        onSelectVersion={handleSelectVersion}
                     />
                 </ListWithToolbar>
             </div>
@@ -297,15 +324,23 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
 
     return (
         <div className="artifact-overview-tab-content">
-            <Card>
+            <Card variant="secondary">
                 <CardBody style={{ padding: "0" }}>
                     <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
-                        <DrawerContent panelContent={panelContent}>
+                        <DrawerContent panelContent={panelContent} style={{ backgroundColor: "white" }}>
                             <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
                         </DrawerContent>
                     </Drawer>
                 </CardBody>
             </Card>
+            <VersionCompareModal
+                isOpen={isCompareModalOpen}
+                groupId={props.artifact.groupId || null}
+                artifactId={props.artifact.artifactId!}
+                version1={selectedVersions.length >= 1 ? selectedVersions[0] : null}
+                version2={selectedVersions.length >= 2 ? selectedVersions[1] : null}
+                onClose={handleCloseCompareModal}
+            />
         </div>
     );
 

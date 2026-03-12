@@ -1,0 +1,597 @@
+// A2A (Agent-to-Agent) Protocol Features Documentation
+[id="assembly-a2a-features"]
+= A2A Protocol Features in Apicurio Registry
+
+Apicurio Registry implements the A2A (Agent-to-Agent) protocol, enabling AI agent discovery, orchestration, and lifecycle management. This document provides comprehensive documentation of all A2A features.
+
+== Overview
+
+The A2A protocol enables AI agents to discover and communicate with each other through standardized endpoints. Apicurio Registry serves as both:
+
+1. **An A2A Agent** - Exposing its own capabilities (schema validation, search, artifact management)
+2. **An Agent Registry** - Storing and discovering other agents' Agent Cards
+
+[source,text]
+----
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Apicurio Registry                                  │
+│                                                                              │
+│  ┌─────────────────────┐        ┌──────────────────────────────────────┐    │
+│  │  Registry as Agent  │        │        Agent Card Registry           │    │
+│  │                     │        │                                      │    │
+│  │  /.well-known/      │        │  /.well-known/agents                 │    │
+│  │    agent.json       │        │  /.well-known/agents/{group}/{id}    │    │
+│  │                     │        │                                      │    │
+│  │  Skills:            │        │  - Store agent cards                 │    │
+│  │  - schema-validation│        │  - Search by skill                   │    │
+│  │  - schema-search    │        │  - Filter by capability              │    │
+│  │  - artifact-mgmt    │        │  - Version management                │    │
+│  │  - compatibility    │        │  - Compatibility checking            │    │
+│  │  - agent-discovery  │        │                                      │    │
+│  └─────────────────────┘        └──────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+----
+
+== Configuration
+
+A2A features are controlled via configuration properties:
+
+[cols="2,1,3"]
+|===
+|Property |Default |Description
+
+|`apicurio.a2a.enabled`
+|`true`
+|Enable/disable A2A protocol support
+
+|`apicurio.a2a.agent.name`
+|`Apicurio Registry`
+|Name of the registry as an A2A agent
+
+|`apicurio.a2a.agent.description`
+|_varies_
+|Description of the registry agent
+
+|`apicurio.a2a.agent.version`
+|_app version_
+|Agent version (defaults to application version)
+
+|`apicurio.a2a.agent.url`
+|_base URL_
+|Base URL for A2A endpoint
+
+|`apicurio.a2a.agent.provider.organization`
+|`Apicurio`
+|Provider organization name
+
+|`apicurio.a2a.agent.provider.url`
+|`https://www.apicur.io`
+|Provider organization URL
+
+|`apicurio.a2a.agent.capabilities.streaming`
+|`false`
+|Whether streaming is supported
+
+|`apicurio.a2a.agent.capabilities.push-notifications`
+|`false`
+|Whether push notifications are supported
+|===
+
+== Well-Known Endpoints
+
+=== GET /.well-known/agent.json
+
+Returns the Agent Card for the Apicurio Registry instance itself.
+
+**Response:** Agent Card JSON document
+
+[source,json]
+----
+{
+  "name": "Apicurio Registry",
+  "description": "Central registry for AI agents and schemas",
+  "version": "3.1.0",
+  "url": "http://localhost:8080",
+  "provider": {
+    "organization": "Apicurio",
+    "url": "https://www.apicur.io"
+  },
+  "skills": [
+    {
+      "id": "schema-validation",
+      "name": "Schema Validation",
+      "description": "Validate schemas against format specifications"
+    },
+    {
+      "id": "schema-search",
+      "name": "Schema Search",
+      "description": "Search for schemas and APIs in the registry"
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"]
+}
+----
+
+=== GET /.well-known/agents
+
+Search for registered Agent Cards with filtering support.
+
+**Query Parameters:**
+
+[cols="1,1,3"]
+|===
+|Parameter |Type |Description
+
+|`name`
+|string
+|Filter by agent name (partial match)
+
+|`skill`
+|string (repeatable)
+|Filter by skill ID
+
+|`capability`
+|string
+|Filter by capability (e.g., `streaming:true`)
+
+|`inputMode`
+|string
+|Filter by input mode (e.g., `text`, `image`)
+
+|`outputMode`
+|string
+|Filter by output mode
+
+|`offset`
+|integer
+|Pagination offset (default: 0)
+
+|`limit`
+|integer
+|Pagination limit (default: 20)
+|===
+
+**Example Request:**
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/agents?skill=translation&capability=streaming:true"
+----
+
+**Response:** `AgentSearchResults`
+
+[source,json]
+----
+{
+  "count": 2,
+  "agents": [
+    {
+      "groupId": "ai-agents",
+      "artifactId": "translator-agent",
+      "name": "Translation Agent",
+      "description": "Translates text between languages",
+      "version": "1.0.0",
+      "url": "http://translator:9001",
+      "skills": [{"id": "translation", "name": "Translation"}],
+      "capabilities": {"streaming": true}
+    }
+  ]
+}
+----
+
+=== GET /.well-known/agents/{groupId}/{artifactId}
+
+Retrieve a specific registered Agent Card.
+
+**Path Parameters:**
+- `groupId` - The group containing the agent card
+- `artifactId` - The artifact ID of the agent card
+
+**Query Parameters:**
+- `version` (optional) - Specific version (defaults to latest)
+
+**Response:** Agent Card JSON document
+
+== Agent Card Artifact Type
+
+Agent Cards are stored as artifacts with type `AGENT_CARD`.
+
+=== Creating an Agent Card
+
+[source,bash]
+----
+curl -X POST "http://localhost:8080/apis/registry/v3/groups/ai-agents/artifacts" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "artifactId": "my-agent",
+    "artifactType": "AGENT_CARD",
+    "firstVersion": {
+      "version": "1.0.0",
+      "content": {
+        "contentType": "application/json",
+        "content": "{\"name\": \"My Agent\", \"skills\": [{\"id\": \"task\", \"name\": \"Task Execution\"}]}"
+      }
+    }
+  }'
+----
+
+=== Agent Card JSON Schema
+
+Agent Cards must conform to the A2A specification:
+
+[source,json]
+----
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {"type": "string"},
+    "description": {"type": "string"},
+    "version": {"type": "string"},
+    "url": {"type": "string", "format": "uri"},
+    "provider": {
+      "type": "object",
+      "properties": {
+        "organization": {"type": "string"},
+        "url": {"type": "string", "format": "uri"}
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "streaming": {"type": "boolean"},
+        "pushNotifications": {"type": "boolean"}
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "examples": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "defaultInputModes": {"type": "array", "items": {"type": "string"}},
+    "defaultOutputModes": {"type": "array", "items": {"type": "string"}},
+    "authentication": {
+      "type": "object",
+      "properties": {
+        "schemes": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
+----
+
+== Validation Rules
+
+Agent Cards support three validation levels:
+
+[cols="1,3"]
+|===
+|Level |Description
+
+|`NONE`
+|No validation performed
+
+|`SYNTAX_ONLY`
+|Validates JSON syntax only
+
+|`FULL`
+|Complete schema validation including:
+- Required `name` field
+- Valid JSON structure
+- Skill objects with `id` and `name`
+- Boolean capability values
+- Array types for modes
+|===
+
+== Compatibility Checking
+
+When versioning Agent Cards, compatibility rules are enforced:
+
+**Compatible Changes (allowed):**
+- Adding new skills
+- Adding new capabilities
+- Adding authentication schemes
+- Adding input/output modes
+
+**Incompatible Changes (may break clients):**
+- Removing skills
+- Removing or disabling capabilities
+- Changing the agent URL
+- Removing authentication schemes
+- Removing input/output modes
+
+== Automatic Label Extraction
+
+When Agent Cards are stored, labels are automatically extracted for search:
+
+[cols="2,3"]
+|===
+|Label Pattern |Source
+
+|`a2a.skill.<id>`
+|Each skill ID in the skills array
+
+|`a2a.capability.<name>`
+|Enabled capabilities (streaming, pushNotifications)
+
+|`a2a.inputMode.<mode>`
+|Each input mode
+
+|`a2a.outputMode.<mode>`
+|Each output mode
+
+|`a2a.name`
+|Agent name
+
+|`a2a.url`
+|Agent URL
+|===
+
+This enables efficient capability-based discovery using the Registry's label search.
+
+== Registry Built-in Skills
+
+Apicurio Registry exposes itself as an A2A agent with these skills:
+
+[cols="1,2"]
+|===
+|Skill ID |Description
+
+|`schema-validation`
+|Validate schemas against format specifications (Avro, JSON Schema, Protobuf, OpenAPI, AsyncAPI, GraphQL, WSDL, XSD)
+
+|`schema-search`
+|Search for schemas and APIs in the registry by name, labels, or content
+
+|`artifact-management`
+|Create, update, and manage schema artifacts with full versioning
+
+|`compatibility-check`
+|Check schema compatibility between versions using configurable rules
+
+|`agent-discovery`
+|Discover and manage A2A agent cards stored in the registry
+|===
+
+== LLM Lifecycle Management
+
+The A2A integration extends to full LLM lifecycle management with additional artifact types:
+
+=== MODEL_SCHEMA
+
+Defines input/output schemas for LLM agents:
+
+[source,json]
+----
+{
+  "$schema": "https://apicurio.io/schemas/model-schema/v1",
+  "modelId": "sentiment-analysis-output",
+  "provider": "a2a-demo",
+  "version": "1.0.0",
+  "output": {
+    "type": "object",
+    "required": ["sentiment", "confidence"],
+    "properties": {
+      "sentiment": {"type": "string", "enum": ["positive", "negative", "neutral"]},
+      "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+    }
+  }
+}
+----
+
+=== PROMPT_TEMPLATE
+
+Stores versioned prompt templates with variable support:
+
+[source,yaml]
+----
+templateId: sentiment-analysis
+name: Sentiment Analysis Prompt
+version: "1.0.0"
+
+template: |
+  Analyze the sentiment of the following message:
+
+  MESSAGE: {{customerMessage}}
+
+  Respond with JSON containing sentiment and confidence.
+
+variables:
+  customerMessage:
+    type: string
+    required: true
+    description: The message to analyze
+
+metadata:
+  outputSchema: urn:apicurio:llm-agents.schemas/sentiment-output
+----
+
+=== Linking Artifacts
+
+Agent Cards can reference their schemas and prompts using URN references:
+
+[source,json]
+----
+{
+  "name": "Sentiment Agent",
+  "skills": [
+    {
+      "id": "sentiment-analysis",
+      "name": "Sentiment Analysis",
+      "outputSchema": "urn:apicurio:llm-agents.schemas/sentiment-agent-output",
+      "promptTemplate": "urn:apicurio:llm-agents.prompts/sentiment-agent-prompt"
+    }
+  ]
+}
+----
+
+== Example: Multi-Agent Workflow
+
+The `examples/a2a-real-world-integration` demonstrates context chaining:
+
+[source,text]
+----
+Customer Message
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Step 1: Sentiment Agent                                                  │
+│  Input:  {{original}}                                                     │
+│  Output: {"sentiment": "very_negative", "urgency": "critical"}           │
+└──────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Step 2: Issue Analyzer                                                   │
+│  Input:  {{original}} + {{sentiment}}                                     │
+│  Output: {"priority": "P1", "issue_type": "delayed_delivery"}            │
+└──────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Step 3: Response Generator                                               │
+│  Input:  {{original}} + {{sentiment}} + {{analysis}}                      │
+│  Output: {"response": "Dear customer, I sincerely apologize..."}         │
+└──────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Step 4: Translation Agent                                                │
+│  Input:  {{response}}                                                     │
+│  Output: {"translated": "Estimado cliente, le pido disculpas..."}        │
+└──────────────────────────────────────────────────────────────────────────┘
+----
+
+=== Running the Example
+
+[source,bash]
+----
+cd examples/a2a-real-world-integration
+docker-compose up -d
+mvn clean compile exec:java
+----
+
+Access the Web UI at http://localhost:9000.
+
+== Java SDK Usage
+
+=== Discovering Agents
+
+[source,java]
+----
+RegistryClient client = RegistryClientFactory.create(
+    RegistryClientOptions.create("http://localhost:8080/apis/registry/v3"));
+
+// Search for agents with specific skill
+var agents = client.wellKnown().agents()
+    .get(config -> {
+        config.queryParameters.skill = List.of("translation");
+        config.queryParameters.limit = 10;
+    });
+
+for (var agent : agents.getAgents()) {
+    System.out.println("Found: " + agent.getName() + " @ " + agent.getUrl());
+}
+----
+
+=== Registering an Agent Card
+
+[source,java]
+----
+CreateArtifact artifact = new CreateArtifact();
+artifact.setArtifactId("my-agent");
+artifact.setArtifactType("AGENT_CARD");
+
+CreateVersion version = new CreateVersion();
+version.setVersion("1.0.0");
+
+VersionContent content = new VersionContent();
+content.setContentType("application/json");
+content.setContent(agentCardJson);
+version.setContent(content);
+
+artifact.setFirstVersion(version);
+
+client.groups().byGroupId("ai-agents").artifacts()
+    .post(artifact, config -> {
+        config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+    });
+----
+
+== REST API Reference
+
+=== Core A2A Endpoints
+
+[cols="2,1,4"]
+|===
+|Endpoint |Method |Description
+
+|`/.well-known/agent.json`
+|GET
+|Get registry's own Agent Card
+
+|`/.well-known/agents`
+|GET
+|Search registered Agent Cards
+
+|`/.well-known/agents/{groupId}/{artifactId}`
+|GET
+|Get specific Agent Card by artifact ID
+
+|`/apis/registry/v3/groups/{groupId}/artifacts`
+|POST
+|Create Agent Card artifact (type: AGENT_CARD)
+
+|`/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`
+|GET
+|Get Agent Card artifact metadata
+
+|`/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/content`
+|GET
+|Get Agent Card content
+|===
+
+== Troubleshooting
+
+=== A2A Endpoints Return 404
+
+Ensure A2A is enabled:
+[source,properties]
+----
+apicurio.a2a.enabled=true
+----
+
+=== Agent Card Validation Fails
+
+Check that:
+1. The `name` field is present and non-empty
+2. Skills have both `id` and `name` fields
+3. Capabilities are boolean values
+4. The JSON is well-formed
+
+=== Search Returns No Results
+
+Verify:
+1. Agent Cards are stored with type `AGENT_CARD`
+2. Labels were extracted (check artifact labels)
+3. Search filters match stored values exactly
+
+== See Also
+
+* xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM Artifact Types]
+* link:https://google.github.io/A2A/[A2A Protocol Specification]
+* xref:getting-started/assembly-configuring-the-registry.adoc[Registry Configuration]

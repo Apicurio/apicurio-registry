@@ -2,20 +2,23 @@ import React, { FunctionComponent } from "react";
 import "./ConnectionFailedErrorPage.css";
 import {
     Button,
+    ClipboardCopy,
     EmptyState,
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateHeader,
-    EmptyStateIcon,
     PageSection,
-    PageSectionVariants
+
 } from "@patternfly/react-core";
 import { NetworkIcon } from "@patternfly/react-icons";
 import { ErrorPageProps } from "./ErrorPage.tsx";
+import { useConfigService } from "@services/useConfigService.ts";
 
 
 export const ConnectionFailedErrorPage: FunctionComponent<ErrorPageProps> = () => {
+
+    const config = useConfigService();
+    const apiUrl: string = config.artifactsUrl();
 
     const reload = (): void => {
         window.location.reload();
@@ -23,13 +26,22 @@ export const ConnectionFailedErrorPage: FunctionComponent<ErrorPageProps> = () =
 
     return (
         <React.Fragment>
-            <PageSection className="ps_error" variant={PageSectionVariants.light}>
+            <PageSection hasBodyWrapper={false} className="ps_error" >
                 <div className="centerizer">
-                    <EmptyState>
-                        <EmptyStateHeader titleText="Connection failed" headingLevel="h4" icon={<EmptyStateIcon icon={NetworkIcon} />} />
+                    <EmptyState  headingLevel="h4" icon={NetworkIcon}  titleText="Connection failed">
                         <EmptyStateBody>
-                            Connection to the Registry server failed (could not reach the server).  Please
-                            check your connection and try again, or report this error to an admin.
+                            <p>
+                                Connection to the Registry server failed (could not reach the server).  Please
+                                check your connection and try again, or report this error to an admin.
+                            </p>
+                            <p style={{ marginTop: "15px" }}>
+                                The UI is configured to connect to:
+                                &nbsp;
+                                <ClipboardCopy
+                                    isReadOnly
+                                    style={{ border: "1px solid #ccc", padding: "3px" }}
+                                    variant="inline-compact">{ apiUrl }</ClipboardCopy>
+                            </p>
                         </EmptyStateBody>
                         <EmptyStateFooter>
                             <EmptyStateActions>

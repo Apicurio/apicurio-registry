@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apicur.io/schemas/model-schema/v1",
+  "title": "Model Schema",
+  "description": "Schema for MODEL_SCHEMA artifact type in Apicurio Registry. Defines the input/output schemas for LLM model APIs. Aligned with Google Model Card Toolkit and MLflow Model Signatures for interoperability.",
+  "type": "object",
+  "required": ["modelId"],
+  "anyOf": [
+    { "required": ["input"] },
+    { "required": ["output"] }
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "Reference to this schema for validation"
+    },
+    "modelId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the model. Maps to Model Card 'model_details.name'."
+    },
+    "provider": {
+      "type": "string",
+      "description": "The provider or vendor of the model (e.g., 'openai', 'anthropic', 'google'). Maps to Model Card 'model_details.owners'."
+    },
+    "version": {
+      "type": "string",
+      "description": "Version identifier for the model schema. Maps to Model Card 'model_details.version'."
+    },
+    "input": {
+      "type": "object",
+      "description": "JSON Schema defining the input format for the model API. Maps to Model Card 'model_parameters.input_format'."
+    },
+    "output": {
+      "type": "object",
+      "description": "JSON Schema defining the output format from the model API. Maps to Model Card 'model_parameters.output_format'."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the model",
+      "additionalProperties": true
+    },
+    "definitions": {
+      "type": "object",
+      "description": "Reusable schema definitions that can be referenced within input/output schemas",
+      "additionalProperties": true
+    },
+    "modelDetails": {
+      "$ref": "#/$defs/ModelDetails"
+    },
+    "modelParameters": {
+      "$ref": "#/$defs/ModelParameters"
+    },
+    "quantitativeAnalysis": {
+      "$ref": "#/$defs/QuantitativeAnalysis"
+    },
+    "considerations": {
+      "$ref": "#/$defs/Considerations"
+    },
+    "signature": {
+      "$ref": "#/$defs/MLflowSignature"
+    }
+  },
+  "$defs": {
+    "ModelDetails": {
+      "type": "object",
+      "description": "Model details section aligned with Model Card Toolkit 'model_details'.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the model"
+        },
+        "overview": {
+          "type": "string",
+          "description": "A description of the model"
+        },
+        "owners": {
+          "type": "array",
+          "description": "The individuals or teams who own the model",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "contact": { "type": "string" }
+            }
+          }
+        },
+        "version": {
+          "type": "object",
+          "description": "Version information",
+          "properties": {
+            "name": { "type": "string" },
+            "date": { "type": "string", "format": "date" },
+            "diff": { "type": "string" }
+          }
+        },
+        "licenses": {
+          "type": "array",
+          "description": "Licenses for the model",
+          "items": {
+            "type": "object",
+            "properties": {
+              "identifier": { "type": "string", "description": "SPDX license identifier" },
+              "custom_text": { "type": "string" }
+            }
+          }
+        },
+        "references": {
+          "type": "array",
+          "description": "Reference links for the model",
+          "items": {
+            "type": "object",
+            "properties": {
+              "reference": { "type": "string", "format": "uri" }
+            }
+          }
+        },
+        "citations": {
+          "type": "array",
+          "description": "Academic citations for the model",
+          "items": {
+            "type": "object",
+            "properties": {
+              "style": { "type": "string" },
+              "citation": { "type": "string" }
+            }
+          }
+        },
+        "path": {
+          "type": "string",
+          "description": "File path to the model"
+        },
+        "regulatoryRequirements": {
+          "type": "array",
+          "description": "Regulatory requirements the model must comply with",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "ModelParameters": {
+      "type": "object",
+      "description": "Model parameters section aligned with Model Card Toolkit 'model_parameters'.",
+      "properties": {
+        "modelArchitecture": {
+          "type": "string",
+          "description": "The architecture of the model (e.g., 'Transformer', 'GPT')"
+        },
+        "data": {
+          "type": "array",
+          "description": "Training and evaluation datasets",
+          "items": {
+            "$ref": "#/$defs/Dataset"
+          }
+        },
+        "inputFormat": {
+          "type": "string",
+          "description": "Description of input format"
+        },
+        "inputFormatMap": {
+          "type": "object",
+          "description": "Detailed input format specification",
+          "additionalProperties": true
+        },
+        "outputFormat": {
+          "type": "string",
+          "description": "Description of output format"
+        },
+        "outputFormatMap": {
+          "type": "object",
+          "description": "Detailed output format specification",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "Dataset": {
+      "type": "object",
+      "description": "Dataset information",
+      "properties": {
+        "name": { "type": "string" },
+        "link": { "type": "string", "format": "uri" },
+        "sensitive": { "type": "boolean" },
+        "description": { "type": "string" }
+      }
+    },
+    "QuantitativeAnalysis": {
+      "type": "object",
+      "description": "Quantitative analysis section aligned with Model Card Toolkit.",
+      "properties": {
+        "performanceMetrics": {
+          "type": "array",
+          "description": "Performance metrics for the model",
+          "items": {
+            "$ref": "#/$defs/PerformanceMetric"
+          }
+        },
+        "graphics": {
+          "type": "object",
+          "description": "Graphics and visualizations"
+        }
+      },
+      "additionalProperties": true
+    },
+    "PerformanceMetric": {
+      "type": "object",
+      "description": "A performance metric",
+      "properties": {
+        "type": { "type": "string", "description": "Metric type (e.g., 'accuracy', 'f1', 'perplexity')" },
+        "value": { "type": ["number", "string"] },
+        "slice": { "type": "string", "description": "Data slice this metric applies to" },
+        "confidenceInterval": {
+          "type": "object",
+          "properties": {
+            "lowerBound": { "type": "number" },
+            "upperBound": { "type": "number" }
+          }
+        }
+      }
+    },
+    "Considerations": {
+      "type": "object",
+      "description": "Considerations section aligned with Model Card Toolkit.",
+      "properties": {
+        "users": {
+          "type": "array",
+          "description": "Intended users of the model",
+          "items": { "type": "string" }
+        },
+        "useCases": {
+          "type": "array",
+          "description": "Intended use cases",
+          "items": { "type": "string" }
+        },
+        "limitations": {
+          "type": "array",
+          "description": "Known limitations",
+          "items": { "type": "string" }
+        },
+        "tradeoffs": {
+          "type": "array",
+          "description": "Design tradeoffs",
+          "items": { "type": "string" }
+        },
+        "ethicalConsiderations": {
+          "type": "array",
+          "description": "Ethical considerations",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "mitigationStrategy": { "type": "string" }
+            }
+          }
+        },
+        "fairnessConsiderations": {
+          "type": "array",
+          "description": "Fairness considerations",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "mitigationStrategy": { "type": "string" }
+            }
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "MLflowSignature": {
+      "type": "object",
+      "description": "MLflow-compatible model signature for input/output schema. Aligned with MLflow Model Signatures.",
+      "properties": {
+        "inputs": {
+          "type": "string",
+          "description": "JSON-encoded input schema (MLflow format)"
+        },
+        "outputs": {
+          "type": "string",
+          "description": "JSON-encoded output schema (MLflow format)"
+        },
+        "params": {
+          "type": "string",
+          "description": "JSON-encoded parameters schema (MLflow format)"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "x-model-card-compatibility": {
+    "description": "This schema is designed for interoperability with Google Model Card Toolkit",
+    "fieldMappings": {
+      "modelId": "model_details.name",
+      "provider": "model_details.owners",
+      "version": "model_details.version",
+      "input": "model_parameters.input_format",
+      "output": "model_parameters.output_format"
+    },
+    "reference": "https://github.com/tensorflow/model-card-toolkit"
+  },
+  "x-mlflow-compatibility": {
+    "description": "This schema supports MLflow Model Signature format",
+    "reference": "https://mlflow.org/docs/latest/ml/model/"
+  },
+  "additionalProperties": true
+}

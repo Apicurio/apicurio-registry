@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from "react";
 import "./RuleList.css";
-import { Button, Flex, FlexItem, Grid, GridItem, TextContent, Tooltip } from "@patternfly/react-core";
+import { Button, Flex, FlexItem, Grid, GridItem, Content, Tooltip } from "@patternfly/react-core";
 import { CheckIcon, CodeBranchIcon, OkIcon, TrashIcon } from "@patternfly/react-icons";
 import {
     CompatibilityLabel,
@@ -74,9 +74,9 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
     };
 
     const validityRuleLabel: React.ReactElement = (
-        <TextContent>
+        <Content>
             <ValidityLabel value={getRuleConfig("VALIDITY")} />
-        </TextContent>
+        </Content>
     );
 
     let validityRuleActions: React.ReactElement = (
@@ -90,19 +90,19 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
             <React.Fragment>
                 <ValiditySelect value={getRuleConfig("VALIDITY")}
                     onSelect={doConfigureRule("VALIDITY")} />
-                <Button variant="plain"
+                <Button icon={<TrashIcon />} variant="plain"
                     key="delete-action"
                     data-testid="rules-validity-disable"
                     title="Disable the  validity rule"
-                    onClick={doDisableRule("VALIDITY")}><TrashIcon /></Button>
+                    onClick={doDisableRule("VALIDITY")} />
             </React.Fragment>
         );
     }
 
     const compatibilityRuleLabel: React.ReactElement = (
-        <TextContent>
+        <Content>
             <CompatibilityLabel value={getRuleConfig("COMPATIBILITY")} />
-        </TextContent>
+        </Content>
     );
 
     let compatibilityRuleActions: React.ReactElement = (
@@ -116,19 +116,19 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
             <React.Fragment>
                 <CompatibilitySelect value={getRuleConfig("COMPATIBILITY")}
                     onSelect={doConfigureRule("COMPATIBILITY")} />
-                <Button variant="plain"
+                <Button icon={<TrashIcon />} variant="plain"
                     key="delete-action"
                     data-testid="rules-compatibility-disable"
                     title="Disable the compatibility rule"
-                    onClick={doDisableRule("COMPATIBILITY")}><TrashIcon /></Button>
+                    onClick={doDisableRule("COMPATIBILITY")} />
             </React.Fragment>
         );
     }
 
     const integrityRuleLabel: React.ReactElement = (
-        <TextContent>
+        <Content>
             <IntegrityLabel value={getRuleConfig("INTEGRITY")} />
-        </TextContent>
+        </Content>
     );
 
     let integrityRuleActions: React.ReactElement = (
@@ -142,11 +142,11 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
             <React.Fragment>
                 <IntegritySelect value={getRuleConfig("INTEGRITY")}
                     onSelect={doConfigureRule("INTEGRITY")} />
-                <Button variant="plain"
+                <Button icon={<TrashIcon />} variant="plain"
                     key="delete-action"
                     data-testid="rules-integrity-disable"
                     title="Disable the integrity rule"
-                    onClick={doDisableRule("INTEGRITY")}><TrashIcon /></Button>
+                    onClick={doDisableRule("INTEGRITY")} />
             </React.Fragment>
         );
     }

@@ -201,6 +201,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? FOR UPDATE";
     }
 
+    @Override
+    public String selectMaxVersionOrderForUpdate() {
+        return "SELECT v.versionOrder FROM versions v "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "ORDER BY v.versionOrder DESC FOR UPDATE";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByContentHash()
      */
@@ -640,6 +647,19 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String selectArtifactVersionMetaDataBatch() {
+        return "SELECT v.*, a.type FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE REFERENCES_CONDITION";
+    }
+
+    @Override
+    public String selectContentByIdBatch() {
+        return "SELECT c.contentId, c.content, c.contentType, c.refs, c.contentHash FROM content c "
+                + "WHERE c.contentId IN (?)";
+    }
+
+    @Override
     public String deleteAllOrphanedContent() {
         // TODO This may be too slow
         return "DELETE FROM content c WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId)";
@@ -687,12 +707,35 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
-     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroup()
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroupDescription()
      */
     @Override
-    public String updateGroup() {
-        return "UPDATE " + groupsTable()
-                + " SET description = ? , modifiedBy = ? , modifiedOn = ? , labels = ? WHERE groupId = ?";
+    public String updateGroupDescription() {
+        return "UPDATE " + groupsTable() + " SET description = ? WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroupOwner()
+     */
+    @Override
+    public String updateGroupOwner() {
+        return "UPDATE " + groupsTable() + " SET owner = ? WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroupLabels()
+     */
+    @Override
+    public String updateGroupLabels() {
+        return "UPDATE " + groupsTable() + " SET labels = ? WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateGroupModifiedByOn()
+     */
+    @Override
+    public String updateGroupModifiedByOn() {
+        return "UPDATE " + groupsTable() + " SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ?";
     }
 
     /**
@@ -788,6 +831,71 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String exportBranches() {
         return "SELECT * FROM branches";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportContentByGroup()
+     */
+    @Override
+    public String exportContentByGroup() {
+        return "SELECT DISTINCT c.contentId, c.canonicalHash, c.contentHash, c.contentType, c.content, c.refs "
+                + "FROM content c JOIN versions v ON v.contentId = c.contentId WHERE v.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroupsByGroupId()
+     */
+    @Override
+    public String exportGroupsByGroupId() {
+        return "SELECT * FROM " + groupsTable() + " g WHERE g.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroupRulesByGroupId()
+     */
+    @Override
+    public String exportGroupRulesByGroupId() {
+        return "SELECT * FROM group_rules r WHERE r.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactsByGroupId()
+     */
+    @Override
+    public String exportArtifactsByGroupId() {
+        return "SELECT * FROM artifacts WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactVersionsByGroupId()
+     */
+    @Override
+    public String exportArtifactVersionsByGroupId() {
+        return "SELECT * FROM versions WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportVersionCommentsByGroupId()
+     */
+    @Override
+    public String exportVersionCommentsByGroupId() {
+        return "SELECT c.* FROM version_comments c JOIN versions v ON v.globalId = c.globalId WHERE v.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportBranchesByGroupId()
+     */
+    @Override
+    public String exportBranchesByGroupId() {
+        return "SELECT * FROM branches WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactRulesByGroupId()
+     */
+    @Override
+    public String exportArtifactRulesByGroupId() {
+        return "SELECT * FROM artifact_rules r WHERE r.groupId = ?";
     }
 
     /**

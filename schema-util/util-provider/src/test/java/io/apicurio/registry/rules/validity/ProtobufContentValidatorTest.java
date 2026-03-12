@@ -42,6 +42,71 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
     }
 
     @Test
+    public void testDuplicateTagNumbers() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("protobuf-duplicate-tags.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+        });
+    }
+
+    @Test
+    public void testNegativeTagNumber() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("protobuf-negative-tag.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+        });
+    }
+
+    @Test
+    public void testInvalidFieldType() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("protobuf-invalid-type.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+        });
+    }
+
+    @Test
+    public void testValidProtobufSchemaWithFullValidation() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("protobuf-valid.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        // Should not throw - valid schema passes semantic validation
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testDuplicateTagNumbersWithDependencies() throws Exception {
+        TypedContent mode = resourceToTypedContentHandle("mode.proto");
+        TypedContent content = resourceToTypedContentHandle("protobuf-duplicate-tags-with-import.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content,
+                    Collections.singletonMap("sample/mode.proto", mode));
+        });
+    }
+
+    @Test
+    public void testValidProto2WithNestedTypes() throws Exception {
+        // Test proto2 schema with nested message types, enums, and default values
+        // This schema is similar to what integration tests use
+        TypedContent content = resourceToTypedContentHandle("protobuf-tutorial.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        // Should not throw - valid proto2 schema with nested types
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testValidProto3UuidSchema() throws Exception {
+        // Test proto3 schema similar to what serdes tests register
+        TypedContent content = resourceToTypedContentHandle("protobuf-uuid-simple.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        // Should not throw - valid proto3 schema
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
     public void testValidateReferences() throws Exception {
         TypedContent content = resourceToTypedContentHandle("protobuf-valid-with-refs.proto");
         ProtobufContentValidator validator = new ProtobufContentValidator();

@@ -75,6 +75,20 @@ public class SimpleTestProxy {
         requestCount.set(0);
     }
 
+    /**
+     * Gets the actual port the proxy server is bound to.
+     * This is useful when the proxy is started with port 0 (dynamic port allocation).
+     * 
+     * @return the actual port number the server is listening on
+     * @throws IllegalStateException if the server hasn't been started yet
+     */
+    public int getPort() {
+        if (server == null) {
+            throw new IllegalStateException("Server not started yet");
+        }
+        return server.actualPort();
+    }
+
     private void proxyRequest(HttpServerRequest req) {
         requestCount.incrementAndGet();
         logger.info("Proxying request: {} {}", req.method(), req.uri());

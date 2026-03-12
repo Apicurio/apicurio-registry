@@ -416,6 +416,18 @@ public interface SqlStatements {
     public String selectContentById();
 
     /**
+     * A statement template for batch loading artifact version metadata. The REFERENCES_CONDITION placeholder
+     * is replaced at runtime with OR conditions for each reference.
+     */
+    public String selectArtifactVersionMetaDataBatch();
+
+    /**
+     * A statement template for batch loading content by multiple IDs. The (?) placeholder is replaced with
+     * actual IN clause values at runtime.
+     */
+    public String selectContentByIdBatch();
+
+    /**
      * A statement to select the bytes of a content row by contentHash
      */
     public String selectContentByContentHash();
@@ -436,9 +448,24 @@ public interface SqlStatements {
     public String insertGroup();
 
     /**
-     * A statement used to update information about a group.
+     * A statement used to update a group description.
      */
-    public String updateGroup();
+    public String updateGroupDescription();
+
+    /**
+     * A statement used to update a group owner.
+     */
+    public String updateGroupOwner();
+
+    /**
+     * A statement used to update a group labels.
+     */
+    public String updateGroupLabels();
+
+    /**
+     * A statement used to update the modified by and modified on for a group.
+     */
+    public String updateGroupModifiedByOn();
 
     /**
      * A statement used to delete a row from the groups table.
@@ -469,6 +496,12 @@ public interface SqlStatements {
      * A statement used to select the state of a version.
      */
     public String selectArtifactVersionStateForUpdate();
+
+    /**
+     * A statement used to select the max versionOrder for an artifact with row-level locking. Used for atomic
+     * conditional version creation.
+     */
+    public String selectMaxVersionOrderForUpdate();
 
     /*
      * The next few statements support globalId and contentId management.
@@ -503,6 +536,26 @@ public interface SqlStatements {
     public String exportArtifactVersions();
 
     public String exportBranches();
+
+    /*
+     * The next few statements support exporting data from a single group.
+     */
+
+    public String exportContentByGroup();
+
+    public String exportGroupsByGroupId();
+
+    public String exportGroupRulesByGroupId();
+
+    public String exportArtifactsByGroupId();
+
+    public String exportArtifactVersionsByGroupId();
+
+    public String exportVersionCommentsByGroupId();
+
+    public String exportBranchesByGroupId();
+
+    public String exportArtifactRulesByGroupId();
 
     /*
      * The next few statements support importing data into the DB.

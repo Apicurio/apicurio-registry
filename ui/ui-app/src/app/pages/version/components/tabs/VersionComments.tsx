@@ -14,7 +14,6 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateHeader,
     EmptyStateVariant,
     SearchInput,
     Toolbar,
@@ -133,9 +132,9 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     }, [comments, filter]);
 
     const toolbar = (
-        <Toolbar id="toolbar-items-example">
+        <Toolbar id="toolbar-items-example" style={{ padding: "15px" }}>
             <ToolbarContent>
-                <ToolbarItem variant="search-filter">
+                <ToolbarItem>
                     <SearchInput aria-label="Search comments" placeholder="Filter comments" onChange={(evt, filter) => setFilter(filter)} />
                 </ToolbarItem>
                 <ToolbarItem variant="separator" />
@@ -149,8 +148,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     );
 
     const emptyState = (
-        <EmptyState variant={EmptyStateVariant.xs}>
-            <EmptyStateHeader titleText="No comments found" headingLevel="h4" />
+        <EmptyState  headingLevel="h4"   titleText="No comments found" variant={EmptyStateVariant.xs}>
             <EmptyStateBody>
                 There are no comments yet created for this artifact version.
             </EmptyStateBody>
@@ -165,8 +163,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     );
 
     const filteredEmptyState = (
-        <EmptyState variant={EmptyStateVariant.xs}>
-            <EmptyStateHeader titleText="No comments found" headingLevel="h4" />
+        <EmptyState  headingLevel="h4"   titleText="No comments found" variant={EmptyStateVariant.xs}>
             <EmptyStateBody>
                 There are no comments that match the filter criteria.
             </EmptyStateBody>
@@ -195,6 +192,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                                         isExpanded={!collapsed.includes(comment.commentId!)}
                                         id={`${comment.commentId}-toggle`}
                                         aria-controls={`${comment.commentId}-expand`}
+                                        style={{ marginRight: "3px" }}
                                     />
                                     <DataListItemCells
                                         dataListCells={[
@@ -213,7 +211,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                                         aria-labelledby="ex-item1 ex-action1"
                                         id="ex-action1"
                                         aria-label="Actions"
-                                        isPlainButtonAction
+                                        
                                     >
                                         <IfFeature feature="readOnly" isNot={true}>
                                             <IfAuth isOwner={true} owner={comment.owner}>
@@ -254,7 +252,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                                     isHidden={collapsed.includes(comment.commentId!)}
                                     hasNoPadding
                                 >
-                                    <div style={{ paddingLeft: "35px", marginBottom: "15px" }}>
+                                    <div style={{ paddingLeft: "15px", marginBottom: "0px", marginTop: "-6px" }}>
                                         {comment.value}
                                     </div>
                                 </DataListContent>

@@ -6,9 +6,8 @@ import {
     Button,
     Flex,
     FlexItem,
-    Text,
-    TextContent,
-    TextVariants
+    Content,
+    ContentVariants
 } from "@patternfly/react-core";
 import { If, ObjectDropdown } from "@apicurio/common-ui-components";
 import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
@@ -92,8 +91,8 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
     return (
         <Flex className="example-border">
             <FlexItem>
-                <TextContent>
-                    <Text component={TextVariants.h1}>
+                <Content>
+                    <Content component={ContentVariants.h1}>
                         <If condition={groupId !== null && groupId !== undefined && groupId !== "default"}>
                             <span>{groupId}</span>
                             <span style={{ color: "#6c6c6c", marginLeft: "10px", marginRight: "10px" }}> / </span>
@@ -101,12 +100,12 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                         <span>{artifactId}</span>
                         <span style={{ color: "#6c6c6c", marginLeft: "10px", marginRight: "10px" }}> / </span>
                         <span>{version}</span>
-                    </Text>
-                </TextContent>
+                    </Content>
+                </Content>
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
                 <ActionList>
-                    <ActionListItem>
+                    <ActionListItem key="download">
                         <Button id="download-version-button" variant="secondary"
                             data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
                         <IfFeature feature="readOnly" isNot={true}>
@@ -118,7 +117,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                             </IfFeature>
                         </IfFeature>
                     </ActionListItem>
-                    <ActionListItem>
+                    <ActionListItem key="actions">
                         <ObjectDropdown
                             label=""
                             items={actions}

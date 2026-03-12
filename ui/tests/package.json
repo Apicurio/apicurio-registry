@@ -1,23 +1,23 @@
 {
   "name": "@apicurio/registry-ui-tests",
-  "version": "3.1.5-Dev",
+  "version": "3.1.8-Dev",
   "description": "UI tests (playwright) for Apicurio Registry UI",
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "main": "index.js",
   "license": "Apache-2.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "npx playwright test",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives"
+    "lint": "eslint . --report-unused-disable-directives"
   },
   "devDependencies": {
-    "@apicurio/eslint-config": "0.3.0",
-    "@playwright/test": "1.57.0",
-    "@types/node": "22.19.2",
-    "@typescript-eslint/eslint-plugin": "8.49.0",
-    "@typescript-eslint/parser": "8.49.0",
-    "eslint": "8.57.1",
-    "eslint-plugin-react-hooks": "5.2.0",
-    "eslint-plugin-react-refresh": "0.4.24"
+    "@apicurio/eslint-config": "1.0.0",
+    "@playwright/test": "1.58.2",
+    "@types/node": "25.4.0",
+    "eslint": "9.39.4",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "eslint-plugin-react-refresh": "0.5.2",
+    "typescript-eslint": "8.57.0"
   }
 }

@@ -11,6 +11,7 @@ When developing client applications, you can use the {registry} Maven plug-in to
 * xref:testing-artifacts-using-maven-plugin_{context}[]
 * xref:adding-artifact-references-manually-using-maven-plugin_{context}[]
 * xref:adding-artifact-references-automatically-using-maven-plugin_{context}[]
+* xref:configuring-tls-maven-plugin_{context}[]
 
 .Prerequisites
 * {registry} is installed and running in your environment.
@@ -472,5 +473,291 @@ This section shows a simple example of using the Maven plug-in to register an Av
  * For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
 
 
+
+[id="configuring-tls-maven-plugin_{context}"]
+== Configuring TLS and authentication for the Maven plug-in
+
+[role="_abstract"]
+When connecting to a TLS-enabled {registry} instance, you can configure the Maven plug-in to use SSL/TLS for secure communication. The plug-in supports various trust store and key store formats, as well as multiple authentication methods.
+
+=== TLS configuration options
+
+The following table describes the TLS-related configuration options available in the Maven plug-in:
+
+.Trust store configuration
+[cols="1,3",options="header"]
+|===
+|Parameter
+|Description
+
+|`trustStorePath`
+|Path to the trust store file containing the CA certificate(s) to trust. Supports JKS, PKCS12, and PEM formats. The format is auto-detected from the file extension (`.jks`, `.p12`/`.pfx`, `.pem`/`.crt`/`.cer`) unless explicitly specified.
+
+|`trustStorePassword`
+|Password for the trust store. Required for JKS and PKCS12 formats.
+
+|`trustStoreType`
+|Explicit trust store type: `JKS`, `PKCS12`, or `PEM`. If not specified, the type is auto-detected from the file extension.
+|===
+
+.Key store configuration for mutual TLS (mTLS)
+[cols="1,3",options="header"]
+|===
+|Parameter
+|Description
+
+|`keyStorePath`
+|Path to the key store file containing the client certificate for mTLS authentication. Supports JKS, PKCS12, and PEM formats.
+
+|`keyStorePassword`
+|Password for the key store. Required for JKS and PKCS12 formats.
+
+|`keyStoreType`
+|Explicit key store type: `JKS`, `PKCS12`, or `PEM`. If not specified, the type is auto-detected from the file extension.
+
+|`keyStorePemKeyPath`
+|Path to the PEM private key file. Required when using PEM format for mTLS, where `keyStorePath` points to the certificate file.
+|===
+
+.Additional SSL options
+[cols="1,1,3",options="header"]
+|===
+|Parameter
+|Default
+|Description
+
+|`trustAll`
+|`false`
+|If set to `true`, trust all SSL/TLS certificates without validation. *WARNING:* This should only be used for development or testing purposes.
+
+|`verifyHostname`
+|`true`
+|If set to `false`, disable hostname verification in SSL/TLS connections. *WARNING:* Disabling this reduces security and should only be used for development or testing.
+|===
+
+=== Example: TLS with PKCS12 trust store
+
+The following example shows how to configure the Maven plug-in to connect to a TLS-enabled {registry} using a PKCS12 trust store:
+
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>register</goal>
+      </goals>
+      <configuration>
+          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl> <1>
+          <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath> <2>
+          <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword> <3>
+          <artifacts>
+              <artifact>
+                  <groupId>default</groupId>
+                  <artifactId>MySchema</artifactId>
+                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
+              </artifact>
+          </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
+<1> Use `https://` for the registry URL when connecting with TLS.
+<2> Specify the path to your PKCS12 trust store containing the CA certificate(s).
+<3> Use environment variables for passwords to avoid storing secrets in your `pom.xml`.
+
+=== Example: TLS with basic authentication
+
+The following example shows how to combine TLS with basic authentication:
+
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>register</goal>
+      </goals>
+      <configuration>
+          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+          <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
+          <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
+          <username>${env.REGISTRY_USERNAME}</username> <1>
+          <password>${env.REGISTRY_PASSWORD}</password>
+          <artifacts>
+              <artifact>
+                  <groupId>default</groupId>
+                  <artifactId>MySchema</artifactId>
+                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
+              </artifact>
+          </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
+<1> Combine TLS configuration with basic authentication credentials.
+
+=== Example: TLS with OAuth2 authentication
+
+The following example shows how to configure TLS with OAuth2/OIDC client credentials authentication:
+
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>register</goal>
+      </goals>
+      <configuration>
+          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+          <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
+          <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
+          <authServerUrl>https://keycloak.example.com/realms/registry/protocol/openid-connect/token</authServerUrl> <1>
+          <clientId>${env.CLIENT_ID}</clientId>
+          <clientSecret>${env.CLIENT_SECRET}</clientSecret>
+          <clientScope>openid</clientScope>
+          <artifacts>
+              <artifact>
+                  <groupId>default</groupId>
+                  <artifactId>MySchema</artifactId>
+                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
+              </artifact>
+          </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
+<1> Specify the OAuth2/OIDC token endpoint URL for authentication.
+
+=== Example: Mutual TLS (mTLS)
+
+The following example shows how to configure mutual TLS where both the client and server authenticate each other using certificates:
+
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>register</goal>
+      </goals>
+      <configuration>
+          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+          <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath> <1>
+          <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
+          <keyStorePath>${project.basedir}/certs/client-keystore.p12</keyStorePath> <2>
+          <keyStorePassword>${env.KEYSTORE_PASSWORD}</keyStorePassword>
+          <artifacts>
+              <artifact>
+                  <groupId>default</groupId>
+                  <artifactId>MySchema</artifactId>
+                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
+              </artifact>
+          </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
+<1> Trust store to verify the server's certificate.
+<2> Key store containing the client certificate for authentication.
+
+=== Example: TLS with PEM certificates
+
+The following example shows how to use PEM-formatted certificates:
+
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>register</goal>
+      </goals>
+      <configuration>
+          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+          <trustStorePath>${project.basedir}/certs/ca-cert.pem</trustStorePath> <1>
+          <trustStoreType>PEM</trustStoreType>
+          <artifacts>
+              <artifact>
+                  <groupId>default</groupId>
+                  <artifactId>MySchema</artifactId>
+                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
+              </artifact>
+          </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
+<1> PEM certificate files do not require a password.
+
+=== Example: mTLS with PEM certificates
+
+The following example shows mTLS configuration using PEM-formatted certificate and key files:
+
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>register</goal>
+      </goals>
+      <configuration>
+          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+          <trustStorePath>${project.basedir}/certs/ca-cert.pem</trustStorePath>
+          <trustStoreType>PEM</trustStoreType>
+          <keyStorePath>${project.basedir}/certs/client-cert.pem</keyStorePath> <1>
+          <keyStorePemKeyPath>${project.basedir}/certs/client-key.pem</keyStorePemKeyPath> <2>
+          <keyStoreType>PEM</keyStoreType>
+          <artifacts>
+              <artifact>
+                  <groupId>default</groupId>
+                  <artifactId>MySchema</artifactId>
+                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
+              </artifact>
+          </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
+<1> Path to the client certificate PEM file.
+<2> Path to the client private key PEM file. Required when using PEM format for mTLS.
+
+[role="_additional-resources"]
+.Additional resources
+ * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
+ * For a complete example with multiple TLS and authentication configurations, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/maven-plugin-tls-credentials[maven-plugin-tls-credentials demonstration example].
+ * For a Kubernetes mTLS setup example, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/mtls-minikube[mTLS Minikube demonstration example].
 
 

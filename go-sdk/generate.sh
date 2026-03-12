@@ -45,7 +45,45 @@ then
   echo "Local kiota could not be found, downloading"
   rm -rf $SCRIPT_DIR/target/kiota_tmp
   mkdir -p $SCRIPT_DIR/target/kiota_tmp
-  curl -sL $URL > $SCRIPT_DIR/target/kiota_tmp/kiota.zip
+
+  # Download with retry logic
+  MAX_RETRIES=5
+  RETRY_COUNT=0
+  DOWNLOAD_SUCCESS=false
+
+  while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
+    echo "Attempting to download kiota (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)..."
+
+    # Use -f to fail on HTTP errors, --retry for built-in retries
+    if curl -fL --retry 2 --retry-delay 2 "$URL" -o "$SCRIPT_DIR/target/kiota_tmp/kiota.zip"; then
+      # Validate the zip file is not corrupted
+      if unzip -t "$SCRIPT_DIR/target/kiota_tmp/kiota.zip" > /dev/null 2>&1; then
+        echo "Download successful and zip file validated"
+        DOWNLOAD_SUCCESS=true
+        break
+      else
+        echo "Downloaded zip file is corrupted, retrying..."
+        rm -f "$SCRIPT_DIR/target/kiota_tmp/kiota.zip"
+      fi
+    else
+      echo "Download failed with HTTP error, retrying..."
+    fi
+
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    if [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; then
+      # Exponential backoff: 2, 4, 8, 16 seconds
+      DELAY=$((2 ** RETRY_COUNT))
+      echo "Waiting ${DELAY} seconds before retry..."
+      sleep $DELAY
+    fi
+  done
+
+  if [[ "$DOWNLOAD_SUCCESS" != "true" ]]; then
+    echo "ERROR: Failed to download kiota after $MAX_RETRIES attempts"
+    echo "URL: $URL"
+    exit 1
+  fi
+
   unzip $SCRIPT_DIR/target/kiota_tmp/kiota.zip -d $SCRIPT_DIR/target/kiota_tmp
   chmod u+x $SCRIPT_DIR/target/kiota_tmp/kiota
 fi

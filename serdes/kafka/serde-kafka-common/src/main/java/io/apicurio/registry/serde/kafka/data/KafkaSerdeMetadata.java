@@ -10,6 +10,8 @@ import org.apache.kafka.common.header.Headers;
 public class KafkaSerdeMetadata extends SerdeMetadata {
 
     private final Headers headers;
+    private String explicitSchemaContent;
+    private String explicitSchemaType;
 
     public KafkaSerdeMetadata(String topic, boolean isKey, Headers headers) {
         super(topic, isKey);
@@ -29,6 +31,40 @@ public class KafkaSerdeMetadata extends SerdeMetadata {
      */
     public Headers getHeaders() {
         return headers;
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.data.Metadata#explicitSchemaContent()
+     */
+    @Override
+    public String explicitSchemaContent() {
+        return explicitSchemaContent;
+    }
+
+    /**
+     * Sets the explicit schema content.
+     *
+     * @param explicitSchemaContent the schema content read from headers
+     */
+    public void setExplicitSchemaContent(String explicitSchemaContent) {
+        this.explicitSchemaContent = explicitSchemaContent;
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.data.Metadata#explicitSchemaType()
+     */
+    @Override
+    public String explicitSchemaType() {
+        return explicitSchemaType;
+    }
+
+    /**
+     * Sets the explicit schema type.
+     *
+     * @param explicitSchemaType the schema type read from headers (e.g., "AVRO", "PROTOBUF", "JSON")
+     */
+    public void setExplicitSchemaType(String explicitSchemaType) {
+        this.explicitSchemaType = explicitSchemaType;
     }
 
 }

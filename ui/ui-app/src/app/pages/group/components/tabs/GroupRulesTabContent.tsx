@@ -9,9 +9,7 @@ import {
     Divider,
     EmptyState,
     EmptyStateBody,
-    EmptyStateIcon,
-    EmptyStateVariant,
-    Title
+    EmptyStateVariant
 } from "@patternfly/react-core";
 import { GroupMetaData, Rule } from "@sdk/lib/generated-client/models";
 import { WarningTriangleIcon } from "@patternfly/react-icons";
@@ -37,9 +35,7 @@ export const GroupRulesTabContent: FunctionComponent<GroupRulesTabContentProps> 
         <div className="group-rules-tab-content">
             <If condition={props.group.groupId === "default"}>
                 <div className="group-rules-empty" style={{ width: "100%", marginTop: "20px" }}>
-                    <EmptyState variant={EmptyStateVariant.sm}>
-                        <EmptyStateIcon icon={WarningTriangleIcon}/>
-                        <Title headingLevel="h5" size="lg">Rules not available</Title>
+                    <EmptyState titleText="Rules not available" icon={WarningTriangleIcon} variant={EmptyStateVariant.sm}>
                         <EmptyStateBody>
                             Group level rules are not available for the <b>default</b> group.  Configure
                             global rules or else store artifacts in custom groups.
@@ -49,7 +45,7 @@ export const GroupRulesTabContent: FunctionComponent<GroupRulesTabContentProps> 
             </If>
             <If condition={props.group.groupId !== "default"}>
                 <div className="group-rules">
-                    <Card>
+                    <Card variant="secondary" style={{ backgroundColor: "white" }}>
                         <CardTitle>
                             <div className="rules-label">Group-specific rules</div>
                         </CardTitle>

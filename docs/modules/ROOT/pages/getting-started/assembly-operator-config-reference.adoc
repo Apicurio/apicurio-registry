@@ -409,7 +409,7 @@ spec:
 
 === KafkaSqlAuthSpec
 
-Configure SASL authentication for KafkaSQL storage:
+Configure SASL OAuth authentication for KafkaSQL storage:
 
 [cols="1,2,1,2",options="header"]
 |===
@@ -418,38 +418,38 @@ Configure SASL authentication for KafkaSQL storage:
 |Type
 |Default
 
+|`enabled`
+|Enables SASL OAuth authentication. Must be set to `true` for other auth fields to have effect.
+|Boolean
+|`false`
+
 |`mechanism`
-|SASL mechanism. Examples: `SCRAM-SHA-512`, `PLAIN`, `OAUTHBEARER`
+|SASL mechanism. Use `OAUTHBEARER` for OAuth authentication.
 |String
 |None
 
-|`usernameSecretRef`
-|Reference to a Secret containing the username. Default key: `username`
+|`clientIdRef`
+|Reference to a Secret containing the OAuth client ID. Default key: `clientId`
 |<<SecretKeyRef>>
 |None
 
-|`passwordSecretRef`
-|Reference to a Secret containing the password. Default key: `password`
+|`clientSecretRef`
+|Reference to a Secret containing the OAuth client secret. Default key: `clientSecret`
 |<<SecretKeyRef>>
 |None
 
-|`clientIdSecretRef`
-|Reference to a Secret containing the OAuth client ID (for OAUTHBEARER). Default key: `clientId`
-|<<SecretKeyRef>>
+|`tokenEndpoint`
+|OAuth token endpoint URI
+|String
 |None
 
-|`clientSecretSecretRef`
-|Reference to a Secret containing the OAuth client secret (for OAUTHBEARER). Default key: `clientSecret`
-|<<SecretKeyRef>>
-|None
-
-|`tokenEndpointUri`
-|OAuth token endpoint URI (for OAUTHBEARER)
+|`loginHandlerClass`
+|The login callback handler class for OAuth authentication
 |String
 |None
 |===
 
-Example with SCRAM-SHA-512:
+Example with OAuth:
 [source,yaml]
 ----
 spec:
@@ -459,14 +459,22 @@ spec:
       kafkasql:
         bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9093
         auth:
-          mechanism: SCRAM-SHA-512
-          usernameSecretRef:
-            name: kafka-credentials
-            key: username
-          passwordSecretRef:
-            name: kafka-credentials
-            key: password
+          enabled: true
+          mechanism: OAUTHBEARER
+          clientIdRef:
+            name: kafka-oauth-credentials
+            key: clientId
+          clientSecretRef:
+            name: kafka-oauth-credentials
+            key: clientSecret
+          tokenEndpoint: https://identity-server.example.com/token
+          loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 ----
+
+NOTE: The operator provides first-class support for OAuth (OAUTHBEARER) authentication. For other SASL mechanisms
+such as SCRAM-SHA-512 or PLAIN, you can use custom environment variables via the `spec.app.env` field to configure
+the Kafka client properties directly. See the xref:getting-started/assembly-config-reference.adoc[] for available
+`apicurio.kafkasql.*` configuration properties.
 
 [id="operator-auth-reference_{context}"]
 == Authentication and authorization configuration reference

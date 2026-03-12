@@ -1,0 +1,18 @@
+.ps_dashboard-header {
+    padding-bottom: 0;
+}
+
+.ps_dashboard-description {
+    padding-top: 24px;
+    padding-bottom: 16px;
+}
+
+.ps_dashboard-description .dashboard-description {
+    color: #6a6e73;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.ps_dashboard-content {
+    background-color: #f0f0f0;
+}

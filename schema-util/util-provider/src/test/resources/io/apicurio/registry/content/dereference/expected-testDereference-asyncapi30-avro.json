@@ -1,0 +1,51 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "Event Service API",
+        "version": "1.0.0",
+        "description": "API for event processing with Avro schemas"
+    },
+    "channels": {
+        "userEvents": {
+            "address": "events/user",
+            "messages": {
+                "userEventMessage": {
+                    "$ref": "#/components/messages/UserEventMessage"
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "UserEvent": {
+                "schemaFormat": "application/vnd.apache.avro+json",
+                "schema": {
+                    "type": "record",
+                    "name": "UserEvent",
+                    "namespace": "com.example",
+                    "fields": [
+                        {
+                            "name": "userId",
+                            "type": "string"
+                        },
+                        {
+                            "name": "eventType",
+                            "type": "string"
+                        },
+                        {
+                            "name": "timestamp",
+                            "type": "long"
+                        }
+                    ]
+                }
+            }
+        },
+        "messages": {
+            "UserEventMessage": {
+                "payload": {
+                    "$ref": "#/components/schemas/UserEvent"
+                }
+            }
+        }
+    }
+}

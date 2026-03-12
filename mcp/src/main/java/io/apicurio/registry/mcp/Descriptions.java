@@ -90,6 +90,16 @@ public final class Descriptions {
             For example, a boolean property value must be either "true" or "false". \
             You can determine the data type by calling the "get_configuration_property" function.""";
 
+    public static final String PROMPT_TEMPLATE_VARIABLES = """
+            JSON object containing the variables to substitute into the prompt template. \
+            Variable names should match those defined in the template's 'variables' section. \
+            Example: {"question": "How do I create an artifact?", "include_examples": true}""";
+
+    public static final String PROMPT_TEMPLATE_ARGS = """
+            JSON object containing the arguments for the MCP prompt. \
+            Argument names should match those defined in the template's 'mcp.arguments' section \
+            or be derived from the 'variables' section if arguments are not explicitly defined.""";
+
     public static final String ORDER = """
             Results can be returned in descending or ascending order. \
              - If the value is "desc", the results are sorted in descending order (highest to lowest or alphabetical).

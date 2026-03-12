@@ -10,11 +10,14 @@ import io.fabric8.kubernetes.client.utils.Serialization;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.util.List;
 
+import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_SETUP;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
 import static io.restassured.RestAssured.given;
@@ -22,6 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@Tag(FEATURE)
+@Tag(FEATURE_SETUP)
 public class TlsITTest extends ITBase {
 
     @BeforeAll
@@ -91,12 +96,15 @@ public class TlsITTest extends ITBase {
 
         // Network Policy
         await().ignoreExceptions().until(() -> {
-            NetworkPolicyIngressRule networkPolicyIngressRule = client.network().v1().networkPolicies().inNamespace(namespace)
-                    .withName("simple-app-networkpolicy").get().getSpec().getIngress()
-                    .get(0);
-            Assertions.assertEquals(1, networkPolicyIngressRule.getPorts().size());
+            var networkPolicyIngressRules = client.network().v1().networkPolicies().inNamespace(namespace)
+                    .withName("simple-app-networkpolicy").get().getSpec().getIngress();
 
-            assertThat(networkPolicyIngressRule.getPorts().get(0).getPort().getIntVal()).isEqualTo(8443);
+            Assertions.assertEquals(2, networkPolicyIngressRules.size());
+
+            assertThat(networkPolicyIngressRules)
+                    .flatMap(NetworkPolicyIngressRule::getPorts)
+                    .map(p -> p.getPort().getIntVal())
+                    .containsExactlyInAnyOrder(8443, 9000);
             return true;
         });
 
@@ -164,12 +172,12 @@ public class TlsITTest extends ITBase {
             var networkPolicyIngressRules = client.network().v1().networkPolicies().inNamespace(namespace)
                     .withName("simple-app-networkpolicy").get().getSpec().getIngress();
 
-            Assertions.assertEquals(2, networkPolicyIngressRules.size());
+            Assertions.assertEquals(3, networkPolicyIngressRules.size());
 
             assertThat(networkPolicyIngressRules)
                     .flatMap(NetworkPolicyIngressRule::getPorts)
                     .map(p -> p.getPort().getIntVal())
-                    .containsExactlyInAnyOrder(8080, 8443);
+                    .containsExactlyInAnyOrder(8080, 8443, 9000);
             return true;
         });
 

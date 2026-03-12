@@ -1,0 +1,10 @@
+syntax = "proto3";
+package sample;
+
+import "sample/mode.proto";
+
+message TableInfo {
+    int32 field1 = 1;
+    Mode mode = 2;
+    string field3 = 2;
+}

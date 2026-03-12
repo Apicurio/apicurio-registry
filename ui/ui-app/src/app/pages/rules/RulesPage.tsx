@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./RulesPage.css";
-import { PageSection, PageSectionVariants, TextContent } from "@patternfly/react-core";
+import { PageSection, PageSectionVariants, Content } from "@patternfly/react-core";
 import { RootPageHeader, RuleList, RuleListType } from "@app/components";
 import { PageDataLoader, PageError, PageErrorHandler, PageProperties, RULES_PAGE_IDX, toPageError } from "@app/pages";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
@@ -66,15 +66,15 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_rules-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_rules-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={RULES_PAGE_IDX} />
                 </PageSection>
-                <PageSection className="ps_rules-description" variant={PageSectionVariants.light}>
-                    <TextContent>
+                <PageSection hasBodyWrapper={false} className="ps_rules-description" >
+                    <Content>
                         Manage the global rules for artifact content for this registry. Each global rule can be individually enabled, configured, and disabled.
-                    </TextContent>
+                    </Content>
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true}>
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true}>
                     <React.Fragment>
                         <RuleList
                             type={RuleListType.Global}

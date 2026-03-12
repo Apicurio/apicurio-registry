@@ -18,6 +18,7 @@ metadata:
     features.operators.openshift.io/token-auth-azure: 'false'
     features.operators.openshift.io/token-auth-gcp: 'false'
     operators.openshift.io/infrastructure-features: '[]'
+    operators.openshift.io/valid-subscription: '[]'
     repository: https://github.com/Apicurio/apicurio-registry/tree/main/operator
     support: Apicurio
   name: ${PLACEHOLDER_PACKAGE_NAME}.v0.0.0

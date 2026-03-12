@@ -3,6 +3,62 @@
 
 The following {registry} configuration options are available for each component category:
 
+== a2a
+.a2a configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.a2a.agent.capabilities.push-notifications`
+|`boolean`
+|`false`
+|`3.0.0`
+|Whether the agent supports push notifications
+|`apicurio.a2a.agent.capabilities.streaming`
+|`boolean`
+|`false`
+|`3.0.0`
+|Whether the agent supports streaming
+|`apicurio.a2a.agent.description`
+|`string`
+|`API and Schema Registry with A2A Agent support`
+|`3.0.0`
+|Description of the registry agent
+|`apicurio.a2a.agent.name`
+|`string`
+|`Apicurio Registry`
+|`3.0.0`
+|Name of the registry agent for A2A discovery
+|`apicurio.a2a.agent.provider.organization`
+|`string`
+|`Apicurio`
+|`3.0.0`
+|Organization name for the agent provider
+|`apicurio.a2a.agent.provider.url`
+|`string`
+|`https://www.apicur.io`
+|`3.0.0`
+|URL for the agent provider
+|`apicurio.a2a.agent.url`
+|`optional<string>`
+|
+|`3.0.0`
+|Base URL for the registry agent's A2A endpoint
+|`apicurio.a2a.agent.version`
+|`optional<string>`
+|
+|`3.0.0`
+|Version of the registry agent (defaults to app version)
+|`apicurio.a2a.enabled`
+|`boolean`
+|`false`
+|`3.0.0`
+|Enable A2A protocol support _(experimental)_
+|===
+
 == api
 .api configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -148,10 +204,35 @@ The following {registry} configuration options are available for each component 
 |
 |`2.5.0.Final`
 |Client credentials scope.
+|`apicurio.authn.proxy-header.email`
+|`string`
+|`X-Forwarded-Email`
+|`3.1.7`
+|Header name for email
+|`apicurio.authn.proxy-header.enabled`
+|`boolean`
+|`false`
+|`3.1.7`
+|Enable proxy header authentication
+|`apicurio.authn.proxy-header.groups`
+|`string`
+|`X-Forwarded-Groups`
+|`3.1.7`
+|Header name for groups/roles
+|`apicurio.authn.proxy-header.trust-proxy-authorization`
+|`boolean`
+|`false`
+|`3.1.0.Final`
+|When enabled, authorization checks are skipped and the proxy is trusted to have performed authorization
+|`apicurio.authn.proxy-header.username`
+|`string`
+|`X-Forwarded-User`
+|`3.1.7`
+|Header name for username
 |`quarkus.http.auth.basic`
 |`boolean`
 |`false`
-|`3.0.0`
+|`3.X.X.Final`
 |Enable basic auth
 |`quarkus.oidc.client-id`
 |`string`
@@ -189,6 +270,46 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.2.2.Final`
 |Registry cache enabled
+|`apicurio.http-caching.enabled`
+|`boolean`
+|`false`
+|`3.2.0`
+|Enable or disable HTTP caching entirely. When disabled, no server-side cache headers (ETag, Surrogate-Control, etc.) are sent, and cache strategies are not evaluated. At least one of the max-age configurations must be set to > 0, otherwise caching is automatically disabled and this property has no effect.
+|`apicurio.http-caching.extra-headers-enabled`
+|`boolean`
+|`true`
+|`3.2.0`
+|Send additional informational headers to help understand caching behavior. Extra headers include X-Cache-Cacheability which indicates the evaluated cacheability level. These headers are useful for development, troubleshooting, and making additional decisions in the cache configuration.
+|`apicurio.http-caching.high-cacheability.max-age-seconds`
+|`long`
+|`864000`
+|`3.2.0`
+|Expiration for high cacheability operations, in seconds. If set to <= 0, caching is disabled for these operations.
+|`apicurio.http-caching.higher-quality-etags-enabled`
+|`boolean`
+|`true`
+|`3.2.0`
+|Provide higher quality ETags if possible, but they might be more expensive to compute. This feature trades more computation for potentially higher cacheability of some operations. 
+|`apicurio.http-caching.low-cacheability.max-age-seconds`
+|`long`
+|`10`
+|`3.2.0`
+|Expiration for low cacheability operations, in seconds. If set to <= 0, caching is disabled for these operations.
+|`apicurio.http-caching.moderate-cacheability.max-age-seconds`
+|`long`
+|`30`
+|`3.2.0`
+|Expiration for moderate cacheability operations, in seconds. If set to <= 0, caching is disabled for these operations.
+|`apicurio.http-caching.opaque-etags-enabled`
+|`optional<boolean>`
+|
+|`3.2.0`
+|Hash raw ETag values before adding them to the header. Enabling this feature might marginally increase security, while disabling is useful for testing and debugging. If no value is provided, the feature is enabled when the `prod` profile is active.
+|`apicurio.http-caching.vary-headers`
+|`list<string>`
+|`Accept,Accept-Encoding,Authorization`
+|`3.2.0`
+|Comma-separated list of request header names to include in the Vary response header. The Vary header tells caches that the response varies based on the values of the listed request headers.
 |===
 
 == ccompat
@@ -375,6 +496,32 @@ The following {registry} configuration options are available for each component 
 |Storage metrics cache check period
 |===
 
+== iceberg
+.iceberg configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.iceberg.default-prefix`
+|`string`
+|`default`
+|`3.0.0`
+|Default prefix (catalog identifier) for the Iceberg REST API
+|`apicurio.iceberg.enabled`
+|`boolean`
+|`false`
+|`3.0.0`
+|Enable the Iceberg REST Catalog API _(experimental)_
+|`apicurio.iceberg.warehouse`
+|`optional<string>`
+|
+|`3.0.0`
+|Default warehouse location for Iceberg tables
+|===
+
 == import
 .import configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -409,6 +556,42 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |Temporary work directory to use when importing data.
+|===
+
+== kubernetesops
+.kubernetesops configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.kubernetesops.id`
+|`optional<string>`
+|
+|`3.0.0`
+|Identifier of this Registry instance. Only ConfigMaps with a label matching this identifier will be loaded.
+|`apicurio.kubernetesops.label.registry-id`
+|`string`
+|`apicurio.io/registry-id`
+|`3.0.0`
+|Label key used to identify ConfigMaps belonging to this registry instance.
+|`apicurio.kubernetesops.namespace`
+|`optional<string>`
+|
+|`3.0.0`
+|Kubernetes namespace to watch for ConfigMaps. If not specified, auto-detects the pod's namespace or falls back to "default".
+|`apicurio.kubernetesops.watch.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable Kubernetes Watch API for real-time ConfigMap change detection.
+|`apicurio.kubernetesops.watch.reconnect-delay`
+|`duration`
+|`PT10S`
+|`3.0.0`
+|Base delay before reconnecting after watch failure. Uses exponential backoff.
 |===
 
 == limits
@@ -547,6 +730,66 @@ The following {registry} configuration options are available for each component 
         e.g. `/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`.         You might disable this tag to reduce metrics cardinality.         When an unsubstituted REST API resource path could not be determined,
         the tag value will be `(unspecified)`.
 
+|`quarkus.otel.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|Enable or disable OpenTelemetry for distributed tracing, metrics export via OTLP, and log correlation. When enabled, {registry} exports telemetry data to an OpenTelemetry collector.
+|`quarkus.otel.exporter.otlp.endpoint`
+|`string`
+|`http://localhost:4317`
+|`3.1.7`
+|The endpoint URL of the OpenTelemetry collector. Supports both gRPC (port 4317) and HTTP (port 4318) protocols.
+|`quarkus.otel.exporter.otlp.protocol`
+|`string`
+|`grpc`
+|`3.1.7`
+|The protocol to use for exporting telemetry data. Valid values are `grpc` or `http/protobuf`.
+|`quarkus.otel.instrument.kafka`
+|`boolean`
+|`true`
+|`3.1.7`
+|Enable or disable automatic tracing instrumentation for Kafka operations. Useful for tracing in KafkaSQL storage deployments.
+|`quarkus.otel.logs.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|BUILD-TIME property to enable log export via OpenTelemetry. When enabled along with JSON logging, trace context is automatically included in log entries. Use `quarkus.otel.sdk.disabled` to control log export at runtime.
+|`quarkus.otel.metrics.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|BUILD-TIME property to enable metrics export via OpenTelemetry. This works alongside existing Prometheus metrics export. Use `quarkus.otel.sdk.disabled` to control metrics at runtime.
+|`quarkus.otel.resource.attributes`
+|`optional<string>`
+|
+|`3.1.7`
+|Additional resource attributes to include in telemetry data, specified as comma-separated key=value pairs. Example: `service.version=3.0.0,deployment.environment=production`
+|`quarkus.otel.sdk.disabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|Disable the OpenTelemetry SDK at runtime. Set to `false` to enable OpenTelemetry. This is the primary runtime control for enabling/disabling all telemetry signals.
+|`quarkus.otel.service.name`
+|`string`
+|`apicurio-registry`
+|`3.1.7`
+|The logical service name for this {registry} instance. This name appears in traces and metrics exported to the OpenTelemetry collector.
+|`quarkus.otel.traces.enabled`
+|`boolean`
+|`true`
+|`3.1.7`
+|BUILD-TIME property to enable distributed tracing instrumentation. When enabled, {registry} creates spans for REST API requests and storage operations. Use `quarkus.otel.sdk.disabled` to control tracing at runtime.
+|`quarkus.otel.traces.sampler`
+|`string`
+|`parentbased_always_on`
+|`3.1.7`
+|The sampling strategy for traces. Use `parentbased_always_on` for development or `parentbased_traceidratio` for production to reduce overhead.
+|`quarkus.otel.traces.sampler.arg`
+|`string`
+|`1.0`
+|`3.1.7`
+|The sampling ratio when using `parentbased_traceidratio` sampler. A value of `0.1` means 10% of traces are sampled.
 |===
 
 == redirects
@@ -589,16 +832,11 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.rest.artifact.download.max-size.bytes`
-|`int`
-|`1000000`
-|`2.2.6`
-|Max size of the artifact allowed to be downloaded from URL
-|`apicurio.rest.artifact.download.ssl-validation.disabled`
-|`boolean`
-|`false`
-|`2.2.6`
-|Skip SSL validation when downloading artifacts from URL
+|`apicurio.rest.artifact.references.default-handling`
+|`optional<string>`
+|
+|`3.1.0`
+|Optional configuration to override default reference handling behavior. When not set, uses API defaults (PRESERVE for v3, false for v2, none for ccompat).
 |`apicurio.rest.deletion.artifact-version.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -614,6 +852,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.0`
 |Enables group deletion
+|`apicurio.rest.draft.production-mode.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.0.x`
+|Enables production-like behavior for draft versions
 |`apicurio.rest.mutability.artifact-version-content.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -734,8 +977,8 @@ The following {registry} configuration options are available for each component 
 |`apicurio.events.kafka.topic`
 |`string`
 |`registry-events`
-|
-|Storage event topic
+|`3.0.1`
+|Kafka events topic for outbox pattern
 |`apicurio.events.kafka.topic.*`
 |`map<string, string>`
 |
@@ -901,6 +1144,31 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`2.0.0.Final`
 |SQL init
+|`apicurio.storage.connection.retry.backoff-multiplier`
+|`double`
+|`2.0`
+|`3.1.4`
+|Multiplier for exponential backoff between retry attempts
+|`apicurio.storage.connection.retry.enabled`
+|`boolean`
+|`true`
+|`3.1.4`
+|Enable connection retry with exponential backoff for transient database connection failures
+|`apicurio.storage.connection.retry.initial-delay-ms`
+|`long`
+|`1000`
+|`3.1.4`
+|Initial delay in milliseconds before first retry
+|`apicurio.storage.connection.retry.max-attempts`
+|`int`
+|`10`
+|`3.1.4`
+|Maximum number of connection retry attempts
+|`apicurio.storage.connection.retry.max-delay-ms`
+|`long`
+|`30000`
+|`3.1.4`
+|Maximum delay in milliseconds between retry attempts
 |`apicurio.storage.enable-automatic-group-creation`
 |`boolean`
 |`true`
@@ -910,12 +1178,17 @@ The following {registry} configuration options are available for each component 
 |`string`
 |
 |`3.0.0`
-|Application storage variant, for example, sql, kafkasql, or gitops
+|Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops
 |`apicurio.storage.read-only.enabled`
 |`boolean [dynamic]`
 |`false`
 |`3.0.0`
 |Enable Registry storage read-only mode
+|`apicurio.storage.references.max-depth`
+|`int`
+|`100`
+|`3.0.6`
+|Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.
 |`apicurio.storage.snapshot.location`
 |`string`
 |`./`
@@ -962,6 +1235,11 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.4`
 |
+|`apicurio.features.experimental.enabled`
+|`boolean`
+|`false`
+|`3.2.0`
+|Enable experimental features. When disabled, any experimental feature that is individually enabled will prevent the application from starting.
 |===
 
 == types
@@ -999,6 +1277,11 @@ The following {registry} configuration options are available for each component 
 |`apicurio-registry-ui`
 |`3.0.0`
 |The OIDC clientId
+|`apicurio.ui.auth.oidc.load-user-info`
+|`optional<boolean>`
+|
+|`3.1.6`
+|Whether to load user info from the OIDC userinfo endpoint. Defaults to true if not specified. Set to false for OIDC providers like Azure Entra ID where the userinfo endpoint has incompatible audience requirements.
 |`apicurio.ui.auth.oidc.logout-url`
 |`string`
 |`f5`
@@ -1029,6 +1312,11 @@ The following {registry} configuration options are available for each component 
 |`/editors/`
 |`3.1.0`
 |URL of the Editors component
+|`apicurio.ui.features.agents.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.2.0`
+|Enabled to show the Agents tab in the UI _(experimental)_
 |`apicurio.ui.features.breadcrumbs`
 |`string`
 |`true`
@@ -1220,6 +1508,11 @@ The following {registry} configuration options are available for each component 
 |`${apicurio.config.dynamic.allow-all}`
 |
 |
+|`apicurio.rest.draft.production-mode.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
+|
+|
 |`apicurio.rest.mutability.artifact-version-content.enabled.dynamic.allow`
 |`unknown`
 |`${apicurio.config.dynamic.allow-all}`
@@ -1240,7 +1533,17 @@ The following {registry} configuration options are available for each component 
 |`${apicurio.config.dynamic.allow-all}`
 |
 |
+|`apicurio.storage.orphan-cleanup.every`
+|`unknown`
+|`1h`
+|
+|
 |`apicurio.storage.read-only.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
+|
+|
+|`apicurio.ui.features.agents.enabled.dynamic.allow`
 |`unknown`
 |`${apicurio.config.dynamic.allow-all}`
 |

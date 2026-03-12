@@ -33,6 +33,7 @@ export type VersionOverviewTabContentProps = {
     artifact: ArtifactMetaData;
     version: VersionMetaData;
     onEditMetaData: () => void;
+    onChangeState: () => void;
 };
 
 /**
@@ -41,7 +42,7 @@ export type VersionOverviewTabContentProps = {
 export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabContentProps> = (props: VersionOverviewTabContentProps) => {
     const [isExpanded] = useState(true);
 
-    const drawerRef: any = React.useRef<HTMLDivElement>();
+    const drawerRef: any = React.useRef<HTMLDivElement>(null);
 
     const description = (): string => {
         return props.version.description || "No description";
@@ -55,7 +56,7 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
 
     const panelContent = (
         <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
-            <DrawerHead hasNoPadding={true}>
+            <DrawerHead className="__drawer-head">
                 <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
                     <div className="version-basics">
                         <div className="title-and-type">
@@ -64,11 +65,11 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
                                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                                     <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                                         <IfFeature feature="readOnly" isNot={true}>
-                                            <Button id="edit-action"
+                                            <Button icon={<PencilAltIcon/>} id="edit-action"
                                                 data-testid="version-btn-edit"
                                                 onClick={props.onEditMetaData}
                                                 style={{ padding: "0" }}
-                                                variant="link"><PencilAltIcon/>{" "}Edit</Button>
+                                                variant="link">{" "}Edit</Button>
                                         </IfFeature>
                                     </IfAuth>
                                 </FlexItem>
@@ -103,7 +104,24 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
                             <DescriptionListGroup>
                                 <DescriptionListTerm>Status</DescriptionListTerm>
                                 <DescriptionListDescription data-testid="version-details-state">
-                                    <VersionStateBadge version={props.version} showEnabled={true} />
+                                    <Flex>
+                                        <FlexItem>
+                                            <VersionStateBadge version={props.version} showEnabled={true} />
+                                        </FlexItem>
+                                        <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                                            <IfFeature feature="readOnly" isNot={true}>
+                                                <FlexItem>
+                                                    <Button
+                                                        id="change-state-action"
+                                                        data-testid="version-btn-change-state"
+                                                        onClick={props.onChangeState}
+                                                        style={{ padding: "0", marginLeft: "10px" }}
+                                                        variant="link"
+                                                    >Change</Button>
+                                                </FlexItem>
+                                            </IfFeature>
+                                        </IfAuth>
+                                    </Flex>
                                 </DescriptionListDescription>
                             </DescriptionListGroup>
                             <DescriptionListGroup>
@@ -171,10 +189,10 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
 
     return (
         <div className="version-overview-tab-content">
-            <Card>
+            <Card variant="secondary">
                 <CardBody style={{ padding: "0" }}>
                     <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
-                        <DrawerContent panelContent={panelContent}>
+                        <DrawerContent panelContent={panelContent} style={{ backgroundColor: "white" }}>
                             <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
                         </DrawerContent>
                     </Drawer>

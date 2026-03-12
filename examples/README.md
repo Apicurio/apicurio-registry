@@ -70,3 +70,47 @@ use the client.
 This example application showcases an scenario where Apache Avro messages are published to the same
 Kafka topic using different Avro schemas. This example uses the Apicurio Registry serdes classes to serialize
 and deserialize Apache Avro messages using different schemas, even if received in the same Kafka topic.
+
+## LLM/AI Model Schema Artifact Types
+This example demonstrates the built-in AI/ML artifact types for managing LLM schemas and prompt templates:
+
+- **MODEL_SCHEMA**: AI/ML model input/output schema definitions with capability metadata
+- **PROMPT_TEMPLATE**: Version-controlled prompt templates with variable schemas
+
+Features include content auto-detection, backward compatibility checking, server-side prompt rendering,
+and model capability search. Includes integration examples for Quarkus + LangChain4j.
+
+See the [llm-artifact-types](llm-artifact-types/) directory for details.
+
+## Kafka Order Processing Example
+This example provides a complete, realistic Kafka architecture demonstrating both message production and
+consumption with Apicurio Registry as the schema registry. The example simulates an order processing
+system with separate producer and consumer applications built using Quarkus. The producer automatically
+generates random orders every 5 seconds, while the consumer processes them in real-time. Both applications
+use Avro serialization with schemas managed by Apicurio Registry, demonstrating automatic schema
+registration, schema evolution support, and seamless integration between Kafka and the registry. Includes
+a Docker Compose setup for running Kafka, Zookeeper, and Apicurio Registry locally.
+
+See the [kafka-order-processing](kafka-order-processing/) directory for details.
+## A2A Agent Card Example
+This example demonstrates how to use Apicurio Registry to manage A2A (Agent-to-Agent) Agent Cards -
+JSON metadata documents that describe AI agents according to the A2A Protocol. The example shows how
+to register, version, and search for AI agent definitions, as well as apply compatibility rules to
+ensure safe evolution of agent capabilities. This is useful for organizations building agentic AI
+applications that need to discover and communicate with each other.
+
+## A2A Real-World Integration Example
+This example demonstrates **actual working A2A protocol integration** with Apicurio Registry. Unlike
+simulated examples, this runs real HTTP servers that implement the A2A protocol and communicate over
+the network. Features include:
+
+- **Mock Agents**: Real HTTP servers on ports 9001-9003 implementing A2A endpoints
+- **A2A Discovery**: Agents expose `/.well-known/agent.json` for capability discovery
+- **A2A Tasks**: Agents accept `POST /a2a` with JSON-RPC for task execution
+- **Orchestrator**: Makes real HTTP requests to discover and invoke agents
+- **Registry Integration**: Agents registered and discovered via `/.well-known/agents`
+
+The demo includes a multi-agent workflow that processes customer complaints through sentiment analysis,
+summarization, and translation agents - all using real HTTP communication.
+
+See the [a2a-real-world-integration](a2a-real-world-integration/) directory for details.

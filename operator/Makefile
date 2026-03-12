@@ -37,7 +37,7 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.1.4
+PREVIOUS_PACKAGE_VERSION ?= 3.1.7
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 CHANNELS ?= 3.x
@@ -249,6 +249,23 @@ else
 	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
 endif
 	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment-type=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
+
+
+GROUPS ?=
+EXCLUDED_GROUPS ?=
+
+.PHONY: test-remote-group
+test-remote-group: ## Run remote tests filtered by JUnit tag groups
+ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
+	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
+else ifneq ($(REMOTE_TESTS_ALL_INSTALL_FILE),controller/target/test-install.yaml)
+	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
+endif
+	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) \
+		-Dtest.operator.deployment-type=remote \
+		-Dtest.operator.catalog-image=$(CATALOG_IMAGE) \
+		$(if $(GROUPS),-Dgroups=$(GROUPS)) \
+		$(if $(EXCLUDED_GROUPS),-DexcludedGroups=$(EXCLUDED_GROUPS))
 
 
 .PHONY: image-build

@@ -15,7 +15,7 @@ import java.util.Map;
 public class Default4ByteIdHandler implements IdHandler {
     static final int idSize = 4; // e.g. Confluent uses 4 / int
 
-    private IdOption idOption = IdOption.contentId;
+    protected IdOption idOption = IdOption.contentId;
 
     /**
      * @see io.apicurio.registry.serde.IdHandler#configure(java.util.Map, boolean)
@@ -69,7 +69,7 @@ public class Default4ByteIdHandler implements IdHandler {
     }
 
     /**
-     * @see io.apicurio.registry.serde.IdHandler#idSize()
+     * @see io.apicurio.registry.serde.IdHandler#idSize(ArtifactReference, ByteBuffer)
      */
     @Override
     public int idSize() {

@@ -7,6 +7,8 @@ import org.jboss.jandex.Index;
 import org.jboss.jandex.IndexReader;
 import org.jboss.jandex.Main;
 import org.jboss.jandex.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -51,6 +53,8 @@ import java.util.stream.Collectors;
  */
 public class GenerateAllConfigPartial {
 
+    private static final Logger log = LoggerFactory.getLogger(GenerateAllConfigPartial.class);
+
     private static Map<String, Option> allConfiguration = new HashMap();
     private static Set<String> skipProperties = Set.of("quarkus.oidc.auth-server-url");
 
@@ -60,15 +64,17 @@ public class GenerateAllConfigPartial {
         final String description;
         final String type;
         final String defaultValue;
+        final boolean experimental;
         String availableSince;
 
-        public Option(String name, String category, String description, String type, String defaultValue, String availableSince) {
+        public Option(String name, String category, String description, String type, String defaultValue, String availableSince, boolean experimental) {
             this.name = name;
             this.category = category;
             this.description = description;
             this.type = type;
             this.defaultValue = defaultValue;
             this.availableSince = availableSince;
+            this.experimental = experimental;
         }
 
         public String getName() {
@@ -108,22 +114,25 @@ public class GenerateAllConfigPartial {
                     ", type='" + type + '\'' +
                     ", defaultValue='" + defaultValue + '\'' +
                     ", availableSince='" + availableSince + '\'' +
+                    ", experimental=" + experimental +
                     '}';
         }
 
         public String toMDLine() {
             String af = availableSince == null ? " " : " `" + availableSince + "` ";
-            return "| `" + name + "` | `" + category + "` | `" + type + "` | `" + defaultValue + "` |" + af + "| " + description + " |";
+            String desc = experimental ? description + " _(experimental)_" : description;
+            return "| `" + name + "` | `" + category + "` | `" + type + "` | `" + defaultValue + "` |" + af + "| " + desc + " |";
         }
 
         public String toAdoc() {
             String df = defaultValue == null || defaultValue.trim().isEmpty() ? "" : "`" + defaultValue + "`";
             String af = availableSince == null || availableSince.trim().isEmpty() ? "" : "`" + availableSince + "`";
+            String desc = experimental ? description + " _(experimental)_" : description;
             return "|`" + name + "`\n" +
                     "|`" + type + "`\n" +
                     "|" + df + "\n" +
                     "|" + af + "\n" +
-                    "|" + description + "\n";
+                    "|" + desc + "\n";
         }
     }
 
@@ -161,19 +170,21 @@ public class GenerateAllConfigPartial {
         try {
             input = new FileInputStream(jarFile.replace(".jar", "-jar.idx"));
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            log.error("Jandex index file not found for JAR: {}", jarFile, e);
+            throw new RuntimeException("Jandex index file not found", e);
         }
         IndexReader reader = new IndexReader(input);
         Index index = null;
         try {
             index = reader.read();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to read Jandex index for JAR: {}", jarFile, e);
+            throw new RuntimeException("Failed to read Jandex index", e);
         } finally {
             try {
                 input.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.warn("Failed to close Jandex index input stream", e);
             }
         }
 
@@ -223,13 +234,18 @@ public class GenerateAllConfigPartial {
                                     .map(v -> v.value().toString())
                                     .orElse(""));
 
+                    var experimental = Optional.ofNullable(info.get().value("experimental"))
+                            .map(v -> (boolean) v.value())
+                            .orElse(false);
+
                     allConfiguration.put(configName, new Option(
                             configName,
                             category,
                             description,
                             resolveTypeName(type),
                             defaultValue,
-                            availableSince
+                            availableSince,
+                            experimental
                     ));
                     break;
             }
@@ -268,6 +284,10 @@ public class GenerateAllConfigPartial {
                             .map(v -> v.value().toString())
                             .orElse(""));
 
+            var experimental = Optional.ofNullable(info.get().value("experimental"))
+                    .map(v -> (boolean) v.value())
+                    .orElse(false);
+
             // Get the property prefixes from @RegistryProperties annotation
             var values = annotation.value("prefixes").asStringArray();
 
@@ -288,7 +308,8 @@ public class GenerateAllConfigPartial {
                         description,
                         "map<string, string>",
                         "",
-                        availableSince
+                        availableSince,
+                        experimental
                 ));
             }
         }
@@ -322,7 +343,7 @@ public class GenerateAllConfigPartial {
             //load a properties file from class path, inside static method
             props.load(new FileInputStream(baseDir + "/../app/src/main/resources/application.properties"));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Failed to load application.properties for configuration extraction", e);
         }
         for (var prop : props.entrySet()) {
 
@@ -338,7 +359,8 @@ public class GenerateAllConfigPartial {
                                 opt.getDescription(),
                                 opt.getType(),
                                 opt.getDefaultValue(),
-                                opt.getAvailableFrom()
+                                opt.getAvailableFrom(),
+                                opt.experimental
                         ));
             } else {
                 if (key.startsWith("apicurio.")) {
@@ -349,7 +371,8 @@ public class GenerateAllConfigPartial {
                                     "",
                                     "unknown",
                                     value,
-                                    ""
+                                    "",
+                                    false
                             ));
                 } else {
                     // Skip Quarkus property and unknowns!

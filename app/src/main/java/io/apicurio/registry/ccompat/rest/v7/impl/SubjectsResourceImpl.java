@@ -24,6 +24,7 @@ import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -38,6 +39,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import io.apicurio.registry.utils.VersionUtil;
 import jakarta.inject.Inject;
@@ -57,8 +59,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_ARTIFACT_ID;
-import static io.apicurio.registry.logging.audit.AuditingConstants.KEY_VERSION;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_VERSION;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
@@ -74,18 +76,29 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public List<String> getSubjects(String subjectPrefix, Boolean deleted, String groupId) {
+    public List<String> getSubjects(String subjectPrefix, Boolean deleted, Boolean deletedOnly,
+            BigInteger offset, BigInteger limit, String groupId) {
         // Since contexts are not supported, subjectPrefix is not used
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        final boolean fdeletedOnly = deletedOnly == null ? Boolean.FALSE : deletedOnly;
         Set<SearchFilter> filters = new HashSet<>();
         if (!cconfig.groupConcatEnabled) {
             filters.add(SearchFilter.ofGroupId(groupId));
         }
-        if (!fdeleted) {
+        if (fdeletedOnly) {
+            // Only return deleted subjects
+            filters.add(SearchFilter.ofState(VersionState.DISABLED));
+        } else if (!fdeleted) {
+            // Exclude deleted subjects
             filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
+        // Handle pagination
+        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
+                : cconfig.maxSubjects.get();
+
         ArtifactSearchResultsDto searchResults = storage.searchArtifacts(filters, OrderBy.createdOn,
-                OrderDirection.asc, 0, cconfig.maxSubjects.get());
+                OrderDirection.asc, effectiveOffset, effectiveLimit);
         Function<SearchedArtifactDto, String> toSubject = SearchedArtifactDto::getArtifactId;
         if (cconfig.groupConcatEnabled) {
             toSubject = (dto) -> toSubjectWithGroupConcat(dto);
@@ -114,12 +127,26 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
                             ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
 
+                    // Apply default format if configured and no format was explicitly provided
+                    String effectiveFormat = format;
+                    if (effectiveFormat == null || effectiveFormat.isBlank()) {
+                        java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+                        if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
+                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                            // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
+                            if (ArtifactType.AVRO.equals(amd.getArtifactType())
+                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
+                                effectiveFormat = "RESOLVED";
+                            }
+                        }
+                    }
+
                     // Apply format transformation if requested
-                    if (format != null && !format.trim().isEmpty()) {
+                    if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
                                 storedArtifact.getReferences());
                         ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), format,
+                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
                                 resolvedReferences);
 
                         StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
@@ -151,7 +178,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID })
+    @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public List<BigInteger> deleteSubject(String subject, Boolean permanent, String groupId) {
         GA ga = getGA(groupId, subject);
@@ -183,35 +211,51 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
-    public List<BigInteger> getSubjectVersions(String subject, String groupId, Boolean deleted) {
+    public List<BigInteger> getSubjectVersions(String subject, String groupId, Boolean deleted,
+            Boolean deletedOnly, BigInteger offset, BigInteger limit) {
         final GA ga = getGA(groupId, subject);
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        final boolean fdeletedOnly = deletedOnly == null ? Boolean.FALSE : deletedOnly;
 
         List<BigInteger> rval;
-        if (fdeleted) {
-            rval = storage
-                    .getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                            RegistryStorage.RetrievalBehavior.NON_DRAFT_STATES)
-                    .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
-                    .collect(Collectors.toList());
-        }
-        else {
-            rval = storage
-                    .getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                            RegistryStorage.RetrievalBehavior.ACTIVE_STATES)
-                    .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
-                    .collect(Collectors.toList());
+        Set<VersionState> statesFilter;
+
+        if (fdeletedOnly) {
+            // Only return deleted versions
+            statesFilter = Set.of(VersionState.DISABLED);
+        } else if (fdeleted) {
+            statesFilter = RegistryStorage.RetrievalBehavior.NON_DRAFT_STATES;
+        } else {
+            statesFilter = RegistryStorage.RetrievalBehavior.ACTIVE_STATES;
         }
 
-        if (rval.isEmpty()) {
+        rval = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), statesFilter)
+                .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
+                .collect(Collectors.toList());
+
+        // Apply pagination
+        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue() : rval.size();
+
+        if (effectiveOffset > 0 || effectiveLimit < rval.size()) {
+            int toIndex = Math.min(effectiveOffset + effectiveLimit, rval.size());
+            if (effectiveOffset < rval.size()) {
+                rval = rval.subList(effectiveOffset, toIndex);
+            } else {
+                rval = java.util.Collections.emptyList();
+            }
+        }
+
+        if (rval.isEmpty() && effectiveOffset == 0) {
             throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
         }
         return rval;
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_ARTIFACT_ID })
-    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID })
+    @Audited
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public SchemaId registerSchemaUnderSubject(String subject, Boolean normalize, String format, String groupId, RegisterSchemaRequest request) {
         final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
         final GA ga = getGA(groupId, subject);
@@ -297,7 +341,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
-    @Audited(extractParameters = { "0", KEY_ARTIFACT_ID, "1", KEY_VERSION })
+    @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID, "1", MPK_VERSION })
+    @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public BigInteger deleteSchemaVersion(String subject, String versionString, Boolean permanent, String groupId) {
         final GA ga = getGA(groupId, subject);
@@ -408,12 +453,26 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(groupId,
                             artifactId, amd.getVersion());
 
+                    // Apply default format if configured and no format was explicitly provided
+                    String effectiveFormat = format;
+                    if (effectiveFormat == null || effectiveFormat.isBlank()) {
+                        java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
+                        if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
+                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                            // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
+                            if (ArtifactType.AVRO.equals(amd.getArtifactType())
+                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
+                                effectiveFormat = "RESOLVED";
+                            }
+                        }
+                    }
+
                     // Apply format transformation if requested
-                    if (format != null && !format.trim().isEmpty()) {
+                    if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
                                 storedArtifact.getReferences());
                         ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), format,
+                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
                                 resolvedReferences);
 
                         // Create a new StoredArtifactVersionDto with the formatted content

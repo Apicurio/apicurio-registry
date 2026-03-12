@@ -18,11 +18,15 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
 @QuarkusTest
 public class AllYamlTest extends AbstractResourceTestBase {
+
+    private static final Logger log = LoggerFactory.getLogger(AllYamlTest.class);
 
     private static String YAML_CONTENT = """
             openapi: 3.0.2
@@ -125,8 +129,7 @@ public class AllYamlTest extends AbstractResourceTestBase {
                     YAML_CONTENT, ContentTypes.APPLICATION_YAML);
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         } catch (ProblemDetails e) {
-            System.out.println("ERROR: " + e.getDetail());
-            e.getCause().printStackTrace();
+            log.error("Failed to create YAML artifact: {}", e.getDetail(), e.getCause());
             throw e;
         }
     }

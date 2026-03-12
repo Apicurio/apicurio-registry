@@ -143,11 +143,17 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 asTypedContent(data3, ContentTypes.APPLICATION_PROTOBUF), Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
-        Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.",
-                compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation()
-                        .getDescription());
-        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator()
-                .next().asRuleViolation().getContext());
+        // Verify detailed error message is returned (not generic)
+        String description = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getDescription();
+        Assertions.assertFalse(
+                description.equals("The new version of the protobuf artifact is not backward compatible."),
+                "Expected detailed error, not generic message. Got: " + description);
+        // Verify context contains the message name
+        String context = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getContext();
+        Assertions.assertTrue(context.contains("Channel"),
+                "Expected context to contain message name 'Channel', got: " + context);
     }
 
     @Test
@@ -174,11 +180,16 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 asTypedContent(data2, ContentTypes.APPLICATION_PROTOBUF), Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
-        Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.",
-                compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation()
-                        .getDescription());
-        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator()
-                .next().asRuleViolation().getContext());
+        // Verify detailed error message is returned (required field added)
+        String description = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getDescription();
+        Assertions.assertTrue(description.contains("required field added"),
+                "Expected detailed error about required field added, got: " + description);
+        // Verify context contains the message name
+        String context = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getContext();
+        Assertions.assertTrue(context.contains("ProtoSchema"),
+                "Expected context to contain message name 'ProtoSchema', got: " + context);
     }
 
     @Test
@@ -195,11 +206,16 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 asTypedContent(PROTO_DATA_2, ContentTypes.APPLICATION_PROTOBUF), Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
-        Assertions.assertEquals("The new version of the protobuf artifact is not backward compatible.",
-                compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation()
-                        .getDescription());
-        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator()
-                .next().asRuleViolation().getContext());
+        // Verify detailed error message is returned (required field added)
+        String description = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getDescription();
+        Assertions.assertTrue(description.contains("required field added"),
+                "Expected detailed error about required field added, got: " + description);
+        // Verify context contains the message name
+        String context = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getContext();
+        Assertions.assertTrue(context.contains("ProtoSchema"),
+                "Expected context to contain message name 'ProtoSchema', got: " + context);
     }
 
     @Test
@@ -215,11 +231,17 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 asTypedContent(PROTO_DATA, ContentTypes.APPLICATION_PROTOBUF), Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
-        Assertions.assertEquals("The new version of the protobuf artifact is not forward compatible.",
-                compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation()
-                        .getDescription());
-        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator()
-                .next().asRuleViolation().getContext());
+        // Verify detailed error message is returned (not generic)
+        String description = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getDescription();
+        Assertions.assertFalse(
+                description.equals("The new version of the protobuf artifact is not forward compatible."),
+                "Expected detailed error, not generic message. Got: " + description);
+        // Verify context contains the message name
+        String context = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getContext();
+        Assertions.assertTrue(context.contains("ProtoSchema"),
+                "Expected context to contain message name 'ProtoSchema', got: " + context);
 
         // adding a required field is allowed since we're only checking forward, not forward transitive
         compatibilityExecutionResult = checker.testCompatibility(CompatibilityLevel.FORWARD,
@@ -253,11 +275,17 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 asTypedContent(PROTO_DATA_2, ContentTypes.APPLICATION_PROTOBUF), Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
-        Assertions.assertEquals("The new version of the protobuf artifact is not forward compatible.",
-                compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation()
-                        .getDescription());
-        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator()
-                .next().asRuleViolation().getContext());
+        // Verify detailed error message is returned (not generic)
+        String description = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getDescription();
+        Assertions.assertFalse(
+                description.equals("The new version of the protobuf artifact is not forward compatible."),
+                "Expected detailed error, not generic message. Got: " + description);
+        // Verify context contains the message name
+        String context = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getContext();
+        Assertions.assertTrue(context.contains("ProtoSchema"),
+                "Expected context to contain message name 'ProtoSchema', got: " + context);
     }
 
     @Test
@@ -274,11 +302,17 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 asTypedContent(PROTO_DATA_2, ContentTypes.APPLICATION_PROTOBUF), Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
-        Assertions.assertEquals("The new version of the protobuf artifact is not fully compatible.",
-                compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation()
-                        .getDescription());
-        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator()
-                .next().asRuleViolation().getContext());
+        // Verify detailed error message is returned (not generic)
+        String description = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getDescription();
+        Assertions.assertFalse(
+                description.equals("The new version of the protobuf artifact is not fully compatible."),
+                "Expected detailed error, not generic message. Got: " + description);
+        // Verify context contains the message name
+        String context = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getContext();
+        Assertions.assertTrue(context.contains("ProtoSchema"),
+                "Expected context to contain message name 'ProtoSchema', got: " + context);
 
         // must pass, since the schema is both backwards and forwards compatible with the latest existing
         // schema
@@ -296,10 +330,16 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 asTypedContent(PROTO_DATA_2, ContentTypes.APPLICATION_PROTOBUF), Collections.emptyMap());
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Assertions.assertFalse(compatibilityExecutionResult.getIncompatibleDifferences().isEmpty());
-        Assertions.assertEquals("The new version of the protobuf artifact is not fully compatible.",
-                compatibilityExecutionResult.getIncompatibleDifferences().iterator().next().asRuleViolation()
-                        .getDescription());
-        Assertions.assertEquals("/", compatibilityExecutionResult.getIncompatibleDifferences().iterator()
-                .next().asRuleViolation().getContext());
+        // Verify detailed error message is returned (not generic)
+        description = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getDescription();
+        Assertions.assertFalse(
+                description.equals("The new version of the protobuf artifact is not fully compatible."),
+                "Expected detailed error, not generic message. Got: " + description);
+        // Verify context contains the message name
+        context = compatibilityExecutionResult.getIncompatibleDifferences().iterator().next()
+                .asRuleViolation().getContext();
+        Assertions.assertTrue(context.contains("ProtoSchema"),
+                "Expected context to contain message name 'ProtoSchema', got: " + context);
     }
 }

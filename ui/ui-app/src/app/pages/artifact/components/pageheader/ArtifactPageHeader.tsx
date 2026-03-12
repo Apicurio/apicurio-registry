@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import "./ArtifactPageHeader.css";
-import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from "@patternfly/react-core";
+import { Button, Flex, FlexItem, Content, ContentVariants } from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
 import { If } from "@apicurio/common-ui-components";
 import { ArtifactMetaData } from "@sdk/lib/generated-client/models";
@@ -21,15 +21,15 @@ export const ArtifactPageHeader: FunctionComponent<ArtifactPageHeaderProps> = (p
     return (
         <Flex className="example-border">
             <FlexItem>
-                <TextContent>
-                    <Text component={TextVariants.h1}>
+                <Content>
+                    <Content component={ContentVariants.h1}>
                         <If condition={props.artifact.groupId !== null && props.artifact.groupId !== undefined && props.artifact.groupId !== "default"}>
                             <span>{props.artifact.groupId}</span>
                             <span style={{ color: "#6c6c6c", marginLeft: "10px", marginRight: "10px" }}> / </span>
                         </If>
                         <span>{props.artifact.artifactId}</span>
-                    </Text>
-                </TextContent>
+                    </Content>
+                </Content>
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
                 <IfAuth isDeveloper={true} owner={props.artifact.owner}>

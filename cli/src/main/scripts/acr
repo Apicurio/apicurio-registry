@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -e
+
+script_dir() {
+  script=${BASH_SOURCE[0]}
+  while [ -L "$script" ]; do
+    dir=$( cd -P "$( dirname "$script" )" >/dev/null 2>&1 && pwd )
+    script=$(readlink "$script")
+    [[ $script != /* ]] && script=$dir/$script
+  done
+  dir=$( cd -P "$( dirname "$script" )" >/dev/null 2>&1 && pwd )
+  echo "$dir"
+}
+
+declare -rx LIGHT_RED='\033[0;91m'
+declare -rx NO_COLOR='\033[0m'
+
+function error_exit() {
+    echo -e "${LIGHT_RED}[Error] $1\nExiting.${NO_COLOR}" >&2
+    exit "${2:-1}"
+}
+
+function check_java {
+    command -v java > /dev/null 2>&1 || error_exit "Apicurio Registry CLI requires Java."
+}
+
+check_java
+
+export ACR_INSTALL_PATH="$HOME/.apicurio/apicurio-registry-cli"
+
+find_acr_home() {
+  # "$(script_dir)" must be first.
+  candidates=("$(script_dir)" "$ACR_HOME")
+  for acr_home in "${candidates[@]}"; do
+    if [ -f "$acr_home/acr.jar" ]; then
+      echo "$acr_home"
+      return
+    fi
+  done
+  error_exit "Apicurio Registry CLI JAR not found."
+}
+
+export ACR_CURRENT_HOME=$(find_acr_home)
+
+if [ "$OSTYPE" = "cygwin" ]; then
+  error_exit "Cygwin is not supported yet."
+else
+  java -jar "$ACR_CURRENT_HOME/acr.jar" "$@"
+fi

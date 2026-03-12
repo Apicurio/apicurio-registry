@@ -1,5 +1,6 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import "./GroupArtifactsTable.css";
+import { Link } from "react-router";
 import { SortByDirection, ThProps } from "@patternfly/react-table";
 import { FromNow, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -140,7 +141,6 @@ export const GroupArtifactsTable: FunctionComponent<GroupArtifactsTableProps> = 
                 }}
                 renderHeader={({ column, Th }) => (
                     <Th sort={sortParams(column)}
-                        className="artifacts-table-header"
                         key={`header-${column.id}`}
                         width={column.width}
                         modifier="truncate">{column.label}</Th>

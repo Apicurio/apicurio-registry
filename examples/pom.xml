@@ -5,12 +5,12 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.1.5-SNAPSHOT</version>
+    <version>3.2.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-examples</artifactId>
-  <version>3.1.5-SNAPSHOT</version>
+  <version>3.2.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <description>Open Source API &amp; Schema Registry</description>
 
@@ -54,6 +54,12 @@
     <module>docker-compose</module>
     <module>openshift-template</module>
     <module>mtls-minikube/client</module>
+    <module>maven-plugin-tls-credentials</module>
+    <module>tools/kafkasql-topic-import</module>
+    <module>otel-tracing</module>
+    <module>debezium-otel-tracing</module>
+    <module>kafka-order-processing</module>
+    <module>a2a-real-world-integration</module>
   </modules>
 
   <scm>
@@ -78,7 +84,7 @@
     <maven.compiler.target>17</maven.compiler.target>
 
     <!-- Kafka -->
-    <kafka.version>3.5.0</kafka.version>
+    <kafka.version>3.9.2</kafka.version>
 
     <!-- RestEasy -->
     <resteasy.version>4.5.8.Final</resteasy.version>
@@ -108,8 +114,7 @@
     <version.avro>1.11.0</version.avro>
     <protobuf.version>4.30.2</protobuf.version>
     <!-- Proto -->
-    <proto-plugin.version>0.6.1</proto-plugin.version>
-    <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
+    <proto-plugin.version>5.0.1</proto-plugin.version>
   </properties>
 
   <build>

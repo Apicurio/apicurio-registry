@@ -24,7 +24,7 @@ export const ArtifactRulesTabContent: FunctionComponent<ArtifactRulesTabContentP
     return (
         <div className="artifact-rules-tab-content">
             <div className="artifact-rules">
-                <Card>
+                <Card variant="secondary" style={{ backgroundColor: "white" }}>
                     <CardTitle>
                         <div className="rules-label">Artifact-specific rules</div>
                     </CardTitle>

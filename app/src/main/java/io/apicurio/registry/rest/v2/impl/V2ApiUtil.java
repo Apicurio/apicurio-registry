@@ -223,19 +223,12 @@ public final class V2ApiUtil {
      * @param amdd
      * @param editableArtifactMetaData
      * @return the updated ArtifactMetaDataDto object
+     * @deprecated Use {@link io.apicurio.registry.rest.ApiDtoUtils#setEditableMetaDataInArtifact} instead
      */
+    @Deprecated
     public static ArtifactMetaDataDto setEditableMetaDataInArtifact(ArtifactMetaDataDto amdd,
             EditableArtifactMetaDataDto editableArtifactMetaData) {
-        if (editableArtifactMetaData.getName() != null) {
-            amdd.setName(editableArtifactMetaData.getName());
-        }
-        if (editableArtifactMetaData.getDescription() != null) {
-            amdd.setDescription(editableArtifactMetaData.getDescription());
-        }
-        if (editableArtifactMetaData.getLabels() != null && !editableArtifactMetaData.getLabels().isEmpty()) {
-            amdd.setLabels(editableArtifactMetaData.getLabels());
-        }
-        return amdd;
+        return io.apicurio.registry.rest.ApiDtoUtils.setEditableMetaDataInArtifact(amdd, editableArtifactMetaData);
     }
 
     public static Comparator<ArtifactMetaDataDto> comparator(SortOrder sortOrder) {
@@ -244,16 +237,8 @@ public final class V2ApiUtil {
 
     public static int compare(SortOrder sortOrder, ArtifactMetaDataDto metaDataDto1,
             ArtifactMetaDataDto metaDataDto2) {
-        String name1 = metaDataDto1.getName();
-        if (name1 == null) {
-            name1 = metaDataDto1.getArtifactId();
-        }
-        String name2 = metaDataDto2.getName();
-        if (name2 == null) {
-            name2 = metaDataDto2.getArtifactId();
-        }
-        return sortOrder == SortOrder.desc ? name2.compareToIgnoreCase(name1)
-            : name1.compareToIgnoreCase(name2);
+        return io.apicurio.registry.rest.ApiDtoUtils.compareByName(
+                sortOrder == SortOrder.desc, metaDataDto1, metaDataDto2);
     }
 
     public static ArtifactSearchResults dtoToSearchResults(ArtifactSearchResultsDto dto) {
@@ -356,14 +341,19 @@ public final class V2ApiUtil {
                 .reduce((left, right) -> left + ", " + right).orElse("");
     }
 
+    /**
+     * @deprecated Use {@link io.apicurio.registry.rest.ApiDtoUtils#defaultGroupIdToNull} instead
+     */
+    @Deprecated
     public static String defaultGroupIdToNull(String groupId) {
-        if ("default".equalsIgnoreCase(groupId)) {
-            return null;
-        }
-        return groupId;
+        return io.apicurio.registry.rest.ApiDtoUtils.defaultGroupIdToNull(groupId);
     }
 
+    /**
+     * @deprecated Use {@link io.apicurio.registry.rest.ApiDtoUtils#nullGroupIdToDefault} instead
+     */
+    @Deprecated
     public static String nullGroupIdToDefault(String groupId) {
-        return groupId != null ? groupId : "default";
+        return io.apicurio.registry.rest.ApiDtoUtils.nullGroupIdToDefault(groupId);
     }
 }

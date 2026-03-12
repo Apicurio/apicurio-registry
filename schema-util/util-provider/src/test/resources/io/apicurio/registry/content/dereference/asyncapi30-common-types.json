@@ -1,0 +1,27 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "Common Types",
+        "version": "1.0.0"
+    },
+    "components": {
+        "schemas": {
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "displayName": {
+                        "type": "string"
+                    }
+                },
+                "required": ["id", "email"]
+            }
+        }
+    }
+}

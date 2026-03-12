@@ -1,6 +1,14 @@
 import React, { FunctionComponent } from "react";
 import "./ExploreGroupList.css";
-import { DataList, DataListAction, DataListCell, DataListItemCells, DataListItemRow, Icon } from "@patternfly/react-core";
+import {
+    DataList,
+    DataListAction,
+    DataListCell,
+    DataListItem,
+    DataListItemCells,
+    DataListItemRow,
+    Icon
+} from "@patternfly/react-core";
 import { OutlinedFolderIcon } from "@patternfly/react-icons";
 import { SearchedGroup } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
 import { ArtifactGroup } from "@app/components";
@@ -50,11 +58,22 @@ export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props
         }
     ];
 
+    const navigateToGroup = (groupId: string): void => {
+        const searchedGroup: SearchedGroup = props.groups.filter(g => g.groupId === groupId)[0];
+        props.onExplore(searchedGroup);
+    };
+
     return (
-        <DataList aria-label="List of groups" className="group-list">
+        <DataList
+            aria-label="List of groups"
+            className="explore-group-list"
+            selectedDataListItemId={""}
+            onSelectDataListItem={(_evt, id) => { navigateToGroup(id); }}
+            onSelectableRowChange={() => {}}
+        >
             <If condition={!props.isFiltered}>
                 <DataListItemRow
-                    className="group-list-item default-group"
+                    className="explore-group-list-item default-group"
                     key="default"
                 >
                     <DataListItemCells
@@ -76,44 +95,46 @@ export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props
             </If>
             {
                 props.groups?.map( (group, idx) =>
-                    <DataListItemRow className="group-list-item" key={group.groupId}>
-                        <DataListItemCells
-                            dataListCells={[
-                                <DataListCell key="type icon" className="type-icon-cell">
-                                    <Icon>
-                                        <OutlinedFolderIcon />
-                                    </Icon>
-                                </DataListCell>,
-                                <DataListCell key="main content" className="content-cell">
-                                    <div className="group-title">
-                                        <ArtifactGroup groupId={group.groupId!} />
-                                    </div>
-                                    <div className="group-description">{description(group)}</div>
-                                </DataListCell>
-                            ]}
-                        />
-                        <DataListAction
-                            id={`group-actions-${idx}`}
-                            aria-label="Group actions"
-                            aria-labelledby={`group-actions-${idx}`}
-                            isPlainButtonAction={true}
-                        >
-                            <ObjectDropdown
-                                label=""
-                                isKebab={true}
-                                testId={`group-actions-dropdown-${idx}`}
-                                popperProps={{
-                                    position: "right"
-                                }}
-                                items={groupActions}
-                                onSelect={item => item.action(group)}
-                                itemToString={item => item.label}
-                                itemToTestId={() => `view-group-in-explorer-${idx}`}
-                                itemIsDivider={item => item.divider}
-                                itemIsVisible={item => !item.isVisible || item.isVisible(group)}
+                    <DataListItem id={group.groupId as string} key={group.groupId}>
+                        <DataListItemRow className="explore-group-list-item">
+                            <DataListItemCells
+                                dataListCells={[
+                                    <DataListCell key="type icon" className="type-icon-cell">
+                                        <Icon>
+                                            <OutlinedFolderIcon />
+                                        </Icon>
+                                    </DataListCell>,
+                                    <DataListCell key="main content" className="content-cell">
+                                        <div className="group-title">
+                                            <ArtifactGroup groupId={group.groupId!} />
+                                        </div>
+                                        <div className="group-description">{description(group)}</div>
+                                    </DataListCell>
+                                ]}
                             />
-                        </DataListAction>
-                    </DataListItemRow>
+                            <DataListAction
+                                id={`group-actions-${idx}`}
+                                aria-label="Group actions"
+                                aria-labelledby={`group-actions-${idx}`}
+
+                            >
+                                <ObjectDropdown
+                                    label=""
+                                    isKebab={true}
+                                    testId={`group-actions-dropdown-${idx}`}
+                                    popperProps={{
+                                        position: "right"
+                                    }}
+                                    items={groupActions}
+                                    onSelect={item => item.action(group)}
+                                    itemToString={item => item.label}
+                                    itemToTestId={() => `view-group-in-explorer-${idx}`}
+                                    itemIsDivider={item => item.divider}
+                                    itemIsVisible={item => !item.isVisible || item.isVisible(group)}
+                                />
+                            </DataListAction>
+                        </DataListItemRow>
+                    </DataListItem>
                 )
             }
         </DataList>

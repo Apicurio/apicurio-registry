@@ -4,6 +4,8 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { useConfigService } from "@services/useConfigService.ts";
 import { useUserService } from "@services/useUserService.ts";
 import {
+    AGENTS_PAGE_IDX,
+    DASHBOARD_PAGE_IDX,
     DRAFTS_PAGE_IDX,
     EXPLORE_PAGE_IDX,
     ROLES_PAGE_IDX,
@@ -27,6 +29,10 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
 
     const handleTabClick = (_event: React.MouseEvent<HTMLElement, MouseEvent>, eventKey: number | string): void => {
         if (eventKey !== props.tabKey) {
+            if (eventKey === DASHBOARD_PAGE_IDX) {
+                // navigate to dashboard
+                appNavigation.navigateTo("/dashboard");
+            }
             if (eventKey === EXPLORE_PAGE_IDX) {
                 // navigate to artifacts
                 appNavigation.navigateTo("/explore");
@@ -36,12 +42,12 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
                 appNavigation.navigateTo("/search");
             }
             if (eventKey === DRAFTS_PAGE_IDX) {
-                // navigate to artifacts
+                // navigate to drafts
                 appNavigation.navigateTo("/drafts");
             }
-            if (eventKey === DRAFTS_PAGE_IDX) {
-                // navigate to artifacts
-                appNavigation.navigateTo("/drafts");
+            if (eventKey === AGENTS_PAGE_IDX) {
+                // navigate to agents
+                appNavigation.navigateTo("/agents");
             }
             if (eventKey === RULES_PAGE_IDX) {
                 // navigate to global rules
@@ -58,8 +64,9 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
         }
     };
 
-    // Always available:  Explore and Search tabs
+    // Always available: Dashboard, Explore and Search tabs
     const tabs: any[] = [
+        <Tab data-testid="dashboard-tab" key={DASHBOARD_PAGE_IDX} eventKey={DASHBOARD_PAGE_IDX} title={<TabTitleText>Dashboard</TabTitleText>} />,
         <Tab data-testid="explore-tab" key={EXPLORE_PAGE_IDX} eventKey={EXPLORE_PAGE_IDX} title={<TabTitleText>Explore</TabTitleText>} />,
         <Tab data-testid="search-tab" key={SEARCH_PAGE_IDX} eventKey={SEARCH_PAGE_IDX} title={<TabTitleText>Search</TabTitleText>} />,
     ];
@@ -68,6 +75,13 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
     if (config.featureDraftMutability() && user.isUserDeveloper()) {
         tabs.push(
             <Tab data-testid="drafts-tab" key={DRAFTS_PAGE_IDX} eventKey={DRAFTS_PAGE_IDX} title={<TabTitleText>Drafts</TabTitleText>} />,
+        );
+    }
+
+    // Show Agents tab if feature is enabled
+    if (config.featureAgents()) {
+        tabs.push(
+            <Tab data-testid="agents-tab" key={AGENTS_PAGE_IDX} eventKey={AGENTS_PAGE_IDX} title={<TabTitleText>Agents</TabTitleText>} />
         );
     }
 

@@ -6,10 +6,8 @@ import {
     EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
-    EmptyStateHeader,
-    EmptyStateIcon,
     PageSection,
-    PageSectionVariants
+    
 } from "@patternfly/react-core";
 import { QuestionCircleIcon } from "@patternfly/react-icons";
 import { ErrorPageProps } from "./ErrorPage.tsx";
@@ -23,10 +21,9 @@ export const NotFoundErrorPage: FunctionComponent<ErrorPageProps> = () => {
 
     return (
         <React.Fragment>
-            <PageSection className="ps_error" variant={PageSectionVariants.light}>
+            <PageSection hasBodyWrapper={false} className="ps_error" >
                 <div className="centerizer">
-                    <EmptyState>
-                        <EmptyStateHeader titleText="Resource not found" headingLevel="h4" icon={<EmptyStateIcon icon={QuestionCircleIcon} />} />
+                    <EmptyState  headingLevel="h4" icon={QuestionCircleIcon}  titleText="Resource not found">
                         <EmptyStateBody>
                             The resource you were looking for could not be found.  Perhaps it
                             was deleted?

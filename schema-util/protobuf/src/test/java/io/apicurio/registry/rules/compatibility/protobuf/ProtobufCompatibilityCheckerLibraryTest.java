@@ -359,6 +359,47 @@ public class ProtobufCompatibilityCheckerLibraryTest {
                 "Properly reserving a removed field should be compatible. Found: " + differences);
     }
 
+    /**
+     * Tests that removing fields and reserving them using range syntax is backward compatible.
+     * This is a regression test for issue #7116.
+     * Protobuf allows reserving field numbers using range syntax: "reserved 1 to 2;"
+     * This should be recognized as properly reserving those field numbers.
+     */
+    @Test
+    public void testRemovingFieldWithRangeReservation() {
+        String schemaBefore = """
+            syntax = "proto3";
+            package demo;
+
+            message Test {
+                string f1 = 1;
+                string f2 = 2;
+                string f3 = 3;
+            }
+        """;
+
+        String schemaAfter = """
+            syntax = "proto3";
+            package demo;
+
+            message Test {
+                reserved 1 to 2;
+                reserved "f1", "f2";
+                string f3 = 3;
+            }
+        """;
+
+        ProtobufFile fileBefore = new ProtobufFile(schemaBefore);
+        ProtobufFile fileAfter = new ProtobufFile(schemaAfter);
+
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
+                fileAfter);
+        List<ProtobufDifference> differences = checker.findDifferences();
+
+        assertTrue(differences.isEmpty(),
+                "Properly reserving removed fields using range syntax should be compatible. Found: " + differences);
+    }
+
     // ========== Field ID/Tag Changes Tests ==========
 
     /**

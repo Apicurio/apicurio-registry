@@ -21,6 +21,7 @@ website
 
 # Other
 *~
+.work
 .notes
 **/bin
 *.jar
@@ -35,3 +36,18 @@ python-sdk/openapi.json
 __pycache__
 
 .env
+
+# Docker/Testcontainers workarounds
+**/docker-java.properties
+
+# Generated Repository Index
+PROJECT_INDEX.md
+PROJECT_INDEX.json
+
+# Claude
+.claude
+claudedocs
+
+# Serena MCP
+.serena
+

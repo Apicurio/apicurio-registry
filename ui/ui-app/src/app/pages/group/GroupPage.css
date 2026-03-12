@@ -5,6 +5,7 @@ div.group-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs__b
 .artifact-details-main {
     display: flex;
     flex-direction: column;
+    gap: 0;
 }
 
 .artifact-details-main .pf-c-tab-content {

@@ -41,8 +41,13 @@ public class AdminOverride {
         return authConfig.adminOverrideUser.equals(securityIdentity.getPrincipal().getName());
     }
 
+    /**
+     * Checks if the user has any of the configured admin override roles.
+     * This supports multiple role mappings (e.g., Azure AD groups and app roles).
+     */
     private boolean hasAdminRole() {
-        return securityIdentity.hasRole(authConfig.adminOverrideRole);
+        return authConfig.getAdminOverrideRoles().stream()
+                .anyMatch(securityIdentity::hasRole);
     }
 
     private boolean hasAdminClaim() {

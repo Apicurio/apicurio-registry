@@ -15,7 +15,7 @@ test("Reference Graph - view mode toggle and graph view", async ({ page }) => {
     // Use a unique group name to avoid conflicts with other runs
     const TEST_GROUP = `RefGraphTest${Date.now()}`;
     // Step 1: Create a group
-    await page.goto(REGISTRY_UI_URL);
+    await page.goto(`${REGISTRY_UI_URL}/explore`);
     await expect(page).toHaveTitle(/Apicurio Registry/);
 
     await page.getByTestId("btn-toolbar-create-group").click();
@@ -66,7 +66,6 @@ test("Reference Graph - view mode toggle and graph view", async ({ page }) => {
 
     // Step 8: Verify graph elements are visible
     await expect(page.getByTestId("reference-graph-wrapper")).toBeVisible();
-    await expect(page.getByTestId("graph-controls-toolbar")).toBeVisible();
 
     // Step 9: Verify empty state is shown (no references in our test artifact)
     await expect(page.getByTestId("graph-empty-state")).toBeVisible();

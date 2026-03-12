@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.1.5-SNAPSHOT</version>
+    <version>3.2.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>apicurio-registry-prod-verifier</artifactId>
@@ -32,10 +32,65 @@
       <artifactId>apicurio-registry-operator-controller</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-v2-java-sdk</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-nats</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>create-dependencies-zip</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <descriptors>
+                <descriptor>src/main/assembly/assembly.xml</descriptor>
+              </descriptors>
+              <finalName>apicurio-registry-prod-verifier-${project.version}</finalName>
+              <appendAssemblyId>true</appendAssemblyId>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-maven-plugin</artifactId>
@@ -49,13 +104,18 @@
             <phase>package</phase>
             <configuration>
               <directories>
-                <param>${projectRoot}/app/target/lib</param>
+                <param>${projectRoot}/app/target/quarkus-app/lib/boot</param>
+                <param>${projectRoot}/app/target/quarkus-app/lib/main</param>
                 <param>${projectRoot}/operator/controller/target/quarkus-app/lib/boot</param>
                 <param>${projectRoot}/operator/controller/target/quarkus-app/lib/main</param>
               </directories>
               <distributions>
                 <param>${projectRoot}/distro/connect-converter/target/apicurio-kafka-connect-converter-${project.version}.zip</param>
               </distributions>
+              <ignoreFiles>
+                  <!-- Exempt kotlin-stdlib for now -->
+                  <ignoreFile>*kotlin-stdlib-*.jar</ignoreFile>
+              </ignoreFiles>
             </configuration>
           </execution>
         </executions>

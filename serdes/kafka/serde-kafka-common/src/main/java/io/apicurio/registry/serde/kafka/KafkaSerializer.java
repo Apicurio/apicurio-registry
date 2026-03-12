@@ -10,6 +10,7 @@ import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.data.SerdeRecord;
 import io.apicurio.registry.serde.kafka.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.kafka.data.KafkaSerdeMetadata;
+import io.apicurio.registry.serde.kafka.headers.DefaultHeadersHandler;
 import io.apicurio.registry.serde.kafka.headers.HeadersHandler;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
@@ -69,6 +70,18 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
             if (headersHandler != null && headers != null) {
                 KafkaSerdeMetadata resolverMetadata = new KafkaSerdeMetadata(topic,
                         delegatedSerializer.getSerdeConfigurer().isKey(), headers);
+
+                // Check if schema should be read from headers
+                if (headersHandler instanceof DefaultHeadersHandler) {
+                    DefaultHeadersHandler defaultHandler = (DefaultHeadersHandler) headersHandler;
+                    if (defaultHandler.isUseSchemaFromHeaders()) {
+                        String schemaContent = defaultHandler.readSchemaFromHeaders(headers);
+                        String schemaType = defaultHandler.readSchemaTypeFromHeaders(headers);
+                        resolverMetadata.setExplicitSchemaContent(schemaContent);
+                        resolverMetadata.setExplicitSchemaType(schemaType);
+                    }
+                }
+
                 SchemaLookupResult<T> schema = delegatedSerializer.getSerdeConfigurer().getSchemaResolver()
                         .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
                 ByteArrayOutputStream out = new ByteArrayOutputStream();

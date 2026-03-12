@@ -1,5 +1,6 @@
 package io.apicurio.registry.serde.jsonschema;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -59,6 +60,20 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
      */
     public void setValidationEnabled(Boolean validationEnabled) {
         ((JsonSchemaSerializer<T>) delegatedSerializer).setValidationEnabled(validationEnabled);
+    }
+
+    /**
+     * Sets a custom Jackson ObjectMapper to use for serialization. This allows users to configure
+     * Jackson features such as custom modules (e.g., JavaTimeModule), serializers, deserializers,
+     * and other ObjectMapper settings.
+     *
+     * <p>This method must be called before the {@link #configure(Map, boolean)} method is invoked,
+     * as the configure method will create a default ObjectMapper if one has not been set.</p>
+     *
+     * @param objectMapper the ObjectMapper to use for serialization
+     */
+    public void setObjectMapper(ObjectMapper objectMapper) {
+        ((JsonSchemaSerializer<T>) delegatedSerializer).setObjectMapper(objectMapper);
     }
 
     /**

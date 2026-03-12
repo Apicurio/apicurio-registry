@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./GroupPage.css";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router";
 import {
     EXPLORE_PAGE_IDX,
     GroupOverviewTabContent,
@@ -195,6 +195,10 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         setInvalidContentModalOpen(true);
     };
 
+    const openChangeOwnerModal = (): void => {
+        setIsChangeOwnerModalOpen(true);
+    };
+
     const onEditModalClose = (): void => {
         setIsEditModalOpen(false);
     };
@@ -253,7 +257,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
             <GroupOverviewTabContent
                 group={group as GroupMetaData}
                 onEditMetaData={() => setIsEditModalOpen(true)}
-                onChangeOwner={() => {}}
+                onChangeOwner={openChangeOwnerModal}
                 onCreateArtifact={onCreateArtifact}
                 onViewArtifact={onViewArtifact}
                 onDeleteArtifact={onDeleteArtifact}
@@ -280,18 +284,18 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     return (
         <PageErrorHandler error={pageError}>
             <PageDataLoader loaders={loaders}>
-                <PageSection className="ps_explore-header" variant={PageSectionVariants.light} padding={{ default: "noPadding" }}>
+                <PageSection hasBodyWrapper={false} className="ps_explore-header"  padding={{ default: "noPadding" }}>
                     <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
                 </PageSection>
                 <IfFeature feature="breadcrumbs" is={true}>
-                    <PageSection className="ps_header-breadcrumbs" variant={PageSectionVariants.light} children={breadcrumbs} />
+                    <PageSection hasBodyWrapper={false} className="ps_header-breadcrumbs"  children={breadcrumbs} />
                 </IfFeature>
-                <PageSection className="ps_artifact-version-header" variant={PageSectionVariants.light}>
+                <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <GroupPageHeader title={groupId as string}
                         onDeleteGroup={onDeleteGroup}
                         groupId={groupId as string} />
                 </PageSection>
-                <PageSection variant={PageSectionVariants.default} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
                     <Tabs className="group-page-tabs"
                         variant="default"
                         id="group-page-tabs"

@@ -33,7 +33,7 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
         });
     };
 
-    const logoSrc: string = `${config.uiContextPath() || "/"}apicurio_registry_logo_reverse.svg`;
+    const logoSrc: string = `${config.uiContextPath() || "/"}apicurio_registry_logo_default.svg`;
 
     return (
         <>
@@ -47,11 +47,9 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
                 onClose={() => setIsAboutModalOpen(false)} />
             <Toolbar id="app-header-toolbar" isFullHeight={true}>
                 <ToolbarContent>
-                    <ToolbarGroup align={{ default: "alignRight" }}>
+                    <ToolbarGroup align={{ default: "alignEnd" }}>
                         <ToolbarItem>
-                            <Button variant="plain" onClick={() => setIsAboutModalOpen(!isAboutModalOpen)}>
-                                <QuestionCircleIcon style={{ fontSize: "16px" }} />
-                            </Button>
+                            <Button icon={<QuestionCircleIcon style={{ fontSize: "16px" }} />} variant="plain" onClick={() => setIsAboutModalOpen(!isAboutModalOpen)} />
                         </ToolbarItem>
                         <ToolbarItem>
                             <IfAuth enabled={true}>

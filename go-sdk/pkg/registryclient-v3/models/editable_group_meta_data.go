@@ -11,6 +11,8 @@ type EditableGroupMetaData struct {
 	description *string
 	// User-defined name-value pairs. Name and value must be strings.
 	labels Labelsable
+	// The owner property
+	owner *string
 }
 
 // NewEditableGroupMetaData instantiates a new EditableGroupMetaData and sets the default values.
@@ -62,6 +64,16 @@ func (m *EditableGroupMetaData) GetFieldDeserializers() map[string]func(i878a80d
 		}
 		return nil
 	}
+	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetOwner(val)
+		}
+		return nil
+	}
 	return res
 }
 
@@ -69,6 +81,12 @@ func (m *EditableGroupMetaData) GetFieldDeserializers() map[string]func(i878a80d
 // returns a Labelsable when successful
 func (m *EditableGroupMetaData) GetLabels() Labelsable {
 	return m.labels
+}
+
+// GetOwner gets the owner property value. The owner property
+// returns a *string when successful
+func (m *EditableGroupMetaData) GetOwner() *string {
+	return m.owner
 }
 
 // Serialize serializes information the current object
@@ -81,6 +99,12 @@ func (m *EditableGroupMetaData) Serialize(writer i878a80d2330e89d26896388a3f487e
 	}
 	{
 		err := writer.WriteObjectValue("labels", m.GetLabels())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteStringValue("owner", m.GetOwner())
 		if err != nil {
 			return err
 		}
@@ -109,11 +133,18 @@ func (m *EditableGroupMetaData) SetLabels(value Labelsable) {
 	m.labels = value
 }
 
+// SetOwner sets the owner property value. The owner property
+func (m *EditableGroupMetaData) SetOwner(value *string) {
+	m.owner = value
+}
+
 type EditableGroupMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetDescription() *string
 	GetLabels() Labelsable
+	GetOwner() *string
 	SetDescription(value *string)
 	SetLabels(value Labelsable)
+	SetOwner(value *string)
 }

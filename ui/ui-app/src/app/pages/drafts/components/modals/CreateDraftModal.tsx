@@ -10,19 +10,22 @@ import {
     GridItem,
     HelperText,
     HelperTextItem,
-    Modal,
     SimpleList,
-    SimpleListItem, Spinner,
+    SimpleListItem,
+    Spinner,
     Tab,
     Tabs,
     TabTitleText,
     TextArea,
-    TextContent,
+    Content,
     TextInput,
     Wizard,
     WizardFooterProps,
     WizardStep
 } from "@patternfly/react-core";
+import {
+    Modal
+} from "@patternfly/react-core/deprecated";
 import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
@@ -462,10 +465,10 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
                                     title={<TabTitleText>From template</TabTitleText>}
                                     aria-label="Create draft from template"
                                 >
-                                    <TextContent>
+                                    <Content>
                                         Select from the list of templates below to create a new Draft from scratch, or
                                         from a common/example starter.
-                                    </TextContent>
+                                    </Content>
                                     <SimpleList
                                         aria-label="List of templates"
                                         isControlled={false}

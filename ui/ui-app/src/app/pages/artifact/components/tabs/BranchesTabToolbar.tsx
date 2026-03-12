@@ -50,7 +50,7 @@ export const BranchesTabToolbar: FunctionComponent<BranchesToolbarProps> = (prop
                         </IfFeature>
                     </IfAuth>
                 </ToolbarItem>
-                <ToolbarItem className="paging-item" align={{ default: "alignRight" }}>
+                <ToolbarItem className="paging-item" align={{ default: "alignEnd" }}>
                     <Pagination
                         variant="top"
                         dropDirection="down"

@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import "./GroupPageHeader.css";
-import { Button, Flex, FlexItem, Text, TextContent, TextVariants } from "@patternfly/react-core";
+import { Button, Flex, FlexItem, Content, ContentVariants } from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
 import { If } from "@apicurio/common-ui-components";
 
@@ -21,9 +21,9 @@ export const GroupPageHeader: FunctionComponent<GroupPageHeaderProps> = (props: 
     return (
         <Flex className="example-border">
             <FlexItem>
-                <TextContent>
-                    <Text component={TextVariants.h1}>{ props.title }</Text>
-                </TextContent>
+                <Content>
+                    <Content component={ContentVariants.h1}>{ props.title }</Content>
+                </Content>
             </FlexItem>
             <FlexItem align={{ default: "alignRight" }}>
                 <If condition={props.groupId !== "default"}>

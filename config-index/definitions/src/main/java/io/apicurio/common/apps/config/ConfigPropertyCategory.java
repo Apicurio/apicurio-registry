@@ -2,6 +2,7 @@ package io.apicurio.common.apps.config;
 
 public enum ConfigPropertyCategory {
 
+    CATEGORY_A2A("a2a"),
     CATEGORY_API("api"),
     CATEGORY_AUTH("auth"),
     CATEGORY_CACHE("cache"),
@@ -9,10 +10,12 @@ public enum ConfigPropertyCategory {
     CATEGORY_DOWNLOAD("download"),
     CATEGORY_GITOPS("gitops"),
     CATEGORY_HEALTH("health"), // TODO: Merge with CATEGORY_OBSERVABILITY.
+    CATEGORY_KUBERNETESOPS("kubernetesops"),
     /**
      * Properties that belong to this category will not show up in the documentation.
      */
     CATEGORY_HIDDEN("hidden"),
+    CATEGORY_ICEBERG("iceberg"),
     CATEGORY_IMPORT("import"),
     CATEGORY_LIMITS("limits"),
     CATEGORY_LOG("log"),

@@ -1,0 +1,27 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "User Service API",
+        "version": "1.0.0",
+        "description": "API for user-related events"
+    },
+    "channels": {
+        "userSignedUp": {
+            "address": "user/signedup",
+            "messages": {
+                "userSignedUpMessage": {
+                    "$ref": "#/components/messages/UserSignedUp"
+                }
+            }
+        }
+    },
+    "components": {
+        "messages": {
+            "UserSignedUp": {
+                "payload": {
+                    "$ref": "http://types.example.org/asyncapi30-common-types.json#/components/schemas/User"
+                }
+            }
+        }
+    }
+}

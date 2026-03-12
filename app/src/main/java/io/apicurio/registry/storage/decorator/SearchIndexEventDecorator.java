@@ -5,9 +5,11 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.impl.search.AllDataDeletedEvent;
 import io.apicurio.registry.storage.impl.search.ArtifactDeletedEvent;
 import io.apicurio.registry.storage.impl.search.ArtifactMetadataUpdatedEvent;
@@ -107,6 +109,26 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
             versionCreatedEvent.fire(new VersionCreatedEvent(groupId, artifactId,
                     versionMeta.getVersion(), versionMeta.getGlobalId(), versionMeta.getContentId()));
         }
+
+        return versionMeta;
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData)
+            throws ArtifactNotFoundException, VersionAlreadyExistsException, CommitFailedException,
+            RegistryStorageException {
+
+        // Call delegate to perform the actual creation
+        ArtifactVersionMetaDataDto versionMeta = delegate.createArtifactVersionIfLatest(groupId, artifactId,
+                version, artifactType, content, metaData, branches, isDraft, owner,
+                expectedBaseVersionOrder, artifactMetaData);
+
+        // Fire event for search indexing (no dryRun parameter on this method)
+        versionCreatedEvent.fire(new VersionCreatedEvent(groupId, artifactId,
+                versionMeta.getVersion(), versionMeta.getGlobalId(), versionMeta.getContentId()));
 
         return versionMeta;
     }

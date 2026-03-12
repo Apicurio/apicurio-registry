@@ -1,6 +1,8 @@
 package io.apicurio.registry.storage.impl.search;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch._types.OpType;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
@@ -39,6 +41,7 @@ public class ElasticsearchStartupIndexer {
 
     private static final int PROGRESS_LOG_INTERVAL = 100;
     private static final int BULK_BATCH_SIZE = 500;
+    private static final String REINDEX_LOCK_DOC_ID = "_reindex_lock";
 
     @Inject
     ElasticsearchSearchConfig config;
@@ -91,25 +94,70 @@ public class ElasticsearchStartupIndexer {
                 return;
             }
 
-            // In multi-replica deployments, all replicas may reach this point at roughly
-            // the same time after index creation. Wait briefly and recheck — if another
-            // replica has already started indexing, we can skip the redundant work.
-            Thread.sleep(2000 + (long) (Math.random() * 3000));
-            documentCount = indexManager.count();
-            if (documentCount > 0) {
-                log.info("Another replica has started indexing ({} documents found), "
-                        + "skipping startup reindex.", documentCount);
+            // Try to acquire a distributed lock via ES document creation.
+            // OpType.Create fails with 409 if the document already exists,
+            // ensuring only one replica performs the reindex.
+            if (!acquireReindexLock()) {
+                log.info("Another replica has acquired the reindex lock, skipping startup reindex.");
                 ready = true;
                 return;
             }
 
-            log.info("Elasticsearch index is empty — starting full reindex from database.");
-            reindex();
+            try {
+                log.info("Elasticsearch index is empty — starting full reindex from database.");
+                reindex();
+            } finally {
+                releaseReindexLock();
+            }
         } catch (Exception e) {
             log.error("Startup reindex failed", e);
         } finally {
             ready = true;
             log.info("Elasticsearch startup indexer is now ready.");
+        }
+    }
+
+    /**
+     * Attempts to acquire a distributed reindex lock by creating a lock document in
+     * Elasticsearch. Uses {@link OpType#Create} which atomically fails with a 409 conflict
+     * if the document already exists, ensuring only one replica can acquire the lock.
+     *
+     * @return {@code true} if the lock was acquired, {@code false} if another replica holds it
+     */
+    private boolean acquireReindexLock() {
+        try {
+            client.index(i -> i
+                    .index(config.getIndexName())
+                    .id(REINDEX_LOCK_DOC_ID)
+                    .opType(OpType.Create)
+                    .document(Map.of("type", "reindex_lock", "timestamp", System.currentTimeMillis()))
+            );
+            log.info("Acquired reindex lock.");
+            return true;
+        } catch (ElasticsearchException e) {
+            if (e.status() == 409) {
+                return false;
+            }
+            throw new RuntimeException("Unexpected error acquiring reindex lock", e);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to acquire reindex lock", e);
+        }
+    }
+
+    /**
+     * Releases the distributed reindex lock by deleting the lock document from Elasticsearch.
+     * Called in a {@code finally} block after reindex to ensure cleanup even on failure.
+     */
+    private void releaseReindexLock() {
+        try {
+            client.delete(d -> d
+                    .index(config.getIndexName())
+                    .id(REINDEX_LOCK_DOC_ID)
+            );
+            log.info("Released reindex lock.");
+        } catch (Exception e) {
+            log.warn("Failed to release reindex lock document — it will be cleared "
+                    + "on next triggerReindex() or deleteAllDocuments() call.", e);
         }
     }
 

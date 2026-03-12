@@ -5136,6 +5136,11 @@
           "contentType": {
             "description": "The content-type, such as `application/json` or `text/xml`.",
             "type": "string"
+          },
+          "encoding": {
+            "description": "Optional encoding for the content property. When set to 'base64', the content value will be base64-decoded by the server before processing.",
+            "type": "string",
+            "enum": ["base64"]
           }
         }
       },

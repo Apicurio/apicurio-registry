@@ -12,7 +12,6 @@ import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.impl.search.AllDataDeletedEvent;
 import io.apicurio.registry.storage.impl.search.ArtifactDeletedEvent;
-import io.apicurio.registry.storage.impl.search.ArtifactMetadataUpdatedEvent;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.storage.impl.search.GroupDeletedEvent;
 import io.apicurio.registry.storage.impl.search.ReindexRequestedEvent;
@@ -51,9 +50,6 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
 
     @Inject
     Event<VersionStateChangedEvent> versionStateChangedEvent;
-
-    @Inject
-    Event<ArtifactMetadataUpdatedEvent> artifactMetadataUpdatedEvent;
 
     @Inject
     Event<ArtifactDeletedEvent> artifactDeletedEvent;
@@ -193,17 +189,6 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
 
         // Fire event for search index update (remove all indexed data)
         allDataDeletedEvent.fire(new AllDataDeletedEvent());
-    }
-
-    public void updateArtifactMetaData(String groupId, String artifactId,
-            EditableArtifactMetaDataDto metaData) throws RegistryStorageException {
-
-        // Call delegate to perform the actual update
-        delegate.updateArtifactMetaData(groupId, artifactId, metaData);
-
-        // Fire event for search index update (affects all versions of this artifact)
-        artifactMetadataUpdatedEvent
-                .fire(new ArtifactMetadataUpdatedEvent(groupId, artifactId));
     }
 
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,

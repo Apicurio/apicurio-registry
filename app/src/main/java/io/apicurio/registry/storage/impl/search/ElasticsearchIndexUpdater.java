@@ -7,11 +7,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -23,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -106,19 +101,6 @@ public class ElasticsearchIndexUpdater {
         operationQueue.add(new IndexingOperation.IndexVersion(
                 event.getGroupId(), event.getArtifactId(), event.getVersion(),
                 event.getGlobalId()));
-    }
-
-    /**
-     * Observes artifact metadata updates and enqueues re-indexing of all affected versions.
-     *
-     * @param event the artifact metadata updated event
-     */
-    public void onArtifactMetadataUpdated(@Observes ArtifactMetadataUpdatedEvent event) {
-        if (!isActive) {
-            return;
-        }
-        operationQueue.add(new IndexingOperation.ReindexArtifactVersions(
-                event.getGroupId(), event.getArtifactId()));
     }
 
     /**
@@ -264,16 +246,6 @@ public class ElasticsearchIndexUpdater {
                             op.groupId(), op.artifactId(), op.version(), op.globalId());
                     break;
                 }
-                case REINDEX_ARTIFACT_VERSIONS: {
-                    IndexingOperation.ReindexArtifactVersions op =
-                            (IndexingOperation.ReindexArtifactVersions) operation;
-                    log.debug("Re-indexing versions for artifact: {}/{}", op.groupId(),
-                            op.artifactId());
-                    reindexAllVersions(op.groupId(), op.artifactId());
-                    log.debug("Re-indexed versions for artifact {}/{}", op.groupId(),
-                            op.artifactId());
-                    break;
-                }
                 case DELETE_VERSION: {
                     IndexingOperation.DeleteVersion op =
                             (IndexingOperation.DeleteVersion) operation;
@@ -361,35 +333,6 @@ public class ElasticsearchIndexUpdater {
                 .document(doc)
                 .refresh(Refresh.False)
         );
-    }
-
-    /**
-     * Re-indexes all versions of an artifact.
-     *
-     * @param groupId the group ID
-     * @param artifactId the artifact ID
-     * @throws IOException if the storage query fails
-     */
-    private void reindexAllVersions(String groupId, String artifactId) throws IOException {
-        VersionSearchResultsDto versions = storage.searchVersions(
-                Set.of(SearchFilter.ofGroupId(groupId),
-                        SearchFilter.ofArtifactId(artifactId)),
-                OrderBy.createdOn, OrderDirection.asc, 0, Integer.MAX_VALUE);
-
-        int reindexedCount = 0;
-        for (var version : versions.getVersions()) {
-            try {
-                indexVersion(version.getGroupId(), version.getArtifactId(),
-                        version.getVersion(), version.getGlobalId());
-                reindexedCount++;
-            } catch (Exception e) {
-                log.error("Failed to re-index version {}/{}/{}", version.getGroupId(),
-                        version.getArtifactId(), version.getVersion(), e);
-            }
-        }
-
-        log.debug("Re-indexed {} versions for artifact {}/{}", reindexedCount,
-                groupId, artifactId);
     }
 
     /**

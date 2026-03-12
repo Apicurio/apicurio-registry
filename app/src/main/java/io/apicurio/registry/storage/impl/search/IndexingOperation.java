@@ -14,7 +14,6 @@ public sealed interface IndexingOperation {
      */
     enum Type {
         INDEX_VERSION,
-        REINDEX_ARTIFACT_VERSIONS,
         DELETE_VERSION,
         DELETE_ARTIFACT,
         DELETE_GROUP,
@@ -35,15 +34,6 @@ public sealed interface IndexingOperation {
                         long globalId) implements IndexingOperation {
         @Override
         public Type type() { return Type.INDEX_VERSION; }
-    }
-
-    /**
-     * Re-indexes all versions of an artifact. Used when artifact-level metadata changes.
-     */
-    record ReindexArtifactVersions(String groupId,
-                                   String artifactId) implements IndexingOperation {
-        @Override
-        public Type type() { return Type.REINDEX_ARTIFACT_VERSIONS; }
     }
 
     /**

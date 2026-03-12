@@ -4,6 +4,7 @@ import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.serde.utils.BoundedCacheFactory;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.avro.Schema;
@@ -12,17 +13,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
 
     private AvroDatumProvider<U> avroDatumProvider;
-    private final ConcurrentHashMap<Schema, ParsedSchema<Schema>> schemaCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Schema, ParsedSchema<Schema>> dereferencedSchemaCache = new ConcurrentHashMap<>();
+    private final Map<Schema, ParsedSchema<Schema>> schemaCache;
+    private final Map<Schema, ParsedSchema<Schema>> dereferencedSchemaCache;
 
-    public AvroSchemaParser(AvroDatumProvider<U> avroDatumProvider) {
+    /**
+     * Creates a new AvroSchemaParser with the given datum provider and schema cache size.
+     *
+     * @param avroDatumProvider the datum provider for converting data payloads to Avro schemas
+     * @param schemaCacheSize the maximum number of entries in each schema cache (LRU eviction)
+     */
+    public AvroSchemaParser(AvroDatumProvider<U> avroDatumProvider, int schemaCacheSize) {
         this.avroDatumProvider = avroDatumProvider;
+        this.schemaCache = BoundedCacheFactory.createLRU(schemaCacheSize);
+        this.dereferencedSchemaCache = BoundedCacheFactory.createLRU(schemaCacheSize);
     }
 
     /**
@@ -48,25 +56,27 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     @Override
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
         Schema schema = avroDatumProvider.toSchema(data.payload());
-        return schemaCache.computeIfAbsent(schema, s -> {
-            final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(s);
+        synchronized (schemaCache) {
+            return schemaCache.computeIfAbsent(schema, s -> {
+                final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(s);
 
-            // Deduplicate references based on referenceName to handle cases where
-            // multiple fields reference the same nested schema (e.g., Debezium PostGIS Point geometry)
-            final List<ParsedSchema<Schema>> deduplicatedReferences = resolvedReferences.stream()
-                    .collect(Collectors.toMap(
-                            ParsedSchema::referenceName,
-                            ref -> ref,
-                            (existing, replacement) -> existing))
-                    .values()
-                    .stream()
-                    .collect(Collectors.toList());
+                // Deduplicate references based on referenceName to handle cases where
+                // multiple fields reference the same nested schema (e.g., Debezium PostGIS Point geometry)
+                final List<ParsedSchema<Schema>> deduplicatedReferences = resolvedReferences.stream()
+                        .collect(Collectors.toMap(
+                                ParsedSchema::referenceName,
+                                ref -> ref,
+                                (existing, replacement) -> existing))
+                        .values()
+                        .stream()
+                        .collect(Collectors.toList());
 
-            return new ParsedSchemaImpl<Schema>().setParsedSchema(s).setReferenceName(s.getFullName())
-                    .setSchemaReferences(deduplicatedReferences)
-                    .setRawSchema(IoUtil.toBytes(s.toString(deduplicatedReferences.stream()
-                            .map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false)));
-        });
+                return new ParsedSchemaImpl<Schema>().setParsedSchema(s).setReferenceName(s.getFullName())
+                        .setSchemaReferences(deduplicatedReferences)
+                        .setRawSchema(IoUtil.toBytes(s.toString(deduplicatedReferences.stream()
+                                .map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false)));
+            });
+        }
     }
 
     /**
@@ -76,10 +86,12 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     public ParsedSchema<Schema> getSchemaFromData(Record<U> data, boolean dereference) {
         if (dereference) {
             Schema schema = avroDatumProvider.toSchema(data.payload());
-            return dereferencedSchemaCache.computeIfAbsent(schema, s ->
-                    new ParsedSchemaImpl<Schema>().setParsedSchema(s)
-                            .setReferenceName(s.getFullName())
-                            .setRawSchema(IoUtil.toBytes(s.toString())));
+            synchronized (dereferencedSchemaCache) {
+                return dereferencedSchemaCache.computeIfAbsent(schema, s ->
+                        new ParsedSchemaImpl<Schema>().setParsedSchema(s)
+                                .setReferenceName(s.getFullName())
+                                .setRawSchema(IoUtil.toBytes(s.toString())));
+            }
         } else {
             return getSchemaFromData(data);
         }

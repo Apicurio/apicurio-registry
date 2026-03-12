@@ -28,7 +28,8 @@ public class AvroSchemaParserDuplicateReferencesTest {
     public void setup() {
         datumProvider = new DefaultAvroDatumProvider<>();
         datumProvider.configure(new AvroSerdeConfig(java.util.Collections.emptyMap()));
-        parser = new AvroSchemaParser<>(datumProvider);
+        parser = new AvroSchemaParser<>(datumProvider,
+                (int) AvroSerdeConfig.AVRO_SCHEMA_CACHE_SIZE_DEFAULT);
     }
 
     /**

@@ -5,6 +5,7 @@ import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.core.CountResponse;
+import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Manages the Elasticsearch index lifecycle: creation, mapping, refresh, and document count.
@@ -22,6 +24,9 @@ public class ElasticsearchIndexManager {
 
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchIndexManager.class);
 
+    private static final int CURRENT_MAPPING_VERSION = 1;
+    private static final String MAPPING_VERSION_DOC_ID = "_mapping_version";
+
     @Inject
     ElasticsearchClient client;
 
@@ -30,9 +35,10 @@ public class ElasticsearchIndexManager {
 
     /**
      * Ensures the Elasticsearch index exists with the correct mapping. Creates it if it does
-     * not exist. Safe to call from multiple replicas concurrently — if the index is created
-     * by another replica between our existence check and our create call, the
-     * {@code resource_already_exists_exception} is caught and treated as success.
+     * not exist. If the index exists but has an outdated mapping version, deletes and recreates
+     * it so the new mapping takes effect. Safe to call from multiple replicas concurrently — if
+     * the index is created by another replica between our existence check and our create call,
+     * the {@code resource_already_exists_exception} is caught and treated as success.
      *
      * @throws IOException if an error occurs communicating with Elasticsearch
      */
@@ -41,8 +47,17 @@ public class ElasticsearchIndexManager {
 
         boolean exists = client.indices().exists(e -> e.index(indexName)).value();
         if (exists) {
-            log.info("Elasticsearch index '{}' already exists.", indexName);
-            return;
+            int mappingVersion = readMappingVersion();
+            if (mappingVersion >= CURRENT_MAPPING_VERSION) {
+                log.info("Elasticsearch index '{}' already exists with mapping version {}.",
+                        indexName, mappingVersion);
+                return;
+            }
+
+            log.warn("Elasticsearch index '{}' has outdated mapping version {} (current: {}). "
+                    + "Deleting and recreating the index.", indexName, mappingVersion,
+                    CURRENT_MAPPING_VERSION);
+            deleteIndex();
         }
 
         log.info("Creating Elasticsearch index '{}'...", indexName);
@@ -59,6 +74,8 @@ public class ElasticsearchIndexManager {
             } else {
                 log.warn("Elasticsearch index '{}' creation was not acknowledged.", indexName);
             }
+
+            writeMappingVersion();
         } catch (ElasticsearchException e) {
             // Handle race condition: another replica created the index between our
             // exists check and our create call.
@@ -71,7 +88,8 @@ public class ElasticsearchIndexManager {
     }
 
     /**
-     * Deletes all documents from the index. Used for full reindex scenarios.
+     * Deletes all content documents from the index, preserving internal metadata documents
+     * such as the mapping version tracker. Used for full reindex scenarios.
      *
      * @throws IOException if an error occurs communicating with Elasticsearch
      */
@@ -79,9 +97,11 @@ public class ElasticsearchIndexManager {
         String indexName = config.getIndexName();
         client.deleteByQuery(d -> d
                 .index(indexName)
-                .query(q -> q.matchAll(m -> m))
+                .query(q -> q.bool(b -> b
+                        .mustNot(mn -> mn.ids(ids -> ids.values(MAPPING_VERSION_DOC_ID)))
+                ))
         );
-        log.info("Deleted all documents from index '{}'.", indexName);
+        log.info("Deleted all content documents from index '{}'.", indexName);
     }
 
     /**
@@ -94,14 +114,72 @@ public class ElasticsearchIndexManager {
     }
 
     /**
-     * Returns the number of documents in the index.
+     * Returns the number of content documents in the index, excluding internal metadata
+     * documents such as the mapping version tracker.
      *
      * @return the document count
      * @throws IOException if an error occurs communicating with Elasticsearch
      */
     public long count() throws IOException {
-        CountResponse response = client.count(c -> c.index(config.getIndexName()));
+        CountResponse response = client.count(c -> c
+                .index(config.getIndexName())
+                .query(q -> q.bool(b -> b
+                        .mustNot(mn -> mn.ids(ids -> ids.values(MAPPING_VERSION_DOC_ID)))
+                ))
+        );
         return response.count();
+    }
+
+    /**
+     * Reads the mapping version from the metadata document stored in the index.
+     *
+     * @return the mapping version, or {@code 0} if the document does not exist (pre-versioning index)
+     * @throws IOException if an error occurs communicating with Elasticsearch
+     */
+    @SuppressWarnings("rawtypes")
+    private int readMappingVersion() throws IOException {
+        String indexName = config.getIndexName();
+        try {
+            GetResponse<Map> response = client.get(g -> g
+                    .index(indexName)
+                    .id(MAPPING_VERSION_DOC_ID), Map.class);
+            if (response.found() && response.source() != null) {
+                Object version = response.source().get("version");
+                if (version instanceof Number) {
+                    return ((Number) version).intValue();
+                }
+            }
+        } catch (ElasticsearchException e) {
+            log.warn("Failed to read mapping version from index '{}': {}", indexName, e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Writes the current mapping version as a metadata document in the index.
+     *
+     * @throws IOException if an error occurs communicating with Elasticsearch
+     */
+    private void writeMappingVersion() throws IOException {
+        String indexName = config.getIndexName();
+        client.index(i -> i
+                .index(indexName)
+                .id(MAPPING_VERSION_DOC_ID)
+                .document(Map.of("type", "mapping_version", "version", CURRENT_MAPPING_VERSION))
+        );
+        log.info("Wrote mapping version {} to index '{}'.", CURRENT_MAPPING_VERSION, indexName);
+    }
+
+    /**
+     * Deletes the entire Elasticsearch index. Used when the mapping version is outdated
+     * and a full recreation with the new mapping is needed.
+     *
+     * @throws IOException if an error occurs communicating with Elasticsearch
+     */
+    private void deleteIndex() throws IOException {
+        String indexName = config.getIndexName();
+        client.indices().delete(d -> d.index(indexName));
+        log.info("Deleted Elasticsearch index '{}'.", indexName);
     }
 
     /**

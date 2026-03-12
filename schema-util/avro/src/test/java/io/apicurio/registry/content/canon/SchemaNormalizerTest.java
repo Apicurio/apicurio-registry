@@ -349,6 +349,48 @@ class SchemaNormalizerTest {
         assertNotNull(parsed);
     }
 
+    @Test
+    void parseSchema_NullableUnionWithAndWithoutDefaultNull_Equal() {
+        // Schema without "default": null on a nullable union field
+        String schemaWithoutDefault = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Application\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n" + "    {\"name\": \"name\", \"type\": \"string\"},\n"
+                + "    {\"name\": \"version\", \"type\": [\"null\", \"string\"]}\n" + "  ]\n" + "}";
+
+        // Same schema WITH explicit "default": null
+        String schemaWithDefault = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Application\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n" + "    {\"name\": \"name\", \"type\": \"string\"},\n"
+                + "    {\"name\": \"version\", \"type\": [\"null\", \"string\"], \"default\": null}\n"
+                + "  ]\n" + "}";
+
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
+        TypedContent normalized1 = canonicalizer.canonicalize(toTypedContent(schemaWithoutDefault),
+                new HashMap<>());
+        TypedContent normalized2 = canonicalizer.canonicalize(toTypedContent(schemaWithDefault),
+                new HashMap<>());
+
+        assertEquals(normalized1.getContent().content(), normalized2.getContent().content());
+    }
+
+    @Test
+    void parseSchema_MapWithSelfReferencingRecord_NormalizesWithoutError() {
+        // Schema with a map whose value type references the enclosing record
+        String schema = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"TreeNode\",\n"
+                + "  \"namespace\": \"com.example\",\n" + "  \"fields\": [\n"
+                + "    {\"name\": \"value\", \"type\": \"string\"},\n"
+                + "    {\"name\": \"children\", \"type\": {\"type\": \"map\", \"values\": \"TreeNode\"}}\n"
+                + "  ]\n" + "}";
+
+        AvroContentCanonicalizer canonicalizer = new AvroContentCanonicalizer();
+        TypedContent normalized = canonicalizer.canonicalize(toTypedContent(schema), new HashMap<>());
+
+        assertNotNull(normalized);
+        // Verify it round-trips through Avro parser
+        Schema parsed = new Schema.Parser().parse(normalized.getContent().content());
+        assertEquals("TreeNode", parsed.getName());
+    }
+
     private String getSchemaFromResource(String resourcePath) throws IOException {
         ClassLoader classLoader = getClass().getClassLoader();
         URL resourceURL = classLoader.getResource(resourcePath);

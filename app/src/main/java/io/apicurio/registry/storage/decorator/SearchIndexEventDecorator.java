@@ -6,8 +6,13 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.impl.search.AllDataDeletedEvent;
+import io.apicurio.registry.storage.impl.search.ArtifactDeletedEvent;
 import io.apicurio.registry.storage.impl.search.ArtifactMetadataUpdatedEvent;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
+import io.apicurio.registry.storage.impl.search.GroupDeletedEvent;
 import io.apicurio.registry.storage.impl.search.VersionCreatedEvent;
 import io.apicurio.registry.storage.impl.search.VersionDeletedEvent;
 import io.apicurio.registry.storage.impl.search.VersionStateChangedEvent;
@@ -45,6 +50,15 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
 
     @Inject
     Event<ArtifactMetadataUpdatedEvent> artifactMetadataUpdatedEvent;
+
+    @Inject
+    Event<ArtifactDeletedEvent> artifactDeletedEvent;
+
+    @Inject
+    Event<GroupDeletedEvent> groupDeletedEvent;
+
+    @Inject
+    Event<AllDataDeletedEvent> allDataDeletedEvent;
 
     @Override
     public boolean isEnabled() {
@@ -110,6 +124,49 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
 
         // Fire event for search index update
         versionDeletedEvent.fire(new VersionDeletedEvent(groupId, artifactId, version, globalId));
+    }
+
+    public List<String> deleteArtifact(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
+
+        // Call delegate to perform the actual deletion
+        List<String> result = delegate.deleteArtifact(groupId, artifactId);
+
+        // Fire event for search index update (remove all versions of this artifact)
+        String normalizedGroupId = groupId != null ? groupId : "default";
+        artifactDeletedEvent.fire(new ArtifactDeletedEvent(normalizedGroupId, artifactId));
+
+        return result;
+    }
+
+    public void deleteArtifacts(String groupId) throws RegistryStorageException {
+
+        // Call delegate to perform the actual deletion
+        delegate.deleteArtifacts(groupId);
+
+        // Fire event for search index update (remove all versions in this group)
+        String normalizedGroupId = groupId != null ? groupId : "default";
+        groupDeletedEvent.fire(new GroupDeletedEvent(normalizedGroupId));
+    }
+
+    public void deleteGroup(String groupId)
+            throws GroupNotFoundException, RegistryStorageException {
+
+        // Call delegate to perform the actual deletion
+        delegate.deleteGroup(groupId);
+
+        // Fire event for search index update (remove all versions in this group)
+        String normalizedGroupId = groupId != null ? groupId : "default";
+        groupDeletedEvent.fire(new GroupDeletedEvent(normalizedGroupId));
+    }
+
+    public void deleteAllUserData() {
+
+        // Call delegate to perform the actual deletion
+        delegate.deleteAllUserData();
+
+        // Fire event for search index update (remove all indexed data)
+        allDataDeletedEvent.fire(new AllDataDeletedEvent());
     }
 
     public void updateArtifactMetaData(String groupId, String artifactId,

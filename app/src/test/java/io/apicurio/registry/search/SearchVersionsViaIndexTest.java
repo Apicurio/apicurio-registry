@@ -640,4 +640,124 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         Assertions.assertEquals("v1",
                 version.getLabels().getAdditionalData().get("version-tag"));
     }
+
+    @Test
+    public void testDeleteArtifactVersion() throws Exception {
+        String group = TestUtils.generateGroupId();
+
+        // Create an artifact with 2 versions
+        createArtifact(group, "testDeleteVersion_api-1", ArtifactType.OPENAPI,
+                "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(group, "testDeleteVersion_api-1", "{\"openapi\":\"3.0.1\"}",
+                ContentTypes.APPLICATION_JSON);
+
+        // Verify both versions are in the index
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = "testDeleteVersion_api-1";
+        });
+        Assertions.assertEquals(2, results.getCount());
+
+        // Delete version "1"
+        clientV3.groups().byGroupId(group).artifacts().byArtifactId("testDeleteVersion_api-1")
+                .versions().byVersionExpression("1").delete();
+
+        // Verify only 1 version remains in the index
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = "testDeleteVersion_api-1";
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals("2", results.getVersions().get(0).getVersion());
+    }
+
+    @Test
+    public void testDeleteArtifact() throws Exception {
+        String group = TestUtils.generateGroupId();
+
+        // Create 2 artifacts, one with multiple versions
+        createArtifact(group, "testDeleteArtifact_api-1", ArtifactType.OPENAPI,
+                "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(group, "testDeleteArtifact_api-1", "{\"openapi\":\"3.0.1\"}",
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(group, "testDeleteArtifact_api-2", ArtifactType.OPENAPI,
+                "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
+
+        // Verify all 3 versions are in the index
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+        });
+        Assertions.assertEquals(3, results.getCount());
+
+        // Delete the first artifact (which has 2 versions)
+        clientV3.groups().byGroupId(group).artifacts()
+                .byArtifactId("testDeleteArtifact_api-1").delete();
+
+        // Verify only the second artifact's version remains
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals("testDeleteArtifact_api-2",
+                results.getVersions().get(0).getArtifactId());
+    }
+
+    @Test
+    public void testDeleteArtifactsInGroup() throws Exception {
+        String group = TestUtils.generateGroupId();
+
+        // Create 3 artifacts in the group
+        for (int idx = 0; idx < 3; idx++) {
+            createArtifact(group, "testDeleteArtifactsInGroup_api-" + idx,
+                    ArtifactType.OPENAPI, "{\"openapi\":\"3.0.0\",\"idx\":" + idx + "}",
+                    ContentTypes.APPLICATION_JSON);
+        }
+
+        // Verify all 3 are in the index
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+        });
+        Assertions.assertEquals(3, results.getCount());
+
+        // Delete all artifacts in the group
+        clientV3.groups().byGroupId(group).artifacts().delete();
+
+        // Verify the index is empty for this group
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+        });
+        Assertions.assertEquals(0, results.getCount());
+    }
+
+    @Test
+    public void testDeleteGroup() throws Exception {
+        String group = TestUtils.generateGroupId();
+
+        // Create the group explicitly so we can delete it
+        var createGroup = new io.apicurio.registry.rest.client.models.CreateGroup();
+        createGroup.setGroupId(group);
+        clientV3.groups().post(createGroup);
+
+        // Create 3 artifacts in the group
+        for (int idx = 0; idx < 3; idx++) {
+            createArtifact(group, "testDeleteGroup_api-" + idx, ArtifactType.OPENAPI,
+                    "{\"openapi\":\"3.0.0\",\"idx\":" + idx + "}",
+                    ContentTypes.APPLICATION_JSON);
+        }
+
+        // Verify all 3 are in the index
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+        });
+        Assertions.assertEquals(3, results.getCount());
+
+        // Delete the group (cascades to all artifacts)
+        clientV3.groups().byGroupId(group).delete();
+
+        // Verify the index is empty for this group
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+        });
+        Assertions.assertEquals(0, results.getCount());
+    }
 }

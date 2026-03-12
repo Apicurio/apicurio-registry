@@ -157,6 +157,101 @@ public class ElasticsearchIndexUpdater {
     }
 
     /**
+     * Observes artifact deletion and removes all versions of the artifact from the index.
+     *
+     * @param event the artifact deleted event
+     */
+    public void onArtifactDeleted(@Observes ArtifactDeletedEvent event) {
+        if (!isActive) {
+            return;
+        }
+
+        try {
+            log.debug("Removing all versions of deleted artifact from index: {}/{}",
+                    event.getGroupId(), event.getArtifactId());
+
+            client.deleteByQuery(d -> d
+                    .index(config.getIndexName())
+                    .query(q -> q
+                            .bool(b -> b
+                                    .must(m -> m.term(t -> t
+                                            .field("groupId")
+                                            .value(event.getGroupId())))
+                                    .must(m -> m.term(t -> t
+                                            .field("artifactId")
+                                            .value(event.getArtifactId())))))
+                    .refresh(true)
+            );
+
+            log.debug("Successfully removed all versions of artifact {}/{} from index",
+                    event.getGroupId(), event.getArtifactId());
+
+        } catch (Exception e) {
+            log.error("Failed to remove artifact versions from index: {}/{}",
+                    event.getGroupId(), event.getArtifactId(), e);
+        }
+    }
+
+    /**
+     * Observes group deletion and removes all versions in the group from the index.
+     *
+     * @param event the group deleted event
+     */
+    public void onGroupDeleted(@Observes GroupDeletedEvent event) {
+        if (!isActive) {
+            return;
+        }
+
+        try {
+            log.debug("Removing all versions in deleted group from index: {}",
+                    event.getGroupId());
+
+            client.deleteByQuery(d -> d
+                    .index(config.getIndexName())
+                    .query(q -> q
+                            .term(t -> t
+                                    .field("groupId")
+                                    .value(event.getGroupId())))
+                    .refresh(true)
+            );
+
+            log.debug("Successfully removed all versions in group {} from index",
+                    event.getGroupId());
+
+        } catch (Exception e) {
+            log.error("Failed to remove group versions from index: {}",
+                    event.getGroupId(), e);
+        }
+    }
+
+    /**
+     * Observes deletion of all user data and clears the entire index.
+     *
+     * @param event the all data deleted event
+     */
+    public void onAllDataDeleted(@Observes AllDataDeletedEvent event) {
+        if (!isActive) {
+            return;
+        }
+
+        try {
+            log.debug("Removing all data from search index");
+
+            client.deleteByQuery(d -> d
+                    .index(config.getIndexName())
+                    .query(q -> q
+                            .matchAll(m -> m))
+                    .refresh(true)
+            );
+
+            log.debug("Successfully removed all data from search index");
+
+        } catch (Exception e) {
+            log.error("Failed to remove all data from search index", e);
+        }
+    }
+
+    /**
      * Observes version state changes and updates the index.
      *
      * @param event the version state changed event

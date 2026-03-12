@@ -22,6 +22,9 @@ public class ElasticsearchSearchTestProfile implements QuarkusTestProfile {
         return Map.of(
                 "apicurio.features.experimental.enabled", "true",
                 "apicurio.search.index.enabled", "true",
+                "apicurio.rest.deletion.group.enabled", "true",
+                "apicurio.rest.deletion.artifact.enabled", "true",
+                "apicurio.rest.deletion.artifact-version.enabled", "true",
                 "quarkus.elasticsearch.devservices.enabled", "true"
         );
     }

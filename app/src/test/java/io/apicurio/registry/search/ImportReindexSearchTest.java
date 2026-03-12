@@ -9,6 +9,7 @@ import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.impl.search.ElasticsearchIndexUpdater;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -26,6 +27,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Integration tests that verify the Elasticsearch search index is correctly rebuilt after
@@ -44,6 +46,9 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
     @Current
     RegistryStorage storage;
 
+    @Inject
+    ElasticsearchIndexUpdater indexUpdater;
+
     @Test
     public void testImportDataReindexesSearchIndex() throws Exception {
         String group = TestUtils.generateGroupId();
@@ -56,6 +61,8 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
                     ContentTypes.APPLICATION_JSON);
         }
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Verify all 5 are searchable before export
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -67,6 +74,7 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
 
         // Step 3: Delete all data (clears both DB and search index)
         storage.deleteAllUserData();
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Verify the search index is now empty for this group
         results = clientV3.search().versions().get(config -> {
@@ -113,9 +121,12 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(group).artifacts().byArtifactId("testImportReindexMeta_api-2")
                 .versions().byVersionExpression(car2.getVersion().getVersion()).put(emd2);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Export, delete, import
         File exportFile = exportData();
         storage.deleteAllUserData();
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
         importData(exportFile);
 
         // Verify search by name works after import
@@ -170,6 +181,8 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
         createArtifact(group, "testImportReindexVersions_api-2", ArtifactType.OPENAPI,
                 "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Verify all 4 versions are indexed
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -179,6 +192,7 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
         // Export, delete, import
         File exportFile = exportData();
         storage.deleteAllUserData();
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
         importData(exportFile);
 
         // Verify all 4 versions are searchable after import

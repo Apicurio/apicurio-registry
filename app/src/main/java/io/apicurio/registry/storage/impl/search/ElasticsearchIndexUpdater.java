@@ -14,6 +14,7 @@ import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
@@ -23,10 +24,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Observes CDI events for version changes and updates the Elasticsearch search index. All updates
- * are synchronous since all registry nodes share a single Elasticsearch cluster.
+ * Observes CDI events for version changes and updates the Elasticsearch search index. Updates
+ * are processed asynchronously via a dedicated background worker thread, making the search index
+ * eventually consistent. This improves write performance by offloading indexing from the request
+ * thread.
  */
 @ApplicationScoped
 public class ElasticsearchIndexUpdater {
@@ -49,7 +54,13 @@ public class ElasticsearchIndexUpdater {
     @Inject
     ElasticsearchClient client;
 
+    @Inject
+    ElasticsearchIndexManager indexManager;
+
     private boolean isActive;
+    private final LinkedBlockingQueue<IndexingOperation> operationQueue = new LinkedBlockingQueue<>();
+    private volatile Thread workerThread;
+    private volatile boolean running;
 
     @PostConstruct
     void initialize() {
@@ -57,11 +68,34 @@ public class ElasticsearchIndexUpdater {
 
         if (isActive) {
             log.info("Elasticsearch search index updates ENABLED");
+            running = true;
+            workerThread = new Thread(this::processQueue, "es-index-updater");
+            workerThread.setDaemon(true);
+            workerThread.start();
         }
     }
 
+    @PreDestroy
+    void shutdown() {
+        if (!isActive) {
+            return;
+        }
+
+        running = false;
+        Thread thread = workerThread;
+        if (thread != null) {
+            thread.interrupt();
+            try {
+                thread.join(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        drainQueue();
+    }
+
     /**
-     * Observes version creation and immediately indexes the new version.
+     * Observes version creation and enqueues indexing of the new version.
      *
      * @param event the version created event
      */
@@ -69,26 +103,13 @@ public class ElasticsearchIndexUpdater {
         if (!isActive) {
             return;
         }
-
-        try {
-            log.debug("Indexing newly created version: {}/{}/{}",
-                    event.getGroupId(), event.getArtifactId(), event.getVersion());
-
-            indexVersion(event.getGroupId(), event.getArtifactId(), event.getVersion(),
-                    event.getGlobalId());
-
-            log.debug("Successfully indexed version {}/{}/{} (globalId={})",
-                    event.getGroupId(), event.getArtifactId(), event.getVersion(),
-                    event.getGlobalId());
-
-        } catch (Exception e) {
-            log.error("Failed to index new version {}/{}/{}", event.getGroupId(),
-                    event.getArtifactId(), event.getVersion(), e);
-        }
+        operationQueue.add(new IndexingOperation.IndexVersion(
+                event.getGroupId(), event.getArtifactId(), event.getVersion(),
+                event.getGlobalId()));
     }
 
     /**
-     * Observes artifact metadata updates and re-indexes all affected versions.
+     * Observes artifact metadata updates and enqueues re-indexing of all affected versions.
      *
      * @param event the artifact metadata updated event
      */
@@ -96,39 +117,12 @@ public class ElasticsearchIndexUpdater {
         if (!isActive) {
             return;
         }
-
-        try {
-            log.debug("Re-indexing versions for artifact with updated metadata: {}/{}",
-                    event.getGroupId(), event.getArtifactId());
-
-            VersionSearchResultsDto versions = storage.searchVersions(
-                    Set.of(SearchFilter.ofGroupId(event.getGroupId()),
-                            SearchFilter.ofArtifactId(event.getArtifactId())),
-                    OrderBy.createdOn, OrderDirection.asc, 0, Integer.MAX_VALUE);
-
-            int reindexedCount = 0;
-            for (var version : versions.getVersions()) {
-                try {
-                    indexVersion(version.getGroupId(), version.getArtifactId(),
-                            version.getVersion(), version.getGlobalId());
-                    reindexedCount++;
-                } catch (Exception e) {
-                    log.error("Failed to re-index version {}/{}/{}", version.getGroupId(),
-                            version.getArtifactId(), version.getVersion(), e);
-                }
-            }
-
-            log.debug("Re-indexed {} versions for artifact {}/{}", reindexedCount,
-                    event.getGroupId(), event.getArtifactId());
-
-        } catch (Exception e) {
-            log.error("Failed to re-index versions for artifact {}/{}",
-                    event.getGroupId(), event.getArtifactId(), e);
-        }
+        operationQueue.add(new IndexingOperation.ReindexArtifactVersions(
+                event.getGroupId(), event.getArtifactId()));
     }
 
     /**
-     * Observes version deletion and removes from index.
+     * Observes version deletion and enqueues removal from the index.
      *
      * @param event the version deleted event
      */
@@ -136,28 +130,13 @@ public class ElasticsearchIndexUpdater {
         if (!isActive) {
             return;
         }
-
-        try {
-            log.debug("Removing deleted version from index: {}/{}/{}",
-                    event.getGroupId(), event.getArtifactId(), event.getVersion());
-
-            client.delete(d -> d
-                    .index(config.getIndexName())
-                    .id(String.valueOf(event.getGlobalId()))
-                    .refresh(Refresh.WaitFor)
-            );
-
-            log.debug("Successfully removed version {}/{}/{} from index",
-                    event.getGroupId(), event.getArtifactId(), event.getVersion());
-
-        } catch (Exception e) {
-            log.error("Failed to remove version from index: {}/{}/{}",
-                    event.getGroupId(), event.getArtifactId(), event.getVersion(), e);
-        }
+        operationQueue.add(new IndexingOperation.DeleteVersion(
+                event.getGroupId(), event.getArtifactId(), event.getVersion(),
+                event.getGlobalId()));
     }
 
     /**
-     * Observes artifact deletion and removes all versions of the artifact from the index.
+     * Observes artifact deletion and enqueues removal of all versions from the index.
      *
      * @param event the artifact deleted event
      */
@@ -165,35 +144,12 @@ public class ElasticsearchIndexUpdater {
         if (!isActive) {
             return;
         }
-
-        try {
-            log.debug("Removing all versions of deleted artifact from index: {}/{}",
-                    event.getGroupId(), event.getArtifactId());
-
-            client.deleteByQuery(d -> d
-                    .index(config.getIndexName())
-                    .query(q -> q
-                            .bool(b -> b
-                                    .must(m -> m.term(t -> t
-                                            .field("groupId")
-                                            .value(event.getGroupId())))
-                                    .must(m -> m.term(t -> t
-                                            .field("artifactId")
-                                            .value(event.getArtifactId())))))
-                    .refresh(true)
-            );
-
-            log.debug("Successfully removed all versions of artifact {}/{} from index",
-                    event.getGroupId(), event.getArtifactId());
-
-        } catch (Exception e) {
-            log.error("Failed to remove artifact versions from index: {}/{}",
-                    event.getGroupId(), event.getArtifactId(), e);
-        }
+        operationQueue.add(new IndexingOperation.DeleteArtifact(
+                event.getGroupId(), event.getArtifactId()));
     }
 
     /**
-     * Observes group deletion and removes all versions in the group from the index.
+     * Observes group deletion and enqueues removal of all versions in the group from the index.
      *
      * @param event the group deleted event
      */
@@ -201,31 +157,11 @@ public class ElasticsearchIndexUpdater {
         if (!isActive) {
             return;
         }
-
-        try {
-            log.debug("Removing all versions in deleted group from index: {}",
-                    event.getGroupId());
-
-            client.deleteByQuery(d -> d
-                    .index(config.getIndexName())
-                    .query(q -> q
-                            .term(t -> t
-                                    .field("groupId")
-                                    .value(event.getGroupId())))
-                    .refresh(true)
-            );
-
-            log.debug("Successfully removed all versions in group {} from index",
-                    event.getGroupId());
-
-        } catch (Exception e) {
-            log.error("Failed to remove group versions from index: {}",
-                    event.getGroupId(), e);
-        }
+        operationQueue.add(new IndexingOperation.DeleteGroup(event.getGroupId()));
     }
 
     /**
-     * Observes deletion of all user data and clears the entire index.
+     * Observes deletion of all user data and enqueues clearing of the entire index.
      *
      * @param event the all data deleted event
      */
@@ -233,26 +169,11 @@ public class ElasticsearchIndexUpdater {
         if (!isActive) {
             return;
         }
-
-        try {
-            log.debug("Removing all data from search index");
-
-            client.deleteByQuery(d -> d
-                    .index(config.getIndexName())
-                    .query(q -> q
-                            .matchAll(m -> m))
-                    .refresh(true)
-            );
-
-            log.debug("Successfully removed all data from search index");
-
-        } catch (Exception e) {
-            log.error("Failed to remove all data from search index", e);
-        }
+        operationQueue.add(new IndexingOperation.DeleteAllData());
     }
 
     /**
-     * Observes version state changes and updates the index.
+     * Observes version state changes and enqueues re-indexing of the version.
      *
      * @param event the version state changed event
      */
@@ -260,21 +181,149 @@ public class ElasticsearchIndexUpdater {
         if (!isActive) {
             return;
         }
+        operationQueue.add(new IndexingOperation.IndexVersion(
+                event.getGroupId(), event.getArtifactId(), event.getVersion(),
+                event.getGlobalId()));
+    }
+
+    /**
+     * Waits for the operation queue to drain and all pending operations to complete, then
+     * refreshes the Elasticsearch index so that all processed documents are immediately
+     * searchable. Intended for use in tests to synchronize with the asynchronous indexing.
+     *
+     * @param timeout the maximum time to wait
+     * @param unit the time unit of the timeout argument
+     * @throws InterruptedException if the current thread is interrupted while waiting
+     * @throws IllegalStateException if the timeout expires before the queue is idle
+     */
+    public void awaitIdle(long timeout, TimeUnit unit) throws InterruptedException {
+        long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
+
+        while (!operationQueue.isEmpty()) {
+            if (System.nanoTime() >= deadlineNanos) {
+                throw new IllegalStateException(
+                        "Timed out waiting for indexing queue to drain. Remaining items: "
+                                + operationQueue.size());
+            }
+            Thread.sleep(50);
+        }
+
+        // Allow the last in-flight operation to complete
+        Thread.sleep(100);
 
         try {
-            log.debug("Updating index for version state change: {}/{}/{} ({} -> {})",
-                    event.getGroupId(), event.getArtifactId(), event.getVersion(),
-                    event.getOldState(), event.getNewState());
+            indexManager.refresh();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to refresh Elasticsearch index", e);
+        }
+    }
 
-            indexVersion(event.getGroupId(), event.getArtifactId(), event.getVersion(),
-                    event.getGlobalId());
+    /**
+     * Checks if index updating is active.
+     *
+     * @return true if active
+     */
+    public boolean isActive() {
+        return isActive;
+    }
 
-            log.debug("Successfully updated index for version state change: {}/{}/{}",
-                    event.getGroupId(), event.getArtifactId(), event.getVersion());
+    /**
+     * Worker loop that processes indexing operations from the queue. Runs on a dedicated
+     * background thread and blocks on {@code take()} when the queue is empty. Exits when
+     * the thread is interrupted (shutdown signal).
+     */
+    private void processQueue() {
+        log.info("Elasticsearch index updater worker thread started");
+        while (running) {
+            try {
+                IndexingOperation operation = operationQueue.take();
+                executeOperation(operation);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        log.info("Elasticsearch index updater worker thread stopped");
+    }
 
+    /**
+     * Dispatches a single indexing operation to the appropriate handler method. Wraps each
+     * call in try-catch to log errors and continue processing the queue.
+     *
+     * @param operation the indexing operation to execute
+     */
+    private void executeOperation(IndexingOperation operation) {
+        try {
+            switch (operation.type()) {
+                case INDEX_VERSION: {
+                    IndexingOperation.IndexVersion op = (IndexingOperation.IndexVersion) operation;
+                    log.debug("Indexing version: {}/{}/{}", op.groupId(), op.artifactId(),
+                            op.version());
+                    indexVersion(op.groupId(), op.artifactId(), op.version(), op.globalId());
+                    log.debug("Successfully indexed version {}/{}/{} (globalId={})",
+                            op.groupId(), op.artifactId(), op.version(), op.globalId());
+                    break;
+                }
+                case REINDEX_ARTIFACT_VERSIONS: {
+                    IndexingOperation.ReindexArtifactVersions op =
+                            (IndexingOperation.ReindexArtifactVersions) operation;
+                    log.debug("Re-indexing versions for artifact: {}/{}", op.groupId(),
+                            op.artifactId());
+                    reindexAllVersions(op.groupId(), op.artifactId());
+                    log.debug("Re-indexed versions for artifact {}/{}", op.groupId(),
+                            op.artifactId());
+                    break;
+                }
+                case DELETE_VERSION: {
+                    IndexingOperation.DeleteVersion op =
+                            (IndexingOperation.DeleteVersion) operation;
+                    log.debug("Removing deleted version from index: {}/{}/{}",
+                            op.groupId(), op.artifactId(), op.version());
+                    deleteVersionFromIndex(op.globalId());
+                    log.debug("Successfully removed version {}/{}/{} from index",
+                            op.groupId(), op.artifactId(), op.version());
+                    break;
+                }
+                case DELETE_ARTIFACT: {
+                    IndexingOperation.DeleteArtifact op =
+                            (IndexingOperation.DeleteArtifact) operation;
+                    log.debug("Removing all versions of deleted artifact from index: {}/{}",
+                            op.groupId(), op.artifactId());
+                    deleteArtifactFromIndex(op.groupId(), op.artifactId());
+                    log.debug("Successfully removed all versions of artifact {}/{} from index",
+                            op.groupId(), op.artifactId());
+                    break;
+                }
+                case DELETE_GROUP: {
+                    IndexingOperation.DeleteGroup op =
+                            (IndexingOperation.DeleteGroup) operation;
+                    log.debug("Removing all versions in deleted group from index: {}",
+                            op.groupId());
+                    deleteGroupFromIndex(op.groupId());
+                    log.debug("Successfully removed all versions in group {} from index",
+                            op.groupId());
+                    break;
+                }
+                case DELETE_ALL_DATA: {
+                    log.debug("Removing all data from search index");
+                    deleteAllDataFromIndex();
+                    log.debug("Successfully removed all data from search index");
+                    break;
+                }
+            }
         } catch (Exception e) {
-            log.error("Failed to update index for version state change: {}/{}/{}",
-                    event.getGroupId(), event.getArtifactId(), event.getVersion(), e);
+            log.error("Failed to execute indexing operation: {}", operation, e);
+        }
+    }
+
+    /**
+     * Drains remaining operations from the queue and executes them on the calling thread.
+     * Used during shutdown to process any queued operations before the bean is destroyed.
+     */
+    private void drainQueue() {
+        IndexingOperation operation;
+        while ((operation = operationQueue.poll()) != null) {
+            executeOperation(operation);
         }
     }
 
@@ -310,16 +359,103 @@ public class ElasticsearchIndexUpdater {
                 .index(config.getIndexName())
                 .id(String.valueOf(globalId))
                 .document(doc)
-                .refresh(Refresh.WaitFor)
+                .refresh(Refresh.False)
         );
     }
 
     /**
-     * Checks if index updating is active.
+     * Re-indexes all versions of an artifact.
      *
-     * @return true if active
+     * @param groupId the group ID
+     * @param artifactId the artifact ID
+     * @throws IOException if the storage query fails
      */
-    public boolean isActive() {
-        return isActive;
+    private void reindexAllVersions(String groupId, String artifactId) throws IOException {
+        VersionSearchResultsDto versions = storage.searchVersions(
+                Set.of(SearchFilter.ofGroupId(groupId),
+                        SearchFilter.ofArtifactId(artifactId)),
+                OrderBy.createdOn, OrderDirection.asc, 0, Integer.MAX_VALUE);
+
+        int reindexedCount = 0;
+        for (var version : versions.getVersions()) {
+            try {
+                indexVersion(version.getGroupId(), version.getArtifactId(),
+                        version.getVersion(), version.getGlobalId());
+                reindexedCount++;
+            } catch (Exception e) {
+                log.error("Failed to re-index version {}/{}/{}", version.getGroupId(),
+                        version.getArtifactId(), version.getVersion(), e);
+            }
+        }
+
+        log.debug("Re-indexed {} versions for artifact {}/{}", reindexedCount,
+                groupId, artifactId);
+    }
+
+    /**
+     * Removes a single version from the index by its global ID.
+     *
+     * @param globalId the global ID of the version to remove
+     * @throws IOException if the delete fails
+     */
+    private void deleteVersionFromIndex(long globalId) throws IOException {
+        client.delete(d -> d
+                .index(config.getIndexName())
+                .id(String.valueOf(globalId))
+                .refresh(Refresh.False)
+        );
+    }
+
+    /**
+     * Removes all versions of an artifact from the index.
+     *
+     * @param groupId the group ID
+     * @param artifactId the artifact ID
+     * @throws IOException if the delete-by-query fails
+     */
+    private void deleteArtifactFromIndex(String groupId, String artifactId) throws IOException {
+        client.deleteByQuery(d -> d
+                .index(config.getIndexName())
+                .query(q -> q
+                        .bool(b -> b
+                                .must(m -> m.term(t -> t
+                                        .field("groupId")
+                                        .value(groupId)))
+                                .must(m -> m.term(t -> t
+                                        .field("artifactId")
+                                        .value(artifactId)))))
+                .refresh(false)
+        );
+    }
+
+    /**
+     * Removes all versions in a group from the index.
+     *
+     * @param groupId the group ID
+     * @throws IOException if the delete-by-query fails
+     */
+    private void deleteGroupFromIndex(String groupId) throws IOException {
+        client.deleteByQuery(d -> d
+                .index(config.getIndexName())
+                .query(q -> q
+                        .term(t -> t
+                                .field("groupId")
+                                .value(groupId)))
+                .refresh(false)
+        );
+    }
+
+    /**
+     * Removes all data from the search index.
+     *
+     * @throws IOException if the delete-by-query fails
+     */
+    private void deleteAllDataFromIndex() throws IOException {
+        client.deleteByQuery(d -> d
+                .index(config.getIndexName())
+                .query(q -> q
+                        .matchAll(m -> m))
+                .refresh(false)
+        );
     }
 }

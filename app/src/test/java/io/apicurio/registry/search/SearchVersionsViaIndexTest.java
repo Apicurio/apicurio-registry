@@ -10,15 +10,18 @@ import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionSortBy;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.models.WrappedVersionState;
+import io.apicurio.registry.storage.impl.search.ElasticsearchIndexUpdater;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Integration tests for searching versions via the Elasticsearch index. Uses a QuarkusTestProfile
@@ -29,6 +32,9 @@ import java.util.Map;
 @QuarkusTest
 @TestProfile(ElasticsearchSearchTestProfile.class)
 public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
+
+    @Inject
+    ElasticsearchIndexUpdater indexUpdater;
 
     @Test
     public void testSearchVersionsByGroupId() throws Exception {
@@ -47,6 +53,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
             createArtifact(group2, artifactId, ArtifactType.OPENAPI, "{\"openapi\":\"3.0.0\"}",
                     ContentTypes.APPLICATION_JSON);
         }
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group1;
@@ -76,6 +84,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                 ContentTypes.APPLICATION_JSON);
         createArtifact(group, "testSearchByArtifactId_api-2", ArtifactType.OPENAPI,
                 "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -119,6 +129,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(group).artifacts().byArtifactId("testSearchByName_api-3")
                 .versions().byVersionExpression(car3.getVersion().getVersion()).put(emd3);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Search for "Pet" - should match 2 versions
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -152,6 +164,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         emd2.setDescription("API for user authentication and authorization");
         clientV3.groups().byGroupId(group).artifacts().byArtifactId("testSearchByDesc_api-2")
                 .versions().byVersionExpression(car2.getVersion().getVersion()).put(emd2);
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Search for "inventory" in description
         VersionSearchResults results = clientV3.search().versions().get(config -> {
@@ -187,6 +201,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                     "{\"type\":\"record\",\"name\":\"Test\",\"fields\":[]}",
                     ContentTypes.APPLICATION_JSON);
         }
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -225,6 +241,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(group).artifacts().byArtifactId("testSearchByState_api-1")
                 .versions().byVersionExpression(car1.getVersion().getVersion()).state()
                 .put(deprecatedState);
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Search for DEPRECATED versions
         VersionSearchResults results = clientV3.search().versions().get(config -> {
@@ -267,6 +285,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(group).artifacts().byArtifactId("testSearchByLabelsKey_api-2")
                 .versions().byVersionExpression(car2.getVersion().getVersion()).put(emd2);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Search for versions with "env" label (key-only) - should match 2
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -303,6 +323,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         emd2.getLabels().setAdditionalData(Map.of("env", "staging"));
         clientV3.groups().byGroupId(group).artifacts().byArtifactId("testSearchByLabelsKV_api-2")
                 .versions().byVersionExpression(car2.getVersion().getVersion()).put(emd2);
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Search for env=production - should match 1
         VersionSearchResults results = clientV3.search().versions().get(config -> {
@@ -345,6 +367,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                 .artifacts().byArtifactId("testSearchByLabelsResults_api-1")
                 .versions().byVersionExpression(car.getVersion().getVersion()).put(emd);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
             config.queryParameters.labels = new String[] { "env:production" };
@@ -371,6 +395,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         // Also create another artifact to ensure we only get 1 result
         createArtifact(group, "testSearchByGlobalId_api-2", ArtifactType.OPENAPI,
                 "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.globalId = globalId;
@@ -400,6 +426,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                 "{\"different\":\"testSearchByContentId-other\"}",
                 ContentTypes.APPLICATION_JSON);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.contentId = contentId;
         });
@@ -420,6 +448,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                     "{\"openapi\":\"3.0.0\",\"idx\":" + idx + "}",
                     ContentTypes.APPLICATION_JSON);
         }
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Get all results
         VersionSearchResults all = clientV3.search().versions().get(config -> {
@@ -481,6 +511,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                     .versions().byVersionExpression(car.getVersion().getVersion()).put(emd);
         }
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Sort by name ascending
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -513,6 +545,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                     "{\"openapi\":\"3.0.0\",\"idx\":" + idx + "}",
                     ContentTypes.APPLICATION_JSON);
         }
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Sort by globalId ascending
         VersionSearchResults results = clientV3.search().versions().get(config -> {
@@ -556,6 +590,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                 "{\"type\":\"record\",\"name\":\"Test\",\"fields\":[]}",
                 ContentTypes.APPLICATION_JSON);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Search with groupId + artifactType = OPENAPI
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -587,6 +623,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         createArtifactVersion(group, "testSearchByVersion_api-1", "{\"openapi\":\"3.0.1\"}",
                 ContentTypes.APPLICATION_JSON);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Search for version "1" (first auto-generated version)
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -615,6 +653,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         emd.getLabels().setAdditionalData(Map.of("env", "test", "version-tag", "v1"));
         clientV3.groups().byGroupId(group).artifacts().byArtifactId("testResultMapping_api-1")
                 .versions().byVersionExpression(car.getVersion().getVersion()).put(emd);
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Search and verify all result fields are populated
         VersionSearchResults results = clientV3.search().versions().get(config -> {
@@ -651,6 +691,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         createArtifactVersion(group, "testDeleteVersion_api-1", "{\"openapi\":\"3.0.1\"}",
                 ContentTypes.APPLICATION_JSON);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Verify both versions are in the index
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -661,6 +703,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         // Delete version "1"
         clientV3.groups().byGroupId(group).artifacts().byArtifactId("testDeleteVersion_api-1")
                 .versions().byVersionExpression("1").delete();
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Verify only 1 version remains in the index
         results = clientV3.search().versions().get(config -> {
@@ -683,6 +727,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         createArtifact(group, "testDeleteArtifact_api-2", ArtifactType.OPENAPI,
                 "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Verify all 3 versions are in the index
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -692,6 +738,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         // Delete the first artifact (which has 2 versions)
         clientV3.groups().byGroupId(group).artifacts()
                 .byArtifactId("testDeleteArtifact_api-1").delete();
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Verify only the second artifact's version remains
         results = clientV3.search().versions().get(config -> {
@@ -713,6 +761,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                     ContentTypes.APPLICATION_JSON);
         }
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Verify all 3 are in the index
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -721,6 +771,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
 
         // Delete all artifacts in the group
         clientV3.groups().byGroupId(group).artifacts().delete();
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Verify the index is empty for this group
         results = clientV3.search().versions().get(config -> {
@@ -745,6 +797,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
                     ContentTypes.APPLICATION_JSON);
         }
 
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
         // Verify all 3 are in the index
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
@@ -753,6 +807,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
 
         // Delete the group (cascades to all artifacts)
         clientV3.groups().byGroupId(group).delete();
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         // Verify the index is empty for this group
         results = clientV3.search().versions().get(config -> {

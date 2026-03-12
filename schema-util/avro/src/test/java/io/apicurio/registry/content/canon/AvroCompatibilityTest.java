@@ -1,6 +1,6 @@
 package io.apicurio.registry.content.canon;
 
-import io.apicurio.registry.avro.content.canon.EnhancedAvroContentCanonicalizer;
+import io.apicurio.registry.avro.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AvroCompatibilityTest {
-    private final ContentCanonicalizer avroCanonicalizer = new EnhancedAvroContentCanonicalizer();
+    private final ContentCanonicalizer avroCanonicalizer = new AvroContentCanonicalizer();
     private final String schemaString1 = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1\"}]}";
     private final Schema schema1 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(

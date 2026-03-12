@@ -1,71 +1,134 @@
 package io.apicurio.registry.avro.content.canon;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.types.ContentTypes;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 /**
- * An Avro implementation of a content Canonicalizer that handles avro references.
+ * An Avro implementation of a content Canonicalizer that handles avro references. A custom version that can
+ * be used to check subject compatibilities. It does not reorder fields.
  */
 public class AvroContentCanonicalizer implements ContentCanonicalizer {
 
-    private final ObjectMapper mapper = new ObjectMapper()
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+    public static final String EMPTY_DOC = "";
 
-    private final Comparator<JsonNode> fieldComparator = (n1, n2) -> {
-        String name1 = n1.get("name").textValue();
-        String name2 = n2.get("name").textValue();
-        return name1.compareTo(name2);
-    };
+    public static Schema normalizeSchema(String schemaString) {
+        Schema.Parser parser = new Schema.Parser();
+        Schema schema = parser.parse(schemaString);
+
+        return normalizeSchema(schema);
+    }
+
+    public static Schema normalizeSchema(Schema schema) {
+        return normalizeSchema(schema, new HashMap<>());
+    }
 
     /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.TypedContent, Map)
+     * Normalize a schema.
+     *
+     * @param schema a schema.
+     * @param alreadyNormalized a Map indicating if the fields in the schema were already normalized.
+     * @return the same schema functionally, in normalized form.
+     */
+    private static Schema normalizeSchema(Schema schema, Map<String, Boolean> alreadyNormalized) {
+
+        // if it's a nested type RECORD, check if it was already normalized and update our administration
+        if (schema.getType().equals(Schema.Type.RECORD)) {
+            String key = createKey(schema);
+            if (alreadyNormalized.containsKey(key)) {
+                // don't normalize again
+                return schema;
+            } else {
+                alreadyNormalized.put(key, true);
+            }
+        }
+
+        final Schema result;
+        switch (schema.getType()) {
+            case RECORD:
+                result = Schema.createRecord(schema.getName(), EMPTY_DOC, schema.getNamespace(), false,
+                        normalizeFields(schema.getFields(), alreadyNormalized));
+                break;
+            case ENUM:
+                result = Schema.createEnum(schema.getName(), EMPTY_DOC, schema.getNamespace(),
+                        schema.getEnumSymbols());
+                break;
+            case ARRAY:
+                result = Schema.createArray(normalizeSchema(schema.getElementType(), alreadyNormalized));
+                break;
+            case FIXED:
+                result = Schema.createFixed(schema.getName(), EMPTY_DOC, schema.getNamespace(),
+                        schema.getFixedSize());
+                break;
+            case UNION:
+                result = Schema.createUnion(normalizeSchemasList(schema.getTypes(), alreadyNormalized));
+                break;
+            case MAP:
+                result = Schema.createMap(normalizeSchema(schema.getValueType(), alreadyNormalized));
+                break;
+            default:
+                result = Schema.create(schema.getType());
+        }
+        schema.getObjectProps().forEach(result::addProp);
+        return result;
+    }
+
+    private static List<Schema> normalizeSchemasList(List<Schema> schemas,
+            Map<String, Boolean> alreadyNormalized) {
+        final List<Schema> result = new ArrayList<>(schemas.size());
+        for (Schema schema : schemas) {
+            result.add(normalizeSchema(schema, alreadyNormalized));
+        }
+        return result;
+    }
+
+    private static Schema.Field normalizeField(Schema.Field field, Map<String, Boolean> alreadyNormalized) {
+        final Schema.Field result = new Schema.Field(field.name(),
+                normalizeSchema(field.schema(), alreadyNormalized), EMPTY_DOC, field.defaultVal(),
+                field.order());
+        field.getObjectProps().forEach(result::addProp);
+        return result;
+    }
+
+    private static List<Schema.Field> normalizeFields(List<Schema.Field> fields,
+            Map<String, Boolean> alreadyNormalized) {
+        List<Schema.Field> result = new ArrayList<>(fields.size());
+        for (Schema.Field field : fields) {
+            result.add(normalizeField(field, alreadyNormalized));
+        }
+        return result;
+    }
+
+    /**
+     * Create a key for the internal map.
+     *
+     * @param schema a schema.
+     * @return the schema namespace (if any), concatenated with the schema name.
+     */
+    private static String createKey(Schema schema) {
+        String namespace = "";
+        try {
+            namespace = schema.getNamespace() == null ? "" : schema.getNamespace();
+        } catch (AvroRuntimeException e) {
+            // not namespaced, leave as is
+        }
+        return namespace + ":" + schema.getName();
+    }
+
+    /**
+     * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
      */
     @Override
     public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        try {
-            JsonNode root = mapper.readTree(content.getContent().content());
-
-            // reorder "fields" property
-            JsonNode fieldsNode = root.get("fields");
-            if (fieldsNode != null) {
-                Set<JsonNode> fields = new TreeSet<>(fieldComparator);
-                Iterator<JsonNode> elements = fieldsNode.elements();
-                while (elements.hasNext()) {
-                    fields.add(elements.next());
-                }
-                ArrayNode array = new ArrayNode(mapper.getNodeFactory());
-                fields.forEach(array::add);
-                ObjectNode.class.cast(root).replace("fields", array);
-            }
-            String converted = mapper.writeValueAsString(mapper.treeToValue(root, Object.class));
-            return TypedContent.create(ContentHandle.create(converted), ContentTypes.APPLICATION_JSON);
-        } catch (Throwable t) {
-            // best effort
-            final Schema.Parser parser = new Schema.Parser();
-            final List<Schema> schemaRefs = new ArrayList<>();
-            for (TypedContent referencedContent : resolvedReferences.values()) {
-                Schema schemaRef = parser.parse(referencedContent.getContent().content());
-                schemaRefs.add(schemaRef);
-            }
-            final Schema schema = parser.parse(content.getContent().content());
-            return TypedContent.create(ContentHandle.create(schema.toString(schemaRefs, false)),
-                    ContentTypes.APPLICATION_JSON);
-        }
+        String normalisedSchema = normalizeSchema(content.getContent().content()).toString();
+        return TypedContent.create(ContentHandle.create(normalisedSchema), ContentTypes.APPLICATION_JSON);
     }
 }

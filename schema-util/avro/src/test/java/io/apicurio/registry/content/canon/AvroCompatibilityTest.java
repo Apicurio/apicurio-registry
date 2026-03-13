@@ -1,65 +1,45 @@
 package io.apicurio.registry.content.canon;
 
-import io.apicurio.registry.avro.content.canon.EnhancedAvroContentCanonicalizer;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AvroCompatibilityTest {
-    private final ContentCanonicalizer avroCanonicalizer = new EnhancedAvroContentCanonicalizer();
     private final String schemaString1 = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1\"}]}";
-    private final Schema schema1 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(
-            TypedContent.create(ContentHandle.create(schemaString1), ContentTypes.APPLICATION_JSON),
-            new HashMap<>()).getContent().content());
+    private final Schema schema1 = new Schema.Parser().parse(schemaString1);
 
     private final String schemaString2 = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1\"},"
             + " {\"type\":\"string\",\"name\":\"f2\", \"default\": \"foo\"}]}";
-    private final Schema schema2 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(
-            TypedContent.create(ContentHandle.create(schemaString2), ContentTypes.APPLICATION_JSON),
-            new HashMap<>()).getContent().content());
+    private final Schema schema2 = new Schema.Parser().parse(schemaString2);
 
     private final String schemaString3 = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1\"}," + " {\"type\":\"string\",\"name\":\"f2\"}]}";
-    private final Schema schema3 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(
-            TypedContent.create(ContentHandle.create(schemaString3), ContentTypes.APPLICATION_JSON),
-            new HashMap<>()).getContent().content());
+    private final Schema schema3 = new Schema.Parser().parse(schemaString3);
 
     private final String schemaString4 = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1_new\", \"aliases\": [\"f1\"]}]}";
-    private final Schema schema4 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(
-            TypedContent.create(ContentHandle.create(schemaString4), ContentTypes.APPLICATION_JSON),
-            new HashMap<>()).getContent().content());
+    private final Schema schema4 = new Schema.Parser().parse(schemaString4);
 
     private final String schemaString6 = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
             + "[{\"type\":[\"null\", \"string\"],\"name\":\"f1\"," + " \"doc\":\"doc of f1\"}]}";
-    private final Schema schema6 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(
-            TypedContent.create(ContentHandle.create(schemaString6), ContentTypes.APPLICATION_JSON),
-            new HashMap<>()).getContent().content());
+    private final Schema schema6 = new Schema.Parser().parse(schemaString6);
 
     private final String schemaString7 = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
             + "[{\"type\":[\"null\", \"string\", \"int\"],\"name\":\"f1\"," + " \"doc\":\"doc of f1\"}]}";
-    private final Schema schema7 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(
-            TypedContent.create(ContentHandle.create(schemaString7), ContentTypes.APPLICATION_JSON),
-            new HashMap<>()).getContent().content());
+    private final Schema schema7 = new Schema.Parser().parse(schemaString7);
 
     private final String schemaString8 = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
             + "[{\"type\":\"string\",\"name\":\"f1\"},"
             + " {\"type\":\"string\",\"name\":\"f2\", \"default\": \"foo\"},"
             + " {\"type\":\"string\",\"name\":\"f3\", \"default\": \"bar\"}]}";
-    private final Schema schema8 = new Schema.Parser().parse(avroCanonicalizer.canonicalize(
-            TypedContent.create(ContentHandle.create(schemaString8), ContentTypes.APPLICATION_JSON),
-            new HashMap<>()).getContent().content());
+    private final Schema schema8 = new Schema.Parser().parse(schemaString8);
 
     /*
      * Backward compatibility: A new schema is backward compatible if it can be used to read the data written
@@ -72,8 +52,8 @@ class AvroCompatibilityTest {
                 "adding a field with default is a backward compatible change");
         assertFalse(checker.isCompatible(schema3, Collections.singletonList(schema1)),
                 "adding a field w/o default is not a backward compatible change");
-        assertFalse(checker.isCompatible(schema4, Collections.singletonList(schema1)),
-                "changing field name is not a backward compatible change");
+        assertTrue(checker.isCompatible(schema4, Collections.singletonList(schema1)),
+                "renaming a field with an alias is a backward compatible change");
         assertTrue(checker.isCompatible(schema6, Collections.singletonList(schema1)),
                 "evolving a field type to a union is a backward compatible change");
         assertFalse(checker.isCompatible(schema1, Collections.singletonList(schema6)),
@@ -150,7 +130,7 @@ class AvroCompatibilityTest {
     }
 
     /*
-     * Full compatibility: A new schema is fully compatible if it’s both backward and forward compatible.
+     * Full compatibility: A new schema is fully compatible if it's both backward and forward compatible.
      */
     @Test
     void testBasicFullCompatibility() {
@@ -167,7 +147,7 @@ class AvroCompatibilityTest {
     }
 
     /*
-     * Full transitive compatibility: A new schema is fully compatible if it’s both transitively backward and
+     * Full transitive compatibility: A new schema is fully compatible if it's both transitively backward and
      * transitively forward compatible with the entire schema history.
      */
     @Test

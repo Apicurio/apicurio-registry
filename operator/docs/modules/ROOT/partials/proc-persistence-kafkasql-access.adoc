@@ -119,3 +119,75 @@ include::example$apicurioregistry_kafkasql_access_cr.yaml[]
 IMPORTANT: When `kafkaAccessSecretName` is set alongside `bootstrapServers`, the `kafkaAccessSecretName` takes precedence and `bootstrapServers` is ignored.
 
 NOTE: The {operator} wires all environment variables from the Kafka Access secret using `secretKeyRef`, so credential values never appear in the {registry} deployment spec. Non-required keys (such as SASL configuration for a TLS-only cluster) are marked as optional, so the pod starts correctly regardless of which security mechanisms the cluster uses.
+
+[id="kafkasql-access-pre-3.2.0"]
+== Alternative for versions before 3.2.0
+
+The `kafkaAccessSecretName` field is available starting with {registry} version 3.2.0. If you are using an earlier version, you must configure the Kafka connection manually using the `bootstrapServers`, `tls`, and `auth` fields in the `ApicurioRegistry3` CR.
+
+For TLS-only clusters, see xref:ROOT:assembly-registry-storage.adoc#registry-persistence-kafkasql-tls[Configuring Kafka storage with TLS security].
+
+For SCRAM-SHA-512, configure TLS for the truststore and set the SCRAM credentials via environment variables:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-apicurioregistry-kafkasql-secured
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "my-cluster-kafka-bootstrap.my-namespace.svc:9093"
+        tls:
+          truststoreSecretRef:
+            name: my-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: my-cluster-cluster-ca-cert
+    env:
+      - name: APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL
+        value: "SASL_SSL"
+      - name: APICURIO_KAFKA_COMMON_SASL_MECHANISM
+        value: "SCRAM-SHA-512"
+      - name: APICURIO_KAFKA_COMMON_SASL_JAAS_CONFIG
+        valueFrom:
+          secretKeyRef:
+            name: my-user
+            key: sasl.jaas.config
+----
+
+For OAuth (OAUTHBEARER), use the `auth` section directly (available in all versions of the `ApicurioRegistry3` CRD):
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-apicurioregistry-kafkasql-oauth
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "my-cluster-kafka-bootstrap.my-namespace.svc:9093"
+        tls:
+          truststoreSecretRef:
+            name: my-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: my-cluster-cluster-ca-cert
+        auth:
+          enabled: true
+          mechanism: OAUTHBEARER
+          clientIdRef:
+            name: kafka-oauth-credentials
+            key: clientId
+          clientSecretRef:
+            name: kafka-oauth-credentials
+            key: clientSecret
+          tokenEndpoint: https://identity-server.example.com/token
+          loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+----
+
+See xref:ROOT:assembly-registry-storage.adoc#registry-persistence-kafkasql-oauth[Configuring Kafka storage with OAuth authentication] for the full OAuth procedure.

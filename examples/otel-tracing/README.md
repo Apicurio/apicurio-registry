@@ -41,7 +41,7 @@ This example demonstrates end-to-end distributed tracing across a complete stack
 
 - Docker and Docker Compose (for local deployment)
 - Kubernetes cluster with Strimzi operator (for K8s deployment)
-- Java 17 and Maven (for building applications)
+- Java 21 and Maven (for building applications)
 
 ## Quick Start with Docker Compose
 

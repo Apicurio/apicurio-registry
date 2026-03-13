@@ -68,10 +68,10 @@ jobs:
           echo "Next version will be ${{ env.NEXT_VERSION }}"
           echo "Next Snapshot version will be ${{ env.SNAPSHOT_VERSION }}"
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Node.js

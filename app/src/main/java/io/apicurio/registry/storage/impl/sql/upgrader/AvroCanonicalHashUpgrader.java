@@ -6,12 +6,14 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.impl.sql.IDbUpgrader;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
+import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,10 +38,10 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
     public void upgrade(Handle handle) throws Exception {
         log.info("Recomputing Avro canonical content hashes...");
 
-        String sql = "SELECT DISTINCT c.contentId, c.canonicalHash, c.contentHash, c.contentType, "
-                + "c.content, c.refs, a.type " + "FROM versions v "
-                + "JOIN content c ON c.contentId = v.contentId "
-                + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
+        String sql = "SELECT DISTINCT c.contentId, c.canonicalHash, c.contentHash, c.contentType, c.content, c.refs, a.type "
+                + "FROM versions v "
+                    + "JOIN content c ON c.contentId = v.contentId "
+                    + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE a.type = ?";
 
         int successCount = handle.createQuery(sql).bind(0, ArtifactType.AVRO).setFetchSize(50)
@@ -103,8 +105,7 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
         String type;
     }
 
-    private static class ContentWithTypeRowMapper
-            implements io.apicurio.registry.storage.impl.sql.jdb.RowMapper<ContentWithType> {
+    private static class ContentWithTypeRowMapper implements RowMapper<ContentWithType> {
         @Override
         public ContentWithType map(ResultSet rs) throws SQLException {
             ContentWithType result = new ContentWithType();

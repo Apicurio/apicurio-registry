@@ -7,6 +7,7 @@ import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.core.CountResponse;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
+import co.elastic.clients.elasticsearch.indices.GetIndicesSettingsResponse;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -111,6 +112,55 @@ public class ElasticsearchIndexManager {
      */
     public void refresh() throws IOException {
         client.indices().refresh(r -> r.index(config.getIndexName()));
+    }
+
+    /**
+     * Reads the current refresh interval setting from the Elasticsearch index.
+     *
+     * @return the current refresh interval value (e.g. "1s"), or null if not explicitly set
+     * @throws IOException if an error occurs communicating with Elasticsearch
+     */
+    public String getRefreshInterval() throws IOException {
+        GetIndicesSettingsResponse response = client.indices().getSettings(
+                s -> s.index(config.getIndexName()));
+        IndexSettings settings = response.get(config.getIndexName()).settings();
+        if (settings != null && settings.index() != null
+                && settings.index().refreshInterval() != null) {
+            return settings.index().refreshInterval().time();
+        }
+        return null;
+    }
+
+    /**
+     * Disables automatic index refreshes by setting the refresh interval to -1. This
+     * improves bulk indexing throughput by preventing unnecessary segment rebuilds during
+     * large batch operations.
+     *
+     * @throws IOException if an error occurs communicating with Elasticsearch
+     */
+    public void disableRefresh() throws IOException {
+        client.indices().putSettings(s -> s
+                .index(config.getIndexName())
+                .settings(is -> is.refreshInterval(t -> t.time("-1")))
+        );
+        log.info("Disabled automatic refresh for index '{}'.", config.getIndexName());
+    }
+
+    /**
+     * Restores the automatic refresh interval to the specified value.
+     *
+     * @param interval the refresh interval to restore (e.g. "1s"), or null to restore the
+     *                 Elasticsearch default
+     * @throws IOException if an error occurs communicating with Elasticsearch
+     */
+    public void restoreRefresh(String interval) throws IOException {
+        String restoreValue = interval != null ? interval : "1s";
+        client.indices().putSettings(s -> s
+                .index(config.getIndexName())
+                .settings(is -> is.refreshInterval(t -> t.time(restoreValue)))
+        );
+        log.info("Restored refresh interval to '{}' for index '{}'.", restoreValue,
+                config.getIndexName());
     }
 
     /**

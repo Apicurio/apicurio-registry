@@ -36,6 +36,11 @@ public class ElasticsearchSearchConfig {
             availableSince = "3.2.0")
     int numberOfReplicas;
 
+    @ConfigProperty(name = "apicurio.search.index.content.max-size", defaultValue = "1048576")
+    @Info(category = CATEGORY_SEARCH, description = "Maximum content size (in characters) to index",
+            availableSince = "3.2.0")
+    int contentMaxSize;
+
     @PostConstruct
     void initialize() {
         if (enabled) {
@@ -81,5 +86,15 @@ public class ElasticsearchSearchConfig {
      */
     public int getNumberOfReplicas() {
         return numberOfReplicas;
+    }
+
+    /**
+     * Returns the maximum content size (in characters) to index in Elasticsearch. Content
+     * exceeding this limit will be truncated.
+     *
+     * @return the maximum content size
+     */
+    public int getContentMaxSize() {
+        return contentMaxSize;
     }
 }

@@ -5,6 +5,7 @@ import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,9 @@ import java.util.Map;
 public class ElasticsearchDocumentBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchDocumentBuilder.class);
+
+    @Inject
+    ElasticsearchSearchConfig config;
 
     /**
      * Builds an Elasticsearch document from artifact version metadata and content.
@@ -101,6 +105,9 @@ public class ElasticsearchDocumentBuilder {
 
         // === Content Fields ===
         String contentText = new String(contentBytes, StandardCharsets.UTF_8);
+        if (contentText.length() > config.getContentMaxSize()) {
+            contentText = contentText.substring(0, config.getContentMaxSize());
+        }
         doc.put("content", contentText);
 
         // Structured content extraction

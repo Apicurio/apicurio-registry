@@ -878,6 +878,11 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.search.index.content.max-size`
+|`int`
+|`1048576`
+|`3.2.0`
+|Maximum content size (in characters) to index
 |`apicurio.search.index.elasticsearch.index-name`
 |`string`
 |`apicurio-registry`

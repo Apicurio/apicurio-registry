@@ -141,7 +141,7 @@
 
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
@@ -187,7 +187,7 @@
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio.version>3.16.4</okio.version>
+    <okio.version>3.17.0</okio.version>
     <kotlin-stdlib.version>2.3.10</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.34.0</protobuf.version>
@@ -218,14 +218,14 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.5.2</apicurio-data-models.version>
+    <apicurio-data-models.version>2.5.3</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>
 
     <!-- JSON Schema Validator -->
     <org.everit.json.schema.version>1.14.6</org.everit.json.schema.version>
-    <json-sKema.version>0.28.0</json-sKema.version>
+    <json-sKema.version>0.29.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250107</org.json.version>
     <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
@@ -285,7 +285,7 @@
     <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
     <version.license-maven-plugin>2.7.1</version.license-maven-plugin>
     <version.exec-maven-plugin>3.6.3</version.exec-maven-plugin>
-    <version.apicurio-codegen-plugin>1.2.9.Final</version.apicurio-codegen-plugin>
+    <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->

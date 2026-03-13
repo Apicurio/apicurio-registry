@@ -54,7 +54,7 @@ on:
         description: 'Java version for Maven build (if maven-build is true)'
         required: false
         type: string
-        default: '17'
+        default: '21'
       maven-build:
         description: 'Run Maven build before Docker build'
         required: false

@@ -413,6 +413,54 @@
           }
         }
       },
+      "post": {
+        "operationId": "commitTable",
+        "tags": ["Tables"],
+        "summary": "Commit updates to a table",
+        "description": "Commit updates to a table. Commits can optionally include requirements that must be satisfied for the commit to succeed. If any requirement is not met, the commit will fail with a 409 Conflict response.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/table"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitTableRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadTableResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      },
       "delete": {
         "operationId": "dropTable",
         "tags": ["Tables"],
@@ -517,6 +565,16 @@
     "responses": {
       "NotFoundError": {
         "description": "Not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IcebergErrorResponse"
+            }
+          }
+        }
+      },
+      "BadRequestError": {
+        "description": "Bad request - Invalid input",
         "content": {
           "application/json": {
             "schema": {
@@ -1001,6 +1059,28 @@
           },
           "destination": {
             "$ref": "#/components/schemas/TableIdentifier"
+          }
+        }
+      },
+      "CommitTableRequest": {
+        "type": "object",
+        "required": ["requirements", "updates"],
+        "properties": {
+          "requirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Requirements that must be met for the commit to succeed. Each requirement has a 'type' field indicating the assertion type."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Updates to apply to the table metadata. Each update has an 'action' field indicating the update type."
           }
         }
       }

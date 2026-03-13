@@ -29,7 +29,7 @@ AI-powered support assistant for [Apicurio Registry](https://www.apicur.io/regis
 
 ## Prerequisites
 
-- **Java 17+** and **Maven 3.8+**
+- **Java 21+** and **Maven 3.8+**
 - **Docker** (for containerized deployment)
 - **Kubernetes** (optional, for k8s deployment)
 

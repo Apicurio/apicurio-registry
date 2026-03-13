@@ -43,11 +43,11 @@ import java.util.function.Function;
 /**
  * Forwards all read-only method calls to the delegate.
  */
-public abstract class RegistryStorageDecoratorReadOnlyBase implements RegistryStorage {
+public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
 
     protected RegistryStorage delegate;
 
-    protected RegistryStorageDecoratorReadOnlyBase() {
+    protected ReadOnlyDelegatingStorage() {
     }
 
     public void setDelegate(RegistryStorage delegate) {

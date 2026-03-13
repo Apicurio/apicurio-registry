@@ -58,6 +58,8 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -910,7 +912,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String artifactType = vmd.getArtifactType();
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
         boolean isEmptyContent = artifactTypeProvider.getContentTypes().isEmpty();
-        ContentHandle content = ContentHandle.create(data.getContent());
+        ContentHandle content = ContentHandle.create(resolveContent(data));
 
         if (isEmptyContent) {
             // TODO fail the request if content is sent to an artifact that requires empty content??
@@ -1434,7 +1436,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             data.getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
         }
 
-        ContentHandle content = ContentHandle.create(data.getContent().getContent());
+        ContentHandle content = ContentHandle.create(resolveContent(data.getContent()));
         if (!isEmptyContent && content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
@@ -1654,9 +1656,29 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return null;
     }
 
+    /**
+     * Resolves the content from a {@link VersionContent}, decoding from base64 if the encoding
+     * property is set to "base64".
+     *
+     * @param vc the version content
+     * @return the resolved content string
+     */
+    private String resolveContent(VersionContent vc) {
+        String content = vc.getContent();
+        if (VersionContent.Encoding.base64.equals(vc.getEncoding())) {
+            try {
+                byte[] decoded = Base64.getDecoder().decode(content);
+                content = new String(decoded, StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Invalid base64-encoded content");
+            }
+        }
+        return content;
+    }
+
     private ContentHandle getContent(CreateArtifact data) {
         if (data.getFirstVersion() != null && data.getFirstVersion().getContent() != null) {
-            return ContentHandle.create(data.getFirstVersion().getContent().getContent());
+            return ContentHandle.create(resolveContent(data.getFirstVersion().getContent()));
         }
         return null;
     }
@@ -1689,7 +1711,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         try {
             // Find the version
             TypedContent content = TypedContent.create(
-                    ContentHandle.create(theVersion.getContent().getContent()),
+                    ContentHandle.create(resolveContent(theVersion.getContent())),
                     theVersion.getContent().getContentType());
             List<ArtifactReferenceDto> referenceDtos = toReferenceDtos(
                     theVersion.getContent().getReferences());
@@ -1719,7 +1741,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Map<String, String> labels = theVersion.getLabels();
         List<ArtifactReference> references = theVersion.getContent().getReferences();
         String contentType = theVersion.getContent().getContentType();
-        ContentHandle content = ContentHandle.create(theVersion.getContent().getContent());
+        ContentHandle content = ContentHandle.create(resolveContent(theVersion.getContent()));
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
 
         String artifactType = lookupArtifactType(groupId, artifactId);

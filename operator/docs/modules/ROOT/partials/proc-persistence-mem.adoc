@@ -2,7 +2,7 @@
 = Configuring {registry} In-Memory storage using CLI
 
 The in-memory storage option uses RAM to store the data on nodes where {registry} is deployed, and it is the simplest persistence option to use.
-The {operator} will deploy {registry} in this way if you do not provide any configuration in the `ApicurioRegistry` CR:
+The {operator} will deploy {registry} in this way if you do not provide any storage configuration in the `ApicurioRegistry3` CR:
 
 [source,yaml]
 ----
@@ -24,4 +24,3 @@ curl -sSL "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator
 
 IMPORTANT: This persistence option does not support data distribution across {registry} nodes.
 Therefore, it is only recommended for development environments using a single replica (`Pod`).
-Use embedded Infinispan persistence option when deploying multiple replicas.

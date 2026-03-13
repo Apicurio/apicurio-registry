@@ -1,0 +1,31 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-apicurioregistry-kafkasql-oauth
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "my-cluster-kafka-bootstrap.registry-example-kafkasql-oauth.svc:9093"
+        tls:
+          truststoreSecretRef:
+            name: my-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: my-cluster-cluster-ca-cert
+        auth:
+          enabled: true
+          mechanism: "OAUTHBEARER"
+          clientIdRef:
+            name: client-credentials
+            key: clientId
+          clientSecretRef:
+            name: client-credentials
+            key: clientSecret
+          tokenEndpoint: "http://keycloak:8080/realms/kafka/protocol/openid-connect/token"
+          loginHandlerClass: "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler"
+    ingress:
+      host: example-kafkasql-oauth-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-kafkasql-oauth-ui.apps.cluster.example

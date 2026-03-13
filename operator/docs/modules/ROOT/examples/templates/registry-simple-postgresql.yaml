@@ -14,7 +14,7 @@
 #
 # oc process -f registry-simple-postgresql.yaml \
 #   -p NAMESPACE=registry-simple-postgresql \
-#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry registry-simple-postgresql --timeout=60s
+#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry3 registry-simple-postgresql --timeout=60s
 apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -114,20 +114,32 @@ objects:
       type: ClusterIP
       selector:
         app: registry-simple-postgresql-postgresql
+  # PostgreSQL credentials
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: registry-simple-postgresql-db-credentials
+      namespace: ${NAMESPACE}
+    type: Opaque
+    stringData:
+      password: ${POSTGRESQL_PASSWORD}
   # Registry
   - apiVersion: registry.apicur.io/v1
-    kind: ApicurioRegistry
+    kind: ApicurioRegistry3
     metadata:
       name: registry-simple-postgresql
       namespace: ${NAMESPACE}
     spec:
-      configuration:
-        persistence: sql
-        sql:
-          dataSource:
-            url: jdbc:postgresql://registry-simple-postgresql-postgresql.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
-            userName: ${POSTGRESQL_USER}
-            password: ${POSTGRESQL_PASSWORD}
+      app:
+        storage:
+          type: postgresql
+          sql:
+            dataSource:
+              url: jdbc:postgresql://registry-simple-postgresql-postgresql.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
+              username: ${POSTGRESQL_USER}
+              password:
+                name: registry-simple-postgresql-db-credentials
+                key: password
 parameters:
   - name: NAMESPACE
     required: true

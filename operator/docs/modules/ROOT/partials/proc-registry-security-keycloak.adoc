@@ -20,7 +20,7 @@ The following procedure shows how to configure a {registry} REST API and web con
 | View and search only. Cannot modify artifacts or rules, perform import/export, or use `/admin` REST API endpoint.
 |===
 
-NOTE: There is a related configuration option in the `ApicurioRegistry` CRD that you can use to set the web console to read-only mode. However, this configuration does not affect the REST API.
+NOTE: There is a related configuration option in the `ApicurioRegistry3` CRD that you can use to set the web console to read-only mode. However, this configuration does not affect the REST API.
 
 .Prerequisites
 * You must have already installed the {operator}.
@@ -87,7 +87,7 @@ include::example$/keycloak/keycloak_http_ingress.yaml[]
 +
 Modify the `host` value to create a route accessible for the {registry} user, and use it instead of the HTTPS route created by {keycloak} Operator.
 
-. Click the *{operator}*, and on the *ApicurioRegistry* tab, click *Create ApicurioRegistry*, using the following example, but replace your values in the `keycloak` section.
+. Click the *{operator}*, and on the *ApicurioRegistry3* tab, click *Create ApicurioRegistry3*, using the following example, but replace your values in the `auth` section.
 ifdef::apicurio-registry[]
 +
 [source,yaml]

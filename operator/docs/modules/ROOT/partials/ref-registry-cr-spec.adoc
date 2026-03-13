@@ -1,9 +1,9 @@
 [#spec]
 = {registry} CR spec
 
-The `spec` is the part of the `ApicurioRegistry` CR that is used to provide the desired state or configuration for the Operator to achieve.
+The `spec` is the part of the `ApicurioRegistry3` CR that is used to provide the desired state or configuration for the Operator to achieve.
 
-.ApicurioRegistry CR spec contents
+.ApicurioRegistry3 CR spec contents
 The following example block contains the full tree of possible `spec` configuration options.
 Some fields might not be required or should not be defined at the same time.
 
@@ -11,352 +11,768 @@ ifdef::apicurio-registry[]
 [source,yaml]
 ----
 spec:
-  configuration:
-    persistence: <string>
-    sql:
-      dataSource:
-        url: <string>
-        userName: <string>
-        password: <string>
-    kafkasql:
-      bootstrapServers: <string>
-      security:
-        tls:
-          truststoreSecretName: <string>
-          keystoreSecretName: <string>
-        scram:
-          mechanism: <string>
-          truststoreSecretName: <string>
-          user: <string>
-          passwordSecretName: <string>
-    ui:
-      readOnly: <string>
-    logLevel: <string>
-    registryLogLevel: <string>
-    security:
-      keycloak:
-        url: <string>
-        realm: <string>
-        apiClientId: <string>
-        uiClientId: <string>
-      https:
-        disableHttp: <bool>
-        secretName: <string>
-    env: <k8s.io/api/core/v1 []EnvVar>
-  deployment:
+  app:
     replicas: <int32>
-    host: <string>
-    affinity: <k8s.io/api/core/v1 Affinity>
-    tolerations: <k8s.io/api/core/v1 []Toleration>
-    imagePullSecrets: <k8s.io/api/core/v1 []LocalObjectReference>
-    metadata:
+    host: <string> # DEPRECATED: Use app.ingress.host
+    storage:
+      type: <string>
+      sql:
+        dataSource:
+          url: <string>
+          username: <string>
+          password:
+            name: <string>
+            key: <string>
+      kafkasql:
+        kafkaAccessSecretName: <string>
+        bootstrapServers: <string>
+        tls:
+          keystoreSecretRef:
+            name: <string>
+            key: <string>
+          keystorePasswordSecretRef:
+            name: <string>
+            key: <string>
+          truststoreSecretRef:
+            name: <string>
+            key: <string>
+          truststorePasswordSecretRef:
+            name: <string>
+            key: <string>
+        auth:
+          enabled: <bool>
+          mechanism: <string>
+          clientIdRef:
+            name: <string>
+            key: <string>
+          clientSecretRef:
+            name: <string>
+            key: <string>
+          tokenEndpoint: <string>
+          loginHandlerClass: <string>
+    features:
+      resourceDeleteEnabled: <bool>
+      versionMutabilityEnabled: <bool>
+    auth:
+      enabled: <bool>
+      appClientId: <string>
+      uiClientId: <string>
+      redirectUri: <string>
+      authServerUrl: <string>
+      logoutUrl: <string>
+      anonymousReadsEnabled: <bool>
+      basicAuth:
+        enabled: <bool>
+        cacheExpiration: <string>
+      tls:
+        tlsVerificationType: <string>
+        truststoreSecretRef:
+          name: <string>
+          key: <string>
+        truststorePasswordSecretRef:
+          name: <string>
+          key: <string>
+      authz:
+        enabled: <bool>
+        ownerOnlyEnabled: <bool>
+        groupAccessEnabled: <bool>
+        readAccessEnabled: <bool>
+        roles:
+          source: <string>
+          admin: <string>
+          developer: <string>
+          readOnly: <string>
+        adminOverride:
+          enabled: <bool>
+          from: <string>
+          type: <string>
+          role: <string>
+          claimName: <string>
+          claimValue: <string>
+    tls:
+      insecureRequests: <string>
+      keystoreSecretRef:
+        name: <string>
+        key: <string>
+      keystorePasswordSecretRef:
+        name: <string>
+        key: <string>
+      truststoreSecretRef:
+        name: <string>
+        key: <string>
+      truststorePasswordSecretRef:
+        name: <string>
+        key: <string>
+    otel:
+      enabled: <bool>
+      endpoint: <string>
+      protocol: <string>
+      traceSamplingRatio: <double>
+    env: <k8s.io/api/core/v1 []EnvVar>
+    ingress:
+      enabled: <bool>
+      host: <string>
+      ingressClassName: <string>
       annotations: <map[string]string>
-      labels: <map[string]string>
-    image: <string>
-    managedResources:
-      disableIngress: <bool>
-      disableNetworkPolicy: <bool>
-	  disablePodDisruptionBudget: <bool>
-    podTemplateSpecPreview: <k8s.io/api/core/v1 PodTemplateSpec>
+    podTemplateSpec: <k8s.io/api/core/v1 PodTemplateSpec>
+    podDisruptionBudget:
+      enabled: <bool>
+    networkPolicy:
+      enabled: <bool>
+  ui:
+    enabled: <bool>
+    replicas: <int32>
+    host: <string> # DEPRECATED: Use ui.ingress.host
+    env: <k8s.io/api/core/v1 []EnvVar>
+    ingress:
+      enabled: <bool>
+      host: <string>
+      ingressClassName: <string>
+      annotations: <map[string]string>
+    podTemplateSpec: <k8s.io/api/core/v1 PodTemplateSpec>
+    podDisruptionBudget:
+      enabled: <bool>
+    networkPolicy:
+      enabled: <bool>
 ----
 endif::[]
 
 ifdef::service-registry[]
-// Currently, the only difference is the absence of the `image` field.
-// We want to control which image is being used in the product, and
-// `ifdef` can't be used in source blocks.
 [source,yaml]
 ----
 spec:
-  configuration:
-    persistence: <string>
-    sql:
-      dataSource:
-        url: <string>
-        userName: <string>
-        password: <string>
-    kafkasql:
-      bootstrapServers: <string>
-      security:
-        tls:
-          truststoreSecretName: <string>
-          keystoreSecretName: <string>
-        scram:
-          mechanism: <string>
-          truststoreSecretName: <string>
-          user: <string>
-          passwordSecretName: <string>
-    ui:
-      readOnly: <string>
-    logLevel: <string>
-    registryLogLevel: <string>
-    security:
-      keycloak:
-        url: <string>
-        realm: <string>
-        apiClientId: <string>
-        uiClientId: <string>
-      https:
-        disableHttp: <bool>
-        secretName: <string>
-    env: <k8s.io/api/core/v1 []EnvVar>
-  deployment:
+  app:
     replicas: <int32>
-    host: <string>
-    affinity: <k8s.io/api/core/v1 Affinity>
-    tolerations: <k8s.io/api/core/v1 []Toleration>
-    imagePullSecrets: <k8s.io/api/core/v1 []LocalObjectReference>
-    metadata:
+    host: <string> # DEPRECATED: Use app.ingress.host
+    storage:
+      type: <string>
+      sql:
+        dataSource:
+          url: <string>
+          username: <string>
+          password:
+            name: <string>
+            key: <string>
+      kafkasql:
+        kafkaAccessSecretName: <string>
+        bootstrapServers: <string>
+        tls:
+          keystoreSecretRef:
+            name: <string>
+            key: <string>
+          keystorePasswordSecretRef:
+            name: <string>
+            key: <string>
+          truststoreSecretRef:
+            name: <string>
+            key: <string>
+          truststorePasswordSecretRef:
+            name: <string>
+            key: <string>
+        auth:
+          enabled: <bool>
+          mechanism: <string>
+          clientIdRef:
+            name: <string>
+            key: <string>
+          clientSecretRef:
+            name: <string>
+            key: <string>
+          tokenEndpoint: <string>
+          loginHandlerClass: <string>
+    features:
+      resourceDeleteEnabled: <bool>
+      versionMutabilityEnabled: <bool>
+    auth:
+      enabled: <bool>
+      appClientId: <string>
+      uiClientId: <string>
+      redirectUri: <string>
+      authServerUrl: <string>
+      logoutUrl: <string>
+      anonymousReadsEnabled: <bool>
+      basicAuth:
+        enabled: <bool>
+        cacheExpiration: <string>
+      tls:
+        tlsVerificationType: <string>
+        truststoreSecretRef:
+          name: <string>
+          key: <string>
+        truststorePasswordSecretRef:
+          name: <string>
+          key: <string>
+      authz:
+        enabled: <bool>
+        ownerOnlyEnabled: <bool>
+        groupAccessEnabled: <bool>
+        readAccessEnabled: <bool>
+        roles:
+          source: <string>
+          admin: <string>
+          developer: <string>
+          readOnly: <string>
+        adminOverride:
+          enabled: <bool>
+          from: <string>
+          type: <string>
+          role: <string>
+          claimName: <string>
+          claimValue: <string>
+    tls:
+      insecureRequests: <string>
+      keystoreSecretRef:
+        name: <string>
+        key: <string>
+      keystorePasswordSecretRef:
+        name: <string>
+        key: <string>
+      truststoreSecretRef:
+        name: <string>
+        key: <string>
+      truststorePasswordSecretRef:
+        name: <string>
+        key: <string>
+    otel:
+      enabled: <bool>
+      endpoint: <string>
+      protocol: <string>
+      traceSamplingRatio: <double>
+    env: <k8s.io/api/core/v1 []EnvVar>
+    ingress:
+      enabled: <bool>
+      host: <string>
+      ingressClassName: <string>
       annotations: <map[string]string>
-      labels: <map[string]string>
-    managedResources:
-      disableIngress: <bool>
-      disableNetworkPolicy: <bool>
-	  disablePodDisruptionBudget: <bool>
-    podTemplateSpecPreview: <k8s.io/api/core/v1 PodTemplateSpec>
+    podTemplateSpec: <k8s.io/api/core/v1 PodTemplateSpec>
+    podDisruptionBudget:
+      enabled: <bool>
+    networkPolicy:
+      enabled: <bool>
+  ui:
+    enabled: <bool>
+    replicas: <int32>
+    host: <string> # DEPRECATED: Use ui.ingress.host
+    env: <k8s.io/api/core/v1 []EnvVar>
+    ingress:
+      enabled: <bool>
+      host: <string>
+      ingressClassName: <string>
+      annotations: <map[string]string>
+    podTemplateSpec: <k8s.io/api/core/v1 PodTemplateSpec>
+    podDisruptionBudget:
+      enabled: <bool>
+    networkPolicy:
+      enabled: <bool>
 ----
 endif::[]
 
 The following table describes each configuration option:
 
-.ApicurioRegistry CR spec configuration options
+.ApicurioRegistry3 CR spec configuration options
 [%header,cols="4,2,2,3"]
 |===
 | Configuration option | type | Default value | Description
 
-| `configuration`
+| `app`
 | -
 | -
 | Section for configuration of {registry} application
 
-| `configuration/persistence`
-| string
-ifdef::service-registry[]
-| _required_
-| Storage backend. One of `sql`, `kafkasql`
-endif::[]
-ifdef::apicurio-registry[]
-| `mem`
-| Storage backend. One of `mem`, `sql`, `kafkasql`
-endif::[]
-
-| `configuration/sql`
-| -
-| -
-| SQL storage backend configuration
-
-| `configuration/sql/dataSource`
-| -
-| -
-| Database connection configuration for SQL storage backend
-
-| `configuration/sql/dataSource/url`
-| string
-| _required_
-| Database connection URL string
-
-| `configuration/sql/dataSource/userName`
-| string
-| _required_
-| Database connection user
-
-| `configuration/sql/dataSource/password`
-| string
-| _empty_
-| Database connection password
-
-| `configuration/kafkasql`
-| -
-| -
-| Kafka storage backend configuration
-
-| `configuration/kafkasql/bootstrapServers`
-| string
-| _required_
-| Kafka bootstrap server URL, for Streams storage backend
-
-| `configuration/kafkasql/security/tls`
-| -
-| -
-| Section to configure TLS authentication for Kafka storage backend
-
-| `configuration/kafkasql/security/tls/truststoreSecretName`
-| string
-| _required_
-| Name of a secret containing TLS truststore for Kafka
-
-| `configuration/kafkasql/security/tls/keystoreSecretName`
-| string
-| _required_
-| Name of a secret containing user TLS keystore
-
-| `configuration/kafkasql/security/scram/truststoreSecretName`
-| string
-| _required_
-| Name of a secret containing TLS truststore for Kafka
-
-| `configuration/kafkasql/security/scram/user`
-| string
-| _required_
-| SCRAM user name
-
-| `configuration/kafkasql/security/scram/passwordSecretName`
-| string
-| _required_
-| Name of a secret containing SCRAM user password
-
-| `configuration/kafkasql/security/scram/mechanism`
-| string
-| `SCRAM-SHA-512`
-| SASL mechanism
-
-| `configuration/ui`
-| -
-| -
-| {registry} web console settings
-
-| `configuration/ui/readOnly`
-| string
-| `false`
-| Set {registry} web console to read-only mode
-
-| `configuration/logLevel`
-| string
-| `INFO`
-| {registry} log level, for non-Apicurio components and libraries. One of `INFO`, `DEBUG`
-
-| `configuration/registryLogLevel`
-| string
-| `INFO`
-| {registry} log level, for Apicurio application components (excludes non-Apicurio components and libraries). One of `INFO`, `DEBUG`
-
-| `configuration/security`
-| -
-| -
-| {registry} web console and REST API security settings
-
-| `configuration/security/keycloak`
-| -
-| -
-| Web console and REST API security configuration using {Keycloak}
-
-| `configuration/security/keycloak/url`
-| string
-| _required_
-| {keycloak} URL
-
-| `configuration/security/keycloak/realm`
-| string
-| _required_
-|  {keycloak} realm
-
-| `configuration/security/keycloak/apiClientId`
-| string
-| `registry-client-api`
-|  {keycloak} client for REST API
-
-| `configuration/security/keycloak/uiClientId`
-| string
-| `registry-client-ui`
-|  {keycloak} client for web console
-
-| `configuration/security/https`
-| -
-| -
-| Configuration for HTTPS. For more details, see xref:ROOT:assembly-registry-maintenance.adoc#registry-https-in-cluster[Configuring an HTTPS connection to {registry} from inside the OpenShift cluster].
-
-| `configuration/security/https/sercretName`
-| string
-| _empty_
-| Name of a Kubernetes Secret that contains the HTTPS certificate and key, which must be named `tls.crt` and `tls.key`, respectively. Setting this field enables HTTPS, and vice versa.
-
-| `configuration/security/https/disableHttp`
-| bool
-| `false`
-| Disable HTTP port and Ingress. HTTPS must be enabled as a prerequisite.
-
-| `configuration/env`
-| k8s.io/api/core/v1 []EnvVar
-| _empty_
-| Configure a list of environment variables to be provided to the {registry} pod. For more details, see xref:ROOT:assembly-registry-maintenance.adoc#manage-registry-environment-variables[Managing {registry} environment variables].
-
-| `deployment`
-| -
-| -
-| Section for {registry} deployment settings
-
-| `deployment/replicas`
+| `app/replicas`
 | positive integer
 | `1`
 | Number of {registry} pods to deploy
 
-| `deployment/host`
+| `app/host` _(deprecated)_
 | string
-| _auto-generated_
-| Host/URL where the {registry} console and API are available. If possible, {operator} attempts to determine the correct value based on the settings of your cluster router. The value is auto-generated only once, so user can override it afterwards.
-
-| `deployment/affinity`
-| k8s.io/api/core/v1 Affinity
 | _empty_
-| {registry} deployment affinity configuration
+| DEPRECATED: Use `app/ingress/host` instead. The operator will attempt to update the field automatically.
 
-| `deployment/tolerations`
-| k8s.io/api/core/v1 []Toleration
-| _empty_
-| {registry} deployment tolerations configuration
-
-| `deployment/imagePullSecrets`
-| k8s.io/api/core/v1 []LocalObjectReference
-| _empty_
-| Configure image pull secrets for {registry} deployment
-
-| `deployment/metadata`
+| `app/storage`
 | -
 | -
-| Configure a set of labels or annotations for the {registry} pod.
+| Storage backend configuration
 
-| `deployment/metadata/labels`
-| map[string]string
-| _empty_
-| Configure a set of labels for {registry} pod
-
-| `deployment/metadata/annotations`
-| map[string]string
-| _empty_
-| Configure a set of annotations for {registry} pod
-
+| `app/storage/type`
+| string
+ifdef::service-registry[]
+| _required_
+| Storage backend. One of `postgresql`, `kafkasql`
+endif::[]
 ifdef::apicurio-registry[]
-| `deployment/image`
-| string
-| _empty_
-| Override the default image being used to deploy {registry}
+| _(empty)_
+| Storage backend. One of _(empty)_ (in-memory), `postgresql`, `mysql`, `kafkasql`
 endif::[]
 
-// TODO vvv
-| `deployment/managedResources`
+| `app/storage/sql`
 | -
 | -
-| Section to configure how the {operator} manages Kubernetes resources. For more details, see xref:ROOT:assembly-operator-configuration.adoc#managed-resources[{registry} managed resources].
+| SQL storage backend configuration
 
-| `deployment/managedResources/disableIngress`
+| `app/storage/sql/dataSource`
+| -
+| -
+| Database connection configuration for SQL storage backend
+
+| `app/storage/sql/dataSource/url`
+| string
+| _required_
+| Database connection URL string
+
+| `app/storage/sql/dataSource/username`
+| string
+| _required_
+| Database connection user
+
+| `app/storage/sql/dataSource/password`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the database connection password. Default key: `password`
+
+| `app/storage/kafkasql`
+| -
+| -
+| Kafka storage backend configuration
+
+| `app/storage/kafkasql/kafkaAccessSecretName`
+| string
+| _empty_
+| Name of a Kubernetes Secret produced by the Strimzi Kafka Access Operator (type `servicebinding.io/kafka`). When set, the operator reads connection details (bootstrap servers, TLS certificates, SASL credentials) from this secret instead of requiring manual configuration via `bootstrapServers`, `tls`, and `auth`. Available starting with {registry} version 3.2.0.
+
+| `app/storage/kafkasql/bootstrapServers`
+| string
+| _required (if kafkaAccessSecretName is not set)_
+| Kafka bootstrap server URL
+
+| `app/storage/kafkasql/tls`
+| -
+| -
+| Section to configure TLS for Kafka storage backend
+
+| `app/storage/kafkasql/tls/keystoreSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the TLS keystore in PKCS12 format. Default key: `user.p12`
+
+| `app/storage/kafkasql/tls/keystorePasswordSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the TLS keystore password. Default key: `user.password`
+
+| `app/storage/kafkasql/tls/truststoreSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the TLS truststore in PKCS12 format. Default key: `ca.p12`
+
+| `app/storage/kafkasql/tls/truststorePasswordSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the TLS truststore password. Default key: `ca.password`
+
+| `app/storage/kafkasql/auth`
+| -
+| -
+| Section to configure SASL OAuth authentication for Kafka storage backend
+
+| `app/storage/kafkasql/auth/enabled`
 | bool
 | `false`
-| If set, the operator will not create and manage an `Ingress` resource for {registry} deployment.
+| Enables SASL OAuth authentication for {registry} storage in Kafka. You must set this to `true` for the other auth fields to have effect.
 
-| `deployment/managedResources/disableNetworkPolicy`
+| `app/storage/kafkasql/auth/mechanism`
+| string
+| _empty_
+| The SASL mechanism used to authenticate to Kafka (for example, `OAUTHBEARER`).
+
+| `app/storage/kafkasql/auth/clientIdRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret and key containing the OAuth client ID. Default key: `clientId`
+
+| `app/storage/kafkasql/auth/clientSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret and key containing the OAuth client secret. Default key: `clientSecret`
+
+| `app/storage/kafkasql/auth/tokenEndpoint`
+| string
+| _empty_
+| The URL of the OAuth identity server token endpoint.
+
+| `app/storage/kafkasql/auth/loginHandlerClass`
+| string
+| _empty_
+| The JAAS login callback handler class for OAuth authentication.
+
+| `app/features`
+| -
+| -
+| Feature flags for {registry}
+
+| `app/features/resourceDeleteEnabled`
 | bool
 | `false`
-| If set, the operator will not create and manage a `NetworkPolicy` resource for {registry} deployment.
+| Allow deletion of groups, artifacts, and artifact versions. By default, resources in {registry} are immutable.
 
-| `deployment/managedResources/disablePodDisruptionBudget`
+| `app/features/versionMutabilityEnabled`
 | bool
 | `false`
-| If set, the operator will not create and manage an `PodDisruptionBudget` resource for {registry} deployment.
+| Allow artifact versions in DRAFT state to be mutable. Enabling this also unlocks Studio functionality in the UI.
 
-| `deployment/podTemplateSpecPreview`
+| `app/auth`
+| -
+| -
+| Authentication and authorization configuration for {registry}. See xref:ROOT:assembly-operator-configuration.adoc#registry-security-keycloak[Securing {registry} using {keycloak}] for details.
+
+| `app/auth/enabled`
+| bool
+| `false`
+| Enable OIDC authentication
+
+| `app/auth/appClientId`
+| string
+| _empty_
+| OIDC client ID for the backend application
+
+| `app/auth/uiClientId`
+| string
+| _empty_
+| OIDC client ID for the UI application
+
+| `app/auth/redirectUri`
+| string
+| _empty_
+| Redirect URI after successful authentication
+
+| `app/auth/authServerUrl`
+| string
+| _empty_
+| URL of the identity server (OIDC issuer)
+
+| `app/auth/logoutUrl`
+| string
+| _empty_
+| Redirect URI after logout
+
+| `app/auth/anonymousReadsEnabled`
+| bool
+| `false`
+| Allow anonymous users to make read-only calls to the REST API
+
+| `app/auth/basicAuth`
+| -
+| -
+| Client credentials basic authentication configuration
+
+| `app/auth/basicAuth/enabled`
+| bool
+| `false`
+| Enable client credentials basic authentication
+
+| `app/auth/basicAuth/cacheExpiration`
+| string
+| _empty_
+| Token cache expiration time (e.g., `25m`, `1h`)
+
+| `app/auth/tls`
+| -
+| -
+| TLS configuration for OIDC connections
+
+| `app/auth/tls/tlsVerificationType`
+| string
+| `all`
+| TLS verification type: `all`, `none`
+
+| `app/auth/tls/truststoreSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
+
+| `app/auth/tls/truststorePasswordSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the truststore password. Default key: `ca.password`
+
+| `app/auth/authz`
+| -
+| -
+| Role-based authorization configuration
+
+| `app/auth/authz/enabled`
+| bool
+| `false`
+| Enable role-based authorization
+
+| `app/auth/authz/ownerOnlyEnabled`
+| bool
+| `false`
+| When enabled, only the user who created an artifact can modify or delete it
+
+| `app/auth/authz/groupAccessEnabled`
+| bool
+| `false`
+| When enabled with owner-only authorization, only the user who created an artifact group has write access
+
+| `app/auth/authz/readAccessEnabled`
+| bool
+| `false`
+| When enabled, grants at least read-only access to all authenticated users
+
+| `app/auth/authz/roles`
+| -
+| -
+| Role configuration
+
+| `app/auth/authz/roles/source`
+| string
+| _empty_
+| Role source. Use `token` to extract roles from the authentication token
+
+| `app/auth/authz/roles/admin`
+| string
+| _empty_
+| Name of the admin role
+
+| `app/auth/authz/roles/developer`
+| string
+| _empty_
+| Name of the developer role
+
+| `app/auth/authz/roles/readOnly`
+| string
+| _empty_
+| Name of the read-only role
+
+| `app/auth/authz/adminOverride`
+| -
+| -
+| Admin override configuration
+
+| `app/auth/authz/adminOverride/enabled`
+| bool
+| `false`
+| Enable admin override
+
+| `app/auth/authz/adminOverride/from`
+| string
+| _empty_
+| Where to look for admin override information. Only `token` is currently supported
+
+| `app/auth/authz/adminOverride/type`
+| string
+| _empty_
+| Type of information used to determine admin status: `role` or `claim`
+
+| `app/auth/authz/adminOverride/role`
+| string
+| _empty_
+| Name of the role that indicates admin status (when `type` is `role`)
+
+| `app/auth/authz/adminOverride/claimName`
+| string
+| _empty_
+| Name of the JWT claim to use for admin override (when `type` is `claim`)
+
+| `app/auth/authz/adminOverride/claimValue`
+| string
+| _empty_
+| Required value of the JWT claim (when `type` is `claim`)
+
+| `app/tls`
+| -
+| -
+| TLS configuration for the {registry} application
+
+| `app/tls/insecureRequests`
+| string
+| _empty_
+| If insecure (HTTP) requests are allowed. `enabled` allows HTTP normally, `redirect` redirects HTTP to HTTPS, `disabled` prevents HTTP port from opening.
+
+| `app/tls/keystoreSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the TLS keystore (PKCS12 format). Default key: `ca.p12`
+
+| `app/tls/keystorePasswordSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the TLS keystore password. Default key: `ca.password`
+
+| `app/tls/truststoreSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
+
+| `app/tls/truststorePasswordSecretRef`
+| SecretKeyRef
+| _empty_
+| Reference to a Secret containing the TLS truststore password. Default key: `ca.password`
+
+| `app/otel`
+| -
+| -
+| OpenTelemetry observability configuration
+
+| `app/otel/enabled`
+| bool
+| `false`
+| Enable OpenTelemetry for distributed tracing, metrics export, and log correlation.
+
+| `app/otel/endpoint`
+| string
+| _empty_
+| The endpoint URL of the OpenTelemetry collector. Example: `\http://jaeger:4317`
+
+| `app/otel/protocol`
+| string
+| `grpc`
+| The protocol to use for exporting telemetry data. Valid values: `grpc`, `http/protobuf`.
+
+| `app/otel/traceSamplingRatio`
+| double
+| _empty_
+| Sampling ratio for traces (0.0-1.0). When set, uses `parentbased_traceidratio` sampler.
+
+| `app/env`
+| k8s.io/api/core/v1 []EnvVar
+| _empty_
+| Configure a list of environment variables to be provided to the {registry} pod. For more details, see xref:ROOT:assembly-registry-maintenance.adoc#manage-registry-environment-variables[Managing {registry} environment variables].
+
+| `app/ingress`
+| -
+| -
+| {registry} application ingress settings
+
+| `app/ingress/enabled`
+| bool
+| `true`
+| Whether the operator should manage an Ingress resource. Set to `false` to create your own Ingress.
+
+| `app/ingress/host`
+| string
+| _empty_
+| Hostname for the Ingress. If empty, the operator will not create an Ingress resource.
+
+| `app/ingress/ingressClassName`
+| string
+| _empty_
+| IngressClass to use for the Ingress resource.
+
+| `app/ingress/annotations`
+| map[string]string
+| _empty_
+| Additional annotations for the Ingress resource.
+
+| `app/podTemplateSpec`
 | k8s.io/api/core/v1 PodTemplateSpec
 | _empty_
 | Configure parts of the {registry} deployment resource. For more details, see xref:ROOT:assembly-registry-maintenance.adoc#pod-spec[Configuring {registry} deployment using PodTemplate].
+
+| `app/podDisruptionBudget`
+| -
+| -
+| PodDisruptionBudget configuration
+
+| `app/podDisruptionBudget/enabled`
+| bool
+| `true`
+| If set to `false`, the operator will not create and manage a `PodDisruptionBudget` resource for {registry} deployment.
+
+| `app/networkPolicy`
+| -
+| -
+| NetworkPolicy configuration
+
+| `app/networkPolicy/enabled`
+| bool
+| `true`
+| If set to `false`, the operator will not create and manage a `NetworkPolicy` resource for {registry} deployment.
+
+| `ui`
+| -
+| -
+| Section for {registry} web console settings
+
+| `ui/enabled`
+| bool
+| `true`
+| Whether the operator should deploy the UI component
+
+| `ui/replicas`
+| positive integer
+| `1`
+| Number of {registry} UI pods to deploy
+
+| `ui/host` _(deprecated)_
+| string
+| _empty_
+| DEPRECATED: Use `ui/ingress/host` instead. The operator will attempt to update the field automatically.
+
+| `ui/env`
+| k8s.io/api/core/v1 []EnvVar
+| _empty_
+| Configure a list of environment variables to be provided to the {registry} UI pod.
+
+| `ui/ingress`
+| -
+| -
+| {registry} web console ingress settings
+
+| `ui/ingress/enabled`
+| bool
+| `true`
+| Whether the operator should manage an Ingress resource for the UI. Set to `false` to create your own Ingress.
+
+| `ui/ingress/host`
+| string
+| _empty_
+| Hostname for the UI Ingress. If empty, the operator will not create an Ingress resource.
+
+| `ui/ingress/ingressClassName`
+| string
+| _empty_
+| IngressClass to use for the UI Ingress resource.
+
+| `ui/ingress/annotations`
+| map[string]string
+| _empty_
+| Additional annotations for the UI Ingress resource.
+
+| `ui/podTemplateSpec`
+| k8s.io/api/core/v1 PodTemplateSpec
+| _empty_
+| Configure parts of the {registry} UI deployment resource.
+
+| `ui/podDisruptionBudget`
+| -
+| -
+| PodDisruptionBudget configuration for the UI
+
+| `ui/podDisruptionBudget/enabled`
+| bool
+| `true`
+| If set to `false`, the operator will not create and manage a `PodDisruptionBudget` resource for the UI deployment.
+
+| `ui/networkPolicy`
+| -
+| -
+| NetworkPolicy configuration for the UI
+
+| `ui/networkPolicy/enabled`
+| bool
+| `true`
+| If set to `false`, the operator will not create and manage a `NetworkPolicy` resource for the UI deployment.
+|===
+
+.SecretKeyRef type
+A `SecretKeyRef` is an object with two fields:
+[%header,cols="2,2,3"]
+|===
+| Field | Type | Description
+| `name` | string | Name of the Kubernetes Secret being referenced.
+| `key` | string | Name of the key in the referenced Secret that contains the target data. This field is optional when a default key is defined (noted in the field description).
 |===
 
 NOTE: If an option is marked as _required_, it might be conditional on other configuration options being enabled.

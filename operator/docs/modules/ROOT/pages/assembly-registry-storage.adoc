@@ -15,6 +15,8 @@ endif::[]
 * xref:registry-persistence-kafkasql-plain[]
 * xref:registry-persistence-kafkasql-tls[]
 * xref:registry-persistence-kafkasql-scram[]
+* xref:registry-persistence-kafkasql-oauth[]
+* xref:registry-persistence-kafkasql-access[]
 
 
 ifdef::apicurio-registry[]
@@ -33,4 +35,5 @@ include::partial$proc-persistence-sql.adoc[leveloffset=+1]
 include::partial$proc-persistence-kafkasql-plain.adoc[leveloffset=+1]
 include::partial$proc-persistence-kafkasql-tls.adoc[leveloffset=+1]
 include::partial$proc-persistence-kafkasql-scram.adoc[leveloffset=+1]
-
+include::partial$proc-persistence-kafkasql-oauth.adoc[leveloffset=+1]
+include::partial$proc-persistence-kafkasql-access.adoc[leveloffset=+1]

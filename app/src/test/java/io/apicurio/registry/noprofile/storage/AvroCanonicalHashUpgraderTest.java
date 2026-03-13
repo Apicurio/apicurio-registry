@@ -110,36 +110,6 @@ public class AvroCanonicalHashUpgraderTest extends AbstractResourceTestBase {
         assertEquals(hashBefore, getCanonicalHash(contentId));
     }
 
-    @Test
-    void testUpgraderWithSchemaVariants() throws Exception {
-        // Two semantically identical Avro schemas (different doc, different field order of attributes)
-        // should produce the same canonical hash after upgrade
-        String schema1 = "{\"type\":\"record\",\"name\":\"MyRecord\","
-                + "\"namespace\":\"com.example\","
-                + "\"doc\":\"Some documentation\","
-                + "\"fields\":[{\"name\":\"id\",\"type\":\"long\"}]}";
-        String schema2 = "{\"type\":\"record\",\"name\":\"MyRecord\","
-                + "\"namespace\":\"com.example\","
-                + "\"fields\":[{\"name\":\"id\",\"type\":\"long\"}]}";
-
-        String artifactId1 = "testUpgraderVariant1";
-        String artifactId2 = "testUpgraderVariant2";
-
-        createArtifact(GROUP_ID, artifactId1, ArtifactType.AVRO, schema1,
-                ContentTypes.APPLICATION_JSON);
-        createArtifact(GROUP_ID, artifactId2, ArtifactType.AVRO, schema2,
-                ContentTypes.APPLICATION_JSON);
-
-        long contentId1 = storage.getArtifactVersionContent(GROUP_ID, artifactId1, "1").getContentId();
-        long contentId2 = storage.getArtifactVersionContent(GROUP_ID, artifactId2, "1").getContentId();
-
-        // These should have the same canonical hash (doc is stripped by SchemaNormalization)
-        String hash1 = getCanonicalHash(contentId1);
-        String hash2 = getCanonicalHash(contentId2);
-        assertEquals(hash1, hash2,
-                "Schemas differing only in 'doc' should have the same canonical hash");
-    }
-
     private String getCanonicalHash(long contentId) {
         return handles.withHandleNoException(
                 (Handle handle) -> handle

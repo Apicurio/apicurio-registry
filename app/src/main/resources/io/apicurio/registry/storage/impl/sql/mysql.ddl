@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 100);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 102);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -147,7 +147,7 @@ CREATE TABLE versions (
     owner        VARCHAR(256),
     createdOn    TIMESTAMP    NOT NULL,
     modifiedBy   VARCHAR(256),
-    modifiedOn   TIMESTAMP,
+    modifiedOn   TIMESTAMP    NOT NULL,
     labels       TEXT,
     contentId    BIGINT       NOT NULL
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
@@ -163,6 +163,7 @@ CREATE INDEX IDX_versions_3 ON versions (name);
 CREATE INDEX IDX_versions_5 ON versions (owner);
 CREATE INDEX IDX_versions_6 ON versions (createdOn);
 CREATE INDEX IDX_versions_7 ON versions (contentId);
+CREATE INDEX IDX_versions_8 ON versions (modifiedOn);
 
 CREATE TABLE version_labels (
     globalId   BIGINT       NOT NULL,
@@ -194,7 +195,7 @@ CREATE TABLE branches (
     owner         VARCHAR(256),
     createdOn     TIMESTAMP    NOT NULL,
     modifiedBy    VARCHAR(256),
-    modifiedOn    TIMESTAMP
+    modifiedOn    TIMESTAMP    NOT NULL
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE branches ADD PRIMARY KEY (groupId, artifactId, branchId);
 ALTER TABLE branches ADD CONSTRAINT FK_branches_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts (groupId, artifactId) ON DELETE CASCADE;

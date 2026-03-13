@@ -3332,6 +3332,47 @@ spec:
                   replicas:
                     description: Number of replicas for the component
                     type: integer
+                  searchIndex:
+                    description: |-
+                      Configure Elasticsearch-based search indexing for Apicurio Registry.
+                      When enabled, Registry indexes artifact content in Elasticsearch to support
+                      full-text content and structure searches.
+                    properties:
+                      enabled:
+                        description: |-
+                          Enable Elasticsearch-based search indexing for Apicurio Registry.
+                          When enabled, Registry indexes artifact content in Elasticsearch to support
+                          full-text content and structure searches. Default is false.
+                        type: boolean
+                      hosts:
+                        description: |-
+                          The Elasticsearch hosts to connect to.
+                          Example: elasticsearch:9200
+                        type: string
+                      indexName:
+                        description: |-
+                          The name of the Elasticsearch index to use.
+                          If not specified, defaults to 'apicurio-registry' in the application.
+                        type: string
+                      password:
+                        description: |-
+                          The password for connecting to a secured Elasticsearch cluster.
+                          References name of a Secret that contains the password. Key `password` is assumed by default.
+                        properties:
+                          key:
+                            description: Name of the key in the referenced Secret
+                              that contain the target data. This field might be optional
+                              if a default value has been defined.
+                            type: string
+                          name:
+                            description: Name of a Secret that is being referenced.
+                            type: string
+                        type: object
+                      username:
+                        description: The username for connecting to a secured Elasticsearch
+                          cluster.
+                        type: string
+                    type: object
                   sql:
                     description: |-
                       DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead.

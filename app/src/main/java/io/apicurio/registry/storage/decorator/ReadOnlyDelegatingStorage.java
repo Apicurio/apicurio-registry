@@ -23,6 +23,7 @@ import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
@@ -38,6 +39,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -392,6 +394,36 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     @Override
     public BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId) {
         return delegate.getBranchMetaData(ga, branchId);
+    }
+
+    @Override
+    public void forEachVersion(Consumer<VersionContentDto> consumer) {
+        delegate.forEachVersion(consumer);
+    }
+
+    @Override
+    public void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer) {
+        delegate.forEachVersion(sinceTimestamp, consumer);
+    }
+
+    @Override
+    public List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
+        return delegate.getVersionsModifiedSince(sinceTimestamp);
+    }
+
+    @Override
+    public long countVersionsModifiedSince(long sinceTimestamp) {
+        return delegate.countVersionsModifiedSince(sinceTimestamp);
+    }
+
+    @Override
+    public long getLatestVersionTimestamp() {
+        return delegate.getLatestVersionTimestamp();
+    }
+
+    @Override
+    public List<Long> getAllVersionGlobalIds() {
+        return delegate.getAllVersionGlobalIds();
     }
 
     @Override

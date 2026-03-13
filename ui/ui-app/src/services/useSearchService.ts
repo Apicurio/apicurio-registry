@@ -14,7 +14,8 @@ import {
 
 export enum FilterBy {
     name = "name", description = "description", labels = "labels", groupId = "groupId", artifactId = "artifactId",
-    globalId = "globalId", contentId = "contentId", version = "version", artifactType = "artifactType", state = "state"
+    globalId = "globalId", contentId = "contentId", version = "version", artifactType = "artifactType", state = "state",
+    content = "content", structure = "structure"
 }
 
 export interface SearchFilter {

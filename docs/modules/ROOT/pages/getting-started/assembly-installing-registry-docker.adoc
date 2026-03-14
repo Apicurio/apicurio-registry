@@ -173,7 +173,7 @@ inspection), you can use file-based secrets. {registry} supports a generic `_FIL
 
 Environment variables are automatically converted to configuration properties by Quarkus. For example,
 `APICURIO_DATASOURCE_PASSWORD_FILE` becomes the property `apicurio.datasource.password.file`. The
-FileBasedSecretsConfigSource reads the file path from these properties and loads the actual values from the files.
+FileBasedSecretsInterceptor reads the file path from these properties and loads the actual values from the files.
 
 .How it works
 

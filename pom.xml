@@ -251,7 +251,7 @@
     <nats.version>2.25.2</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
-    <jgit.version>7.5.0.202512021534-r</jgit.version>
+    <jgit.version>7.6.0.202603022253-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>5.8.0</semver4j.version>

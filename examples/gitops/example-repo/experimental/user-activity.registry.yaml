@@ -1,0 +1,14 @@
+$type: artifact-v0
+registryIds: [staging]
+groupId: experimental
+artifactId: user-activity
+artifactType: AVRO
+name: User Activity Event
+description: Tracks user activity for analytics (experimental, staging only)
+labels:
+  status: experimental
+versions:
+  - version: "0.1.0"
+    state: DRAFT
+    description: Initial draft
+    content: ./user-activity.avsc

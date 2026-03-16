@@ -16,5 +16,5 @@ RUN chmod -R "ug=rwx" /deployments \
 # Set user for running the container, according to OpenShift best practices
 USER 1001
 
-WORKDIR /deployments/quarkus-app
+WORKDIR /deployments
 CMD ["sh", "-c", "exec java $JAVA_OPTIONS -jar quarkus-run.jar"]

@@ -84,6 +84,12 @@ public class RegistryClientRequestAdapterFactory {
             adapter = createRetryProxy(adapter, options);
         }
 
+        // Wrap with OTel trace context propagation decorator if the OTel API is on the classpath.
+        // This goes after retry so that headers are injected on each retry attempt.
+        if (isOTelAvailable()) {
+            adapter = new OTelRequestAdapterDecorator(adapter);
+        }
+
         return adapter;
     }
 
@@ -281,6 +287,27 @@ public class RegistryClientRequestAdapterFactory {
             double delay = initialRetryDelayMs * Math.pow(backoffMultiplier, attempt - 1);
             return Math.min((long) delay, maxRetryDelayMs);
         }
+    }
+
+    // ==================== OpenTelemetry ====================
+
+    private static final boolean OTEL_AVAILABLE;
+
+    static {
+        boolean available;
+        try {
+            Class.forName("io.opentelemetry.api.GlobalOpenTelemetry", false,
+                    RegistryClientRequestAdapterFactory.class.getClassLoader());
+            available = true;
+        } catch (ClassNotFoundException e) {
+            available = false;
+        }
+        OTEL_AVAILABLE = available;
+        log.log(Level.FINE, "OpenTelemetry API available: {0}", OTEL_AVAILABLE);
+    }
+
+    private static boolean isOTelAvailable() {
+        return OTEL_AVAILABLE;
     }
 
     // ==================== Validation ====================

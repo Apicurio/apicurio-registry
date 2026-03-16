@@ -4,6 +4,7 @@ import com.microsoft.kiota.RequestAdapter;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class JdkAdapterAuthenticationTest {
 
     @Test
-    void testJdkAdapterWithBasicAuthCreatesAdapter() {
+    void testJdkAdapterWithBasicAuthCreatesAdapter() throws Exception {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")
                 .httpAdapter(HttpAdapterType.JDK)
@@ -28,12 +29,13 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created");
-        assertTrue(adapter.getClass().getName().contains("JdkAuthenticatedRequestAdapter"),
+        RequestAdapter inner = unwrap(adapter);
+        assertTrue(inner.getClass().getName().contains("JdkAuthenticatedRequestAdapter"),
                 "Should create JdkAuthenticatedRequestAdapter for basic auth");
     }
 
     @Test
-    void testJdkAdapterWithOAuth2CreatesAdapter() {
+    void testJdkAdapterWithOAuth2CreatesAdapter() throws Exception {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")
                 .httpAdapter(HttpAdapterType.JDK)
@@ -45,12 +47,13 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created");
-        assertTrue(adapter.getClass().getName().contains("JdkOAuth2RequestAdapter"),
+        RequestAdapter inner = unwrap(adapter);
+        assertTrue(inner.getClass().getName().contains("JdkOAuth2RequestAdapter"),
                 "Should create JdkOAuth2RequestAdapter for OAuth2");
     }
 
     @Test
-    void testJdkAdapterWithAnonymousCreatesAdapter() {
+    void testJdkAdapterWithAnonymousCreatesAdapter() throws Exception {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")
                 .httpAdapter(HttpAdapterType.JDK);
@@ -60,7 +63,8 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created");
-        assertTrue(adapter.getClass().getName().contains("JDKRequestAdapter"),
+        RequestAdapter inner = unwrap(adapter);
+        assertTrue(inner.getClass().getName().contains("JDKRequestAdapter"),
                 "Should create JDKRequestAdapter for anonymous auth");
     }
 
@@ -95,11 +99,12 @@ class JdkAdapterAuthenticationTest {
 
         RequestAdapter adapter = RegistryClientRequestAdapterFactory.createRequestAdapter(
                 options, Version.V3);
+        RequestAdapter inner = unwrap(adapter);
 
         // Use reflection to verify the authorizationHeader field is set
-        Field authHeaderField = adapter.getClass().getDeclaredField("authorizationHeader");
+        Field authHeaderField = inner.getClass().getDeclaredField("authorizationHeader");
         authHeaderField.setAccessible(true);
-        String authHeader = (String) authHeaderField.get(adapter);
+        String authHeader = (String) authHeaderField.get(inner);
 
         assertNotNull(authHeader, "Authorization header should be set");
         assertTrue(authHeader.startsWith("Basic "), "Should be Basic auth header");
@@ -115,17 +120,18 @@ class JdkAdapterAuthenticationTest {
 
         RequestAdapter adapter = RegistryClientRequestAdapterFactory.createRequestAdapter(
                 options, Version.V3);
+        RequestAdapter inner = unwrap(adapter);
 
         // Use reflection to verify the tokenProvider field is set
-        Field tokenProviderField = adapter.getClass().getDeclaredField("tokenProvider");
+        Field tokenProviderField = inner.getClass().getDeclaredField("tokenProvider");
         tokenProviderField.setAccessible(true);
-        Object tokenProvider = tokenProviderField.get(adapter);
+        Object tokenProvider = tokenProviderField.get(inner);
 
         assertNotNull(tokenProvider, "Token provider should be set");
     }
 
     @Test
-    void testJdkAdapterWithRetryEnabledCreatesProxy() {
+    void testJdkAdapterWithRetryEnabledCreatesProxy() throws Exception {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")
                 .httpAdapter(HttpAdapterType.JDK)
@@ -135,8 +141,9 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created");
-        // When retry is enabled, the adapter should be a proxy
-        assertTrue(java.lang.reflect.Proxy.isProxyClass(adapter.getClass()),
+        // The OTel decorator wraps the retry proxy, so unwrap first
+        RequestAdapter inner = unwrap(adapter);
+        assertTrue(Proxy.isProxyClass(inner.getClass()),
                 "Should create a retry proxy when retry is enabled");
     }
 
@@ -151,5 +158,18 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created with SSL config");
+    }
+
+    /**
+     * Unwraps any decorators (e.g. OTelRequestAdapterDecorator) to get the
+     * underlying RequestAdapter for reflection-based assertions.
+     */
+    private RequestAdapter unwrap(RequestAdapter adapter) throws Exception {
+        while (adapter instanceof OTelRequestAdapterDecorator) {
+            Field delegateField = OTelRequestAdapterDecorator.class.getDeclaredField("delegate");
+            delegateField.setAccessible(true);
+            adapter = (RequestAdapter) delegateField.get(adapter);
+        }
+        return adapter;
     }
 }

@@ -12,6 +12,10 @@ import lombok.ToString;
 
 import java.util.List;
 
+/**
+ * Data transfer object that wraps artifact content together with its associated metadata, including the
+ * content ID, content hash, and any artifact references contained within the content.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

@@ -11,6 +11,11 @@ import lombok.ToString;
 
 import java.util.Map;
 
+/**
+ * Data transfer object representing the metadata of a specific artifact version. This includes the version
+ * identifier, globalId, contentId, version state, artifact type, labels, and timestamps. Each artifact
+ * version is an immutable snapshot of an artifact's content.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

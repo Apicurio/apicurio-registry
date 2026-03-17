@@ -129,10 +129,5 @@
       <artifactId>apicurio-registry-v2-java-sdk</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-common</artifactId>
-    </dependency>
-
   </dependencies>
 </project>

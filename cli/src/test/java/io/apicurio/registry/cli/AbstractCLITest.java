@@ -52,6 +52,7 @@ public abstract class AbstractCLITest {
                 .orElse("quay.io/apicurio/apicurio-registry:latest-release");
         registryContainer = new GenericContainer<>(appImage)
                 .withEnv("APICURIO_REST_DELETION_GROUP_ENABLED", "true")
+                .withEnv("APICURIO_REST_DELETION_ARTIFACT_ENABLED", "true")
                 .withExposedPorts(8080)
                 .waitingFor(Wait.forHttp("/apis/registry/v3/system/info")
                         .forStatusCode(200)

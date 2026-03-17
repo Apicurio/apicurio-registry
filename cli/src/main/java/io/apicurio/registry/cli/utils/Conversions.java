@@ -1,8 +1,11 @@
 package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
 
 import java.time.OffsetDateTime;
@@ -54,6 +57,45 @@ public final class Conversions {
     public static GroupSearchResults convert(io.apicurio.registry.rest.client.models.GroupSearchResults searchResults) {
         return GroupSearchResults.builder()
                 .groups(searchResults.getGroups().stream()
+                        .map(Conversions::convert)
+                        .collect(Collectors.toList()))
+                .count(searchResults.getCount())
+                .build();
+    }
+
+    public static ArtifactMetaData convert(io.apicurio.registry.rest.client.models.ArtifactMetaData artifact) {
+        return ArtifactMetaData.builder()
+                .groupId(artifact.getGroupId())
+                .artifactId(artifact.getArtifactId())
+                .artifactType(artifact.getArtifactType())
+                .name(artifact.getName())
+                .description(artifact.getDescription())
+                .createdOn(convert(artifact.getCreatedOn()))
+                .owner(artifact.getOwner())
+                .modifiedOn(convert(artifact.getModifiedOn()))
+                .modifiedBy(artifact.getModifiedBy())
+                .labels(convert(artifact.getLabels()))
+                .build();
+    }
+
+    public static SearchedArtifact convert(io.apicurio.registry.rest.client.models.SearchedArtifact artifact) {
+        return SearchedArtifact.builder()
+                .groupId(artifact.getGroupId())
+                .artifactId(artifact.getArtifactId())
+                .artifactType(artifact.getArtifactType())
+                .name(artifact.getName())
+                .description(artifact.getDescription())
+                .createdOn(convert(artifact.getCreatedOn()))
+                .owner(artifact.getOwner())
+                .modifiedOn(convert(artifact.getModifiedOn()))
+                .modifiedBy(artifact.getModifiedBy())
+                .labels(convert(artifact.getLabels()))
+                .build();
+    }
+
+    public static ArtifactSearchResults convert(io.apicurio.registry.rest.client.models.ArtifactSearchResults searchResults) {
+        return ArtifactSearchResults.builder()
+                .artifacts(searchResults.getArtifacts().stream()
                         .map(Conversions::convert)
                         .collect(Collectors.toList()))
                 .count(searchResults.getCount())

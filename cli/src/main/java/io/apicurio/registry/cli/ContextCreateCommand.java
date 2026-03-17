@@ -27,6 +27,12 @@ public class ContextCreateCommand extends AbstractCommand {
     String registryUrl;
 
     @Option(
+            names = {"-g", "--group"},
+            description = "Group ID to use when not specified in a command."
+    )
+    String groupId;
+
+    @Option(
             names = {"--no-switch-current"},
             description = "Do not make the newly added context the current context.",
             defaultValue = "false"
@@ -41,6 +47,7 @@ public class ContextCreateCommand extends AbstractCommand {
         } else {
             config.getContext().put(name, ConfigModel.Context.builder()
                     .registryUrl(registryUrl)
+                    .groupId(groupId)
                     .build());
             output.writeStdOutChunk(out -> {
                 if (!noSwitchCurrent) {

@@ -1220,7 +1220,7 @@
           </additionalDependencies>
           <failOnError>false</failOnError>
           <failOnWarnings>false</failOnWarnings>
-          <source>${maven.compiler.source}</source>
+          <source>${maven.compiler.release}</source>
         </configuration>
         <executions>
           <execution>

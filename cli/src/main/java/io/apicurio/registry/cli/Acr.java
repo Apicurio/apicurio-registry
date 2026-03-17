@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli;
 
+import io.apicurio.registry.cli.artifact.ArtifactCommand;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,6 +22,7 @@ import static picocli.CommandLine.ScopeType.INHERIT;
         name = "acr",
         description = "Apicurio Registry CLI",
         subcommands = {
+                ArtifactCommand.class,
                 ContextCommand.class,
                 GroupCommand.class,
                 InstallCommand.class,

@@ -10,6 +10,7 @@ import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
+import io.apicurio.registry.operator.feat.KubernetesOps;
 import io.apicurio.registry.operator.feat.OTel;
 import io.apicurio.registry.operator.feat.SearchIndex;
 import io.apicurio.registry.operator.feat.SqlStorage;
@@ -121,12 +122,13 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getSearchIndex)
                 .ifPresent(spec -> SearchIndex.configureSearchIndex(spec, envVars));
 
-        // Configure the storage (PostgreSQL, MySQL, or KafkaSQL).
+        // Configure the storage (PostgreSQL, MySQL, KafkaSQL, or KubernetesOps).
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
                 .map(StorageSpec::getType).ifPresent(storageType -> {
                     switch (storageType) {
                         case POSTGRESQL, MYSQL -> SqlStorage.configureDatasource(primary, envVars);
                         case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, deployment, envVars);
+                        case KUBERNETESOPS -> KubernetesOps.configureKubernetesOps(primary, envVars);
                     }
                 });
 

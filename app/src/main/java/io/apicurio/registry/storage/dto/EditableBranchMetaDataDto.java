@@ -9,6 +9,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * Data transfer object representing the user-editable subset of branch metadata. This includes fields that
+ * can be modified after branch creation, such as description.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

@@ -53,17 +53,6 @@
 
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-jdk</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-vertx</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-utils-import-export</artifactId>
     </dependency>
 

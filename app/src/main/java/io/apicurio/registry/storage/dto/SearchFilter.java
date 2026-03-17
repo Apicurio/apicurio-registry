@@ -3,6 +3,10 @@ package io.apicurio.registry.storage.dto;
 import io.apicurio.registry.types.VersionState;
 import org.apache.commons.lang3.tuple.Pair;
 
+/**
+ * Represents a single filter criterion used in search operations for artifacts and versions. Each filter has
+ * a type (the field to match against), a value, and an optional negation flag.
+ */
 public class SearchFilter {
 
     private SearchFilterType type;
@@ -72,6 +76,14 @@ public class SearchFilter {
 
     public static SearchFilter ofContentHash(String value) {
         return new SearchFilter(SearchFilterType.contentHash, value);
+    }
+
+    public static SearchFilter ofContent(String value) {
+        return new SearchFilter(SearchFilterType.content, value);
+    }
+
+    public static SearchFilter ofStructure(String value) {
+        return new SearchFilter(SearchFilterType.structure, value);
     }
 
     public static SearchFilter ofState(VersionState state) {

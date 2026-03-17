@@ -7,7 +7,9 @@ import io.apicurio.registry.avro.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.avro.content.dereference.AvroDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.avro.content.extract.AvroContentExtractor;
+import io.apicurio.registry.avro.content.extract.AvroStructuredContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.refs.AvroReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.avro.content.refs.AvroReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
@@ -76,6 +78,11 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
         return new AvroReferenceArtifactIdentifierExtractor();
+    }
+
+    @Override
+    protected StructuredContentExtractor createStructuredContentExtractor() {
+        return new AvroStructuredContentExtractor();
     }
 
 }

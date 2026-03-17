@@ -11,6 +11,7 @@ import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.feat.Cors;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.OTel;
+import io.apicurio.registry.operator.feat.SearchIndex;
 import io.apicurio.registry.operator.feat.SqlStorage;
 import io.apicurio.registry.operator.feat.TLS;
 import io.apicurio.registry.operator.feat.security.Auth;
@@ -115,6 +116,10 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
         // Configure OpenTelemetry observability
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getOtel)
                 .ifPresent(otelSpec -> OTel.configureOTel(otelSpec, envVars));
+
+        // Configure Elasticsearch search index
+        ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getSearchIndex)
+                .ifPresent(spec -> SearchIndex.configureSearchIndex(spec, envVars));
 
         // Configure the storage (PostgreSQL, MySQL, or KafkaSQL).
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)

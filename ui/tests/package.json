@@ -1,6 +1,6 @@
 {
   "name": "@apicurio/registry-ui-tests",
-  "version": "3.1.8-Dev",
+  "version": "3.2.1-Dev",
   "description": "UI tests (playwright) for Apicurio Registry UI",
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "main": "index.js",
@@ -18,6 +18,6 @@
     "eslint": "9.39.4",
     "eslint-plugin-react-hooks": "7.0.1",
     "eslint-plugin-react-refresh": "0.5.2",
-    "typescript-eslint": "8.57.0"
+    "typescript-eslint": "8.57.1"
   }
 }

@@ -4,6 +4,10 @@ import lombok.*;
 
 import java.util.Map;
 
+/**
+ * Data transfer object representing the metadata of a group. A group is a named namespace for organizing
+ * related artifacts. This DTO includes the group's identifier, description, labels, and timestamps.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

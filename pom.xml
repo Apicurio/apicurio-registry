@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.2.0-SNAPSHOT</version>
+  <version>3.2.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -188,7 +188,7 @@
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.17.0</okio.version>
-    <kotlin-stdlib.version>2.3.10</kotlin-stdlib.version>
+    <kotlin-stdlib.version>2.3.20</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.34.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
@@ -251,7 +251,7 @@
     <nats.version>2.25.2</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
     <woodstox-core.version>7.1.1</woodstox-core.version>
-    <jgit.version>7.5.0.202512021534-r</jgit.version>
+    <jgit.version>7.6.0.202603022253-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>5.8.0</semver4j.version>

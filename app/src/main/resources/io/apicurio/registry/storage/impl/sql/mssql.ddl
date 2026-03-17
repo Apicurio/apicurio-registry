@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 102);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 103);
 
 CREATE TABLE sequences (seqName NVARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -81,6 +81,7 @@ CREATE INDEX IDX_versions_3 ON versions(name);
 CREATE INDEX IDX_versions_5 ON versions(owner);
 CREATE INDEX IDX_versions_6 ON versions(createdOn);
 CREATE INDEX IDX_versions_7 ON versions(contentId);
+CREATE INDEX IDX_versions_8 ON versions(modifiedOn);
 
 CREATE TABLE version_labels (globalId BIGINT NOT NULL, labelKey NVARCHAR(256) NOT NULL, labelValue NVARCHAR(512));
 ALTER TABLE version_labels ADD PRIMARY KEY (globalId, labelKey);

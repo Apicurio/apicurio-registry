@@ -2,7 +2,18 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.events.*;
+import io.apicurio.registry.events.ArtifactCreated;
+import io.apicurio.registry.events.ArtifactDeleted;
+import io.apicurio.registry.events.ArtifactMetadataUpdated;
+import io.apicurio.registry.events.ArtifactRuleConfigured;
+import io.apicurio.registry.events.ArtifactVersionCreated;
+import io.apicurio.registry.events.ArtifactVersionDeleted;
+import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
+import io.apicurio.registry.events.GlobalRuleConfigured;
+import io.apicurio.registry.events.GroupCreated;
+import io.apicurio.registry.events.GroupDeleted;
+import io.apicurio.registry.events.GroupMetadataUpdated;
+import io.apicurio.registry.events.GroupRuleConfigured;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
@@ -1125,4 +1136,5 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // No op, the event is created by the event processor.
         return event.getId();
     }
+
 }

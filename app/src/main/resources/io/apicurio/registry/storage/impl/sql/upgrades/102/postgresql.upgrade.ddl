@@ -5,4 +5,4 @@
 
 UPDATE apicurio SET propValue = 102 WHERE propName = 'db_version';
 
-UPGRADER:io.apicurio.registry.storage.impl.sql.upgrader.AvroCanonicalHashUpgrader;
+CREATE INDEX IDX_versions_8 ON versions(modifiedOn);

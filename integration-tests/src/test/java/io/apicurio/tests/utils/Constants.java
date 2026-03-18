@@ -92,6 +92,11 @@ public interface Constants {
     String KUBERNETES_OPS = "kubernetesopsit";
 
     /**
+     * Tag for Iceberg REST Catalog integration tests
+     */
+    String ICEBERG = "iceberg";
+
+    /**
      * Tag for slow-running tests
      */
     String SLOW = "slow";

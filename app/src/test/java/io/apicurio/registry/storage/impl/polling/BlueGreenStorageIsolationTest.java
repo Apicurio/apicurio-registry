@@ -38,43 +38,35 @@ public class BlueGreenStorageIsolationTest {
 
     @Test
     void deleteAllUserDataOnOneDoesNotAffectTheOther() {
-        // Hold the refresh lock to prevent the GitOps scheduler from polling and
-        // reconfiguring shared repositories while we operate on blue/green directly.
-        //var refreshLock = gitOpsStorage.getRefreshLock();
-        //refreshLock.lock();
-        //try {
-            blue.initialize();
-            green.initialize();
+        blue.initialize();
+        green.initialize();
 
-            // Clean up any data from other tests sharing the same Quarkus instance
-            blue.deleteAllUserData();
-            green.deleteAllUserData();
+        // Clean up any data from other tests sharing the same Quarkus instance
+        blue.deleteAllUserData();
+        green.deleteAllUserData();
 
-            // Import data into both
-            importTestArtifact(blue, "blue-artifact");
-            importTestArtifact(green, "green-artifact");
+        // Import data into both
+        importTestArtifact(blue, "blue-artifact");
+        importTestArtifact(green, "green-artifact");
 
-            // Delete all data from blue — should NOT affect green
-            blue.deleteAllUserData();
+        // Delete all data from blue — should NOT affect green
+        blue.deleteAllUserData();
 
-            // Import a marker into green to verify it's still operational
-            importTestArtifact(green, "green-marker");
+        // Import a marker into green to verify it's still operational
+        importTestArtifact(green, "green-marker");
 
-            // Green should have both the original and the marker
-            assertEquals(Set.of("green-artifact", "green-marker"), green.getArtifactIds(10),
-                    "Green should be untouched after deleting blue's data");
+        // Green should have both the original and the marker
+        assertEquals(Set.of("green-artifact", "green-marker"), green.getArtifactIds(10),
+                "Green should be untouched after deleting blue's data");
 
-            // Import into blue to verify it was actually cleared
-            importTestArtifact(blue, "blue-new");
-            assertEquals(Set.of("blue-new"), blue.getArtifactIds(10),
-                    "Blue should only have the newly imported artifact after deleteAllUserData");
+        // Import into blue to verify it was actually cleared
+        importTestArtifact(blue, "blue-new");
+        assertEquals(Set.of("blue-new"), blue.getArtifactIds(10),
+                "Blue should only have the newly imported artifact after deleteAllUserData");
 
-            // Clean up after ourselves to avoid interfering with other tests
-            blue.deleteAllUserData();
-            green.deleteAllUserData();
-        //} finally {
-        //    refreshLock.unlock();
-        //}
+        // Clean up after ourselves to avoid interfering with other tests
+        blue.deleteAllUserData();
+        green.deleteAllUserData();
     }
 
     private void importTestArtifact(io.apicurio.registry.storage.RegistryStorage storage, String artifactId) {

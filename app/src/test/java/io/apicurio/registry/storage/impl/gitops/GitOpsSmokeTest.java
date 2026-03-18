@@ -79,7 +79,7 @@ public class GitOpsSmokeTest {
         assertNotNull(version.getContentId());
         // Verify content matches the source file (YAML is converted to JSON during loading)
         var expectedContent = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
-        assertEquals(YAMLObjectMapper.MAPPER.readTree(expectedContent.bytes()),
+        assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(expectedContent.bytes()),
                 JsonObjectMapper.MAPPER.readTree(version.getContent().bytes()));
 
         // --- Load smoke02: Different artifact, no rules ---

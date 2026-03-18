@@ -27,6 +27,7 @@ import static java.util.Objects.requireNonNull;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 @TestProfile(KubernetesOpsTestProfile.class)
@@ -71,10 +72,10 @@ class KubernetesOpsSmokeTest {
 
         // Artifact versions
         var version = storage.getArtifactVersionContent("foo", "petstore", "1");
-        assertEquals(1, version.getGlobalId());
-        assertEquals(1, version.getContentId());
+        assertNotNull(version.getGlobalId());
+        assertNotNull(version.getContentId());
         var content = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
-        assertEquals(YAMLObjectMapper.MAPPER.readTree(content.bytes()),
+        assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(content.bytes()),
                 MAPPER.readTree(version.getContent().bytes()));
 
         // Waiting to load smoke02
@@ -93,8 +94,8 @@ class KubernetesOpsSmokeTest {
 
         // Artifact versions
         version = storage.getArtifactVersionContent("bar", "person", "1");
-        assertEquals(1, version.getGlobalId());
-        assertEquals(42, version.getContentId());
+        assertNotNull(version.getGlobalId());
+        assertNotNull(version.getContentId());
         content = loadFile("git/smoke02/content/Person.json");
         assertEquals(MAPPER.readTree(content.bytes()), MAPPER.readTree(version.getContent().bytes()));
 

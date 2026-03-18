@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Optional;
 
-import static io.apicurio.registry.util.YAMLObjectMapper.MAPPER;
+import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
 import static lombok.AccessLevel.PRIVATE;
 
 @Builder
@@ -35,14 +35,14 @@ public class Any {
 
     public static Optional<Any> from(ProcessingState state, String path, ContentHandle content) {
         try {
-            var raw = MAPPER.readTree(content.bytes());
+            var raw = YAML_MAPPER.readTree(content.bytes());
             var typeNode = raw.get("$type");
             if (typeNode != null && typeNode.textValue() != null) {
                 var rawType = typeNode.textValue();
                 var type = Type.from(rawType);
                 if (type.isPresent()) {
                     try {
-                        var entity = MAPPER.treeToValue(raw, type.get().getKlass());
+                        var entity = YAML_MAPPER.treeToValue(raw, type.get().getKlass());
                         var any = Any.builder().raw(raw).type(type.get()).entity(entity).build();
                         return Optional.of(any);
                     } catch (JsonProcessingException ex) {

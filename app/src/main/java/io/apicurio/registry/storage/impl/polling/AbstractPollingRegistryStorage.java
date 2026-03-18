@@ -133,6 +133,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                 switch (state) {
                     case READY_TO_SWITCH -> {
                         doSwitch();
+                        pendingResult.commit();
                         pendingResult = null;
                         if (!isReady) {
                             isReady = true;
@@ -175,10 +176,6 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
         try {
             inactive.deleteAllUserData();
             var result = pollingDataSourceManager.process(inactive, pollResult);
-            // Always commit the marker to avoid re-processing the same broken commit.
-            // If the data source is later fixed, a new commit will be detected.
-            pollResult.commit();
-
             if (result.isSuccessful()) {
                 log.info("{} update loaded successfully (marker: {})", storageName(), pollResult.getMarker());
                 pendingResult = pollResult;

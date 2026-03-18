@@ -2,6 +2,7 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ResourceFactory;
+import io.apicurio.registry.utils.Cell;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
@@ -20,6 +21,7 @@ import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_C
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
+import static io.apicurio.registry.utils.Cell.cell;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -151,11 +153,11 @@ public class MultitenancyPatternBITTest extends ITBase {
             checkDeploymentExists(registryAlpha, COMPONENT_APP, 1);
             checkDeploymentExists(registryBeta, COMPONENT_APP, 2);
 
-            // Verify each tenant gets its own NetworkPolicies
-            NetworkPolicy alphaAppPolicy = checkNetworkPolicyExists(registryAlpha, COMPONENT_APP);
-            NetworkPolicy alphaUiPolicy = checkNetworkPolicyExists(registryAlpha, COMPONENT_UI);
-            NetworkPolicy betaAppPolicy = checkNetworkPolicyExists(registryBeta, COMPONENT_APP);
-            NetworkPolicy betaUiPolicy = checkNetworkPolicyExists(registryBeta, COMPONENT_UI);
+            // Verify each tenant gets its own NetworkPolicies (namespace-aware lookup)
+            NetworkPolicy alphaAppPolicy = checkNetworkPolicyExistsInNamespace(registryAlpha, COMPONENT_APP, tenantAlphaNs);
+            NetworkPolicy alphaUiPolicy = checkNetworkPolicyExistsInNamespace(registryAlpha, COMPONENT_UI, tenantAlphaNs);
+            NetworkPolicy betaAppPolicy = checkNetworkPolicyExistsInNamespace(registryBeta, COMPONENT_APP, tenantBetaNs);
+            NetworkPolicy betaUiPolicy = checkNetworkPolicyExistsInNamespace(registryBeta, COMPONENT_UI, tenantBetaNs);
 
             // Verify NetworkPolicies are in their respective namespaces
             assertThat(alphaAppPolicy.getMetadata().getNamespace()).isEqualTo(tenantAlphaNs);
@@ -344,6 +346,11 @@ public class MultitenancyPatternBITTest extends ITBase {
     private void cleanupTenantNamespaces(String... namespaces) {
         if (cleanup) {
             var nsList = List.of(namespaces);
+            // Delete CRs first to avoid operator reconciliation errors on terminating namespaces
+            nsList.forEach(n -> {
+                log.info("Deleting CRs in tenant namespace: {}", n);
+                client.resources(ApicurioRegistry3.class).inNamespace(n).delete();
+            });
             nsList.forEach(n -> {
                 log.info("Deleting tenant namespace: {}", n);
                 client.namespaces().withName(n).delete();
@@ -352,6 +359,23 @@ public class MultitenancyPatternBITTest extends ITBase {
                 nsList.forEach(n -> assertThat(client.namespaces().withName(n).get()).isNull());
             });
         }
+    }
+
+    /**
+     * Namespace-aware version of {@link ITBase#checkNetworkPolicyExists} since the base
+     * method does not use the namespace from the CR metadata.
+     */
+    private NetworkPolicy checkNetworkPolicyExistsInNamespace(ApicurioRegistry3 primary, String component,
+            String ns) {
+        final Cell<NetworkPolicy> rval = cell();
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            NetworkPolicy networkPolicy = client.network().v1().networkPolicies()
+                    .inNamespace(ns)
+                    .withName(primary.getMetadata().getName() + "-" + component + "-networkpolicy").get();
+            assertThat(networkPolicy).isNotNull();
+            rval.set(networkPolicy);
+        });
+        return rval.get();
     }
 
     private void assertLabelsContains(Map<String, String> labels, String... values) {

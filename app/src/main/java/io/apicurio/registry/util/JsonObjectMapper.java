@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonObjectMapper {
 
-    public static ObjectMapper MAPPER;
+    public static final ObjectMapper MAPPER;
 
     static {
         MAPPER = new ObjectMapper();

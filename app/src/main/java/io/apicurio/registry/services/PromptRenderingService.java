@@ -1,9 +1,7 @@
 package io.apicurio.registry.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.util.YAMLObjectMapper;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,6 +15,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static io.apicurio.registry.util.JsonObjectMapper.MAPPER;
+import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
+
 /**
  * Service for rendering prompt templates by substituting variables.
  */
@@ -24,7 +25,6 @@ import java.util.regex.Pattern;
 public class PromptRenderingService {
 
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{([^}]+)\\}\\}");
-    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     @Inject
     Logger log;
@@ -77,10 +77,10 @@ public class PromptRenderingService {
 
         // Try YAML first (which also handles JSON)
         try {
-            return YAMLObjectMapper.MAPPER.readTree(text);
+            return YAML_MAPPER.readTree(text);
         } catch (Exception e) {
             // Fall back to JSON
-            return JSON_MAPPER.readTree(text);
+            return MAPPER.readTree(text);
         }
     }
 
@@ -288,7 +288,7 @@ public class PromptRenderingService {
     private String formatValue(Object value) {
         if (value instanceof List || value instanceof Map) {
             try {
-                return JSON_MAPPER.writeValueAsString(value);
+                return MAPPER.writeValueAsString(value);
             } catch (Exception e) {
                 return String.valueOf(value);
             }

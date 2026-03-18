@@ -5,10 +5,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 public class YAMLObjectMapper {
 
-    public static ObjectMapper MAPPER;
+    public static final ObjectMapper YAML_MAPPER;
 
     static {
-        MAPPER = new ObjectMapper(new YAMLFactory());
-        MAPPER.findAndRegisterModules();
+        YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+        YAML_MAPPER.findAndRegisterModules();
     }
 }

@@ -1,6 +1,6 @@
 services:
 
-  # Initialize the example repository as a bare Git repo
+  # Initialize the example repository
   git-init:
     container_name: git-init
     image: alpine/git:latest

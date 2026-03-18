@@ -2,9 +2,7 @@ package io.apicurio.registry.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -21,6 +19,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static io.apicurio.registry.util.JsonObjectMapper.MAPPER;
+import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
+
 /**
  * Service that extracts embedded JSON Schema objects from MODEL_SCHEMA and PROMPT_TEMPLATE
  * artifacts and auto-registers them as separate JSON artifacts with $ref references.
@@ -36,9 +37,6 @@ import java.util.List;
  */
 @ApplicationScoped
 public class EmbeddedSchemaService {
-
-    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
-    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     @Inject
     Logger log;
@@ -202,7 +200,7 @@ public class EmbeddedSchemaService {
     private boolean autoRegisterSchema(RegistryStorage storage, String groupId, String schemaArtifactId,
             JsonNode schema, String description, String owner) {
         try {
-            String schemaContent = JSON_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(schema);
+            String schemaContent = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(schema);
             ContentHandle contentHandle = ContentHandle.create(schemaContent);
 
             EditableArtifactMetaDataDto artifactMeta = EditableArtifactMetaDataDto.builder()
@@ -240,7 +238,7 @@ public class EmbeddedSchemaService {
             return YAML_MAPPER.readTree(content);
         }
         try {
-            return JSON_MAPPER.readTree(content);
+            return MAPPER.readTree(content);
         } catch (JsonProcessingException e) {
             // Try YAML as fallback
             return YAML_MAPPER.readTree(content);
@@ -251,7 +249,7 @@ public class EmbeddedSchemaService {
         if (contentType != null && (contentType.contains("yaml") || contentType.equals("text/x-prompt-template"))) {
             return YAML_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(node);
         }
-        return JSON_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+        return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(node);
     }
 
     /**
@@ -278,7 +276,7 @@ public class EmbeddedSchemaService {
     }
 
     private ObjectNode createRefNode(String refName) {
-        ObjectNode refNode = JSON_MAPPER.createObjectNode();
+        ObjectNode refNode = MAPPER.createObjectNode();
         refNode.put("$ref", refName);
         return refNode;
     }

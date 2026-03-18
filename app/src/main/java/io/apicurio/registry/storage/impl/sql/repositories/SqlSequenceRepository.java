@@ -142,9 +142,6 @@ public class SqlSequenceRepository {
         });
     }
 
-    /**
-     * Reset a sequence using an existing handle.
-     */
     private void resetSequenceRaw(Handle handle, String sequenceName, String sqlMaxIdFromTable) {
         Optional<Long> maxIdTable = handle.createQuery(sqlMaxIdFromTable)
                 .mapTo(Long.class)
@@ -174,18 +171,13 @@ public class SqlSequenceRepository {
             log.info("Resetting {} sequence", sequenceName);
             long id = maxId.get();
 
-            if (isPostgresql()) {
-                handle.createUpdate(sqlStatements.resetSequenceValue())
-                        .bind(0, sequenceName)
-                        .bind(1, id)
-                        .bind(2, id)
-                        .execute();
-            } else if (isH2()) {
+            if (isH2()) {
                 sequenceCounters.get(sequenceName).set(id);
             } else {
                 handle.createUpdate(sqlStatements.resetSequenceValue())
                         .bind(0, sequenceName)
                         .bind(1, id)
+                        .bind(2, id)
                         .execute();
             }
 

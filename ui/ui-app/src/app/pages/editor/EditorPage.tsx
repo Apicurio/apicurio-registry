@@ -161,7 +161,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     };
 
     const clearDraftRecoverySnapshot = (): void => {
-        localStorage.clearConfigProperty(snapshotKey);
+        localStorage.clearSnapshot(snapshotKey);
     };
 
     const resetDraftRecoveryState = (): void => {
@@ -214,7 +214,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         }
 
         if (!snapshotContext.isDirty) {
-            localStorage.clearConfigProperty(snapshotContext.snapshotKey);
+            localStorage.clearSnapshot(snapshotContext.snapshotKey);
             return "cleared";
         }
 
@@ -226,7 +226,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
             content: serializeEditorDraftContent(snapshotContext.content)
         });
 
-        if (!localStorage.setConfigProperty(snapshotContext.snapshotKey, snapshot)) {
+        if (!localStorage.storeSnapshot(snapshotContext.snapshotKey, snapshot)) {
             logger.warn("Unable to persist draft recovery snapshot because browser storage is full.");
             return "quota_exceeded";
         }
@@ -350,7 +350,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
 
         checkedSnapshotKeyRef.current = snapshotKey;
 
-        const storedSnapshot = localStorage.getConfigProperty<EditorDraftSnapshot>(snapshotKey, undefined);
+        const storedSnapshot = localStorage.loadSnapshot<EditorDraftSnapshot>(snapshotKey);
         if (!storedSnapshot) {
             recoveryDecisionPendingRef.current = false;
             return;
@@ -371,7 +371,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     useEffect(() => {
         // Once the draft is back in sync with the server and no recovery choice is pending, the local snapshot is stale.
         if (isDraftLoaded && isDraftContentLoaded && !isDraftRecoveryModalOpen && !recoveryDecisionPendingRef.current && !isDirty) {
-            localStorage.clearConfigProperty(snapshotKey);
+            localStorage.clearSnapshot(snapshotKey);
         }
     }, [isDirty, isDraftContentLoaded, isDraftLoaded, isDraftRecoveryModalOpen, localStorage, snapshotKey]);
 

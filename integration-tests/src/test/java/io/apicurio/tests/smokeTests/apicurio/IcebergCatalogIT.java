@@ -82,7 +82,7 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
     }
 
     @AfterAll
-    void closeCatalog() {
+    void closeCatalog() throws Exception {
         if (catalog != null) {
             catalog.close();
         }

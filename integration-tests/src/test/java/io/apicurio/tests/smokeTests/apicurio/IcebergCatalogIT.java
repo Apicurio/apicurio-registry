@@ -56,6 +56,7 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
         Map<String, String> properties = new HashMap<>();
         properties.put(CatalogProperties.URI, getRegistryBaseUrl() + "/apis/iceberg");
         properties.put(CatalogProperties.WAREHOUSE_LOCATION, "/warehouse");
+        properties.put(CatalogProperties.FILE_IO_IMPL, "org.apache.iceberg.inmemory.InMemoryFileIO");
         catalog.initialize("apicurio", properties);
     }
 

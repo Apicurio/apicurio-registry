@@ -1004,7 +1004,7 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`registry-events`
 |`3.0.1`
-|Kafka events topic for outbox pattern
+|Kafka sql storage events topic
 |`apicurio.events.kafka.topic.*`
 |`map<string, string>`
 |

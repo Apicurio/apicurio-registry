@@ -497,6 +497,13 @@
         <skipTests>false</skipTests>
       </properties>
     </profile>
+    <profile>
+      <id>search</id>
+      <properties>
+        <groups>search</groups>
+        <skipTests>false</skipTests>
+      </properties>
+    </profile>
 
     <!-- Combined profile for running ALL Debezium tests in one Maven execution (CI optimization) -->
     <profile>

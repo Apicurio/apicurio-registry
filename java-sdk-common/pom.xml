@@ -48,7 +48,6 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-api</artifactId>
-      <version>1.44.1</version>
       <optional>true</optional>
     </dependency>
     <!-- Test only -->

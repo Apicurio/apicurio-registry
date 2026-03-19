@@ -38,10 +38,7 @@ class EntityIdContentCacheStrategyTest {
         cachingConfig = mock(HttpCachingConfig.class);
         restConfig = mock(RestConfig.class);
 
-        httpCachingMock = mockStatic(HttpCaching.class, invocation -> {
-            // Let non-mocked methods call through (not applicable for static-only mock)
-            return null;
-        });
+        httpCachingMock = mockStatic(HttpCaching.class);
         httpCachingMock.when(() -> HttpCaching.getBeanOrNull(eq(HttpCachingConfig.class))).thenReturn(cachingConfig);
         httpCachingMock.when(() -> HttpCaching.getBeanOrNull(eq(RestConfig.class))).thenReturn(restConfig);
 

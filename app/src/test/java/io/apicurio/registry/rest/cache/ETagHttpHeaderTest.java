@@ -4,6 +4,7 @@ import io.apicurio.registry.rest.cache.headers.ETagHttpHeader;
 import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.ext.RuntimeDelegate;
 import org.jboss.resteasy.core.providerfactory.ResteasyProviderFactoryImpl;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -13,10 +14,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ETagHttpHeaderTest {
 
+    private static RuntimeDelegate previousDelegate;
+
     @BeforeAll
     static void initJaxRs() {
-        // Initialize JAX-RS RuntimeDelegate for EntityTag parsing
+        previousDelegate = RuntimeDelegate.getInstance();
         RuntimeDelegate.setInstance(new ResteasyProviderFactoryImpl());
+    }
+
+    @AfterAll
+    static void restoreJaxRs() {
+        RuntimeDelegate.setInstance(previousDelegate);
     }
 
     private ETagHttpHeader header(String value) {

@@ -112,7 +112,6 @@ public class IcebergApiResourceImpl implements ApisResource {
         defaults.setAdditionalProperty("prefix", icebergConfig.getDefaultPrefix());
 
         Overrides overrides = new Overrides();
-        overrides.setAdditionalProperty("uri", "");
 
         config.setDefaults(defaults);
         config.setOverrides(overrides);

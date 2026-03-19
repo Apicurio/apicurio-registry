@@ -94,12 +94,12 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
     }
 
     private Namespace createTestNamespace(String prefix) {
-        return createTestNamespace(prefix, Map.of());
+        return createTestNamespace(prefix, new HashMap<>());
     }
 
     private Namespace createTestNamespace(String prefix, Map<String, String> properties) {
         Namespace ns = Namespace.of(uniqueName(prefix));
-        catalog.createNamespace(ns, properties);
+        catalog.createNamespace(ns, new HashMap<>(properties));
         createdNamespaces.push(ns);
         return ns;
     }
@@ -152,11 +152,11 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
     void testUpdateNamespaceProperties() {
         Namespace ns = createTestNamespace("update_ns", Map.of("key1", "val1"));
 
-        catalog.setProperties(ns, Map.of("key2", "val2"));
+        catalog.setProperties(ns, new HashMap<>(Map.of("key2", "val2")));
         Map<String, String> loaded = catalog.loadNamespaceMetadata(ns);
         assertEquals("val2", loaded.get("key2"));
 
-        catalog.removeProperties(ns, Set.of("key1"));
+        catalog.removeProperties(ns, new java.util.HashSet<>(Set.of("key1")));
         loaded = catalog.loadNamespaceMetadata(ns);
         assertFalse(loaded.containsKey("key1"), "Removed property should not be present");
     }

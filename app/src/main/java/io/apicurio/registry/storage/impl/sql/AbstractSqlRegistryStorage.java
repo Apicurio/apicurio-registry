@@ -116,6 +116,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     RestConfig restConfig;
 
     @ConfigProperty(name = "apicurio.storage.references.max-depth", defaultValue = "100")
+    @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.", registryAvailableSince = "3.0.6")
     int maxReferenceDepth;
 
     protected SqlStatements sqlStatements() {

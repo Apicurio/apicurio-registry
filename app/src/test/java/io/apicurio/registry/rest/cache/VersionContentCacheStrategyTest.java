@@ -34,7 +34,7 @@ class VersionContentCacheStrategyTest {
         cachingConfig = mock(HttpCachingConfig.class);
         restConfig = mock(RestConfig.class);
 
-        httpCachingMock = mockStatic(HttpCaching.class, invocation -> null);
+        httpCachingMock = mockStatic(HttpCaching.class);
         httpCachingMock.when(() -> HttpCaching.getBeanOrNull(eq(HttpCachingConfig.class))).thenReturn(cachingConfig);
         httpCachingMock.when(() -> HttpCaching.getBeanOrNull(eq(RestConfig.class))).thenReturn(restConfig);
 
@@ -129,7 +129,10 @@ class VersionContentCacheStrategyTest {
 
     @Test
     void concreteVersionNamedLatest_treatedAsConcrete() {
-        // "latest" matches VersionId pattern [a-zA-Z0-9._\-+], treated as concrete version
+        // "latest" matches VersionId pattern [a-zA-Z0-9._\-+], so it's treated as a concrete
+        // version ID (a version literally named "latest"), NOT as a "get latest version" expression.
+        // To get the latest version, users use "branch=latest" which fails VersionId.isValid()
+        // and is handled as a version expression with MODERATE cacheability.
         var strategy = VersionContentCacheStrategy.builder()
                 .versionExpression("latest")
                 .contentId(42L)

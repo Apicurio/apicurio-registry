@@ -14,6 +14,7 @@
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
+    <maven.compiler.release>21</maven.compiler.release>
     <groups/>
   </properties>
 

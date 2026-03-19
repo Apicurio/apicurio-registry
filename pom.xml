@@ -139,9 +139,7 @@
     <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
     <timestamp>${maven.build.timestamp}</timestamp>
 
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.release>17</maven.compiler.release>
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
@@ -1168,8 +1166,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>${maven.compiler.source}</source>
-          <target>${maven.compiler.target}</target>
           <release>${maven.compiler.release}</release>
           <showDeprecation>false</showDeprecation>
           <showWarnings>false</showWarnings>
@@ -1207,7 +1203,7 @@
           </additionalDependencies>
           <failOnError>false</failOnError>
           <failOnWarnings>false</failOnWarnings>
-          <source>${maven.compiler.source}</source>
+          <source>${maven.compiler.release}</source>
         </configuration>
         <executions>
           <execution>

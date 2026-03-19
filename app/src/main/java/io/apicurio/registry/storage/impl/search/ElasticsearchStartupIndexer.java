@@ -41,7 +41,7 @@ public class ElasticsearchStartupIndexer {
 
     private static final int PROGRESS_LOG_INTERVAL = 100;
     private static final int BULK_BATCH_SIZE = 500;
-    private static final String REINDEX_LOCK_DOC_ID = "_reindex_lock";
+    private static final String REINDEX_LOCK_DOC_ID = ElasticsearchIndexManager.REINDEX_LOCK_DOC_ID;
 
     @Inject
     ElasticsearchSearchConfig config;

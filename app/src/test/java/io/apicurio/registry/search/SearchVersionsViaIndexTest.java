@@ -37,6 +37,25 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
     ElasticsearchIndexUpdater indexUpdater;
 
     @Test
+    public void testSearchWithNoFiltersExcludesInternalDocs() throws Exception {
+        // When no artifacts exist, a search with no filters should return 0 results.
+        // This verifies that internal metadata documents (e.g. _mapping_version,
+        // _reindex_lock) are excluded from search results.
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.limit = 100;
+        });
+        // The count should not include internal metadata documents. It may be > 0 if
+        // other tests have already created artifacts (tests share an index), but the
+        // important thing is that internal docs are not returned as search hits.
+        for (SearchedVersion version : results.getVersions()) {
+            Assertions.assertNotNull(version.getGlobalId(),
+                    "Internal metadata documents should not appear in search results");
+            Assertions.assertNotNull(version.getArtifactId(),
+                    "Internal metadata documents should not appear in search results");
+        }
+    }
+
+    @Test
     public void testSearchVersionsByGroupId() throws Exception {
         String group1 = TestUtils.generateGroupId();
         String group2 = TestUtils.generateGroupId();

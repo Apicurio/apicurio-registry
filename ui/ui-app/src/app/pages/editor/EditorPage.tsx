@@ -21,7 +21,7 @@ import {
 } from "@app/pages";
 import { RootPageHeader } from "@app/components";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { AuthService, PleaseWaitModal, useAuth } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { Draft, DraftContent } from "@models/drafts";
 import { useDraftsService } from "@services/useDraftsService.ts";
 import { useDownloadService } from "@services/useDownloadService.ts";
@@ -40,15 +40,9 @@ import { OpenApiEditor } from "@editors/OpenApiEditor.tsx";
 import { AsyncApiEditor } from "@editors/AsyncApiEditor.tsx";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 import { useLoggerService } from "@services/useLoggerService.ts";
-import { LocalStorageService, useLocalStorageService } from "@services/useLocalStorageService.ts";
-import { ReauthenticationService, useReauthenticationService } from "@services/useReauthenticationService.ts";
-import { isErrorStatus } from "@utils/rest.utils.ts";
-import {
-    createEditorDraftSnapshot,
-    createEditorDraftSnapshotKey,
-    EditorDraftSnapshot,
-    serializeEditorDraftContent
-} from "./editorDraftSnapshot.ts";
+import { serializeEditorDraftContent } from "./editorDraftSnapshot.ts";
+import { useEditorDraftRecovery } from "./useEditorDraftRecovery.ts";
+import { useEditorReauthentication } from "./useEditorReauthentication.ts";
 
 const sectionContextStyle: CSSProperties = {
     borderBottom: "1px solid #ccc",
@@ -67,19 +61,6 @@ const editorParentStyle: CSSProperties = {
 };
 
 type EditorContent = string | object | undefined;
-type SnapshotPersistenceResult = "saved" | "cleared" | "skipped" | "quota_exceeded";
-type SnapshotContext = {
-    content: EditorContent;
-    isDirty: boolean;
-    isDraftLoaded: boolean;
-    isDraftContentLoaded: boolean;
-    isDraftRecoveryModalOpen: boolean;
-    groupId: string;
-    draftId: string;
-    version: string;
-    contentType: string;
-    snapshotKey: string;
-};
 
 /**
  * The editor page.
@@ -111,46 +92,20 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     const [isCompareModalOpen, setCompareModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setPleaseWaitModalOpen] = useState(false);
     const [isConfirmOverwriteModalOpen, setConfirmOverwriteModalOpen] = useState(false);
-    const [isDraftRecoveryModalOpen, setDraftRecoveryModalOpen] = useState(false);
-    const [isReauthenticateModalOpen, setReauthenticateModalOpen] = useState(false);
-    const [isReauthenticateRedirecting, setReauthenticateRedirecting] = useState(false);
-    const [didReauthenticateSnapshotSaveFail, setReauthenticateSnapshotSaveFail] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [isContentConflicting, setIsContentConflicting] = useState(false);
-    const [draftRecoverySnapshot, setDraftRecoverySnapshot] = useState<EditorDraftSnapshot | undefined>();
     const [isDraftLoaded, setDraftLoaded] = useState(false);
     const [isDraftContentLoaded, setDraftContentLoaded] = useState(false);
-    const [iframeEditorKey, setIframeEditorKey] = useState(0);
 
-    const { groupId, artifactId, version } = useParams();
-    const routeGroupId = groupId as string;
-    const draftId: string = artifactId || "";
-    const routeVersion = version as string;
+    const params = useParams();
+    const groupId = params.groupId as string;
+    const draftId: string = params.artifactId || "";
+    const version = params.version as string;
     const draftDisplayName = draft.name || draft.draftId;
 
     const drafts = useDraftsService();
     const downloadSvc = useDownloadService();
     const logger = useLoggerService();
-    const auth: AuthService = useAuth();
-    const localStorage: LocalStorageService = useLocalStorageService();
-    const reauthentication: ReauthenticationService = useReauthenticationService();
-    const checkedSnapshotKeyRef = useRef<string | undefined>(undefined);
-    const recoveryDecisionPendingRef = useRef(false);
-    const isAuthRedirectInProgressRef = useRef(false);
-
-    const snapshotKey = createEditorDraftSnapshotKey(routeGroupId, draftId, routeVersion, draftContent.contentType);
-    const snapshotContextRef = useRef<SnapshotContext>({
-        content: currentContent,
-        isDirty,
-        isDraftLoaded,
-        isDraftContentLoaded,
-        isDraftRecoveryModalOpen,
-        groupId: routeGroupId,
-        draftId,
-        version: routeVersion,
-        contentType: draftContent.contentType,
-        snapshotKey
-    });
 
     const applyEditorContent = (content: string): void => {
         setDraftContent(previous => ({
@@ -158,16 +113,6 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
             content
         }));
         setCurrentContent(content);
-    };
-
-    const clearDraftRecoverySnapshot = (): void => {
-        localStorage.clearSnapshot(snapshotKey);
-    };
-
-    const resetDraftRecoveryState = (): void => {
-        recoveryDecisionPendingRef.current = false;
-        setDraftRecoverySnapshot(undefined);
-        setDraftRecoveryModalOpen(false);
     };
 
     const syncSavedContent = (content: string): void => {
@@ -180,63 +125,49 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         setDirty(false);
     };
 
-    const openReauthenticateModal = (): void => {
-        isAuthRedirectInProgressRef.current = false;
-        setPleaseWaitModalOpen(false);
-        setReauthenticateRedirecting(false);
-        setReauthenticateSnapshotSaveFail(false);
-        setReauthenticateModalOpen(true);
-    };
+    const isAuthRedirectInProgressRef = useRef(false);
+    const {
+        snapshotKey,
+        iframeEditorKey,
+        draftRecoverySnapshot,
+        isDraftRecoveryModalOpen,
+        persistDraftRecoverySnapshot,
+        onRestoreDraftRecovery,
+        onDiscardDraftRecovery,
+        onDraftSaved
+    } = useEditorDraftRecovery({
+        groupId,
+        draftId,
+        version,
+        contentType: draftContent.contentType,
+        currentContent,
+        originalContent,
+        isDirty,
+        isDraftLoaded,
+        isDraftContentLoaded,
+        isAuthRedirectInProgressRef,
+        applyEditorContent
+    });
 
-    const requestReauthenticationIfUnauthorized = async (error: unknown): Promise<boolean> => {
-        if (!isErrorStatus(error, 401)) {
-            return false;
-        }
-
-        return reauthentication.requestReauthentication(auth);
-    };
-
-    const handleRequestError = async (
-        error: unknown,
-        onUnhandled: () => void
-    ): Promise<void> => {
-        if (!await requestReauthenticationIfUnauthorized(error)) {
-            onUnhandled();
-        }
-    };
-
-    const persistDraftRecoverySnapshot = (): SnapshotPersistenceResult => {
-        const snapshotContext = snapshotContextRef.current;
-
-        // Do not offer recovery while the page is still loading or while the recovery dialog is already active.
-        if (!snapshotContext.isDraftLoaded || !snapshotContext.isDraftContentLoaded || snapshotContext.isDraftRecoveryModalOpen) {
-            return "skipped";
-        }
-
-        if (!snapshotContext.isDirty) {
-            localStorage.clearSnapshot(snapshotContext.snapshotKey);
-            return "cleared";
-        }
-
-        const snapshot = createEditorDraftSnapshot({
-            groupId: snapshotContext.groupId,
-            draftId: snapshotContext.draftId,
-            version: snapshotContext.version,
-            contentType: snapshotContext.contentType,
-            content: serializeEditorDraftContent(snapshotContext.content)
-        });
-
-        if (!localStorage.storeSnapshot(snapshotContext.snapshotKey, snapshot)) {
-            logger.warn("Unable to persist draft recovery snapshot because browser storage is full.");
-            return "quota_exceeded";
-        }
-
-        return "saved";
-    };
+    const {
+        isReauthenticateModalOpen,
+        isReauthenticateRedirecting,
+        confirmWithoutSnapshot,
+        requestReauthenticationIfUnauthorized,
+        handleRequestError,
+        onReauthenticate,
+        onCloseReauthenticateModal
+    } = useEditorReauthentication({
+        groupId,
+        draftId,
+        version,
+        isAuthRedirectInProgressRef,
+        persistDraftRecoverySnapshot
+    });
 
     const loadDraft = async (): Promise<void> => {
         try {
-            const loadedDraft = await drafts.getDraft(routeGroupId, draftId, routeVersion);
+            const loadedDraft = await drafts.getDraft(groupId, draftId, version);
             setDraft(loadedDraft);
             setDraftLoaded(true);
         } catch (error) {
@@ -247,7 +178,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
 
     const loadDraftContent = async (): Promise<void> => {
         try {
-            const content = await drafts.getDraftContent(routeGroupId, draftId, routeVersion);
+            const content = await drafts.getDraftContent(groupId, draftId, version);
             setOriginalContent(content.content);
             setCurrentContent(content.content);
             setDraftContent(content);
@@ -266,114 +197,26 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
-        snapshotContextRef.current = {
-            content: currentContent,
-            isDirty,
-            isDraftLoaded,
-            isDraftContentLoaded,
-            isDraftRecoveryModalOpen,
-            groupId: routeGroupId,
-            draftId,
-            version: routeVersion,
-            contentType: draftContent.contentType,
-            snapshotKey
-        };
-    }, [
-        currentContent,
-        draftContent.contentType,
-        draftId,
-        isDirty,
-        isDraftContentLoaded,
-        isDraftLoaded,
-        isDraftRecoveryModalOpen,
-        routeGroupId,
-        routeVersion,
-        snapshotKey
-    ]);
-
-    useEffect(() => {
         // Route changes must invalidate the previous draft load state before recovery checks run again.
         setDraftLoaded(false);
         setDraftContentLoaded(false);
-        setDraftRecoverySnapshot(undefined);
-        setDraftRecoveryModalOpen(false);
-        setReauthenticateModalOpen(false);
+        setPleaseWaitModalOpen(false);
         setPageError(undefined);
         setIsContentConflicting(false);
         isAuthRedirectInProgressRef.current = false;
-        recoveryDecisionPendingRef.current = false;
-        checkedSnapshotKeyRef.current = undefined;
         setLoaders(createLoaders());
-    }, [draftId, routeGroupId, routeVersion]);
-
-    useEffect(() => {
-        return reauthentication.registerReauthenticationInterceptor(async () => {
-            // The editor intercepts the global re-auth flow so it can save a local recovery snapshot first.
-            openReauthenticateModal();
-            return true;
-        });
-    }, [reauthentication]);
-
-    // Add browser hook to prevent navigation and tab closing when the editor is dirty
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
-            // Skip the browser prompt for the intentional auth redirect started from the re-auth modal.
-            if (isAuthRedirectInProgressRef.current) {
-                return;
-            }
-
-            persistDraftRecoverySnapshot();
-            e.preventDefault();
-        };
-
-        if (isDirty) {
-            window.addEventListener("beforeunload", handleBeforeUnload);
-            return () => {
-                window.removeEventListener("beforeunload", handleBeforeUnload);
-            };
-        }
-    }, [isDirty]);
+    }, [draftId, groupId, version]);
 
     useEffect(() => {
         setDirty(originalContent !== currentContent);
     }, [currentContent, originalContent]);
 
     useEffect(() => {
-        // Recovery is offered only after both metadata and server content are loaded for the current draft snapshot key.
-        if (!isDraftLoaded || !isDraftContentLoaded) {
-            return;
+        // Re-authentication replaces the active save flow, so any stale loading overlay should be dismissed.
+        if (isReauthenticateModalOpen) {
+            setPleaseWaitModalOpen(false);
         }
-        // Avoid reopening the same recovery modal after local state updates for the same draft/version/content type.
-        if (checkedSnapshotKeyRef.current === snapshotKey) {
-            return;
-        }
-
-        checkedSnapshotKeyRef.current = snapshotKey;
-
-        const storedSnapshot = localStorage.loadSnapshot<EditorDraftSnapshot>(snapshotKey);
-        if (!storedSnapshot) {
-            recoveryDecisionPendingRef.current = false;
-            return;
-        }
-
-        const serverContent = serializeEditorDraftContent(originalContent);
-        if (storedSnapshot.content === serverContent) {
-            recoveryDecisionPendingRef.current = false;
-            clearDraftRecoverySnapshot();
-            return;
-        }
-
-        recoveryDecisionPendingRef.current = true;
-        setDraftRecoverySnapshot(storedSnapshot);
-        setDraftRecoveryModalOpen(true);
-    }, [isDraftContentLoaded, isDraftLoaded, localStorage, originalContent, snapshotKey]);
-
-    useEffect(() => {
-        // Once the draft is back in sync with the server and no recovery choice is pending, the local snapshot is stale.
-        if (isDraftLoaded && isDraftContentLoaded && !isDraftRecoveryModalOpen && !recoveryDecisionPendingRef.current && !isDirty) {
-            localStorage.clearSnapshot(snapshotKey);
-        }
-    }, [isDirty, isDraftContentLoaded, isDraftLoaded, isDraftRecoveryModalOpen, localStorage, snapshotKey]);
+    }, [isReauthenticateModalOpen]);
 
     // Poll the server for new content every 30s.  If the content has been updated on
     // the server then we have a conflict that we need to report to the user.
@@ -389,7 +232,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
 
     const detectContentConflict = async (): Promise<void> => {
         try {
-            const currentDraft = await drafts.getDraft(routeGroupId, draftId, routeVersion);
+            const currentDraft = await drafts.getDraft(groupId, draftId, version);
             console.info(`[EditorPage] Detecting conflicting content.  Latest contentId: ${currentDraft.contentId}  Editor contentId: ${draft.contentId}`);
             if (currentDraft.contentId !== draft.contentId) {
                 console.debug(`[EditorPage] Detected Draft content conflict.  Expected '${draft.contentId}' but found '${currentDraft.contentId}'`);
@@ -404,7 +247,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
 
     const updateDraftMetadata = async (): Promise<void> => {
         try {
-            setDraft(await drafts.getDraft(routeGroupId, draftId, routeVersion));
+            setDraft(await drafts.getDraft(groupId, draftId, version));
         } catch (error) {
             await handleRequestError(error, () => {
                 logger.error(error);
@@ -414,15 +257,14 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
 
     const saveDraftContent = async (contentToSave: string): Promise<void> => {
         try {
-            await drafts.updateDraftContent(routeGroupId, draftId, routeVersion, {
+            await drafts.updateDraftContent(groupId, draftId, version, {
                 content: contentToSave,
                 contentType: draftContent.contentType
             });
             setPleaseWaitModalOpen(false);
-            clearDraftRecoverySnapshot();
             void updateDraftMetadata();
             syncSavedContent(contentToSave);
-            resetDraftRecoveryState();
+            onDraftSaved();
         } catch (error) {
             setPleaseWaitModalOpen(false);
             await handleRequestError(error, () => {
@@ -434,7 +276,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     const checkContentConflictAndSave = async (contentToSave: string): Promise<void> => {
         console.debug("[EditorPage] Checking for conflicting Draft content");
         try {
-            const currentDraft = await drafts.getDraft(routeGroupId, draftId, routeVersion);
+            const currentDraft = await drafts.getDraft(groupId, draftId, version);
             if (currentDraft.contentId !== draft.contentId) {
                 console.debug(`[EditorPage] Detected Draft content conflict.  Expected '${draft.contentId}' but found '${currentDraft.contentId}'.'`);
                 // Uh oh, if we save now we'll be overwriting someone else's changes!
@@ -495,56 +337,6 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
 
     const closeCompareEditor = () => {
         setCompareModalOpen(false);
-    };
-
-    const onRestoreDraftRecovery = (): void => {
-        if (!draftRecoverySnapshot) {
-            return;
-        }
-
-        applyEditorContent(draftRecoverySnapshot.content);
-        // The iframe-based editors only consume their initial content during bootstrap,
-        // so restoring local changes must remount them to rehydrate their internal state.
-        setIframeEditorKey(previous => previous + 1);
-        resetDraftRecoveryState();
-    };
-
-    const onDiscardDraftRecovery = (): void => {
-        clearDraftRecoverySnapshot();
-        resetDraftRecoveryState();
-    };
-
-    const onReauthenticate = async (): Promise<void> => {
-        try {
-            setReauthenticateRedirecting(true);
-            // Suppress the regular beforeunload prompt only for this explicit auth redirect.
-            isAuthRedirectInProgressRef.current = true;
-            // After the quota warning is shown once, let the follow-up confirmation continue without retrying the same failed snapshot write.
-            if (!didReauthenticateSnapshotSaveFail) {
-                const persistenceResult = persistDraftRecoverySnapshot();
-                if (persistenceResult === "quota_exceeded") {
-                    setReauthenticateSnapshotSaveFail(true);
-                    setReauthenticateRedirecting(false);
-                    isAuthRedirectInProgressRef.current = false;
-                    return;
-                }
-            }
-            await reauthentication.startReauthenticationRedirect(auth);
-        } catch (error) {
-            console.error("[EditorPage] Failed to initiate re-authentication redirect", error);
-            setReauthenticateRedirecting(false);
-            isAuthRedirectInProgressRef.current = false;
-        }
-    };
-
-    const onCloseReauthenticateModal = (): void => {
-        if (!isReauthenticateRedirecting) {
-            isAuthRedirectInProgressRef.current = false;
-            setReauthenticateRedirecting(false);
-            setReauthenticateSnapshotSaveFail(false);
-            reauthentication.cancelReauthentication();
-            setReauthenticateModalOpen(false);
-        }
     };
 
     const notDraftEmptyState = (
@@ -637,7 +429,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
             <ReauthenticateModal
                 isOpen={isReauthenticateModalOpen}
                 isRedirecting={isReauthenticateRedirecting}
-                snapshotSaveFailed={didReauthenticateSnapshotSaveFail}
+                confirmWithoutSnapshot={confirmWithoutSnapshot}
                 onConfirm={onReauthenticate}
                 onClose={onCloseReauthenticateModal} />
             <PleaseWaitModal message={pleaseWaitMessage}

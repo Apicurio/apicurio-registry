@@ -6,7 +6,7 @@ import { Modal } from "@patternfly/react-core/deprecated";
 export type ReauthenticateModalProps = {
     isOpen: boolean;
     isRedirecting: boolean;
-    snapshotSaveFailed: boolean;
+    confirmWithoutSnapshot: boolean;
     onConfirm: () => void;
     onClose: () => void;
 };
@@ -14,7 +14,7 @@ export type ReauthenticateModalProps = {
 export const ReauthenticateModal: FunctionComponent<ReauthenticateModalProps> = ({
     isOpen,
     isRedirecting,
-    snapshotSaveFailed,
+    confirmWithoutSnapshot,
     onConfirm,
     onClose
 }: ReauthenticateModalProps) => {
@@ -25,9 +25,9 @@ export const ReauthenticateModal: FunctionComponent<ReauthenticateModalProps> = 
             isOpen={isOpen}
             onClose={onClose}
             actions={[
-                <Button key="reauthenticate" variant={snapshotSaveFailed ? "danger" : "primary"} data-testid="modal-btn-reauthenticate"
+                <Button key="reauthenticate" variant={confirmWithoutSnapshot ? "danger" : "primary"} data-testid="modal-btn-reauthenticate"
                     isLoading={isRedirecting} onClick={onConfirm}>
-                    {snapshotSaveFailed ? "Discard changes and sign in again" : "Sign in again"}
+                    {confirmWithoutSnapshot ? "Discard changes and sign in again" : "Sign in again"}
                 </Button>,
                 <Button key="cancel" variant="link" data-testid="modal-btn-dismiss-reauthentication"
                     isDisabled={isRedirecting} onClick={onClose}>Close</Button>
@@ -36,14 +36,7 @@ export const ReauthenticateModal: FunctionComponent<ReauthenticateModalProps> = 
             <p className="editor-modal-intro-text">
                 Your authentication session has expired. Sign in again to continue editing.
             </p>
-            <Alert
-                variant="info"
-                isInline={true}
-                title="Your unsaved draft changes will be preserved locally in this browser."
-            >
-                <p>After you sign in again, the editor will offer to restore those changes.</p>
-            </Alert>
-            {snapshotSaveFailed ? (
+            {confirmWithoutSnapshot ? (
                 <Alert
                     variant="danger"
                     isInline={true}
@@ -52,7 +45,15 @@ export const ReauthenticateModal: FunctionComponent<ReauthenticateModalProps> = 
                 >
                     <p>Before signing in again, copy the current content from the editor or Source view into a local file so you can restore it manually afterwards.</p>
                 </Alert>
-            ) : undefined}
+            ) : (
+                <Alert
+                    variant="info"
+                    isInline={true}
+                    title="Your unsaved draft changes will be preserved locally in this browser."
+                >
+                    <p>After you sign in again, the editor will offer to restore those changes.</p>
+                </Alert>
+            )}
         </Modal>
     );
 };

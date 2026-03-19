@@ -12,7 +12,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.util.Set;
 
@@ -24,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
-@ResourceLock("blue-green-database")
 public class BlueGreenStorageIsolationTest {
 
     @Inject

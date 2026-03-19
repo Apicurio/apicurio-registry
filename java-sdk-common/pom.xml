@@ -45,6 +45,12 @@
       <artifactId>microprofile-config-api</artifactId>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+      <version>1.44.1</version>
+      <optional>true</optional>
+    </dependency>
     <!-- Test only -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

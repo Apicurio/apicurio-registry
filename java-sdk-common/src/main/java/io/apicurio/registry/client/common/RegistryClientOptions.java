@@ -121,6 +121,8 @@ public class RegistryClientOptions {
     private String proxyPassword;
     // HTTP adapter config
     private HttpAdapterType httpAdapterType = HttpAdapterType.AUTO;
+    // OpenTelemetry config
+    private boolean otelEnabled = false;
 
     private RegistryClientOptions() {
     }
@@ -263,6 +265,10 @@ public class RegistryClientOptions {
 
     public HttpAdapterType getHttpAdapterType() {
         return httpAdapterType;
+    }
+
+    public boolean isOtelEnabled() {
+        return otelEnabled;
     }
 
     /**
@@ -805,6 +811,22 @@ public class RegistryClientOptions {
             throw new IllegalArgumentException("HTTP adapter type cannot be null");
         }
         this.httpAdapterType = httpAdapterType;
+        return this;
+    }
+
+    /**
+     * Enables OpenTelemetry trace context propagation for outgoing HTTP requests.
+     * When enabled, W3C trace context headers ({@code traceparent}, {@code tracestate})
+     * will be injected into all HTTP requests made to the Registry.
+     *
+     * <p>This requires the {@code opentelemetry-api} library to be on the classpath.
+     * If the OpenTelemetry API is not available at runtime, an {@link IllegalStateException}
+     * will be thrown when the client is created.</p>
+     *
+     * @return this builder
+     */
+    public RegistryClientOptions enableOpenTelemetry() {
+        this.otelEnabled = true;
         return this;
     }
 }

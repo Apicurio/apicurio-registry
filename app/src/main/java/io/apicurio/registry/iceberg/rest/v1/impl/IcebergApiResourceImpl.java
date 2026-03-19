@@ -420,17 +420,15 @@ public class IcebergApiResourceImpl implements ApisResource {
         storage.createArtifact(groupId, tableName, ArtifactType.ICEBERG_TABLE, artifactMetaData, null,
                 content, versionMetaData, null, false, false, getCurrentUser());
 
+        TableMetadata tableMetadata;
+        try {
+            tableMetadata = objectMapper.readValue(metadataJson, TableMetadata.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse table metadata", e);
+        }
+
         LoadTableResponse response = new LoadTableResponse();
         response.setMetadataLocation(location + "/metadata/v1.metadata.json");
-
-        TableMetadata tableMetadata = new TableMetadata();
-        tableMetadata.setFormatVersion(2);
-        tableMetadata.setTableUuid(tableUuid);
-        tableMetadata.setLocation(location);
-        tableMetadata.setSchemas(List.of(data.getSchema()));
-        tableMetadata.setCurrentSchemaId(0);
-        tableMetadata.setProperties(data.getProperties());
-
         response.setMetadata(tableMetadata);
         response.setConfig(new Config());
 

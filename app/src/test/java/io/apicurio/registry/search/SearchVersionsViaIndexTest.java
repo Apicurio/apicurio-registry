@@ -1,7 +1,6 @@
 package io.apicurio.registry.search;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.storage.impl.search.ElasticsearchIndexUpdater;

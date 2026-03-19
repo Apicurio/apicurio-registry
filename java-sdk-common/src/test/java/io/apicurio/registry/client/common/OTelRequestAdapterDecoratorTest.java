@@ -163,33 +163,21 @@ class OTelRequestAdapterDecoratorTest {
 
     /**
      * Verifies that the adapter created by the factory is wrapped with the OTel decorator
-     * when the OTel API is available on the classpath.
+     * when OpenTelemetry is explicitly enabled via options.
      */
     @Test
-    void testFactoryWrapsAdapterWithOTelDecoratorWhenAvailable() {
+    void testFactoryWrapsAdapterWithOTelDecoratorWhenEnabled() {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")
-                .httpAdapter(HttpAdapterType.JDK);
+                .httpAdapter(HttpAdapterType.JDK)
+                .enableOpenTelemetry();
 
         RequestAdapter adapter = RegistryClientRequestAdapterFactory.createRequestAdapter(
                 options, Version.V3);
 
         assertNotNull(adapter, "Adapter should be created");
-
-        // The OTel API is a transitive dependency via Kiota, so it should be available
-        // in the test classpath. If it is, the adapter should be wrapped.
-        boolean otelAvailable;
-        try {
-            Class.forName("io.opentelemetry.api.GlobalOpenTelemetry");
-            otelAvailable = true;
-        } catch (ClassNotFoundException e) {
-            otelAvailable = false;
-        }
-
-        if (otelAvailable) {
-            assertTrue(adapter instanceof OTelRequestAdapterDecorator,
-                    "Adapter should be wrapped with OTelRequestAdapterDecorator when OTel is available");
-        }
+        assertTrue(adapter instanceof OTelRequestAdapterDecorator,
+                "Adapter should be wrapped with OTelRequestAdapterDecorator when OTel is enabled");
     }
 
     /**

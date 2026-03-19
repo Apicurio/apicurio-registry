@@ -84,9 +84,15 @@ public class RegistryClientRequestAdapterFactory {
             adapter = createRetryProxy(adapter, options);
         }
 
-        // Wrap with OTel trace context propagation decorator if the OTel API is on the classpath.
+        // Wrap with OTel trace context propagation decorator if explicitly enabled.
         // This goes after retry so that headers are injected on each retry attempt.
-        if (isOTelAvailable()) {
+        if (options.isOtelEnabled()) {
+            if (!isOTelAvailable()) {
+                throw new IllegalStateException(
+                        "OpenTelemetry trace context propagation was enabled, but the "
+                                + "opentelemetry-api library is not on the classpath. "
+                                + "Add a dependency on io.opentelemetry:opentelemetry-api to use this feature.");
+            }
             adapter = new OTelRequestAdapterDecorator(adapter);
         }
 

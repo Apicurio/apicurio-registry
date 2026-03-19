@@ -29,8 +29,7 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created");
-        RequestAdapter inner = unwrap(adapter);
-        assertTrue(inner.getClass().getName().contains("JdkAuthenticatedRequestAdapter"),
+        assertTrue(adapter.getClass().getName().contains("JdkAuthenticatedRequestAdapter"),
                 "Should create JdkAuthenticatedRequestAdapter for basic auth");
     }
 
@@ -47,8 +46,7 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created");
-        RequestAdapter inner = unwrap(adapter);
-        assertTrue(inner.getClass().getName().contains("JdkOAuth2RequestAdapter"),
+        assertTrue(adapter.getClass().getName().contains("JdkOAuth2RequestAdapter"),
                 "Should create JdkOAuth2RequestAdapter for OAuth2");
     }
 
@@ -63,8 +61,7 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created");
-        RequestAdapter inner = unwrap(adapter);
-        assertTrue(inner.getClass().getName().contains("JDKRequestAdapter"),
+        assertTrue(adapter.getClass().getName().contains("JDKRequestAdapter"),
                 "Should create JDKRequestAdapter for anonymous auth");
     }
 
@@ -99,12 +96,11 @@ class JdkAdapterAuthenticationTest {
 
         RequestAdapter adapter = RegistryClientRequestAdapterFactory.createRequestAdapter(
                 options, Version.V3);
-        RequestAdapter inner = unwrap(adapter);
 
         // Use reflection to verify the authorizationHeader field is set
-        Field authHeaderField = inner.getClass().getDeclaredField("authorizationHeader");
+        Field authHeaderField = adapter.getClass().getDeclaredField("authorizationHeader");
         authHeaderField.setAccessible(true);
-        String authHeader = (String) authHeaderField.get(inner);
+        String authHeader = (String) authHeaderField.get(adapter);
 
         assertNotNull(authHeader, "Authorization header should be set");
         assertTrue(authHeader.startsWith("Basic "), "Should be Basic auth header");
@@ -120,12 +116,11 @@ class JdkAdapterAuthenticationTest {
 
         RequestAdapter adapter = RegistryClientRequestAdapterFactory.createRequestAdapter(
                 options, Version.V3);
-        RequestAdapter inner = unwrap(adapter);
 
         // Use reflection to verify the tokenProvider field is set
-        Field tokenProviderField = inner.getClass().getDeclaredField("tokenProvider");
+        Field tokenProviderField = adapter.getClass().getDeclaredField("tokenProvider");
         tokenProviderField.setAccessible(true);
-        Object tokenProvider = tokenProviderField.get(inner);
+        Object tokenProvider = tokenProviderField.get(adapter);
 
         assertNotNull(tokenProvider, "Token provider should be set");
     }
@@ -141,9 +136,7 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created");
-        // The OTel decorator wraps the retry proxy, so unwrap first
-        RequestAdapter inner = unwrap(adapter);
-        assertTrue(Proxy.isProxyClass(inner.getClass()),
+        assertTrue(Proxy.isProxyClass(adapter.getClass()),
                 "Should create a retry proxy when retry is enabled");
     }
 
@@ -158,18 +151,5 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created with SSL config");
-    }
-
-    /**
-     * Unwraps any decorators (e.g. OTelRequestAdapterDecorator) to get the
-     * underlying RequestAdapter for reflection-based assertions.
-     */
-    private RequestAdapter unwrap(RequestAdapter adapter) throws Exception {
-        while (adapter instanceof OTelRequestAdapterDecorator) {
-            Field delegateField = OTelRequestAdapterDecorator.class.getDeclaredField("delegate");
-            delegateField.setAccessible(true);
-            adapter = (RequestAdapter) delegateField.get(adapter);
-        }
-        return adapter;
     }
 }

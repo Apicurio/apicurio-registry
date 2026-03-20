@@ -37,7 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Tag(Constants.SMOKE)
 @Tag(Constants.ICEBERG)
 @QuarkusIntegrationTest
 class IcebergCatalogIT extends ApicurioRegistryBaseIT {

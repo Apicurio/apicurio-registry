@@ -366,9 +366,12 @@ public class IcebergApiResourceImpl implements ApisResource {
         metadata.put("location", location);
         metadata.put("last-sequence-number", 0);
         metadata.put("last-updated-ms", System.currentTimeMillis());
-        metadata.put("last-column-id", 0);
         metadata.put("current-schema-id", 0);
         metadata.put("schemas", List.of(data.getSchema()));
+
+        // Compute last-column-id from schema fields
+        int lastColumnId = computeMaxFieldId(data.getSchema());
+        metadata.put("last-column-id", lastColumnId);
         metadata.put("default-spec-id", 0);
         metadata.put("partition-specs", data.getPartitionSpec() != null
                 ? List.of(data.getPartitionSpec())
@@ -699,6 +702,31 @@ public class IcebergApiResourceImpl implements ApisResource {
         String decoded = URLDecoder.decode(encodedNamespace, StandardCharsets.UTF_8);
         List<String> parts = Arrays.asList(decoded.split(NAMESPACE_SEPARATOR));
         return namespaceToGroupId(parts);
+    }
+
+    @SuppressWarnings("unchecked")
+    private int computeMaxFieldId(Object schema) {
+        Map<String, Object> schemaMap;
+        if (schema instanceof Map) {
+            schemaMap = (Map<String, Object>) schema;
+        } else {
+            schemaMap = objectMapper.convertValue(schema, Map.class);
+        }
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) schemaMap.get("fields");
+        if (fields == null || fields.isEmpty()) {
+            return 0;
+        }
+        int maxId = 0;
+        for (Map<String, Object> field : fields) {
+            Object idObj = field.get("id");
+            if (idObj instanceof Number) {
+                int id = ((Number) idObj).intValue();
+                if (id > maxId) {
+                    maxId = id;
+                }
+            }
+        }
+        return maxId;
     }
 
     private String getCurrentUser() {

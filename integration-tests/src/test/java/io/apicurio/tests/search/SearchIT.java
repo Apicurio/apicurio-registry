@@ -27,7 +27,7 @@ import java.util.Map;
 @QuarkusIntegrationTest
 public class SearchIT extends ApicurioRegistryBaseIT {
 
-    private static final String GROUP = "SearchIT";
+    private static final String GROUP = TestUtils.generateGroupId("SearchIT");
 
     /**
      * Verifies that artifacts can be found by searching their content using full-text search.
@@ -132,6 +132,7 @@ public class SearchIT extends ApicurioRegistryBaseIT {
     @Test
     public void testSearchVersionsByLabels() throws Exception {
         String artifactId = "searchByLabels-" + TestUtils.generateArtifactId();
+        String labelKey = TestUtils.generateTopic();
 
         String content = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Labeled API\"}}";
         CreateArtifactResponse car = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI,
@@ -141,16 +142,28 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         EditableVersionMetaData emd = new EditableVersionMetaData();
         emd.setLabels(new Labels());
         emd.getLabels().setAdditionalData(Map.of(
-                "env", "search-smoke-test",
+                labelKey, "search-smoke-test",
                 "team", "platform"));
         registryClient.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(car.getVersion().getVersion()).put(emd);
+
+        // Search by label key
+        retry(() -> {
+            VersionSearchResults results = registryClient.search().versions().get(config -> {
+                config.queryParameters.groupId = GROUP;
+                config.queryParameters.labels = new String[] { labelKey };
+            });
+            Assertions.assertEquals(1, results.getCount(),
+                    "Expected 1 result when searching by label key");
+            Assertions.assertEquals(artifactId,
+                    results.getVersions().get(0).getArtifactId());
+        });
 
         // Search by label key and value
         retry(() -> {
             VersionSearchResults results = registryClient.search().versions().get(config -> {
                 config.queryParameters.groupId = GROUP;
-                config.queryParameters.labels = new String[] { "env:search-smoke-test" };
+                config.queryParameters.labels = new String[] { labelKey + "=search-smoke-test" };
             });
             Assertions.assertEquals(1, results.getCount(),
                     "Expected 1 result when searching by label key:value");

@@ -17,6 +17,7 @@ import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -32,9 +33,12 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     private final ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProtobufDeserializer.class);
+
     private Class<?> specificReturnClass;
     private Method specificReturnClassParseMethod;
     private boolean deriveClass;
+    private boolean fallbackOnSchemaError;
     private String messageTypeName;
     private boolean readTypeRef = true;
     private boolean readIndexes = false;
@@ -94,6 +98,47 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         deriveClass = config.deriveClass();
         readTypeRef = config.readTypeRef();
         readIndexes = config.readIndexes();
+        fallbackOnSchemaError = config.fallbackOnSchemaError();
+    }
+
+    /**
+     * Overrides the default deserialization to add a fallback path when schema resolution fails
+     * and both {@code specificReturnClass} and {@code fallbackOnSchemaError} are configured.
+     * <p>
+     * When the schema registry is unreachable, the schema has missing transitive imports, or
+     * the content ID is not yet propagated, the normal deserialization path throws. With the
+     * fallback enabled, the deserializer strips the Apicurio wire-format prefix and parses
+     * the raw protobuf bytes directly using the configured return class.
+     * </p>
+     * <p>
+     * This provides resilience against:
+     * <ul>
+     *   <li>Registry downtime or network failures</li>
+     *   <li>Missing transitive proto imports in the registry</li>
+     *   <li>Race conditions during rolling deployments (consumer starts before producer registers schema)</li>
+     * </ul>
+     * </p>
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public U deserializeData(String topic, byte[] data) {
+        try {
+            return super.deserializeData(topic, data);
+        } catch (RuntimeException e) {
+            if (fallbackOnSchemaError && specificReturnClassParseMethod != null
+                    && !specificReturnClass.equals(DynamicMessage.class)) {
+                log.warn("Schema resolution failed for topic '{}' ({}). "
+                        + "Falling back to direct protobuf parsing with {}.",
+                        topic, rootCauseMessage(e), specificReturnClass.getName());
+                try {
+                    return (U) parseFallback(data);
+                } catch (RuntimeException fallbackEx) {
+                    fallbackEx.addSuppressed(e);
+                    throw fallbackEx;
+                }
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -293,4 +338,69 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         }
     }
 
+    /**
+     * Parses protobuf data directly using {@link #specificReturnClassParseMethod}, skipping
+     * the Apicurio wire-format prefix. Used as a fallback when schema resolution fails.
+     * <p>
+     * The wire format depends on the configured {@link io.apicurio.registry.serde.IdHandler}:
+     * <pre>
+     * Non-headers mode: [0x00 magic][ID bytes (size from IdHandler)][indexes?][Ref?][protobuf payload]
+     * Headers mode:     [indexes?][Ref?][protobuf payload]
+     * </pre>
+     * The method respects the {@code readIndexes} and {@code readTypeRef} configuration flags
+     * to correctly skip any prefix data before the actual protobuf payload.
+     * </p>
+     *
+     * @param data the raw Kafka message value bytes including wire-format prefix
+     * @return the deserialized protobuf message, or {@code null} if data is null
+     * @throws IllegalStateException if the fallback parsing fails
+     */
+    @SuppressWarnings("unchecked")
+    private U parseFallback(byte[] data) {
+        if (data == null) {
+            return null;
+        }
+        try {
+            ByteArrayInputStream bais = new ByteArrayInputStream(data);
+
+            // Skip the Apicurio wire-format prefix (magic byte + ID) if present.
+            // The ID size is determined by the configured IdHandler (typically 4 bytes).
+            if (data.length > 0 && data[0] == 0x00) {
+                bais.skip(1); // magic byte
+                int idSize = getSerdeConfigurer().getIdHandler().idSize();
+                bais.skip(idSize);
+            }
+
+            // Skip message indexes if the producer wrote them (Confluent interop)
+            if (readIndexes) {
+                MessageIndexesUtil.readFrom(bais);
+            }
+
+            // Skip the Ref length-delimited message if the producer wrote a type reference
+            if (readTypeRef) {
+                skipDelimitedMessage(bais);
+            }
+
+            return (U) specificReturnClassParseMethod.invoke(null, bais);
+        } catch (IllegalAccessException | InvocationTargetException | IOException e) {
+            throw new IllegalStateException("Fallback protobuf parsing failed for "
+                    + specificReturnClass.getName(), e);
+        }
+    }
+
+    /**
+     * Returns the message from the deepest cause in the exception chain.
+     * Falls back to the exception class name if the message is {@code null}.
+     *
+     * @param e the throwable to inspect
+     * @return a human-readable description of the root cause
+     */
+    private static String rootCauseMessage(Throwable e) {
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        String msg = cause.getMessage();
+        return msg != null ? msg : cause.getClass().getName();
+    }
 }

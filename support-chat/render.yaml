@@ -15,8 +15,7 @@ services:
     name: apicurio-support-chat
     runtime: docker
     plan: free
-    rootDir: support-chat
-    dockerfilePath: ./src/main/docker/Dockerfile.jvm
+    dockerfilePath: ./support-chat/Dockerfile.render
     envVars:
       - key: REGISTRY_URL
         fromService:

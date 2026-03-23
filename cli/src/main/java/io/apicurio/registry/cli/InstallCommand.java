@@ -5,8 +5,7 @@ import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.jboss.logging.Logger;
 import picocli.CommandLine.Command;
 
 import java.io.IOException;
@@ -25,11 +24,11 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 )
 public class InstallCommand extends AbstractCommand {
 
-    private static final Logger log = LogManager.getRootLogger();
+    private static final Logger log = Logger.getLogger(InstallCommand.class);
 
     // File names
     public static final String ACR_SCRIPT = "acr";
-    public static final String ACR_JAR = "acr.jar";
+    public static final String ACR_BINARY = "acr_runner";
     public static final String README = "README.md";
     public static final String CONFIG_JSON = "config.json";
 
@@ -61,9 +60,9 @@ public class InstallCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws IOException {
-        // Location of the directory where the current CLI .jar is running from
+        // Location of the directory where the current CLI binary is running from
         final Path currentPath = Config.getInstance().getAcrCurrentHomePath();
-        log.debug("Current home path: {}", currentPath);
+        log.debugf("Current home path: %s", currentPath);
 
         final Path cliHomePath = determineCliHomePath();
 
@@ -87,12 +86,12 @@ public class InstallCommand extends AbstractCommand {
         if (isBlank(installDir)) {
             throw new CliException("Environment variable " + ENV_ACR_INSTALL_PATH + " is not set.", VALIDATION_ERROR_RETURN_CODE);
         }
-        log.debug("{}={}", ENV_ACR_INSTALL_PATH, installDir);
+        log.debugf("%s=%s", ENV_ACR_INSTALL_PATH, installDir);
         final Path installDirPath = Paths.get(installDir).normalize().toAbsolutePath();
 
         // Location of the CLI home directory, set only if the CLI is already installed
         final String cliHome = Config.getInstance().getEnv(ENV_ACR_HOME);
-        log.debug("{}={}", ENV_ACR_HOME, cliHome);
+        log.debugf("%s=%s", ENV_ACR_HOME, cliHome);
         Path cliHomePath = null;
 
         if (!isBlank(cliHome)) {
@@ -105,7 +104,7 @@ public class InstallCommand extends AbstractCommand {
         // Path to CLI home directory is not set or is invalid, use default install dir
         if (cliHomePath == null) {
             Files.createDirectories(installDirPath);
-            log.debug("Created directory: {}", installDirPath);
+            log.debugf("Created directory: %s", installDirPath);
             cliHomePath = installDirPath;
         }
 
@@ -146,7 +145,9 @@ public class InstallCommand extends AbstractCommand {
     private void copyFiles(final Path currentPath, final Path cliHomePath) throws IOException {
         // Copy common files
         Files.copy(currentPath.resolve(ACR_SCRIPT), cliHomePath.resolve(ACR_SCRIPT), REPLACE_EXISTING);
-        Files.copy(currentPath.resolve(ACR_JAR), cliHomePath.resolve(ACR_JAR), REPLACE_EXISTING);
+        Files.copy(currentPath.resolve(ACR_BINARY), cliHomePath.resolve(ACR_BINARY), REPLACE_EXISTING);
+        // Ensure the binary is executable
+        cliHomePath.resolve(ACR_BINARY).toFile().setExecutable(true, false);
         Files.copy(currentPath.resolve(README), cliHomePath.resolve(README), REPLACE_EXISTING);
 
         // Copy shell-specific files
@@ -218,14 +219,14 @@ public class InstallCommand extends AbstractCommand {
             if (!FileUtils.findInFile(shellConfigPath, sourceCmd)) {
                 try {
                     Files.writeString(shellConfigPath, "\n" + sourceCmd + CLI_MARKER_COMMENT + "\n", StandardOpenOption.APPEND);
-                    log.debug("Updated {} at: {}", shellConfigPath.getFileName(), shellConfigPath);
+                    log.debugf("Updated %s at: %s", shellConfigPath.getFileName(), shellConfigPath);
                 } catch (final IOException e) {
-                    log.error("Failed to update {} at: {}", shellConfigPath.getFileName(), shellConfigPath, e);
+                    log.errorf(e, "Failed to update %s at: %s", shellConfigPath.getFileName(), shellConfigPath);
                     throw new RuntimeException(e);
                 }
             }
         } else {
-            log.warn("Could not update '{}'. File does not exist at: {}", shellConfigPath.getFileName(), shellConfigPath);
+            log.warnf("Could not update '%s'. File does not exist at: %s", shellConfigPath.getFileName(), shellConfigPath);
         }
 
         return shellConfigPath;

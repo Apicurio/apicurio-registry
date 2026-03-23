@@ -7,7 +7,6 @@
 Prerequisites:
 
  - Linux with bash or macOS with zsh
- - Java 11 or higher
 
 To install the Apicurio Registry CLI:
 
@@ -34,7 +33,55 @@ To install the Apicurio Registry CLI:
 
 ## Build
 
-Run `mvn clean install -pl cli -am` to build the CLI locally. The built zip file will be located in `cli/target` directory.
+The CLI is distributed as a native executable. The build produces an architecture-specific ZIP
+containing the native binary, shell scripts, and completions. **Native build is the default** —
+this is what you need to test or install the CLI locally.
+
+```bash
+mvn clean package -pl cli -am -DskipTests
+```
+
+The output ZIP will be at `cli/target/apicurio-registry-cli-*-<os>-<arch>.zip`.
+
+By default, the native build uses a Mandrel container image. To use a local GraalVM installation instead:
+
+```bash
+GRAALVM_HOME=/path/to/graalvm mvn clean package -pl cli -am -DskipTests -Dquarkus.native.container-build=false
+```
+
+When building locally (without a container), the system must have the `zlib` static library installed:
+
+```bash
+# Fedora/RHEL/CentOS
+sudo dnf install zlib-static
+
+# Debian/Ubuntu
+sudo apt install zlib1g-dev
+```
+
+#### Skipping Native Build (Development Only)
+
+During development and testing of CLI code (not the binary itself), you can skip the native
+compilation to speed up the build. This produces a JVM-mode Quarkus application only —
+**no installable ZIP is created**:
+
+```bash
+mvn clean package -pl cli -am -DskipTests -Dcli-skip-native
+```
+
+#### GraalVM Version Compatibility
+
+The required GraalVM/Mandrel version depends on the Quarkus version used by this project:
+
+| Quarkus Version | GraalVM / Mandrel Version | JDK |
+|-----------------|--------------------------|-----|
+| 3.15 (LTS)      | Mandrel 23.1.x            | 21  |
+| 3.17 – 3.27 (current) | GraalVM/Mandrel for JDK 23 | 23  |
+| 3.28+           | GraalVM/Mandrel for JDK 25 | 25  |
+
+> **Note:** Using a GraalVM version that does not match the Quarkus version will cause native build failures due to incompatible class initialization semantics. When in doubt, use the container-based build (default), which uses a matching Mandrel image.
+
+### Installation from Build
 
 If you have not already installed the CLI, run:
 

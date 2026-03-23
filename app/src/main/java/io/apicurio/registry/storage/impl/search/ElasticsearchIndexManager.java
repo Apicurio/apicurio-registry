@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,7 +27,15 @@ public class ElasticsearchIndexManager {
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchIndexManager.class);
 
     private static final int CURRENT_MAPPING_VERSION = 1;
-    private static final String MAPPING_VERSION_DOC_ID = "_mapping_version";
+    public static final String MAPPING_VERSION_DOC_ID = "_mapping_version";
+    public static final String REINDEX_LOCK_DOC_ID = "_reindex_lock";
+
+    /**
+     * List of all internal metadata document IDs that should be excluded from user-facing
+     * queries and operations.
+     */
+    public static final List<String> INTERNAL_DOC_IDS = List.of(
+            MAPPING_VERSION_DOC_ID, REINDEX_LOCK_DOC_ID);
 
     @Inject
     ElasticsearchClient client;
@@ -99,7 +108,7 @@ public class ElasticsearchIndexManager {
         client.deleteByQuery(d -> d
                 .index(indexName)
                 .query(q -> q.bool(b -> b
-                        .mustNot(mn -> mn.ids(ids -> ids.values(MAPPING_VERSION_DOC_ID)))
+                        .mustNot(mn -> mn.ids(ids -> ids.values(INTERNAL_DOC_IDS)))
                 ))
         );
         log.info("Deleted all content documents from index '{}'.", indexName);
@@ -174,7 +183,7 @@ public class ElasticsearchIndexManager {
         CountResponse response = client.count(c -> c
                 .index(config.getIndexName())
                 .query(q -> q.bool(b -> b
-                        .mustNot(mn -> mn.ids(ids -> ids.values(MAPPING_VERSION_DOC_ID)))
+                        .mustNot(mn -> mn.ids(ids -> ids.values(INTERNAL_DOC_IDS)))
                 ))
         );
         return response.count();

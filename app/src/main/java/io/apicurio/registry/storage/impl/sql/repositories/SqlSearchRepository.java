@@ -15,8 +15,6 @@ import io.apicurio.registry.storage.impl.sql.SqlStatementVariableBinder;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
@@ -32,28 +30,22 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  * Repository handling search operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlSearchRepository {
 
-    @Inject
-    Logger log;
+    private final Logger log;
 
-    @Inject
-    SqlStatements sqlStatements;
+    private final SqlStatements sqlStatements;
 
-    @Inject
-    HandleFactory handles;
+    private final HandleFactory handles;
 
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    private final RestConfig restConfig;
+
+    public SqlSearchRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log, RestConfig restConfig) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.restConfig = restConfig;
     }
-
-    @Inject
-    RestConfig restConfig;
 
     /**
      * Search for artifacts based on filters.

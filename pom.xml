@@ -139,9 +139,7 @@
     <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
     <timestamp>${maven.build.timestamp}</timestamp>
 
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.release>17</maven.compiler.release>
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
@@ -190,9 +188,9 @@
     <okio.version>3.17.0</okio.version>
     <kotlin-stdlib.version>2.3.20</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
-    <protobuf.version>4.34.0</protobuf.version>
+    <protobuf.version>4.34.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.66.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.67.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -292,7 +290,7 @@
 
     <!-- Plugin Deps -->
     <version.puppycrawl>8.45.1</version.puppycrawl>
-    <apicurio-maven-plugin.version>0.0.5</apicurio-maven-plugin.version>
+    <apicurio-maven-plugin.version>0.0.8</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
     <proto-plugin.version>5.0.2</proto-plugin.version>
@@ -302,7 +300,7 @@
     <flink.version>1.20.3</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.9.0</kiota.libs.version>
+    <kiota.libs.version>1.9.2</kiota.libs.version>
     <kiota.community.version>0.0.34</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
@@ -1178,8 +1176,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>${maven.compiler.source}</source>
-          <target>${maven.compiler.target}</target>
           <release>${maven.compiler.release}</release>
           <showDeprecation>false</showDeprecation>
           <showWarnings>false</showWarnings>
@@ -1217,7 +1213,7 @@
           </additionalDependencies>
           <failOnError>false</failOnError>
           <failOnWarnings>false</failOnWarnings>
-          <source>${maven.compiler.source}</source>
+          <source>${maven.compiler.release}</source>
         </configuration>
         <executions>
           <execution>

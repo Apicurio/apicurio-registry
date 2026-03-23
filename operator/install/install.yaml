@@ -3535,6 +3535,40 @@ spec:
                                 type: object
                             type: object
                         type: object
+                      kubernetesops:
+                        description: Configure KubernetesOps storage type (read-only,
+                          experimental). Loads registry data from Kubernetes ConfigMaps.
+                        properties:
+                          labelRegistryId:
+                            description: Label key used to identify ConfigMaps belonging
+                              to this registry. Defaults to `apicurio.io/registry-id`.
+                            type: string
+                          namespace:
+                            description: Kubernetes namespace to watch for ConfigMaps.
+                              Defaults to the namespace of the registry deployment.
+                            type: string
+                          refreshEvery:
+                            description: How often to poll for ConfigMap changes.
+                              Supports duration format (e.g., `10s`, `1m`). Defaults
+                              to `30s`.
+                            type: string
+                          registryId:
+                            description: |-
+                              Unique identifier for this registry instance. Only ConfigMaps with a matching label will be loaded.
+
+                              Required if `app.storage.type` is `kubernetesops`.
+                            type: string
+                          watchEnabled:
+                            description: Enable Watch API for real-time ConfigMap
+                              change detection. Set to `false` to use polling only.
+                              Defaults to `true`.
+                            type: boolean
+                          watchReconnectDelay:
+                            description: Base delay before reconnecting after watch
+                              failure. Uses exponential backoff up to 5 minutes. Defaults
+                              to `10s`.
+                            type: string
+                        type: object
                       sql:
                         description: Configure SQL storage types.
                         properties:
@@ -3576,10 +3610,12 @@ spec:
                             * `postgresql` - PostgreSQL storage type, must be further configured using the `app.storage.sql` field.
                             * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
                             * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
+                            * `kubernetesops` - KubernetesOps storage type (read-only, experimental), must be further configured using the `app.storage.kubernetesops` field.
 
                           IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.
                         enum:
                         - kafkasql
+                        - kubernetesops
                         - mysql
                         - postgresql
                         type: string

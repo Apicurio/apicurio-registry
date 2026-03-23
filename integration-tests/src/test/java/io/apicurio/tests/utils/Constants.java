@@ -97,6 +97,11 @@ public interface Constants {
     String ICEBERG = "iceberg";
 
     /**
+     * Tag for search tests, requires Elasticsearch to be available and the search feature enabled
+     */
+    String SEARCH = "search";
+
+    /**
      * Tag for slow-running tests
      */
     String SLOW = "slow";

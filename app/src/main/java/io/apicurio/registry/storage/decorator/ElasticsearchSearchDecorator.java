@@ -10,22 +10,18 @@ import io.apicurio.registry.storage.impl.search.ElasticsearchSearchService;
 import io.apicurio.registry.storage.impl.search.ElasticsearchStartupIndexer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Set;
 
 /**
  * Storage decorator that intercepts version search requests and routes them through the
- * Elasticsearch search index when enabled. Falls back to the underlying SQL-based search
- * when Elasticsearch is disabled, not yet initialized, or when filters contain types that
- * Elasticsearch cannot handle.
+ * Elasticsearch search index only when the search filters require it (e.g. content or
+ * structure filters). All other searches are handled by the underlying SQL-based storage.
  */
 @ApplicationScoped
 public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
         implements RegistryStorageDecorator {
-
-    private static final Logger log = LoggerFactory.getLogger(ElasticsearchSearchDecorator.class);
 
     @Inject
     ElasticsearchSearchConfig config;
@@ -47,30 +43,27 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
     }
 
     /**
-     * Intercepts version search requests. When the Elasticsearch index is initialized and all
-     * filters are ES-compatible, the search is executed against the ES index. Otherwise, the
-     * request falls through to the underlying storage (SQL). If the filters include
-     * index-only types (e.g. content search) and ES is unavailable, an error is thrown rather
-     * than silently returning incorrect results from SQL.
+     * Intercepts version search requests. Only routes through Elasticsearch when the filters
+     * require the search index (e.g. content or structure filters). All other searches fall
+     * through to the underlying SQL-based storage.
      */
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, int offset, int limit)
             throws RegistryStorageException {
-        if (startupIndexer.isReady() && searchService.canHandleFilters(filters)) {
+        if (searchService.requiresSearchIndex(filters)) {
+            if (!startupIndexer.isReady()) {
+                throw new RegistryStorageException(
+                        "Content search requires the Elasticsearch search index, which is not "
+                        + "available. Enable the Elasticsearch search index to use content search.");
+            }
             try {
                 return searchService.searchVersions(filters, orderBy, orderDirection,
                         offset, limit);
-            } catch (Exception e) {
-                log.warn("Elasticsearch search failed, falling back to SQL storage", e);
+            } catch (IOException e) {
+                throw new RegistryStorageException(
+                        "Elasticsearch search failed for index-only filters.", e);
             }
         }
-        // If the filters require the search index but we can't use it, fail explicitly
-        if (searchService.requiresSearchIndex(filters)) {
-            throw new RegistryStorageException(
-                    "Content search requires the Elasticsearch search index, which is not "
-                    + "available. Enable the Elasticsearch search index to use content search.");
-        }
-        // Fall through to SQL
         return delegate.searchVersions(filters, orderBy, orderDirection, offset, limit);
     }
 }

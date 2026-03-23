@@ -195,6 +195,27 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |===
 
 [discrete]
+===== OpenTelemetry distributed tracing
+The SerDes libraries support optional OpenTelemetry trace context propagation. When enabled,
+W3C trace context headers (`traceparent` and `tracestate`) are injected into all HTTP requests
+to {registry}, allowing schema resolution and registration calls to appear as spans in your
+distributed traces alongside your Kafka producer and consumer operations.
+
+To enable this feature, set the following configuration property:
+
+[source,properties]
+----
+apicurio.registry.otel.enabled=true
+----
+
+The `opentelemetry-api` library must be on the classpath. When an OpenTelemetry SDK is initialized
+in your application (for example, via the OpenTelemetry Java agent or the Quarkus OpenTelemetry
+extension), the SerDes HTTP calls will participate in the active trace. If no OpenTelemetry SDK is
+configured, the behavior is a no-op and no trace headers are added.
+
+For more details on SDK-level configuration, see xref:registry-sdk-config_{context}[].
+
+[discrete]
 ==== Configuration for registry lookup options
 
 The `DefaultSchemaResolver` uses the following properties to configure how to look up artifacts in {registry}.

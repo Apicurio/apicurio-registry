@@ -152,11 +152,17 @@ public class ElasticsearchSearchService {
      * @return an Elasticsearch Query
      */
     Query buildEsQuery(Set<SearchFilter> filters) {
+        BoolQuery.Builder builder = new BoolQuery.Builder();
+
+        // Always exclude internal metadata documents from search results
+        builder.mustNot(Query.of(q -> q.ids(ids -> ids
+                .values(ElasticsearchIndexManager.INTERNAL_DOC_IDS))));
+
         if (filters == null || filters.isEmpty()) {
-            return Query.of(q -> q.matchAll(m -> m));
+            builder.must(Query.of(q -> q.matchAll(m -> m)));
+            return Query.of(q -> q.bool(builder.build()));
         }
 
-        BoolQuery.Builder builder = new BoolQuery.Builder();
         boolean hasPositiveClause = false;
 
         for (SearchFilter filter : filters) {

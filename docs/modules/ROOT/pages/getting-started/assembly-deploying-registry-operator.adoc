@@ -12,6 +12,7 @@ This chapter explains how to deploy and configure {registry} instances using the
 * xref:deploying-registry-postgresql_{context}[]
 * xref:deploying-registry-mysql_{context}[]
 * xref:deploying-registry-kafkasql_{context}[]
+* xref:deploying-registry-kubernetesops_{context}[]
 * xref:configuring-registry-authentication_{context}[]
 * xref:configuring-registry-ingress_{context}[]
 * xref:configuring-registry-features_{context}[]
@@ -43,7 +44,7 @@ and pod specifications.
 
 === Storage options
 
-{registry} supports three storage options:
+{registry} supports the following storage options:
 
 * *In-memory* (default) - Stores data in memory. Suitable for development and testing only. Data is lost when
 the pod restarts.
@@ -51,6 +52,8 @@ the pod restarts.
 * *MySQL* - Stores data in a MySQL database. Suitable for production deployments.
 * *KafkaSQL* - Stores data in Apache Kafka topics with an in-memory cache. Suitable for production deployments
 when configured with persistent Kafka storage.
+* *KubernetesOps* - Read-only storage that loads registry data from Kubernetes ConfigMaps. Suitable for
+Kubernetes-native and GitOps workflows. This is an experimental feature.
 
 IMPORTANT: The default in-memory storage is not suitable for production environments.
 
@@ -401,6 +404,70 @@ spec:
 
 * For more information on Kafka storage configuration, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#setting-up-kafka-streams-storage_{context}[Configuring {registry} with Kafka storage on OpenShift]
 in {installing-the-registry-storage-openshift}.
+
+[id="deploying-registry-kubernetesops_{context}"]
+== Deploying {registry} with KubernetesOps storage
+
+This section explains how to deploy {registry} with KubernetesOps storage. KubernetesOps is a read-only storage
+variant that loads registry data from Kubernetes ConfigMaps, enabling Kubernetes-native and GitOps workflows for
+managing schemas and APIs.
+
+IMPORTANT: KubernetesOps storage is an *experimental* feature. You must enable the experimental features gate to use it.
+
+.Prerequisites
+* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
+* You must have access to create ConfigMaps and RBAC resources in your cluster.
+
+.Procedure
+
+. In the {kubernetes} web console, click *Installed Operators* > *{registry}* > *ApicurioRegistry3* >
+*Create ApicurioRegistry3*.
+
+. Paste in the following custom resource definition, adjusting the values for your environment:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-kubernetesops
+spec:
+  app:
+    storage:
+      type: kubernetesops
+      kubernetesops:
+        registryId: my-registry
+        namespace: apicurio
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
++
+NOTE: Replace `registryId` with a unique identifier for your registry instance, and
+`namespace` with the namespace containing your ConfigMaps. The operator automatically enables
+the experimental features gate required by KubernetesOps storage.
+
+. Create the required RBAC resources (ServiceAccount, Role, RoleBinding) to grant the registry read access
+to ConfigMaps. See xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-rbac-requirements_{context}[RBAC requirements] for details.
+
+. Create ConfigMaps containing your registry data. See
+xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-configmap-format_{context}[ConfigMap data format] for the required format.
+
+. Click *Create* and wait for the {registry} deployment to be created.
+
+.Verification
+
+* Access the {registry} web console and verify that artifacts from your ConfigMaps are visible.
+* Note that KubernetesOps storage is read-only. You cannot create, update, or delete artifacts through the
+REST API or web console.
+
+[role="_additional-resources"]
+.Additional resources
+
+* For detailed configuration options, see xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[].
 
 [id="configuring-registry-authentication_{context}"]
 == Configuring authentication and authorization

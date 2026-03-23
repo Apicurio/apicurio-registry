@@ -7,8 +7,6 @@ import io.apicurio.registry.storage.error.DownloadNotFoundException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.util.Optional;
@@ -18,7 +16,6 @@ import java.util.UUID;
  * Repository handling download operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlDownloadRepository {
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -28,21 +25,16 @@ public class SqlDownloadRepository {
         mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
     }
 
-    @Inject
-    Logger log;
+    private final Logger log;
 
-    @Inject
-    SqlStatements sqlStatements;
+    private final SqlStatements sqlStatements;
 
-    @Inject
-    HandleFactory handles;
+    private final HandleFactory handles;
 
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlDownloadRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
     }
 
     /**

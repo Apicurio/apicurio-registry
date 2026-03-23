@@ -373,26 +373,21 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.gitops.id`
-|`string`
-|
-|`3.0.0`
-|Identifier of this Registry instance. Only data that references this identifier will be loaded.
-|`apicurio.gitops.repo.origin.branch`
+|`apicurio.gitops.repo.branch`
 |`string`
 |`main`
-|`3.0.0`
-|Name of the branch in the remote git repository containing data to be loaded.
-|`apicurio.gitops.repo.origin.uri`
-|`string`
+|`3.2.0`
+|Branch to read from. _(experimental)_
+|`apicurio.gitops.repo.dir`
+|`optional<string>`
 |
-|`3.0.0`
-|URI of the remote git repository containing data to be loaded.
-|`apicurio.gitops.workdir`
+|`3.2.0`
+|Directory name of the Git repository, relative to the workspace. _(experimental)_
+|`apicurio.gitops.workspace`
 |`string`
-|`/tmp/apicurio-registry-gitops`
-|`3.0.0`
-|Path to GitOps working directory, which is used to store the local git repository.
+|`.`
+|`3.2.0`
+|Base directory where Git repositories are mounted. Repository directories are resolved relative to this path. _(experimental)_
 |===
 
 == health
@@ -567,31 +562,26 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.kubernetesops.id`
-|`optional<string>`
-|
-|`3.0.0`
-|Identifier of this Registry instance. Only ConfigMaps with a label matching this identifier will be loaded.
 |`apicurio.kubernetesops.label.registry-id`
 |`string`
 |`apicurio.io/registry-id`
 |`3.0.0`
-|Label key used to identify ConfigMaps belonging to this registry instance.
+|Label key used to identify ConfigMaps belonging to this registry instance. The label value must match `apicurio.polling-storage.id`. _(experimental)_
 |`apicurio.kubernetesops.namespace`
 |`optional<string>`
 |
 |`3.0.0`
-|Kubernetes namespace to watch for ConfigMaps. If not specified, auto-detects the pod's namespace or falls back to "default".
+|Kubernetes namespace to watch for ConfigMaps. If not specified, auto-detects the pod's namespace or falls back to "default". _(experimental)_
 |`apicurio.kubernetesops.watch.enabled`
 |`boolean`
 |`true`
 |`3.0.0`
-|Enable Kubernetes Watch API for real-time ConfigMap change detection.
+|Enable Kubernetes Watch API for real-time ConfigMap change detection. When enabled, changes are detected immediately via watch events in addition to periodic polling. _(experimental)_
 |`apicurio.kubernetesops.watch.reconnect-delay`
 |`duration`
 |`PT10S`
 |`3.0.0`
-|Base delay before reconnecting after watch failure. Uses exponential backoff.
+|Base delay before reconnecting after watch failure. Uses exponential backoff with a maximum of 5 minutes. _(experimental)_
 |===
 
 == limits
@@ -962,7 +952,7 @@ The following {registry} configuration options are available for each component 
 |Gitops blue datasource pool minimum size
 |`apicurio.datasource.blue.jdbc.url`
 |`string`
-|`jdbc:h2:mem:registry_db`
+|`jdbc:h2:mem:registry_blue`
 |`3.0.0`
 |Gitops blue datasource jdbc url
 |`apicurio.datasource.blue.password`
@@ -997,7 +987,7 @@ The following {registry} configuration options are available for each component 
 |Gitops green datasource pool minimum size
 |`apicurio.datasource.green.jdbc.url`
 |`string`
-|`jdbc:h2:mem:registry_db`
+|`jdbc:h2:mem:registry_green`
 |`3.0.0`
 |Gitops green datasource jdbc url
 |`apicurio.datasource.green.password`
@@ -1014,7 +1004,7 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`registry-events`
 |`3.0.1`
-|Kafka events topic for outbox pattern
+|Kafka sql storage events topic
 |`apicurio.events.kafka.topic.*`
 |`map<string, string>`
 |
@@ -1170,6 +1160,41 @@ The following {registry} configuration options are available for each component 
 |`true`
 |
 |Kafka sql storage topic auto create
+|`apicurio.polling-storage.debounce.max-wait-period`
+|`duration`
+|`PT90S`
+|`3.2.0`
+|Maximum time to wait for changes to settle before forcing a load. Prevents indefinite delay when changes keep arriving. Set to PT0S for no maximum. _(experimental)_
+|`apicurio.polling-storage.debounce.quiet-period`
+|`duration`
+|`PT30S`
+|`3.2.0`
+|After detecting a change, wait until no new changes are seen for this duration before loading data. Absorbs rapid successive pushes. Set to PT0S to disable debouncing. _(experimental)_
+|`apicurio.polling-storage.deterministic-ids-enabled`
+|`boolean`
+|`true`
+|`3.2.0`
+|When enabled, contentId and globalId are deterministically generated from content hashes and artifact coordinates if not explicitly specified. When disabled, missing IDs cause an error. Generated IDs use the upper half of positive longs (above Long.MAX_VALUE/2), leaving the lower half for user-specified IDs. _(experimental)_
+|`apicurio.polling-storage.file-suffixes`
+|`list<string>`
+|`registry,ar`
+|`3.2.0`
+|Comma-separated list of file suffixes that identify registry metadata files. Each suffix is combined with supported extensions (.yaml, .yml, .json) to form the full pattern. For example, suffix "registry" matches *.registry.yaml, *.registry.yml, and *.registry.json. _(experimental)_
+|`apicurio.polling-storage.id`
+|`string`
+|`main`
+|`3.2.0`
+|Identifier of this Registry instance. Only data that references this identifier will be loaded. _(experimental)_
+|`apicurio.polling-storage.poll-period`
+|`duration`
+|`PT10S`
+|`3.2.0`
+|Minimum period between data source polls. The actual poll (reading from Git or Kubernetes) only happens when at least this much time has passed since the last poll. _(experimental)_
+|`apicurio.polling-storage.require-registry-config`
+|`boolean`
+|`true`
+|`3.2.0`
+|When enabled, a load is rejected if the data source does not contain a registry configuration file matching the configured registry ID. This prevents accidental data loss from force-pushes or empty branches. To intentionally clear all data, first push a commit with only the registry configuration file (no artifacts), then remove it. _(experimental)_
 |`apicurio.sql.db-schema`
 |`string`
 |`*`
@@ -1482,11 +1507,6 @@ The following {registry} configuration options are available for each component 
 |`apicurio.downloads.reaper.every`
 |`unknown`
 |`60s`
-|
-|
-|`apicurio.gitops.refresh.every`
-|`unknown`
-|`30s`
 |
 |
 |`apicurio.kafkasql.consumer.group.id`

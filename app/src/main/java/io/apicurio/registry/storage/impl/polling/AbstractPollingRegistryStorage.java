@@ -10,9 +10,9 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.registry.storage.impl.gitops.AbstractReadOnlyRegistryStorage;
-import io.apicurio.registry.storage.impl.gitops.sql.BlueSqlStorage;
-import io.apicurio.registry.storage.impl.gitops.sql.GreenSqlStorage;
+import io.apicurio.registry.storage.impl.polling.sql.AbstractReadOnlyRegistryStorage;
+import io.apicurio.registry.storage.impl.polling.sql.BlueSqlStorage;
+import io.apicurio.registry.storage.impl.polling.sql.GreenSqlStorage;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.Entity;
@@ -24,16 +24,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static io.apicurio.registry.exception.RuntimeAssertionFailedException.assertion;
+import static io.quarkus.runtime.configuration.ConfigUtils.isProfileActive;
 
 /**
  * Abstract base class for polling-based registry storage implementations.
  * Provides the blue-green switching pattern for loading data from external sources
  * (Git, Kubernetes ConfigMaps, etc.) without service interruption.
  */
-public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyRegistryStorage {
+public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractReadOnlyRegistryStorage {
 
     @Inject
     Logger log;
@@ -57,22 +61,43 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
         READY_TO_WRITE, // Latest data has been published, and we are ready to write to the inactive storage
     }
 
-    // The marker from the last successful poll (before switch)
-    private Object pendingMarker = null;
+    // The poll result pending switch (holds the commit action)
+    private PollingResult<MARKER> pendingResult = null;
+
+    // Tracks whether the first successful data load has completed.
+    // Used by isReady() to prevent serving empty results before initial data is available.
+    private volatile boolean isReady = false;
+
+    private volatile boolean initialized = false;
+    private PollingStorageConfig pollingConfig;
+    private PollingDataSourceManager<MARKER> pollingDataSourceManager;
+    private Debouncer<PollingResult<MARKER>> debouncer;
+
+    private final ReentrantLock refreshLock = new ReentrantLock();
 
     /**
-     * Returns the data source manager for this storage implementation.
+     * Returns the refresh lock. Holding this lock prevents the scheduler from
+     * polling and loading data. Used by tests that directly manipulate the
+     * blue/green storages to prevent concurrent access.
+     * The `test` profile must be active to access the lock.
      */
-    protected abstract DataSourceManager getDataSourceManager();
+    public ReentrantLock getRefreshLock() {
+        assertion(isProfileActive("test"), "Refresh lock can only be accessed when the 'test' profile is active.");
+        return refreshLock;
+    }
 
-    /**
-     * Returns the name of this storage implementation.
-     */
-    @Override
-    public abstract String storageName();
+    private Instant lastRefresh = Instant.MIN;
 
     @Override
-    public void initialize() {
+    public String storageName() {
+        return pollingConfig.getStorageName();
+    }
+
+    protected void initialize(PollingStorageConfig pollingConfig, PollingDataSourceManager<MARKER> pollingDataSourceManager) {
+        this.pollingConfig = pollingConfig;
+        this.pollingDataSourceManager = pollingDataSourceManager;
+        this.debouncer = new Debouncer<>(pollingConfig.getDebounceQuietPeriod(), pollingConfig.getDebounceMaxWaitPeriod());
+
         log.info("Using {} storage", storageName());
 
         green.initialize();
@@ -81,72 +106,111 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
         try {
             active = green;
             inactive = blue;
-            getDataSourceManager().start();
+            pollingDataSourceManager.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        initialized = true;
+    }
+
+    /**
+     * Periodically called to check for changes and update storage.
+     * <p>
+     * It is expected that this method will be called often,
+     * and has its own logic for timing actual storage refreshes.
+     * <p>
+     * This method is thread-safe.
+     */
+    protected void tryRefresh() {
+        if (!initialized) {
+            return;
+        }
+        if (refreshLock.tryLock()) {
+            try {
+                log.trace("Running {} refresh. Active database is {} and state is {}.",
+                        storageName(), active == green ? "green" : "blue", state);
+
+                switch (state) {
+                    case READY_TO_SWITCH -> {
+                        doSwitch();
+                        pendingResult.commit();
+                        pendingResult = null;
+                        if (!isReady) {
+                            isReady = true;
+                            log.info("{} initial data load completed, storage is now ready", storageName());
+                        }
+                    }
+                    case READY_TO_WRITE -> {
+                        var now = Instant.now();
+                        if (now.isAfter(lastRefresh.plus(pollingConfig.getPollPeriod()))) {
+                            lastRefresh = now;
+                            log.debug("Running {} poll. Active database is {} and state is {}.",
+                                    storageName(), active == green ? "green" : "blue", state);
+                            try {
+                                var pollResult = pollingDataSourceManager.poll();
+                                if (pollResult.isHasChanges()) {
+                                    debouncer.onChange(pollResult);
+                                }
+                                if (debouncer.isReady()) {
+                                    loadInactive(debouncer.pending());
+                                    debouncer.reset();
+                                }
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+                }
+                log.trace("{} refresh finished. Active database is {} and state is {}.",
+                        storageName(), active == green ? "green" : "blue", state);
+            } finally {
+                refreshLock.unlock();
+            }
+        }
+    }
+
+    /**
+     * Loads data from a poll result into the inactive database and prepares for a switch.
+     */
+    private void loadInactive(PollingResult<MARKER> pollResult) {
+        try {
+            inactive.deleteAllUserData();
+            var result = pollingDataSourceManager.process(inactive, pollResult);
+            if (result.isSuccessful()) {
+                log.info("{} update loaded successfully (marker: {})", storageName(), pollResult.getMarker());
+                pendingResult = pollResult;
+                state = State.READY_TO_SWITCH;
+            } else {
+                log.error("{} update failed to load (marker: {}). {} error(s):",
+                        storageName(), pollResult.getMarker(), result.getErrors().size());
+                result.getErrors().forEach(e -> log.error("  - {}", e));
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     /**
-     * Called by scheduled refresh to check for changes and update storage.
-     * Subclasses should call this method from their @Scheduled method.
-     * This method is synchronized to prevent concurrent execution from watch callbacks
-     * and scheduled polling, which could corrupt the inactive storage.
+     * Atomically swaps the active and inactive databases.
      */
-    protected synchronized void refresh() {
-        log.debug("Running {} refresh. Active database is {} and state is {}.",
-                storageName(), active == green ? "green" : "blue", state);
-        switch (state) {
-            case READY_TO_SWITCH: {
+    private void doSwitch() {
+        try {
+            if (switchLock.writeLock().tryLock(5, TimeUnit.SECONDS)) {
                 try {
-                    if (switchLock.writeLock().tryLock(5, TimeUnit.SECONDS)) {
-                        var previous = active;
-                        try {
-                            active = inactive;
-                            inactive = previous;
-                            // Commit the change after successful switch
-                            if (pendingMarker != null) {
-                                getDataSourceManager().commitChange(pendingMarker);
-                                pendingMarker = null;
-                            }
-                        } finally {
-                            state = State.READY_TO_WRITE;
-                            switchLock.writeLock().unlock();
-                            log.info("{} update published", storageName());
-                        }
-                    }
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    var previous = active;
+                    active = inactive;
+                    inactive = previous;
+                } finally {
+                    state = State.READY_TO_WRITE;
+                    switchLock.writeLock().unlock();
+                    log.info("{} update published", storageName());
                 }
+            } else {
+                log.warn("{} could not acquire write lock for switch within 5 seconds, will retry", storageName());
             }
-                break;
-            case READY_TO_WRITE: {
-                try {
-                    PollResult pollResult = getDataSourceManager().poll();
-                    if (pollResult.isHasChanges()) {
-                        inactive.deleteAllUserData();
-
-                        ProcessingResult result = getDataSourceManager().process(inactive, pollResult);
-
-                        if (result.isSuccessful()) {
-                            log.info("{} update loaded successfully", storageName());
-                            pendingMarker = pollResult.getMarker();
-                            state = State.READY_TO_SWITCH;
-                        } else {
-                            log.error("{} update failed to load", storageName());
-                            result.getErrors().forEach(e -> {
-                                log.error("Error: {}", e);
-                            });
-                        }
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-                break;
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
-        log.debug("{} refresh finished. Active database is {} and state is {}.",
-                storageName(), active == green ? "green" : "blue", state);
     }
 
     public <T> T proxy(Function<RegistryStorage, T> operation) {
@@ -185,7 +249,7 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
 
     @Override
     public boolean isReady() {
-        return true;
+        return isReady;
     }
 
     @Override
@@ -220,13 +284,13 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
 
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) {
+                                                    OrderDirection orderDirection, int offset, int limit) {
         return proxy(storage -> storage.searchArtifacts(filters, orderBy, orderDirection, offset, limit));
     }
 
     @Override
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+                                                  OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
         return proxy(storage -> storage.searchVersions(filters, orderBy, orderDirection, offset, limit));
     }
 
@@ -237,7 +301,7 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId,
-            boolean canonical, TypedContent content, List<ArtifactReferenceDto> artifactReferences) {
+                                                                          boolean canonical, TypedContent content, List<ArtifactReferenceDto> artifactReferences) {
         return proxy(storage -> storage.getArtifactVersionMetaDataByContent(groupId, artifactId, canonical,
                 content, artifactReferences));
     }
@@ -279,13 +343,13 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
 
     @Override
     public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId,
-            String version) {
+                                                              String version) {
         return proxy(storage -> storage.getArtifactVersionContent(groupId, artifactId, version));
     }
 
     @Override
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
-            String version) {
+                                                                 String version) {
         return proxy(storage -> storage.getArtifactVersionMetaData(groupId, artifactId, version));
     }
 
@@ -418,14 +482,14 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
 
     @Override
     public List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId,
-            String version) {
+                                                              String version) {
         return proxy(
                 storage -> storage.getContentIdsReferencingArtifactVersion(groupId, artifactId, version));
     }
 
     @Override
     public List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId,
-            String version) {
+                                                             String version) {
         return proxy(storage -> storage.getGlobalIdsReferencingArtifactVersion(groupId, artifactId, version));
     }
 
@@ -436,7 +500,7 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
 
     @Override
     public List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId,
-            String version) {
+                                                                   String version) {
         return proxy(storage -> storage.getInboundArtifactReferences(groupId, artifactId, version));
     }
 
@@ -447,7 +511,7 @@ public abstract class AbstractPollingRegistryStorage extends AbstractReadOnlyReg
 
     @Override
     public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, Integer offset, Integer limit) {
+                                              OrderDirection orderDirection, Integer offset, Integer limit) {
         return proxy(storage -> storage.searchGroups(filters, orderBy, orderDirection, offset, limit));
     }
 

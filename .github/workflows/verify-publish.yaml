@@ -67,3 +67,19 @@ jobs:
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  publish-support-chat-image:
+    name: Publish Support Chat Docker Image
+    uses: ./.github/workflows/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry-support-chat'
+      dockerfile: './support-chat/src/main/docker/Dockerfile.jvm'
+      context: './support-chat'
+      tag: 'latest-snapshot'
+      maven-build: true
+      maven-args: 'package -pl support-chat -am -DskipTests -Dcheckstyle.skip=true --no-transfer-progress'
+      push-to-dockerhub: false
+      platforms: 'linux/amd64,linux/arm64'
+    secrets:
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}

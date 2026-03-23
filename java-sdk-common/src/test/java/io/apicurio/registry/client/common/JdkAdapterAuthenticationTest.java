@@ -4,6 +4,7 @@ import com.microsoft.kiota.RequestAdapter;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class JdkAdapterAuthenticationTest {
 
     @Test
-    void testJdkAdapterWithBasicAuthCreatesAdapter() {
+    void testJdkAdapterWithBasicAuthCreatesAdapter() throws Exception {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")
                 .httpAdapter(HttpAdapterType.JDK)
@@ -33,7 +34,7 @@ class JdkAdapterAuthenticationTest {
     }
 
     @Test
-    void testJdkAdapterWithOAuth2CreatesAdapter() {
+    void testJdkAdapterWithOAuth2CreatesAdapter() throws Exception {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")
                 .httpAdapter(HttpAdapterType.JDK)
@@ -50,7 +51,7 @@ class JdkAdapterAuthenticationTest {
     }
 
     @Test
-    void testJdkAdapterWithAnonymousCreatesAdapter() {
+    void testJdkAdapterWithAnonymousCreatesAdapter() throws Exception {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")
                 .httpAdapter(HttpAdapterType.JDK);
@@ -125,7 +126,7 @@ class JdkAdapterAuthenticationTest {
     }
 
     @Test
-    void testJdkAdapterWithRetryEnabledCreatesProxy() {
+    void testJdkAdapterWithRetryEnabledCreatesProxy() throws Exception {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")
                 .httpAdapter(HttpAdapterType.JDK)
@@ -135,8 +136,7 @@ class JdkAdapterAuthenticationTest {
                 RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
 
         assertNotNull(adapter, "Adapter should be created");
-        // When retry is enabled, the adapter should be a proxy
-        assertTrue(java.lang.reflect.Proxy.isProxyClass(adapter.getClass()),
+        assertTrue(Proxy.isProxyClass(adapter.getClass()),
                 "Should create a retry proxy when retry is enabled");
     }
 

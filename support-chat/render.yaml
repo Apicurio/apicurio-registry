@@ -2,10 +2,10 @@ services:
   # Apicurio Registry (prompt template storage)
   - type: web
     name: apicurio-registry
-    runtime: docker
+    runtime: image
     plan: free
-    rootDir: support-chat
-    dockerfilePath: ./render-registry.Dockerfile
+    image:
+      url: quay.io/apicurio/apicurio-registry:latest
     envVars:
       - key: QUARKUS_HTTP_PORT
         value: "10000"
@@ -13,9 +13,10 @@ services:
   # Support Chat Application
   - type: web
     name: apicurio-support-chat
-    runtime: docker
+    runtime: image
     plan: free
-    dockerfilePath: ./support-chat/Dockerfile.render
+    image:
+      url: quay.io/apicurio/apicurio-registry-support-chat:latest-snapshot
     envVars:
       - key: REGISTRY_URL
         fromService:

@@ -1,0 +1,29 @@
+services:
+  # Apicurio Registry (prompt template storage)
+  - type: web
+    name: apicurio-registry
+    runtime: docker
+    plan: free
+    dockerfilePath: ./render-registry.Dockerfile
+    envVars:
+      - key: QUARKUS_HTTP_PORT
+        value: "10000"
+
+  # Support Chat Application
+  - type: web
+    name: apicurio-support-chat
+    runtime: docker
+    plan: free
+    dockerfilePath: ./src/main/docker/Dockerfile.jvm
+    envVars:
+      - key: REGISTRY_URL
+        fromService:
+          name: apicurio-registry
+          type: web
+          property: hostport
+      - key: GOOGLE_AI_GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: "/https://www\\.apicur\\.io/,/https://.*\\.onrender\\.com/"
+      - key: HTTP_PORT
+        value: "10000"

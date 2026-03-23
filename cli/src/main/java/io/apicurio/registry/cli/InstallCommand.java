@@ -29,13 +29,12 @@ public class InstallCommand extends AbstractCommand {
     // File names
     public static final String ACR_SCRIPT = "acr";
     public static final String ACR_BINARY = "acr_runner";
+    public static final String ACR_ENV = "acr_env";
     public static final String README = "README.md";
     public static final String CONFIG_JSON = "config.json";
 
-    // Shell-specific files
+    // Shell completions
     public static final String COMPLETIONS = "acr_completions";
-    public static final String BASH_ENV = "acr_bash_env";
-    public static final String ZSH_ENV = "acr_zsh_env";
 
     // Shell config files
     public static final String BASHRC = ".bashrc";
@@ -122,15 +121,6 @@ public class InstallCommand extends AbstractCommand {
     }
 
     /**
-     * Gets the appropriate shell environment file name for the current OS.
-     *
-     * @return ZSH_ENV for macOS, BASH_ENV for Linux
-     */
-    public static String getShellEnvFile() {
-        return detectMacOS() ? ZSH_ENV : BASH_ENV;
-    }
-
-    /**
      * Gets the appropriate shell configuration file name for the current OS.
      *
      * @return ZSHRC for macOS, BASHRC for Linux
@@ -141,6 +131,8 @@ public class InstallCommand extends AbstractCommand {
 
     /**
      * Copies all necessary files to the CLI home directory.
+     * The distribution ZIP already contains the correct OS-specific acr_env file,
+     * so no OS detection is needed for file selection.
      */
     private void copyFiles(final Path currentPath, final Path cliHomePath) throws IOException {
         // Copy common files
@@ -150,26 +142,15 @@ public class InstallCommand extends AbstractCommand {
         cliHomePath.resolve(ACR_BINARY).toFile().setExecutable(true, false);
         Files.copy(currentPath.resolve(README), cliHomePath.resolve(README), REPLACE_EXISTING);
 
-        // Copy shell-specific files
-        copyShellSpecificFiles(currentPath, cliHomePath);
+        // Copy completions and shell environment file
+        Files.copy(currentPath.resolve(COMPLETIONS), cliHomePath.resolve(COMPLETIONS), REPLACE_EXISTING);
+        Files.copy(currentPath.resolve(ACR_ENV), cliHomePath.resolve(ACR_ENV), REPLACE_EXISTING);
+        FileUtils.replaceInFile(cliHomePath.resolve(ACR_ENV), ACR_HOME_PLACEHOLDER, cliHomePath.toAbsolutePath().toString());
 
         // Copy config.json only if it doesn't exist (preserve user settings)
         if (!Files.exists(cliHomePath.resolve(CONFIG_JSON))) {
             Files.copy(currentPath.resolve(CONFIG_JSON), cliHomePath.resolve(CONFIG_JSON));
         }
-    }
-
-    /**
-     * Copies shell-specific environment files and completions based on OS.
-     */
-    private void copyShellSpecificFiles(final Path currentPath, final Path cliHomePath) throws IOException {
-        // Copy completions file (same for both bash and zsh)
-        Files.copy(currentPath.resolve(COMPLETIONS), cliHomePath.resolve(COMPLETIONS), REPLACE_EXISTING);
-
-        // Copy shell-specific environment file
-        final String envFile = getShellEnvFile();
-        Files.copy(currentPath.resolve(envFile), cliHomePath.resolve(envFile), REPLACE_EXISTING);
-        FileUtils.replaceInFile(cliHomePath.resolve(envFile), ACR_HOME_PLACEHOLDER, cliHomePath.toAbsolutePath().toString());
     }
 
     /**
@@ -201,9 +182,7 @@ public class InstallCommand extends AbstractCommand {
      */
     private void createSymlinks(final Path binPath, final Path cliHomePath) throws IOException {
         FileUtils.createLink(binPath.resolve(ACR_SCRIPT), cliHomePath.resolve(ACR_SCRIPT));
-
-        final String envFile = getShellEnvFile();
-        FileUtils.createLink(binPath.resolve(envFile), cliHomePath.resolve(envFile));
+        FileUtils.createLink(binPath.resolve(ACR_ENV), cliHomePath.resolve(ACR_ENV));
     }
 
     /**
@@ -211,11 +190,10 @@ public class InstallCommand extends AbstractCommand {
      * Returns the path to the shell configuration file.
      */
     private Path updateShellConfiguration(final Path userHomePath, final Path binPath) throws IOException {
-        final String shellEnvFile = getShellEnvFile();
         final Path shellConfigPath = userHomePath.resolve(getShellConfigFile());
 
         if (Files.exists(shellConfigPath)) {
-            final String sourceCmd = "source " + binPath.resolve(shellEnvFile);
+            final String sourceCmd = "source " + binPath.resolve(ACR_ENV);
             if (!FileUtils.findInFile(shellConfigPath, sourceCmd)) {
                 try {
                     Files.writeString(shellConfigPath, "\n" + sourceCmd + CLI_MARKER_COMMENT + "\n", StandardOpenOption.APPEND);

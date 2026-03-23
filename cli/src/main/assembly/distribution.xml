@@ -21,8 +21,18 @@
         </file>
     </files>
     <fileSets>
+        <!-- Common scripts (acr wrapper, config.json) -->
         <fileSet>
-            <directory>${project.basedir}/src/main/scripts</directory>
+            <directory>${project.basedir}/src/main/scripts/common</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+        <!-- OS-specific scripts (acr_env) — selected by os.detected.name (linux or osx) -->
+        <fileSet>
+            <directory>${project.basedir}/src/main/scripts/${os.detected.name}</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
                 <include>*</include>

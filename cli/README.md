@@ -1,16 +1,27 @@
 # CLI for Apicurio Registry
 
-> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet. The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet.
+> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet.
+
+### Supported Platforms
+
+The CLI is distributed as a native executable. A separate ZIP is provided for each platform:
+
+| Platform | Architecture | ZIP Classifier | Shell |
+|----------|-------------|----------------|-------|
+| Linux    | x86_64      | `linux-x86_64` | bash  |
+| macOS    | aarch64 (Apple Silicon) | `osx-aarch64` | zsh |
+
+Windows is not supported.
 
 ## Installation
 
 Prerequisites:
 
- - Linux with bash or macOS with zsh
+ - Linux (x86_64) with bash, or macOS (Apple Silicon) with zsh
 
 To install the Apicurio Registry CLI:
 
-1. Download the zip file from the [GitHub Releases]() page or the [Maven Central repository]().
+1. Download the ZIP for your platform from [GitHub Releases]() or [Maven Central]().
 2. Unzip the downloaded file to a location of your choice.
 3. You can run the CLI directly using `./acr`, or install it for the local user first (recommended):
 

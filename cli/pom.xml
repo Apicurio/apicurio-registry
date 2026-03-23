@@ -233,6 +233,44 @@
     </build>
 
     <profiles>
+        <!-- Attaches pre-built CLI ZIPs for other architectures (e.g., macOS aarch64)
+             that were downloaded into cli/target/ before the build.
+             Activated by -Dcli-attach-extra-zips. Used during Maven Central deploy. -->
+        <profile>
+            <id>cli-attach-extra-zips</id>
+            <activation>
+                <property>
+                    <name>cli-attach-extra-zips</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-extra-cli-zips</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>attach-artifact</goal>
+                                </goals>
+                                <configuration>
+                                    <artifacts>
+                                        <artifact>
+                                            <file>${project.build.directory}/apicurio-registry-cli-${project.version}-osx-aarch64.zip</file>
+                                            <type>zip</type>
+                                            <classifier>osx-aarch64</classifier>
+                                        </artifact>
+                                    </artifacts>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <!-- Skip native build when -Dcli-skip-native is passed.
              Useful for development and running tests without waiting for native compilation. -->
         <profile>

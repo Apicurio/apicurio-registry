@@ -60,6 +60,6 @@ jobs:
       - name: Run CLI Tests
         run: |
           ./mvnw test -pl cli -Dtest=InstallCommandTest \
-            --no-transfer-progress \
+            --no-transfer-progress -Dcli-skip-native \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5

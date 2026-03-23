@@ -287,40 +287,46 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
     @Test
     void testAddColumns() {
         Namespace ns = createTestNamespace("schema_add");
-        Table table = createTestTable(ns, uniqueName("add_col"));
+        String tableName = uniqueName("add_col");
+        TableIdentifier tableId = TableIdentifier.of(ns, tableName);
+        Table table = createTestTable(ns, tableName);
 
         table.updateSchema()
                 .addColumn("email", Types.StringType.get())
                 .commit();
 
-        Table reloaded = catalog.loadTable(TableIdentifier.of(ns, table.name()));
+        Table reloaded = catalog.loadTable(tableId);
         assertNotNull(reloaded.schema().findField("email"), "Added column should exist");
     }
 
     @Test
     void testRenameColumn() {
         Namespace ns = createTestNamespace("schema_rename");
-        Table table = createTestTable(ns, uniqueName("rename_col"));
+        String tableName = uniqueName("rename_col");
+        TableIdentifier tableId = TableIdentifier.of(ns, tableName);
+        Table table = createTestTable(ns, tableName);
 
         table.updateSchema()
                 .renameColumn("name", "full_name")
                 .commit();
 
-        Table reloaded = catalog.loadTable(TableIdentifier.of(ns, table.name()));
+        Table reloaded = catalog.loadTable(tableId);
         assertNotNull(reloaded.schema().findField("full_name"), "Renamed column should exist");
     }
 
     @Test
     void testMakeColumnOptional() {
         Namespace ns = createTestNamespace("schema_opt");
-        Table table = createTestTable(ns, uniqueName("opt_col"));
+        String tableName = uniqueName("opt_col");
+        TableIdentifier tableId = TableIdentifier.of(ns, tableName);
+        Table table = createTestTable(ns, tableName);
 
         // "id" is required - make it optional
         table.updateSchema()
                 .makeColumnOptional("id")
                 .commit();
 
-        Table reloaded = catalog.loadTable(TableIdentifier.of(ns, table.name()));
+        Table reloaded = catalog.loadTable(tableId);
         assertTrue(reloaded.schema().findField("id").isOptional(), "Column should be optional");
     }
 
@@ -352,14 +358,16 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
     @Test
     void testSetTableProperties() {
         Namespace ns = createTestNamespace("props_set");
-        Table table = createTestTable(ns, uniqueName("props_tbl"));
+        String tableName = uniqueName("props_tbl");
+        TableIdentifier tableId = TableIdentifier.of(ns, tableName);
+        Table table = createTestTable(ns, tableName);
 
         table.updateProperties()
                 .set("custom.key1", "value1")
                 .set("custom.key2", "value2")
                 .commit();
 
-        Table reloaded = catalog.loadTable(TableIdentifier.of(ns, table.name()));
+        Table reloaded = catalog.loadTable(tableId);
         assertEquals("value1", reloaded.properties().get("custom.key1"));
         assertEquals("value2", reloaded.properties().get("custom.key2"));
     }
@@ -367,18 +375,20 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
     @Test
     void testRemoveTableProperties() {
         Namespace ns = createTestNamespace("props_rm");
-        Table table = createTestTable(ns, uniqueName("props_rm_tbl"));
+        String tableName = uniqueName("props_rm_tbl");
+        TableIdentifier tableId = TableIdentifier.of(ns, tableName);
+        Table table = createTestTable(ns, tableName);
 
         table.updateProperties()
                 .set("temp.key", "temp_value")
                 .commit();
 
-        table = catalog.loadTable(TableIdentifier.of(ns, table.name()));
+        table = catalog.loadTable(tableId);
         table.updateProperties()
                 .remove("temp.key")
                 .commit();
 
-        Table reloaded = catalog.loadTable(TableIdentifier.of(ns, table.name()));
+        Table reloaded = catalog.loadTable(tableId);
         assertFalse(reloaded.properties().containsKey("temp.key"), "Removed property should not be present");
     }
 
@@ -485,6 +495,9 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
 
     @Test
     void testConcurrentPropertyUpdates() throws Exception {
+        // Property-only updates don't conflict in the Iceberg REST protocol because
+        // no requirement assertion (UUID, schema-id, snapshot-ref, etc.) changes
+        // between property commits. Both commits succeed with last-writer-wins semantics.
         Namespace ns = createTestNamespace("conc_props");
         String tableName = uniqueName("conc_prop_tbl");
         Table table = createTestTable(ns, tableName);
@@ -497,10 +510,13 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
                 .set("key", "value1")
                 .commit();
 
-        assertThrows(org.apache.iceberg.exceptions.CommitFailedException.class,
-                () -> ref2.updateProperties()
-                        .set("key", "value2")
-                        .commit());
+        // Second commit also succeeds (last-writer-wins for property-only changes)
+        ref2.updateProperties()
+                .set("key", "value2")
+                .commit();
+
+        Table reloaded = catalog.loadTable(tableId);
+        assertEquals("value2", reloaded.properties().get("key"));
     }
 
     // ========== Error Cases ==========

@@ -19,10 +19,7 @@ services:
       url: quay.io/apicurio/apicurio-registry-support-chat:latest-snapshot
     envVars:
       - key: REGISTRY_URL
-        fromService:
-          name: apicurio-registry
-          type: web
-          property: hostport
+        sync: false  # Set manually to https://<registry-service>.onrender.com
       - key: GOOGLE_AI_GEMINI_API_KEY
         sync: false
       - key: CORS_ORIGINS

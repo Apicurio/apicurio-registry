@@ -119,9 +119,26 @@ public class DocumentIngestionService {
         }
 
         if (!documents.isEmpty()) {
-            Log.infof("Ingesting %d documents into embedding store...", documents.size());
-            ingestor.ingest(documents);
-            documentsIngested = documents.size();
+            Log.infof("Ingesting %d documents into embedding store (rate-limited for Gemini free tier)...", documents.size());
+            for (int i = 0; i < documents.size(); i++) {
+                Document doc = documents.get(i);
+                Log.infof("Ingesting document %d/%d: %s", i + 1, documents.size(),
+                    doc.metadata().getString("title"));
+                ingestor.ingest(doc);
+                documentsIngested = i + 1;
+
+                // Rate limit: Gemini free tier allows 100 embedding requests/min.
+                // Each document produces multiple chunks, so pause between documents.
+                if (i < documents.size() - 1) {
+                    try {
+                        Thread.sleep(15000); // 15 seconds between documents
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        Log.warn("Documentation ingestion interrupted");
+                        break;
+                    }
+                }
+            }
             Log.infof("Documentation ingestion complete: %d documents", documentsIngested);
         } else {
             Log.warn("No documents were fetched for ingestion");

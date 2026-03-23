@@ -13,6 +13,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.context.ManagedExecutor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -20,7 +21,6 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Service that fetches Apicurio Registry documentation from the web at startup
@@ -52,6 +52,9 @@ public class DocumentIngestionService {
     @Inject
     EmbeddingModel embeddingModel;
 
+    @Inject
+    ManagedExecutor managedExecutor;
+
     private EmbeddingStoreIngestor ingestor;
 
     @PostConstruct
@@ -70,8 +73,8 @@ public class DocumentIngestionService {
     void onStartup(@Observes StartupEvent event) {
         Log.info("Starting Apicurio Registry documentation ingestion from web...");
 
-        // Run ingestion asynchronously to not block startup
-        CompletableFuture.runAsync(this::ingestDocumentation)
+        // Run ingestion asynchronously using Quarkus-managed executor to preserve classloader context
+        managedExecutor.runAsync(this::ingestDocumentation)
             .exceptionally(e -> {
                 Log.error("Failed to ingest documentation", e);
                 return null;

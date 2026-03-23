@@ -71,16 +71,42 @@ jobs:
 
   publish-support-chat-image:
     name: Publish Support Chat Docker Image
-    uses: ./.github/workflows/reusable-docker-build.yaml
-    with:
-      image-name: 'apicurio/apicurio-registry-support-chat'
-      dockerfile: './support-chat/src/main/docker/Dockerfile.jvm'
-      context: './support-chat'
-      tag: 'latest-snapshot'
-      maven-build: true
-      maven-args: 'package -f support-chat/pom.xml -DskipTests -Dcheckstyle.skip=true --no-transfer-progress'
-      push-to-dockerhub: false
-      platforms: 'linux/amd64,linux/arm64'
-    secrets:
-      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build support-chat module
+        working-directory: support-chat
+        run: mvn package -DskipTests --no-transfer-progress
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Quay.io Registry
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+
+      - name: Build and Push Image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            docker buildx build \
+              --push \
+              --file ./support-chat/src/main/docker/Dockerfile.jvm \
+              --platform linux/amd64,linux/arm64 \
+              --tag quay.io/apicurio/apicurio-registry-support-chat:latest-snapshot \
+              ./support-chat

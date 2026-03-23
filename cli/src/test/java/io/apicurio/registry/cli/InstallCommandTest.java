@@ -14,7 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static io.apicurio.registry.cli.InstallCommand.ACR_HOME_PLACEHOLDER;
-import static io.apicurio.registry.cli.InstallCommand.ACR_JAR;
+import static io.apicurio.registry.cli.InstallCommand.ACR_BINARY;
 import static io.apicurio.registry.cli.InstallCommand.ACR_SCRIPT;
 import static io.apicurio.registry.cli.InstallCommand.BASH_ENV;
 import static io.apicurio.registry.cli.InstallCommand.BIN_DIR;
@@ -61,7 +61,7 @@ public class InstallCommandTest {
 
         // Create required files in acr-home (simulating distribution)
         Files.writeString(acrHome.resolve(ACR_SCRIPT), "#!/bin/bash\necho 'acr'");
-        Files.writeString(acrHome.resolve(ACR_JAR), "fake jar content");
+        Files.writeString(acrHome.resolve(ACR_BINARY), "fake binary content");
         Files.writeString(acrHome.resolve(COMPLETIONS), "# completions");
         Files.writeString(acrHome.resolve(BASH_ENV), "export " + ENV_ACR_HOME + "=\"" + ACR_HOME_PLACEHOLDER + "\"");
         Files.writeString(acrHome.resolve(ZSH_ENV), "export " + ENV_ACR_HOME + "=\"" + ACR_HOME_PLACEHOLDER + "\"");
@@ -251,7 +251,7 @@ public class InstallCommandTest {
 
     /**
      * Verifies that all necessary files were copied to the install directory.
-     * This includes common files (acr script, JAR, README, config.json),
+     * This includes common files (acr script, binary, README, config.json),
      * completions file, and shell-specific environment file.
      */
     private void assertAllFilesExist() {
@@ -259,8 +259,8 @@ public class InstallCommandTest {
         assertThat(installPath.resolve(ACR_SCRIPT))
             .as("ACR script should be copied to install directory")
             .exists();
-        assertThat(installPath.resolve(ACR_JAR))
-            .as("ACR JAR should be copied to install directory")
+        assertThat(installPath.resolve(ACR_BINARY))
+            .as("ACR binary should be copied to install directory")
             .exists();
         assertThat(installPath.resolve(README))
             .as("README should be copied to install directory")

@@ -142,7 +142,7 @@ jobs:
         run: |
           echo "Starting Registry App (In Memory)"
           docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d apicurio/apicurio-registry:${{ inputs.image-tag }}
-          ./mvnw -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true
+          ./mvnw -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true -Dcli-skip-native
           cd integration-tests
           ../mvnw verify -Pregression -Dmaven.javadoc.skip=true -Dquarkus.http.test-host=localhost -Dquarkus.http.test-port=8181
 

@@ -16,7 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
-import static io.apicurio.registry.cli.Acr.createCLI;
 import static java.time.Duration.ofSeconds;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -25,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Base class for CLI tests with common setup and utility methods.
+ * Subclasses must be annotated with @QuarkusTest.
  */
 public abstract class AbstractCLITest {
 
@@ -34,6 +34,11 @@ public abstract class AbstractCLITest {
     protected CommandLine cmd;
     protected StringWriter out;
     protected StringWriter err;
+
+    static CommandLine createCLI() {
+        var acr = new Acr();
+        return new CommandLine(acr);
+    }
 
     @BeforeAll
     public static void beforeAll() {
@@ -58,7 +63,6 @@ public abstract class AbstractCLITest {
                         .forStatusCode(200)
                         .withStartupTimeout(ofSeconds(60)));
 
-        Client.reset();
         registryContainer.start();
 
         // Get the dynamically mapped port and construct the URL
@@ -68,6 +72,7 @@ public abstract class AbstractCLITest {
 
     @BeforeEach
     public void beforeEach() {
+        Client.reset();
         cmd = createCLI();
         out = new StringWriter();
         cmd.setOut(new PrintWriter(out));
@@ -108,12 +113,6 @@ public abstract class AbstractCLITest {
                 .contains(usage);
     }
 
-    /**
-     * Executes a CLI command and asserts that it returns exit code 0.
-     * The command arguments are used to generate a descriptive error message.
-     *
-     * @param command the command arguments to execute
-     */
     protected void executeAndAssertSuccess(String... command) {
         int exitCode = cmd.execute(command);
         assertThat(exitCode)
@@ -121,12 +120,6 @@ public abstract class AbstractCLITest {
                 .isEqualTo(0);
     }
 
-    /**
-     * Executes a CLI command and asserts that it returns non-zero exit code.
-     * The command arguments are used to generate a descriptive error message.
-     *
-     * @param command the command arguments to execute
-     */
     protected void executeAndAssertFailure(String... command) {
         int exitCode = cmd.execute(command);
         assertThat(exitCode)
@@ -134,11 +127,7 @@ public abstract class AbstractCLITest {
                 .isNotEqualTo(0);
     }
 
-    /**
-     * Wraps an assertion message with CLI stdout and stderr outputs for better debugging.
-     */
     protected String withCliOutput(String message) {
         return message + ":\nSTDERR:\n" + err.toString() + "\nSTDOUT:\n" + out.toString();
     }
 }
-

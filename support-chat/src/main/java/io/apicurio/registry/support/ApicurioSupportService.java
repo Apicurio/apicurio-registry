@@ -3,7 +3,6 @@ package io.apicurio.registry.support;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -58,7 +57,7 @@ public class ApicurioSupportService {
     String registryGroup;
 
     @Inject
-    ChatLanguageModel chatModel;
+    SupportAiService aiService;
 
     @Inject
     EmbeddingStore<TextSegment> embeddingStore;
@@ -161,7 +160,7 @@ public class ApicurioSupportService {
         String prompt = renderPrompt(CHAT_PROMPT_ARTIFACT, chatPromptVersion, variables);
 
         // Send to LLM
-        String response = chatModel.generate(prompt);
+        String response = aiService.chat(prompt);
 
         // Store in conversation memory
         addToConversationMemory(sessionId, question, response);

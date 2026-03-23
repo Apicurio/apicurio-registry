@@ -1,6 +1,7 @@
 name: Publish Images
 
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       image-tag:
@@ -77,7 +78,7 @@ jobs:
       context: './support-chat'
       tag: 'latest-snapshot'
       maven-build: true
-      maven-args: 'package -pl support-chat -am -DskipTests -Dcheckstyle.skip=true --no-transfer-progress'
+      maven-args: 'package -f support-chat/pom.xml -DskipTests -Dcheckstyle.skip=true --no-transfer-progress'
       push-to-dockerhub: false
       platforms: 'linux/amd64,linux/arm64'
     secrets:

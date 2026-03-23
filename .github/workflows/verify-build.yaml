@@ -71,11 +71,13 @@ jobs:
             app/target/
             distro/docker/target/
             mcp/target/docker/
-            java-sdk/target/
-            java-sdk-v2/target/
+            java-sdk/common/target/
+            java-sdk/adapter-vertx/target/
+            java-sdk/adapter-jdk/target/
+            java-sdk/client/target/
+            java-sdk/client-v2/target/
             config-index/definitions/target/
             common/target/
-            java-sdk-common/target/
           retention-days: 1
 
   build-ui:

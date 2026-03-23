@@ -39,11 +39,11 @@ public final class DefaultVertxInstance {
      * @throws IllegalStateException if the instance has been closed
      */
     public static Vertx get() {
-        if (closed) {
-            throw new IllegalStateException("Default Vertx instance has been closed");
-        }
-        if (instance == null) {
+        if (instance == null || closed) {
             synchronized (DefaultVertxInstance.class) {
+                if (closed) {
+                    throw new IllegalStateException("Default Vertx instance has been closed");
+                }
                 if (instance == null) {
                     logger.warning("Using default shared Vertx instance. For production use, " +
                             "it is recommended to manage your own Vertx instance and provide it " +

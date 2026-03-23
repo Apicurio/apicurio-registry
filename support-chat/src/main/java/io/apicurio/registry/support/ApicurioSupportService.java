@@ -13,6 +13,7 @@ import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.RenderPromptRequest;
 import io.apicurio.registry.rest.client.models.RenderPromptRequestVariables;
 import io.apicurio.registry.rest.client.models.RenderPromptResponse;
+import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -38,6 +39,14 @@ public class ApicurioSupportService {
 
     private static final String SYSTEM_PROMPT_ARTIFACT = "apicurio-support-system-prompt";
     private static final String CHAT_PROMPT_ARTIFACT = "apicurio-support-chat-prompt";
+
+    private static final String FALLBACK_SYSTEM_PROMPT = """
+        You are a helpful support assistant for Apicurio Registry, an open-source API and schema registry.
+        Apicurio Registry stores and manages APIs and schemas such as AVRO, PROTOBUF, JSON, OPENAPI, \
+        ASYNCAPI, GRAPHQL, KCONNECT, WSDL, XSD, XML, PROMPT_TEMPLATE, and MODEL_SCHEMA.
+        Answer user questions about Apicurio Registry features, configuration, deployment, and usage.
+        Be concise and helpful. If you don't know the answer, say so.
+        """;
 
     @ConfigProperty(name = "apicurio.registry.url", defaultValue = "http://localhost:8080")
     String registryUrl;
@@ -78,13 +87,17 @@ public class ApicurioSupportService {
     }
 
     public String getSystemPrompt(String version) {
-        Map<String, Object> variables = Map.of(
-            "supported_artifact_types",
-            "AVRO, PROTOBUF, JSON, OPENAPI, ASYNCAPI, GRAPHQL, KCONNECT, WSDL, XSD, XML, PROMPT_TEMPLATE, MODEL_SCHEMA",
-            "additional_context", ""
-        );
-
-        return renderPrompt(SYSTEM_PROMPT_ARTIFACT, version, variables);
+        try {
+            Map<String, Object> variables = Map.of(
+                "supported_artifact_types",
+                "AVRO, PROTOBUF, JSON, OPENAPI, ASYNCAPI, GRAPHQL, KCONNECT, WSDL, XSD, XML, PROMPT_TEMPLATE, MODEL_SCHEMA",
+                "additional_context", ""
+            );
+            return renderPrompt(SYSTEM_PROMPT_ARTIFACT, version, variables);
+        } catch (Exception e) {
+            Log.warnf("Failed to fetch system prompt from registry, using fallback: %s", e.getMessage());
+            return FALLBACK_SYSTEM_PROMPT;
+        }
     }
 
     public String chat(String sessionId, String question) {
@@ -99,14 +112,22 @@ public class ApicurioSupportService {
         String additionalContext = relevantDocs.isEmpty() ? "" :
             "\n\n## Relevant Documentation\n" + relevantDocs;
 
-        Map<String, Object> variables = Map.of(
-            "system_prompt", systemPrompt + additionalContext,
-            "question", question,
-            "conversation_history", conversationHistory,
-            "include_examples", true
-        );
+        String prompt;
+        try {
+            Map<String, Object> variables = Map.of(
+                "system_prompt", systemPrompt + additionalContext,
+                "question", question,
+                "conversation_history", conversationHistory,
+                "include_examples", true
+            );
+            prompt = renderPrompt(CHAT_PROMPT_ARTIFACT, chatPromptVersion, variables);
+        } catch (Exception e) {
+            Log.warnf("Failed to fetch chat prompt from registry, using fallback: %s", e.getMessage());
+            prompt = systemPrompt + additionalContext
+                + "\n\nConversation history:\n" + conversationHistory
+                + "\n\nUser question: " + question;
+        }
 
-        String prompt = renderPrompt(CHAT_PROMPT_ARTIFACT, chatPromptVersion, variables);
         String response = aiService.chat(prompt);
         addToConversationMemory(sessionId, question, response);
 

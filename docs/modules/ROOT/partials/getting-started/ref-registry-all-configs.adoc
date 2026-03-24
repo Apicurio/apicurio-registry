@@ -361,7 +361,7 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`false`
 |`3.2.0`
-|Enable data contracts support
+|Enable data contracts support _(experimental)_
 |===
 
 == download

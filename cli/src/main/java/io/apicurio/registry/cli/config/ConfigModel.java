@@ -38,5 +38,8 @@ public class ConfigModel {
 
         @JsonProperty("groupId")
         private String groupId;
+
+        @JsonProperty("artifactId")
+        private String artifactId;
     }
 }

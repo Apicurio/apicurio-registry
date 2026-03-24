@@ -12,6 +12,8 @@ import picocli.CommandLine.Parameters;
 import java.util.List;
 import java.util.Map;
 
+import io.apicurio.registry.cli.common.CliException;
+
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 
 /**
@@ -63,6 +65,10 @@ public class ArtifactUpdateCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
+        if (name == null && description == null && setLabels == null && deleteLabels == null) {
+            throw new CliException("At least one update option is required (--name, --description, --set-label, or --delete-label).",
+                    CliException.VALIDATION_ERROR_RETURN_CODE);
+        }
         final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
         try {
             final var registryClient = client.getRegistryClient();

@@ -32,6 +32,12 @@ public class ContextCreateCommand extends AbstractCommand {
     String groupId;
 
     @Option(
+            names = {"-a", "--artifact"},
+            description = "Artifact ID to use when not specified in a command."
+    )
+    String artifactId;
+
+    @Option(
             names = {"--no-switch-current"},
             description = "Do not make the newly added context the current context.",
             defaultValue = "false"
@@ -47,6 +53,7 @@ public class ContextCreateCommand extends AbstractCommand {
             configModel.getContext().put(name, ConfigModel.Context.builder()
                     .registryUrl(registryUrl)
                     .groupId(groupId)
+                    .artifactId(artifactId)
                     .build());
             output.writeStdOutChunk(out -> {
                 if (!noSwitchCurrent) {

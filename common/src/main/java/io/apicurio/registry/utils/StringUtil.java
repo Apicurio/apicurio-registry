@@ -1,5 +1,7 @@
 package io.apicurio.registry.utils;
 
+import static java.util.Objects.requireNonNull;
+
 public class StringUtil {
 
     public static boolean isEmpty(String string) {
@@ -54,5 +56,16 @@ public class StringUtil {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    public static boolean contains(String value, String chars) {
+        requireNonNull(value, "value");
+        requireNonNull(chars, "chars");
+        for (char c : chars.toCharArray()) {
+            if (value.indexOf(c) >= 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }

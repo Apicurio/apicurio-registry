@@ -2,6 +2,15 @@ vcl 4.1;
 
 import std;
 
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+# IMPORTANT: Production Configuration
+# This VCL is configured for development/testing and exposes internal cache headers.
+# For production deployments, search for "PRODUCTION:" comments and follow instructions
+# to hide internal headers from clients.
+
 # Backend configuration
 # For docker-compose: point to registry container on port 8081
 # For dev mode: point to host.docker.internal:8080
@@ -75,6 +84,7 @@ sub vcl_recv {
     return (hash);
 }
 
+
 # Called to generate the cache key
 sub vcl_hash {
     # Include URL in cache key
@@ -95,31 +105,81 @@ sub vcl_hash {
     return (lookup);
 }
 
+# Called before making a backend request
+sub vcl_backend_fetch {
+    # Varnish automatically handles ETag-based revalidation:
+    #
+    # Within keep window (obj.ttl < 0, obj.keep > 0):
+    #   - Object is stale but still in cache
+    #   - Varnish sends If-None-Match with cached ETag
+    #   - Backend can return 304 Not Modified (bandwidth-efficient)
+    #
+    # Beyond keep window (obj.keep < 0):
+    #   - Varnish stops using If-None-Match for revalidation
+    #   - Next request performs a full fetch (no conditional request)
+    #   - Object becomes eligible for eviction but may remain in cache
+    #   - Ensures absolute freshness periodically
+}
+
 # Called after a backend response is received
 sub vcl_backend_response {
-    # Only cache responses with Cache-Control header
-    if (!beresp.http.Cache-Control) {
+    # Use Surrogate-Control for Varnish-specific caching directives
+    # This allows different caching behavior for Varnish vs browsers
+    # If Surrogate-Control is present, use it; otherwise fall back to Cache-Control
+
+    if (beresp.http.Surrogate-Control) {
+        # Parse max-age from Surrogate-Control for TTL
+        if (beresp.http.Surrogate-Control ~ "max-age=([0-9]+)") {
+            set beresp.ttl = std.duration(
+                regsub(beresp.http.Surrogate-Control, ".*max-age=([0-9]+).*", "\1") + "s",
+                0s
+            );
+        }
+
+        # Check for no-store directive in Surrogate-Control
+        if (beresp.http.Surrogate-Control ~ "no-store") {
+            set beresp.uncacheable = true;
+            unset beresp.http.Surrogate-Control;
+            return (deliver);
+        }
+
+        # PRODUCTION: Uncomment to hide Surrogate-Control from clients
+        # unset beresp.http.Surrogate-Control;
+    } else if (!beresp.http.Cache-Control) {
+        # No Surrogate-Control and no Cache-Control - don't cache
         set beresp.uncacheable = true;
         return (deliver);
+    } else {
+        # No Surrogate-Control, fall back to Cache-Control
+        # Check if backend explicitly says not to cache
+        if (beresp.http.Cache-Control ~ "no-cache" ||
+            beresp.http.Cache-Control ~ "no-store" ||
+            beresp.http.Cache-Control ~ "private") {
+            set beresp.uncacheable = true;
+            return (deliver);
+        }
+
+        # Varnish automatically respects Cache-Control max-age if Surrogate-Control not present
     }
 
-    # Check if backend explicitly says not to cache
-    if (beresp.http.Cache-Control ~ "no-cache" ||
-        beresp.http.Cache-Control ~ "no-store" ||
-        beresp.http.Cache-Control ~ "private") {
-        set beresp.uncacheable = true;
-        return (deliver);
+    # Read X-Cache-Cacheability header to control conditional request (304) optimization window
+    # MODERATE cacheability: keep = 3 * TTL (allows ETag-based revalidation for moderate period)
+    # Other cacheability (HIGH, LOW, NONE): keep = 0s (no extended keep period)
+    if (beresp.http.X-Cache-Cacheability == "MODERATE") {
+        # For MODERATE cacheability, allow ETag-based revalidation for 3x the TTL
+        set beresp.keep = beresp.ttl * 3;
+    } else {
+        # For HIGH, LOW, or NONE cacheability, disable extended keep period
+        set beresp.keep = 0s;
     }
 
-    # Enable grace mode: serve stale content for 1 hour if backend is down
-    # This improves availability during backend failures
-    set beresp.grace = 1h;
+    # PRODUCTION: Uncomment to hide X-Cache-Cacheability from clients
+    # unset beresp.http.X-Cache-Cacheability;
 
-    # For immutable content (Phase 1), cache for maximum duration
-    if (beresp.http.Cache-Control ~ "immutable") {
-        # Cache for 1 year
-        set beresp.ttl = 365d;
-    }
+    # Disable grace mode to prevent stale-while-revalidate (background fetch)
+    # We use ETag-based conditional requests for efficient revalidation instead
+    # Grace would serve stale content while fetching in background, causing test failures
+    set beresp.grace = 0s;
 
     # Remove Set-Cookie from responses (we don't use cookies)
     unset beresp.http.Set-Cookie;
@@ -130,22 +190,21 @@ sub vcl_backend_response {
 
 # Called before delivering response to client
 sub vcl_deliver {
-    # Add debug header to show cache hit/miss
-    # IMPORTANT: Remove in production or add conditional based on debug flag
+    # Add debug headers to show cache hit/miss
     if (obj.hits > 0) {
-        set resp.http.X-Cache = "HIT";
-        set resp.http.X-Cache-Hits = obj.hits;
+        set resp.http.X-Debug-Cache = "HIT";
+        set resp.http.X-Debug-Cache-Hits = obj.hits;
     } else {
-        set resp.http.X-Cache = "MISS";
+        set resp.http.X-Debug-Cache = "MISS";
     }
 
     # Add cache age for debugging
-    set resp.http.X-Cache-Age = obj.age;
+    set resp.http.X-Debug-Cache-Age = obj.age;
 
-    # For production, remove internal headers:
-    # unset resp.http.X-Cache;
-    # unset resp.http.X-Cache-Hits;
-    # unset resp.http.X-Cache-Age;
+    # PRODUCTION: Uncomment to hide debug headers from clients
+    # unset resp.http.X-Debug-Cache;
+    # unset resp.http.X-Debug-Cache-Hits;
+    # unset resp.http.X-Debug-Cache-Age;
 
     return (deliver);
 }

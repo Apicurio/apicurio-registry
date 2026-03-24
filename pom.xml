@@ -111,6 +111,7 @@
     <module>schema-util/avro</module>
     <module>schema-util/common</module>
     <module>schema-util/graphql</module>
+    <module>schema-util/iceberg</module>
     <module>schema-util/json</module>
     <module>schema-util/kconnect</module>
     <module>schema-util/openapi</module>
@@ -190,7 +191,7 @@
     <okio.version>3.16.4</okio.version>
     <kotlin-stdlib.version>2.3.10</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
-    <protobuf.version>4.33.5</protobuf.version>
+    <protobuf.version>4.34.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.66.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -540,6 +541,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-xsd</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-iceberg</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

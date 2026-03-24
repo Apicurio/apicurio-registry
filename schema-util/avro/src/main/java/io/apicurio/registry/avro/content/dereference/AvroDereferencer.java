@@ -30,6 +30,7 @@ public class AvroDereferencer implements ContentDereferencer {
         // defined in another .avsc file. The location of that other file is not included in the Avro
         // specification (in other words there is no "import" statement). So rewriting is meaningless
         // in Avro.
+        // TODO: Should we throw an exception instead of failing silently?
         return content;
     }
 }

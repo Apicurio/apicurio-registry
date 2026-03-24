@@ -1,0 +1,88 @@
+package io.apicurio.registry.types.provider;
+
+import io.apicurio.registry.content.ContentAccepter;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.dereference.NoopContentDereferencer;
+import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
+import io.apicurio.registry.content.refs.NoOpReferenceFinder;
+import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
+import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.iceberg.content.IcebergCompatibilityChecker;
+import io.apicurio.registry.iceberg.content.IcebergContentExtractor;
+import io.apicurio.registry.iceberg.content.IcebergContentValidator;
+import io.apicurio.registry.iceberg.content.IcebergTableContentAccepter;
+import io.apicurio.registry.json.content.canon.JsonContentCanonicalizer;
+import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
+import io.apicurio.registry.rules.validity.ContentValidator;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+
+import java.util.Set;
+
+/**
+ * Artifact type utility provider for Apache Iceberg table metadata.
+ *
+ * Iceberg tables are stored as JSON metadata documents that describe the table structure,
+ * schema, partitioning, and snapshot information.
+ *
+ * @see <a href="https://iceberg.apache.org/spec/">Apache Iceberg Specification</a>
+ */
+public class IcebergTableArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
+
+    @Override
+    public String getArtifactType() {
+        return ArtifactType.ICEBERG_TABLE;
+    }
+
+    @Override
+    public Set<String> getContentTypes() {
+        return Set.of(ContentTypes.APPLICATION_JSON);
+    }
+
+    @Override
+    protected ContentAccepter createContentAccepter() {
+        return new IcebergTableContentAccepter();
+    }
+
+    @Override
+    protected CompatibilityChecker createCompatibilityChecker() {
+        return new IcebergCompatibilityChecker();
+    }
+
+    @Override
+    protected ContentCanonicalizer createContentCanonicalizer() {
+        return new JsonContentCanonicalizer();
+    }
+
+    @Override
+    protected ContentValidator createContentValidator() {
+        return new IcebergContentValidator(true);
+    }
+
+    @Override
+    protected ContentExtractor createContentExtractor() {
+        return new IcebergContentExtractor(true);
+    }
+
+    @Override
+    protected ContentDereferencer createContentDereferencer() {
+        return NoopContentDereferencer.INSTANCE;
+    }
+
+    @Override
+    protected ReferenceFinder createReferenceFinder() {
+        return NoOpReferenceFinder.INSTANCE;
+    }
+
+    @Override
+    public boolean supportsReferencesWithContext() {
+        return false;
+    }
+
+    @Override
+    protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
+        return new DefaultReferenceArtifactIdentifierExtractor();
+    }
+}

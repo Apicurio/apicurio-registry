@@ -11,4 +11,10 @@ public class RuntimeAssertionFailedException extends RuntimeException {
     public RuntimeAssertionFailedException(String message, Throwable cause) {
         super(PREFIX + message, cause);
     }
+
+    public static void assertion(boolean predicate, String message) {
+        if (!predicate) {
+            throw new RuntimeAssertionFailedException(message);
+        }
+    }
 }

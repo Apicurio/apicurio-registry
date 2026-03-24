@@ -15,11 +15,12 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rest.ConflictException;
-import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.RestConfig;
+import io.apicurio.registry.rest.cache.strategy.VersionContentCacheStrategy;
+import io.apicurio.registry.rest.cache.strategy.interceptor.VersionContentCache;
 import io.apicurio.registry.rest.v3.GroupsResource;
 import io.apicurio.registry.rest.v3.beans.*;
 import io.apicurio.registry.rest.v3.impl.shared.ProtobufExporter;
@@ -66,16 +67,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_CANONICAL;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_EDITABLE_METADATA;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_GROUP_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_IF_EXISTS;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_REF_TYPE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_VERSION;
+import static io.apicurio.registry.rest.cache.HttpCaching.caching;
+import static io.apicurio.registry.rest.headers.Headers.checkIfDeprecated;
+import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.recursivelyResolveReferenceContentIds;
+import static io.apicurio.registry.utils.Cell.cellWithLoader;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -84,6 +89,7 @@ import static java.util.stream.Collectors.toList;
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
+// TODO: Split this into multiple implementation classes, similar to the storage repositories.
 public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
@@ -111,16 +117,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     ProtobufExporter protobufExporter;
 
-    public enum RegistryHashAlgorithm {
-        SHA256, MD5
-    }
-
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceType)
      */
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION, "3", MPK_REF_TYPE})
+    @VersionContentCache(versionExpressionParam = MPK_VERSION, refTypeParam = MPK_REF_TYPE)
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
             String versionExpression, ReferenceType refType) {
 
@@ -443,6 +447,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * Creates a unique node ID from group, artifact, and version.
      */
     private String createNodeId(String groupId, String artifactId, String version) {
+        // TODO: Use io.apicurio.registry.model.GAV
         String group = (groupId != null) ? groupId : "default";
         return group + ":" + artifactId + ":" + version;
     }
@@ -452,6 +457,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * Used for detecting circular references at the artifact level.
      */
     private String createArtifactKey(String groupId, String artifactId) {
+        // TODO: Use io.apicurio.registry.model.GA
         String group = (groupId != null) ? groupId : "default";
         return group + ":" + artifactId;
     }
@@ -822,9 +828,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
-        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
-
         if (references == null) {
             // Check if admin has configured a default reference handling behavior
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
@@ -836,25 +839,42 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
         }
 
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
         ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(gav.getRawGroupIdWithNull(),
                 gav.getRawArtifactId(), gav.getRawVersionId());
         if (VersionState.DISABLED.equals(metaData.getState())) {
             throw new VersionNotFoundException(groupId, artifactId, versionExpression);
         }
-        StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
-                gav.getRawArtifactId(), gav.getRawVersionId());
+
+        final var artifactCell = cellWithLoader(() -> storage.getArtifactVersionContent(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId()));
+
+        caching(
+                VersionContentCacheStrategy.builder()
+                        .contentId(metaData.getContentId())
+                        .references(references)
+                        .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
+                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
+                        ))
+                        .versionExpression(versionExpression)
+                        .versionState(metaData.getState())
+                        .build()
+        ).prepare();
 
         // Throw 404 if the version actually has "no content" based on the content-type
-        if (ContentTypes.isEmptyContentType(artifact.getContentType())) {
-            throw new ContentNotFoundException(artifact.getContentId());
+        if (ContentTypes.isEmptyContentType(artifactCell.get().getContentType())) {
+            throw new ContentNotFoundException(artifactCell.get().getContentId());
         }
 
-        TypedContent contentToReturn = TypedContent.create(artifact.getContent(), artifact.getContentType());
+        TypedContent contentToReturn = TypedContent.create(artifactCell.get().getContent(), artifactCell.get().getContentType());
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
-                artifact.getReferences());
+                artifactCell.get().getReferences());
 
-        Response.ResponseBuilder builder = Response.ok(contentToReturn.getContent(),
-                artifact.getContentType());
+        var builder = Response.ok().entity(contentToReturn.getContent())
+                .type(contentToReturn.getContentType());
+
         checkIfDeprecated(metaData::getState, groupId, artifactId, versionExpression, builder);
         return builder.build();
     }
@@ -1566,20 +1586,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     // ========== Not endpoints: ==========
 
     /**
-     * Check to see if the artifact version is deprecated.
-     *
-     * @param stateSupplier
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @param builder
-     */
-    private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String groupId, String artifactId,
-            String version, Response.ResponseBuilder builder) {
-        HeadersHack.checkIfDeprecated(stateSupplier, groupId, artifactId, version, builder);
-    }
-
-    /**
      * Looks up the artifact type for the given artifact.
      *
      * @param groupId
@@ -1819,5 +1825,4 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return protobufExporter.exportVersionAsZip(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
     }
-
 }

@@ -27,6 +27,8 @@ jobs:
             profile: kafkasql-snapshotting
           - storage: kubernetesops
             profile: kubernetesopsit
+          - storage: h2
+            profile: iceberg
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

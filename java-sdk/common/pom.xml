@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry</artifactId>
+    <version>3.2.1-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-java-sdk-common</artifactId>
+
+  <name>apicurio-registry-java-sdk-common</name>
+  <description>Shared code for Apicurio Registry Java SDK v2 and v3.
+    Contains adapter detection, client options, retry logic, and OpenTelemetry support.
+    HTTP adapter implementations are in separate modules (adapter-vertx, adapter-jdk).</description>
+
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.microsoft.kiota</groupId>
+      <artifactId>microsoft-kiota-abstractions</artifactId>
+      <version>${kiota.libs.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.microprofile.config</groupId>
+      <artifactId>microprofile-config-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+    <!-- Vertx types are referenced in RegistryClientOptions (public API).
+         Optional: only needed at runtime when using the Vert.x adapter. -->
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-web-client</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <!-- Test only -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-serialization-jackson</artifactId>
+      <version>${kiota.community.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Kiota HTTP libraries at test scope for AdapterDetector tests
+         (these are lightweight and don't create the cycle that adapter modules would) -->
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-vertx</artifactId>
+      <version>${kiota.community.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-http-jdk</artifactId>
+      <version>${kiota.community.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

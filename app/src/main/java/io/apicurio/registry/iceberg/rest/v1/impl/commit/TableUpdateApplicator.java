@@ -43,19 +43,19 @@ public final class TableUpdateApplicator {
                     applyAddSchema(update, metadata);
                     break;
                 case "set-current-schema":
-                    metadata.put("current-schema-id", toInt(update.get("schema-id")));
+                    applySetCurrentSchema(update, metadata);
                     break;
                 case "add-spec":
                     applyAddSpec(update, metadata);
                     break;
                 case "set-default-spec":
-                    metadata.put("default-spec-id", toInt(update.get("spec-id")));
+                    applySetDefaultSpec(update, metadata);
                     break;
                 case "add-sort-order":
                     applyAddSortOrder(update, metadata);
                     break;
                 case "set-default-sort-order":
-                    metadata.put("default-sort-order-id", toInt(update.get("order-id")));
+                    applySetDefaultSortOrder(update, metadata);
                     break;
                 case "add-snapshot":
                     applyAddSnapshot(update, metadata);
@@ -104,21 +104,40 @@ public final class TableUpdateApplicator {
 
         List<Object> schemas = getMutableList(metadata, "schemas");
 
-        // Auto-assign schema-id if not present
+        // Compute next schema-id: max existing + 1
+        int nextSchemaId = 0;
+        for (Object s : schemas) {
+            if (s instanceof Map) {
+                int sid = toInt(((Map<String, Object>) s).get("schema-id"));
+                if (sid >= nextSchemaId) {
+                    nextSchemaId = sid + 1;
+                }
+            }
+        }
+
+        // Auto-assign schema-id if not present or if -1 (sentinel)
         int schemaId;
-        if (schema.containsKey("schema-id")) {
-            schemaId = toInt(schema.get("schema-id"));
-        } else {
-            schemaId = schemas.size();
+        if (!schema.containsKey("schema-id") || toInt(schema.get("schema-id")) < 0) {
+            schemaId = nextSchemaId;
             schema = new HashMap<>(schema);
             schema.put("schema-id", schemaId);
+        } else {
+            schemaId = toInt(schema.get("schema-id"));
         }
 
         schemas.add(schema);
         metadata.put("schemas", schemas);
 
-        // Update last-column-id based on the highest field ID in the schema
-        updateLastColumnId(schema, metadata);
+        // Update last-column-id from the update's last-column-id or from field IDs
+        if (update.containsKey("last-column-id")) {
+            int updateLastColumnId = toInt(update.get("last-column-id"));
+            int currentLastColumnId = toInt(metadata.getOrDefault("last-column-id", 0));
+            if (updateLastColumnId > currentLastColumnId) {
+                metadata.put("last-column-id", updateLastColumnId);
+            }
+        } else {
+            updateLastColumnId(schema, metadata);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -137,6 +156,54 @@ public final class TableUpdateApplicator {
     }
 
     @SuppressWarnings("unchecked")
+    private static void applySetCurrentSchema(Map<String, Object> update, Map<String, Object> metadata) {
+        int schemaId = toInt(update.get("schema-id"));
+        if (schemaId == -1) {
+            // Sentinel: resolve to the last schema in the list
+            List<Object> schemas = getMutableList(metadata, "schemas");
+            if (!schemas.isEmpty()) {
+                Object lastSchema = schemas.get(schemas.size() - 1);
+                if (lastSchema instanceof Map) {
+                    schemaId = toInt(((Map<String, Object>) lastSchema).get("schema-id"));
+                }
+            }
+        }
+        metadata.put("current-schema-id", schemaId);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void applySetDefaultSpec(Map<String, Object> update, Map<String, Object> metadata) {
+        int specId = toInt(update.get("spec-id"));
+        if (specId == -1) {
+            // Sentinel: resolve to the last partition spec in the list
+            List<Object> specs = getMutableList(metadata, "partition-specs");
+            if (!specs.isEmpty()) {
+                Object lastSpec = specs.get(specs.size() - 1);
+                if (lastSpec instanceof Map) {
+                    specId = toInt(((Map<String, Object>) lastSpec).get("spec-id"));
+                }
+            }
+        }
+        metadata.put("default-spec-id", specId);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void applySetDefaultSortOrder(Map<String, Object> update, Map<String, Object> metadata) {
+        int orderId = toInt(update.get("order-id"));
+        if (orderId == -1) {
+            // Sentinel: resolve to the last sort order in the list
+            List<Object> sortOrders = getMutableList(metadata, "sort-orders");
+            if (!sortOrders.isEmpty()) {
+                Object lastOrder = sortOrders.get(sortOrders.size() - 1);
+                if (lastOrder instanceof Map) {
+                    orderId = toInt(((Map<String, Object>) lastOrder).get("order-id"));
+                }
+            }
+        }
+        metadata.put("default-sort-order-id", orderId);
+    }
+
+    @SuppressWarnings("unchecked")
     private static void applyAddSpec(Map<String, Object> update, Map<String, Object> metadata) {
         Map<String, Object> spec = (Map<String, Object>) update.get("spec");
         if (spec == null) {
@@ -144,6 +211,22 @@ public final class TableUpdateApplicator {
         }
 
         List<Object> specs = getMutableList(metadata, "partition-specs");
+
+        // Auto-assign spec-id if -1 (sentinel) or not present
+        if (!spec.containsKey("spec-id") || toInt(spec.get("spec-id")) < 0) {
+            int nextSpecId = 0;
+            for (Object s : specs) {
+                if (s instanceof Map) {
+                    int sid = toInt(((Map<String, Object>) s).get("spec-id"));
+                    if (sid >= nextSpecId) {
+                        nextSpecId = sid + 1;
+                    }
+                }
+            }
+            spec = new HashMap<>(spec);
+            spec.put("spec-id", nextSpecId);
+        }
+
         specs.add(spec);
         metadata.put("partition-specs", specs);
 

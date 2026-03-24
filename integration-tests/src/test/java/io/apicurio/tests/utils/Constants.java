@@ -92,6 +92,11 @@ public interface Constants {
     String KUBERNETES_OPS = "kubernetesopsit";
 
     /**
+     * Tag for Iceberg REST Catalog integration tests
+     */
+    String ICEBERG = "iceberg";
+
+    /**
      * Tag for search tests, requires Elasticsearch to be available and the search feature enabled
      */
     String SEARCH = "search";

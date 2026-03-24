@@ -315,6 +315,9 @@
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
     <strimzi-test-container.version>0.115.0</strimzi-test-container.version>
+
+    <!-- Iceberg -->
+    <iceberg.version>1.9.0</iceberg.version>
   </properties>
 
   <dependencyManagement>
@@ -1004,6 +1007,13 @@
         TODO: Revisit after Quarkus upgrade.
         -->
         <version>1.21.4</version>
+      </dependency>
+
+      <!-- Iceberg -->
+      <dependency>
+        <groupId>org.apache.iceberg</groupId>
+        <artifactId>iceberg-core</artifactId>
+        <version>${iceberg.version}</version>
       </dependency>
 
     </dependencies>

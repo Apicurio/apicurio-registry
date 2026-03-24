@@ -6,6 +6,8 @@ import io.apicurio.registry.storage.dto.DataClassification;
 import io.apicurio.registry.storage.dto.EditableContractMetadataDto;
 import io.apicurio.registry.storage.dto.PromotionStage;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +18,8 @@ import java.util.Map;
  */
 @ApplicationScoped
 public class ContractMetadataMapper {
+
+    private static final Logger log = LoggerFactory.getLogger(ContractMetadataMapper.class);
 
     /**
      * Extracts contract metadata from a labels map.
@@ -100,6 +104,7 @@ public class ContractMetadataMapper {
         try {
             return Enum.valueOf(enumClass, value);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid {} value in contract label: '{}'", enumClass.getSimpleName(), value);
             return null;
         }
     }

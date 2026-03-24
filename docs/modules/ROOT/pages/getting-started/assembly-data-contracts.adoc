@@ -119,7 +119,9 @@ DRAFT ──────► STABLE ──────► DEPRECATED
 
 NOTE: Reverse transitions (for example, `STABLE` → `DRAFT` or `DEPRECATED` → `STABLE`) are not allowed.
 
-=== Promotion workflow
+=== Promotion workflow (planned)
+
+NOTE: Automated promotion workflow enforcement is planned for a future release. The promotion stage label can be set manually.
 
 The promotion workflow tracks which environment a contract is deployed to:
 
@@ -139,7 +141,9 @@ Promotion rules:
 * PROD promotion might require STABLE status (configurable)
 
 [id="data-contracts-field-tags_{context}"]
-== Field-level tags
+== Field-level tags (planned)
+
+NOTE: Field-level tags are planned for a future release and are not yet implemented.
 
 [role="_abstract"]
 Field tags provide semantic annotation of schema fields, enabling you to identify sensitive data, apply tag-based rules, and search for artifacts by tag.
@@ -207,7 +211,9 @@ External tags are merged with inline tags and can be used to add additional cont
 * `HEALTH` - Health-related data (PHI)
 
 [id="data-contracts-rules_{context}"]
-== Contract rules
+== Contract rules (planned)
+
+NOTE: Contract rules are planned for a future release and are not yet implemented.
 
 [role="_abstract"]
 Contract rules enable you to enforce governance policies and validate or transform data. Rules are organized into three categories based on when they execute.
@@ -288,7 +294,9 @@ When a rule fails, you can configure the action:
 * *DLQ* - Route the message to a dead letter queue
 
 [id="data-contracts-migration_{context}"]
-== Schema migration rules
+== Schema migration rules (planned)
+
+NOTE: Schema migration rules are planned for a future release and are not yet implemented.
 
 [role="_abstract"]
 Migration rules enable schema evolution with data transformation between versions. When a consumer reads data written with an older schema version, migration rules transform the data to match the expected format.
@@ -329,7 +337,9 @@ This rule transforms:
 When schemas evolve with breaking changes, you can use compatibility groups to partition the version history. Versions within the same compatibility group must be compatible. Migration rules are required when crossing group boundaries.
 
 [id="data-contracts-api_{context}"]
-== REST API
+== REST API (planned)
+
+NOTE: The Data Contracts REST API endpoints are planned for a future release and are not yet implemented. Contract metadata can currently be managed through the standard artifact/version labels API.
 
 [role="_abstract"]
 The Data Contracts REST API provides endpoints for managing all aspects of contracts.
@@ -430,8 +440,16 @@ Configure the Data Contracts framework using {registry} application properties.
 |Property |Default |Description
 
 |`apicurio.contracts.enabled`
-|`true`
-|Enable or disable the data contracts feature
+|`false`
+|Enable or disable the data contracts feature (experimental)
+|===
+
+NOTE: The following configuration properties are planned for future releases and are not yet available.
+
+.Planned data contracts configuration properties
+[cols="2,1,2", options="header"]
+|===
+|Property |Default |Description
 
 |`apicurio.contracts.governance.require-owner`
 |`false`
@@ -462,7 +480,9 @@ Configure the Data Contracts framework using {registry} application properties.
 |Rule cache TTL in seconds
 |===
 
-=== SerDes configuration
+=== SerDes configuration (planned)
+
+NOTE: SerDes rule execution configuration is planned for a future release.
 
 Configure rule execution in Kafka serializers/deserializers:
 

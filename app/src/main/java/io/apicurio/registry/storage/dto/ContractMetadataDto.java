@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -19,6 +20,7 @@ import lombok.ToString;
 @Setter
 @EqualsAndHashCode
 @ToString
+@RegisterForReflection
 public class ContractMetadataDto {
 
     private ContractStatus status;

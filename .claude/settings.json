@@ -16,10 +16,46 @@
     ],
     "deny": [
       "Bash(rm -rf *)",
-      "Bash(curl *)",
-      "Bash(wget *)",
       "Read(.env)",
       "Read(.env.*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-files.sh",
+            "statusMessage": "Checking file protection rules"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/checkstyle-after-edit.sh",
+            "timeout": 60,
+            "statusMessage": "Running checkstyle"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Claude Code needs your attention\" with title \"Claude Code\"' 2>/dev/null; exit 0"
+          }
+        ]
+      }
     ]
   }
 }

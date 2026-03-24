@@ -4,24 +4,34 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry</artifactId>
-        <version>3.2.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
-
+    <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-support-chat</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>apicurio-registry-support-chat</name>
     <description>AI-powered support assistant for Apicurio Registry with RAG and LLM integration</description>
 
     <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <quarkus.version>3.27.2</quarkus.version>
         <quarkus-langchain4j.version>1.8.2</quarkus-langchain4j.version>
-        <langchain4j.version>1.0.0-beta2</langchain4j.version>
+        <apicurio-registry-sdk.version>3.2.0</apicurio-registry-sdk.version>
         <jsoup.version>1.22.1</jsoup.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.quarkus.platform</groupId>
+                <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- Quarkus Core -->
@@ -44,6 +54,13 @@
             <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
 
+        <!-- Apicurio Registry Java SDK -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-java-sdk</artifactId>
+            <version>${apicurio-registry-sdk.version}</version>
+        </dependency>
+
         <!-- Quarkus LangChain4j with Google AI Gemini -->
         <dependency>
             <groupId>io.quarkiverse.langchain4j</groupId>
@@ -58,13 +75,6 @@
             <version>${quarkus-langchain4j.version}</version>
         </dependency>
 
-        <!-- In-process ONNX embedding model (no external service needed) -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId>
-            <version>${langchain4j.version}</version>
-        </dependency>
-
         <!-- REST Client for Gemini extension -->
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -76,12 +86,6 @@
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
             <version>${jsoup.version}</version>
-        </dependency>
-
-        <!-- Vert.x Web Client for REST calls to Registry -->
-        <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-web-client</artifactId>
         </dependency>
 
         <!-- Container image build -->
@@ -114,6 +118,7 @@
             <plugin>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
+                <version>${quarkus.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -121,6 +126,14 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -138,6 +151,7 @@
                     <plugin>
                         <groupId>io.quarkus</groupId>
                         <artifactId>quarkus-maven-plugin</artifactId>
+                        <version>${quarkus.version}</version>
                         <executions>
                             <execution>
                                 <goals>

@@ -348,6 +348,22 @@ The following {registry} configuration options are available for each component 
 |Canonical hash mode (compatibility API)
 |===
 
+== contracts
+.contracts configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.contracts.enabled`
+|`boolean`
+|`false`
+|`3.2.0`
+|Enable data contracts support _(experimental)_
+|===
+
 == download
 .download configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]

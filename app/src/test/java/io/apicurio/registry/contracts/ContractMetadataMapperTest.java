@@ -13,7 +13,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Unit tests for ContractMetadataMapper.
+ * Unit tests for {@link ContractMetadataMapper}.
+ *
+ * <p>Verifies bidirectional conversion between the {@code contract.*} label namespace
+ * and contract metadata DTOs, including:
+ * <ul>
+ *   <li>Label-to-DTO extraction ({@code fromLabels})</li>
+ *   <li>DTO-to-label serialization ({@code toLabels}) for both read-only and editable DTOs</li>
+ *   <li>Round-trip fidelity (DTO → labels → DTO)</li>
+ *   <li>Edge cases: null/empty inputs, invalid enums, blank strings</li>
+ *   <li>Exhaustive enum coverage for all status, classification, and stage values</li>
+ * </ul>
  */
 public class ContractMetadataMapperTest {
 
@@ -24,6 +34,12 @@ public class ContractMetadataMapperTest {
         mapper = new ContractMetadataMapper();
     }
 
+    // ===== fromLabels tests =====
+
+    /**
+     * Verifies that all nine contract label keys are correctly extracted into the DTO
+     * when the labels map is fully populated.
+     */
     @Test
     public void testFromLabels_Complete() {
         Map<String, String> labels = new HashMap<>();
@@ -50,6 +66,10 @@ public class ContractMetadataMapperTest {
         Assertions.assertEquals("Replaced by v2", result.getDeprecationReason());
     }
 
+    /**
+     * Verifies that only the labels present in the map are populated;
+     * missing labels result in null fields.
+     */
     @Test
     public void testFromLabels_Partial() {
         Map<String, String> labels = new HashMap<>();
@@ -69,6 +89,9 @@ public class ContractMetadataMapperTest {
         Assertions.assertNull(result.getDeprecationReason());
     }
 
+    /**
+     * Verifies that a null labels map produces an empty (non-null) DTO.
+     */
     @Test
     public void testFromLabels_Null() {
         ContractMetadataDto result = mapper.fromLabels(null);
@@ -78,6 +101,9 @@ public class ContractMetadataMapperTest {
         Assertions.assertNull(result.getOwnerTeam());
     }
 
+    /**
+     * Verifies that an empty labels map produces an empty (non-null) DTO.
+     */
     @Test
     public void testFromLabels_Empty() {
         ContractMetadataDto result = mapper.fromLabels(new HashMap<>());
@@ -87,6 +113,10 @@ public class ContractMetadataMapperTest {
         Assertions.assertNull(result.getOwnerTeam());
     }
 
+    /**
+     * Verifies that unrecognized enum strings are silently mapped to null,
+     * while valid string fields are still extracted normally.
+     */
     @Test
     public void testFromLabels_InvalidEnumValues() {
         Map<String, String> labels = new HashMap<>();
@@ -103,6 +133,9 @@ public class ContractMetadataMapperTest {
         Assertions.assertEquals("Team A", result.getOwnerTeam());
     }
 
+    /**
+     * Verifies that whitespace-only enum values are treated as absent (null).
+     */
     @Test
     public void testFromLabels_BlankEnumValues() {
         Map<String, String> labels = new HashMap<>();
@@ -115,6 +148,12 @@ public class ContractMetadataMapperTest {
         Assertions.assertEquals("Team B", result.getOwnerTeam());
     }
 
+    // ===== toLabels(ContractMetadataDto) tests =====
+
+    /**
+     * Verifies that a fully populated DTO serializes all fields into the correct label keys
+     * with string representations of enum values.
+     */
     @Test
     public void testToLabels_Complete() {
         ContractMetadataDto metadata = ContractMetadataDto.builder()
@@ -142,6 +181,10 @@ public class ContractMetadataMapperTest {
         Assertions.assertEquals("Migrating to new schema", labels.get(ContractLabels.DEPRECATION_REASON));
     }
 
+    /**
+     * Verifies that null DTO fields are omitted from the labels map entirely
+     * (no null-valued entries).
+     */
     @Test
     public void testToLabels_Partial() {
         ContractMetadataDto metadata = ContractMetadataDto.builder()
@@ -159,6 +202,9 @@ public class ContractMetadataMapperTest {
         Assertions.assertFalse(labels.containsKey(ContractLabels.STAGE));
     }
 
+    /**
+     * Verifies that a null DTO produces an empty (non-null) labels map.
+     */
     @Test
     public void testToLabels_Null() {
         Map<String, String> labels = mapper.toLabels((ContractMetadataDto) null);
@@ -167,6 +213,10 @@ public class ContractMetadataMapperTest {
         Assertions.assertTrue(labels.isEmpty());
     }
 
+    /**
+     * Verifies that blank and empty string fields are excluded from the labels map,
+     * preventing storage of meaningless whitespace-only values.
+     */
     @Test
     public void testToLabels_BlankStringsNotIncluded() {
         ContractMetadataDto metadata = ContractMetadataDto.builder()
@@ -182,6 +232,12 @@ public class ContractMetadataMapperTest {
         Assertions.assertFalse(labels.containsKey(ContractLabels.OWNER_DOMAIN));
     }
 
+    // ===== toLabels(EditableContractMetadataDto) tests =====
+
+    /**
+     * Verifies that the editable DTO overload produces identical label output
+     * to the read-only DTO overload.
+     */
     @Test
     public void testToLabelsFromEditable_Complete() {
         EditableContractMetadataDto metadata = EditableContractMetadataDto.builder()
@@ -205,6 +261,9 @@ public class ContractMetadataMapperTest {
         Assertions.assertEquals("2024-02-01", labels.get(ContractLabels.STABLE_DATE));
     }
 
+    /**
+     * Verifies that a null editable DTO produces an empty labels map.
+     */
     @Test
     public void testToLabelsFromEditable_Null() {
         Map<String, String> labels = mapper.toLabels((EditableContractMetadataDto) null);
@@ -213,6 +272,12 @@ public class ContractMetadataMapperTest {
         Assertions.assertTrue(labels.isEmpty());
     }
 
+    // ===== Round-trip and exhaustive enum tests =====
+
+    /**
+     * Verifies round-trip fidelity: a DTO converted to labels and back produces
+     * an equal DTO, ensuring no data is lost or corrupted in the conversion.
+     */
     @Test
     public void testRoundTrip() {
         ContractMetadataDto original = ContractMetadataDto.builder()
@@ -231,6 +296,9 @@ public class ContractMetadataMapperTest {
         Assertions.assertEquals(original, restored);
     }
 
+    /**
+     * Verifies that every {@link ContractStatus} enum value survives a label round-trip.
+     */
     @Test
     public void testAllStatusValues() {
         for (ContractStatus status : ContractStatus.values()) {
@@ -242,6 +310,9 @@ public class ContractMetadataMapperTest {
         }
     }
 
+    /**
+     * Verifies that every {@link DataClassification} enum value survives a label round-trip.
+     */
     @Test
     public void testAllClassificationValues() {
         for (DataClassification classification : DataClassification.values()) {
@@ -253,6 +324,9 @@ public class ContractMetadataMapperTest {
         }
     }
 
+    /**
+     * Verifies that every {@link PromotionStage} enum value survives a label round-trip.
+     */
     @Test
     public void testAllStageValues() {
         for (PromotionStage stage : PromotionStage.values()) {

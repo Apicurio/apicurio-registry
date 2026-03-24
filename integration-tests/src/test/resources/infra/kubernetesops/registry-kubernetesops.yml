@@ -56,12 +56,12 @@ spec:
               value: "kubernetesops"
             - name: APICURIO_STORAGE_SQL_KIND
               value: "h2"
-            - name: APICURIO_KUBERNETESOPS_ID
+            - name: APICURIO_POLLING_STORAGE_ID
               value: "e2e-test"
             - name: APICURIO_KUBERNETESOPS_NAMESPACE
               value: "apicurio-registry-e2e"
-            - name: APICURIO_KUBERNETESOPS_REFRESH_EVERY
-              value: "5s"
+            - name: APICURIO_POLLING_STORAGE_POLL_PERIOD
+              value: "PT5S"
             - name: APICURIO_KUBERNETESOPS_WATCH_ENABLED
               value: "true"
             - name: APICURIO_FEATURES_EXPERIMENTAL_ENABLED

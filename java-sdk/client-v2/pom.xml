@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry</artifactId>
+    <version>3.2.1-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-v2-java-sdk</artifactId>
+
+  <name>apicurio-registry-v2-java-sdk</name>
+
+  <properties>
+    <projectRoot>${project.basedir}/../..</projectRoot>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.kiota</groupId>
+      <artifactId>microsoft-kiota-abstractions</artifactId>
+      <version>${kiota.libs.version}</version>
+    </dependency>
+    <!-- HTTP Adapter modules - both included by default -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-adapter-vertx</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-adapter-jdk</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.kiota</groupId>
+      <artifactId>kiota-serialization-jackson</artifactId>
+      <version>${kiota.community.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.kiota</groupId>
+      <artifactId>microsoft-kiota-serialization-text</artifactId>
+      <version>${kiota.libs.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.kiota</groupId>
+      <artifactId>microsoft-kiota-serialization-form</artifactId>
+      <version>${kiota.libs.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.kiota</groupId>
+      <artifactId>microsoft-kiota-serialization-multipart</artifactId>
+      <version>${kiota.libs.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <!-- GMavenPlus plugin for Groovy script execution -->
+      <plugin>
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
+        <version>${version.gmavenplus-plugin}</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>${groovy.version}</version>
+            <scope>runtime</scope>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson-datatype-json-org.version}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <!-- Filter OpenAPI spec before Kiota code generation -->
+          <execution>
+            <id>filter-openapi-spec</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script><![CDATA[
+                  import com.fasterxml.jackson.databind.ObjectMapper
+                  import com.fasterxml.jackson.databind.SerializationFeature
+
+                  def inputFile = new File(project.basedir, '../../common/src/main/resources/META-INF/openapi-v2.json')
+                  def outputFile = new File(project.build.directory, 'openapi-v2-filtered.json')
+
+                  def pathsToFilter = [
+                      '/groups/{groupId}/artifacts',
+                      '/groups/{groupId}/artifacts/{artifactId}',
+                      '/groups/{groupId}/artifacts/{artifactId}/versions'
+                  ] as Set
+
+                  def contentTypesToRemove = ['*/*', 'application/create.extended+json'] as Set
+
+                  log.info("Filtering OpenAPI spec from: ${inputFile}")
+                  log.info("Output will be written to: ${outputFile}")
+
+                  def mapper = new ObjectMapper()
+                  def json = mapper.readValue(inputFile, LinkedHashMap.class)
+
+                  json.paths.each { pathKey, pathItem ->
+                      if (pathsToFilter.contains(pathKey)) {
+                          log.info("Processing path: ${pathKey}")
+
+                          if (pathItem.post?.requestBody?.content) {
+                              def content = pathItem.post.requestBody.content
+
+                              contentTypesToRemove.each { contentType ->
+                                  if (content.containsKey(contentType)) {
+                                      content.remove(contentType)
+                                      log.info("  Removed content-type: ${contentType}")
+                                  }
+                              }
+
+                              def remainingKeys = content.keySet() as List
+                              log.info("  Remaining content-types: ${remainingKeys}")
+                          }
+                      }
+                  }
+
+                  outputFile.parentFile.mkdirs()
+
+                  mapper.enable(SerializationFeature.INDENT_OUTPUT)
+                  mapper.writeValue(outputFile, json)
+
+                  log.info("Filtered OpenAPI spec written successfully")
+                ]]></script>
+              </scripts>
+            </configuration>
+          </execution>
+          <!-- Post-process Kiota-generated files to support legacy date formats -->
+          <execution>
+            <id>post-process-kiota</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script><![CDATA[
+                  def generatedDir = new File(project.build.directory, 'generated-sources/kiota')
+                  if (!generatedDir.exists()) {
+                    log.info('Generated sources directory not found, skipping Kiota post-processing')
+                    return
+                  }
+
+                  log.info('Post-processing Kiota-generated files in ' + generatedDir)
+
+                  def oldPattern = 'n.getOffsetDateTimeValue()'
+                  def newPattern = 'io.apicurio.registry.client.common.util.DateTimeUtil.getOffsetDateTimeValue(n)'
+
+                  def modifiedCount = 0
+
+                  generatedDir.eachFileRecurse { file ->
+                    if (file.name.endsWith('.java')) {
+                      def content = file.text
+
+                      if (content.contains(oldPattern)) {
+                        content = content.replace(oldPattern, newPattern)
+
+                        file.text = content
+                        modifiedCount++
+                        log.info('  Modified: ' + file.name)
+                      }
+                    }
+                  }
+
+                  log.info('Post-processing complete. Modified ' + modifiedCount + ' files.')
+                ]]></script>
+              </scripts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>io.kiota</groupId>
+        <artifactId>kiota-maven-plugin</artifactId>
+        <version>${kiota.community.version}</version>
+        <executions>
+          <execution>
+            <id>v2</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <kiotaVersion>${kiota.version}</kiotaVersion>
+              <kiotaTimeout>${kiota.timeout}</kiotaTimeout>
+              <baseURL>${kiota.base.url}</baseURL>
+              <file>${project.build.directory}/openapi-v2-filtered.json</file>
+              <namespace>io.apicurio.registry.rest.client.v2</namespace>
+              <clientClass>RegistryClient</clientClass>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>${version.build.helper.maven.plugin}</version>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-sources/kiota/</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

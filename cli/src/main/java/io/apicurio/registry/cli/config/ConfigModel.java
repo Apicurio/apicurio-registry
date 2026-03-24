@@ -35,5 +35,8 @@ public class ConfigModel {
 
         @JsonProperty("registryUrl")
         private String registryUrl;
+
+        @JsonProperty("groupId")
+        private String groupId;
     }
 }

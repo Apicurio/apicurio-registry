@@ -8,6 +8,7 @@ import picocli.CommandLine.Command;
 
 import java.util.Objects;
 
+import static io.apicurio.registry.cli.utils.Columns.GROUP_ID;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
 @Command(
@@ -32,9 +33,9 @@ public class ContextCommand extends AbstractCommand {
             }
             out.append('\n');
             var table = new TableBuilder();
-            table.addColumns("ID", "Registry URL");
+            table.addColumns("ID", "Registry URL", GROUP_ID);
             Config.getInstance().read().getContext().forEach((id, context) -> {
-                table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl());
+                table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl(), context.getGroupId());
             });
             table.print(out);
         });

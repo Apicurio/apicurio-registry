@@ -1,0 +1,30 @@
+services:
+
+  # Apicurio Registry UI pointing to localhost (quarkus:dev on port 8080)
+  #
+  # 1. Build the required modules:
+  #    ```
+  #    mvn clean install -pl app -am -DskipTests
+  #    ```
+  #
+  # 2. Start Registry in dev mode:
+  #    ```
+  #    cd app
+  #    mvn quarkus:dev \
+  #      -Dapicurio.features.experimental.enabled=true \
+  #      -Dapicurio.storage.kind=gitops \
+  #      -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops \
+  #      -Dapicurio.gitops.repo.dir=example-repo
+  #
+  # 3. Start the Registry UI:
+  #    ```
+  #    cd examples/gitops
+  #    docker compose -f docker-compose-dev.yaml up
+  #    ```
+  ui:
+    container_name: registry-ui
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    ports:
+      - "8888:8080"

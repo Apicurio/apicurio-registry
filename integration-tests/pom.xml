@@ -176,6 +176,11 @@
       <artifactId>vertx-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.iceberg</groupId>
+      <artifactId>iceberg-core</artifactId>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
   <build>
@@ -497,6 +502,13 @@
         <skipTests>false</skipTests>
       </properties>
     </profile>
+    <profile>
+      <id>search</id>
+      <properties>
+        <groups>search</groups>
+        <skipTests>false</skipTests>
+      </properties>
+    </profile>
 
     <!-- Combined profile for running ALL Debezium tests in one Maven execution (CI optimization) -->
     <profile>
@@ -603,6 +615,33 @@
                     <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
                     <quarkus.http.test-host>localhost</quarkus.http.test-host>
                     <quarkus.http.test-port>8080</quarkus.http.test-port>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>iceberg</id>
+      <properties>
+        <groups>iceberg</groups>
+        <skipTests>false</skipTests>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <quarkus.args>-Dapicurio.features.experimental.enabled=true -Dapicurio.iceberg.enabled=true</quarkus.args>
                   </systemPropertyVariables>
                 </configuration>
               </execution>

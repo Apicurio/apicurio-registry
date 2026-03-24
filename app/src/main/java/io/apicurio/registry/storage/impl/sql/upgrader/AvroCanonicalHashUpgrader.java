@@ -65,7 +65,7 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
         ContentWrapperDto data = ContentWrapperDto.builder()
                 .content(ContentHandle.create(entity.contentEntity.contentBytes))
                 .contentType(entity.contentEntity.contentType).references(references)
-                .artifactType(entity.contentEntity.contentType).build();
+                .artifactType(entity.type).build();
 
         String newCanonicalHash = RegistryContentUtils.canonicalContentHash(factory, entity.type, data,
                 ref -> resolveReference(handle, ref));
@@ -84,20 +84,21 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
     }
 
     private ContentWrapperDto resolveReference(Handle handle, ArtifactReferenceDto reference) {
-        String sql = "SELECT c.contentId, c.canonicalHash, c.contentHash, c.contentType, c.content, c.refs "
+        String sql = "SELECT c.contentId, c.canonicalHash, c.contentHash, c.contentType, c.content, c.refs, a.type "
                 + "FROM versions v "
                 + "JOIN content c ON c.contentId = v.contentId "
+                + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";
 
-        ContentEntity entity = handle.createQuery(sql)
+        ContentWithType result = handle.createQuery(sql)
                 .bind(0, normalizeGroupId(reference.getGroupId()))
                 .bind(1, reference.getArtifactId()).bind(2, reference.getVersion())
-                .map(ContentEntityMapper.instance).one();
+                .map(new ContentWithTypeRowMapper()).one();
 
-        return ContentWrapperDto.builder().content(ContentHandle.create(entity.contentBytes))
-                .contentType(entity.contentType)
-                .references(RegistryContentUtils.deserializeReferences(entity.serializedReferences))
-                .artifactType(entity.contentType).build();
+        return ContentWrapperDto.builder().content(ContentHandle.create(result.contentEntity.contentBytes))
+                .contentType(result.contentEntity.contentType)
+                .references(RegistryContentUtils.deserializeReferences(result.contentEntity.serializedReferences))
+                .artifactType(result.type).build();
     }
 
     private static class ContentWithType {

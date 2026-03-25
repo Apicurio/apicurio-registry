@@ -282,7 +282,9 @@ jobs:
       - name: Apicurio Registry Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          # Checkout the release tag, not the branch — by the time this job runs,
+          # the main release job has already bumped the branch to the next snapshot.
+          ref: ${{ github.event.inputs.release-version }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4

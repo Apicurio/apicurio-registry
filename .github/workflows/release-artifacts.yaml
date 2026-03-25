@@ -117,15 +117,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         run: |
-          # Download the macOS CLI ZIP that was built by the release workflow
           RELEASE_VERSION=${{ needs.prepare.outputs.release-version }}
           gh release download "${RELEASE_VERSION}" \
             --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch64.zip" \
-            --dir cli/target/ || echo "WARNING: macOS CLI ZIP not found in release"
+            --dir cli/target/
 
       - name: Maven Deploy
         working-directory: registry
-        run: mvn -B --settings /home/runner/.m2/settings.xml deploy -Pprod -Prelease -DskipTests -Dcli-attach-extra-zips
+        run: |
+          mvn -B --settings /home/runner/.m2/settings.xml deploy \
+            -Pprod -Prelease -DskipTests -Dcli-attach-extra-zips
 
   # SBOMs Generation
   release-sboms:

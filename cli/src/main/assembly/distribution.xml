@@ -19,14 +19,18 @@
             <source>${project.basedir}/README.md</source>
             <outputDirectory>/</outputDirectory>
         </file>
+        <file>
+            <source>${project.basedir}/src/main/scripts/common/config.json</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
     </files>
     <fileSets>
-        <!-- Common scripts (acr wrapper, config.json) -->
+        <!-- Common scripts (acr wrapper) -->
         <fileSet>
             <directory>${project.basedir}/src/main/scripts/common</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
-                <include>*</include>
+                <include>acr</include>
             </includes>
             <fileMode>0755</fileMode>
         </fileSet>

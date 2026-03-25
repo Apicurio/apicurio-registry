@@ -40,9 +40,13 @@ public class UpdateCommand extends AbstractCommand {
     public void run(OutputBuffer output) throws Exception {
         var home = System.getenv("ACR_HOME");
         log.debugf("ACR_HOME=%s", home);
+        if (isBlank(home)) {
+            throw new CliException("ACR_HOME is not set. " +
+                    "Please run the 'install' command first.");
+        }
         var homePath = Path.of(home).normalize().toAbsolutePath();
-        if (isBlank(home) || !Files.exists((homePath))) {
-            throw new CliException("ACR_HOME is not set or the directory does not exist. " +
+        if (!Files.exists(homePath)) {
+            throw new CliException("ACR_HOME directory does not exist: " + homePath + ". " +
                     "Please run the 'install' command first.");
         }
 

@@ -94,7 +94,31 @@ Types: `feat`, `fix`, `chore`, `docs`, `ci`, `test`, `refactor`
 - **Agents**: See `.claude/agents/` for specialized subagent personas
 - **Skills**: See `.claude/skills/` for auto-invoked workflow guides
 - **Permissions**: See `.claude/settings.json` for team-shared permission policies
+- **Hooks**: See `.claude/hooks/` for optional hook scripts (checkstyle, notifications)
 - **Personal overrides**: Create `CLAUDE.local.md` (gitignored) for your preferences
+
+### Optional Hooks
+
+The `.claude/hooks/` directory contains opt-in hook scripts. To enable them, add to your
+`.claude/settings.local.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/checkstyle-after-edit.sh", "timeout": 60 }]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify.sh" }]
+      }
+    ]
+  }
+}
 
 ## MCP Integration
 

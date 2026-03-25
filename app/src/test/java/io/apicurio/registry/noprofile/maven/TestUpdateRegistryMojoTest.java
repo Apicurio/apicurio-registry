@@ -40,7 +40,7 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
                 .parse("{\"namespace\": \"example.avro\"," + " \"type\": \"record\"," + " \"name\": \"user\","
                         + " \"fields\": [" + "     {\"name\": \"name\", \"type\": \"string\"},"
                         + "     {\"name\": \"favorite_number\",  \"type\": \"int\"}" + " ]" + "}");
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 schema.toString(), ContentTypes.APPLICATION_JSON);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
@@ -81,3 +81,4 @@ public class TestUpdateRegistryMojoTest extends RegistryMojoTestBase {
     }
 
 }
+

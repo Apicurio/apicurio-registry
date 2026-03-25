@@ -27,7 +27,7 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.OPENAPI;
+        return ArtifactType.OPENAPI.value();
     }
 
     @Override
@@ -86,3 +86,4 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     }
 
 }
+

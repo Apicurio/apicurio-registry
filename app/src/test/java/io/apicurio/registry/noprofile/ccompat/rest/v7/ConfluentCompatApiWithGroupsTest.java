@@ -95,7 +95,7 @@ public class ConfluentCompatApiWithGroupsTest extends AbstractResourceTestBase {
         final String subject = toSubject(groupId, artifactId);
 
         // Create using core API
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
@@ -133,16 +133,16 @@ public class ConfluentCompatApiWithGroupsTest extends AbstractResourceTestBase {
         // Create using core API
         // Group 1
         clientV3.groups().byGroupId(groupId1).artifacts().post(TestUtils.clientCreateArtifact(artifactId1,
-                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
+                ArtifactType.AVRO.value(), SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
         clientV3.groups().byGroupId(groupId1).artifacts().post(TestUtils.clientCreateArtifact(artifactId2,
-                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
+                ArtifactType.AVRO.value(), SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
         clientV3.groups().byGroupId(groupId1).artifacts().post(TestUtils.clientCreateArtifact(artifactId3,
-                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
+                ArtifactType.AVRO.value(), SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
         // Group 2
         clientV3.groups().byGroupId(groupId2).artifacts().post(TestUtils.clientCreateArtifact(artifactId1,
-                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
+                ArtifactType.AVRO.value(), SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
         clientV3.groups().byGroupId(groupId2).artifacts().post(TestUtils.clientCreateArtifact(artifactId2,
-                ArtifactType.AVRO, SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
+                ArtifactType.AVRO.value(), SCHEMA_SIMPLE_WRAPPED, ContentTypes.JSON));
 
         // Verify with ccompat
         List<?> subjects = given().when().get(getBasePath() + "/subjects/").then().statusCode(200).extract()

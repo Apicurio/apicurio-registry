@@ -93,7 +93,7 @@ public class ImportExportTest extends AbstractResourceTestBase {
         // Add an empty artifact
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId("EmptyArtifact");
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
         createArtifact.setName("Empty artifact");
         createArtifact.setDescription("Empty artifact description");
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
@@ -101,7 +101,7 @@ public class ImportExportTest extends AbstractResourceTestBase {
         // Add artifacts
         for (int idx = 1; idx <= 10; idx++) {
             String artifactId = "TestArtifact-" + idx;
-            createArtifact(groupId, artifactId, ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+            createArtifact(groupId, artifactId, ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON);
         }
 
         // Set artifact metadata
@@ -242,7 +242,7 @@ public class ImportExportTest extends AbstractResourceTestBase {
         Assertions.assertEquals("EmptyArtifact", amd.getArtifactId());
         Assertions.assertEquals("Empty artifact", amd.getName());
         Assertions.assertEquals("Empty artifact description", amd.getDescription());
-        Assertions.assertEquals(ArtifactType.JSON, amd.getArtifactType());
+        Assertions.assertEquals(ArtifactType.JSON.value(), amd.getArtifactType());
 
         // Assert artifacts
         ArtifactSearchResults artifacts = clientV3.groups().byGroupId(groupId).artifacts().get(config -> {
@@ -256,7 +256,7 @@ public class ImportExportTest extends AbstractResourceTestBase {
             Assertions.assertEquals("Artifact #" + idx, amd.getName());
             Assertions.assertEquals("This is artifact number: " + idx, amd.getDescription());
             Assertions.assertEquals(Map.of("artifact-number", "" + idx), amd.getLabels().getAdditionalData());
-            Assertions.assertEquals(ArtifactType.JSON, amd.getArtifactType());
+            Assertions.assertEquals(ArtifactType.JSON.value(), amd.getArtifactType());
         }
 
         // Assert versions
@@ -352,3 +352,4 @@ public class ImportExportTest extends AbstractResourceTestBase {
     }
 
 }
+

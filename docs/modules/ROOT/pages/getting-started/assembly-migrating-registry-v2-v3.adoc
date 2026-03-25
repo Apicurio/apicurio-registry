@@ -827,6 +827,10 @@ Update to v3 Kiota-generated SDKs:
 </dependency>
 ----
 
+NOTE: Built-in artifact types are represented by the `io.apicurio.registry.types.ArtifactType` enum in 3.x.
+If your client code still passes a string artifact type to REST payloads, use `ArtifactType.X.value()` for
+built-ins and keep custom types as strings. When reading a string back, use `ArtifactType.fromValue(...)`
+for built-ins and handle custom types separately.
 
 .TLS and HTTPS configuration
 

@@ -42,7 +42,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     private static CreateArtifact createArtifact() {
         CreateArtifact createArtifact = new CreateArtifact();
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_JSON);

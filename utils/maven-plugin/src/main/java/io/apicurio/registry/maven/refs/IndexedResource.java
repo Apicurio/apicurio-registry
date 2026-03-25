@@ -68,7 +68,7 @@ public class IndexedResource {
 
         // For Avro files the match can happen either via path (e.g. when referencing an Avro
         // file from an AsyncAPI file) or via resource name (e.g. from Avro to Avro).
-        if (ArtifactType.AVRO.equals(this.type)) {
+        if (ArtifactType.AVRO.value().equals(this.type)) {
             if (this.resourceName.equals(resourceName)) {
                 return true;
             }
@@ -79,7 +79,7 @@ public class IndexedResource {
         boolean resolves = this.path.normalize().equals(resolvedPath.normalize());
 
         // Protobuf can resolve relative to the "schema paths" (aka --proto-paths in protoc).
-        if (!resolves && ArtifactType.PROTOBUF.equals(this.type)) {
+        if (!resolves && ArtifactType.PROTOBUF.value().equals(this.type)) {
             resolves = schemaPaths.parallelStream()
                     .anyMatch(path -> this.path.normalize().equals(path.resolve(resourceName).normalize()));
         }
@@ -117,3 +117,4 @@ public class IndexedResource {
         return Objects.hash(path, registration);
     }
 }
+

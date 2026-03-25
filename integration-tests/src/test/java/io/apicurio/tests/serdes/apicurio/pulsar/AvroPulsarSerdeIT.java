@@ -70,7 +70,7 @@ public class AvroPulsarSerdeIT extends ApicurioRegistryBaseIT {
         logger.info("Registering Avro Schema: {}", avroSchemaString);
 
         // First we create the initial artifact
-        createArtifact(recordNamespace, artifactId, ArtifactType.AVRO, avroSchemaString,
+        createArtifact(recordNamespace, artifactId, ArtifactType.AVRO.value(), avroSchemaString,
                 ContentTypes.APPLICATION_JSON, null, null);
 
         AvroPulsarSerde<GenericRecord> avroPulsarSerde = new AvroPulsarSerde<>(topicName);
@@ -171,3 +171,4 @@ public class AvroPulsarSerdeIT extends ApicurioRegistryBaseIT {
         IoUtil.closeIgnore(consumer);
     }
 }
+

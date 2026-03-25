@@ -72,3 +72,4 @@ public class AuthTestAnonymousCredentials extends AbstractResourceTestBase {
         Assertions.assertEquals(401, exception.getResponseStatusCode());
     }
 }
+

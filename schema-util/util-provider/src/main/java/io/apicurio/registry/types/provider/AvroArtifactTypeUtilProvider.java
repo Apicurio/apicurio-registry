@@ -27,7 +27,7 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.AVRO;
+        return ArtifactType.AVRO.value();
     }
 
     @Override
@@ -86,3 +86,4 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     }
 
 }
+

@@ -148,7 +148,7 @@ public class TlsAuthSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Alice", "Anderson", 28);
@@ -211,7 +211,7 @@ public class TlsAuthSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Bob", "Baker", 35);
@@ -276,7 +276,7 @@ public class TlsAuthSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Charlie", "Clark", 40);
@@ -333,3 +333,4 @@ public class TlsAuthSerdeTest extends AbstractResourceTestBase {
         return false;
     }
 }
+

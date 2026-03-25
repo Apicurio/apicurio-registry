@@ -34,7 +34,7 @@ public class CustomizeDateFormatTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Get the artifact meta-data
@@ -59,3 +59,4 @@ public class CustomizeDateFormatTest extends AbstractResourceTestBase {
                 });
     }
 }
+

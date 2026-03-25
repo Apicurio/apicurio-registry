@@ -83,7 +83,7 @@ public class ProxyRegistryClientIT extends ApicurioRegistryBaseIT {
         // Create an artifact through the proxy
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_JSON);
@@ -152,3 +152,4 @@ public class ProxyRegistryClientIT extends ApicurioRegistryBaseIT {
         }, "Should throw exception for empty host");
     }
 }
+

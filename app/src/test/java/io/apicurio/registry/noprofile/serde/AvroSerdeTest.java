@@ -69,7 +69,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
         String topic = generateArtifactId();
 
         /* final Integer globalId = */
-        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString(),
+        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO.value(), schema.toString(),
                 ContentTypes.APPLICATION_JSON);
 
         Map<String, Object> config = new HashMap<>();
@@ -718,3 +718,4 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
         }
     }
 }
+

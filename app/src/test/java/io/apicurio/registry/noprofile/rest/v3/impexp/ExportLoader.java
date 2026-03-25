@@ -35,7 +35,7 @@ public class ExportLoader {
                 String data = CONTENT.replace("1.0.0", "1.0." + idx);
                 String artifactId = UUID.randomUUID().toString();
                 CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId,
-                        ArtifactType.OPENAPI, data, ContentTypes.APPLICATION_JSON);
+                        ArtifactType.OPENAPI.value(), data, ContentTypes.APPLICATION_JSON);
                 client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
                         .post(createArtifact);
                 client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
@@ -75,3 +75,4 @@ public class ExportLoader {
     }
 
 }
+

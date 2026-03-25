@@ -98,13 +98,13 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
         assertNotNull(response);
         assertNotNull(response.getArtifact());
         assertEquals(artifactId, response.getArtifact().getArtifactId());
-        assertEquals(ArtifactType.AGENT_CARD, response.getArtifact().getArtifactType());
+        assertEquals(ArtifactType.AGENT_CARD.value(), response.getArtifact().getArtifactType());
 
         // Read artifact
         retryOp((rc) -> {
             var artifact = rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
             assertNotNull(artifact);
-            assertEquals(ArtifactType.AGENT_CARD, artifact.getArtifactType());
+            assertEquals(ArtifactType.AGENT_CARD.value(), artifact.getArtifactType());
         });
 
         // Update (create new version)
@@ -234,7 +234,7 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                 """;
 
         retryAssertClientError("RuleViolationException", 409, (rc) -> {
-            CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AGENT_CARD,
+            CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AGENT_CARD.value(),
                     invalidAgentCard, ContentTypes.APPLICATION_JSON);
             rc.groups().byGroupId(groupId).artifacts().post(ca);
         }, errorCodeExtractor);
@@ -263,7 +263,7 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                 """;
 
         retryAssertClientError("RuleViolationException", 409, (rc) -> {
-            CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AGENT_CARD,
+            CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AGENT_CARD.value(),
                     invalidAgentCard, ContentTypes.APPLICATION_JSON);
             rc.groups().byGroupId(groupId).artifacts().post(ca);
         }, errorCodeExtractor);

@@ -121,11 +121,14 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
             try {
                 ArtifactVersionMetaDataDto amd;
+                ArtifactType requestedType = request.getSchemaType() == null ? null
+                        : ArtifactType.fromValue(request.getSchemaType());
                 amd = lookupSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), request.getSchema(),
-                        request.getReferences(), request.getSchemaType(), fnormalize);
+                        request.getReferences(), requestedType, fnormalize);
                 if (amd.getState() != VersionState.DISABLED || fdeleted) {
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
                             ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
+                    ArtifactType artifactType = ArtifactType.fromValue(amd.getArtifactType());
 
                     // Apply default format if configured and no format was explicitly provided
                     String effectiveFormat = format;
@@ -134,8 +137,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                         if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
                                 && "DEREFERENCE".equals(configuredDefault.get())) {
                             // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                            if (ArtifactType.AVRO.equals(amd.getArtifactType())
-                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
+                            if (artifactType == ArtifactType.AVRO || artifactType == ArtifactType.PROTOBUF) {
                                 effectiveFormat = "RESOLVED";
                             }
                         }
@@ -145,9 +147,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
                                 storedArtifact.getReferences());
-                        ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
-                                resolvedReferences);
+                        ContentHandle formattedContent = formatService.applyFormat(storedArtifact.getContent(),
+                                artifactType, effectiveFormat, resolvedReferences);
 
                         StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
                                 .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
@@ -283,8 +284,10 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
             try {
                 // Try to find an existing, active version with the same content
+                ArtifactType requestedType = request.getSchemaType() == null ? null
+                        : ArtifactType.fromValue(request.getSchemaType());
                 ArtifactVersionMetaDataDto existingDto = lookupSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                        request.getSchema(), request.getReferences(), request.getSchemaType(), fnormalize);
+                        request.getSchema(), request.getReferences(), requestedType, fnormalize);
                 if (existingDto.getState().equals(VersionState.DISABLED)) {
                     throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
                 }
@@ -316,9 +319,9 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
 
             // We validate the schema at creation time by inferring the type from the content
-            final String artifactType = ArtifactTypeUtil.determineArtifactType(typedSchemaContent, null,
-                    resolvedReferences, factory);
-            if (request.getSchemaType() != null && !artifactType.equals(request.getSchemaType())) {
+            final ArtifactType artifactType = ArtifactType.fromValue(
+                    ArtifactTypeUtil.determineArtifactType(typedSchemaContent, null, resolvedReferences, factory));
+            if (request.getSchemaType() != null && !artifactType.value().equals(request.getSchemaType())) {
                 throw new UnprocessableEntityException(
                         String.format("Given schema is not from type: %s", request.getSchemaType()));
             }
@@ -452,6 +455,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                 if (amd.getState() != VersionState.DISABLED || deleted) {
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(groupId,
                             artifactId, amd.getVersion());
+                    ArtifactType artifactType = ArtifactType.fromValue(amd.getArtifactType());
 
                     // Apply default format if configured and no format was explicitly provided
                     String effectiveFormat = format;
@@ -460,8 +464,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                         if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
                                 && "DEREFERENCE".equals(configuredDefault.get())) {
                             // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                            if (ArtifactType.AVRO.equals(amd.getArtifactType())
-                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
+                            if (artifactType == ArtifactType.AVRO || artifactType == ArtifactType.PROTOBUF) {
                                 effectiveFormat = "RESOLVED";
                             }
                         }
@@ -471,9 +474,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
                                 storedArtifact.getReferences());
-                        ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
-                                resolvedReferences);
+                        ContentHandle formattedContent = formatService.applyFormat(storedArtifact.getContent(),
+                                artifactType, effectiveFormat, resolvedReferences);
 
                         // Create a new StoredArtifactVersionDto with the formatted content
                         StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()

@@ -66,7 +66,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testValidityRuleApplication() throws Exception {
         String artifactId = "ValidityRuleApplicationTest";
-        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.AVRO.value(), SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
         createRule.setConfig(ValidityLevel.FULL.name());
@@ -84,7 +84,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testValidityRuleApplication_Map() throws Exception {
         String artifactId = "testValidityRuleApplication_Map";
-        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.AVRO.value(), SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
         createRule.setConfig(ValidityLevel.FULL.name());
@@ -118,7 +118,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         // Try to create an invalid artifact in that group
         var exception = Assertions.assertThrows(
                 io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
-                    createArtifact(groupId, artifactId, ArtifactType.AVRO, INVALID_SCHEMA,
+                    createArtifact(groupId, artifactId, ArtifactType.AVRO.value(), INVALID_SCHEMA,
                             ContentTypes.APPLICATION_JSON);
                 });
         assertEquals("RuleViolationException", exception.getName());
@@ -139,7 +139,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         // Try to create an invalid artifact
         var exception = Assertions.assertThrows(
                 io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
-                    createArtifact(groupId, artifactId, ArtifactType.AVRO, INVALID_SCHEMA,
+                    createArtifact(groupId, artifactId, ArtifactType.AVRO.value(), INVALID_SCHEMA,
                             ContentTypes.APPLICATION_JSON);
                 });
         assertEquals("RuleViolationException", exception.getName());
@@ -147,3 +147,4 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
     }
 
 }
+

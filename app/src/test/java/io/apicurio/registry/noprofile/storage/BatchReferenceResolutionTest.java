@@ -386,7 +386,7 @@ public class BatchReferenceResolutionTest extends AbstractResourceTestBase {
     private CreateArtifactResponse createSimpleArtifact(String artifactId, String recordName) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AVRO);
+        createArtifact.setArtifactType(ArtifactType.AVRO.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContent(String.format(AVRO_SCHEMA_TEMPLATE, recordName));
@@ -399,7 +399,7 @@ public class BatchReferenceResolutionTest extends AbstractResourceTestBase {
             List<ArtifactReference> references) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AVRO);
+        createArtifact.setArtifactType(ArtifactType.AVRO.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContent(String.format(AVRO_SCHEMA_TEMPLATE, recordName));
@@ -418,3 +418,4 @@ public class BatchReferenceResolutionTest extends AbstractResourceTestBase {
         return ref;
     }
 }
+

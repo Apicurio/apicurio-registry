@@ -58,7 +58,7 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
         createRule.setConfig(ValidityLevel.FULL.name());
         createRule.setRuleType(RuleType.VALIDITY);
         createArtifact = TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(),
-                ArtifactType.AVRO, TEST_CONTENT, ContentTypes.APPLICATION_JSON);
+                ArtifactType.AVRO.value(), TEST_CONTENT, ContentTypes.APPLICATION_JSON);
     }
 
     @Test
@@ -143,3 +143,4 @@ public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     }
 }
+

@@ -79,7 +79,7 @@ public class CustomStrategyExample {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AVRO);
+        createArtifact.setArtifactType(ArtifactType.AVRO.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContent(Config.SCHEMA);
@@ -235,3 +235,4 @@ public class CustomStrategyExample {
         }
     }
 }
+

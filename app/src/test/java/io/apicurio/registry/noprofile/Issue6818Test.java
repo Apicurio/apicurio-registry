@@ -96,7 +96,7 @@ public class Issue6818Test extends AbstractResourceTestBase {
         body.setContent(AVRO_SCHEMA);
         ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(body, config -> {
             config.headers.put("X-Registry-ArtifactId", Set.of(artifactId));
-            config.headers.put("X-Registry-ArtifactType", Set.of(ArtifactType.AVRO));
+            config.headers.put("X-Registry-ArtifactType", Set.of(ArtifactType.AVRO.value()));
             config.headers.put("X-Registry-Name", Set.of(versionName));
             config.headers.put("X-Registry-Description", Set.of(versionDescription));
         });
@@ -105,7 +105,7 @@ public class Issue6818Test extends AbstractResourceTestBase {
         Assertions.assertNotNull(amd);
         Assertions.assertEquals(groupId, amd.getGroupId());
         Assertions.assertEquals(artifactId, amd.getId());
-        Assertions.assertEquals(ArtifactType.AVRO, amd.getType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), amd.getType());
         Assertions.assertEquals("1", amd.getVersion());
 
         // THIS IS THE KEY ASSERTION: The name should be "1.0.0", not "person" or derived from content
@@ -149,7 +149,7 @@ public class Issue6818Test extends AbstractResourceTestBase {
         body.setContent(AVRO_SCHEMA);
         ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(body, config -> {
             config.headers.put("X-Registry-ArtifactId", Set.of(artifactId));
-            config.headers.put("X-Registry-ArtifactType", Set.of(ArtifactType.AVRO));
+            config.headers.put("X-Registry-ArtifactType", Set.of(ArtifactType.AVRO.value()));
             config.headers.put("X-Registry-Name", Set.of(version1Name));
             config.headers.put("X-Registry-Description", Set.of(version1Description));
         });
@@ -215,7 +215,7 @@ public class Issue6818Test extends AbstractResourceTestBase {
         body.setContent(AVRO_SCHEMA);
         ArtifactMetaData amd = clientV2.groups().byGroupId(groupId).artifacts().post(body, config -> {
             config.headers.put("X-Registry-ArtifactId", Set.of(artifactId));
-            config.headers.put("X-Registry-ArtifactType", Set.of(ArtifactType.AVRO));
+            config.headers.put("X-Registry-ArtifactType", Set.of(ArtifactType.AVRO.value()));
             config.headers.put("X-Registry-Name", Set.of("   ")); // Empty/whitespace
         });
 
@@ -227,3 +227,4 @@ public class Issue6818Test extends AbstractResourceTestBase {
             "When X-Registry-Name is empty, name should be extracted from content");
     }
 }
+

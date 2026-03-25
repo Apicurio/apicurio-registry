@@ -70,7 +70,7 @@ public class ProxySerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Bob", "Jones", 30);
@@ -107,3 +107,4 @@ public class ProxySerdeTest extends AbstractResourceTestBase {
         }
     }
 }
+

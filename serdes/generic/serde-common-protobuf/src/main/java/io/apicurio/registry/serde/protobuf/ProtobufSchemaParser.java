@@ -31,7 +31,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
      */
     @Override
     public String artifactType() {
-        return ArtifactType.PROTOBUF;
+        return ArtifactType.PROTOBUF.value();
     }
 
     /**
@@ -201,3 +201,4 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
         return FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptor.toProto());
     }
 }
+

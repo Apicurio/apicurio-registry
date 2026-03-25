@@ -227,7 +227,7 @@ public class AllYamlTest extends AbstractResourceTestBase {
         results = clientV3.search().versions().post(IoUtil.toStream(yamlContent),
                 ContentTypes.APPLICATION_YAML, config -> {
                     config.queryParameters.canonical = true;
-                    config.queryParameters.artifactType = ArtifactType.OPENAPI;
+                    config.queryParameters.artifactType = ArtifactType.OPENAPI.value();
                 });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
@@ -244,7 +244,7 @@ public class AllYamlTest extends AbstractResourceTestBase {
         results = clientV3.search().versions().post(IoUtil.toStream(jsonContent),
                 ContentTypes.APPLICATION_JSON, config -> {
                     config.queryParameters.canonical = true;
-                    config.queryParameters.artifactType = ArtifactType.OPENAPI;
+                    config.queryParameters.artifactType = ArtifactType.OPENAPI.value();
                 });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());

@@ -69,7 +69,7 @@ public class RegisterAsyncApiAvroAutoRefsTest {
         artifact.setGroupId("asyncapi-avro-maven-with-references-auto");
         artifact.setArtifactId("CustomersExample");
         artifact.setVersion("1.0.0");
-        artifact.setArtifactType(ArtifactType.ASYNCAPI);
+        artifact.setArtifactType(ArtifactType.ASYNCAPI.value());
         artifact.setFile(asyncApiFile);
         artifact.setIfExists(IfArtifactExists.FIND_OR_CREATE_VERSION);
         artifact.setCanonicalize(true);
@@ -115,7 +115,7 @@ public class RegisterAsyncApiAvroAutoRefsTest {
         artifact.setGroupId("com.kubetrade.schema.trade");
         artifact.setArtifactId("TradeRaw");
         artifact.setVersion("2.0");
-        artifact.setArtifactType(ArtifactType.AVRO);
+        artifact.setArtifactType(ArtifactType.AVRO.value());
         artifact.setFile(avroFile);
         artifact.setIfExists(IfArtifactExists.FIND_OR_CREATE_VERSION);
         artifact.setCanonicalize(true);
@@ -217,4 +217,5 @@ public class RegisterAsyncApiAvroAutoRefsTest {
 
     }
 }
+
 

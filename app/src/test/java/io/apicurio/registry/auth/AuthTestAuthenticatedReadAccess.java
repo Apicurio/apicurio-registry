@@ -59,3 +59,4 @@ public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
         assertForbidden(exception);
     }
 }
+

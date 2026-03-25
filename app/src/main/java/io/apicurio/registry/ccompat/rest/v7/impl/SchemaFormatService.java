@@ -14,7 +14,7 @@ import jakarta.ws.rs.BadRequestException;
 import org.apache.avro.Schema;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,12 +29,12 @@ public class SchemaFormatService {
     private static final String FORMAT_IGNORE_EXTENSIONS = "ignore_extensions";
     private static final String FORMAT_SERIALIZED = "serialized";
 
-    private static final Map<String, Set<String>> VALID_FORMATS = new HashMap<>();
+    private static final Map<ArtifactType.BuiltIn, Set<String>> VALID_FORMATS = new EnumMap<>(ArtifactType.BuiltIn.class);
     static {
         // Valid formats for AVRO
-        VALID_FORMATS.put(ArtifactType.AVRO, Set.of(FORMAT_RESOLVED));
+        VALID_FORMATS.put(ArtifactType.BuiltIn.AVRO, Set.of(FORMAT_RESOLVED));
         // Valid formats for PROTOBUF
-        VALID_FORMATS.put(ArtifactType.PROTOBUF, Set.of(FORMAT_IGNORE_EXTENSIONS, FORMAT_SERIALIZED));
+        VALID_FORMATS.put(ArtifactType.BuiltIn.PROTOBUF, Set.of(FORMAT_IGNORE_EXTENSIONS, FORMAT_SERIALIZED));
     }
 
     /**
@@ -49,18 +49,27 @@ public class SchemaFormatService {
      */
     public ContentHandle applyFormat(ContentHandle content, String artifactType,
                                      String format, Map<String, TypedContent> resolvedReferences) {
+        return applyFormat(content, artifactType == null ? null : ArtifactType.fromValue(artifactType), format,
+                resolvedReferences);
+    }
+
+    public ContentHandle applyFormat(ContentHandle content, ArtifactType artifactType,
+                                     String format, Map<String, TypedContent> resolvedReferences) {
         if (format == null || format.trim().isEmpty()) {
             return content;
         }
 
-        validateFormat(artifactType, format);
+        ArtifactType.BuiltIn type = validateFormat(artifactType, format);
+        if (type == null) {
+            return content;
+        }
 
-        switch (artifactType) {
-            case ArtifactType.AVRO:
+        switch (type) {
+            case AVRO:
                 return applyAvroFormat(content, format, resolvedReferences);
-            case ArtifactType.PROTOBUF:
+            case PROTOBUF:
                 return applyProtobufFormat(content, format, resolvedReferences);
-            case ArtifactType.JSON:
+            case JSON:
                 // JSON schemas don't support format transformations
                 return content;
             default:
@@ -75,17 +84,29 @@ public class SchemaFormatService {
      * @param format the format parameter to validate
      * @throws BadRequestException if the format is invalid
      */
-    private void validateFormat(String artifactType, String format) {
-        if (format == null || format.isEmpty() || ArtifactType.JSON.equals(artifactType)) {
-            return;
+    private ArtifactType.BuiltIn validateFormat(ArtifactType artifactType, String format) {
+        if (format == null || format.isEmpty()) {
+            return artifactType == null ? null : artifactType.asBuiltIn().orElse(null);
+        }
+        if (artifactType == null || artifactType.asBuiltIn().isEmpty()) {
+            String typeLabel = artifactType == null ? "null" : artifactType.value();
+            throw new BadRequestException(
+                    String.format("Invalid format '%s' for %s schema. Valid values: %s",
+                            format, typeLabel, String.join(",", Collections.emptySet())));
+        }
+        ArtifactType.BuiltIn type = artifactType.asBuiltIn().get();
+        if (type == ArtifactType.BuiltIn.JSON) {
+            return type;
         }
 
-        Set<String> validFormats = VALID_FORMATS.get(artifactType);
+        Set<String> validFormats = VALID_FORMATS.get(type);
         if (validFormats == null || !validFormats.contains(format)) {
             throw new BadRequestException(
                     String.format("Invalid format '%s' for %s schema. Valid values: %s",
-                            format, artifactType, String.join(",", validFormats == null ?  Collections.emptySet() : validFormats)));
+                            format, artifactType.value(),
+                            String.join(",", validFormats == null ? Collections.emptySet() : validFormats)));
         }
+        return type;
     }
 
     /**

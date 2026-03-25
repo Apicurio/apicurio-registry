@@ -1,56 +1,109 @@
-
 package io.apicurio.registry.types;
 
-/**
- * Defines the supported artifact types in the registry. The artifact type identifies the format or schema
- * language of an artifact's content and determines how the registry parses, validates, and checks
- * compatibility of that content.
- */
-public class ArtifactType {
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.Optional;
 
-    private ArtifactType() {
+/**
+ * Represents an artifact type used by the registry.
+ * <p>
+ * Built-in types are modeled as enum constants, while custom types can still be contributed
+ * at runtime through {@code ArtifactTypeUtilProvider} implementations and configuration.
+ */
+public sealed interface ArtifactType permits ArtifactType.BuiltIn, ArtifactType.Custom {
+
+    ArtifactType AVRO = BuiltIn.AVRO;
+    ArtifactType PROTOBUF = BuiltIn.PROTOBUF;
+    ArtifactType JSON = BuiltIn.JSON;
+    ArtifactType OPENAPI = BuiltIn.OPENAPI;
+    ArtifactType ASYNCAPI = BuiltIn.ASYNCAPI;
+    ArtifactType GRAPHQL = BuiltIn.GRAPHQL;
+    ArtifactType KCONNECT = BuiltIn.KCONNECT;
+    ArtifactType WSDL = BuiltIn.WSDL;
+    ArtifactType XSD = BuiltIn.XSD;
+    ArtifactType XML = BuiltIn.XML;
+    ArtifactType AGENT_CARD = BuiltIn.AGENT_CARD;
+    ArtifactType ICEBERG_TABLE = BuiltIn.ICEBERG_TABLE;
+    ArtifactType ICEBERG_VIEW = BuiltIn.ICEBERG_VIEW;
+
+    String value();
+
+    default boolean matches(String candidate) {
+        return value().equals(candidate);
     }
 
-    // TODO: Turn into enum, which can contain both a string value and a numeric identifier.
-    // See io.apicurio.registry.storage.impl.kafkasql.serde.ArtifactTypeOrdUtil
+    default Optional<BuiltIn> asBuiltIn() {
+        return this instanceof BuiltIn builtIn ? Optional.of(builtIn) : Optional.empty();
+    }
 
-    /** Apache Avro schema. */
-    public static final String AVRO = "AVRO";
+    static ArtifactType fromValue(String value) {
+        Objects.requireNonNull(value, "value must not be null");
+        return parseBuiltin(value).<ArtifactType>map(type -> type).orElseGet(() -> new Custom(value));
+    }
 
-    /** Google Protocol Buffers definition. */
-    public static final String PROTOBUF = "PROTOBUF";
+    static Optional<BuiltIn> parseBuiltin(String value) {
+        if (value == null) {
+            return Optional.empty();
+        }
+        return Arrays.stream(BuiltIn.values())
+                .filter(type -> type.name().equals(value))
+                .findFirst();
+    }
 
-    /** JSON Schema. */
-    public static final String JSON = "JSON";
+    static Custom custom(String value) {
+        return new Custom(value);
+    }
 
-    /** OpenAPI specification. */
-    public static final String OPENAPI = "OPENAPI";
+    enum BuiltIn implements ArtifactType {
 
-    /** AsyncAPI specification. */
-    public static final String ASYNCAPI = "ASYNCAPI";
+        /** Apache Avro schema. */
+        AVRO,
 
-    /** GraphQL schema definition language (SDL). */
-    public static final String GRAPHQL = "GRAPHQL";
+        /** Google Protocol Buffers definition. */
+        PROTOBUF,
 
-    /** Apache Kafka Connect schema. */
-    public static final String KCONNECT = "KCONNECT";
+        /** JSON Schema. */
+        JSON,
 
-    /** Web Services Description Language (WSDL) definition. */
-    public static final String WSDL = "WSDL";
+        /** OpenAPI specification. */
+        OPENAPI,
 
-    /** XML Schema Definition (XSD). */
-    public static final String XSD = "XSD";
+        /** AsyncAPI specification. */
+        ASYNCAPI,
 
-    /** XML document. */
-    public static final String XML = "XML";
+        /** GraphQL schema definition language (SDL). */
+        GRAPHQL,
 
-    /** AI Agent Card for the A2A (Agent-to-Agent) protocol. */
-    public static final String AGENT_CARD = "AGENT_CARD";
+        /** Apache Kafka Connect schema. */
+        KCONNECT,
 
-    /** Apache Iceberg table metadata. */
-    public static final String ICEBERG_TABLE = "ICEBERG_TABLE";
+        /** Web Services Description Language (WSDL) definition. */
+        WSDL,
 
-    /** Apache Iceberg view metadata. */
-    public static final String ICEBERG_VIEW = "ICEBERG_VIEW";
+        /** XML Schema Definition (XSD). */
+        XSD,
 
+        /** XML document. */
+        XML,
+
+        /** AI Agent Card for the A2A (Agent-to-Agent) protocol. */
+        AGENT_CARD,
+
+        /** Apache Iceberg table metadata. */
+        ICEBERG_TABLE,
+
+        /** Apache Iceberg view metadata. */
+        ICEBERG_VIEW;
+
+        @Override
+        public String value() {
+            return name();
+        }
+    }
+
+    record Custom(String value) implements ArtifactType {
+        public Custom {
+            Objects.requireNonNull(value, "value must not be null");
+        }
+    }
 }

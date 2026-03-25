@@ -51,7 +51,7 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
 
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact("default", artifactId, ArtifactType.JSON, schema.getSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.JSON.value(), schema.getSchemaString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>().withTopic(topicName)
@@ -69,7 +69,7 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
 
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact("default", artifactId, ArtifactType.JSON, schema.getSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.JSON.value(), schema.getSchemaString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<ValidMessage, ValidMessage>().withTopic(topicName)
@@ -120,7 +120,7 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
 
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact("default", artifactId, ArtifactType.JSON, schema.getSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.JSON.value(), schema.getSchemaString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<ValidMessage, Map<String, Object>>().withTopic(topicName)
@@ -143,7 +143,7 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
         // ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, schema.getSchemaString(),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), schema.getSchemaString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new WrongConfiguredSerdesTesterBuilder<InvalidMessage>().withTopic(topicName)
@@ -180,7 +180,7 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateSubject();
         JsonSchemaMsgFactory schema = new JsonSchemaMsgFactory();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, schema.getSchemaString(),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), schema.getSchemaString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         // this test will produce messages using JsonSerializer, which does nothing with the registry and just
@@ -201,3 +201,4 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
     }
 
 }
+

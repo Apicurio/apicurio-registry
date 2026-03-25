@@ -64,7 +64,7 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
                 List.of("bar"));
         Schema schema = schemaFactory.generateSchema();
 
-        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString(),
+        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO.value(), schema.toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         Record record = new Record(schema);
@@ -464,3 +464,4 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
         valueConverter.fromConnectData("CUSTOMERS", envelopeValue.schema(), envelopeValue);
     }
 }
+

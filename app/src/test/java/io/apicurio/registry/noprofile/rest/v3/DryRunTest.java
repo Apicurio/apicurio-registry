@@ -57,7 +57,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).rules().post(createRule);
 
         // Dry run: valid artifact that should be created.
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact("valid-artifact", ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact("valid-artifact", ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact,
                 config -> {
@@ -66,7 +66,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals("valid-artifact", car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1", car.getVersion().getVersion());
 
         // Assert that the artifact was NOT created
@@ -82,7 +82,7 @@ public class DryRunTest extends AbstractResourceTestBase {
 
         // Dry run: invalid artifact that should NOT be created.
         error = Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
-            CreateArtifact ca = TestUtils.clientCreateArtifact("invalid-artifact", ArtifactType.AVRO,
+            CreateArtifact ca = TestUtils.clientCreateArtifact("invalid-artifact", ArtifactType.AVRO.value(),
                     INVALID_SCHEMA, ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(groupId).artifacts().post(ca, config -> {
                 config.queryParameters.dryRun = true;
@@ -93,7 +93,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals("valid-artifact", car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
 
         // Assert that the artifact was NOT created
         results = clientV3.groups().byGroupId(groupId).artifacts().get();
@@ -107,7 +107,7 @@ public class DryRunTest extends AbstractResourceTestBase {
                 ((ProblemDetails) error).getTitle());
 
         // Actually create an artifact in the group.
-        createArtifact(groupId, "actual-artifact", ArtifactType.AVRO, SCHEMA_SIMPLE,
+        createArtifact(groupId, "actual-artifact", ArtifactType.AVRO.value(), SCHEMA_SIMPLE,
                 ContentTypes.APPLICATION_JSON);
         results = clientV3.groups().byGroupId(groupId).artifacts().get();
         Assertions.assertEquals(1, results.getCount());
@@ -115,7 +115,7 @@ public class DryRunTest extends AbstractResourceTestBase {
 
         // DryRun: Try to create the *same* artifact (conflict)
         error = Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
-            CreateArtifact ca = TestUtils.clientCreateArtifact("actual-artifact", ArtifactType.AVRO,
+            CreateArtifact ca = TestUtils.clientCreateArtifact("actual-artifact", ArtifactType.AVRO.value(),
                     SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(groupId).artifacts().post(ca, config -> {
                 config.queryParameters.dryRun = true;
@@ -126,7 +126,7 @@ public class DryRunTest extends AbstractResourceTestBase {
                 ((RuleViolationProblemDetails) error).getTitle());
 
         // DryRun: Try to create the *same* artifact but with ifExists set (success)
-        createArtifact = TestUtils.clientCreateArtifact("actual-artifact", ArtifactType.AVRO, SCHEMA_SIMPLE,
+        createArtifact = TestUtils.clientCreateArtifact("actual-artifact", ArtifactType.AVRO.value(), SCHEMA_SIMPLE,
                 ContentTypes.APPLICATION_JSON);
         car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact, config -> {
             config.queryParameters.dryRun = true;
@@ -135,7 +135,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals("actual-artifact", car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("2", car.getVersion().getVersion());
 
         // Validate that there is only 1 artifact in the group still, and it still has only 1 version (dry run didn't persist)
@@ -165,7 +165,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).rules().post(createRule);
 
         // Create an artifact
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, artifactId, ArtifactType.AVRO.value(), SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
 
         // DryRun: try to create an invalid version
         RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
@@ -213,7 +213,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         clientV3.groups().post(createGroup);
 
         // Create an initial artifact with version 1
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, artifactId, ArtifactType.AVRO.value(), SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
 
         // Verify the artifact exists with 1 version
         ArtifactSearchResults results = clientV3.groups().byGroupId(groupId).artifacts().get();
@@ -223,7 +223,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, vresults.getCount());
 
         // Step 1: DryRun with FIND_OR_CREATE_VERSION using original content should find existing version
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact,
                 config -> {
@@ -251,7 +251,7 @@ public class DryRunTest extends AbstractResourceTestBase {
                 }
                 """;
         
-        CreateArtifact createArtifactNew = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifactNew = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 newSchema, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse carNew = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifactNew,
                 config -> {
@@ -269,3 +269,4 @@ public class DryRunTest extends AbstractResourceTestBase {
     }
 
 }
+

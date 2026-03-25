@@ -19,6 +19,7 @@ import io.apicurio.registry.rest.v3.impl.V3ApiUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.ArtifactMediaTypes;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ProblemDetailsWatcher;
@@ -147,7 +148,18 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 content, contentType);
     }
 
+    protected CreateArtifactResponse createArtifact(String artifactId, ArtifactType artifactType, String content,
+            String contentType) throws Exception {
+        return createArtifact(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, artifactType,
+                content, contentType);
+    }
+
     protected CreateArtifactResponse createArtifact(String groupId, String artifactId, String artifactType,
+            String content, String contentType) throws Exception {
+        return createArtifact(groupId, artifactId, artifactType, content, contentType, null);
+    }
+
+    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, ArtifactType artifactType,
             String content, String contentType) throws Exception {
         return createArtifact(groupId, artifactId, artifactType, content, contentType, null);
     }
@@ -195,6 +207,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         return result;
     }
 
+    protected CreateArtifactResponse createArtifact(String groupId, String artifactId, ArtifactType artifactType,
+            String content, String contentType, Consumer<CreateArtifact> requestCustomizer) throws Exception {
+        return createArtifact(groupId, artifactId, artifactType.value(), content, contentType,
+                requestCustomizer);
+    }
+
     protected CreateArtifactResponse createArtifactWithReferences(String groupId, String artifactId,
             String artifactType, String content, String contentType,
             List<ArtifactReference> artifactReferences) throws Exception {
@@ -205,6 +223,13 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
         assert (response.getArtifact().getArtifactId().equals(artifactId));
 
         return response;
+    }
+
+    protected CreateArtifactResponse createArtifactWithReferences(String groupId, String artifactId,
+            ArtifactType artifactType, String content, String contentType,
+            List<ArtifactReference> artifactReferences) throws Exception {
+        return createArtifactWithReferences(groupId, artifactId, artifactType.value(), content, contentType,
+                artifactReferences);
     }
 
     protected CreateArtifactResponse createArtifactExtendedRaw(String groupId, String artifactId,

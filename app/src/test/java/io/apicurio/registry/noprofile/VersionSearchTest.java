@@ -21,9 +21,9 @@ public class VersionSearchTest extends AbstractResourceTestBase {
     void testFilterByArtifactType() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
-        createArtifact(groupId, "avro-artifact", ArtifactType.AVRO, "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, "avro-artifact", ArtifactType.AVRO.value(), "{}", ContentTypes.APPLICATION_JSON);
         createArtifactVersion(groupId, "avro-artifact", "{ }", ContentTypes.APPLICATION_JSON);
-        createArtifact(groupId, "json-artifact", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, "json-artifact", ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON);
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = groupId;
@@ -33,14 +33,14 @@ public class VersionSearchTest extends AbstractResourceTestBase {
 
         results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = groupId;
-            config.queryParameters.artifactType = ArtifactType.AVRO;
+            config.queryParameters.artifactType = ArtifactType.AVRO.value();
         });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(2, results.getCount());
 
         results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = groupId;
-            config.queryParameters.artifactType = ArtifactType.JSON;
+            config.queryParameters.artifactType = ArtifactType.JSON.value();
         });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
@@ -51,8 +51,8 @@ public class VersionSearchTest extends AbstractResourceTestBase {
     void testFilterByLabels() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
-        CreateArtifactResponse car1 = createArtifact(groupId, "labels-artifact-1", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
-        createArtifact(groupId, "labels-artifact-2", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car1 = createArtifact(groupId, "labels-artifact-1", ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, "labels-artifact-2", ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON);
 
         EditableVersionMetaData emd = new EditableVersionMetaData();
         Labels labels = new Labels();

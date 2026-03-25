@@ -316,7 +316,7 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(groupId));
-        filters.add(SearchFilter.ofArtifactType(ArtifactType.ICEBERG_TABLE));
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.ICEBERG_TABLE.value()));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.artifactId,
                 OrderDirection.asc, offset, limit);
@@ -420,7 +420,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .references(Collections.emptyList())
                 .build();
 
-        storage.createArtifact(groupId, tableName, ArtifactType.ICEBERG_TABLE, artifactMetaData, null,
+        storage.createArtifact(groupId, tableName, ArtifactType.ICEBERG_TABLE.value(), artifactMetaData, null,
                 content, versionMetaData, null, false, false, getCurrentUser());
 
         TableMetadata tableMetadata;
@@ -550,7 +550,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 currentMetadata, newMetadata);
 
         storage.createArtifactVersionIfLatest(groupId, table,
-                null, ArtifactType.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(),
+                null, ArtifactType.ICEBERG_TABLE.value(), content, EditableVersionMetaDataDto.builder().build(),
                 null, false, getCurrentUser(), baseVersionOrder, artifactMetaData);
 
         // Build and return the response
@@ -674,7 +674,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .references(Collections.emptyList())
                 .build();
 
-        storage.createArtifact(destGroupId, destTable, ArtifactType.ICEBERG_TABLE,
+        storage.createArtifact(destGroupId, destTable, ArtifactType.ICEBERG_TABLE.value(),
                 EditableArtifactMetaDataDto.builder().build(), null, content,
                 EditableVersionMetaDataDto.builder().build(), null, false, false, getCurrentUser());
 

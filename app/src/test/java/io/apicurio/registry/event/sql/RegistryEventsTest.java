@@ -613,7 +613,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
     public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId, String name,
                                                         String description) throws Exception {
-        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
+        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON.value(),
                 ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
                     createArtifact.setName(name);
                     createArtifact.setDescription(description);
@@ -631,7 +631,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
     public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId, String version,
                                                         String name, String description) throws Exception {
-        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
+        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON.value(),
                 ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
                     createArtifact.setName(name);
                     createArtifact.setDescription(description);
@@ -778,3 +778,4 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         }
     }
 }
+

@@ -25,7 +25,7 @@ public class KConnectArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.KCONNECT;
+        return ArtifactType.KCONNECT.value();
     }
 
     @Override

@@ -130,14 +130,14 @@ public class ProtobufExportTest extends AbstractResourceTestBase {
     public void testExportArtifactWithReferences() throws Exception {
         // Create the dependency first (mode.proto)
         String modeArtifactId = "mode-enum";
-        createArtifact(GROUP, modeArtifactId, ArtifactType.PROTOBUF, MODE_PROTO, ContentTypes.APPLICATION_PROTOBUF);
+        createArtifact(GROUP, modeArtifactId, ArtifactType.PROTOBUF.value(), MODE_PROTO, ContentTypes.APPLICATION_PROTOBUF);
 
         // Create the main artifact with a reference to mode.proto
         String tableInfoArtifactId = "table-info";
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(tableInfoArtifactId);
-        createArtifact.setArtifactType(ArtifactType.PROTOBUF);
+        createArtifact.setArtifactType(ArtifactType.PROTOBUF.value());
 
         CreateVersion firstVersion = new CreateVersion();
         VersionContent content = new VersionContent();
@@ -211,13 +211,13 @@ public class ProtobufExportTest extends AbstractResourceTestBase {
     public void testExportArtifactWithTransitiveReferences() throws Exception {
         // Create mode.proto (no dependencies)
         String modeArtifactId = "transitive-mode";
-        createArtifact(GROUP, modeArtifactId, ArtifactType.PROTOBUF, MODE_PROTO, ContentTypes.APPLICATION_PROTOBUF);
+        createArtifact(GROUP, modeArtifactId, ArtifactType.PROTOBUF.value(), MODE_PROTO, ContentTypes.APPLICATION_PROTOBUF);
 
         // Create table_info.proto (depends on mode.proto)
         String tableInfoArtifactId = "transitive-table-info";
         CreateArtifact createTableInfo = new CreateArtifact();
         createTableInfo.setArtifactId(tableInfoArtifactId);
-        createTableInfo.setArtifactType(ArtifactType.PROTOBUF);
+        createTableInfo.setArtifactType(ArtifactType.PROTOBUF.value());
 
         CreateVersion tableInfoVersion = new CreateVersion();
         VersionContent tableInfoContent = new VersionContent();
@@ -240,7 +240,7 @@ public class ProtobufExportTest extends AbstractResourceTestBase {
         String notificationArtifactId = "transitive-notification";
         CreateArtifact createNotification = new CreateArtifact();
         createNotification.setArtifactId(notificationArtifactId);
-        createNotification.setArtifactType(ArtifactType.PROTOBUF);
+        createNotification.setArtifactType(ArtifactType.PROTOBUF.value());
 
         CreateVersion notificationVersion = new CreateVersion();
         VersionContent notificationContent = new VersionContent();
@@ -292,7 +292,7 @@ public class ProtobufExportTest extends AbstractResourceTestBase {
         String artifactId = "deeply-nested-message";
 
         // Create an artifact with deeply nested package
-        createArtifact(GROUP, artifactId, ArtifactType.PROTOBUF, NESTED_PACKAGE_PROTO, ContentTypes.APPLICATION_PROTOBUF);
+        createArtifact(GROUP, artifactId, ArtifactType.PROTOBUF.value(), NESTED_PACKAGE_PROTO, ContentTypes.APPLICATION_PROTOBUF);
 
         byte[] zipBytes = given()
                 .when()
@@ -364,7 +364,7 @@ public class ProtobufExportTest extends AbstractResourceTestBase {
                 """;
 
         String artifactId = "no-package-message";
-        createArtifact(GROUP, artifactId, ArtifactType.PROTOBUF, noPackageProto, ContentTypes.APPLICATION_PROTOBUF);
+        createArtifact(GROUP, artifactId, ArtifactType.PROTOBUF.value(), noPackageProto, ContentTypes.APPLICATION_PROTOBUF);
 
         byte[] zipBytes = given()
                 .when()
@@ -387,3 +387,4 @@ public class ProtobufExportTest extends AbstractResourceTestBase {
         }
     }
 }
+

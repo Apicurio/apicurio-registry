@@ -20,7 +20,7 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
      */
     @Override
     public String artifactType() {
-        return ArtifactType.JSON;
+        return ArtifactType.JSON.value();
     }
 
     /**
@@ -89,3 +89,4 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
         return true;
     }
 }
+

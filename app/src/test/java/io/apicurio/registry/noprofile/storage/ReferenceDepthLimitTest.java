@@ -222,7 +222,7 @@ public class ReferenceDepthLimitTest extends AbstractResourceTestBase {
             throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AVRO);
+        createArtifact.setArtifactType(ArtifactType.AVRO.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent()
@@ -236,7 +236,7 @@ public class ReferenceDepthLimitTest extends AbstractResourceTestBase {
             List<ArtifactReference> references) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AVRO);
+        createArtifact.setArtifactType(ArtifactType.AVRO.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent()
@@ -256,3 +256,4 @@ public class ReferenceDepthLimitTest extends AbstractResourceTestBase {
         return ref;
     }
 }
+

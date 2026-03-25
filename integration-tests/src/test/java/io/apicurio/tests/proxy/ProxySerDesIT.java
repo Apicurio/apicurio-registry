@@ -67,7 +67,7 @@ public class ProxySerDesIT extends ApicurioRegistryBaseIT {
 
         // Create the schema first using direct client (without proxy)
         String schemaContent = "{\"type\":\"record\",\"name\":\"TestRecord\",\"fields\":[{\"name\":\"message\",\"type\":\"string\"}]}";
-        createArtifact(groupId, artifactId, ArtifactType.JSON, schemaContent, ContentTypes.APPLICATION_JSON,
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), schemaContent, ContentTypes.APPLICATION_JSON,
                 IfArtifactExists.FAIL, null);
 
         // Create message to serialize
@@ -128,7 +128,7 @@ public class ProxySerDesIT extends ApicurioRegistryBaseIT {
 
         // Create the schema
         String schemaContent = "{\"type\":\"record\",\"name\":\"TestRecord2\",\"fields\":[{\"name\":\"value\",\"type\":\"int\"}]}";
-        createArtifact(groupId, artifactId, ArtifactType.JSON, schemaContent, ContentTypes.APPLICATION_JSON,
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), schemaContent, ContentTypes.APPLICATION_JSON,
                 IfArtifactExists.FAIL, null);
 
         JsonSchemaMsgFactory msgFactory = new JsonSchemaMsgFactory();
@@ -175,7 +175,7 @@ public class ProxySerDesIT extends ApicurioRegistryBaseIT {
 
         // Create the schema
         String schemaContent = "{\"type\":\"record\",\"name\":\"TestRecord3\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"}]}";
-        createArtifact(groupId, artifactId, ArtifactType.JSON, schemaContent, ContentTypes.APPLICATION_JSON,
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), schemaContent, ContentTypes.APPLICATION_JSON,
                 IfArtifactExists.FAIL, null);
 
         JsonSchemaMsgFactory msgFactory = new JsonSchemaMsgFactory();
@@ -212,3 +212,4 @@ public class ProxySerDesIT extends ApicurioRegistryBaseIT {
         }
     }
 }
+

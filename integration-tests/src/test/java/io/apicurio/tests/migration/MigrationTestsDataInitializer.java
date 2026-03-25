@@ -56,7 +56,7 @@ public class MigrationTestsDataInitializer {
             String artifactId = idx + "-" + UUID.randomUUID().toString();
 
             io.apicurio.registry.rest.client.v2.models.ArtifactContent createArtifact = TestUtils
-                    .clientCreateArtifactV2(artifactId, ArtifactType.JSON,
+                    .clientCreateArtifactV2(artifactId, ArtifactType.JSON.value(),
                             new String(jsonSchema.getSchemaStream().readAllBytes(), StandardCharsets.UTF_8),
                             ContentTypes.APPLICATION_JSON);
             var response = source.groups().byGroupId("default").artifacts().post(createArtifact);
@@ -74,14 +74,14 @@ public class MigrationTestsDataInitializer {
                 : Collections.emptyList();
 
             io.apicurio.registry.rest.client.v2.models.ArtifactContent createArtifact = TestUtils
-                    .clientCreateArtifactV2(artifactId, ArtifactType.AVRO,
+                    .clientCreateArtifactV2(artifactId, ArtifactType.AVRO.value(),
                             new String(avroSchema.generateSchemaStream().readAllBytes(),
                                     StandardCharsets.UTF_8),
                             ContentTypes.APPLICATION_JSON);
             createArtifact.setReferences(references);
             var response = source.groups().byGroupId("migrateTest").artifacts().post(createArtifact,
                     configuration -> {
-                        configuration.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO);
+                        configuration.headers.add("X-Registry-ArtifactType", ArtifactType.AVRO.value());
                         configuration.headers.add("X-Registry-ArtifactId", artifactId);
                     });
 
@@ -136,7 +136,7 @@ public class MigrationTestsDataInitializer {
             String artifactId = idx + "-" + UUID.randomUUID().toString();
             String content = IoUtil.toString(jsonSchema.getSchemaStream());
 
-            ArtifactContent createArtifact = TestUtils.clientCreateArtifactV2(artifactId, ArtifactType.JSON,
+            ArtifactContent createArtifact = TestUtils.clientCreateArtifactV2(artifactId, ArtifactType.JSON.value(),
                     content, ContentTypes.APPLICATION_JSON);
             var response = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
                     .post(createArtifact);
@@ -150,7 +150,7 @@ public class MigrationTestsDataInitializer {
             String artifactId = "avro-" + idx + "-" + UUID.randomUUID().toString();
             String content = IoUtil.toString(avroSchema.generateSchemaStream());
             io.apicurio.registry.rest.client.v2.models.ArtifactContent createArtifact = TestUtils
-                    .clientCreateArtifactV2(artifactId, ArtifactType.AVRO, content,
+                    .clientCreateArtifactV2(artifactId, ArtifactType.AVRO.value(), content,
                             ContentTypes.APPLICATION_JSON);
             var response = source.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
                     .post(createArtifact);
@@ -243,7 +243,7 @@ public class MigrationTestsDataInitializer {
                 byte[] contentBytes = IoUtil.toBytes(content);
                 String contentHash = DigestUtils.sha256Hex(contentBytes);
 
-                String artifactType = ArtifactType.JSON;
+                String artifactType = ArtifactType.JSON.value();
 
                 Long contentId = contentIndex.computeIfAbsent(contentHash, k -> {
                     ContentEntity contentEntity = new ContentEntity();
@@ -303,3 +303,4 @@ public class MigrationTestsDataInitializer {
         return null;
     }
 }
+

@@ -34,14 +34,14 @@ public class ServerSideDereferenceDefaultTest extends AbstractResourceTestBase {
         String withExternalRefContent = resourceToString("openapi-with-external-ref.json");
 
         // Create the artifact containing a type to be referenced
-        createArtifact(GROUP, "testV3Default/ReferencedTypes", ArtifactType.OPENAPI,
+        createArtifact(GROUP, "testV3Default/ReferencedTypes", ArtifactType.OPENAPI.value(),
                 referencedTypesContent, ContentTypes.APPLICATION_JSON);
 
         // Create the artifact that references the type
         List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
                 .name("./referenced-types.json#/components/schemas/Widget").groupId(GROUP)
                 .artifactId("testV3Default/ReferencedTypes").version("1").build());
-        createArtifactWithReferences(GROUP, "testV3Default/WithExternalRef", ArtifactType.OPENAPI,
+        createArtifactWithReferences(GROUP, "testV3Default/WithExternalRef", ArtifactType.OPENAPI.value(),
                 withExternalRefContent, ContentTypes.APPLICATION_JSON, refs);
 
         // Get content WITHOUT specifying references parameter
@@ -65,14 +65,14 @@ public class ServerSideDereferenceDefaultTest extends AbstractResourceTestBase {
         String withExternalRefContent = resourceToString("openapi-with-external-ref.json");
 
         // Create the artifact containing a type to be referenced
-        createArtifact(GROUP, "testV2Default/ReferencedTypes", ArtifactType.OPENAPI,
+        createArtifact(GROUP, "testV2Default/ReferencedTypes", ArtifactType.OPENAPI.value(),
                 referencedTypesContent, ContentTypes.APPLICATION_JSON);
 
         // Create the artifact that references the type
         List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
                 .name("./referenced-types.json#/components/schemas/Widget").groupId(GROUP)
                 .artifactId("testV2Default/ReferencedTypes").version("1").build());
-        createArtifactWithReferences(GROUP, "testV2Default/WithExternalRef", ArtifactType.OPENAPI,
+        createArtifactWithReferences(GROUP, "testV2Default/WithExternalRef", ArtifactType.OPENAPI.value(),
                 withExternalRefContent, ContentTypes.APPLICATION_JSON, refs);
 
         // Get latest artifact content WITHOUT specifying dereference parameter
@@ -105,7 +105,7 @@ public class ServerSideDereferenceDefaultTest extends AbstractResourceTestBase {
         String withExternalRefContent = resourceToString("openapi-with-external-ref.json");
 
         // Create the artifact containing a type to be referenced
-        createArtifact(GROUP, "testGlobalIdDefault/ReferencedTypes", ArtifactType.OPENAPI,
+        createArtifact(GROUP, "testGlobalIdDefault/ReferencedTypes", ArtifactType.OPENAPI.value(),
                 referencedTypesContent, ContentTypes.APPLICATION_JSON);
 
         // Create the artifact that references the type
@@ -113,7 +113,7 @@ public class ServerSideDereferenceDefaultTest extends AbstractResourceTestBase {
                 .name("./referenced-types.json#/components/schemas/Widget").groupId(GROUP)
                 .artifactId("testGlobalIdDefault/ReferencedTypes").version("1").build());
         var metadata = createArtifactWithReferences(GROUP, "testGlobalIdDefault/WithExternalRef",
-                ArtifactType.OPENAPI, withExternalRefContent, ContentTypes.APPLICATION_JSON, refs);
+                ArtifactType.OPENAPI.value(), withExternalRefContent, ContentTypes.APPLICATION_JSON, refs);
 
         // v3 API - Get content by globalId WITHOUT specifying references parameter
         // Should default to PRESERVE (existing behavior)
@@ -134,3 +134,4 @@ public class ServerSideDereferenceDefaultTest extends AbstractResourceTestBase {
                         equalTo("./referenced-types.json#/components/schemas/Widget"));
     }
 }
+

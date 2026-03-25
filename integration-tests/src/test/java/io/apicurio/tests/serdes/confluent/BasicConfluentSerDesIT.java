@@ -100,7 +100,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
         AvroGenericRecordSchemaFactory avroSchema = new AvroGenericRecordSchemaFactory("myrecordconfluent1",
                 List.of("key1"));
 
-        createArtifact("default", subjectName, ArtifactType.AVRO, avroSchema.generateSchema().toString(),
+        createArtifact("default", subjectName, ArtifactType.AVRO.value(), avroSchema.generateSchema().toString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         new SimpleSerdesTesterBuilder<GenericRecord, GenericRecord>().withTopic(topicName)
@@ -327,3 +327,4 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
     }
 
 }
+

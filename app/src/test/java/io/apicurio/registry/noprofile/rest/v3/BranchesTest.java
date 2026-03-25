@@ -657,3 +657,4 @@ public class BranchesTest extends AbstractResourceTestBase {
     }
 
 }
+

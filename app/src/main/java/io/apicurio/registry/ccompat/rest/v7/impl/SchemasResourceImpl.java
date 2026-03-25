@@ -49,13 +49,13 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     public Schema getSchemaById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
-        String artifactType;
+        ArtifactType artifactType;
         if (cconfig.legacyIdModeEnabled.get()) {
             StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(id.longValue());
             contentHandle = artifactVersion.getContent();
             references = artifactVersion.getReferences();
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
-            artifactType = vmd.getArtifactType();
+            artifactType = ArtifactType.fromValue(vmd.getArtifactType());
         } else {
             ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
             contentHandle = contentWrapper.getContent();
@@ -65,7 +65,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
                 //the contentId points to an orphaned content
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = ArtifactType.fromValue(versions.get(0).getArtifactType());
         }
 
         // Apply default format if configured and no format was explicitly provided
@@ -74,7 +74,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
                     && "DEREFERENCE".equalsIgnoreCase(configuredDefault.get())) {
                 // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
+                if (artifactType == ArtifactType.AVRO || artifactType == ArtifactType.PROTOBUF) {
                     format = "resolved";
                 }
             }
@@ -87,20 +87,20 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
                     resolvedReferences);
         }
 
-        return converter.convert(contentHandle, artifactType, references);
+        return converter.convert(contentHandle, artifactType.value(), references);
     }
 
     @Override
     public String getSchemaContentById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
-        String artifactType;
+        ArtifactType artifactType;
         if (cconfig.legacyIdModeEnabled.get()) {
             StoredArtifactVersionDto artifactVersion = storage.getArtifactVersionContent(id.longValue());
             contentHandle = artifactVersion.getContent();
             references = artifactVersion.getReferences();
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
-            artifactType = vmd.getArtifactType();
+            artifactType = ArtifactType.fromValue(vmd.getArtifactType());
         } else {
             ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
             contentHandle = contentWrapper.getContent();
@@ -110,7 +110,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
                 //the contentId points to an orphaned content
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = ArtifactType.fromValue(versions.get(0).getArtifactType());
         }
 
         // Apply default format if configured and no format was explicitly provided
@@ -119,7 +119,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
                     && "DEREFERENCE".equals(configuredDefault.get())) {
                 // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
-                if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
+                if (artifactType == ArtifactType.AVRO || artifactType == ArtifactType.PROTOBUF) {
                     format = "RESOLVED";
                 }
             }
@@ -138,7 +138,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> getSchemaTypes() {
-        return Arrays.asList(ArtifactType.JSON, ArtifactType.PROTOBUF, ArtifactType.AVRO);
+        return Arrays.asList(ArtifactType.JSON.value(), ArtifactType.PROTOBUF.value(),
+                ArtifactType.AVRO.value());
     }
 
     @Override

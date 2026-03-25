@@ -27,7 +27,7 @@ public class XsdArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.XSD;
+        return ArtifactType.XSD.value();
     }
 
     @Override

@@ -89,7 +89,7 @@ public class ElasticsearchStartupIndexerTest extends AbstractResourceTestBase {
 
         // Create several artifacts
         for (int idx = 0; idx < 3; idx++) {
-            createArtifact(group, "testStartupSearch_api-" + idx, ArtifactType.OPENAPI,
+            createArtifact(group, "testStartupSearch_api-" + idx, ArtifactType.OPENAPI.value(),
                     "{\"openapi\":\"3.0.0\",\"idx\":" + idx + "}",
                     ContentTypes.APPLICATION_JSON);
         }
@@ -121,3 +121,4 @@ public class ElasticsearchStartupIndexerTest extends AbstractResourceTestBase {
         }
     }
 }
+

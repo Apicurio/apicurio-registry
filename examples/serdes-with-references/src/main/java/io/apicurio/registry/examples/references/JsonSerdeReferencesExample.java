@@ -57,7 +57,7 @@ public class JsonSerdeReferencesExample {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId("city");
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(citySchema));
@@ -80,7 +80,7 @@ public class JsonSerdeReferencesExample {
 
         CreateArtifact citizenCreateArtifact = new CreateArtifact();
         citizenCreateArtifact.setArtifactId(artifactId);
-        citizenCreateArtifact.setArtifactType(ArtifactType.JSON);
+        citizenCreateArtifact.setArtifactType(ArtifactType.JSON.value());
         citizenCreateArtifact.setFirstVersion(new CreateVersion());
         citizenCreateArtifact.getFirstVersion().setContent(new VersionContent());
         citizenCreateArtifact.getFirstVersion().getContent().setContent(IoUtil.toString(citizenSchema));

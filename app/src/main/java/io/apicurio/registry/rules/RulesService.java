@@ -3,6 +3,7 @@ package io.apicurio.registry.rules;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.List;
@@ -30,6 +31,13 @@ public interface RulesService {
             RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException;
 
+    default void applyRules(String groupId, String artifactId, ArtifactType artifactType, TypedContent content,
+            RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+        applyRules(groupId, artifactId, artifactType.value(), content, ruleApplicationType, references,
+                resolvedReferences);
+    }
+
     /**
      * Applies a single, specific rule to the content update for the given artifact.
      * 
@@ -49,6 +57,14 @@ public interface RulesService {
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException;
 
+    default void applyRule(String groupId, String artifactId, ArtifactType artifactType, TypedContent content,
+            RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType,
+            List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
+            throws RuleViolationException {
+        applyRule(groupId, artifactId, artifactType.value(), content, ruleType, ruleConfiguration,
+                ruleApplicationType, references, resolvedReferences);
+    }
+
     /**
      * Applies configured rules to the content update, relative to ANY artifact version.
      * 
@@ -64,4 +80,11 @@ public interface RulesService {
     public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType,
             TypedContent updatedContent, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException;
+
+    default void applyRules(String groupId, String artifactId, String artifactVersion, ArtifactType artifactType,
+            TypedContent updatedContent, List<ArtifactReference> references,
+            Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+        applyRules(groupId, artifactId, artifactVersion, artifactType.value(), updatedContent, references,
+                resolvedReferences);
+    }
 }

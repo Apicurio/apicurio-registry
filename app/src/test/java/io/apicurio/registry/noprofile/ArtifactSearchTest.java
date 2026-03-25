@@ -35,7 +35,7 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         String description = "The quick brown FOX jumped over the Lazy dog.";
         String content = OPENAPI_CONTENT_TEMPLATE.replace("TITLE", title).replace("DESCRIPTION", description);
 
-        createArtifact(groupId, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON,
+        createArtifact(groupId, artifactId, ArtifactType.OPENAPI.value(), content, ContentTypes.APPLICATION_JSON,
                 (createArtifact) -> {
                     createArtifact.setName(title);
                     createArtifact.setDescription(description);
@@ -200,8 +200,8 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
     void testFilterByArtifactType() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
-        createArtifact(groupId, "avro-artifact", ArtifactType.AVRO, "{}", ContentTypes.APPLICATION_JSON);
-        createArtifact(groupId, "json-artifact", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, "avro-artifact", ArtifactType.AVRO.value(), "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, "json-artifact", ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON);
 
         ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
             config.queryParameters.groupId = groupId;
@@ -211,14 +211,14 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
 
         results = clientV3.search().artifacts().get(config -> {
             config.queryParameters.groupId = groupId;
-            config.queryParameters.artifactType = ArtifactType.AVRO;
+            config.queryParameters.artifactType = ArtifactType.AVRO.value();
         });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
 
         results = clientV3.search().artifacts().get(config -> {
             config.queryParameters.groupId = groupId;
-            config.queryParameters.artifactType = ArtifactType.JSON;
+            config.queryParameters.artifactType = ArtifactType.JSON.value();
         });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
@@ -238,23 +238,23 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
 
         // Create test artifacts with various names
-        createArtifact(groupId, "artifact-1", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+        createArtifact(groupId, "artifact-1", ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON,
                 (createArtifact) -> {
                     createArtifact.setName("name");
                 });
-        createArtifact(groupId, "artifact-2", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+        createArtifact(groupId, "artifact-2", ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON,
                 (createArtifact) -> {
                     createArtifact.setName("name-test");
                 });
-        createArtifact(groupId, "artifact-3", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+        createArtifact(groupId, "artifact-3", ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON,
                 (createArtifact) -> {
                     createArtifact.setName("test-name");
                 });
-        createArtifact(groupId, "artifact-4", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+        createArtifact(groupId, "artifact-4", ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON,
                 (createArtifact) -> {
                     createArtifact.setName("some-name-here");
                 });
-        createArtifact(groupId, "artifact-5", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+        createArtifact(groupId, "artifact-5", ArtifactType.JSON.value(), "{}", ContentTypes.APPLICATION_JSON,
                 (createArtifact) -> {
                     createArtifact.setName("other");
                 });

@@ -111,7 +111,7 @@ public abstract class AbstractResource {
     }
 
     protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String artifactId, String schema,
-                                                                String artifactType, List<SchemaReference> references, String groupId, boolean normalize) {
+            ArtifactType artifactType, List<SchemaReference> references, String groupId, boolean normalize) {
         ArtifactVersionMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream()
@@ -127,13 +127,13 @@ public abstract class AbstractResource {
             ContentHandle schemaContent;
             schemaContent = ContentHandle.create(schema);
             String contentType = ContentTypes.APPLICATION_JSON;
-            if (artifactType.equals(ArtifactType.PROTOBUF)) {
+            if (ArtifactType.PROTOBUF == artifactType) {
                 contentType = ContentTypes.APPLICATION_PROTOBUF;
             }
 
             // Prepare content for rule application. If Protobuf, ensure it's in text format.
             TypedContent contentForRules = TypedContent.create(schemaContent, contentType);
-            if (artifactType.equals(ArtifactType.PROTOBUF)) {
+            if (ArtifactType.PROTOBUF == artifactType) {
                 try {
                     // Try parsing as text first
                     ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, schemaContent.content());
@@ -166,7 +166,7 @@ public abstract class AbstractResource {
                         .contentType(contentType).references(parsedReferences).build();
 
                 res = storage
-                        .createArtifact(groupId, artifactId, artifactType, artifactMetaData, null,
+                        .createArtifact(groupId, artifactId, artifactType.value(), artifactMetaData, null,
                                 firstVersionContent, firstVersionMetaData, null, false, false, owner)
                         .getValue();
             } else {
@@ -176,7 +176,7 @@ public abstract class AbstractResource {
                 // Store the ORIGINAL content (text or binary)
                 ContentWrapperDto versionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();
-                res = storage.createArtifactVersion(groupId, artifactId, null, artifactType, versionContent,
+                res = storage.createArtifactVersion(groupId, artifactId, null, artifactType.value(), versionContent,
                         EditableVersionMetaDataDto.builder().build(), List.of(), false, false, owner);
             }
         } catch (RuleViolationException ex) {
@@ -190,10 +190,10 @@ public abstract class AbstractResource {
     }
 
     protected ArtifactVersionMetaDataDto lookupSchema(String groupId, String artifactId, String schema,
-            List<SchemaReference> schemaReferences, String schemaType, boolean normalize) {
+            List<SchemaReference> schemaReferences, ArtifactType schemaType, boolean normalize) {
         try {
-            final String type = schemaType == null ? ArtifactType.AVRO : schemaType;
-            final String contentType = type.equals(ArtifactType.PROTOBUF) ? ContentTypes.APPLICATION_PROTOBUF
+            final ArtifactType type = schemaType == null ? ArtifactType.AVRO : schemaType;
+            final String contentType = ArtifactType.PROTOBUF == type ? ContentTypes.APPLICATION_PROTOBUF
                 : ContentTypes.APPLICATION_JSON;
             TypedContent typedSchemaContent = TypedContent.create(ContentHandle.create(schema), contentType);
             final List<ArtifactReferenceDto> artifactReferences = parseReferences(schemaReferences, groupId);
@@ -240,9 +240,9 @@ public abstract class AbstractResource {
      * https://github.com/Apicurio/apicurio-registry/issues/3588 for more information.
      */
     private ArtifactVersionMetaDataDto avroDereferenceFallback(String groupId, String artifactId,
-            String schema, String type, ArtifactTypeUtilProvider artifactTypeProvider,
+            String schema, ArtifactType type, ArtifactTypeUtilProvider artifactTypeProvider,
             ArtifactNotFoundException originalException) {
-        if (type.equals(ArtifactType.AVRO)) {
+        if (ArtifactType.AVRO == type) {
             return storage.getArtifactVersions(groupId, artifactId).stream().filter(version -> {
                 StoredArtifactVersionDto artifactVersion = storage
                         .getArtifactVersionContent(groupId, artifactId, version);
@@ -369,8 +369,13 @@ public abstract class AbstractResource {
     }
 
     protected boolean isCcompatManagedType(String artifactType) {
-        return artifactType.equals(ArtifactType.AVRO) || artifactType.equals(ArtifactType.PROTOBUF)
-                || artifactType.equals(ArtifactType.JSON);
+        return ArtifactType.AVRO.matches(artifactType) || ArtifactType.PROTOBUF.matches(artifactType)
+                || ArtifactType.JSON.matches(artifactType);
+    }
+
+    protected boolean isCcompatManagedType(ArtifactType artifactType) {
+        return artifactType == ArtifactType.AVRO || artifactType == ArtifactType.PROTOBUF
+                || artifactType == ArtifactType.JSON;
     }
 
     /**

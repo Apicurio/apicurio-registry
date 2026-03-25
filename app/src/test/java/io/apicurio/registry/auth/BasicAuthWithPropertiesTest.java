@@ -61,7 +61,7 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
 
     private static CreateArtifact clientCreateArtifact() {
         return TestUtils.clientCreateArtifact(AuthTestLocalRoles.class.getSimpleName(),
-                ArtifactType.JSON, ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
+                ArtifactType.JSON.value(), ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
     }
 
     protected void assertArtifactNotFound(Exception exception) {
@@ -538,3 +538,4 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
     }
 
 }
+

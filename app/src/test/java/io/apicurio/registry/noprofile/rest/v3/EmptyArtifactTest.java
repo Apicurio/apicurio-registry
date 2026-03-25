@@ -23,7 +23,7 @@ public class EmptyArtifactTest extends AbstractResourceTestBase {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
 
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
@@ -45,7 +45,7 @@ public class EmptyArtifactTest extends AbstractResourceTestBase {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
 
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
@@ -71,7 +71,7 @@ public class EmptyArtifactTest extends AbstractResourceTestBase {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
 
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
@@ -92,3 +92,4 @@ public class EmptyArtifactTest extends AbstractResourceTestBase {
     }
 
 }
+

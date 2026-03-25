@@ -93,7 +93,7 @@ public class DuplicateReferencesTest extends AbstractResourceTestBase {
 
         CreateArtifact createReferenced = new CreateArtifact();
         createReferenced.setArtifactId(referencedArtifactId);
-        createReferenced.setArtifactType(ArtifactType.AVRO);
+        createReferenced.setArtifactType(ArtifactType.AVRO.value());
         createReferenced.setFirstVersion(new CreateVersion());
         createReferenced.getFirstVersion().setContent(new VersionContent());
         createReferenced.getFirstVersion().getContent().setContent(referencedContent);
@@ -128,7 +128,7 @@ public class DuplicateReferencesTest extends AbstractResourceTestBase {
         // The registry should be tolerant of duplicate references in the input list
         CreateArtifact createMain = new CreateArtifact();
         createMain.setArtifactId(mainArtifactId);
-        createMain.setArtifactType(ArtifactType.AVRO);
+        createMain.setArtifactType(ArtifactType.AVRO.value());
         createMain.setFirstVersion(new CreateVersion());
         createMain.getFirstVersion().setContent(new VersionContent());
         createMain.getFirstVersion().getContent().setContent(mainContent);
@@ -172,7 +172,7 @@ public class DuplicateReferencesTest extends AbstractResourceTestBase {
 
         CreateArtifact createReferenced = new CreateArtifact();
         createReferenced.setArtifactId(referencedArtifactId);
-        createReferenced.setArtifactType(ArtifactType.AVRO);
+        createReferenced.setArtifactType(ArtifactType.AVRO.value());
         createReferenced.setFirstVersion(new CreateVersion());
         createReferenced.getFirstVersion().setContent(new VersionContent());
         createReferenced.getFirstVersion().getContent().setContent(referencedContent);
@@ -186,7 +186,7 @@ public class DuplicateReferencesTest extends AbstractResourceTestBase {
 
         CreateArtifact createInitial = new CreateArtifact();
         createInitial.setArtifactId(mainArtifactId);
-        createInitial.setArtifactType(ArtifactType.AVRO);
+        createInitial.setArtifactType(ArtifactType.AVRO.value());
         createInitial.setFirstVersion(new CreateVersion());
         createInitial.getFirstVersion().setContent(new VersionContent());
         createInitial.getFirstVersion().getContent().setContent(initialContent);
@@ -242,3 +242,4 @@ public class DuplicateReferencesTest extends AbstractResourceTestBase {
             "Duplicate references should be deduplicated before storage");
     }
 }
+

@@ -85,7 +85,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Ales", "Justin", 23);
@@ -198,7 +198,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        Long globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        Long globalId = createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
 
         Person person = new Person("Ales", "Justin", 23);
@@ -251,7 +251,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        Long contentId = createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        Long contentId = createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON).getVersion().getContentId();
 
         Person person = new Person("Ales", "Justin", 23);
@@ -313,10 +313,10 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String identifierArtifactId = generateArtifactId();
         String addressId = generateArtifactId();
 
-        createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema),
+        createArtifact(groupId, cityArtifactId, ArtifactType.JSON.value(), IoUtil.toString(citySchema),
                 ContentTypes.APPLICATION_JSON);
 
-        createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema),
+        createArtifact(groupId, qualificationsId, ArtifactType.JSON.value(), IoUtil.toString(qualificationSchema),
                 ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference qualificationsReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -325,7 +325,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         qualificationsReference.setArtifactId(qualificationsId);
         qualificationsReference.setName("qualification.json");
 
-        createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema),
+        createArtifact(groupId, addressId, ArtifactType.JSON.value(), IoUtil.toString(addressSchema),
                 ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference addressReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -340,7 +340,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         cityReference.setArtifactId(cityArtifactId);
         cityReference.setName("city.json");
 
-        createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier),
+        createArtifact(groupId, identifierArtifactId, ArtifactType.JSON.value(), IoUtil.toString(citizenIdentifier),
                 ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference identifierReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -351,7 +351,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
         String artifactId = generateArtifactId();
 
-        createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema),
+        createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(citizenSchema),
                 ContentTypes.APPLICATION_JSON,
                 List.of(qualificationsReference, cityReference, identifierReference, addressReference));
 
@@ -464,10 +464,10 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String identifierArtifactId = generateArtifactId();
         String addressId = generateArtifactId();
 
-        createArtifact(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema),
+        createArtifact(groupId, cityArtifactId, ArtifactType.JSON.value(), IoUtil.toString(citySchema),
                 ContentTypes.APPLICATION_JSON);
 
-        createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema),
+        createArtifact(groupId, qualificationsId, ArtifactType.JSON.value(), IoUtil.toString(qualificationSchema),
                 ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference qualificationsReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -476,7 +476,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         qualificationsReference.setArtifactId(qualificationsId);
         qualificationsReference.setName("qualification.json");
 
-        createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema),
+        createArtifact(groupId, addressId, ArtifactType.JSON.value(), IoUtil.toString(addressSchema),
                 ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference addressReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -491,7 +491,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         cityReference.setArtifactId(cityArtifactId);
         cityReference.setName("city1.json");
 
-        createArtifact(groupId, identifierArtifactId, ArtifactType.JSON, IoUtil.toString(citizenIdentifier),
+        createArtifact(groupId, identifierArtifactId, ArtifactType.JSON.value(), IoUtil.toString(citizenIdentifier),
                 ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference identifierReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -502,7 +502,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
         String artifactId = generateArtifactId();
 
-        createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema),
+        createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(citizenSchema),
                 ContentTypes.APPLICATION_JSON,
                 List.of(qualificationsReference, cityReference, identifierReference, addressReference));
 
@@ -623,9 +623,9 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String cityQualificationId = generateArtifactId();
 
         // Create the two nested qualification schemas, one for the city, and one for the identifier
-        createArtifact(groupId, identifierQualificationId, ArtifactType.JSON,
+        createArtifact(groupId, identifierQualificationId, ArtifactType.JSON.value(),
                 IoUtil.toString(identifierQuarlification), ContentTypes.APPLICATION_JSON);
-        createArtifact(groupId, cityQualificationId, ArtifactType.JSON, IoUtil.toString(cityQualification),
+        createArtifact(groupId, cityQualificationId, ArtifactType.JSON.value(), IoUtil.toString(cityQualification),
                 ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference cityQualificationReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -635,7 +635,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         cityQualificationReference.setName("qualification.json");
 
         // create the city schema with the reference to its qualification
-        createArtifactWithReferences(groupId, cityArtifactId, ArtifactType.JSON, IoUtil.toString(citySchema),
+        createArtifactWithReferences(groupId, cityArtifactId, ArtifactType.JSON.value(), IoUtil.toString(citySchema),
                 ContentTypes.APPLICATION_JSON, List.of(cityQualificationReference));
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference identifierQualificationReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -645,12 +645,12 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         identifierQualificationReference.setName("qualification.json");
 
         // create the identifier schema with the reference to its qualification
-        createArtifactWithReferences(groupId, identifierArtifactId, ArtifactType.JSON,
+        createArtifactWithReferences(groupId, identifierArtifactId, ArtifactType.JSON.value(),
                 IoUtil.toString(citizenIdentifier), ContentTypes.APPLICATION_JSON,
                 List.of(identifierQualificationReference));
 
         // create the main qualification schema, used for the citizen
-        createArtifact(groupId, qualificationsId, ArtifactType.JSON, IoUtil.toString(qualificationSchema),
+        createArtifact(groupId, qualificationsId, ArtifactType.JSON.value(), IoUtil.toString(qualificationSchema),
                 ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference qualificationsReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -659,7 +659,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         qualificationsReference.setArtifactId(qualificationsId);
         qualificationsReference.setName("qualification.json");
 
-        createArtifact(groupId, addressId, ArtifactType.JSON, IoUtil.toString(addressSchema),
+        createArtifact(groupId, addressId, ArtifactType.JSON.value(), IoUtil.toString(addressSchema),
                 ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference addressReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -683,7 +683,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String artifactId = generateArtifactId();
 
         // create the citizen schema, with references to qualifications, city, identifier and address
-        createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(citizenSchema),
+        createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(citizenSchema),
                 ContentTypes.APPLICATION_JSON,
                 List.of(qualificationsReference, cityReference, identifierReference, addressReference));
 
@@ -786,7 +786,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
         String schemaContent = new String(address.readAllBytes(), StandardCharsets.UTF_8);
         CreateArtifact createArtifact = TestUtils.clientCreateArtifact(sample_address_json,
-                ArtifactType.JSON, schemaContent, ContentTypes.APPLICATION_JSON);
+                ArtifactType.JSON.value(), schemaContent, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion(version);
         final VersionMetaData amdAddress = client.groups().byGroupId("GLOBAL").artifacts()
                 .post(createArtifact, config -> {
@@ -904,7 +904,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         // Register the schema in the registry
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         // Create the payload to serialize/deserialize
@@ -957,7 +957,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Diana", "Prince", 28);
@@ -1005,7 +1005,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String artifactId = generateArtifactId();
 
         // Create the artifact in the registry
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         // Create test event with Java 8 Time types
@@ -1082,7 +1082,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Event event = new Event(
@@ -1113,3 +1113,4 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
     }
 
 }
+

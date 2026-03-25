@@ -5,6 +5,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.v2.models.ArtifactContent;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -294,6 +295,10 @@ public class TestUtils {
         return createArtifact;
     }
 
+    public static CreateArtifact clientCreateArtifact(String artifactId, ArtifactType artifactType) {
+        return clientCreateArtifact(artifactId, artifactType.value());
+    }
+
     public static CreateArtifact clientCreateArtifact(String artifactId, String artifactType, String content,
             String contentType) {
         CreateArtifact createArtifact = new CreateArtifact();
@@ -306,11 +311,21 @@ public class TestUtils {
         return createArtifact;
     }
 
+    public static CreateArtifact clientCreateArtifact(String artifactId, ArtifactType artifactType, String content,
+            String contentType) {
+        return clientCreateArtifact(artifactId, artifactType.value(), content, contentType);
+    }
+
     public static ArtifactContent clientCreateArtifactV2(String artifactId, String artifactType,
             String content, String contentType) {
         ArtifactContent createArtifact = new io.apicurio.registry.rest.client.v2.models.ArtifactContent();
         createArtifact.setContent(content);
         return createArtifact;
+    }
+
+    public static ArtifactContent clientCreateArtifactV2(String artifactId, ArtifactType artifactType,
+            String content, String contentType) {
+        return clientCreateArtifactV2(artifactId, artifactType.value(), content, contentType);
     }
 
     public static io.apicurio.registry.rest.v3.beans.CreateArtifact serverCreateArtifact(String artifactId,
@@ -323,6 +338,11 @@ public class TestUtils {
                                 .contentType(contentType).content(content).build())
                         .build())
                 .build();
+    }
+
+    public static io.apicurio.registry.rest.v3.beans.CreateArtifact serverCreateArtifact(String artifactId,
+            ArtifactType artifactType, String content, String contentType) {
+        return serverCreateArtifact(artifactId, artifactType.value(), content, contentType);
     }
 
     public static CreateVersion clientCreateVersion(String content, String contentType) {

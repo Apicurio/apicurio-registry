@@ -35,7 +35,7 @@ public class AgentCardArtifactTypeUtilProvider extends AbstractArtifactTypeUtilP
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.AGENT_CARD;
+        return ArtifactType.AGENT_CARD.value();
     }
 
     @Override

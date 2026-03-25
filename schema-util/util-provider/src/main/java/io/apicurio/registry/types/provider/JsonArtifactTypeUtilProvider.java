@@ -27,7 +27,7 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.JSON;
+        return ArtifactType.JSON.value();
     }
 
     @Override
@@ -86,3 +86,4 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     }
 
 }
+

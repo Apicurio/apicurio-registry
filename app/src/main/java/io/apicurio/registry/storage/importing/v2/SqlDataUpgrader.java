@@ -14,6 +14,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.VersionState;
@@ -37,16 +38,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static io.apicurio.registry.types.ArtifactType.ASYNCAPI;
-import static io.apicurio.registry.types.ArtifactType.AVRO;
-import static io.apicurio.registry.types.ArtifactType.GRAPHQL;
-import static io.apicurio.registry.types.ArtifactType.JSON;
-import static io.apicurio.registry.types.ArtifactType.OPENAPI;
-import static io.apicurio.registry.types.ArtifactType.PROTOBUF;
-import static io.apicurio.registry.types.ArtifactType.WSDL;
-import static io.apicurio.registry.types.ArtifactType.XML;
-import static io.apicurio.registry.types.ArtifactType.XSD;
 
 /**
  * This class takes a stream of Registry v2 entities and imports them into the application using
@@ -217,7 +208,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                 // If this assumption is wrong (e.g. for PROTOBUF) then we'll need an extra step here to
                 // figure
                 // out if the core content is JSON or PROTO.
-                entity.artifactType = AVRO;
+                entity.artifactType = ArtifactType.AVRO.value();
             }
 
             // Finally, using the information from the old content, a V3 content entity is created.
@@ -342,23 +333,24 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             return content.getContentType();
         } else {
             switch (artifactTypeHint) {
-                case ASYNCAPI:
-                case JSON:
-                case OPENAPI:
-                case AVRO:
+                case "ASYNCAPI":
+                case "JSON":
+                case "OPENAPI":
+                case "AVRO":
                     // WARNING: This is only safe here. We can safely return JSON because in V2 we were
                     // transforming all YAML to JSON before storing the content in the database.
                     return ContentTypes.APPLICATION_JSON;
-                case PROTOBUF:
+                case "PROTOBUF":
                     return ContentTypes.APPLICATION_PROTOBUF;
-                case GRAPHQL:
+                case "GRAPHQL":
                     return ContentTypes.APPLICATION_GRAPHQL;
-                case XML:
-                case XSD:
-                case WSDL:
+                case "XML":
+                case "XSD":
+                case "WSDL":
                     return ContentTypes.APPLICATION_XML;
             }
         }
         throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + artifactTypeHint);
     }
 }
+

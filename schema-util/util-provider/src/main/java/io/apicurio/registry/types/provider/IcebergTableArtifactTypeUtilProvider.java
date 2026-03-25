@@ -35,7 +35,7 @@ public class IcebergTableArtifactTypeUtilProvider extends AbstractArtifactTypeUt
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.ICEBERG_TABLE;
+        return ArtifactType.ICEBERG_TABLE.value();
     }
 
     @Override

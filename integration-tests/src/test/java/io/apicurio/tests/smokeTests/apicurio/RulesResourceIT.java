@@ -110,7 +110,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         TestUtils.assertClientError(
-                "RuleViolationException", 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO,
+                "RuleViolationException", 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO.value(),
                         invalidArtifactDefinition, ContentTypes.APPLICATION_JSON, null, null),
                 errorCodeExtractor);
         TestUtils
@@ -121,7 +121,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
 
         String artifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"long\"}]}";
 
-        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactData,
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO.value(), artifactData,
                 ContentTypes.APPLICATION_JSON, null, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact().toString());
 
@@ -146,14 +146,14 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
         String artifactData = artifactDefinition;
-        var caResponse = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactData,
+        var caResponse = createArtifact(groupId, artifactId1, ArtifactType.AVRO.value(), artifactData,
                 ContentTypes.APPLICATION_JSON, null, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId1, caResponse.getArtifact());
 
         String artifactId2 = TestUtils.generateArtifactId();
         artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        caResponse = createArtifact(groupId, artifactId2, ArtifactType.AVRO, artifactDefinition,
+        caResponse = createArtifact(groupId, artifactId2, ArtifactType.AVRO.value(), artifactDefinition,
                 ContentTypes.APPLICATION_JSON, null, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId2, caResponse.getArtifact());
 
@@ -210,7 +210,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        var caResponse = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactDefinition,
+        var caResponse = createArtifact(groupId, artifactId1, ArtifactType.AVRO.value(), artifactDefinition,
                 ContentTypes.APPLICATION_JSON, null, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId1, caResponse.getArtifact());
 
@@ -273,7 +273,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String artifactId1 = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        var caResponse = createArtifact(groupId, artifactId1, ArtifactType.AVRO, artifactDefinition,
+        var caResponse = createArtifact(groupId, artifactId1, ArtifactType.AVRO.value(), artifactDefinition,
                 ContentTypes.APPLICATION_JSON, null, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId1, caResponse.getArtifact());
 

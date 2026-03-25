@@ -62,7 +62,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
 
         // Create an artifact without references
         String content = String.format(AVRO_SCHEMA_TEMPLATE, "TestRecord");
-        CreateArtifactResponse response = createArtifact(groupId, artifactId, ArtifactType.AVRO, content,
+        CreateArtifactResponse response = createArtifact(groupId, artifactId, ArtifactType.AVRO.value(), content,
                 ContentTypes.APPLICATION_JSON, null, null);
 
         assertNotNull(response);
@@ -104,7 +104,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         String referencedArtifactId = TestUtils.generateArtifactId();
         String referencedContent = String.format(AVRO_SCHEMA_TEMPLATE, "ReferencedRecord");
         CreateArtifactResponse referencedResponse = createArtifact(groupId, referencedArtifactId,
-                ArtifactType.AVRO, referencedContent, ContentTypes.APPLICATION_JSON, null, null);
+                ArtifactType.AVRO.value(), referencedContent, ContentTypes.APPLICATION_JSON, null, null);
         String referencedVersion = referencedResponse.getVersion().getVersion();
 
         // Create the main artifact with a reference to the first one
@@ -119,7 +119,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         ref.setName("referenced.avsc");
         references.add(ref);
 
-        CreateArtifactResponse mainResponse = createArtifact(groupId, mainArtifactId, ArtifactType.AVRO,
+        CreateArtifactResponse mainResponse = createArtifact(groupId, mainArtifactId, ArtifactType.AVRO.value(),
                 mainContent, ContentTypes.APPLICATION_JSON, null, createArtifact -> {
                     createArtifact.getFirstVersion().getContent().setReferences(references);
                 });
@@ -159,7 +159,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         String referencedArtifactId = TestUtils.generateArtifactId();
         String referencedContent = String.format(AVRO_SCHEMA_TEMPLATE, "ReferencedRecord");
         CreateArtifactResponse referencedResponse = createArtifact(groupId, referencedArtifactId,
-                ArtifactType.AVRO, referencedContent, ContentTypes.APPLICATION_JSON, null, null);
+                ArtifactType.AVRO.value(), referencedContent, ContentTypes.APPLICATION_JSON, null, null);
         String referencedVersion = referencedResponse.getVersion().getVersion();
 
         // Create the main artifact with a reference to the first one
@@ -174,7 +174,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         ref.setName("referenced.avsc");
         references.add(ref);
 
-        createArtifact(groupId, mainArtifactId, ArtifactType.AVRO, mainContent,
+        createArtifact(groupId, mainArtifactId, ArtifactType.AVRO.value(), mainContent,
                 ContentTypes.APPLICATION_JSON, null, createArtifact -> {
                     createArtifact.getFirstVersion().getContent().setReferences(references);
                 });
@@ -211,7 +211,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         // Create a chain of 3 artifacts: A -> B -> C
         String artifactC = TestUtils.generateArtifactId();
         String contentC = String.format(AVRO_SCHEMA_TEMPLATE, "RecordC");
-        CreateArtifactResponse responseC = createArtifact(groupId, artifactC, ArtifactType.AVRO, contentC,
+        CreateArtifactResponse responseC = createArtifact(groupId, artifactC, ArtifactType.AVRO.value(), contentC,
                 ContentTypes.APPLICATION_JSON, null, null);
         String versionC = responseC.getVersion().getVersion();
 
@@ -226,7 +226,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         refC.setName("c.avsc");
         refsB.add(refC);
 
-        CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB,
+        CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO.value(), contentB,
                 ContentTypes.APPLICATION_JSON, null, createArtifact -> {
                     createArtifact.getFirstVersion().getContent().setReferences(refsB);
                 });
@@ -243,7 +243,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         refB.setName("b.avsc");
         refsA.add(refB);
 
-        CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+        CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO.value(), contentA,
                 ContentTypes.APPLICATION_JSON, null, createArtifact -> {
                     createArtifact.getFirstVersion().getContent().setReferences(refsA);
                 });
@@ -282,7 +282,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         // Create artifact A first (no references initially)
         String artifactA = TestUtils.generateArtifactId();
         String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
-        CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+        CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO.value(), contentA,
                 ContentTypes.APPLICATION_JSON, null, null);
         String versionA = responseA.getVersion().getVersion();
 
@@ -297,7 +297,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         refA.setName("a.avsc");
         refsB.add(refA);
 
-        CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB,
+        CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO.value(), contentB,
                 ContentTypes.APPLICATION_JSON, null, createArtifact -> {
                     createArtifact.getFirstVersion().getContent().setReferences(refsB);
                 });
@@ -377,7 +377,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             // Create artifact A first (no references initially)
             String artifactA = TestUtils.generateArtifactId();
             String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
-            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO.value(), contentA,
                     ContentTypes.APPLICATION_JSON, null, null);
             String versionA = responseA.getVersion().getVersion();
 
@@ -392,7 +392,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             refA.setName("a.avsc");
             refsB.add(refA);
 
-            CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB,
+            CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO.value(), contentB,
                     ContentTypes.APPLICATION_JSON, null, createArtifact -> {
                         createArtifact.getFirstVersion().getContent().setReferences(refsB);
                     });
@@ -451,7 +451,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             // Create artifact A first (no references initially)
             String artifactA = TestUtils.generateArtifactId();
             String contentA = String.format(AVRO_SCHEMA_TEMPLATE, "RecordA");
-            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO.value(), contentA,
                     ContentTypes.APPLICATION_JSON, null, null);
             String versionA = responseA.getVersion().getVersion();
 
@@ -508,7 +508,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             // Create artifact C first (no references)
             String artifactC = TestUtils.generateArtifactId();
             String contentC = String.format(AVRO_SCHEMA_TEMPLATE, "RecordC");
-            CreateArtifactResponse responseC = createArtifact(groupId, artifactC, ArtifactType.AVRO, contentC,
+            CreateArtifactResponse responseC = createArtifact(groupId, artifactC, ArtifactType.AVRO.value(), contentC,
                     ContentTypes.APPLICATION_JSON, null, null);
             String versionC = responseC.getVersion().getVersion();
 
@@ -523,7 +523,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             refC.setName("c.avsc");
             refsB.add(refC);
 
-            CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO, contentB,
+            CreateArtifactResponse responseB = createArtifact(groupId, artifactB, ArtifactType.AVRO.value(), contentB,
                     ContentTypes.APPLICATION_JSON, null, createArtifact -> {
                         createArtifact.getFirstVersion().getContent().setReferences(refsB);
                     });
@@ -540,7 +540,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
             refB.setName("b.avsc");
             refsA.add(refB);
 
-            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO, contentA,
+            CreateArtifactResponse responseA = createArtifact(groupId, artifactA, ArtifactType.AVRO.value(), contentA,
                     ContentTypes.APPLICATION_JSON, null, createArtifact -> {
                         createArtifact.getFirstVersion().getContent().setReferences(refsA);
                     });
@@ -581,3 +581,4 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         }
     }
 }
+

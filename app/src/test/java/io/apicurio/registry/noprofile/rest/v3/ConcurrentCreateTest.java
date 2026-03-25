@@ -44,7 +44,7 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
                 try {
                     CreateArtifact createArtifact = new CreateArtifact();
                     createArtifact.setArtifactId(artifactId);
-                    createArtifact.setArtifactType(ArtifactType.OPENAPI);
+                    createArtifact.setArtifactType(ArtifactType.OPENAPI.value());
                     createArtifact.setFirstVersion(new CreateVersion());
                     createArtifact.getFirstVersion().setContent(new VersionContent());
                     createArtifact.getFirstVersion().getContent().setContent(oaiArtifactContent);
@@ -99,7 +99,7 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
                 try {
                     CreateArtifact createArtifact = new CreateArtifact();
                     createArtifact.setArtifactId(artifactId);
-                    createArtifact.setArtifactType(ArtifactType.OPENAPI);
+                    createArtifact.setArtifactType(ArtifactType.OPENAPI.value());
                     createArtifact.setFirstVersion(new CreateVersion());
                     createArtifact.getFirstVersion().setContent(new VersionContent());
                     createArtifact.getFirstVersion().getContent().setContent(oaiArtifactContent);
@@ -133,3 +133,4 @@ public class ConcurrentCreateTest extends AbstractResourceTestBase {
     }
 
 }
+

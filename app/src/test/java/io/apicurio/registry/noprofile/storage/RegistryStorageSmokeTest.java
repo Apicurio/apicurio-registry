@@ -91,19 +91,19 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
                 .content(ContentHandle.create("content1")).contentType(ContentTypes.APPLICATION_JSON).build();
         EditableVersionMetaDataDto versionMetaData1 = EditableVersionMetaDataDto.builder().build();
         ArtifactVersionMetaDataDto vmdDto1_1 = getStorage()
-                .createArtifact(GROUP_ID, artifactId1, ArtifactType.JSON, artifactMetaData1, null,
+                .createArtifact(GROUP_ID, artifactId1, ArtifactType.JSON.value(), artifactMetaData1, null,
                         versionContent1, versionMetaData1, List.of(), false, false, null)
                 .getRight();
         // Create version 2 (for artifact 1)
         ArtifactVersionMetaDataDto vmdDto1_2 = getStorage().createArtifactVersion(GROUP_ID, artifactId1, null,
-                ArtifactType.JSON, versionContent1, versionMetaData1, List.of(), false, false, null);
+                ArtifactType.JSON.value(), versionContent1, versionMetaData1, List.of(), false, false, null);
 
         // Create artifact 2
         EditableArtifactMetaDataDto artifactMetaData2 = EditableArtifactMetaDataDto.builder().build();
         ContentWrapperDto versionContent2 = ContentWrapperDto.builder()
                 .content(ContentHandle.create("content2")).contentType(ContentTypes.APPLICATION_JSON).build();
         EditableVersionMetaDataDto versionMetaData2 = EditableVersionMetaDataDto.builder().build();
-        getStorage().createArtifact(GROUP_ID, artifactId2, ArtifactType.AVRO, artifactMetaData2, null,
+        getStorage().createArtifact(GROUP_ID, artifactId2, ArtifactType.AVRO.value(), artifactMetaData2, null,
                 versionContent2, versionMetaData2, List.of(), false, false, null).getRight();
 
         assertEquals(size + 2, getStorage().getArtifactIds(null).size());
@@ -165,7 +165,7 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         ContentWrapperDto versionContent1 = ContentWrapperDto.builder()
                 .content(ContentHandle.create("content1")).contentType(ContentTypes.APPLICATION_JSON).build();
         EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder().build();
-        getStorage().createArtifact(GROUP_ID, artifactId, ArtifactType.JSON, artifactMetaData, null,
+        getStorage().createArtifact(GROUP_ID, artifactId, ArtifactType.JSON.value(), artifactMetaData, null,
                 versionContent1, versionMetaData, List.of(), false, false, null).getRight();
 
         assertEquals(0, getStorage().getArtifactRules(GROUP_ID, artifactId).size());
@@ -199,15 +199,15 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
             ContentWrapperDto content = ContentWrapperDto.builder().content(ContentHandle.create("{}"))
                     .contentType(ContentTypes.APPLICATION_JSON).build();
 
-            getStorage().createArtifact(GROUP_ID, testId0, ArtifactType.JSON, null, null, content, null,
+            getStorage().createArtifact(GROUP_ID, testId0, ArtifactType.JSON.value(), null, null, content, null,
                     List.of(), false, false, null);
 
             int size = getStorage().getArtifactIds(null).size();
 
             // Create 2 artifacts
-            getStorage().createArtifact(GROUP_ID, testId1, ArtifactType.JSON, null, null, content, null,
+            getStorage().createArtifact(GROUP_ID, testId1, ArtifactType.JSON.value(), null, null, content, null,
                     List.of(), false, false, null);
-            getStorage().createArtifact(GROUP_ID, testId2, ArtifactType.JSON, null, null, content, null,
+            getStorage().createArtifact(GROUP_ID, testId2, ArtifactType.JSON.value(), null, null, content, null,
                     List.of(), false, false, null);
 
             int newSize = getStorage().getArtifactIds(null).size();
@@ -221,3 +221,4 @@ public class RegistryStorageSmokeTest extends AbstractResourceTestBase {
         }
     }
 }
+

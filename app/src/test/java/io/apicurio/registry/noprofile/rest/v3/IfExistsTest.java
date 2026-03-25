@@ -56,19 +56,19 @@ public class IfExistsTest extends AbstractResourceTestBase {
         createGroup.setGroupId(groupId);
         clientV3.groups().post(createGroup);
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1.0", car.getVersion().getVersion());
 
         // Create the same thing again, with ifExists=FAIL
         Assertions.assertThrows(Exception.class, () -> {
-            CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+            CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                     SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(groupId).artifacts().post(ca,
                     config -> config.queryParameters.ifExists = IfArtifactExists.FAIL);
@@ -91,24 +91,24 @@ public class IfExistsTest extends AbstractResourceTestBase {
         createGroup.setGroupId(groupId);
         clientV3.groups().post(createGroup);
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1", car.getVersion().getVersion());
 
         // Create the same thing again, with ifExists=CREATE_VERSION
-        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
                 config -> config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("2", car.getVersion().getVersion());
 
         // Should have two versions now
@@ -128,24 +128,24 @@ public class IfExistsTest extends AbstractResourceTestBase {
         createGroup.setGroupId(groupId);
         clientV3.groups().post(createGroup);
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1", car.getVersion().getVersion());
 
         // Create the same thing again, with ifExists=CREATE_VERSION
-        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE_MIN, ContentTypes.APPLICATION_JSON);
         car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
                 config -> config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("2", car.getVersion().getVersion());
 
         // Should have two versions now
@@ -165,24 +165,24 @@ public class IfExistsTest extends AbstractResourceTestBase {
         createGroup.setGroupId(groupId);
         clientV3.groups().post(createGroup);
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1", car.getVersion().getVersion());
 
         // Create the same artifact again (but with a new version), with ifExists=CREATE_VERSION
-        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE_V2, ContentTypes.APPLICATION_JSON);
         car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
                 config -> config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("2", car.getVersion().getVersion());
 
         // Should have two versions now
@@ -202,18 +202,18 @@ public class IfExistsTest extends AbstractResourceTestBase {
         createGroup.setGroupId(groupId);
         clientV3.groups().post(createGroup);
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1.0", car.getVersion().getVersion());
 
         // Create the same exact thing again, with ifExists=FIND_OR_CREATE_VERSION
-        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         ca.getFirstVersion().setVersion("1.0");
         car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
@@ -221,7 +221,7 @@ public class IfExistsTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1.0", car.getVersion().getVersion());
 
         // Should have only one version
@@ -241,24 +241,24 @@ public class IfExistsTest extends AbstractResourceTestBase {
         createGroup.setGroupId(groupId);
         clientV3.groups().post(createGroup);
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1", car.getVersion().getVersion());
 
         // Create the same exact thing again, with ifExists=FIND_OR_CREATE_VERSION
-        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE_V2, ContentTypes.APPLICATION_JSON);
         car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
                 config -> config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("2", car.getVersion().getVersion());
 
         // Should have only one version
@@ -278,24 +278,24 @@ public class IfExistsTest extends AbstractResourceTestBase {
         createGroup.setGroupId(groupId);
         clientV3.groups().post(createGroup);
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1", car.getVersion().getVersion());
 
         // Create the same exact thing again, with ifExists=FIND_OR_CREATE_VERSION
-        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE_MIN, ContentTypes.APPLICATION_JSON);
         car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
                 config -> config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("2", car.getVersion().getVersion());
 
         // Should have only one version
@@ -315,17 +315,17 @@ public class IfExistsTest extends AbstractResourceTestBase {
         createGroup.setGroupId(groupId);
         clientV3.groups().post(createGroup);
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1", car.getVersion().getVersion());
 
         // Create the same exact thing again, with ifExists=FIND_OR_CREATE_VERSION
-        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 SCHEMA_SIMPLE_MIN, ContentTypes.APPLICATION_JSON);
         car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
                 config -> {
@@ -335,7 +335,7 @@ public class IfExistsTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(car);
         Assertions.assertEquals(groupId, car.getArtifact().getGroupId());
         Assertions.assertEquals(artifactId, car.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.AVRO, car.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.AVRO.value(), car.getArtifact().getArtifactType());
         Assertions.assertEquals("1", car.getVersion().getVersion());
 
         // Should have only one version
@@ -346,3 +346,4 @@ public class IfExistsTest extends AbstractResourceTestBase {
     }
 
 }
+

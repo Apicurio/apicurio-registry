@@ -91,7 +91,7 @@ public class LoadIT extends ApicurioRegistryBaseIT {
     // ByteArrayInputStream artifactData = new
     // ByteArrayInputStream(artifactDefinition.getBytes(StandardCharsets.UTF_8));
     // try {
-    // ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.JSON, artifactData);
+    // ArtifactMetaData amd = client.createArtifact(artifactId, ArtifactType.JSON.value(), artifactData);
     //
     // // Make sure artifact is fully registered
     // TestUtils.retry(() -> client.getArtifactMetaDataByGlobalId(amd.getGlobalId()));
@@ -108,3 +108,4 @@ public class LoadIT extends ApicurioRegistryBaseIT {
     // }
 
 }
+

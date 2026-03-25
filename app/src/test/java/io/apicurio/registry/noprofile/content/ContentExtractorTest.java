@@ -89,7 +89,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String name = "schema-" + generateArtifactId();
         String content = String.format(avroFormat, name);
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.AVRO);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.AVRO.value());
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -103,7 +103,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(jsonFormat, name, description);
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.JSON);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.JSON.value());
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -118,7 +118,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(openapiFormat, name, description);
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.OPENAPI);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.OPENAPI.value());
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -133,7 +133,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         String description = "Automatic description generated at: " + System.currentTimeMillis();
         String content = String.format(asyncapiFormat, name, description);
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.ASYNCAPI);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.ASYNCAPI.value());
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -146,7 +146,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
     public void testWsdl() {
         String content = wsdlFormat;
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.WSDL);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.WSDL.value());
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -159,7 +159,7 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
     public void testXsd() {
         String content = xsdFormat;
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.XSD);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.XSD.value());
         ContentExtractor extractor = provider.getContentExtractor();
 
         ExtractedMetaData emd = extractor.extract(ContentHandle.create(content));
@@ -168,3 +168,4 @@ public class ContentExtractorTest extends AbstractResourceTestBase {
         Assertions.assertNull(emd.getDescription());
     }
 }
+

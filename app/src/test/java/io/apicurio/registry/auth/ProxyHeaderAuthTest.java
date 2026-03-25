@@ -78,7 +78,7 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, TEST_EMAIL)
             .header(HEADER_GROUPS, ROLE_DEVELOPER)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -147,7 +147,7 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, TEST_EMAIL)
             .header(HEADER_GROUPS, ROLE_DEVELOPER)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -200,7 +200,7 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, TEST_EMAIL)
             .header(HEADER_GROUPS, ROLE_DEVELOPER)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -227,7 +227,7 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, READONLY_EMAIL)
             .header(HEADER_GROUPS, ROLE_READONLY)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(newArtifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(newArtifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -261,7 +261,7 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, ADMIN_EMAIL)
             .header(HEADER_GROUPS, ROLE_ADMIN)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -308,7 +308,7 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, "user1@example.com")
             .header(HEADER_GROUPS, ROLE_DEVELOPER)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId1, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId1, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -323,7 +323,7 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, "user2@example.com")
             .header(HEADER_GROUPS, ROLE_DEVELOPER)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -471,7 +471,7 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
             .header(HEADER_USERNAME, TEST_USERNAME)
             .header(HEADER_EMAIL, TEST_EMAIL)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -494,7 +494,7 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, TEST_EMAIL)
             .header(HEADER_GROUPS, ROLE_DEVELOPER)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -544,3 +544,4 @@ public class ProxyHeaderAuthTest extends AbstractResourceTestBase {
                 .body("username", equalTo(specialUsername));
     }
 }
+

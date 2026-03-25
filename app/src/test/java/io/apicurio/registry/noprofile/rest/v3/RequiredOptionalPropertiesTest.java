@@ -88,7 +88,7 @@ public class RequiredOptionalPropertiesTest extends AbstractResourceTestBase {
         // Create artifact with minimal metadata (no name, no description, no labels)
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.OPENAPI);
+        createArtifact.setArtifactType(ArtifactType.OPENAPI.value());
         createArtifact.setFirstVersion(TestUtils.clientCreateVersion(OPENAPI_CONTENT,
                 ContentTypes.APPLICATION_JSON));
 
@@ -125,7 +125,7 @@ public class RequiredOptionalPropertiesTest extends AbstractResourceTestBase {
         // First create an artifact
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.OPENAPI);
+        createArtifact.setArtifactType(ArtifactType.OPENAPI.value());
         createArtifact.setFirstVersion(TestUtils.clientCreateVersion(OPENAPI_CONTENT,
                 ContentTypes.APPLICATION_JSON));
 

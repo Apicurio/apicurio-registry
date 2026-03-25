@@ -29,7 +29,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON, (ca) -> {
                         ca.getFirstVersion().setName(title);
                     });
@@ -37,7 +37,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         // Create 3 artifacts in some other group
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact("SearchResourceTest", artifactId, ArtifactType.OPENAPI, artifactContent,
+            this.createArtifact("SearchResourceTest", artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
         }
 
@@ -54,7 +54,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         // Two with the UUID name
         for (int idx = 0; idx < 2; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", name), ContentTypes.APPLICATION_JSON, (ca) -> {
                         ca.setName(name);
                     });
@@ -62,7 +62,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         // Three with a different name
         for (int idx = 2; idx < 5; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
         }
 
@@ -79,7 +79,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         // Two with the UUID description
         for (int idx = 0; idx < 2; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("An example API design using OpenAPI.", description),
                     ContentTypes.APPLICATION_JSON, (ca) -> {
                         ca.setDescription(description);
@@ -88,7 +88,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         // Three with the default description
         for (int idx = 2; idx < 5; idx++) {
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
         }
 
@@ -105,7 +105,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
 
             Map<String, String> labels = new HashMap<>();
@@ -178,7 +178,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "Empty-" + idx;
             String name = "empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", name), ContentTypes.APPLICATION_JSON, (ca) -> {
                         ca.setName(name);
                         ca.getFirstVersion().setName(name);
@@ -210,7 +210,7 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 20; idx++) {
             String artifactId = "Empty-" + idx;
             String name = "empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", name), ContentTypes.APPLICATION_JSON, (ca) -> {
                         ca.setName(name);
                         ca.getFirstVersion().setName(name);
@@ -245,11 +245,11 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "testSearchByContent-empty-api-" + idx;
             String artifactId = "Empty-1-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
 
             artifactId = "Empty-2-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
         }
 
@@ -275,17 +275,18 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "testSearchByCanonicalContent-empty-api-" + idx;
             String artifactId = "Empty-1-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
 
             artifactId = "Empty-2-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
         }
 
-        given().when().queryParam("canonical", "true").queryParam("artifactType", ArtifactType.OPENAPI)
+        given().when().queryParam("canonical", "true").queryParam("artifactType", ArtifactType.OPENAPI.value())
                 .body(searchByContent).post("/registry/v3/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(2));
     }
 
 }
+

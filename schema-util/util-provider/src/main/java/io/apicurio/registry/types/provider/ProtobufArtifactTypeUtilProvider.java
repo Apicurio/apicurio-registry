@@ -27,7 +27,7 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.PROTOBUF;
+        return ArtifactType.PROTOBUF.value();
     }
 
     @Override
@@ -86,3 +86,4 @@ public class ProtobufArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     }
 
 }
+

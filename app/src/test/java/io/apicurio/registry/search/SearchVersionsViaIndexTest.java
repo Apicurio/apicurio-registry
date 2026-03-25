@@ -59,11 +59,11 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         String content3 = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Inventory Service\","
                 + "\"description\":\"Service for tracking inventory of pets\"}}";
 
-        createArtifact(group, "testContentFilter_api-1", ArtifactType.OPENAPI,
+        createArtifact(group, "testContentFilter_api-1", ArtifactType.OPENAPI.value(),
                 content1, ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "testContentFilter_api-2", ArtifactType.OPENAPI,
+        createArtifact(group, "testContentFilter_api-2", ArtifactType.OPENAPI.value(),
                 content2, ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "testContentFilter_api-3", ArtifactType.OPENAPI,
+        createArtifact(group, "testContentFilter_api-3", ArtifactType.OPENAPI.value(),
                 content3, ContentTypes.APPLICATION_JSON);
 
         indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
@@ -100,7 +100,7 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         String group = TestUtils.generateGroupId();
 
         // Create an artifact with 2 versions
-        createArtifact(group, "testDeleteVersion_api-1", ArtifactType.OPENAPI,
+        createArtifact(group, "testDeleteVersion_api-1", ArtifactType.OPENAPI.value(),
                 "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
         createArtifactVersion(group, "testDeleteVersion_api-1", "{\"openapi\":\"3.0.1\"}",
                 ContentTypes.APPLICATION_JSON);
@@ -134,11 +134,11 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         String group = TestUtils.generateGroupId();
 
         // Create 2 artifacts, one with multiple versions
-        createArtifact(group, "testDeleteArtifact_api-1", ArtifactType.OPENAPI,
+        createArtifact(group, "testDeleteArtifact_api-1", ArtifactType.OPENAPI.value(),
                 "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
         createArtifactVersion(group, "testDeleteArtifact_api-1", "{\"openapi\":\"3.0.1\"}",
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "testDeleteArtifact_api-2", ArtifactType.OPENAPI,
+        createArtifact(group, "testDeleteArtifact_api-2", ArtifactType.OPENAPI.value(),
                 "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
 
         indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
@@ -171,7 +171,7 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         // Create 3 artifacts in the group
         for (int idx = 0; idx < 3; idx++) {
             createArtifact(group, "testDeleteArtifactsInGroup_api-" + idx,
-                    ArtifactType.OPENAPI, "{\"openapi\":\"3.0.0\",\"idx\":" + idx + "}",
+                    ArtifactType.OPENAPI.value(), "{\"openapi\":\"3.0.0\",\"idx\":" + idx + "}",
                     ContentTypes.APPLICATION_JSON);
         }
 
@@ -206,7 +206,7 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
 
         // Create 3 artifacts in the group
         for (int idx = 0; idx < 3; idx++) {
-            createArtifact(group, "testDeleteGroup_api-" + idx, ArtifactType.OPENAPI,
+            createArtifact(group, "testDeleteGroup_api-" + idx, ArtifactType.OPENAPI.value(),
                     "{\"openapi\":\"3.0.0\",\"idx\":" + idx + "}",
                     ContentTypes.APPLICATION_JSON);
         }
@@ -231,3 +231,4 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         Assertions.assertEquals(0, results.getCount());
     }
 }
+

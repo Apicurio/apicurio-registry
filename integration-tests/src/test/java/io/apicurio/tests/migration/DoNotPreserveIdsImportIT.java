@@ -64,7 +64,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
                                                                                         // artifact ids
                 String content = IoUtil.toString(avroSchema.generateSchemaStream());
 
-                CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                         content, ContentTypes.APPLICATION_JSON);
                 var response = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
                         .post(createArtifact);
@@ -78,7 +78,7 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
                                                                               // we do not support identical
                                                                               // artifact ids
                 String content = IoUtil.toString(jsonSchema.getSchemaStream());
-                CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+                CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(),
                         content, ContentTypes.APPLICATION_JSON);
                 var response = dest.groups().byGroupId("testDoNotPreserveIdsImport").artifacts()
                         .post(createArtifact, config -> {
@@ -143,3 +143,4 @@ public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
         }
     }
 }
+

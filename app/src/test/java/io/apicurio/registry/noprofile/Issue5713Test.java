@@ -83,7 +83,7 @@ message Decimal {
         Assertions.assertNotNull(amd);
         Assertions.assertEquals(groupId, amd.getGroupId());
         Assertions.assertEquals(artifactId, amd.getId());
-        Assertions.assertEquals(ArtifactType.PROTOBUF, amd.getType());
+        Assertions.assertEquals(ArtifactType.PROTOBUF.value(), amd.getType());
         Assertions.assertEquals("1", amd.getVersion());
 
         Schema latestVersion = confluentClient.getLatestVersion(artifactId);
@@ -114,3 +114,4 @@ message Decimal {
     }
 
 }
+

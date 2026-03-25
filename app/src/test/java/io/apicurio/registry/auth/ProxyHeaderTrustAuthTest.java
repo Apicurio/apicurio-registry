@@ -67,7 +67,7 @@ public class ProxyHeaderTrustAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, READONLY_EMAIL)
             .header(HEADER_GROUPS, ROLE_READONLY)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -108,7 +108,7 @@ public class ProxyHeaderTrustAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, TEST_EMAIL)
             // No HEADER_GROUPS - user has no roles
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -142,7 +142,7 @@ public class ProxyHeaderTrustAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, READONLY_EMAIL)
             .header(HEADER_GROUPS, ROLE_READONLY)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -210,7 +210,7 @@ public class ProxyHeaderTrustAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, "user1@example.com")
             .header(HEADER_GROUPS, ROLE_READONLY)  // Read-only, but can create due to trust
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId1, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId1, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -225,7 +225,7 @@ public class ProxyHeaderTrustAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, "user2@example.com")
             .header(HEADER_GROUPS, ROLE_READONLY)  // Read-only, but can create due to trust
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -268,7 +268,7 @@ public class ProxyHeaderTrustAuthTest extends AbstractResourceTestBase {
             .header(HEADER_EMAIL, "user1@example.com")
             .header(HEADER_GROUPS, ROLE_READONLY)
             .contentType(ContentType.JSON)
-            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, ARTIFACT_CONTENT,
+            .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), ARTIFACT_CONTENT,
                     ContentTypes.APPLICATION_JSON))
             .when()
                 .pathParam("groupId", groupId)
@@ -298,3 +298,4 @@ public class ProxyHeaderTrustAuthTest extends AbstractResourceTestBase {
                 .statusCode(204);
     }
 }
+

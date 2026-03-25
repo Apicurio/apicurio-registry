@@ -68,14 +68,14 @@ public class SchemaResolverTest extends AbstractClientFacadeTestBase {
 
             @Override
             public String artifactType() {
-                return ArtifactType.AVRO;
+                return ArtifactType.AVRO.value();
             }
         });
 
         Schema schema = new Schema.Parser().parse(
                 "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         String artifactId = TestUtils.generateArtifactId();
-        createArtifact(artifactId, ArtifactType.AVRO, schema.toString(), ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.AVRO.value(), schema.toString(), ContentTypes.APPLICATION_JSON);
 
         GenericRecord avroRecord = new GenericData.Record(schema);
         avroRecord.put("bar", "somebar");
@@ -148,3 +148,4 @@ public class SchemaResolverTest extends AbstractClientFacadeTestBase {
     }
 
 }
+

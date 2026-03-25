@@ -73,7 +73,7 @@ public class KafkaSqlDeploymentManager {
         LOGGER.info("Creating 1000 artifacts that will be packed into a snapshot..");
         for (int idx = 0; idx < 1000; idx++) {
             String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                     simpleAvro, ContentTypes.APPLICATION_JSON);
             client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(createArtifact,
                     config -> config.headers.add("X-Registry-ArtifactId", artifactId));
@@ -90,7 +90,7 @@ public class KafkaSqlDeploymentManager {
         LOGGER.info("Adding new artifacts on top of the snapshot..");
         for (int idx = 0; idx < 1000; idx++) {
             String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                     simpleAvro, ContentTypes.APPLICATION_JSON);
             client.groups().byGroupId("default").artifacts().post(createArtifact,
                     config -> config.headers.add("X-Registry-ArtifactId", artifactId));
@@ -124,3 +124,4 @@ public class KafkaSqlDeploymentManager {
         }
     }
 }
+

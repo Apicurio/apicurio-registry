@@ -107,7 +107,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(
                     gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-            if (!ArtifactType.AGENT_CARD.equals(metadata.getArtifactType())) {
+            if (!ArtifactType.AGENT_CARD.matches(metadata.getArtifactType())) {
                 throw new NotFoundException("Artifact is not an Agent Card");
             }
 
@@ -129,7 +129,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         Set<SearchFilter> filters = new HashSet<>();
 
         // Always filter by AGENT_CARD artifact type
-        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD.value()));
 
         // Filter by name if provided
         if (!StringUtil.isEmpty(name)) {

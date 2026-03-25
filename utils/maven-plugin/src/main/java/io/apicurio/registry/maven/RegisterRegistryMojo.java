@@ -205,7 +205,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 String groupId = artifact.getGroupId(); // default is same group as root artifact
                 // TODO: determine the artifactId better (type-specific logic here?)
                 String artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
-                if (ArtifactType.AVRO.equals(iresource.getType())) {
+                if (ArtifactType.AVRO.value().equals(iresource.getType())) {
                     if (avroAutoRefsNamingStrategy == RegisterArtifact.AvroAutoRefsNamingStrategy.USE_AVRO_NAMESPACE) {
                         groupId = referenceArtifactIdentifierExtractor.extractGroupId(externalRef.getResource());
                         artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
@@ -507,3 +507,4 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
 }
+

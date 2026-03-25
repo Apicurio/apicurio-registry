@@ -192,10 +192,10 @@ public class RegisterArtifact {
 
     public AvroAutoRefsNamingStrategy getAvroAutoRefsNamingStrategy() {
         if(Boolean.TRUE.equals(autoRefs) && avroAutoRefsNamingStrategy == null) {
-            if(ArtifactType.AVRO.equals(artifactType)) {
+            if(ArtifactType.AVRO.value().equals(artifactType)) {
                 return AvroAutoRefsNamingStrategy.USE_AVRO_NAMESPACE;
             }
-            if(ArtifactType.ASYNCAPI.equals(artifactType)) {
+            if(ArtifactType.ASYNCAPI.value().equals(artifactType)) {
                 return AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP;
             }
             return AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP;
@@ -223,3 +223,4 @@ public class RegisterArtifact {
         this.existingReferences = existingReferences;
     }
 }
+

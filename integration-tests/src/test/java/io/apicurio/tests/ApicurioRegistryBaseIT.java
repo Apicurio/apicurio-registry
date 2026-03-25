@@ -13,6 +13,7 @@ import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.utils.Constants;
@@ -211,6 +212,13 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
         Thread.sleep(1000);
 
         return response;
+    }
+
+    protected CreateArtifactResponse createArtifact(String groupId, String artifactId,
+            ArtifactType artifactType, String content, String contentType, IfArtifactExists ifExists,
+            Consumer<CreateArtifact> customizer) throws Exception {
+        return createArtifact(groupId, artifactId, artifactType.value(), content, contentType, ifExists,
+                customizer);
     }
 
     protected VersionMetaData createArtifactVersion(String groupId, String artifactId, String content,

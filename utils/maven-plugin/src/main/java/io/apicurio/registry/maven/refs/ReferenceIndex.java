@@ -126,14 +126,14 @@ public class ReferenceIndex {
         String ns = parsed.get("namespace").asText();
         String name = parsed.get("name").asText();
         String resourceName = ns != null ? ns + "." + name : name;
-        IndexedResource resource = new IndexedResource(path, ArtifactType.AVRO, resourceName, content);
+        IndexedResource resource = new IndexedResource(path, ArtifactType.AVRO.value(), resourceName, content);
         this.index.add(resource);
     }
 
     private void indexProto(Path path, ContentHandle content) {
         ProtobufFile.toProtoFileElement(content.content());
 
-        IndexedResource resource = new IndexedResource(path, ArtifactType.PROTOBUF, null, content);
+        IndexedResource resource = new IndexedResource(path, ArtifactType.PROTOBUF.value(), null, content);
         this.index.add(resource);
     }
 
@@ -142,7 +142,7 @@ public class ReferenceIndex {
         if (schema.has("$id")) {
             resourceName = schema.get("$id").asText(null);
         }
-        IndexedResource resource = new IndexedResource(path, ArtifactType.JSON, resourceName, content);
+        IndexedResource resource = new IndexedResource(path, ArtifactType.JSON.value(), resourceName, content);
         this.index.add(resource);
     }
 
@@ -164,9 +164,9 @@ public class ReferenceIndex {
                 throw new UnsupportedOperationException("Content is not OpenAPI or AsyncAPI.");
             }
 
-            String type = ArtifactType.OPENAPI;
+            String type = ArtifactType.OPENAPI.value();
             if (ModelTypeUtil.isAsyncApiModel(doc)) {
-                type = ArtifactType.ASYNCAPI;
+                type = ArtifactType.ASYNCAPI.value();
             }
 
             IndexedResource resource = new IndexedResource(path, type, null, content);
@@ -177,3 +177,4 @@ public class ReferenceIndex {
     }
 
 }
+

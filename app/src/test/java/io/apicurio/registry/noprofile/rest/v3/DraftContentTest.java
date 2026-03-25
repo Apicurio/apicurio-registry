@@ -82,7 +82,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 content, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setIsDraft(true);
         createArtifact.getFirstVersion().setVersion("1.0.0");
@@ -125,7 +125,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 content, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setIsDraft(false);
         createArtifact.getFirstVersion().setVersion("1.0.0");
@@ -156,7 +156,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.ASYNCAPI,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.ASYNCAPI.value(),
                 AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setIsDraft(true);
         createArtifact.getFirstVersion().setVersion("1.0");
@@ -194,7 +194,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.ASYNCAPI,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.ASYNCAPI.value(),
                 AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
 
@@ -238,7 +238,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String artifactId2 = TestUtils.generateArtifactId();
         String artifactId3 = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId1, ArtifactType.ASYNCAPI,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId1, ArtifactType.ASYNCAPI.value(),
                 AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
@@ -249,13 +249,13 @@ public class DraftContentTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).versions()
                 .post(createVersion);
 
-        createArtifact = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.ASYNCAPI, AVRO_CONTENT_V1,
+        createArtifact = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.ASYNCAPI.value(), AVRO_CONTENT_V1,
                 ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         createArtifact.getFirstVersion().setIsDraft(true);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
-        createArtifact = TestUtils.clientCreateArtifact(artifactId3, ArtifactType.ASYNCAPI, AVRO_CONTENT_V1,
+        createArtifact = TestUtils.clientCreateArtifact(artifactId3, ArtifactType.ASYNCAPI.value(), AVRO_CONTENT_V1,
                 ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
@@ -292,7 +292,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).rules().post(createRule);
 
         // Create artifact with first version that has invalid content
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 INVALID_AVRO_CONTENT, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setIsDraft(true);
         createArtifact.getFirstVersion().setVersion("1.0.0");
@@ -317,7 +317,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         // Create empty artifact
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AVRO);
+        createArtifact.setArtifactType(ArtifactType.AVRO.value());
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // Enable the validity rule for the new artifact.
@@ -352,7 +352,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
 
         // First version is ENABLED
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 content, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setIsDraft(false);
         createArtifact.getFirstVersion().setVersion("1.0.0");
@@ -404,7 +404,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String enabledArtifactId = TestUtils.generateArtifactId();
 
         // Create artifact with version as DRAFT
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(draftArtifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(draftArtifactId, ArtifactType.AVRO.value(),
                 content, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setIsDraft(true);
         CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
@@ -412,7 +412,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(car.getVersion());
 
         // Create artifact with version as ENABLED
-        createArtifact = TestUtils.clientCreateArtifact(enabledArtifactId, ArtifactType.AVRO, content,
+        createArtifact = TestUtils.clientCreateArtifact(enabledArtifactId, ArtifactType.AVRO.value(), content,
                 ContentTypes.APPLICATION_JSON);
         car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         Assertions.assertNotNull(car);
@@ -438,7 +438,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
 
         // Create artifact with version as DRAFT
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, content,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(), content,
                 ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setIsDraft(true);
         createArtifact.getFirstVersion().setVersion("1.0");
@@ -490,7 +490,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String referencedArtifactId = "test-user-schema-" + UUID.randomUUID().toString();
 
         CreateArtifact createReferenced = TestUtils.clientCreateArtifact(referencedArtifactId,
-                ArtifactType.JSON, jsonSchemaContent, ContentTypes.APPLICATION_JSON);
+                ArtifactType.JSON.value(), jsonSchemaContent, ContentTypes.APPLICATION_JSON);
         createReferenced.getFirstVersion().setVersion("1.0.0");
         createReferenced.getFirstVersion().setIsDraft(false);
         clientV3.groups().byGroupId(groupId).artifacts().post(createReferenced);
@@ -506,7 +506,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String mainArtifactId = "test-openapi-" + UUID.randomUUID().toString();
 
         CreateArtifact createMain = TestUtils.clientCreateArtifact(mainArtifactId,
-                ArtifactType.OPENAPI, openapiContent, ContentTypes.APPLICATION_JSON);
+                ArtifactType.OPENAPI.value(), openapiContent, ContentTypes.APPLICATION_JSON);
         createMain.getFirstVersion().setVersion("1.0.0");
         createMain.getFirstVersion().setIsDraft(false);
         clientV3.groups().byGroupId(groupId).artifacts().post(createMain);
@@ -585,7 +585,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String referencedArtifactId = "test-order-schema-" + UUID.randomUUID().toString();
 
         CreateArtifact createReferenced = TestUtils.clientCreateArtifact(referencedArtifactId,
-                ArtifactType.JSON, jsonSchemaContent, ContentTypes.APPLICATION_JSON);
+                ArtifactType.JSON.value(), jsonSchemaContent, ContentTypes.APPLICATION_JSON);
         createReferenced.getFirstVersion().setVersion("1.0.0");
         createReferenced.getFirstVersion().setIsDraft(false);
         clientV3.groups().byGroupId(groupId).artifacts().post(createReferenced);
@@ -622,7 +622,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String mainArtifactId = "test-order-api-" + UUID.randomUUID().toString();
 
         CreateArtifact createMain = TestUtils.clientCreateArtifact(mainArtifactId,
-                ArtifactType.OPENAPI, openapiContent, ContentTypes.APPLICATION_JSON);
+                ArtifactType.OPENAPI.value(), openapiContent, ContentTypes.APPLICATION_JSON);
         createMain.getFirstVersion().setVersion("1.0.0");
         createMain.getFirstVersion().setIsDraft(true);
         createMain.getFirstVersion().getContent().setReferences(List.of(ref));
@@ -650,7 +650,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String artifactId = TestUtils.generateArtifactId();
 
         // Create the artifact with a non-draft first version.
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
@@ -685,7 +685,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
         results = clientV3.search().versions()
                 .post(asInputStream(AVRO_CONTENT_V2), ContentTypes.APPLICATION_JSON, config -> {
                     config.queryParameters.canonical = true;
-                    config.queryParameters.artifactType = ArtifactType.AVRO;
+                    config.queryParameters.artifactType = ArtifactType.AVRO.value();
                 });
         Assertions.assertEquals(1, results.getCount(),
                 "Enabled version should be found by canonical content search");
@@ -698,13 +698,13 @@ public class DraftContentTest extends AbstractResourceTestBase {
         String artifactId2 = TestUtils.generateArtifactId();
 
         // Create artifact 1 with a non-draft version containing V1 content.
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId1, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId1, ArtifactType.AVRO.value(),
                 AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         // Create artifact 2 with a draft version containing the same V1 content.
-        createArtifact = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.AVRO, AVRO_CONTENT_V1,
+        createArtifact = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.AVRO.value(), AVRO_CONTENT_V1,
                 ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0");
         createArtifact.getFirstVersion().setIsDraft(true);
@@ -734,3 +734,4 @@ public class DraftContentTest extends AbstractResourceTestBase {
     }
 
 }
+

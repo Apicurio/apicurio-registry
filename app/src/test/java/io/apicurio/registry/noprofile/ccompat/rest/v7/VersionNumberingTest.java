@@ -55,7 +55,7 @@ public class VersionNumberingTest extends AbstractResourceTestBase {
         final SchemaRegistryClient confluentClient = confluentClient();
         final String groupId = "default";
         final String artifactId = TestUtils.generateArtifactId();
-        final String type = ArtifactType.AVRO;
+        final String type = ArtifactType.AVRO.value();
         final String subject = artifactId;
 
         // Create an artifact using the Core API

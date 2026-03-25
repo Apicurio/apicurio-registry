@@ -86,21 +86,21 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String group = "testDefaultGroup";
 
         // Create artifacts in null (default) group
-        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/1", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/2", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/2", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/3", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/3", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/4", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/4", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/5", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(defaultGroup, "testDefaultGroup/EmptyAPI/5", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Create 2 artifacts in other group
-        createArtifact(group, "testDefaultGroup/EmptyAPI/1", ArtifactType.OPENAPI, jsonArtifactContent,
+        createArtifact(group, "testDefaultGroup/EmptyAPI/1", ArtifactType.OPENAPI.value(), jsonArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "testDefaultGroup/EmptyAPI/2", ArtifactType.OPENAPI, jsonArtifactContent,
+        createArtifact(group, "testDefaultGroup/EmptyAPI/2", ArtifactType.OPENAPI.value(), jsonArtifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Search each group to ensure the correct # of artifacts.
@@ -120,7 +120,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testCreateArtifactRule() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testCreateArtifactRule", "testCreateArtifactRule/EmptyAPI/1", ArtifactType.OPENAPI,
+        createArtifact("testCreateArtifactRule", "testCreateArtifactRule/EmptyAPI/1", ArtifactType.OPENAPI.value(),
                 oaiArtifactContent, ContentTypes.APPLICATION_JSON);
 
         // Test Rule type null
@@ -152,7 +152,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateArtifactOwner() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateArtifactOwner", "testUpdateArtifactOwner/EmptyAPI/1", ArtifactType.OPENAPI,
+        createArtifact("testUpdateArtifactOwner", "testUpdateArtifactOwner/EmptyAPI/1", ArtifactType.OPENAPI.value(),
                 oaiArtifactContent, ContentTypes.APPLICATION_JSON);
 
         EditableArtifactMetaData body = new EditableArtifactMetaData();
@@ -169,7 +169,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     public void testUpdateEmptyArtifactOwner() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
         createArtifact("testUpdateEmptyArtifactOwner", "testUpdateEmptyArtifactOwner/EmptyAPI/1",
-                ArtifactType.OPENAPI, oaiArtifactContent, ContentTypes.APPLICATION_JSON);
+                ArtifactType.OPENAPI.value(), oaiArtifactContent, ContentTypes.APPLICATION_JSON);
 
         EditableArtifactMetaData body = new EditableArtifactMetaData();
         body.setOwner("");
@@ -188,21 +188,21 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String group2 = "testMultipleGroups_2";
 
         // Create 5 artifacts in Group 1
-        createArtifact(group1, "testMultipleGroups/EmptyAPI/1", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(group1, "testMultipleGroups/EmptyAPI/1", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group1, "testMultipleGroups/EmptyAPI/2", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(group1, "testMultipleGroups/EmptyAPI/2", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group1, "testMultipleGroups/EmptyAPI/3", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(group1, "testMultipleGroups/EmptyAPI/3", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group1, "testMultipleGroups/EmptyAPI/4", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(group1, "testMultipleGroups/EmptyAPI/4", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group1, "testMultipleGroups/EmptyAPI/5", ArtifactType.OPENAPI, oaiArtifactContent,
+        createArtifact(group1, "testMultipleGroups/EmptyAPI/5", ArtifactType.OPENAPI.value(), oaiArtifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Create 2 artifacts in Group 2
-        createArtifact(group2, "testMultipleGroups/EmptyAPI/1", ArtifactType.OPENAPI, jsonArtifactContent,
+        createArtifact(group2, "testMultipleGroups/EmptyAPI/1", ArtifactType.OPENAPI.value(), jsonArtifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group2, "testMultipleGroups/EmptyAPI/2", ArtifactType.OPENAPI, jsonArtifactContent,
+        createArtifact(group2, "testMultipleGroups/EmptyAPI/2", ArtifactType.OPENAPI.value(), jsonArtifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Get the list of groups - should have AT LEAST 2
@@ -252,18 +252,18 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create OpenAPI artifact - indicate the type via a header param
-        createArtifact(GROUP, "testCreateArtifact/EmptyAPI/1", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testCreateArtifact/EmptyAPI/1", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Create OpenAPI artifact - indicate the type via the content-type
         io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = TestUtils.serverCreateArtifact(
-                "testCreateArtifact/EmptyAPI/2", ArtifactType.OPENAPI, artifactContent,
+                "testCreateArtifact/EmptyAPI/2", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.groupId", equalTo(GROUP)).body("version.version", equalTo("1"))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI/2"))
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Try to create a duplicate artifact ID (should fail)
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
@@ -283,7 +283,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI/detect"))
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Create artifact with empty content (should fail)
         createArtifact = TestUtils.serverCreateArtifact("testCreateArtifact/EmptyContent", null, "",
@@ -293,36 +293,36 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Create OpenAPI artifact - provide a custom version #
         createArtifact = TestUtils.serverCreateArtifact("testCreateArtifact/EmptyAPI-customVersion",
-                ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+                ArtifactType.OPENAPI.value(), artifactContent, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0.2");
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.groupId", equalTo(GROUP)).body("version.version", equalTo("1.0.2"))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customVersion"))
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Create OpenAPI artifact - provide a custom name
         String customName = "CUSTOM NAME";
         createArtifact = TestUtils.serverCreateArtifact("testCreateArtifact/EmptyAPI-customName",
-                ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+                ArtifactType.OPENAPI.value(), artifactContent, ContentTypes.APPLICATION_JSON);
         createArtifact.setName(customName);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.groupId", equalTo(GROUP)).body("artifact.name", equalTo(customName))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customName"))
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Create OpenAPI artifact - provide a custom description
         String customDescription = "CUSTOM DESCRIPTION";
         createArtifact = TestUtils.serverCreateArtifact("testCreateArtifact/EmptyAPI-customDescription",
-                ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+                ArtifactType.OPENAPI.value(), artifactContent, ContentTypes.APPLICATION_JSON);
         createArtifact.setDescription(customDescription);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.groupId", equalTo(GROUP))
                 .body("artifact.description", equalTo(customDescription))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customDescription"))
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()));
     }
 
     @Test
@@ -333,27 +333,27 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Create OpenAPI artifact - provide a custom No-ASCII name
         String customNoASCIIName = "CUSTOM NAME with NO-ASCII char č";
         io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = TestUtils.serverCreateArtifact(
-                "testCreateArtifact/EmptyAPI-customNameEncoded", ArtifactType.OPENAPI, artifactContent,
+                "testCreateArtifact/EmptyAPI-customNameEncoded", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
         createArtifact.setName(customNoASCIIName);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.groupId", equalTo(GROUP))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customNameEncoded"))
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI))
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()))
                 .body("artifact.name", equalTo(customNoASCIIName));
 
         // Create OpenAPI artifact - provide a custom No-ASCII description
         String customNoASCIIDescription = "CUSTOM DESCRIPTION with NO-ASCII char č";
         createArtifact = TestUtils.serverCreateArtifact(
-                "testCreateArtifact/EmptyAPI-customDescriptionEncoded", ArtifactType.OPENAPI, artifactContent,
+                "testCreateArtifact/EmptyAPI-customDescriptionEncoded", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
         createArtifact.setDescription(customNoASCIIDescription);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.groupId", equalTo(GROUP))
                 .body("artifact.artifactId", equalTo("testCreateArtifact/EmptyAPI-customDescriptionEncoded"))
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI))
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()))
                 .body("artifact.description", equalTo(customNoASCIIDescription));
     }
 
@@ -362,7 +362,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testGetArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testGetArtifact/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Get the artifact content
@@ -384,7 +384,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testUpdateArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testUpdateArtifact/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Update OpenAPI artifact (new version)
@@ -394,7 +394,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
                 .body("artifactId", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Get the artifact content (should be the updated content)
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testUpdateArtifact/EmptyAPI")
@@ -403,54 +403,54 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("info.title", equalTo("Empty API (Updated)"));
 
         // Try to update an artifact that doesn't exist.
-        createVersion = TestUtils.serverCreateVersion(updatedArtifactContent, ArtifactType.OPENAPI);
+        createVersion = TestUtils.serverCreateVersion(updatedArtifactContent, ArtifactType.OPENAPI.value());
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testUpdateArtifact/MissingAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(404);
 
         // Try to update an artifact with empty content
-        createVersion = TestUtils.serverCreateVersion("", ArtifactType.OPENAPI);
+        createVersion = TestUtils.serverCreateVersion("", ArtifactType.OPENAPI.value());
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(400);
 
         // Update OpenAPI artifact with a custom version
-        createVersion = TestUtils.serverCreateVersion(updatedArtifactContent, ArtifactType.OPENAPI);
+        createVersion = TestUtils.serverCreateVersion(updatedArtifactContent, ArtifactType.OPENAPI.value());
         createVersion.setVersion("3.0.0.Final");
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
                 .body("version", equalTo("3.0.0.Final"))
                 .body("artifactId", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Update OpenAPI artifact with a custom name
         String customName = "CUSTOM NAME";
-        createVersion = TestUtils.serverCreateVersion(updatedArtifactContent, ArtifactType.OPENAPI);
+        createVersion = TestUtils.serverCreateVersion(updatedArtifactContent, ArtifactType.OPENAPI.value());
         createVersion.setName(customName);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
                 .body("name", equalTo(customName)).body("artifactId", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Update OpenAPI artifact with a custom description
         String customDescription = "CUSTOM DESCRIPTION";
-        createVersion = TestUtils.serverCreateVersion(updatedArtifactContent, ArtifactType.OPENAPI);
+        createVersion = TestUtils.serverCreateVersion(updatedArtifactContent, ArtifactType.OPENAPI.value());
         createVersion.setDescription(customDescription);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testUpdateArtifact/EmptyAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
                 .body("description", equalTo(customDescription))
                 .body("artifactId", equalTo("testUpdateArtifact/EmptyAPI"))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
     }
 
     @Test
     public void testUpdateVersionState() throws Exception {
         String oaiArtifactContent = resourceToString("openapi-empty.json");
-        createArtifact("testUpdateVersionState", "testUpdateVersionState/EmptyAPI/1", ArtifactType.OPENAPI,
+        createArtifact("testUpdateVersionState", "testUpdateVersionState/EmptyAPI/1", ArtifactType.OPENAPI.value(),
                 oaiArtifactContent, ContentTypes.APPLICATION_JSON);
 
         WrappedVersionState newState = WrappedVersionState.builder().state(VersionState.DEPRECATED).build();
@@ -481,7 +481,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testUpdateArtifactNoAscii/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testUpdateArtifactNoAscii/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Update OpenAPI artifact with a custom no-ascii name
@@ -494,21 +494,21 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
                 .body("name", equalTo(customNoASCIIName))
                 .body("artifactId", equalTo("testUpdateArtifactNoAscii/EmptyAPI"))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Update OpenAPI artifact with a custom no-ascii description
         String customNoASCIIDescription = "CUSTOM DESCRIPTION with NO-ASCII char ě";
         createVersion = TestUtils.serverCreateVersion(updatedArtifactContent, ContentTypes.APPLICATION_JSON);
         createVersion.setDescription(customNoASCIIDescription);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.value())
                 .header("X-Registry-Description-Encoded",
                         Base64.encode(customNoASCIIDescription.getBytes(StandardCharsets.UTF_8)))
                 .pathParam("artifactId", "testUpdateArtifactNoAscii/EmptyAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
                 .body("description", equalTo(customNoASCIIDescription))
                 .body("artifactId", equalTo("testUpdateArtifactNoAscii/EmptyAPI"))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
     }
 
     @Test
@@ -516,7 +516,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testDeleteArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testDeleteArtifact/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Make sure we can get the artifact content
@@ -546,7 +546,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testDeleteArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testDeleteArtifactVersion/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Make sure we can get the artifact content
@@ -562,7 +562,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testDeleteArtifactVersion/EmptyAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
-                .body("version", equalTo("2")).body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("version", equalTo("2")).body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Get the artifact version 1
         given().when().pathParam("groupId", GROUP)
@@ -616,11 +616,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create several artifacts in the group.
-        createArtifact(group, "EmptyAPI-1", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-1", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "EmptyAPI-2", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-2", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "EmptyAPI-3", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-3", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Make sure we can search for all three artifacts in the group.
@@ -642,11 +642,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create several artifacts in the group.
-        createArtifact(group, "EmptyAPI-1", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-1", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "EmptyAPI-2", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-2", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "EmptyAPI-3", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-3", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Make sure we can search for all three artifacts in the group.
@@ -668,11 +668,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String group = "testListArtifactsInGroup";
 
         // Create several artifacts in a group.
-        createArtifact(group, "EmptyAPI-1", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-1", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "EmptyAPI-2", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-2", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "EmptyAPI-3", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-3", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // List the artifacts in the group
@@ -680,9 +680,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .statusCode(200).body("count", equalTo(3));
 
         // Add two more artifacts to the group.
-        createArtifact(group, "EmptyAPI-4", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-4", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
-        createArtifact(group, "EmptyAPI-5", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(group, "EmptyAPI-5", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // List the artifacts in the group again
@@ -704,7 +704,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testListArtifactVersions/EmptyAPI";
 
         // Create an artifact
-        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Update the artifact 5 times
@@ -716,7 +716,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .pathParam("artifactId", artifactId).body(createVersion)
                     .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then()
                     .statusCode(200).body("artifactId", equalTo(artifactId))
-                    .body("artifactType", equalTo(ArtifactType.OPENAPI));
+                    .body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
         }
 
         // List the artifact versions
@@ -738,7 +738,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testCreateArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testCreateArtifactVersion/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Create a new version of the artifact
@@ -747,7 +747,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
-                .body("version", equalTo("2")).body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("version", equalTo("2")).body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Get the artifact content (should be the updated content)
         given().when().pathParam("groupId", GROUP)
@@ -774,7 +774,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testCreateArtifactVersion/EmptyAPI").body(createVersion)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
-                .body("version", equalTo("3.0.0.Final")).body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("version", equalTo("3.0.0.Final")).body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Create another new version of the artifact with a custom name
         String customName = "CUSTOM NAME";
@@ -804,7 +804,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testCreateArtifactVersionNoAscii/EmptyAPI", ArtifactType.OPENAPI,
+        createArtifact(GROUP, "testCreateArtifactVersionNoAscii/EmptyAPI", ArtifactType.OPENAPI.value(),
                 artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Create another new version of the artifact with a custom No-ASCII name and description
@@ -834,7 +834,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("jsonschema-valid.json");
         String artifactContentInvalidSyntax = resourceToString("jsonschema-invalid.json");
         String artifactId = "testCreateArtifact/ValidityRuleViolation";
-        createArtifact(GROUP, artifactId, ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON);
+        createArtifact(GROUP, artifactId, ArtifactType.JSON.value(), artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Add a rule
         CreateRule createRule = new CreateRule();
@@ -865,7 +865,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("jsonschema-valid.json");
         String artifactContentInvalidSyntax = resourceToString("jsonschema-valid-incompatible.json");
         String artifactId = "testCreateArtifact/ValidJson";
-        createArtifact(GROUP, artifactId, ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON);
+        createArtifact(GROUP, artifactId, ArtifactType.JSON.value(), artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Add a rule
         CreateRule rule = new CreateRule();
@@ -899,7 +899,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create an artifact
-        createArtifact(GROUP, "testGetArtifactVersion/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testGetArtifactVersion/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Update the artifact 5 times
@@ -912,7 +912,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     .pathParam("artifactId", "testGetArtifactVersion/EmptyAPI").body(createVersion)
                     .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then()
                     .statusCode(200).body("artifactId", equalTo("testGetArtifactVersion/EmptyAPI"))
-                    .body("artifactType", equalTo(ArtifactType.OPENAPI)).extract().body().path("version");
+                    .body("artifactType", equalTo(ArtifactType.OPENAPI.value())).extract().body().path("version");
             versions.add(version);
         }
 
@@ -945,7 +945,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testArtifactRules/EmptyAPI";
 
         // Create an artifact
-        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Add a rule
@@ -1048,7 +1048,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testDeleteAllArtifactRules/EmptyAPI";
 
         // Create an artifact
-        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Add the Validity rule
@@ -1109,7 +1109,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testGetArtifactMetaData/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON, (ca) -> {
                     ca.setName("Empty API");
                     ca.setDescription("An example API design using OpenAPI.");
@@ -1119,7 +1119,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(200)
                 .body("artifactId", equalTo("testGetArtifactMetaData/EmptyAPI")).body("version", anything())
-                .body("artifactType", equalTo(ArtifactType.OPENAPI)).body("createdOn", anything())
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value())).body("createdOn", anything())
                 .body("name", equalTo("Empty API"))
                 .body("description", equalTo("An example API design using OpenAPI.")).extract()
                 .as(ArtifactMetaData.class);
@@ -1155,11 +1155,11 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String updatedArtifactContent = artifactContent.replace("Empty API", "Empty API (Updated)");
         io.apicurio.registry.rest.v3.beans.CreateVersion createVersion = TestUtils
                 .serverCreateVersion(updatedArtifactContent, ContentTypes.APPLICATION_JSON);
-        given().when().contentType(CT_JSON).header("X-Registry-ArtifactType", ArtifactType.OPENAPI)
+        given().when().contentType(CT_JSON).header("X-Registry-ArtifactType", ArtifactType.OPENAPI.value())
                 .pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
                 .body(createVersion).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
                 .then().statusCode(200).body("artifactId", equalTo("testGetArtifactMetaData/EmptyAPI"))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // Verify the artifact meta-data name and description are still set.
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifactMetaData/EmptyAPI")
@@ -1177,7 +1177,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         int idx = 0;
         String title = "Empty API " + idx;
         String artifactId = "Empty-" + idx;
-        this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+        this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                 artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
 
         Map<String, String> labels = new HashMap<>();
@@ -1209,7 +1209,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String updatedArtifactContent_v3 = artifactContent.replace("Empty API", "Empty API (VERSION 3)");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, "testArtifactVersionMetaData/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testArtifactVersionMetaData/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Create a new version of the artifact
@@ -1220,7 +1220,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String version2 = given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI").body(createVersion_v2)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
-                .body("version", notNullValue()).body("artifactType", equalTo(ArtifactType.OPENAPI)).extract()
+                .body("version", notNullValue()).body("artifactType", equalTo(ArtifactType.OPENAPI.value())).extract()
                 .body().path("version");
 
         // Create another new version of the artifact
@@ -1231,7 +1231,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String version3 = given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .pathParam("artifactId", "testArtifactVersionMetaData/EmptyAPI").body(createVersion_v3)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions").then().statusCode(200)
-                .body("version", notNullValue()).body("artifactType", equalTo(ArtifactType.OPENAPI)).extract()
+                .body("version", notNullValue()).body("artifactType", equalTo(ArtifactType.OPENAPI.value())).extract()
                 .body().path("version");
 
         // Get meta-data for v2
@@ -1240,7 +1240,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("version", version2)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}").then()
                 .statusCode(200).body("version", equalTo(version2))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI)).body("createdOn", anything())
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value())).body("createdOn", anything())
                 .body("name", equalTo("Empty API (VERSION 2)"))
                 .body("description", equalTo("An example API design using OpenAPI.")).extract()
                 .as(VersionMetaData.class);
@@ -1259,7 +1259,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("version", version2)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}").then()
                 .statusCode(200).body("version", equalTo(version2))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI)).body("createdOn", anything())
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value())).body("createdOn", anything())
                 .body("name", equalTo("Updated Name")).body("description", equalTo("Updated description."));
 
         // Get the version meta-data for the version we **didn't** update
@@ -1268,7 +1268,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("version", version3)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}").then()
                 .statusCode(200).body("version", equalTo(version3))
-                .body("artifactType", equalTo(ArtifactType.OPENAPI)).body("createdOn", anything())
+                .body("artifactType", equalTo(ArtifactType.OPENAPI.value())).body("createdOn", anything())
                 .body("name", equalTo("Empty API (VERSION 3)"))
                 .body("description", equalTo("An example API design using OpenAPI."));
 
@@ -1283,12 +1283,12 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testYamlContentType() throws Exception {
         String artifactId = "testYamlContentType";
-        String artifactType = ArtifactType.OPENAPI;
+        String artifactType = ArtifactType.OPENAPI.value();
         String artifactContent = resourceToString("openapi-empty.yaml");
 
         // Create OpenAPI artifact (from YAML)
         io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = TestUtils.serverCreateArtifact(
-                artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_YAML);
+                artifactId, ArtifactType.OPENAPI.value(), artifactContent, ContentTypes.APPLICATION_YAML);
         createArtifact.setName("Empty API");
         createArtifact.setDescription("An example API design using OpenAPI.");
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
@@ -1307,12 +1307,12 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testWsdlArtifact() throws Exception {
         String artifactId = "testWsdlArtifact";
-        String artifactType = ArtifactType.WSDL;
+        String artifactType = ArtifactType.WSDL.value();
         String artifactContent = resourceToString("sample.wsdl");
 
         // Create WSDL artifact
         io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = TestUtils.serverCreateArtifact(
-                artifactId, ArtifactType.WSDL, artifactContent, ContentTypes.APPLICATION_XML);
+                artifactId, ArtifactType.WSDL.value(), artifactContent, ContentTypes.APPLICATION_XML);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.artifactId", equalTo(artifactId))
@@ -1334,12 +1334,12 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         final String artifactDescription = "ArtifactDescriptionFromHeader";
 
         // Create OpenAPI artifact - indicate the type via a header param
-        Long globalId1 = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        Long globalId1 = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
 
         // Try to create the same artifact ID (should fail)
         io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = TestUtils.serverCreateArtifact(
-                artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+                artifactId, ArtifactType.OPENAPI.value(), artifactContent, ContentTypes.APPLICATION_JSON);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(409)
                 .body("status", equalTo(409)).body("title", equalTo("An artifact with ID '" + artifactId
@@ -1347,33 +1347,33 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Try to create the same artifact ID with FIND_OR_CREATE_VERSION for if exists (should return same
         // artifact)
-        createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI, artifactContent,
+        createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .queryParam("ifExists", IfArtifactExists.FIND_OR_CREATE_VERSION).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI))
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()))
                 .body("version.version", equalTo("1")).body("artifact.createdOn", anything());
 
         // Try to create the same artifact ID with CREATE_VERSION for if exists (should create a new version)
-        createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 updatedArtifactContent, ContentTypes.APPLICATION_JSON);
         ValidatableResponse resp = given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .queryParam("ifExists", IfArtifactExists.CREATE_VERSION).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI))
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()))
                 .body("artifact.createdOn", anything()).body("version.version", equalTo("2"));
         /* Integer globalId2 = */
         resp.extract().body().path("globalId");
 
         // Try to create the same artifact ID with FIND_OR_CREATE_VERSION - should return v1 (matching
         // content)
-        createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI, artifactContent,
+        createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
         resp = given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
                 .queryParam("ifExists", IfArtifactExists.FIND_OR_CREATE_VERSION).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         Integer globalId3 = resp.extract().body().path("version.globalId");
 
@@ -1382,7 +1382,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         // Try to create the same artifact ID with FIND_OR_CREATE_VERSION and updated content - should create
         // a new version
         // and use name and description from headers
-        createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI, v3ArtifactContent,
+        createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI.value(), v3ArtifactContent,
                 ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setName(artifactName);
         createArtifact.getFirstVersion().setDescription(artifactDescription);
@@ -1391,7 +1391,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("version.version", equalTo("3")).body("version.name", equalTo(artifactName))
                 .body("version.description", equalTo(artifactDescription))
-                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("artifact.artifactType", equalTo(ArtifactType.OPENAPI.value()));
     }
 
     @Test
@@ -1400,7 +1400,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testDeleteArtifactWithRule/EmptyAPI";
 
         // Create an artifact
-        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Add a rule
@@ -1430,7 +1430,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(404);
 
         // Re-create the artifact
-        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Get a single rule by name (should be 404 because the artifact is gone)
@@ -1455,7 +1455,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Create OpenAPI artifact version 1.0.0
         io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = TestUtils.serverCreateArtifact(
-                artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+                artifactId, ArtifactType.OPENAPI.value(), artifactContent, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0.0");
         given().when().contentType(CT_JSON).pathParam("groupId", groupId).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
@@ -1483,7 +1483,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).pathParam("groupId", groupId).pathParam("artifactId", artifactId)
                 .body(createVersion).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
                 .then().statusCode(200).body("artifactId", equalTo(artifactId))
-                .body("version", equalTo("1.0.1")).body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("version", equalTo("1.0.1")).body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // List the artifact versions
         given().when().pathParam("groupId", groupId).pathParam("artifactId", artifactId)
@@ -1498,7 +1498,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).pathParam("groupId", groupId).pathParam("artifactId", artifactId)
                 .body(createVersion).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
                 .then().statusCode(200).body("artifactId", equalTo(artifactId))
-                .body("version", equalTo("1.0.2")).body("artifactType", equalTo(ArtifactType.OPENAPI));
+                .body("version", equalTo("1.0.2")).body("artifactType", equalTo(ArtifactType.OPENAPI.value()));
 
         // List the artifact versions
         given().when().pathParam("groupId", groupId).pathParam("artifactId", artifactId)
@@ -1513,7 +1513,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create OpenAPI artifact - indicate the type via a header param
-        createArtifact(GROUP, "testCreateArtifactAfterDelete/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testCreateArtifactAfterDelete/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Delete the artifact
@@ -1522,7 +1522,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
 
         // Create the same artifact
-        createArtifact(GROUP, "testCreateArtifactAfterDelete/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, "testCreateArtifactAfterDelete/EmptyAPI", ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
     }
 
@@ -1532,7 +1532,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Create #1 without references
         var metadata = createArtifactExtendedRaw(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), null,
-                ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON, List.of()).getVersion();
+                ArtifactType.JSON.value(), artifactContent, ContentTypes.APPLICATION_JSON, List.of()).getVersion();
         // Save the metadata for artifact #1 for later use
         var referencedMD = metadata;
 
@@ -1543,7 +1543,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         artifactContent = getRandomValidJsonSchemaContent();
 
         metadata = createArtifactExtendedRaw(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), null,
-                ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON, references).getVersion();
+                ArtifactType.JSON.value(), artifactContent, ContentTypes.APPLICATION_JSON, references).getVersion();
 
         // Save the referencing artifact metadata for later use
         var referencingMD = metadata;
@@ -1564,12 +1564,12 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .version(metadata.getVersion()).name("foo2").build());
 
         var secondMetadata = createArtifactExtendedRaw(GroupId.DEFAULT.getRawGroupIdWithDefaultString(), null,
-                ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON, references2).getVersion();
+                ArtifactType.JSON.value(), artifactContent, ContentTypes.APPLICATION_JSON, references2).getVersion();
 
         assertNotEquals(secondMetadata.getContentId(), metadata.getContentId());
 
         // Same references are not an issue
-        metadata = createArtifactExtendedRaw("default2", null, ArtifactType.JSON, artifactContent,
+        metadata = createArtifactExtendedRaw("default2", null, ArtifactType.JSON.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON, references).getVersion();
 
         // Get references via globalId
@@ -1655,7 +1655,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         // Create OpenAPI artifact
-        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Get comments for the artifact (should be none)
@@ -1734,7 +1734,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     public void testCreateArtifactIntegrityRuleViolation() throws Exception {
         String artifactContent = resourceToString("jsonschema-valid.json");
         String artifactId = "testCreateArtifact/IntegrityRuleViolation";
-        createArtifact(GROUP, artifactId, ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON);
+        createArtifact(GROUP, artifactId, ArtifactType.JSON.value(), artifactContent, ContentTypes.APPLICATION_JSON);
 
         // Enable the Integrity rule for the artifact
         CreateRule createRule = new CreateRule();
@@ -1834,7 +1834,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String withExternalRefContent = resourceToString("openapi-with-external-ref.json");
 
         // Create the artifact containing a type to be referenced
-        createArtifact(GROUP, "testGetArtifactVersionWithReferences/ReferencedTypes", ArtifactType.OPENAPI,
+        createArtifact(GROUP, "testGetArtifactVersionWithReferences/ReferencedTypes", ArtifactType.OPENAPI.value(),
                 referencedTypesContent, ContentTypes.APPLICATION_JSON);
 
         // Create the artifact that references the type
@@ -1842,7 +1842,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .name("./referenced-types.json#/components/schemas/Widget").groupId(GROUP)
                 .artifactId("testGetArtifactVersionWithReferences/ReferencedTypes").version("1").build());
         createArtifactWithReferences(GROUP, "testGetArtifactVersionWithReferences/WithExternalRef",
-                ArtifactType.OPENAPI, withExternalRefContent, ContentTypes.APPLICATION_JSON, refs);
+                ArtifactType.OPENAPI.value(), withExternalRefContent, ContentTypes.APPLICATION_JSON, refs);
 
         // Get the content of the artifact preserving external references
         given().when().pathParam("groupId", GROUP)
@@ -1892,7 +1892,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         String asyncApiContent = resourceToString("asyncapi-shopping-cart.yml");
 
         // Create the Avro schema artifact that will be referenced
-        createArtifact(groupId, "testYamlReferences/ShoppingCartCreated", ArtifactType.AVRO,
+        createArtifact(groupId, "testYamlReferences/ShoppingCartCreated", ArtifactType.AVRO.value(),
                 avroSchemaContent, ContentTypes.APPLICATION_JSON);
 
         // Create the AsyncAPI artifact (YAML) that references the Avro schema
@@ -1900,7 +1900,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .name("./avro/ShoppingCartCreated.avsc").groupId(groupId)
                 .artifactId("testYamlReferences/ShoppingCartCreated").version("1").build());
         createArtifactWithReferences(groupId, "testYamlReferences/ShoppingCartAPI",
-                ArtifactType.ASYNCAPI, asyncApiContent, ContentTypes.APPLICATION_YAML, refs);
+                ArtifactType.ASYNCAPI.value(), asyncApiContent, ContentTypes.APPLICATION_YAML, refs);
 
         // Get the content of the artifact preserving external references
         // This should return YAML with YAML content type
@@ -2074,3 +2074,4 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
 }
+

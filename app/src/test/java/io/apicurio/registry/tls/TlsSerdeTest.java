@@ -78,7 +78,7 @@ public class TlsSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Alice", "Smith", 25);
@@ -136,7 +136,7 @@ public class TlsSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("David", "Miller", 28);
@@ -193,7 +193,7 @@ public class TlsSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Emma", "Wilson", 32);
@@ -250,7 +250,7 @@ public class TlsSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Bob", "Jones", 30);
@@ -303,7 +303,7 @@ public class TlsSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Charlie", "Brown", 35);
@@ -355,7 +355,7 @@ public class TlsSerdeTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, IoUtil.toString(jsonSchema),
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), IoUtil.toString(jsonSchema),
                 ContentTypes.APPLICATION_JSON);
 
         Person person = new Person("Eve", "Adams", 40);

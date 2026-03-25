@@ -80,7 +80,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
     private static final CreateArtifact createArtifact = new CreateArtifact();
     static {
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
         CreateVersion createVersion = new CreateVersion();
         createArtifact.setFirstVersion(createVersion);
         VersionContent versionContent = new VersionContent();
@@ -108,7 +108,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Assertions.assertEquals(RuleType.COMPATIBILITY, rule.getRuleType());
         Assertions.assertEquals(CompatibilityLevel.FULL.name(), rule.getConfig());
 
-        rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, toTypedContent(SCHEMA_SIMPLE),
+        rules.applyRules("no-group", "not-existent", ArtifactType.AVRO.value(), toTypedContent(SCHEMA_SIMPLE),
                 RuleApplicationType.CREATE, Collections.emptyList(), Collections.emptyMap());
     }
 
@@ -132,7 +132,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class,
                 () -> {
-                    RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON,
+                    RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON.value(),
                             "FORWARD_TRANSITIVE", Collections.singletonList(toTypedContent(v1Schema)),
                             toTypedContent(v2Schema), Collections.emptyList(), Collections.emptyMap());
                     compatibility.execute(context);
@@ -168,7 +168,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String cityArtifactId = generateArtifactId();
 
-        /* final Integer cityDependencyGlobalId = */createArtifact(groupId, cityArtifactId, ArtifactType.JSON,
+        /* final Integer cityDependencyGlobalId = */createArtifact(groupId, cityArtifactId, ArtifactType.JSON.value(),
                 citySchema, ContentTypes.APPLICATION_JSON);
 
         final io.apicurio.registry.rest.v3.beans.ArtifactReference cityReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -179,7 +179,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         String artifactId = generateArtifactId();
 
-        /* final Integer globalId = */createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON,
+        /* final Integer globalId = */createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON.value(),
                 citizenSchema, ContentTypes.APPLICATION_JSON, List.of(cityReference));
 
         createArtifactRule(groupId, artifactId, io.apicurio.registry.types.RuleType.COMPATIBILITY,
@@ -202,7 +202,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testCompatibilityRuleApplication_Map() throws Exception {
         String artifactId = "testCompatibilityRuleApplication_Map";
-        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.AVRO.value(), SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.COMPATIBILITY);
         createRule.setConfig(CompatibilityLevel.FULL.name());
@@ -221,7 +221,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     @Test
     public void testCompatibilityInvalidExitingContentRuleApplication_Map() throws Exception {
         String artifactId = "testCompatibilityInvalidExitingContentRuleApplication_Map";
-        createArtifact(artifactId, ArtifactType.AVRO, INVALID_SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.AVRO.value(), INVALID_SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.COMPATIBILITY);
         createRule.setConfig(CompatibilityLevel.FULL.name());
@@ -242,7 +242,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String artifactId = "testCompatibilityRuleApplication_FullTransitive";
 
         // Create artifact with 4 versions, where the first one is not compatible with the others
-        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.AVRO.value(), SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
         createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
         createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
         createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
@@ -275,7 +275,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String initialSchema = "{\"type\":\"record\",\"name\":\"ExampleType\",\"fields\":[{\"name\":\"sdfgfsdgsdg\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"},{\"name\":\"field3\",\"type\":\"int\",\"default\":\"\"}]}";
 
         // Create artifact with initial schema
-        createArtifact(artifactId, ArtifactType.AVRO, initialSchema, ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.AVRO.value(), initialSchema, ContentTypes.APPLICATION_JSON);
 
         // Create backwards compatibility rule
         CreateRule rule = new CreateRule();
@@ -343,7 +343,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             """;
 
         // Create artifact with initial schema
-        createArtifact(artifactId, ArtifactType.PROTOBUF, personV1, ContentTypes.APPLICATION_PROTOBUF);
+        createArtifact(artifactId, ArtifactType.PROTOBUF.value(), personV1, ContentTypes.APPLICATION_PROTOBUF);
 
         // Enable backward compatibility rule
         CreateRule rule = new CreateRule();
@@ -402,7 +402,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             """;
 
         // Create initial version
-        createArtifact(artifactId, ArtifactType.PROTOBUF, employeeV1, ContentTypes.APPLICATION_PROTOBUF);
+        createArtifact(artifactId, ArtifactType.PROTOBUF.value(), employeeV1, ContentTypes.APPLICATION_PROTOBUF);
 
         // Add second version
         createArtifactVersion(artifactId, employeeV2, ContentTypes.APPLICATION_PROTOBUF);
@@ -434,7 +434,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = "{\"type\": \"string\"}";
 
         // Create artifact with initial schema
-        createArtifact(artifactId, ArtifactType.AVRO, v1Schema, ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.AVRO.value(), v1Schema, ContentTypes.APPLICATION_JSON);
 
         // Create compatibility rule with NONE configuration
         CreateRule createRule = new CreateRule();
@@ -465,7 +465,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         // This would normally throw a RuleViolationException with any compatibility level other than NONE
         // With NONE, the executor should return early without checking compatibility
-        RuleContext context = new RuleContext("TestGroup", "TestArtifact", ArtifactType.AVRO,
+        RuleContext context = new RuleContext("TestGroup", "TestArtifact", ArtifactType.AVRO.value(),
                 CompatibilityLevel.NONE.name(), Collections.singletonList(toTypedContent(v1Schema)),
                 toTypedContent(v2Schema), Collections.emptyList(), Collections.emptyMap());
 
@@ -508,7 +508,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             """;
 
         // Create artifact with initial schema
-        createArtifact(artifactId, ArtifactType.PROTOBUF, personV1, ContentTypes.APPLICATION_PROTOBUF);
+        createArtifact(artifactId, ArtifactType.PROTOBUF.value(), personV1, ContentTypes.APPLICATION_PROTOBUF);
 
         // Enable backward compatibility rule
         CreateRule rule = new CreateRule();
@@ -577,7 +577,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
             """;
 
         // Create artifact with initial schema
-        createArtifact(artifactId, ArtifactType.PROTOBUF, personV1, ContentTypes.APPLICATION_PROTOBUF);
+        createArtifact(artifactId, ArtifactType.PROTOBUF.value(), personV1, ContentTypes.APPLICATION_PROTOBUF);
 
         // Enable backward compatibility rule
         CreateRule rule = new CreateRule();
@@ -628,7 +628,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         String v2Schema = "{\"type\": \"string\"}";
 
         // Create artifact with initial schema
-        createArtifact(artifactId, ArtifactType.AVRO, v1Schema, ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.AVRO.value(), v1Schema, ContentTypes.APPLICATION_JSON);
 
         // Create compatibility rule with FULL configuration
         CreateRule createRule = new CreateRule();
@@ -654,3 +654,4 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         createArtifactVersion(artifactId, v2Schema, ContentTypes.APPLICATION_JSON);
     }
 }
+

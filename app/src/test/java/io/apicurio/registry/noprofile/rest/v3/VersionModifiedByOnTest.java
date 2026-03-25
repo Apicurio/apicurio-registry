@@ -22,7 +22,7 @@ public class VersionModifiedByOnTest extends AbstractResourceTestBase {
         // Create 5 artifacts
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = TestUtils.generateArtifactId();
-            createArtifact(groupId, artifactId, ArtifactType.OPENAPI, artifactContent,
+            createArtifact(groupId, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
         }
 
@@ -41,7 +41,7 @@ public class VersionModifiedByOnTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.OPENAPI, artifactContent,
+        createArtifact(groupId, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON, (ca) -> {
                     ca.getFirstVersion().setVersion("1.0");
                 });
@@ -53,3 +53,4 @@ public class VersionModifiedByOnTest extends AbstractResourceTestBase {
     }
 
 }
+

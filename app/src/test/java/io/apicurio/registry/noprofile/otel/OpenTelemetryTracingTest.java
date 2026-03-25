@@ -110,7 +110,7 @@ class OpenTelemetryTracingTest extends AbstractResourceTestBase {
         // Create an artifact - this exercises the storage tracing interceptor
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AVRO);
+        createArtifact.setArtifactType(ArtifactType.AVRO.value());
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent content = new VersionContent();
@@ -134,7 +134,7 @@ class OpenTelemetryTracingTest extends AbstractResourceTestBase {
         // First create an artifact
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent content = new VersionContent();
@@ -151,3 +151,4 @@ class OpenTelemetryTracingTest extends AbstractResourceTestBase {
         assertNotNull(artifact.getArtifactId());
     }
 }
+

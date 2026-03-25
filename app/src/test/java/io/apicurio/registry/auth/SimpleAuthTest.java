@@ -58,7 +58,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
 
     private static final CreateArtifact createArtifact = new CreateArtifact();
     static {
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
         CreateVersion createVersion = new CreateVersion();
         createArtifact.setFirstVersion(createVersion);
         VersionContent versionContent = new VersionContent();
@@ -550,3 +550,4 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     }
 
 }
+

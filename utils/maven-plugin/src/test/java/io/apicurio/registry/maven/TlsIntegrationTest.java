@@ -98,7 +98,7 @@ public class TlsIntegrationTest {
         RegisterArtifact artifact = new RegisterArtifact();
         artifact.setGroupId("test-group");
         artifact.setArtifactId("TestRecord");
-        artifact.setArtifactType(ArtifactType.AVRO);
+        artifact.setArtifactType(ArtifactType.AVRO.value());
         artifact.setFile(tempSchemaFile);
         artifact.setIfExists(IfArtifactExists.FIND_OR_CREATE_VERSION);
         return artifact;
@@ -241,3 +241,4 @@ public class TlsIntegrationTest {
         wireMockServer.verify(postRequestedFor(urlPathMatching("/apis/registry/v3/groups/.*/artifacts")));
     }
 }
+

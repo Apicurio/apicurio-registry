@@ -36,7 +36,7 @@ public class JsonSerdeTest extends AbstractClientFacadeTestBase {
 
         String artifactId = generateArtifactId();
 
-        long globalId = createArtifact(groupId, artifactId + "-value", ArtifactType.JSON, jsonSchema,
+        long globalId = createArtifact(groupId, artifactId + "-value", ArtifactType.JSON.value(), jsonSchema,
                 ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
 
         // make sure we have schema registered
@@ -84,3 +84,4 @@ public class JsonSerdeTest extends AbstractClientFacadeTestBase {
 
     }
 }
+

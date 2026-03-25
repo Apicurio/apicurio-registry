@@ -20,6 +20,10 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         artifactTypeUtilProviderFactory = new DefaultArtifactTypeUtilProviderImpl(true);
     }
 
+    private static void assertDetectedType(ArtifactType expected, String actual) {
+        Assertions.assertEquals(expected.value(), actual);
+    }
+
     /**
      * Test method for
      * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}
@@ -28,7 +32,7 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     void testDiscoverType_JSON() {
         TypedContent content = resourceToTypedContentHandle("json-schema.json");
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.JSON, type);
+        assertDetectedType(ArtifactType.JSON, type);
     }
 
     /**
@@ -39,7 +43,7 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     void testDiscoverType_Avro() {
         TypedContent content = resourceToTypedContentHandle("avro.json");
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.AVRO, type);
+        assertDetectedType(ArtifactType.AVRO, type);
     }
 
     /**
@@ -53,7 +57,7 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         assertEquals(Type.STRING, s.getType());
 
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.AVRO, type);
+        assertDetectedType(ArtifactType.AVRO, type);
     }
 
     /**
@@ -64,11 +68,11 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     void testDiscoverType_Proto() {
         TypedContent content = resourceToTypedContentHandle("protobuf.proto");
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.PROTOBUF, type);
+        assertDetectedType(ArtifactType.PROTOBUF, type);
 
         content = resourceToTypedContentHandle("protobuf.proto");
         type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.PROTOBUF, type);
+        assertDetectedType(ArtifactType.PROTOBUF, type);
     }
 
     /**
@@ -79,15 +83,15 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     void testDiscoverType_OpenApi() {
         TypedContent content = resourceToTypedContentHandle("openapi.json");
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.OPENAPI, type);
+        assertDetectedType(ArtifactType.OPENAPI, type);
 
         content = resourceToTypedContentHandle("swagger.json");
         type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.OPENAPI, type);
+        assertDetectedType(ArtifactType.OPENAPI, type);
 
         content = resourceToTypedContentHandle("swagger.json");
         type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.OPENAPI, type);
+        assertDetectedType(ArtifactType.OPENAPI, type);
     }
 
     /**
@@ -98,7 +102,7 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     void testDiscoverType_AsyncApi() {
         TypedContent content = resourceToTypedContentHandle("asyncapi.json");
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.ASYNCAPI, type);
+        assertDetectedType(ArtifactType.ASYNCAPI, type);
     }
 
     /**
@@ -109,7 +113,7 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     void testDiscoverType_GraphQL() {
         TypedContent content = resourceToTypedContentHandle("example.graphql");
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.GRAPHQL, type);
+        assertDetectedType(ArtifactType.GRAPHQL, type);
     }
 
     /**
@@ -132,7 +136,7 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     void testDiscoverType_Xml() {
         TypedContent content = resourceToTypedContentHandle("xml.xml");
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.XML, type);
+        assertDetectedType(ArtifactType.XML, type);
     }
 
     /**
@@ -143,7 +147,7 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     void testDiscoverType_Xsd() {
         TypedContent content = resourceToTypedContentHandle("xml-schema.xsd");
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.XSD, type);
+        assertDetectedType(ArtifactType.XSD, type);
     }
 
     /**
@@ -154,11 +158,11 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
     void testDiscoverType_Wsdl() {
         TypedContent content = resourceToTypedContentHandle("wsdl.wsdl");
         String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.WSDL, type);
+        assertDetectedType(ArtifactType.WSDL, type);
 
         content = resourceToTypedContentHandle("wsdl-2.0.wsdl");
         type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
-        Assertions.assertEquals(ArtifactType.WSDL, type);
+        assertDetectedType(ArtifactType.WSDL, type);
     }
 
 }

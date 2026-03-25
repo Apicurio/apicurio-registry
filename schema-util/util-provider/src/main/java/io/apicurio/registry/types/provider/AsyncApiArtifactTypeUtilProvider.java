@@ -27,7 +27,7 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.ASYNCAPI;
+        return ArtifactType.ASYNCAPI.value();
     }
 
     @Override
@@ -85,3 +85,4 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
         return true;
     }
 }
+

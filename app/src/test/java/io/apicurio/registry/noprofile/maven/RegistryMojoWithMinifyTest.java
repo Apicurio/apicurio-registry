@@ -33,14 +33,14 @@ public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
         RegisterArtifact avroMinifiedArtifact = new RegisterArtifact();
         avroMinifiedArtifact.setGroupId(groupId);
         avroMinifiedArtifact.setArtifactId("userInfoMinified");
-        avroMinifiedArtifact.setArtifactType(ArtifactType.AVRO);
+        avroMinifiedArtifact.setArtifactType(ArtifactType.AVRO.value());
         avroMinifiedArtifact.setMinify(true);
         avroMinifiedArtifact.setFile(avroFile);
 
         RegisterArtifact avroNotMinifiedArtifact = new RegisterArtifact();
         avroNotMinifiedArtifact.setGroupId(groupId);
         avroNotMinifiedArtifact.setArtifactId("userInfoNotMinified");
-        avroNotMinifiedArtifact.setArtifactType(ArtifactType.AVRO);
+        avroNotMinifiedArtifact.setArtifactType(ArtifactType.AVRO.value());
         avroNotMinifiedArtifact.setFile(avroFile);
 
         registerMojo.setArtifacts(List.of(avroMinifiedArtifact, avroNotMinifiedArtifact));
@@ -68,3 +68,4 @@ public class RegistryMojoWithMinifyTest extends RegistryMojoTestBase {
     }
 
 }
+

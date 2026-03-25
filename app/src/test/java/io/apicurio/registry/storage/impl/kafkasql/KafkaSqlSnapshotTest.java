@@ -37,7 +37,7 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 1000; idx++) {
             System.out.println("Iteration: " + idx);
             String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                     simpleAvro, ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(createArtifact,
                     config -> config.headers.add("X-Registry-ArtifactId", artifactId));
@@ -57,3 +57,4 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
         Files.delete(path);
     }
 }
+

@@ -27,7 +27,7 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.XML;
+        return ArtifactType.XML.value();
     }
 
     @Override

@@ -113,7 +113,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String description = "testCreateArtifactDescription";
 
         // Execution
-        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
+        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON.value(),
                 ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
                     createArtifact.setName(name);
                     createArtifact.setDescription(description);
@@ -195,7 +195,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String description = "testCreateYamlArtifactDescription";
 
         // Execution
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 ARTIFACT_OPENAPI_YAML_CONTENT, ContentTypes.APPLICATION_JSON);
         createArtifact.setName(name);
         createArtifact.setDescription(description);
@@ -307,7 +307,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         // Execution
         try {
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(),
                     ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
             VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact)
                     .getVersion();
@@ -400,7 +400,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactData = "{\"type\":\"record\",\"title\":\"" + name
                 + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(),
                 artifactData, ContentTypes.APPLICATION_JSON);
         createArtifact.setName(name);
         createArtifact.getFirstVersion().setName(name);
@@ -438,7 +438,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String data = ("{\"type\":\"record\",\"title\":\"" + name
                 + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}");
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, data,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), data,
                 ContentTypes.APPLICATION_JSON);
         createArtifact.setName(name);
         createArtifact.getFirstVersion().setName(name);
@@ -452,7 +452,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Thread.sleep(1500);
 
         String artifactId2 = UUID.randomUUID().toString();
-        CreateArtifact createArtifact2 = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON, data,
+        CreateArtifact createArtifact2 = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON.value(), data,
                 ContentTypes.APPLICATION_JSON);
         createArtifact2.setName(name);
         VersionMetaData amd2 = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact2)
@@ -499,7 +499,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String data = "{\"type\":\"record\",\"title\":\"" + name
                 + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON, data,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(), data,
                 ContentTypes.APPLICATION_JSON);
         VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact)
                 .getVersion();
@@ -508,7 +508,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         Thread.sleep(1500);
 
         String artifactId2 = UUID.randomUUID().toString();
-        CreateArtifact createArtifact2 = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON, data,
+        CreateArtifact createArtifact2 = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.JSON.value(), data,
                 ContentTypes.APPLICATION_JSON);
         VersionMetaData amd2 = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact2)
                 .getVersion();
@@ -558,7 +558,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactData = "{\"type\":\"record\",\"title\":\"" + name
                 + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(),
                 artifactData, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setName(name);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
@@ -597,7 +597,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             String artifactData = "{\"type\":\"record\",\"title\":\"" + name
                     + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(),
                     artifactData, ContentTypes.APPLICATION_JSON);
             VersionMetaData md = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact)
                     .getVersion();
@@ -662,7 +662,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactData = "{\"type\":\"record\",\"title\":\"" + name
                 + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(),
                 artifactData, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setName(name);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
@@ -726,7 +726,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String artifactId = generateArtifactId();
         try {
 
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(),
                     "{\"name\":\"redhat\"}", ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
@@ -779,7 +779,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             String artifactData = "{\"type\":\"record\",\"title\":\"" + firstName
                     + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
             CreateArtifact createArtifact1 = TestUtils.clientCreateArtifact(firstArtifactId,
-                    ArtifactType.JSON, artifactData, ContentTypes.APPLICATION_JSON);
+                    ArtifactType.JSON.value(), artifactData, ContentTypes.APPLICATION_JSON);
             createArtifact1.setName(firstName);
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact1);
 
@@ -788,14 +788,14 @@ public class RegistryClientTest extends AbstractResourceTestBase {
             String secondData = "{\"type\":\"record\",\"title\":\"" + secondName
                     + "\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
             CreateArtifact createArtifact2 = TestUtils.clientCreateArtifact(secondArtifactId,
-                    ArtifactType.JSON, secondData, ContentTypes.APPLICATION_JSON);
+                    ArtifactType.JSON.value(), secondData, ContentTypes.APPLICATION_JSON);
             createArtifact2.setName(secondName);
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact2);
 
             // Create artifact 3
             String thirdData = "{\"openapi\":\"3.0.2\",\"info\":{\"description\":\"testorder\"}}";
             CreateArtifact createArtifact3 = TestUtils.clientCreateArtifact(thirdArtifactId,
-                    ArtifactType.JSON, thirdData, ContentTypes.APPLICATION_JSON);
+                    ArtifactType.JSON.value(), thirdData, ContentTypes.APPLICATION_JSON);
             createArtifact3.setDescription("testorder");
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact3);
 
@@ -999,7 +999,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String artifactId = generateArtifactId();
 
         // First create the references schema
-        createArtifact(groupId, artifactId, ArtifactType.AVRO, REFERENCED_SCHEMA,
+        createArtifact(groupId, artifactId, ArtifactType.AVRO.value(), REFERENCED_SCHEMA,
                 ContentTypes.APPLICATION_JSON);
 
         io.apicurio.registry.rest.v3.beans.ArtifactReference artifactReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
@@ -1009,7 +1009,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         artifactReference.setName("com.example.common.ItemId");
 
         final String secondArtifactId = generateArtifactId();
-        createArtifactWithReferences(groupId, secondArtifactId, ArtifactType.AVRO, SCHEMA_WITH_REFERENCE,
+        createArtifactWithReferences(groupId, secondArtifactId, ArtifactType.AVRO.value(), SCHEMA_WITH_REFERENCE,
                 ContentTypes.APPLICATION_JSON, List.of(artifactReference));
 
         // Create rule
@@ -1181,8 +1181,8 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         final String secondArtifactId = generateArtifactId();
 
         String content = "{\"name\":\"" + TestUtils.generateSubject() + "\"}";
-        createArtifact(groupId, firstArtifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
-        createArtifact(groupId, secondArtifactId, ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, firstArtifactId, ArtifactType.AVRO.value(), content, ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, secondArtifactId, ArtifactType.AVRO.value(), content, ContentTypes.APPLICATION_JSON);
 
         // Execution
         final ArtifactSearchResults searchResults = clientV3.search().artifacts()
@@ -1316,7 +1316,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
     }
 
     private VersionMetaData createArtifact(String groupId, String artifactId) throws Exception {
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(),
                 ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
         createArtifact.setName(artifactId);
         final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact)
@@ -1326,7 +1326,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     private VersionMetaData createArtifactWithReferences(String groupId, String artifactId,
             List<ArtifactReference> artifactReferences) throws Exception {
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON.value(),
                 ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().getContent().setReferences(artifactReferences);
         createArtifact.setName(artifactId);
@@ -1351,7 +1351,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
     private VersionMetaData createOpenAPIArtifact(String groupId, String artifactId)
             throws Exception {
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 ARTIFACT_OPENAPI_JSON_CONTENT, ContentTypes.APPLICATION_JSON);
         final VersionMetaData created = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact)
                 .getVersion();
@@ -1548,13 +1548,13 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 artifactContent, ContentTypes.APPLICATION_JSON);
         /* var postReq = */clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
         var meta = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
 
-        assertEquals(ArtifactType.AVRO, meta.getArtifactType());
+        assertEquals(ArtifactType.AVRO.value(), meta.getArtifactType());
 
         assertTrue(clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                 .byVersionExpression("branch=latest").content().get().readAllBytes().length > 0);
@@ -1574,7 +1574,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                     () -> client.groups().byGroupId("test").artifacts().byArtifactId("test").get());
             Assertions.assertEquals(429, execution1.getResponseStatusCode());
 
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact("aaa", ArtifactType.JSON, "{}",
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact("aaa", ArtifactType.JSON.value(), "{}",
                     ContentTypes.APPLICATION_JSON);
             var exception2 = Assertions.assertThrows(ApiException.class,
                     () -> client.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
@@ -1589,3 +1589,4 @@ public class RegistryClientTest extends AbstractResourceTestBase {
         }
     }
 }
+

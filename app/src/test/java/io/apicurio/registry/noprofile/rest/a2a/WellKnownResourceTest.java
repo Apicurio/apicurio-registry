@@ -123,7 +123,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
         // Create an agent card artifact using the client
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+        createArtifact.setArtifactType(ArtifactType.AGENT_CARD.value());
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent content = new VersionContent();
@@ -172,7 +172,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
         // Create an Avro schema (not an agent card)
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AVRO);
+        createArtifact.setArtifactType(ArtifactType.AVRO.value());
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent content = new VersionContent();
@@ -251,7 +251,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+        createArtifact.setArtifactType(ArtifactType.AGENT_CARD.value());
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent versionContent = new VersionContent();

@@ -149,10 +149,11 @@ class LegacyV2ApiDateFormatTest extends AbstractResourceTestBase {
     private void createArtifact(String groupId, String artifactId) {
         try {
             String artifactContent = resourceToString("openapi-empty.json");
-            createArtifact(groupId, artifactId, io.apicurio.registry.types.ArtifactType.OPENAPI,
+            createArtifact(groupId, artifactId, io.apicurio.registry.types.ArtifactType.OPENAPI.value(),
                     artifactContent, io.apicurio.registry.types.ContentTypes.APPLICATION_JSON, null);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create artifact", e);
         }
     }
 }
+

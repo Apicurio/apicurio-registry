@@ -51,7 +51,7 @@ public class LimitsTest extends AbstractResourceTestBase {
 
         String artifactId = TestUtils.generateArtifactId();
 
-        createArtifact(artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+        createArtifact(artifactId, ArtifactType.JSON.value(), content, ContentTypes.APPLICATION_JSON);
         createArtifactVersion(artifactId, content, ContentTypes.APPLICATION_JSON);
 
         // valid metadata
@@ -88,7 +88,7 @@ public class LimitsTest extends AbstractResourceTestBase {
                 io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
                     CreateArtifact createArtifact = new CreateArtifact();
                     createArtifact.setArtifactId(artifactId);
-                    createArtifact.setArtifactType(ArtifactType.JSON);
+                    createArtifact.setArtifactType(ArtifactType.JSON.value());
                     CreateVersion createVersion = new CreateVersion();
                     createArtifact.setFirstVersion(createVersion);
                     VersionContent versionContent = new VersionContent();

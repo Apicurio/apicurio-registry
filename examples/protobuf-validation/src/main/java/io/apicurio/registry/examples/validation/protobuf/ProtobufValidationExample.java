@@ -82,7 +82,7 @@ public class ProtobufValidationExample {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.PROTOBUF);
+        createArtifact.setArtifactType(ArtifactType.PROTOBUF.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent()
@@ -182,3 +182,4 @@ public class ProtobufValidationExample {
         }
     }
 }
+

@@ -27,7 +27,7 @@ public class WsdlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.WSDL;
+        return ArtifactType.WSDL.value();
     }
 
     @Override

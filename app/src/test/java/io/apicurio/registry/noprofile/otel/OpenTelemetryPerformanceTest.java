@@ -216,7 +216,7 @@ public class OpenTelemetryPerformanceTest extends AbstractResourceTestBase {
         // Warmup
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {
             String artifactId = "warmup-" + i;
-            createTestArtifact(groupId, artifactId, ArtifactType.AVRO, SIMPLE_AVRO_SCHEMA);
+            createTestArtifact(groupId, artifactId, ArtifactType.AVRO.value(), SIMPLE_AVRO_SCHEMA);
         }
 
         // Measure
@@ -226,7 +226,7 @@ public class OpenTelemetryPerformanceTest extends AbstractResourceTestBase {
         for (int i = 0; i < MEASURED_ITERATIONS; i++) {
             String artifactId = "measured-" + i;
             long opStart = System.nanoTime();
-            createTestArtifact(groupId, artifactId, ArtifactType.OPENAPI,
+            createTestArtifact(groupId, artifactId, ArtifactType.OPENAPI.value(),
                     String.format(OPENAPI_SCHEMA_TEMPLATE, artifactId));
             long opEnd = System.nanoTime();
             latencies.add((opEnd - opStart) / 1_000_000);
@@ -250,7 +250,7 @@ public class OpenTelemetryPerformanceTest extends AbstractResourceTestBase {
         String groupId = "perf-test-create-" + System.currentTimeMillis();
         // First, create some artifacts to retrieve
         for (int i = 0; i < Math.min(ARTIFACT_BATCH_SIZE, MEASURED_ITERATIONS); i++) {
-            createTestArtifact(groupId, "get-test-" + i, ArtifactType.AVRO, SIMPLE_AVRO_SCHEMA);
+            createTestArtifact(groupId, "get-test-" + i, ArtifactType.AVRO.value(), SIMPLE_AVRO_SCHEMA);
         }
 
         // Warmup
@@ -423,3 +423,4 @@ public class OpenTelemetryPerformanceTest extends AbstractResourceTestBase {
         }
     }
 }
+

@@ -97,7 +97,7 @@ public class SimpleJsonSchemaExample {
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setArtifactType(ArtifactType.JSON.value());
         createArtifact.setFirstVersion(new CreateVersion());
         createArtifact.getFirstVersion().setContent(new VersionContent());
         createArtifact.getFirstVersion().getContent()
@@ -259,3 +259,4 @@ public class SimpleJsonSchemaExample {
         }
     }
 }
+

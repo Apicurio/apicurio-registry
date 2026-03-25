@@ -259,7 +259,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 5; idx++) {
             String title = "Empty API " + idx;
             String artifactId = "Empty-" + idx;
-            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
         }
 
@@ -306,7 +306,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
             List<ArtifactReference> refs = idx > 0
                 ? getSingletonRefList(group, "Empty-" + (idx - 1), "1", "ref") : Collections.emptyList();
 
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                     emptyApiContent, ContentTypes.APPLICATION_JSON);
             createArtifact.getFirstVersion().getContent().setReferences(refs);
 
@@ -638,7 +638,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 3; idx++) {
             String title = "GroupA API " + idx;
             String artifactId = "GroupA-" + idx;
-            this.createArtifact(groupA, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(groupA, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
         }
 
@@ -646,7 +646,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         for (int idx = 0; idx < 2; idx++) {
             String title = "GroupB API " + idx;
             String artifactId = "GroupB-" + idx;
-            this.createArtifact(groupB, artifactId, ArtifactType.OPENAPI,
+            this.createArtifact(groupB, artifactId, ArtifactType.OPENAPI.value(),
                     artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
         }
 
@@ -710,3 +710,4 @@ public class AdminResourceTest extends AbstractResourceTestBase {
     }
 
 }
+

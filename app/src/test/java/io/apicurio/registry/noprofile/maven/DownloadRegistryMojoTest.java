@@ -34,7 +34,7 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
 
         Schema schema = Schema.createUnion(
                 Arrays.asList(Schema.create(Schema.Type.STRING), Schema.create(Schema.Type.NULL)));
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(),
                 schema.toString(), ContentTypes.APPLICATION_JSON);
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
 
@@ -55,3 +55,4 @@ public class DownloadRegistryMojoTest extends RegistryMojoTestBase {
     }
 
 }
+

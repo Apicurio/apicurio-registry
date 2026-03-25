@@ -40,15 +40,16 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
             for (String version : versions) {
                 final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(
                         ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
+                final ArtifactType artifactType = ArtifactType.fromValue(artifactVersionMetaData.getArtifactType());
                 // Assume the content type of the SchemaContent is the same as the previous version.
                 String contentType = ContentTypes.APPLICATION_JSON;
-                if (artifactVersionMetaData.getArtifactType().equals(ArtifactType.PROTOBUF)) {
+                if (ArtifactType.PROTOBUF == artifactType) {
                     contentType = ContentTypes.APPLICATION_PROTOBUF;
                 }
                 TypedContent typedContent = TypedContent.create(ContentHandle.create(request.getSchema()),
                         contentType);
                 rulesService.applyRules(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version,
-                        artifactVersionMetaData.getArtifactType(), typedContent, Collections.emptyList(),
+                        artifactType, typedContent, Collections.emptyList(),
                         Collections.emptyMap());
             }
             CompatibilityCheckResponse response = new CompatibilityCheckResponse();
@@ -86,15 +87,16 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                         try {
                             final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(
                                     ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
+                            final ArtifactType artifactType = ArtifactType.fromValue(artifact.getArtifactType());
                             // Assume the content type of the SchemaContent is correct based on the artifact type.
                             String contentType = ContentTypes.APPLICATION_JSON;
-                            if (artifact.getArtifactType().equals(ArtifactType.PROTOBUF)) {
+                            if (ArtifactType.PROTOBUF == artifactType) {
                                 contentType = ContentTypes.APPLICATION_PROTOBUF;
                             }
                             TypedContent typedContent = TypedContent
                                     .create(ContentHandle.create(request.getSchema()), contentType);
                             rulesService.applyRules(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version,
-                                    artifact.getArtifactType(), typedContent, Collections.emptyList(),
+                                    artifactType, typedContent, Collections.emptyList(),
                                     Collections.emptyMap());
                             CompatibilityCheckResponse response = new CompatibilityCheckResponse();
                             response.setIsCompatible(true);

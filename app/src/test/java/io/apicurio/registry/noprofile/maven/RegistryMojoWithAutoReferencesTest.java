@@ -69,7 +69,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact tradeRawArtifact = new RegisterArtifact();
         tradeRawArtifact.setGroupId(groupId);
         tradeRawArtifact.setArtifactId(artifactId);
-        tradeRawArtifact.setArtifactType(ArtifactType.AVRO);
+        tradeRawArtifact.setArtifactType(ArtifactType.AVRO.value());
         tradeRawArtifact.setFile(tradeRawFile);
         tradeRawArtifact.setAutoRefs(true);
         tradeRawArtifact.setIfExists(IfArtifactExists.FAIL);
@@ -100,7 +100,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact tableNotification = new RegisterArtifact();
         tableNotification.setGroupId(groupId);
         tableNotification.setArtifactId(artifactId);
-        tableNotification.setArtifactType(ArtifactType.PROTOBUF);
+        tableNotification.setArtifactType(ArtifactType.PROTOBUF.value());
         tableNotification.setFile(tableNotificationFile);
         tableNotification.setAutoRefs(true);
         tableNotification.setIfExists(IfArtifactExists.FAIL);
@@ -135,7 +135,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact citizen = new RegisterArtifact();
         citizen.setGroupId(groupId);
         citizen.setArtifactId(artifactId);
-        citizen.setArtifactType(ArtifactType.JSON);
+        citizen.setArtifactType(ArtifactType.JSON.value());
         citizen.setFile(citizenFile);
         citizen.setAutoRefs(true);
         citizen.setIfExists(IfArtifactExists.FAIL);
@@ -176,7 +176,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact petstoreApi = new RegisterArtifact();
         petstoreApi.setGroupId(groupId);
         petstoreApi.setArtifactId(artifactId);
-        petstoreApi.setArtifactType(ArtifactType.OPENAPI);
+        petstoreApi.setArtifactType(ArtifactType.OPENAPI.value());
         petstoreApi.setFile(petstoreApiFile);
         petstoreApi.setAutoRefs(true);
         petstoreApi.setIfExists(IfArtifactExists.FAIL);
@@ -220,7 +220,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact tradeOrderArtifact = new RegisterArtifact();
         tradeOrderArtifact.setGroupId(groupId);
         tradeOrderArtifact.setArtifactId(artifactId);
-        tradeOrderArtifact.setArtifactType(ArtifactType.AVRO);
+        tradeOrderArtifact.setArtifactType(ArtifactType.AVRO.value());
         tradeOrderArtifact.setFile(tradeOrderFile);
         tradeOrderArtifact.setAutoRefs(true);
         tradeOrderArtifact.setAvroAutoRefsNamingStrategy(RegisterArtifact.AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP);
@@ -270,7 +270,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         RegisterArtifact tradeArtifact = new RegisterArtifact();
         tradeArtifact.setGroupId(groupId);
         tradeArtifact.setArtifactId(artifactId);
-        tradeArtifact.setArtifactType(ArtifactType.AVRO);
+        tradeArtifact.setArtifactType(ArtifactType.AVRO.value());
         tradeArtifact.setFile(tradeFile);
         tradeArtifact.setAutoRefs(true);
         tradeArtifact.setIfExists(IfArtifactExists.FAIL);
@@ -322,7 +322,7 @@ public class RegistryMojoWithAutoReferencesTest extends RegistryMojoTestBase {
         stock.setGroupId(groupId);
         stock.setArtifactId(artifactId);
         stock.setVersion(version);
-        stock.setArtifactType(ArtifactType.JSON);
+        stock.setArtifactType(ArtifactType.JSON.value());
         stock.setFile(stockFile);
         stock.setIfExists(IfArtifactExists.FIND_OR_CREATE_VERSION);
 

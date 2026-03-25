@@ -121,12 +121,12 @@ message UserCreatedEvent {
 
         // Create the first artifact (UserCreated.proto) - this should succeed
         CreateArtifactResponse response1 = createArtifact(groupId, referencedArtifactId,
-                ArtifactType.PROTOBUF, userCreatedContent, ContentTypes.APPLICATION_PROTOBUF);
+                ArtifactType.PROTOBUF.value(), userCreatedContent, ContentTypes.APPLICATION_PROTOBUF);
 
         Assertions.assertNotNull(response1);
         Assertions.assertEquals(groupId, response1.getArtifact().getGroupId());
         Assertions.assertEquals(referencedArtifactId, response1.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.PROTOBUF, response1.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.PROTOBUF.value(), response1.getArtifact().getArtifactType());
         Assertions.assertEquals("1", response1.getVersion().getVersion());
 
         // Create reference to the first artifact
@@ -139,13 +139,13 @@ message UserCreatedEvent {
 
         // Create the second artifact (UserCreatedEvent.proto) with reference
         CreateArtifactResponse response2 = createArtifactWithReferences(groupId, referencingArtifactId,
-                ArtifactType.PROTOBUF, userCreatedEventContent, ContentTypes.APPLICATION_PROTOBUF,
+                ArtifactType.PROTOBUF.value(), userCreatedEventContent, ContentTypes.APPLICATION_PROTOBUF,
                 List.of(reference));
 
         Assertions.assertNotNull(response2);
         Assertions.assertEquals(groupId, response2.getArtifact().getGroupId());
         Assertions.assertEquals(referencingArtifactId, response2.getArtifact().getArtifactId());
-        Assertions.assertEquals(ArtifactType.PROTOBUF, response2.getArtifact().getArtifactType());
+        Assertions.assertEquals(ArtifactType.PROTOBUF.value(), response2.getArtifact().getArtifactType());
         Assertions.assertEquals("1", response2.getVersion().getVersion());
 
         // Verify the references are properly stored
@@ -161,3 +161,4 @@ message UserCreatedEvent {
         Assertions.assertEquals(reference.getGroupId(), actualReferences.get(0).getGroupId());
     }
 }
+

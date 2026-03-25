@@ -38,7 +38,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      */
     @Override
     public String artifactType() {
-        return ArtifactType.AVRO;
+        return ArtifactType.AVRO.value();
     }
 
     /**
@@ -213,3 +213,4 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
                 || type == Schema.Type.ENUM || type == Schema.Type.UNION;
     }
 }
+

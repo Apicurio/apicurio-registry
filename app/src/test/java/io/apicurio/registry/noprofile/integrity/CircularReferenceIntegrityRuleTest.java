@@ -61,7 +61,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactA = TestUtils.generateArtifactId();
         CreateArtifact createArtifactA = new CreateArtifact();
         createArtifactA.setArtifactId(artifactA);
-        createArtifactA.setArtifactType(ArtifactType.AVRO);
+        createArtifactA.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionA = new CreateVersion();
         VersionContent contentA = new VersionContent();
         contentA.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordA"));
@@ -76,7 +76,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactB = TestUtils.generateArtifactId();
         CreateArtifact createArtifactB = new CreateArtifact();
         createArtifactB.setArtifactId(artifactB);
-        createArtifactB.setArtifactType(ArtifactType.AVRO);
+        createArtifactB.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionB = new CreateVersion();
         VersionContent contentB = new VersionContent();
         contentB.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordB"));
@@ -137,7 +137,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactA = TestUtils.generateArtifactId();
         CreateArtifact createArtifactA = new CreateArtifact();
         createArtifactA.setArtifactId(artifactA);
-        createArtifactA.setArtifactType(ArtifactType.AVRO);
+        createArtifactA.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionA = new CreateVersion();
         VersionContent contentA = new VersionContent();
         contentA.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordA"));
@@ -187,7 +187,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactA = TestUtils.generateArtifactId();
         CreateArtifact createArtifactA = new CreateArtifact();
         createArtifactA.setArtifactId(artifactA);
-        createArtifactA.setArtifactType(ArtifactType.AVRO);
+        createArtifactA.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionA = new CreateVersion();
         VersionContent contentA = new VersionContent();
         contentA.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordA"));
@@ -202,7 +202,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactB = TestUtils.generateArtifactId();
         CreateArtifact createArtifactB = new CreateArtifact();
         createArtifactB.setArtifactId(artifactB);
-        createArtifactB.setArtifactType(ArtifactType.AVRO);
+        createArtifactB.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionB = new CreateVersion();
         VersionContent contentB = new VersionContent();
         contentB.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordB"));
@@ -229,7 +229,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactC = TestUtils.generateArtifactId();
         CreateArtifact createArtifactC = new CreateArtifact();
         createArtifactC.setArtifactId(artifactC);
-        createArtifactC.setArtifactType(ArtifactType.AVRO);
+        createArtifactC.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionC = new CreateVersion();
         VersionContent contentC = new VersionContent();
         contentC.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordC"));
@@ -263,7 +263,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactA = TestUtils.generateArtifactId();
         CreateArtifact createArtifactA = new CreateArtifact();
         createArtifactA.setArtifactId(artifactA);
-        createArtifactA.setArtifactType(ArtifactType.AVRO);
+        createArtifactA.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionA = new CreateVersion();
         VersionContent contentA = new VersionContent();
         contentA.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordA"));
@@ -278,7 +278,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactB = TestUtils.generateArtifactId();
         CreateArtifact createArtifactB = new CreateArtifact();
         createArtifactB.setArtifactId(artifactB);
-        createArtifactB.setArtifactType(ArtifactType.AVRO);
+        createArtifactB.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionB = new CreateVersion();
         VersionContent contentB = new VersionContent();
         contentB.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordB"));
@@ -338,7 +338,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactA = TestUtils.generateArtifactId();
         CreateArtifact createArtifactA = new CreateArtifact();
         createArtifactA.setArtifactId(artifactA);
-        createArtifactA.setArtifactType(ArtifactType.AVRO);
+        createArtifactA.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionA = new CreateVersion();
         VersionContent contentA = new VersionContent();
         contentA.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordA"));
@@ -353,7 +353,7 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         String artifactB = TestUtils.generateArtifactId();
         CreateArtifact createArtifactB = new CreateArtifact();
         createArtifactB.setArtifactId(artifactB);
-        createArtifactB.setArtifactType(ArtifactType.AVRO);
+        createArtifactB.setArtifactType(ArtifactType.AVRO.value());
         CreateVersion versionB = new CreateVersion();
         VersionContent contentB = new VersionContent();
         contentB.setContent(String.format(AVRO_SCHEMA_TEMPLATE, "RecordB"));
@@ -399,3 +399,4 @@ public class CircularReferenceIntegrityRuleTest extends AbstractResourceTestBase
         Assertions.assertEquals("2", newResponseA.getVersion());
     }
 }
+

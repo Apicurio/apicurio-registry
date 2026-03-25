@@ -35,11 +35,14 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
             + "  required string message = 1;\n" + "  required int64 time = 2;\n"
             + "  required string code = 3;\n" + "}";
 
+    private ArtifactTypeUtilProvider provider(ArtifactType artifactType) {
+        return factory.getArtifactTypeProvider(artifactType.value());
+    }
+
     @Test
     public void testAvro() {
         String avroString = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"f1\",\"type\":\"string\"}]}";
-        String avro = ArtifactType.AVRO;
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(avro);
+        ArtifactTypeUtilProvider provider = provider(ArtifactType.AVRO);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(
@@ -60,8 +63,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
     public void testJson() {
         String jsonString = JsonSchemas.jsonSchema;
         String incompatibleJsonString = JsonSchemas.incompatibleJsonSchema;
-        String json = ArtifactType.JSON;
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(json);
+        ArtifactTypeUtilProvider provider = provider(ArtifactType.JSON);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         Assertions.assertTrue(checker.testCompatibility(CompatibilityLevel.BACKWARD, Collections.emptyList(),
@@ -106,8 +108,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
                 + "service ChannelChanger {\n" + "\trpc Next(stream NextRequest) returns (Channel);\n"
                 + "\trpc Previous(PreviousRequest) returns (stream Channel);\n" + "}\n";
 
-        String protobuf = ArtifactType.PROTOBUF;
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
+        ArtifactTypeUtilProvider provider = provider(ArtifactType.PROTOBUF);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(
@@ -161,8 +162,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         String data = "syntax = \"proto2\";\n" + "\n" + "message ProtoSchema {\n"
                 + "  required string message = 1;\n" + "  required int64 time = 2;\n" + "}";
 
-        String protobuf = ArtifactType.PROTOBUF;
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
+        ArtifactTypeUtilProvider provider = provider(ArtifactType.PROTOBUF);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         CompatibilityExecutionResult compatibilityExecutionResult = checker.testCompatibility(
@@ -194,8 +194,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     @Test
     public void testProtobufBackwardTransitive() {
-        String protobuf = ArtifactType.PROTOBUF;
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
+        ArtifactTypeUtilProvider provider = provider(ArtifactType.PROTOBUF);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         // adding a required field is not allowed since the first schema does not have it, should fail
@@ -220,8 +219,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     @Test
     public void testProtobufForward() {
-        String protobuf = ArtifactType.PROTOBUF;
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
+        ArtifactTypeUtilProvider provider = provider(ArtifactType.PROTOBUF);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         // adding a required field is not allowed, should fail
@@ -254,8 +252,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     @Test
     public void testProtobufForwardTransitive() {
-        String protobuf = ArtifactType.PROTOBUF;
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
+        ArtifactTypeUtilProvider provider = provider(ArtifactType.PROTOBUF);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         // must pass, all the existing schemas are the same
@@ -290,8 +287,7 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
 
     @Test
     public void testProtobufFull() {
-        String protobuf = ArtifactType.PROTOBUF;
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(protobuf);
+        ArtifactTypeUtilProvider provider = provider(ArtifactType.PROTOBUF);
         CompatibilityChecker checker = provider.getCompatibilityChecker();
 
         // adding a required field is not allowed since we're now checking forward transitive and the field is

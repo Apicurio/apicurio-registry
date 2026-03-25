@@ -138,7 +138,7 @@ public class ExtJsonConverter extends BaseSerde<JsonNode, Object>
      */
     @Override
     public String artifactType() {
-        return ArtifactType.KCONNECT;
+        return ArtifactType.KCONNECT.value();
     }
 
     /**

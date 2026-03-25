@@ -56,7 +56,7 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
         // Step 1: Create artifacts so there is data to export
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "testImportReindex_api-" + idx;
-            createArtifact(group, artifactId, ArtifactType.OPENAPI,
+            createArtifact(group, artifactId, ArtifactType.OPENAPI.value(),
                     "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"API " + idx + "\"}}",
                     ContentTypes.APPLICATION_JSON);
         }
@@ -101,7 +101,7 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
 
         // Create an artifact and set metadata (name, description, labels)
         CreateArtifactResponse car = createArtifact(group, "testImportReindexMeta_api-1",
-                ArtifactType.OPENAPI, "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
+                ArtifactType.OPENAPI.value(), "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
         EditableVersionMetaData emd = new EditableVersionMetaData();
         emd.setName("Pet Store API");
         emd.setDescription("An API for managing pets");
@@ -112,7 +112,7 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
 
         // Create a second artifact with different metadata
         CreateArtifactResponse car2 = createArtifact(group, "testImportReindexMeta_api-2",
-                ArtifactType.AVRO,
+                ArtifactType.AVRO.value(),
                 "{\"type\":\"record\",\"name\":\"Test\",\"fields\":[]}",
                 ContentTypes.APPLICATION_JSON);
         EditableVersionMetaData emd2 = new EditableVersionMetaData();
@@ -149,7 +149,7 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
         // Verify search by artifact type works after import
         results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
-            config.queryParameters.artifactType = ArtifactType.AVRO;
+            config.queryParameters.artifactType = ArtifactType.AVRO.value();
         });
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertEquals("testImportReindexMeta_api-2",
@@ -170,7 +170,7 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
         String group = TestUtils.generateGroupId();
 
         // Create an artifact with multiple versions
-        createArtifact(group, "testImportReindexVersions_api-1", ArtifactType.OPENAPI,
+        createArtifact(group, "testImportReindexVersions_api-1", ArtifactType.OPENAPI.value(),
                 "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
         createArtifactVersion(group, "testImportReindexVersions_api-1",
                 "{\"openapi\":\"3.0.1\"}", ContentTypes.APPLICATION_JSON);
@@ -178,7 +178,7 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
                 "{\"openapi\":\"3.1.0\"}", ContentTypes.APPLICATION_JSON);
 
         // Create another single-version artifact
-        createArtifact(group, "testImportReindexVersions_api-2", ArtifactType.OPENAPI,
+        createArtifact(group, "testImportReindexVersions_api-2", ArtifactType.OPENAPI.value(),
                 "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
 
         indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
@@ -248,3 +248,4 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
         }
     }
 }
+

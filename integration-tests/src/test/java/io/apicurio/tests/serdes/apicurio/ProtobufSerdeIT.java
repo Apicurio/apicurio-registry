@@ -52,7 +52,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
@@ -70,7 +70,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
@@ -90,7 +90,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         ProtobufTestMessageFactory schemaA = new ProtobufTestMessageFactory();
         ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schemaA.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>().withTopic(topicName)
@@ -109,7 +109,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         ProtobufTestMessageFactory schemaA = new ProtobufTestMessageFactory();
         ProtobufUUIDTestMessage schemaB = new ProtobufUUIDTestMessage();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schemaA.generateSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schemaA.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         new WrongConfiguredSerdesTesterBuilder<TestCmmn.UUID>().withTopic(topicName)
@@ -150,7 +150,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
         ProtobufTestMessageFactory schemaV1 = new ProtobufTestMessageFactory();
         ProtobufUUIDTestMessage schemaV2 = new ProtobufUUIDTestMessage();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF,
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(),
                 schemaV1.generateArtificialSchemaString(), ContentTypes.APPLICATION_PROTOBUF, null, null);
         createArtifactVersion("default", artifactId, schemaV2.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null);
@@ -207,7 +207,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>().withTopic(topicName)
@@ -227,7 +227,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
@@ -247,7 +247,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
@@ -266,7 +266,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, ProtobufTestMessage>().withTopic(topicName)
@@ -286,7 +286,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         String schemaContent = resourceToString("serdes/testmessage.proto");
 
-        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF, schemaContent,
+        createArtifact(topicName, artifactId, ArtifactType.PROTOBUF.value(), schemaContent,
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
@@ -309,7 +309,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         String schemaContent = resourceToString("serdes/testmessage.proto");
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schemaContent,
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schemaContent,
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
@@ -457,7 +457,7 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
 
         ProtobufTestMessageFactory schema = new ProtobufTestMessageFactory();
 
-        createArtifact("default", artifactId, ArtifactType.PROTOBUF, schema.generateSchemaString(),
+        createArtifact("default", artifactId, ArtifactType.PROTOBUF.value(), schema.generateSchemaString(),
                 ContentTypes.APPLICATION_PROTOBUF, null, null);
 
         new SimpleSerdesTesterBuilder<ProtobufTestMessage, DynamicMessage>().withTopic(topicName)
@@ -467,3 +467,4 @@ public class ProtobufSerdeIT extends ApicurioRegistryBaseIT {
     }
 
 }
+

@@ -1,0 +1,48 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="artifact-type-migration_{context}"]
+= Migrating artifact type handling in SDKs
+
+[role="_abstract"]
+This page describes how to migrate application and SDK code to the new `ArtifactType` model.
+
+The registry is moving toward a type-safe artifact type model for the next major version.
+Built-in artifact types are represented by `ArtifactType` constants, while custom artifact
+types remain supported at runtime.
+
+== What changes
+
+The public wire format remains a string, so REST payloads, query parameters, Kafka headers,
+and database records continue to store artifact types as strings.
+
+The code-level model changes:
+
+* Use `ArtifactType` in application code instead of passing raw strings around internally.
+* Use `ArtifactType.fromValue(String)` only when converting user input or persisted data.
+* Call `.value()` only at system boundaries where a string is required.
+* Treat custom types as first-class values via `ArtifactType.Custom`.
+
+== Recommended migration steps
+
+1. Replace string literals such as `"AVRO"` with `ArtifactType.AVRO` where possible.
+2. Update helper methods, service signatures, and test utilities to accept `ArtifactType`.
+3. Keep REST request and response models as strings to preserve backward compatibility on the wire.
+4. Use `ArtifactType.fromValue()` when reading from REST requests, persisted metadata, or headers.
+5. Use `.value()` only when serializing back to REST, storage, or message headers.
+
+== Custom artifact types
+
+Custom artifact types are still supported and are not modeled as enum constants.
+If your application accepts user-defined artifact types, use the sealed `ArtifactType`
+hierarchy and branch on `ArtifactType.BuiltIn` vs `ArtifactType.Custom` where needed.
+
+== SDK impact
+
+For SDK consumers, this is a breaking source change but not a wire-format change:
+
+* Recompile your code against the new SDK version.
+* Update method calls that currently pass raw strings to use `ArtifactType` where available.
+* Keep custom type names as strings when calling public REST APIs.
+
+This change is intended for a future major release, so consumers should plan for a
+`v4.0.0`-style migration window.

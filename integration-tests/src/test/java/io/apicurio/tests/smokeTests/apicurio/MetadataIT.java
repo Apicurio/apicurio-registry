@@ -33,7 +33,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactDefinition,
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO.value(), artifactDefinition,
                 ContentTypes.APPLICATION_JSON, null, null);
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact());
 
@@ -72,7 +72,7 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         String artifactId = TestUtils.generateArtifactId();
         String artifactDefinition = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
 
-        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO, artifactDefinition,
+        var caResponse = createArtifact(groupId, artifactId, ArtifactType.AVRO.value(), artifactDefinition,
                 ContentTypes.APPLICATION_JSON, null, (ca) -> {
                     ca.getFirstVersion().setName("Version 1 Name");
                 });
@@ -112,3 +112,4 @@ class MetadataIT extends ApicurioRegistryBaseIT {
         assertThat(versionMetaData.getDescription(), nullValue());
     }
 }
+

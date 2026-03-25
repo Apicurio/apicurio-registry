@@ -27,13 +27,13 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         // Create 5 artifacts in group 1
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "testSearchVersionsByGroupId_Group1_Artifact_" + idx;
-            createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
+            createArtifact(group1, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
         }
         // Create 3 artifacts in group 2
         for (int idx = 0; idx < 3; idx++) {
             String artifactId = "testSearchVersionsByGroupId_Group2_Artifact_" + idx;
-            this.createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
+            this.createArtifact(group2, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
         }
 
@@ -63,14 +63,14 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         // Create 5 artifacts in group 1 (two versions each)
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "testSearchVersionsByArtifactId_Group1_Artifact_" + idx;
-            createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
+            createArtifact(group1, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
             createArtifactVersion(group1, artifactId, artifactContent, ContentTypes.APPLICATION_JSON);
         }
         // Create 3 artifacts in group 2
         for (int idx = 0; idx < 3; idx++) {
             String artifactId = "testSearchVersionsByArtifactId_Group2_Artifact_" + idx;
-            createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
+            createArtifact(group2, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
         }
 
@@ -102,7 +102,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             String uniqueContent = artifactContent.replaceAll("Empty API", name);
             String commonContent = searchByCommonContent;
             // First version is common content (same for every artifact)
-            createArtifact(group, artifactId, ArtifactType.OPENAPI, commonContent,
+            createArtifact(group, artifactId, ArtifactType.OPENAPI.value(), commonContent,
                     ContentTypes.APPLICATION_JSON);
             // Second version is unique to each artifact
             createArtifactVersion(group, artifactId, uniqueContent, ContentTypes.APPLICATION_JSON);
@@ -138,7 +138,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             String uniqueContent = artifactContent.replaceAll("Empty API", name);
             String commonContent = searchByCommonContent;
             // First version is common content (same for every artifact)
-            createArtifact(group, artifactId, ArtifactType.OPENAPI, commonContent,
+            createArtifact(group, artifactId, ArtifactType.OPENAPI.value(), commonContent,
                     ContentTypes.APPLICATION_JSON);
             // Second version is unique to each artifact
             createArtifactVersion(group, artifactId, uniqueContent, ContentTypes.APPLICATION_JSON);
@@ -159,7 +159,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         results = clientV3.search().versions().post(asInputStream(searchByCanonicalContent),
                 ContentTypes.APPLICATION_JSON, (config) -> {
                     config.queryParameters.canonical = true;
-                    config.queryParameters.artifactType = ArtifactType.OPENAPI;
+                    config.queryParameters.artifactType = ArtifactType.OPENAPI.value();
                 });
         Assertions.assertEquals(1, results.getCount());
     }
@@ -179,7 +179,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             String uniqueContent = artifactContent.replaceAll("Empty API", name);
             String commonContent = searchByCommonContent;
             // First version is common content (same for every artifact)
-            createArtifact(group, artifactId, ArtifactType.OPENAPI, commonContent,
+            createArtifact(group, artifactId, ArtifactType.OPENAPI.value(), commonContent,
                     ContentTypes.APPLICATION_JSON);
             // Second version is unique to each artifact
             createArtifactVersion(group, artifactId, uniqueContent, ContentTypes.APPLICATION_JSON);
@@ -211,7 +211,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         // Create 5 artifacts in group 1 (two versions each)
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "testSearchVersionsByIds_Group1_Artifact_" + idx;
-            createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
+            createArtifact(group1, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
             createArtifactVersion(group1, artifactId, artifactContent, ContentTypes.APPLICATION_JSON);
         }
@@ -219,7 +219,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         CreateArtifactResponse createArtifactResponse = null;
         for (int idx = 0; idx < 3; idx++) {
             String artifactId = "testSearchVersionsByIds_Group2_Artifact_" + idx;
-            createArtifactResponse = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
+            createArtifactResponse = createArtifact(group2, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
         }
 
@@ -252,7 +252,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         // Create 5 artifacts in group 1 (two versions each)
         for (int idx = 0; idx < 5; idx++) {
             String artifactId = "testSearchVersionsByIds_Group1_Artifact_" + idx;
-            car = createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
+            car = createArtifact(group1, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
             createArtifactVersion(group1, artifactId, artifactContent, ContentTypes.APPLICATION_JSON);
 
@@ -267,7 +267,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         // Create 3 artifacts in group 2
         for (int idx = 0; idx < 3; idx++) {
             String artifactId = "testSearchVersionsByIds_Group2_Artifact_" + idx;
-            car = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
+            car = createArtifact(group2, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                     ContentTypes.APPLICATION_JSON);
 
             // Add labels to some versions
@@ -304,3 +304,4 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
     }
 
 }
+

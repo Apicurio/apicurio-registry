@@ -46,7 +46,7 @@ public class Base64ContentTest extends AbstractResourceTestBase {
 
         CreateArtifact createArtifact = CreateArtifact.builder()
                 .artifactId(artifactId)
-                .artifactType(ArtifactType.JSON)
+                .artifactType(ArtifactType.JSON.value())
                 .firstVersion(CreateVersion.builder()
                         .content(VersionContent.builder()
                                 .content(base64Content)
@@ -60,7 +60,7 @@ public class Base64ContentTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.artifactId", equalTo(artifactId))
-                .body("artifact.artifactType", equalTo(ArtifactType.JSON));
+                .body("artifact.artifactType", equalTo(ArtifactType.JSON.value()));
 
         // Verify the stored content is the decoded JSON, not the base64 string
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
@@ -77,7 +77,7 @@ public class Base64ContentTest extends AbstractResourceTestBase {
         String artifactId = "testCreateVersionWithBase64Content";
 
         // First, create an artifact with normal content
-        createArtifact(GROUP, artifactId, ArtifactType.JSON, JSON_SCHEMA_CONTENT,
+        createArtifact(GROUP, artifactId, ArtifactType.JSON.value(), JSON_SCHEMA_CONTENT,
                 ContentTypes.APPLICATION_JSON);
 
         // Now create a new version with base64-encoded content
@@ -125,13 +125,13 @@ public class Base64ContentTest extends AbstractResourceTestBase {
     public void testCreateArtifactWithNoEncoding() throws Exception {
         String artifactId = "testCreateArtifactWithNoEncoding";
 
-        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.JSON,
+        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.JSON.value(),
                 JSON_SCHEMA_CONTENT, ContentTypes.APPLICATION_JSON);
 
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200)
                 .body("artifact.artifactId", equalTo(artifactId))
-                .body("artifact.artifactType", equalTo(ArtifactType.JSON));
+                .body("artifact.artifactType", equalTo(ArtifactType.JSON.value()));
 
         // Verify the stored content is correct
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
@@ -149,7 +149,7 @@ public class Base64ContentTest extends AbstractResourceTestBase {
 
         CreateArtifact createArtifact = CreateArtifact.builder()
                 .artifactId(artifactId)
-                .artifactType(ArtifactType.JSON)
+                .artifactType(ArtifactType.JSON.value())
                 .firstVersion(CreateVersion.builder()
                         .content(VersionContent.builder()
                                 .content("!!!not-valid-base64!!!")
@@ -173,7 +173,7 @@ public class Base64ContentTest extends AbstractResourceTestBase {
         // Create an artifact with a draft version
         CreateArtifact createArtifact = CreateArtifact.builder()
                 .artifactId(artifactId)
-                .artifactType(ArtifactType.JSON)
+                .artifactType(ArtifactType.JSON.value())
                 .firstVersion(CreateVersion.builder()
                         .isDraft(true)
                         .content(VersionContent.builder()
@@ -225,3 +225,4 @@ public class Base64ContentTest extends AbstractResourceTestBase {
                 .body("properties.email.format", equalTo("email"));
     }
 }
+

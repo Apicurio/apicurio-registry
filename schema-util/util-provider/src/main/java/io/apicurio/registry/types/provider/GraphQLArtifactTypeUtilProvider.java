@@ -27,7 +27,7 @@ public class GraphQLArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.GRAPHQL;
+        return ArtifactType.GRAPHQL.value();
     }
 
     @Override

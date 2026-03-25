@@ -113,45 +113,45 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
     @Test
     @Tag(ACCEPTANCE)
     void testAvro() throws Exception {
-        doTest("avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO,
+        doTest("avro/multi-field_v1.json", "avro/multi-field_v2.json", ArtifactType.AVRO.value(),
                 ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     @Tag(ACCEPTANCE)
     void testProtobuf() throws Exception {
-        doTest("protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF,
+        doTest("protobuf/tutorial_v1.proto", "protobuf/tutorial_v2.proto", ArtifactType.PROTOBUF.value(),
                 ContentTypes.APPLICATION_PROTOBUF);
     }
 
     @Test
     @Tag(ACCEPTANCE)
     void testJsonSchema() throws Exception {
-        doTest("jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON,
+        doTest("jsonSchema/person_v1.json", "jsonSchema/person_v2.json", ArtifactType.JSON.value(),
                 ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     void testKafkaConnect() throws Exception {
-        doTest("kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT,
+        doTest("kafkaConnect/simple_v1.json", "kafkaConnect/simple_v2.json", ArtifactType.KCONNECT.value(),
                 ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     void testOpenApi30() throws Exception {
-        doTest("openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI,
+        doTest("openapi/3.0-petstore_v1.json", "openapi/3.0-petstore_v2.json", ArtifactType.OPENAPI.value(),
                 ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     void testAsyncApi() throws Exception {
         doTest("asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json",
-                ArtifactType.ASYNCAPI, ContentTypes.APPLICATION_JSON);
+                ArtifactType.ASYNCAPI.value(), ContentTypes.APPLICATION_JSON);
     }
 
     @Test
     void testGraphQL() throws Exception {
-        doTest("graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL,
+        doTest("graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL.value(),
                 ContentTypes.APPLICATION_GRAPHQL);
     }
 
@@ -164,3 +164,4 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
         });
     }
 }
+

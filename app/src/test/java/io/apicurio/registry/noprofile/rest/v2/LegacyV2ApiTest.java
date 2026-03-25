@@ -25,7 +25,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         String artifactId = "testLegacyLabels";
-        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Update the artifact meta-data
@@ -49,7 +49,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         String artifactId = "testLegacyProperties";
-        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         // Update the artifact meta-data
@@ -73,7 +73,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
         String artifactContent = resourceToString("openapi-empty.json");
 
         String artifactId = "testLegacyPropertiesWithLabels";
-        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+        this.createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON);
 
         List<String> labels = List.of("label-one", "label-two");
@@ -108,7 +108,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
 
         // Create artifact with name "1.0.0" and description
         given().when().contentType(CT_JSON).header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI).header("X-Registry-Name", "1.0.0")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.value()).header("X-Registry-Name", "1.0.0")
                 .header("X-Registry-Description", "Initial version").pathParam("groupId", GROUP)
                 .body(artifactContent).post("/registry/v2/groups/{groupId}/artifacts").then()
                 .statusCode(200).body("name", equalTo("1.0.0"))
@@ -134,7 +134,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
 
         // Create artifact with name "1.0.0" and description
         given().when().contentType(CT_JSON).header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI).header("X-Registry-Name", "1.0.0")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.value()).header("X-Registry-Name", "1.0.0")
                 .header("X-Registry-Description", "Initial version").pathParam("groupId", GROUP)
                 .body(artifactContent).post("/registry/v2/groups/{groupId}/artifacts").then()
                 .statusCode(200);
@@ -166,7 +166,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
 
         // Create artifact with name "1.0.0"
         given().when().contentType(CT_JSON).header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI).header("X-Registry-Name", "1.0.0")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.value()).header("X-Registry-Name", "1.0.0")
                 .pathParam("groupId", GROUP).body(artifactContent)
                 .post("/registry/v2/groups/{groupId}/artifacts").then().statusCode(200);
 
@@ -203,7 +203,7 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
 
         // Create artifact with name "1.0.0" and description
         given().when().contentType(CT_JSON).header("X-Registry-ArtifactId", artifactId)
-                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI).header("X-Registry-Name", "1.0.0")
+                .header("X-Registry-ArtifactType", ArtifactType.OPENAPI.value()).header("X-Registry-Name", "1.0.0")
                 .header("X-Registry-Description", "First version").pathParam("groupId", GROUP)
                 .body(artifactContent).post("/registry/v2/groups/{groupId}/artifacts").then()
                 .statusCode(200).body("name", equalTo("1.0.0"))
@@ -231,3 +231,4 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
     }
 
 }
+

@@ -132,9 +132,10 @@ public class KubernetesOpsIT extends ReadOnlyRegistryBaseIT {
         // KubernetesOps storage is read-only, so create operations should fail
         Assertions.assertThrows(Exception.class, () -> {
             CreateArtifact createArtifact = TestUtils.clientCreateArtifact(
-                    "write-test-artifact", ArtifactType.OPENAPI,
+                    "write-test-artifact", ArtifactType.OPENAPI.value(),
                     "{}", ContentTypes.APPLICATION_JSON);
             registryClient.groups().byGroupId("default").artifacts().post(createArtifact);
         });
     }
 }
+

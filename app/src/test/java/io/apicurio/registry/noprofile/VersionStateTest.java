@@ -23,7 +23,7 @@ public class VersionStateTest extends AbstractResourceTestBase {
         String groupId = "VersionStateTest_testSmoke";
         String artifactId = generateArtifactId();
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, "{\"type\": \"string\"}",
+        createArtifact(groupId, artifactId, ArtifactType.JSON.value(), "{\"type\": \"string\"}",
                 ContentTypes.APPLICATION_JSON);
         createArtifactVersion(groupId, artifactId, "{\"type\": \"int\"}", ContentTypes.APPLICATION_JSON);
         createArtifactVersion(groupId, artifactId, "{\"type\": \"float\"}", ContentTypes.APPLICATION_JSON);

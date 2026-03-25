@@ -84,7 +84,7 @@ public class SemVerBranchesTest extends AbstractResourceTestBase {
     }
 
     private void createSemVerArtifact(String groupId, String artifactId) {
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO, "{}",
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO.value(), "{}",
                 ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setVersion("1.0.0");
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
@@ -97,3 +97,4 @@ public class SemVerBranchesTest extends AbstractResourceTestBase {
     }
 
 }
+

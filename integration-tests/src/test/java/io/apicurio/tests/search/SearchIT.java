@@ -43,9 +43,9 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         String content2 = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"User Management API\","
                 + "\"description\":\"An API for managing user accounts\"}}";
 
-        createArtifact(GROUP, artifactId1, ArtifactType.OPENAPI, content1,
+        createArtifact(GROUP, artifactId1, ArtifactType.OPENAPI.value(), content1,
                 ContentTypes.APPLICATION_JSON, null, null);
-        createArtifact(GROUP, artifactId2, ArtifactType.OPENAPI, content2,
+        createArtifact(GROUP, artifactId2, ArtifactType.OPENAPI.value(), content2,
                 ContentTypes.APPLICATION_JSON, null, null);
 
         // Allow time for ES indexing
@@ -94,7 +94,7 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         String artifactId = "searchByMeta-" + TestUtils.generateArtifactId();
 
         String content = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Test\"}}";
-        CreateArtifactResponse car = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI,
+        CreateArtifactResponse car = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(),
                 content, ContentTypes.APPLICATION_JSON, null, null);
 
         // Set a name on the version
@@ -135,7 +135,7 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         String labelKey = TestUtils.generateTopic();
 
         String content = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Labeled API\"}}";
-        CreateArtifactResponse car = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI,
+        CreateArtifactResponse car = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(),
                 content, ContentTypes.APPLICATION_JSON, null, null);
 
         // Add labels
@@ -180,7 +180,7 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         String artifactId = "searchDelete-" + TestUtils.generateArtifactId();
 
         String content = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Deletable API\"}}";
-        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content,
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(), content,
                 ContentTypes.APPLICATION_JSON, null, null);
 
         // Confirm it shows up in search
@@ -254,9 +254,9 @@ public class SearchIT extends ApicurioRegistryBaseIT {
                 + "  }\n"
                 + "}";
 
-        createArtifact(GROUP, artifactId1, ArtifactType.OPENAPI, openApi1,
+        createArtifact(GROUP, artifactId1, ArtifactType.OPENAPI.value(), openApi1,
                 ContentTypes.APPLICATION_JSON, null, null);
-        createArtifact(GROUP, artifactId2, ArtifactType.OPENAPI, openApi2,
+        createArtifact(GROUP, artifactId2, ArtifactType.OPENAPI.value(), openApi2,
                 ContentTypes.APPLICATION_JSON, null, null);
 
         // Allow time for ES indexing
@@ -383,9 +383,9 @@ public class SearchIT extends ApicurioRegistryBaseIT {
                 + "  }\n"
                 + "}";
 
-        createArtifact(GROUP, artifactId1, ArtifactType.JSON, jsonSchema1,
+        createArtifact(GROUP, artifactId1, ArtifactType.JSON.value(), jsonSchema1,
                 ContentTypes.APPLICATION_JSON, null, null);
-        createArtifact(GROUP, artifactId2, ArtifactType.JSON, jsonSchema2,
+        createArtifact(GROUP, artifactId2, ArtifactType.JSON.value(), jsonSchema2,
                 ContentTypes.APPLICATION_JSON, null, null);
 
         // Allow time for ES indexing
@@ -467,7 +467,7 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         String artifactId = "searchFields-" + TestUtils.generateArtifactId();
 
         String content = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Fields Test\"}}";
-        CreateArtifactResponse car = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI,
+        CreateArtifactResponse car = createArtifact(GROUP, artifactId, ArtifactType.OPENAPI.value(),
                 content, ContentTypes.APPLICATION_JSON, null, null);
         Long globalId = car.getVersion().getGlobalId();
 
@@ -493,7 +493,7 @@ public class SearchIT extends ApicurioRegistryBaseIT {
             Assertions.assertEquals(GROUP, version.getGroupId());
             Assertions.assertEquals(artifactId, version.getArtifactId());
             Assertions.assertEquals("1", version.getVersion());
-            Assertions.assertEquals(ArtifactType.OPENAPI, version.getArtifactType());
+            Assertions.assertEquals(ArtifactType.OPENAPI.value(), version.getArtifactType());
             Assertions.assertEquals("Fields Test API", version.getName());
             Assertions.assertEquals("API to verify search result field mapping",
                     version.getDescription());
@@ -504,3 +504,4 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         });
     }
 }
+

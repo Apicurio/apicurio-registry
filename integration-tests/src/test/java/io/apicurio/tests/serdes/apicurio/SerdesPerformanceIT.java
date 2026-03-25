@@ -286,7 +286,7 @@ public class SerdesPerformanceIT extends ApicurioRegistryBaseIT {
         ValidMessage testMessage = schemaFactory.generateMessage(1);
 
         // Pre-register schema for Apicurio (JSON Schema doesn't auto-register)
-        createArtifact(groupId, apicurioArtifactId, ArtifactType.JSON, schemaFactory.getSchemaString(),
+        createArtifact(groupId, apicurioArtifactId, ArtifactType.JSON.value(), schemaFactory.getSchemaString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         System.out.println("\n" + "=".repeat(80));
@@ -311,7 +311,7 @@ public class SerdesPerformanceIT extends ApicurioRegistryBaseIT {
         ValidMessage testMessage = schemaFactory.generateMessage(1);
 
         // Pre-register schema for Apicurio
-        createArtifact(groupId, apicurioArtifactId, ArtifactType.JSON, schemaFactory.getSchemaString(),
+        createArtifact(groupId, apicurioArtifactId, ArtifactType.JSON.value(), schemaFactory.getSchemaString(),
                 ContentTypes.APPLICATION_JSON, null, null);
 
         System.out.println("\n" + "=".repeat(80));
@@ -714,3 +714,4 @@ public class SerdesPerformanceIT extends ApicurioRegistryBaseIT {
                 operation, apicurioVsConfluent));
     }
 }
+

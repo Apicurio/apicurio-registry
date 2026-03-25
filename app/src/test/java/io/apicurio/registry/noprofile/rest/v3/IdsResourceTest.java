@@ -28,21 +28,21 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         // Create a throwaway artifact so that contentId for future artifacts with different
         // content will need to be greater than 0.
-        this.createArtifact(GROUP + "-foo", "Empty-0", ArtifactType.WSDL, resourceToString("sample.wsdl"),
+        this.createArtifact(GROUP + "-foo", "Empty-0", ArtifactType.WSDL.value(), resourceToString("sample.wsdl"),
                 ContentTypes.APPLICATION_XML);
 
         String artifactId1 = "testIdsAfterCreate/Empty-1";
         String artifactId2 = "testIdsAfterCreate/Empty-2";
 
         // Create artifact 1
-        CreateArtifact createArtifact1 = TestUtils.serverCreateArtifact(artifactId1, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact1 = TestUtils.serverCreateArtifact(artifactId1, ArtifactType.OPENAPI.value(),
                 artifactContent, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse createArtifactResponse1 = given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).body(createArtifact1)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200).extract()
                 .as(CreateArtifactResponse.class);
         // Create artifact 2
-        CreateArtifact createArtifact2 = TestUtils.serverCreateArtifact(artifactId2, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact2 = TestUtils.serverCreateArtifact(artifactId2, ArtifactType.OPENAPI.value(),
                 artifactContent, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse createArtifactResponse2 = given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).body(createArtifact2)
@@ -61,14 +61,14 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         // Get artifact1 meta data and check the contentId
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId1)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
-                .statusCode(200).body("artifactType", equalTo(ArtifactType.OPENAPI))
+                .statusCode(200).body("artifactType", equalTo(ArtifactType.OPENAPI.value()))
                 .body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(createArtifactResponse1.getVersion().getContentId().intValue()));
 
         // Get artifact2 meta data and check the contentId
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId2)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
-                .statusCode(200).body("artifactType", equalTo(ArtifactType.OPENAPI))
+                .statusCode(200).body("artifactType", equalTo(ArtifactType.OPENAPI.value()))
                 .body("groupId", equalTo(GROUP))
                 .body("contentId", equalTo(createArtifactResponse2.getVersion().getContentId().intValue()));
 
@@ -99,7 +99,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testGetByGlobalId/Empty";
 
         // Create the artifact.
-        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 artifactContent, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse createArtifactResponse = given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).body(createArtifact)
@@ -132,10 +132,10 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         // Create two artifacts with same artifactId but with different groupId
 
-        long globalId1 = createArtifact(group1, artifactId, ArtifactType.OPENAPI, artifactContent,
+        long globalId1 = createArtifact(group1, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
 
-        long globalId2 = createArtifact(group2, artifactId, ArtifactType.OPENAPI, artifactContent,
+        long globalId2 = createArtifact(group2, artifactId, ArtifactType.OPENAPI.value(), artifactContent,
                 ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
 
         // Get by globalId should not fail
@@ -151,7 +151,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testGetByContentId/Empty";
 
         // Create the artifact.
-        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 artifactContent, ContentTypes.APPLICATION_JSON);
         CreateArtifactResponse createArtifactResponse = given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).body(createArtifact)
@@ -182,7 +182,7 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         String artifactId = "testGetByContentHash/Empty";
 
         // Create the artifact.
-        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI,
+        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.OPENAPI.value(),
                 artifactContent, ContentTypes.APPLICATION_JSON);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(createArtifact)
                 .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200);
@@ -200,3 +200,4 @@ public class IdsResourceTest extends AbstractResourceTestBase {
     }
 
 }
+

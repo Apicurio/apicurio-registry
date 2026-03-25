@@ -35,7 +35,7 @@ public class IcebergViewArtifactTypeUtilProvider extends AbstractArtifactTypeUti
 
     @Override
     public String getArtifactType() {
-        return ArtifactType.ICEBERG_VIEW;
+        return ArtifactType.ICEBERG_VIEW.value();
     }
 
     @Override

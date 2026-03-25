@@ -15,6 +15,9 @@
 * Configuration
 ** xref:getting-started/assembly-configuring-registry-security.adoc[]
 ** xref:getting-started/assembly-configuring-the-registry.adoc[]
+ifndef::service-registry-downstream[]
+** xref:getting-started/assembly-configuring-content-search.adoc[]
+endif::[]
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]

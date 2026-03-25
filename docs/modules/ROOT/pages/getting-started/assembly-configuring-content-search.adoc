@@ -1,0 +1,464 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="configuring-content-search_{context}"]
+= Configuring {registry} content search
+
+[role="_abstract"]
+You can configure {registry} to use an external Elasticsearch cluster to enable full-text content search and structured element search capabilities.
+When you enable content search, {registry} indexes all artifact version content and metadata into Elasticsearch, which provides search capabilities that are not available with the standard SQL-based search.
+
+NOTE: Content search is an experimental feature available since {registry} version 3.2.0. You must enable the experimental features gate to use content search.
+
+* xref:content-search-overview_{context}[]
+* xref:content-search-enabling_{context}[]
+* xref:content-search-config-reference_{context}[]
+* xref:content-search-docker-compose_{context}[]
+* xref:content-search-operator_{context}[]
+* xref:content-search-rest-api_{context}[]
+* xref:content-search-ui_{context}[]
+* xref:content-search-structured-extraction_{context}[]
+* xref:content-search-performance_{context}[]
+* xref:content-search-limitations_{context}[]
+
+
+[id="content-search-overview_{context}"]
+== Content search overview
+
+[role="_abstract"]
+Content search maintains a secondary index in Elasticsearch that mirrors the artifact version data stored in the primary database.
+When you create, update, or delete artifacts, {registry} updates the index asynchronously by using a background worker thread.
+On startup, if the index is empty (for example, on first deployment with search enabled or after an upgrade), {registry} performs a full bulk reindex automatically.
+
+Content search provides you with these capabilities:
+
+* **Full-text content search**: Search across the raw content of all artifact versions. For example, you can find all OpenAPI specifications that mention "customer."
+* **Structured element search**: Search for specific structural elements within artifacts. For example, you can find all artifacts that define a schema named "Pet" or a Protobuf message named "Order."
+* **Improved search performance**: Offload complex text search queries from the database to Elasticsearch.
+
+
+[id="content-search-enabling_{context}"]
+== Enabling content search
+
+[role="_abstract"]
+To enable content search, you must set two configuration properties and configure the Elasticsearch connection.
+
+.Prerequisites
+* {registry} is installed and running.
+* An Elasticsearch 7.x or 8.x cluster is available. You can use a single-node setup for development or a multi-node cluster for production.
+
+.Procedure
+
+. Enable the experimental features gate by setting the environment variable or application property:
++
+[source]
+----
+APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
+----
++
+Or as an application property:
++
+[source]
+----
+apicurio.features.experimental.enabled=true
+----
+
+. Enable the search index:
++
+[source]
+----
+APICURIO_SEARCH_INDEX_ENABLED=true
+----
++
+Or as an application property:
++
+[source]
+----
+apicurio.search.index.enabled=true
+----
+
+. Configure the Elasticsearch connection:
++
+[source]
+----
+QUARKUS_ELASTICSEARCH_HOSTS=elasticsearch:9200
+----
++
+Or as an application property:
++
+[source]
+----
+quarkus.elasticsearch.hosts=elasticsearch:9200
+----
+
+
+[id="content-search-config-reference_{context}"]
+== Content search configuration reference
+
+[role="_abstract"]
+You can configure content search by using {registry} search properties and Quarkus Elasticsearch client properties.
+
+=== {registry} search properties
+
+.{registry} search configuration properties
+[%header,cols="4,2,6"]
+|===
+|Property
+|Default
+|Description
+
+|`apicurio.search.index.enabled`
+|`false`
+|Enables Elasticsearch search indexing. You must also set `apicurio.features.experimental.enabled` to `true`.
+
+|`apicurio.search.index.elasticsearch.index-name`
+|`apicurio-registry`
+|Name of the Elasticsearch index to use.
+
+|`apicurio.search.index.elasticsearch.number-of-shards`
+|`1`
+|Number of primary shards for the index.
+
+|`apicurio.search.index.elasticsearch.number-of-replicas`
+|`1`
+|Number of replica shards for the index.
+
+|`apicurio.search.index.content.max-size`
+|`1048576`
+|Maximum content size (in characters) to index. {registry} truncates content that exceeds this limit. The default value is approximately 1 MB.
+|===
+
+=== Quarkus Elasticsearch client properties
+
+.Quarkus Elasticsearch client configuration properties
+[%header,cols="4,2,6"]
+|===
+|Property
+|Default
+|Description
+
+|`quarkus.elasticsearch.hosts`
+|_(none)_
+|Elasticsearch host or hosts in `host:port` format. You can specify multiple hosts by using a comma-separated list.
+
+|`quarkus.elasticsearch.username`
+|_(none)_
+|Username for Elasticsearch authentication. Set this property only if your Elasticsearch cluster requires authentication.
+
+|`quarkus.elasticsearch.password`
+|_(none)_
+|Password for Elasticsearch authentication. Set this property only if your Elasticsearch cluster requires authentication.
+
+|`quarkus.elasticsearch.health.enabled`
+|`false`
+|Enables the Quarkus Elasticsearch health check extension.
+|===
+
+=== Prerequisite property
+
+.Experimental features gate property
+[%header,cols="4,2,6"]
+|===
+|Property
+|Default
+|Description
+
+|`apicurio.features.experimental.enabled`
+|`false`
+|Master gate for experimental features. You must set this property to `true` for search indexing to activate.
+|===
+
+
+[id="content-search-docker-compose_{context}"]
+== Deploying content search with Docker Compose
+
+[role="_abstract"]
+You can deploy {registry} with content search by using Docker Compose with an Elasticsearch single-node cluster.
+
+.Prerequisites
+* Docker and Docker Compose are installed.
+
+.Procedure
+
+. Create a `docker-compose.yml` file with the content from the example:
++
+[source,yaml]
+----
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+
+  apicurio-registry:
+    image: quay.io/apicurio/apicurio-registry:latest
+    environment:
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_SEARCH_INDEX_ENABLED: "true"
+      QUARKUS_ELASTICSEARCH_HOSTS: "elasticsearch:9200"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - elasticsearch
+
+  apicurio-registry-ui:
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    ports:
+      - "8888:8080"
+    depends_on:
+      - apicurio-registry
+----
+
+. Start the deployment:
++
+[source,bash]
+----
+docker compose up
+----
+
+. Verify the search index is active by checking the {registry} health endpoint at `\http://localhost:8080/health/ready`.
+
+WARNING: A single-node Elasticsearch deployment with security disabled is suitable for development and testing only. For production deployments, use a multi-node Elasticsearch cluster with authentication enabled.
+
+
+[id="content-search-operator_{context}"]
+== Deploying content search with the {kubernetes} Operator
+
+[role="_abstract"]
+When you deploy {registry} by using the {kubernetes} Operator, you can configure content search through the `ApicurioRegistry3` custom resource.
+The operator automatically sets the required environment variables on the {registry} pods, including the experimental features gate.
+
+.Prerequisites
+* The {registry} Operator is installed on your {kubernetes} cluster.
+* An Elasticsearch cluster is accessible from the {kubernetes} cluster.
+
+.Procedure
+
+. Create or update your `ApicurioRegistry3` custom resource with the `searchIndex` configuration under `spec.app`:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: my-registry
+spec:
+  app:
+    replicas: 3
+    searchIndex:
+      enabled: true
+      hosts: "elasticsearch-master.elastic:9200"
+      indexName: "apicurio-registry"
+      username: "elastic"
+      password:
+        secretKeyRef:
+          name: elastic-credentials
+          key: password
+----
+
+. Apply the custom resource:
++
+[source,bash]
+----
+{kubernetes-client} apply -f my-registry.yaml
+----
+
+The `indexName`, `username`, and `password` fields are optional. If you do not specify `indexName`, {registry} uses the default value `apicurio-registry`.
+
+
+[id="content-search-rest-api_{context}"]
+== Searching artifact content by using the REST API
+
+[role="_abstract"]
+When you enable content search, {registry} adds two query parameters to the version search endpoint that you can use to search artifact content and structural elements.
+
+**Endpoint**: `GET /apis/registry/v3/search/versions`
+
+=== New query parameters
+
+Content search adds two query parameters to the version search endpoint:
+
+.Content search query parameters
+[%header,cols="2,2,6"]
+|===
+|Parameter
+|Type
+|Description
+
+|`content`
+|`string`
+|Full-text search across artifact content. {registry} performs matches by using the Elasticsearch `match` query with the `AND` operator, which means all terms must appear in the content.
+
+|`structure`
+|`string`
+|Search by structured content elements. Supports three formats: `type:kind:name` for exact match, `kind:name` for cross-type match, or `name` for plain text search.
+|===
+
+=== Structure filter formats
+
+You can specify the `structure` parameter in three formats:
+
+.Structure search filter formats
+[%header,cols="2,3,5"]
+|===
+|Format
+|Example
+|Behavior
+
+|`type:kind:name`
+|`openapi:schema:Pet`
+|Exact match against a specific artifact type, element kind, and name.
+
+|`kind:name`
+|`schema:Pet`
+|Text search across all artifact types for elements matching the specified kind and name.
+
+|`name`
+|`Pet`
+|Text search across all artifact types and all element kinds. Broadest match.
+|===
+
+You can combine these parameters with all existing filter parameters such as `groupId`, `artifactId`, `name`, `description`, `labels`, `state`, and `artifactType`.
+
+=== Examples
+
+Search for all versions whose content mentions "customer":
+
+[source]
+----
+GET /apis/registry/v3/search/versions?content=customer
+----
+
+Find all OpenAPI artifacts that define a schema named "Order":
+
+[source]
+----
+GET /apis/registry/v3/search/versions?structure=openapi:schema:order
+----
+
+Find any artifact with a schema element named "Address" across all types:
+
+[source]
+----
+GET /apis/registry/v3/search/versions?structure=schema:Address
+----
+
+Combine content and structure search with a type filter:
+
+[source]
+----
+GET /apis/registry/v3/search/versions?content=payment&structure=schema:Invoice&artifactType=OPENAPI
+----
+
+=== Error handling and fallback behavior
+
+If you use the `content` or `structure` parameters but you have not enabled the search index, the API returns an error:
+
+----
+Content search requires the Elasticsearch search index, which is not available.
+Enable the Elasticsearch search index to use content search.
+----
+
+For queries that use only standard metadata filters (such as `groupId`, `name`, or `labels`), {registry} routes the query to Elasticsearch when available but automatically falls back to SQL if Elasticsearch encounters an error. You do not need to make any client-side changes to benefit from this resilience.
+
+
+[id="content-search-ui_{context}"]
+== Content search in the {registry} web console
+
+[role="_abstract"]
+When you enable content search, the {registry} web console automatically displays two additional filter options in the version search toolbar:
+
+* **Content**: Full-text search of artifact content
+* **Structure**: Search by structured content elements
+
+These filters appear alongside the existing metadata filters (Name, Group, Labels) on the search page.
+When you disable the search index, the web console hides these filter options so that you are not presented with functionality that is unavailable.
+
+The web console determines whether to show these filters by checking the `searchIndex` feature flag exposed by the `/apis/registry/v3/system/uiConfig` configuration endpoint.
+
+
+[id="content-search-structured-extraction_{context}"]
+== Supported artifact types for structured content extraction
+
+[role="_abstract"]
+Each supported artifact type has a dedicated extractor that parses the artifact content and extracts searchable structural elements.
+Artifact types without a dedicated extractor (such as plain text or custom types) only have their raw content indexed for full-text search.
+
+{registry} indexes extracted elements in three formats:
+
+* **Exact match** (`structure` field): `artifacttype:kind:name` (all lowercase). Use the `type:kind:name` structure filter format for precise lookups.
+* **Text search** (`structure_text` field): `kind name` (tokenized). Use the `kind:name` or `name` structure filter formats for flexible text matching.
+* **Kind facet** (`structure_kind` field): `artifacttype:kind` (all lowercase). Used internally for filtering by element type.
+
+.Artifact types and extracted element kinds
+[%header,cols="2,6"]
+|===
+|Artifact type
+|Extracted element kinds
+
+|OpenAPI
+|`schema`, `path`, `operation`, `tag`, `parameter`, `security_scheme`, `server`
+
+|AsyncAPI
+|`channel`, `message`, `schema`, `operation`, `tag`, `server`
+
+|Avro
+|`name`, `field`, `type`, `enum_symbol`, `namespace`
+
+|JSON Schema
+|`id`, `property`, `definition`, `required`
+
+|Protobuf
+|`package`, `message`, `field`, `enum`, `service`, `rpc`
+
+|GraphQL
+|`type`, `field`, `enum`, `input`, `interface`, `union`, `directive`
+
+|WSDL
+|`service`, `port`, `binding`, `portType`, `operation`, `message`, `element`, `complexType`, `simpleType`
+
+|XSD
+|`element`, `complexType`, `simpleType`, `attribute`
+
+|XML
+|`element`, `namespace`
+
+|Iceberg
+|`name`, `column`, `partition`, `sort`, `sql`
+
+|Agent Card (A2A)
+|`skill`, `capability`, `inputmode`, `outputmode`
+|===
+
+
+[id="content-search-performance_{context}"]
+== Performance considerations for content search
+
+[role="_abstract"]
+Keep these performance considerations in mind when you use content search:
+
+* **Asynchronous indexing**: {registry} processes index updates on a background thread, so write operations (create, update, delete) do not slow down due to indexing. The search index is eventually consistent.
+* **Bulk startup reindex**: On startup, {registry} uses batches of 500 documents by using the Elasticsearch bulk API and disables automatic index refresh during the operation for optimal throughput.
+* **Content truncation**: {registry} truncates content that exceeds the configured `apicurio.search.index.content.max-size` (default 1 MB) before indexing to prevent index bloat.
+* **Distributed lock**: In multi-replica deployments, only one replica performs the startup reindex. Other replicas detect the lock and skip reindexing.
+* **Mapping version tracking**: {registry} stores a metadata document in the index that tracks the mapping schema version. On startup, if the existing index has an outdated mapping version, {registry} deletes and recreates the index with the current mapping.
+
+
+[id="content-search-limitations_{context}"]
+== Content search limitations
+
+[role="_abstract"]
+Content search has these limitations:
+
+* **Eventual consistency**: Because {registry} processes index updates asynchronously, a brief delay (typically under one second) occurs between a storage operation and the updated data appearing in search results.
+* **Unsupported filters**: Elasticsearch cannot handle the `contentHash` and `canonicalHash` filters. Queries that use these filters fall back to SQL.
+* **Content truncation**: Very large artifacts might have incomplete content indexing due to the content size limit.
+* **Index rebuild on mapping changes**: When you upgrade {registry} to a version with a new index mapping, {registry} deletes and rebuilds the entire index from scratch on startup. Rebuilding can take time for large registries.
+* **Experimental status**: Content search is experimental and its API and behavior might change in future releases.
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html[Elasticsearch reference documentation]
+* {registry-config-reference}

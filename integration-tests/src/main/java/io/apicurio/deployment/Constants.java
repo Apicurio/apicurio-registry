@@ -34,5 +34,10 @@ public class Constants {
      */
     static final String KUBERNETES_OPS = "kubernetesopsit";
 
+    /**
+     * Tag for iceberg tests profile.
+     */
+    static final String ICEBERG = "iceberg";
+
     public static final String TEST_PROFILE = Optional.ofNullable(System.getProperty("groups")).orElse("");
 }

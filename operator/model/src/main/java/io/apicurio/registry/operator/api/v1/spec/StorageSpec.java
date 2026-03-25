@@ -12,7 +12,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "type", "sql", "kafkasql" })
+@JsonPropertyOrder({ "type", "sql", "kafkasql", "kubernetesops" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -32,6 +32,8 @@ public class StorageSpec {
      * <code>app.storage.sql</code> field.</li>
      * <li><code>kafkasql</code> - KafkaSQL storage type, must be further configured using the
      * <code>app.storage.kafkasql</code> field.</li>
+     * <li><code>kubernetesops</code> - KubernetesOps storage type (read-only, experimental), must be
+     * further configured using the <code>app.storage.kubernetesops</code> field.</li>
      * </ul>
      * <b>IMPORTANT:</b> Defaults to the in-memory storage, which is not suitable for production.
      *
@@ -45,6 +47,7 @@ public class StorageSpec {
               * `postgresql` - PostgreSQL storage type, must be further configured using the `app.storage.sql` field.
               * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
               * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
+              * `kubernetesops` - KubernetesOps storage type (read-only, experimental), must be further configured using the `app.storage.kubernetesops` field.
 
             IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.""")
     @JsonSetter(nulls = SKIP)
@@ -68,6 +71,16 @@ public class StorageSpec {
     @JsonSetter(nulls = SKIP)
     private KafkaSqlSpec kafkasql;
 
+    /**
+     * Configure KubernetesOps storage type (read-only, experimental).
+     */
+    @JsonProperty("kubernetesops")
+    @JsonPropertyDescription("""
+            Configure KubernetesOps storage type (read-only, experimental). \
+            Loads registry data from Kubernetes ConfigMaps.""")
+    @JsonSetter(nulls = SKIP)
+    private KubernetesOpsSpec kubernetesops;
+
     public SqlSpec withSql() {
         if (sql == null) {
             sql = new SqlSpec();
@@ -80,5 +93,12 @@ public class StorageSpec {
             kafkasql = new KafkaSqlSpec();
         }
         return kafkasql;
+    }
+
+    public KubernetesOpsSpec withKubernetesops() {
+        if (kubernetesops == null) {
+            kubernetesops = new KubernetesOpsSpec();
+        }
+        return kubernetesops;
     }
 }

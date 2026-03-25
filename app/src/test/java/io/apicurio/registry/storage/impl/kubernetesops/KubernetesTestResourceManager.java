@@ -45,9 +45,11 @@ public class KubernetesTestResourceManager implements QuarkusTestResourceLifecyc
         Map<String, String> props = kubernetesServerTestResource.start();
 
         Map<String, String> result = new HashMap<>(props);
-        result.put("apicurio.kubernetesops.id", REGISTRY_ID);
+        result.put("apicurio.polling-storage.id", REGISTRY_ID);
         result.put("apicurio.kubernetesops.namespace", NAMESPACE);
-        result.put("apicurio.kubernetesops.refresh.every", "5s");
+        result.put("apicurio.polling-storage.poll-period", "PT1S");
+        result.put("apicurio.polling-storage.debounce.quiet-period", "PT0S");
+        result.put("apicurio.polling-storage.debounce.max-wait-period", "PT0S");
 
         return result;
     }

@@ -1356,4 +1356,61 @@ public abstract class CommonSqlStatements implements SqlStatements {
     protected String groupsTable() {
         return "groups";
     }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectVersionsModifiedSince()
+     */
+    @Override
+    public String selectVersionsModifiedSince() {
+        return "SELECT v.*, a.type FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.modifiedOn >= ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#countVersionsModifiedSince()
+     */
+    @Override
+    public String countVersionsModifiedSince() {
+        return "SELECT COUNT(*) FROM versions v WHERE v.modifiedOn >= ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestVersionTimestamp()
+     */
+    @Override
+    public String selectLatestVersionTimestamp() {
+        return "SELECT MAX(modifiedOn) FROM versions";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllVersionGlobalIds()
+     */
+    @Override
+    public String selectAllVersionGlobalIds() {
+        return "SELECT globalId FROM versions";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllVersionsWithContent()
+     */
+    @Override
+    public String selectAllVersionsWithContent() {
+        return "SELECT v.*, a.type, c.content FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "ORDER BY v.globalId ASC";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectVersionsWithContentModifiedSince()
+     */
+    @Override
+    public String selectVersionsWithContentModifiedSince() {
+        return "SELECT v.*, a.type, c.content FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "WHERE v.modifiedOn >= ? "
+                + "ORDER BY v.globalId ASC";
+    }
 }

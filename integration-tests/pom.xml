@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.2.1-SNAPSHOT</version>
   </parent>
   <artifactId>apicurio-registry-integration-tests</artifactId>
 
@@ -174,6 +174,11 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.iceberg</groupId>
+      <artifactId>iceberg-core</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -497,6 +502,13 @@
         <skipTests>false</skipTests>
       </properties>
     </profile>
+    <profile>
+      <id>search</id>
+      <properties>
+        <groups>search</groups>
+        <skipTests>false</skipTests>
+      </properties>
+    </profile>
 
     <!-- Combined profile for running ALL Debezium tests in one Maven execution (CI optimization) -->
     <profile>
@@ -603,6 +615,33 @@
                     <quarkus.http.test-scheme>http</quarkus.http.test-scheme>
                     <quarkus.http.test-host>localhost</quarkus.http.test-host>
                     <quarkus.http.test-port>8080</quarkus.http.test-port>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>iceberg</id>
+      <properties>
+        <groups>iceberg</groups>
+        <skipTests>false</skipTests>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <quarkus.args>-Dapicurio.features.experimental.enabled=true -Dapicurio.iceberg.enabled=true</quarkus.args>
                   </systemPropertyVariables>
                 </configuration>
               </execution>

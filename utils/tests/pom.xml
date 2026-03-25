@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.2.1-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -127,11 +127,6 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-v2-java-sdk</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-common</artifactId>
     </dependency>
 
   </dependencies>

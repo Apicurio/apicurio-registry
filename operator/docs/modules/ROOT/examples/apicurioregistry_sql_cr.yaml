@@ -1,12 +1,20 @@
 apiVersion: registry.apicur.io/v1
-kind: ApicurioRegistry
+kind: ApicurioRegistry3
 metadata:
   name: example-apicurioregistry-sql
 spec:
-  configuration:
-    persistence: "sql"
-    sql:
-      dataSource:
-        url: "jdbc:postgresql://<service name>.<namespace>.svc:5432/<database name>"
-        userName: "postgres"
-        password: "<password>" # Optional
+  app:
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: "jdbc:postgresql://<service name>.<namespace>.svc:5432/<database name>"
+          username: "postgres"
+          password:
+            name: postgresql-credentials
+            key: password
+    ingress:
+      host: example-sql-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-sql-ui.apps.cluster.example

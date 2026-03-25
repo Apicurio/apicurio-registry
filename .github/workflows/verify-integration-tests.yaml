@@ -5,7 +5,7 @@ on:
     inputs:
       java-version:
         type: string
-        default: '17'
+        default: '21'
       image-tag:
         type: string
         required: true
@@ -27,6 +27,8 @@ jobs:
             profile: kafkasql-snapshotting
           - storage: kubernetesops
             profile: kubernetesopsit
+          - storage: h2
+            profile: iceberg
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

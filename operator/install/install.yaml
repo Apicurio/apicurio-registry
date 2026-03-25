@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
+    app.kubernetes.io/version: 3.2.1-SNAPSHOT
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -3332,6 +3332,47 @@ spec:
                   replicas:
                     description: Number of replicas for the component
                     type: integer
+                  searchIndex:
+                    description: |-
+                      Configure Elasticsearch-based search indexing for Apicurio Registry.
+                      When enabled, Registry indexes artifact content in Elasticsearch to support
+                      full-text content and structure searches.
+                    properties:
+                      enabled:
+                        description: |-
+                          Enable Elasticsearch-based search indexing for Apicurio Registry.
+                          When enabled, Registry indexes artifact content in Elasticsearch to support
+                          full-text content and structure searches. Default is false.
+                        type: boolean
+                      hosts:
+                        description: |-
+                          The Elasticsearch hosts to connect to.
+                          Example: elasticsearch:9200
+                        type: string
+                      indexName:
+                        description: |-
+                          The name of the Elasticsearch index to use.
+                          If not specified, defaults to 'apicurio-registry' in the application.
+                        type: string
+                      password:
+                        description: |-
+                          The password for connecting to a secured Elasticsearch cluster.
+                          References name of a Secret that contains the password. Key `password` is assumed by default.
+                        properties:
+                          key:
+                            description: Name of the key in the referenced Secret
+                              that contain the target data. This field might be optional
+                              if a default value has been defined.
+                            type: string
+                          name:
+                            description: Name of a Secret that is being referenced.
+                            type: string
+                        type: object
+                      username:
+                        description: The username for connecting to a secured Elasticsearch
+                          cluster.
+                        type: string
+                    type: object
                   sql:
                     description: |-
                       DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead.
@@ -3494,6 +3535,40 @@ spec:
                                 type: object
                             type: object
                         type: object
+                      kubernetesops:
+                        description: Configure KubernetesOps storage type (read-only,
+                          experimental). Loads registry data from Kubernetes ConfigMaps.
+                        properties:
+                          labelRegistryId:
+                            description: Label key used to identify ConfigMaps belonging
+                              to this registry. Defaults to `apicurio.io/registry-id`.
+                            type: string
+                          namespace:
+                            description: Kubernetes namespace to watch for ConfigMaps.
+                              Defaults to the namespace of the registry deployment.
+                            type: string
+                          refreshEvery:
+                            description: How often to poll for ConfigMap changes.
+                              Supports duration format (e.g., `10s`, `1m`). Defaults
+                              to `30s`.
+                            type: string
+                          registryId:
+                            description: |-
+                              Unique identifier for this registry instance. Only ConfigMaps with a matching label will be loaded.
+
+                              Required if `app.storage.type` is `kubernetesops`.
+                            type: string
+                          watchEnabled:
+                            description: Enable Watch API for real-time ConfigMap
+                              change detection. Set to `false` to use polling only.
+                              Defaults to `true`.
+                            type: boolean
+                          watchReconnectDelay:
+                            description: Base delay before reconnecting after watch
+                              failure. Uses exponential backoff up to 5 minutes. Defaults
+                              to `10s`.
+                            type: string
+                        type: object
                       sql:
                         description: Configure SQL storage types.
                         properties:
@@ -3535,10 +3610,12 @@ spec:
                             * `postgresql` - PostgreSQL storage type, must be further configured using the `app.storage.sql` field.
                             * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
                             * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
+                            * `kubernetesops` - KubernetesOps storage type (read-only, experimental), must be further configured using the `app.storage.kubernetesops` field.
 
                           IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.
                         enum:
                         - kafkasql
+                        - kubernetesops
                         - mysql
                         - postgresql
                         type: string
@@ -6761,7 +6838,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
+    app.kubernetes.io/version: 3.2.1-SNAPSHOT
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -6773,7 +6850,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
+    app.kubernetes.io/version: 3.2.1-SNAPSHOT
   name: apicurio-registry-operator-clusterrole
 rules:
 - apiGroups:
@@ -6842,7 +6919,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
+    app.kubernetes.io/version: 3.2.1-SNAPSHOT
   name: apicurio-registry-operator-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -6862,8 +6939,8 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
-  name: apicurio-registry-operator-v3.2.0-snapshot
+    app.kubernetes.io/version: 3.2.1-SNAPSHOT
+  name: apicurio-registry-operator-v3.2.1-snapshot
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -6874,7 +6951,7 @@ spec:
       app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.2.0-SNAPSHOT
+      app.kubernetes.io/version: 3.2.1-SNAPSHOT
   template:
     metadata:
       labels:
@@ -6883,7 +6960,7 @@ spec:
         app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.2.0-SNAPSHOT
+        app.kubernetes.io/version: 3.2.1-SNAPSHOT
     spec:
       containers:
       - env:

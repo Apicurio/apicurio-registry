@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.2.1-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -14,6 +14,7 @@
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
+    <maven.compiler.release>21</maven.compiler.release>
     <groups/>
   </properties>
 
@@ -49,17 +50,6 @@
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-config-index-deployment</artifactId>
       <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-jdk</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-vertx</artifactId>
     </dependency>
 
     <dependency>
@@ -201,6 +191,12 @@
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
     </dependency>
+
+    <!-- Elasticsearch Java client for content search indexing -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-elasticsearch-java-client</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
@@ -265,6 +261,11 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-test-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5-mockito</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -507,6 +508,7 @@
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <org.jboss.logging.provider>jboss</org.jboss.logging.provider>
+            <project.build.directory>${project.build.directory}</project.build.directory>
           </systemPropertyVariables>
         </configuration>
       </plugin>

@@ -6,7 +6,6 @@ import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.impl.polling.AbstractPollingRegistryStorage;
-import io.apicurio.registry.storage.impl.polling.DataSourceManager;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ManagedContext;
 import io.quarkus.arc.lookup.LookupIfProperty;
@@ -29,7 +28,7 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 @StorageMetricsApply
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kubernetesops")
-public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage {
+public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage<String> {
 
     @Inject
     Logger log;
@@ -38,7 +37,7 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
     KubernetesManager kubernetesManager;
 
     @Inject
-    KubernetesOpsConfigProperties config;
+    KubernetesOpsConfig config;
 
     @Inject
     Event<StorageEvent> storageEvent;
@@ -47,26 +46,12 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
     @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops", availableSince = "3.0.0")
     String registryStorageType;
 
-    private volatile long lastRefreshTime = 0;
-    private static final long MIN_REFRESH_INTERVAL_MS = 1000; // 1 second debounce
-
-    @Override
-    protected DataSourceManager getDataSourceManager() {
-        return kubernetesManager;
-    }
-
-    @Override
-    public String storageName() {
-        return "kubernetesops";
-    }
-
     @Override
     public void initialize() {
-        super.initialize();
-
-        kubernetesManager.setRefreshCallback(this::triggerRefreshFromWatch);
+        super.initialize(config, kubernetesManager);
 
         if (config.isWatchEnabled()) {
+            kubernetesManager.setRefreshCallback(this::triggerRefreshFromWatch);
             kubernetesManager.startWatch();
         }
 
@@ -74,45 +59,30 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
     }
 
     private void triggerRefreshFromWatch() {
-        long now = System.currentTimeMillis();
-        if (now - lastRefreshTime < MIN_REFRESH_INTERVAL_MS) {
-            log.debug("Skipping refresh, too soon since last refresh");
-            return;
-        }
-
         log.debug("Watch triggered refresh");
 
         try {
             // Activate request context since the watch callback runs in a background thread
             ManagedContext requestContext = Arc.container().requestContext();
             if (requestContext.isActive()) {
-                refresh();
+                tryRefresh();
             } else {
                 requestContext.activate();
                 try {
-                    refresh();
+                    tryRefresh();
                 } finally {
                     requestContext.terminate();
                 }
             }
         } catch (Exception e) {
             log.warn("Watch-triggered refresh failed: {}", e.getMessage());
-        } finally {
-            lastRefreshTime = System.currentTimeMillis();
         }
     }
 
-    @Scheduled(concurrentExecution = SKIP, every = "${apicurio.kubernetesops.refresh.every:30s}")
+    @Scheduled(concurrentExecution = SKIP, every = "${apicurio.polling-storage.try-refresh.every:2.5s}")
     void scheduledRefresh() {
-        if (!"kubernetesops".equals(registryStorageType)) {
-            return;
+        if ("kubernetesops".equals(registryStorageType)) {
+            tryRefresh();
         }
-
-        // Always run scheduled polling as the primary fallback.
-        // The watch provides real-time updates when available,
-        // but scheduled polling ensures we don't miss changes.
-        lastRefreshTime = System.currentTimeMillis();
-        refresh();
     }
-
 }

@@ -25,9 +25,7 @@ import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
 import io.apicurio.registry.events.GroupMetadataUpdated;
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
-import jakarta.inject.Inject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
@@ -47,7 +45,6 @@ import static io.apicurio.registry.utils.StringUtil.asLowerCase;
  * Repository handling group operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlGroupRepository {
 
     public static final int MAX_LABEL_KEY_LENGTH = 256;
@@ -56,31 +53,22 @@ public class SqlGroupRepository {
     // Internal default group ID representation (duplicated from RegistryContentUtils for access)
     private static final String NULL_GROUP_ID = "__$GROUPID$__";
 
-    @Inject
-    Logger log;
+    private final Logger log;
+    private final SqlStatements sqlStatements;
+    private final HandleFactory handles;
+    private final SecurityIdentity securityIdentity;
+    private final Event<SqlOutboxEvent> outboxEvent;
+    private final RestConfig restConfig;
 
-    @Inject
-    SqlStatements sqlStatements;
-
-    @Inject
-    HandleFactory handles;
-
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlGroupRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            SecurityIdentity securityIdentity, Event<SqlOutboxEvent> outboxEvent, RestConfig restConfig) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.securityIdentity = securityIdentity;
+        this.outboxEvent = outboxEvent;
+        this.restConfig = restConfig;
     }
-
-    @Inject
-    SecurityIdentity securityIdentity;
-
-    @Inject
-    Event<SqlOutboxEvent> outboxEvent;
-
-    @Inject
-    RestConfig restConfig;
 
     /**
      * Create a new group.

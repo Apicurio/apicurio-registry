@@ -1,8 +1,12 @@
 apiVersion: registry.apicur.io/v1
-kind: ApicurioRegistry
+kind: ApicurioRegistry3
 metadata:
   name: example-apicurioregistry-mem
 spec:
-  configuration:
-    persistence: "mem" # Optional (default value)
-    # NOTE: No additional configuration required for *dev* deployment
+  app:
+    # No storage configuration required for in-memory (default)
+    ingress:
+      host: example-mem-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-mem-ui.apps.cluster.example

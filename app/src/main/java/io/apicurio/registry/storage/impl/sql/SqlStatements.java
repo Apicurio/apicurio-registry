@@ -737,4 +737,48 @@ public interface SqlStatements {
      * @return SQL statement to release the initialization lock
      */
     public String releaseInitLock();
+
+    /**
+     * Returns a SQL statement to select all version metadata for versions modified since a given timestamp.
+     * Used by the asynchronous search index updater to poll for changes.
+     *
+     * @return SQL query with one timestamp parameter
+     */
+    public String selectVersionsModifiedSince();
+
+    /**
+     * Returns a SQL statement to count versions modified since a given timestamp. Used to cheaply
+     * determine whether an incremental or full rebuild is needed.
+     *
+     * @return SQL query with one timestamp parameter
+     */
+    String countVersionsModifiedSince();
+
+    /**
+     * Returns a SQL statement to select the timestamp of the most recently modified version.
+     * Used by the asynchronous search index updater to determine the starting point for polling.
+     *
+     * @return SQL query returning a single timestamp value
+     */
+    public String selectLatestVersionTimestamp();
+
+    /**
+     * Returns a SQL statement to select all version globalIds. Used by the asynchronous search index
+     * updater for periodic reconciliation to detect deleted versions.
+     *
+     * @return SQL query returning globalId values
+     */
+    public String selectAllVersionGlobalIds();
+
+    /**
+     * A SQL statement to select all versions with their artifact type and content, used for
+     * streaming startup reindex.
+     */
+    String selectAllVersionsWithContent();
+
+    /**
+     * A SQL statement to select versions modified since a given timestamp with their artifact type
+     * and content. Used for streaming incremental search index updates.
+     */
+    String selectVersionsWithContentModifiedSince();
 }

@@ -5,7 +5,7 @@ on:
     inputs:
       java-version:
         type: string
-        default: '17'
+        default: '21'
       image-tag:
         type: string
         required: true
@@ -44,8 +44,10 @@ jobs:
           for module_path in \
             config-index/definitions:apicurio-registry-config-definitions \
             common:apicurio-registry-common \
-            java-sdk-common:apicurio-registry-java-sdk-common \
-            java-sdk:apicurio-registry-java-sdk; do
+            java-sdk/common:apicurio-registry-java-sdk-common \
+            java-sdk/adapter-vertx:apicurio-registry-java-sdk-adapter-vertx \
+            java-sdk/adapter-jdk:apicurio-registry-java-sdk-adapter-jdk \
+            java-sdk/client:apicurio-registry-java-sdk; do
 
             dir="${module_path%%:*}"
             artifact="${module_path##*:}"

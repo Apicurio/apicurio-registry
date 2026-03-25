@@ -1,0 +1,12 @@
+$type: artifact-v0
+registryIds: [prod, staging]
+groupId: common
+artifactId: address
+artifactType: JSON
+name: Address Schema
+description: Shared address schema used by multiple services
+versions:
+  - version: "1.0.0"
+    state: ENABLED
+    description: Initial version with basic address fields
+    content: ./address.json

@@ -112,7 +112,6 @@ public class IcebergApiResourceImpl implements ApisResource {
         defaults.setAdditionalProperty("prefix", icebergConfig.getDefaultPrefix());
 
         Overrides overrides = new Overrides();
-        overrides.setAdditionalProperty("uri", "");
 
         config.setDefaults(defaults);
         config.setOverrides(overrides);
@@ -367,9 +366,12 @@ public class IcebergApiResourceImpl implements ApisResource {
         metadata.put("location", location);
         metadata.put("last-sequence-number", 0);
         metadata.put("last-updated-ms", System.currentTimeMillis());
-        metadata.put("last-column-id", 0);
         metadata.put("current-schema-id", 0);
         metadata.put("schemas", List.of(data.getSchema()));
+
+        // Compute last-column-id from schema fields
+        int lastColumnId = computeMaxFieldId(data.getSchema());
+        metadata.put("last-column-id", lastColumnId);
         metadata.put("default-spec-id", 0);
         metadata.put("partition-specs", data.getPartitionSpec() != null
                 ? List.of(data.getPartitionSpec())
@@ -421,17 +423,15 @@ public class IcebergApiResourceImpl implements ApisResource {
         storage.createArtifact(groupId, tableName, ArtifactType.ICEBERG_TABLE, artifactMetaData, null,
                 content, versionMetaData, null, false, false, getCurrentUser());
 
+        TableMetadata tableMetadata;
+        try {
+            tableMetadata = objectMapper.readValue(metadataJson, TableMetadata.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse table metadata", e);
+        }
+
         LoadTableResponse response = new LoadTableResponse();
         response.setMetadataLocation(location + "/metadata/v1.metadata.json");
-
-        TableMetadata tableMetadata = new TableMetadata();
-        tableMetadata.setFormatVersion(2);
-        tableMetadata.setTableUuid(tableUuid);
-        tableMetadata.setLocation(location);
-        tableMetadata.setSchemas(List.of(data.getSchema()));
-        tableMetadata.setCurrentSchemaId(0);
-        tableMetadata.setProperties(data.getProperties());
-
         response.setMetadata(tableMetadata);
         response.setConfig(new Config());
 
@@ -702,6 +702,31 @@ public class IcebergApiResourceImpl implements ApisResource {
         String decoded = URLDecoder.decode(encodedNamespace, StandardCharsets.UTF_8);
         List<String> parts = Arrays.asList(decoded.split(NAMESPACE_SEPARATOR));
         return namespaceToGroupId(parts);
+    }
+
+    @SuppressWarnings("unchecked")
+    private int computeMaxFieldId(Object schema) {
+        Map<String, Object> schemaMap;
+        if (schema instanceof Map) {
+            schemaMap = (Map<String, Object>) schema;
+        } else {
+            schemaMap = objectMapper.convertValue(schema, Map.class);
+        }
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) schemaMap.get("fields");
+        if (fields == null || fields.isEmpty()) {
+            return 0;
+        }
+        int maxId = 0;
+        for (Map<String, Object> field : fields) {
+            Object idObj = field.get("id");
+            if (idObj instanceof Number) {
+                int id = ((Number) idObj).intValue();
+                if (id > maxId) {
+                    maxId = id;
+                }
+            }
+        }
+        return maxId;
     }
 
     private String getCurrentUser() {

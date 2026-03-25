@@ -17,13 +17,13 @@ endif::[]
 For example, from the *Project* drop-down, select `my-project`.
 
 ifdef::apicurio-registry[]
-. Click *Installed Operators* > *{registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
+. Click *Installed Operators* > *{registry}* > *ApicurioRegistry3* > *Create ApicurioRegistry3*.
 endif::[]
 ifdef::service-registry[]
-. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry* > *Create ApicurioRegistry*.
+. Click *Installed Operators* > *Red Hat Integration - {registry}* > *ApicurioRegistry3* > *Create ApicurioRegistry3*.
 endif::[]
 
-. Paste in the following `ApicurioRegistry` CR, and edit the values for the database `url` and credentials to match your environment:
+. Paste in the following `ApicurioRegistry3` CR, and edit the values for the database `url` and credentials to match your environment:
 +
 [source,yaml]
 ----

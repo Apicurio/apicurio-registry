@@ -1,19 +1,23 @@
 apiVersion: registry.apicur.io/v1
-kind: ApicurioRegistry
+kind: ApicurioRegistry3
 metadata:
   name: example-apicurioregistry-kafkasql-keycloak
 spec:
-  configuration:
-    security:
-      keycloak:
-        url: "http://keycloak-http-<namespace>.apps.<cluster host>"
-        # ^ Required
-        # Use an HTTP URL in development.
-        realm: "registry"
-        # apiClientId: "registry-client-api"
-        # ^ Optional (default value)
-        # uiClientId: "registry-client-ui"
-        # ^ Optional (default value)
-    persistence: 'kafkasql'
-    kafkasql:
-      bootstrapServers: '<my-cluster>-kafka-bootstrap.<my-namespace>.svc:9092'
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "<my-cluster>-kafka-bootstrap.<my-namespace>.svc:9092"
+    auth:
+      enabled: true
+      appClientId: registry-client-api
+      uiClientId: registry-client-ui
+      authServerUrl: "http://keycloak-http-<namespace>.apps.<cluster host>/realms/registry"
+      # ^ Required. Use an HTTP URL in development.
+      redirectUri: "http://example-kafkasql-app.apps.cluster.example"
+      logoutUrl: "http://example-kafkasql-app.apps.cluster.example"
+    ingress:
+      host: example-kafkasql-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-kafkasql-ui.apps.cluster.example

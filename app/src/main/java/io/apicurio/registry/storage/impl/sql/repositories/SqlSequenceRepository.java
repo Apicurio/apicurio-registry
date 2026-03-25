@@ -3,8 +3,6 @@ package io.apicurio.registry.storage.impl.sql.repositories;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.util.HashMap;
@@ -19,7 +17,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * Note: H2 uses in-memory atomic counters for sequences instead of database
  * sequences, which is why this repository maintains static counters.
  */
-@ApplicationScoped
 public class SqlSequenceRepository {
 
     public static final String GLOBAL_ID_SEQUENCE = "globalId";
@@ -34,21 +31,16 @@ public class SqlSequenceRepository {
         sequenceCounters.put(COMMENT_ID_SEQUENCE, new AtomicLong(0));
     }
 
-    @Inject
-    Logger log;
+    private final Logger log;
 
-    @Inject
-    SqlStatements sqlStatements;
+    private final SqlStatements sqlStatements;
 
-    @Inject
-    HandleFactory handles;
+    private final HandleFactory handles;
 
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlSequenceRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
     }
 
     /**
@@ -142,9 +134,6 @@ public class SqlSequenceRepository {
         });
     }
 
-    /**
-     * Reset a sequence using an existing handle.
-     */
     private void resetSequenceRaw(Handle handle, String sequenceName, String sqlMaxIdFromTable) {
         Optional<Long> maxIdTable = handle.createQuery(sqlMaxIdFromTable)
                 .mapTo(Long.class)
@@ -174,18 +163,13 @@ public class SqlSequenceRepository {
             log.info("Resetting {} sequence", sequenceName);
             long id = maxId.get();
 
-            if (isPostgresql()) {
-                handle.createUpdate(sqlStatements.resetSequenceValue())
-                        .bind(0, sequenceName)
-                        .bind(1, id)
-                        .bind(2, id)
-                        .execute();
-            } else if (isH2()) {
+            if (isH2()) {
                 sequenceCounters.get(sequenceName).set(id);
             } else {
                 handle.createUpdate(sqlStatements.resetSequenceValue())
                         .bind(0, sequenceName)
                         .bind(1, id)
+                        .bind(2, id)
                         .execute();
             }
 

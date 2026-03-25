@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.config;
 
+import io.apicurio.registry.cli.common.CliException;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
 import java.util.Collections;
@@ -20,7 +21,7 @@ public class AcrHomeConfigSource implements ConfigSource {
     public Map<String, String> getProperties() {
         try {
             return Config.getInstance().read().getConfig();
-        } catch (Exception e) {
+        } catch (CliException e) {
             return Collections.emptyMap();
         }
     }
@@ -29,7 +30,7 @@ public class AcrHomeConfigSource implements ConfigSource {
     public String getValue(String propertyName) {
         try {
             return Config.getInstance().read().getConfig().get(propertyName);
-        } catch (Exception e) {
+        } catch (CliException e) {
             return null;
         }
     }
@@ -38,7 +39,7 @@ public class AcrHomeConfigSource implements ConfigSource {
     public String getName() {
         try {
             return getClass().getSimpleName() + "[" + Config.getInstance().getConfigFilePath() + "]";
-        } catch (Exception e) {
+        } catch (CliException e) {
             return getClass().getSimpleName() + "[not configured]";
         }
     }
@@ -47,7 +48,7 @@ public class AcrHomeConfigSource implements ConfigSource {
     public Set<String> getPropertyNames() {
         try {
             return Config.getInstance().read().getConfig().keySet();
-        } catch (Exception e) {
+        } catch (CliException e) {
             return Collections.emptySet();
         }
     }

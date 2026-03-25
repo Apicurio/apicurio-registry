@@ -139,7 +139,10 @@ public class InstallCommand extends AbstractCommand {
         Files.copy(currentPath.resolve(ACR_SCRIPT), cliHomePath.resolve(ACR_SCRIPT), REPLACE_EXISTING);
         Files.copy(currentPath.resolve(ACR_BINARY), cliHomePath.resolve(ACR_BINARY), REPLACE_EXISTING);
         // Ensure the binary is executable
-        cliHomePath.resolve(ACR_BINARY).toFile().setExecutable(true, false);
+        if (!cliHomePath.resolve(ACR_BINARY).toFile().setExecutable(true, false)) {
+            throw new CliException("Failed to set executable permission on " + cliHomePath.resolve(ACR_BINARY),
+                    VALIDATION_ERROR_RETURN_CODE);
+        }
         Files.copy(currentPath.resolve(README), cliHomePath.resolve(README), REPLACE_EXISTING);
 
         // Copy completions and shell environment file

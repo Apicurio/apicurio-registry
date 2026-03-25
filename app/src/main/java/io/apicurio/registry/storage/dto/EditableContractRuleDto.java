@@ -1,7 +1,12 @@
 package io.apicurio.registry.storage.dto;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +22,6 @@ import java.util.Set;
 @Setter
 @EqualsAndHashCode
 @ToString
-@RegisterForReflection
 public class EditableContractRuleDto {
     private String name;
     private RuleKind kind;

@@ -1,7 +1,13 @@
 package io.apicurio.registry.storage.dto;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
-import lombok.*;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.Map;
 import java.util.Set;
@@ -13,11 +19,10 @@ import java.util.Set;
 @Setter
 @EqualsAndHashCode
 @ToString
-@RegisterForReflection
 public class ContractRuleDto {
     private String name;
     private RuleKind kind;
-    private String type;  // CEL, CEL_FIELD, ENCRYPT, DECRYPT, JSONATA, etc.
+    private String type;
     private RuleMode mode;
     private String expr;
     private Map<String, String> params;

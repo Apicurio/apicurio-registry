@@ -1,7 +1,12 @@
 package io.apicurio.registry.storage.dto;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
-import lombok.*;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.List;
 
@@ -12,7 +17,6 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode
 @ToString
-@RegisterForReflection
 public class ContractRuleSetDto {
     private List<ContractRuleDto> domainRules;
     private List<ContractRuleDto> migrationRules;

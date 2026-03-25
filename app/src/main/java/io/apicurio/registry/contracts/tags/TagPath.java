@@ -9,7 +9,7 @@ public record TagPath(String path) {
 
     /**
      * Path format: "field", "record.field", "record.nested.field"
-     * Supports wildcards: "*" (single level), "**" (any depth)
+     * Supports wildcards: "*" (single level), "**" (zero or more levels, including itself)
      */
     public boolean matches(String fieldPath) {
         if (fieldPath == null) {
@@ -17,8 +17,7 @@ public record TagPath(String path) {
         }
         String[] patternSegments = path.split("\\.");
         String[] fieldSegments = fieldPath.split("\\.");
-        Boolean[][] memo = new Boolean[patternSegments.length + 1][fieldSegments.length + 1];
-        return matches(patternSegments, fieldSegments, 0, 0, memo);
+        return matches(patternSegments, fieldSegments, 0, 0);
     }
 
     public static TagPath parse(String path) {
@@ -33,32 +32,25 @@ public record TagPath(String path) {
     }
 
     private static boolean matches(String[] patternSegments, String[] fieldSegments, int patternIndex,
-            int fieldIndex, Boolean[][] memo) {
-        if (memo[patternIndex][fieldIndex] != null) {
-            return memo[patternIndex][fieldIndex];
-        }
-        boolean result;
+            int fieldIndex) {
         if (patternIndex == patternSegments.length) {
-            result = fieldIndex == fieldSegments.length;
-        } else {
-            String pattern = patternSegments[patternIndex];
-            if ("**".equals(pattern)) {
-                result = false;
-                for (int i = fieldIndex; i <= fieldSegments.length; i++) {
-                    if (matches(patternSegments, fieldSegments, patternIndex + 1, i, memo)) {
-                        result = true;
-                        break;
-                    }
-                }
-            } else if (fieldIndex >= fieldSegments.length) {
-                result = false;
-            } else if ("*".equals(pattern) || pattern.equals(fieldSegments[fieldIndex])) {
-                result = matches(patternSegments, fieldSegments, patternIndex + 1, fieldIndex + 1, memo);
-            } else {
-                result = false;
-            }
+            return fieldIndex == fieldSegments.length;
         }
-        memo[patternIndex][fieldIndex] = result;
-        return result;
+        String pattern = patternSegments[patternIndex];
+        if ("**".equals(pattern)) {
+            for (int i = fieldIndex; i <= fieldSegments.length; i++) {
+                if (matches(patternSegments, fieldSegments, patternIndex + 1, i)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (fieldIndex >= fieldSegments.length) {
+            return false;
+        }
+        if ("*".equals(pattern) || pattern.equals(fieldSegments[fieldIndex])) {
+            return matches(patternSegments, fieldSegments, patternIndex + 1, fieldIndex + 1);
+        }
+        return false;
     }
 }

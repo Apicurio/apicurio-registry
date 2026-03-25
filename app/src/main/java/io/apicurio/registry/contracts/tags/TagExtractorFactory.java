@@ -20,7 +20,7 @@ public class TagExtractorFactory {
             return Optional.empty();
         }
         return extractors.stream()
-                .filter(extractor -> normalized.equalsIgnoreCase(extractor.getArtifactType()))
+                .filter(extractor -> normalized.equals(extractor.getArtifactType()))
                 .findFirst();
     }
 }

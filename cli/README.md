@@ -82,15 +82,9 @@ mvn clean package -pl cli -am -DskipTests -Dcli-skip-native
 
 #### GraalVM Version Compatibility
 
-The required GraalVM/Mandrel version depends on the Quarkus version used by this project:
+The **container-based build** (default) uses a Mandrel image and works out of the box — no GraalVM version management needed.
 
-| Quarkus Version | GraalVM / Mandrel Version | JDK |
-|-----------------|--------------------------|-----|
-| 3.15 (LTS)      | Mandrel 23.1.x            | 21  |
-| 3.17 – 3.27 (current) | GraalVM/Mandrel for JDK 23 | 23  |
-| 3.28+           | GraalVM/Mandrel for JDK 25 | 25  |
-
-> **Note:** Using a GraalVM version that does not match the Quarkus version will cause native build failures due to incompatible class initialization semantics. When in doubt, use the container-based build (default), which uses a matching Mandrel image.
+For **local builds** (`-Dquarkus.native.container-build=false`), GraalVM CE or Mandrel for JDK 17 or later is required. Set `GRAALVM_HOME` to point to the installation.
 
 ### Installation from Build
 

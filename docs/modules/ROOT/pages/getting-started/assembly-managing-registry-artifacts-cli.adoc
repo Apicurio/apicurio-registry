@@ -9,12 +9,12 @@ You can use the {registry} command-line interface (CLI) to manage {registry} con
 ifndef::service-registry-downstream[]
 [NOTE]
 ====
-The CLI is currently in *dev-preview* status. The following limitations apply:
+The CLI is currently in *dev-preview* status. The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet. The CLI currently implements only group management commands. Future releases will include additional commands.
+====
 
-* The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet
-* The CLI currently implements only group management commands
-* Authentication configuration is not yet available
-* Future releases will include additional commands
+[IMPORTANT]
+====
+The CLI does not yet support authentication. You can only use the CLI with {registry} instances that do not require authentication.
 ====
 endif::[]
 
@@ -32,11 +32,9 @@ endif::[]
 * xref:registry-cli-reference_{context}[]
 
 .Prerequisites
-* You have installed {registry} and it is running in your environment.
+* You have installed {registry}.
 * You have Java 11 or higher installed.
 * You have access to a bash shell (Linux) or zsh shell (macOS).
-
-//INCLUDES
 
 [id="installing-registry-cli_{context}"]
 == Installing the {registry} CLI
@@ -50,7 +48,7 @@ You can install the {registry} CLI to interact with {registry} from the command 
 
 .Procedure
 ifndef::service-registry-downstream[]
-. Download the CLI .zip file from the https://github.com/Apicurio/apicurio-registry/releases[GitHub Releases] page or the https://search.maven.org/search?q=g:io.apicurio%20AND%20a:apicurio-registry-cli[Maven Central repository].
+. Download the latest `apicurio-registry-cli-VERSION.zip` file from the https://github.com/Apicurio/apicurio-registry/releases[{registry} GitHub Releases page]. Alternatively, you can download the CLI from the https://search.maven.org/search?q=g:io.apicurio%20AND%20a:apicurio-registry-cli[Maven Central repository] by searching for `apicurio-registry-cli`.
 endif::[]
 ifdef::service-registry-downstream[]
 . Download the CLI .zip file from the Red{nbsp}Hat Customer Portal.
@@ -69,7 +67,7 @@ $ cd ~/apicurio-cli
 $ ./acr install
 ----
 +
-This command installs the CLI files to `$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`, updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS), and configures shell completions.
+This command installs the CLI executable to `$HOME/bin` and creates a configuration directory at `$HOME/.apicurio/apicurio-registry-cli`. The command also updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS) and configures shell completions.
 . Reload your shell configuration:
 +
 On Linux:
@@ -100,10 +98,10 @@ endif::[]
 
 
 [id="configuring-registry-cli-contexts_{context}"]
-== Configuring CLI contexts
+== Configuring {registry} CLI contexts
 
 [role="_abstract"]
-With contexts, you can work with many {registry} instances. A context stores the registry URL and identifies the instance that the CLI commands target. You can create many contexts and switch between them as needed.
+An {registry} CLI context stores the registry URL and identifies the instance that the CLI commands target. You can create many contexts and switch between them as needed, similar to how you use contexts in {kubernetes}.
 
 .Procedure
 . Create a new context for your {registry} instance:
@@ -161,75 +159,93 @@ You can use the CLI to create, list, update, and delete artifact groups in {regi
 .Prerequisites
 * You have configured at least one CLI context.
 
-.Procedure
-. List all groups in the registry:
-+
+=== Listing groups
+
+To list all groups in the registry:
+
 [source,bash]
 ----
 $ acr group
 ----
-+
+
 You can use pagination options for large result sets:
-+
+
 [source,bash]
 ----
 $ acr group --page 1 --size 50
 ----
-. Create a new group:
-+
+
+=== Creating a group
+
+To create a new group:
+
 [source,bash,subs="+quotes"]
 ----
 $ acr group create _GROUP_ID_
 ----
-+
+
 You can include a description and labels:
-+
+
 [source,bash]
 ----
 $ acr group create my-schemas --description "Production schemas" --label env=prod --label team=platform
 ----
-. Get details for a specific group:
-+
+
+=== Getting group details
+
+To get details for a specific group:
+
 [source,bash,subs="+quotes"]
 ----
 $ acr group get _GROUP_ID_
 ----
-+
+
 For example:
-+
+
 [source,bash]
 ----
 $ acr group get my-schemas
 ----
-. Update a group description or labels:
-+
+
+=== Updating a group
+
+To update a group description:
+
 [source,bash]
 ----
 $ acr group update my-schemas --description "Updated description"
 ----
-+
+
 To add or update labels:
-+
+
 [source,bash]
 ----
 $ acr group update my-schemas --set-label env=staging --set-label owner=alice
 ----
-+
+
 To delete labels:
-+
+
 [source,bash]
 ----
 $ acr group update my-schemas --delete-label env
 ----
-. Delete a group:
-+
+
+=== Deleting a group
+
+To delete a group:
+
 [source,bash,subs="+quotes"]
 ----
 $ acr group delete _GROUP_ID_
 ----
-+
+
+[NOTE]
+====
+You must configure {registry} with `apicurio.rest.deletion.group.enabled=true` to allow group deletions.
+====
+
 To delete a group that has artifacts, use the `--force` option:
-+
+
 [source,bash]
 ----
 $ acr group delete my-schemas --force
@@ -237,7 +253,7 @@ $ acr group delete my-schemas --force
 
 [NOTE]
 ====
-You must configure {registry} with `apicurio.rest.deletion.group.enabled=true` to allow group deletions. By default, you cannot delete a group that has artifacts unless you use the `--force` option.
+Using `--force` deletes the group and all artifacts it contains. Use this option with caution.
 ====
 
 

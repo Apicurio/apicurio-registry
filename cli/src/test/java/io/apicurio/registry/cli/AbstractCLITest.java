@@ -2,6 +2,7 @@ package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
+import io.apicurio.registry.cli.tags.DockerRequired;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Base class for CLI tests with common setup and utility methods.
  * Subclasses must be annotated with @QuarkusTest.
  */
+@DockerRequired
 public abstract class AbstractCLITest {
 
     protected static GenericContainer<?> registryContainer;

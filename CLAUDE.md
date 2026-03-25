@@ -94,7 +94,12 @@ Types: `feat`, `fix`, `chore`, `docs`, `ci`, `test`, `refactor`
 - **Agents**: See `.claude/agents/` for specialized subagent personas
 - **Skills**: See `.claude/skills/` for auto-invoked workflow guides
 - **Permissions**: See `.claude/settings.json` for team-shared permission policies
+- **Hooks**: File protection and checkstyle-before-commit enabled by default; see `.claude/hooks/`
 - **Personal overrides**: Create `CLAUDE.local.md` (gitignored) for your preferences
+- **Optional**: Desktop notifications — add to your `settings.local.json`:
+  ```json
+  { "hooks": { "Notification": [{ "matcher": "", "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify.sh" }] }] } }
+  ```
 
 ## MCP Integration
 

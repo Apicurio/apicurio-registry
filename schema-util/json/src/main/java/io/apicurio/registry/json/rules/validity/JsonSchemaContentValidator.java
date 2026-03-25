@@ -7,6 +7,7 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.ContentValidator;
+import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 /**
  * A content validator implementation for the JsonSchema content type.
  */
-public class JsonSchemaContentValidator implements ContentValidator {
+public class JsonSchemaContentValidator extends AbstractContentValidator {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -74,20 +75,8 @@ public class JsonSchemaContentValidator implements ContentValidator {
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
-        Set<String> mappedRefs = references.stream()
-                .map(ArtifactReference::getName)
-                .collect(Collectors.toSet());
-
         Set<String> all$refs = getAll$refs(content);
-        Set<RuleViolation> violations = all$refs.stream()
-                .filter(ref -> !mappedRefs.contains(ref))
-                .map(missingRef -> new RuleViolation("Unmapped reference detected.", missingRef))
-                .collect(Collectors.toSet());
-
-        if (!violations.isEmpty()) {
-            throw new RuleViolationException("Unmapped reference(s) detected.",
-                    RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(), violations);
-        }
+        validateMappedReferences(references, all$refs, "Unmapped reference detected.");
     }
 
     /**

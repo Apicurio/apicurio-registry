@@ -11,9 +11,11 @@ import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPath;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRule;
+import io.fabric8.kubernetes.api.model.networking.v1.IngressTLSBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
@@ -71,6 +73,24 @@ public final class IngressUtils {
                     return;
                 }
             }
+        }
+    }
+
+    /**
+     * Configure TLS on an Ingress resource by adding an IngressTLS section.
+     *
+     * @param ingress the Ingress to configure
+     * @param host the hostname for the TLS section
+     * @param tlsSecretName the name of the TLS secret
+     */
+    public static void configureIngressTLS(Ingress ingress, String host, String tlsSecretName) {
+        if (!isBlank(tlsSecretName) && !isBlank(host)) {
+            ingress.getSpec().setTls(List.of(
+                    new IngressTLSBuilder()
+                            .withHosts(host)
+                            .withSecretName(tlsSecretName)
+                            .build()
+            ));
         }
     }
 }

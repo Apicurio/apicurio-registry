@@ -1,0 +1,37 @@
+# TLS passthrough example.
+# TLS is NOT terminated at the Ingress; traffic passes through encrypted to the app.
+# The app is configured with a TLS keystore so it handles HTTPS directly.
+# You must create the TLS, keystore, and truststore Secrets before applying this CR.
+# NOTE: Your Ingress controller must support TLS passthrough.
+# For NGINX, add the annotation: nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple
+spec:
+  app:
+    env:
+    ingress:
+      host: simple-app.apps.cluster.example
+      tlsSecretName: my-tls-cert
+    tls:
+      insecureRequests: disabled
+      truststoreSecretRef:
+        name: truststore
+        key: truststore
+      truststorePasswordSecretRef:
+        name: truststore
+        key: password
+      keystoreSecretRef:
+        name: keystore
+        key: keystore
+      keystorePasswordSecretRef:
+        name: keystore
+        key: password
+  ui:
+    ingress:
+      host: simple-ui.apps.cluster.example
+      tlsSecretName: my-tls-cert
+    env:
+      - name: REGISTRY_API_URL
+        value: https://simple-app.apps.cluster.example/apis/registry/v3

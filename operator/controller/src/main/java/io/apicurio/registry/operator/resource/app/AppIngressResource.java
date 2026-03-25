@@ -1,6 +1,9 @@
 package io.apicurio.registry.operator.resource.app;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.utils.SecretKeyRefTool;
 import io.apicurio.registry.operator.utils.Utils;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -16,12 +19,14 @@ import static io.apicurio.registry.operator.CRContext.getCRContext;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_KEY;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_KEY;
+import static io.apicurio.registry.operator.utils.IngressUtils.configureIngressTLS;
 import static io.apicurio.registry.operator.utils.IngressUtils.getHost;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static io.apicurio.registry.operator.utils.Utils.updateResourceManually;
 import static io.apicurio.registry.utils.Cell.cell;
+import static java.util.Optional.ofNullable;
 
 @KubernetesDependent
 public class AppIngressResource extends CRUDKubernetesDependentResource<Ingress, ApicurioRegistry3> {
@@ -56,6 +61,29 @@ public class AppIngressResource extends CRUDKubernetesDependentResource<Ingress,
             }
             return false;
         });
+
+        // Configure TLS on the Ingress
+        var tlsSecretName = primary.withSpec().withApp().withIngress().getTlsSecretName();
+        var host = getHost(COMPONENT_APP, primary);
+        configureIngressTLS(i, host, tlsSecretName);
+
+        // If app-level TLS is configured (passthrough), update backend port to "https"
+        boolean appTlsEnabled = ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(AppSpec::getTls)
+                .map(tls -> new SecretKeyRefTool(tls.getKeystoreSecretRef(), "user.p12").isValid()
+                        && new SecretKeyRefTool(tls.getKeystorePasswordSecretRef(), "user.password").isValid())
+                .orElse(false);
+
+        if (appTlsEnabled) {
+            i.getSpec().getRules().get(0).getHttp().getPaths().get(0)
+                    .getBackend().getService().getPort().setName("https");
+        }
+
+        if (isBlank(tlsSecretName) && !appTlsEnabled) {
+            log.warn("Ingress for component {} is configured without TLS. "
+                    + "This configuration should only be used for development purposes.", COMPONENT_APP);
+        }
 
         log.trace("Desired {} is:\n\n{}\n\n", APP_INGRESS_KEY.getId(), toYAML(i));
         return i;

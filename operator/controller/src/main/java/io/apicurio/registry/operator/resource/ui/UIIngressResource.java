@@ -16,6 +16,7 @@ import static io.apicurio.registry.operator.CRContext.getCRContext;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_KEY;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_KEY;
+import static io.apicurio.registry.operator.utils.IngressUtils.configureIngressTLS;
 import static io.apicurio.registry.operator.utils.IngressUtils.getHost;
 import static io.apicurio.registry.operator.utils.IngressUtils.withIngressRule;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
@@ -56,6 +57,16 @@ public class UIIngressResource extends CRUDKubernetesDependentResource<Ingress, 
             }
             return false;
         });
+
+        // Configure TLS on the Ingress
+        var tlsSecretName = primary.withSpec().withUi().withIngress().getTlsSecretName();
+        var host = getHost(COMPONENT_UI, primary);
+        configureIngressTLS(i, host, tlsSecretName);
+
+        if (isBlank(tlsSecretName)) {
+            log.warn("Ingress for component {} is configured without TLS. "
+                    + "This configuration should only be used for development purposes.", COMPONENT_UI);
+        }
 
         log.trace("Desired {} is:\n\n{}\n\n", UI_INGRESS_KEY.getId(), toYAML(i));
         return i;

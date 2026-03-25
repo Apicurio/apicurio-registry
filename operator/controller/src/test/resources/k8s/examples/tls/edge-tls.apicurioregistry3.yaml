@@ -1,0 +1,20 @@
+# Edge-terminated TLS example.
+# TLS is terminated at the Ingress level and traffic to the app is HTTP.
+# You must create a kubernetes.io/tls Secret with the TLS certificate before applying this CR.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple
+spec:
+  app:
+    env:
+    ingress:
+      host: simple-app.apps.cluster.example
+      tlsSecretName: my-tls-cert
+  ui:
+    ingress:
+      host: simple-ui.apps.cluster.example
+      tlsSecretName: my-tls-cert
+    env:
+      - name: REGISTRY_API_URL
+        value: https://simple-app.apps.cluster.example/apis/registry/v3

@@ -90,4 +90,19 @@ public class IngressSpec {
             See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.""")
     @JsonSetter(nulls = SKIP)
     private String ingressClassName;
+
+    /**
+     * Name of a Kubernetes TLS Secret (type kubernetes.io/tls) to use for TLS termination
+     * on the operator-managed Ingress.
+     */
+    @JsonProperty("tlsSecretName")
+    @JsonPropertyDescription("""
+            Name of a Kubernetes TLS Secret (type kubernetes.io/tls) to use for TLS termination \
+            on the operator-managed Ingress. When set, the Ingress will be configured with a TLS section \
+            referencing this secret and the configured host.
+
+            For edge-terminated TLS, set this field and do NOT configure app-level TLS (spec.app.tls). \
+            For TLS passthrough, configure both this field and app-level TLS.""")
+    @JsonSetter(nulls = SKIP)
+    private String tlsSecretName;
 }

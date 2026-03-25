@@ -76,10 +76,20 @@ const needsDereference = (artifactType: string): boolean => {
 };
 
 export const DocumentationTabContent: FunctionComponent<DocumentationTabContentProps> = (props: DocumentationTabContentProps) => {
-    const [parsedContent, setParsedContent] = useState(parseContent(props.versionContent));
+    const [parsedContent, setParsedContent] = useState(() =>
+        props.versionContent && !needsDereference(props.artifactType)
+            ? parseContent(props.versionContent) : {}
+    );
     const [visualizerType] = useState(getVisualizerType(props.artifactType));
     const [error] = useState<any>();
     const groups: GroupsService = useGroupsService();
+
+    // Sync parsed content when versionContent arrives after mount (race condition fix).
+    useEffect(() => {
+        if (props.versionContent && !needsDereference(props.artifactType)) {
+            setParsedContent(parseContent(props.versionContent));
+        }
+    }, [props.versionContent, props.artifactType]);
 
     useEffect(() => {
         if (needsDereference(props.artifactType) && props.groupId && props.artifactId && props.version) {

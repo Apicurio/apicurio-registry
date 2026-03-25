@@ -84,7 +84,7 @@ export const DocumentationTabContent: FunctionComponent<DocumentationTabContentP
     const [error] = useState<any>();
     const groups: GroupsService = useGroupsService();
 
-    // Sync parsed content when versionContent arrives after mount (race condition fix).
+    // Handles race condition where versionContent arrives after mount.
     useEffect(() => {
         if (props.versionContent && !needsDereference(props.artifactType)) {
             setParsedContent(parseContent(props.versionContent));

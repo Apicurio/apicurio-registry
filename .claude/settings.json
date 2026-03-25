@@ -12,12 +12,8 @@
       "Bash(git log*)",
       "Bash(git show*)",
       "Bash(git branch*)",
-      "Bash(gh issue view *)",
-      "Bash(gh issue list *)",
-      "Bash(gh pr view *)",
-      "Bash(gh pr list *)",
-      "Bash(gh pr diff *)",
-      "Bash(gh pr checks *)",
+      "Bash(gh issue *)",
+      "Bash(gh pr *)",
       "Read",
       "Write",
       "Edit"
@@ -41,6 +37,29 @@
         ]
       }
     ],
-    "PostToolUse": []
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/checkstyle-after-edit.sh",
+            "timeout": 60,
+            "statusMessage": "Running checkstyle"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify.sh"
+          }
+        ]
+      }
+    ]
   }
 }

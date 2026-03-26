@@ -19,7 +19,7 @@ jobs:
     env:
       IS_PRE_RELEASE: false
       MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-    if: github.repository_owner == 'Apicurio'
+    if: false # WORKAROUND: disabled to re-run only the macOS CLI job
     steps:
 
       - name: Check
@@ -276,7 +276,7 @@ jobs:
   release-cli-macos:
     name: Release CLI (macOS aarch64)
     needs: release
-    if: github.repository_owner == 'Apicurio'
+    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') && github.repository_owner == 'Apicurio' }}
     runs-on: macos-14
     steps:
       - name: Apicurio Registry Checkout
@@ -286,11 +286,11 @@ jobs:
           # the main release job has already bumped the branch to the next snapshot.
           ref: ${{ github.event.inputs.release-version }}
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up GraalVM 23
+        uses: graalvm/setup-graalvm@v1
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: '23'
+          distribution: 'graalvm'
 
       - name: Build CLI Native Binary
         env:

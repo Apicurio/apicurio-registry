@@ -6,12 +6,10 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
-import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.types.RuleType;
 import org.everit.json.schema.SchemaException;
 

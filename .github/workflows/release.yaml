@@ -147,7 +147,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
 
   # Phase 2a: Build the registry app (Maven).
-  # Runs in parallel with UI build and CLI native builds.
+  # Runs in parallel with UI and CLI builds.
   release-build-app:
     name: Build Registry App
     needs: release-prepare
@@ -171,7 +171,7 @@ jobs:
         run: |
           ./mvnw clean package \
             --no-transfer-progress \
-            -Pprod -Dcli-skip-native \
+            -Pprod -pl '!cli' \
             -DskipTests=true \
             -DskipCommitIdPlugin=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
@@ -186,8 +186,8 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # Phase 2a: Build the registry UI (npm).
-  # Runs in parallel with app build and CLI native builds.
+  # Phase 2b: Build the registry UI (npm).
+  # Runs in parallel with app and CLI builds.
   # This is a validation gate only — the UI is rebuilt independently
   # by the release-images workflow for Docker image creation.
   release-build-ui:
@@ -214,8 +214,8 @@ jobs:
           npm run build
           npm run package
 
-  # Phase 2b: Build CLI native binaries for each platform.
-  # Runs in parallel with the main registry build.
+  # Phase 2c: Build CLI native binaries for each platform.
+  # Runs in parallel with app and UI builds.
   release-build-cli:
     name: Build CLI (${{ matrix.os-name }})
     needs: release-prepare

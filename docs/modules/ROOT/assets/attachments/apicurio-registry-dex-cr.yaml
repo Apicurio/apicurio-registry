@@ -17,14 +17,21 @@ spec:
   app:
     ingress:
       host: apicurio-registry-app-apicurio-registry.apps.<cluster-domain>
+      # On OpenShift, this annotation enables edge TLS termination on the Route,
+      # so the app is served over HTTPS with automatic HTTP -> HTTPS redirect.
       annotations:
         route.openshift.io/termination: edge
     auth:
       enabled: true
+      # Both must point to the PUBLIC Dex client so the backend accepts
+      # tokens with aud=apicurio-registry-ui issued by the browser flow.
       appClientId: apicurio-registry-ui
       uiClientId: apicurio-registry-ui
-      redirectUri: "https://apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>/"
       authServerUrl: "https://dex.<cluster-domain>"
+      # Explicit redirect URI prevents oidc-client-ts from using the current
+      # page URL (which may contain stale ?code=...&state=... query params),
+      # fixing silent token refresh failures.
+      redirectUri: "https://<registry-ui-route>/"
       anonymousReadsEnabled: true
       tls:
         tlsVerificationType: "none"  # Set to "certificate" in production and provide a truststore
@@ -53,15 +60,18 @@ spec:
       # Use the email claim as the principal identity for artifact ownership
       - name: QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM
         value: "email"
+      # The UI scope defaults to "openid profile email" which does NOT include
+      # groups. Without this, Dex won't include group membership in the token
+      # and RBAC will deny all write operations.
+      - name: APICURIO_UI_AUTH_OIDC_SCOPE
+        value: "openid profile email groups"
   ui:
     ingress:
       host: apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>
       annotations:
         route.openshift.io/termination: edge
     env:
-      # UI must also request groups scope for RBAC to work
-      - name: APICURIO_UI_AUTH_OIDC_SCOPE
-        value: "openid profile email groups"
-      # Override the API URL to use HTTPS (operator defaults to http://)
+      # The operator hardcodes http:// for REGISTRY_API_URL.
+      # Override it to use HTTPS since we enabled edge TLS on the app route.
       - name: REGISTRY_API_URL
         value: "https://apicurio-registry-app-apicurio-registry.apps.<cluster-domain>/apis/registry/v3"

@@ -119,7 +119,7 @@ jobs:
         run: |
           RELEASE_VERSION=${{ needs.prepare.outputs.release-version }}
           gh release download "${RELEASE_VERSION}" \
-            --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch64.zip" \
+            --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch_64.zip" \
             --dir cli/target/
 
       - name: Maven Deploy
@@ -133,7 +133,7 @@ jobs:
     name: Release SBOMs
     runs-on: ubuntu-22.04
     needs: prepare
-    if: needs.prepare.outputs.release-sboms == 'true'
+    if: false # WORKAROUND: already completed in previous run
     timeout-minutes: 30
     steps:
       - name: Download Source Code
@@ -254,7 +254,7 @@ jobs:
     name: Release Artifact Type Builtins
     runs-on: ubuntu-22.04
     needs: prepare
-    if: needs.prepare.outputs.release-builtins == 'true'
+    if: false # WORKAROUND: already completed in previous run
     timeout-minutes: 20
     steps:
       - name: Download Source Code
@@ -319,7 +319,7 @@ jobs:
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'artifact-releases'
-      job-status: ${{ (needs.release-maven.result == 'failure' || needs.release-sboms.result == 'failure' || needs.release-site.result == 'failure' || needs.release-builtins.result == 'failure') && 'failure' || 'success' }}
+      job-status: ${{ (needs.release-maven.result == 'failure' || needs.release-site.result == 'failure') && 'failure' || 'success' }}
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

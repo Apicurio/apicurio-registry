@@ -5,8 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.canon.BaseContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.types.ContentTypes;
+import org.apache.avro.Schema;
 
 import java.io.IOException;
 import java.util.Map;
@@ -15,7 +16,7 @@ import java.util.Map;
  * A common JSON content canonicalizer. This will remove any extra formatting such as whitespace and also sort
  * all fields/properties for all objects (because ordering of properties does not matter in JSON).
  */
-public class JsonContentCanonicalizer implements ContentCanonicalizer {
+public class JsonContentCanonicalizer extends BaseContentCanonicalizer {
 
     private final ObjectMapper mapper = new ObjectMapper()
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
@@ -24,15 +25,11 @@ public class JsonContentCanonicalizer implements ContentCanonicalizer {
      * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
      */
     @Override
-    public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        try {
-            JsonNode root = readAsJsonNode(content);
-            processJsonNode(root);
-            String converted = mapper.writeValueAsString(mapper.treeToValue(root, Object.class));
-            return TypedContent.create(ContentHandle.create(converted), ContentTypes.APPLICATION_JSON);
-        } catch (Throwable t) {
-            return content;
-        }
+    public TypedContent doCanonicalize(TypedContent content,
+                                          Map<String, TypedContent> refs) throws Exception {
+        Schema schema = new Schema.Parser().parse(content.getContent().content());
+        String canonical = schema.toString();
+        return TypedContent.create(ContentHandle.create(canonical), content.getContentType());
     }
 
     /**

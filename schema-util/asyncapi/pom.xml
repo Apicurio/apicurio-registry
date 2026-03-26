@@ -27,6 +27,10 @@
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-openapi</artifactId>
     </dependency>
+      <dependency>
+          <groupId>org.apache.avro</groupId>
+          <artifactId>avro</artifactId>
+      </dependency>
 
   </dependencies>
 

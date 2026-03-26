@@ -21,3 +21,4 @@ public final class KafkaUtil {
     private KafkaUtil() {
     }
 }
+

@@ -104,11 +104,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-utils-kafka</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.apache.pulsar</groupId>
       <artifactId>pulsar-client</artifactId>
       <scope>test</scope>

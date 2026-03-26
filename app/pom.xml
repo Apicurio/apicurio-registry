@@ -27,11 +27,6 @@
 
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-utils-kafka</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-provider</artifactId>
     </dependency>
 

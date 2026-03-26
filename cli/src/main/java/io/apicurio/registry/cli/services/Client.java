@@ -7,37 +7,45 @@ import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.net.URI;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
-public final class Client {
+@ApplicationScoped
+public class Client {
 
     private static Client instance;
 
     public static synchronized Client getInstance() {
         if (instance == null) {
-            var vertx = VertxInstance.getVertx();
-            instance = new Client(vertx);
+            throw new CliException("Client not initialized.", APPLICATION_ERROR_RETURN_CODE);
         }
         return instance;
     }
 
-    // Resets the cached client so a new connection is established on next use.
     public static synchronized void reset() {
-        instance = null;
+        if (instance != null) {
+            instance.registryClient = null;
+            instance.httpClient = null;
+        }
     }
 
-    private final Vertx vertx;
+    @Inject
+    Vertx vertx;
 
     private RegistryClient registryClient;
 
     private HttpClient httpClient;
 
-    private Client(Vertx vertx) {
-        this.vertx = vertx;
+    Client() {
+    }
+
+    void onStart(@jakarta.enterprise.event.Observes io.quarkus.runtime.StartupEvent ev) {
+        instance = this;
     }
 
     public RegistryClient getRegistryClient() {

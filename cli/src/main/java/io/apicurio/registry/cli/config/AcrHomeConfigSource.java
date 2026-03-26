@@ -1,40 +1,56 @@
 package io.apicurio.registry.cli.config;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import io.apicurio.registry.cli.common.CliException;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * Custom ConfigSource that loads properties from "$ACR_HOME/config.json".
+ * Gracefully returns empty results when ACR_CURRENT_HOME is not set
+ * (e.g., during Quarkus build time).
  */
 public class AcrHomeConfigSource implements ConfigSource {
-
-    private static final Logger log = LogManager.getRootLogger();
 
     public AcrHomeConfigSource() {
     }
 
     @Override
     public Map<String, String> getProperties() {
-        return Config.getInstance().read().getConfig();
+        try {
+            return Config.getInstance().read().getConfig();
+        } catch (CliException e) {
+            return Collections.emptyMap();
+        }
     }
 
     @Override
     public String getValue(String propertyName) {
-        return Config.getInstance().read().getConfig().get(propertyName);
+        try {
+            return Config.getInstance().read().getConfig().get(propertyName);
+        } catch (CliException e) {
+            return null;
+        }
     }
 
     @Override
     public String getName() {
-        return getClass().getSimpleName() + "[" + Config.getInstance().getConfigFilePath() + "]";
+        try {
+            return getClass().getSimpleName() + "[" + Config.getInstance().getConfigFilePath() + "]";
+        } catch (CliException e) {
+            return getClass().getSimpleName() + "[not configured]";
+        }
     }
 
     @Override
     public Set<String> getPropertyNames() {
-        return Config.getInstance().read().getConfig().keySet();
+        try {
+            return Config.getInstance().read().getConfig().keySet();
+        } catch (CliException e) {
+            return Collections.emptySet();
+        }
     }
 
     @Override

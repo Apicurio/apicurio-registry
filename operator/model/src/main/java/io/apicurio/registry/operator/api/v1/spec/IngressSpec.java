@@ -105,4 +105,24 @@ public class IngressSpec {
             For TLS passthrough, configure both this field and app-level TLS.""")
     @JsonSetter(nulls = SKIP)
     private String tlsSecretName;
+
+    /**
+     * TLS termination type for the operator-managed Ingress.
+     * On OpenShift, this also controls the Route TLS termination via the
+     * <code>route.openshift.io/termination</code> annotation.
+     */
+    @JsonProperty("tlsTermination")
+    @JsonPropertyDescription("""
+            TLS termination type for the operator-managed Ingress. Supported values: \
+            `edge`, `passthrough`, `reencrypt`.
+
+            On OpenShift, this controls the Route TLS termination via the \
+            `route.openshift.io/termination` annotation. \
+            Use `edge` for TLS terminated at the router/ingress (recommended for most deployments). \
+            Use `passthrough` when app-level TLS (spec.app.tls) is configured and the app handles HTTPS directly.
+
+            IMPORTANT: On cloud-based OpenShift (ROSA, ARO, GCP), HTTPS is typically mandatory. \
+            Set this to `edge` to ensure the operator-managed Ingress works correctly.""")
+    @JsonSetter(nulls = SKIP)
+    private TLSTermination tlsTermination;
 }

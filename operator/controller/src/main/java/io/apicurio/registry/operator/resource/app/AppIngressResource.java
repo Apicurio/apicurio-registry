@@ -63,9 +63,11 @@ public class AppIngressResource extends CRUDKubernetesDependentResource<Ingress,
         });
 
         // Configure TLS on the Ingress
-        var tlsSecretName = primary.withSpec().withApp().withIngress().getTlsSecretName();
+        var ingressSpec = primary.withSpec().withApp().withIngress();
+        var tlsSecretName = ingressSpec.getTlsSecretName();
+        var tlsTermination = ingressSpec.getTlsTermination();
         var host = getHost(COMPONENT_APP, primary);
-        configureIngressTLS(i, host, tlsSecretName);
+        configureIngressTLS(i, host, tlsSecretName, tlsTermination);
 
         // If app-level TLS is configured (passthrough), update backend port to "https"
         boolean appTlsEnabled = ofNullable(primary.getSpec())
@@ -80,7 +82,7 @@ public class AppIngressResource extends CRUDKubernetesDependentResource<Ingress,
                     .getBackend().getService().getPort().setName("https");
         }
 
-        if (isBlank(tlsSecretName) && !appTlsEnabled) {
+        if (isBlank(tlsSecretName) && tlsTermination == null && !appTlsEnabled) {
             log.warn("Ingress for component {} is configured without TLS. "
                     + "This configuration should only be used for development purposes.", COMPONENT_APP);
         }

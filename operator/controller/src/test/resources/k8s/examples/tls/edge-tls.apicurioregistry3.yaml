@@ -1,6 +1,8 @@
 # Edge-terminated TLS example.
-# TLS is terminated at the Ingress level and traffic to the app is HTTP.
-# You must create a kubernetes.io/tls Secret with the TLS certificate before applying this CR.
+# TLS is terminated at the Ingress/Route level and traffic to the app is HTTP.
+# On OpenShift (ROSA, ARO, GCP), this is the recommended configuration.
+# On vanilla Kubernetes, you must create a kubernetes.io/tls Secret with the TLS certificate.
+# On OpenShift, you can omit tlsSecretName to use the default router certificate.
 apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry3
 metadata:
@@ -10,10 +12,12 @@ spec:
     env:
     ingress:
       host: simple-app.apps.cluster.example
+      tlsTermination: edge
       tlsSecretName: my-tls-cert
   ui:
     ingress:
       host: simple-ui.apps.cluster.example
+      tlsTermination: edge
       tlsSecretName: my-tls-cert
     env:
       - name: REGISTRY_API_URL

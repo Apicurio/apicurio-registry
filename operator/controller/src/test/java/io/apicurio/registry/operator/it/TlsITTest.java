@@ -149,7 +149,7 @@ public class TlsITTest extends ITBase {
             return true;
         });
 
-        // Verify app Ingress has TLS section with correct secret and host
+        // Verify app Ingress has TLS section with correct secret, host, and OpenShift annotation
         await().ignoreExceptions().until(() -> {
             var appIngress = client.network().v1().ingresses().inNamespace(namespace)
                     .withName(registry.getMetadata().getName() + "-app-ingress").get();
@@ -163,10 +163,14 @@ public class TlsITTest extends ITBase {
             assertThat(appIngress.getSpec().getRules().get(0).getHttp().getPaths().get(0)
                     .getBackend().getService().getPort().getName()).isEqualTo("http");
 
+            // OpenShift Route termination annotation should be set
+            assertThat(appIngress.getMetadata().getAnnotations())
+                    .containsEntry("route.openshift.io/termination", "edge");
+
             return true;
         });
 
-        // Verify UI Ingress has TLS section
+        // Verify UI Ingress has TLS section and annotation
         await().ignoreExceptions().until(() -> {
             var uiIngress = client.network().v1().ingresses().inNamespace(namespace)
                     .withName(registry.getMetadata().getName() + "-ui-ingress").get();
@@ -175,6 +179,9 @@ public class TlsITTest extends ITBase {
             assertThat(uiIngress.getSpec().getTls().get(0).getSecretName()).isEqualTo("my-tls-cert");
             assertThat(uiIngress.getSpec().getTls().get(0).getHosts())
                     .contains(registry.getSpec().getUi().getIngress().getHost());
+
+            assertThat(uiIngress.getMetadata().getAnnotations())
+                    .containsEntry("route.openshift.io/termination", "edge");
 
             return true;
         });
@@ -201,7 +208,7 @@ public class TlsITTest extends ITBase {
             return true;
         });
 
-        // Verify app Ingress has TLS section AND backend port is "https" (passthrough)
+        // Verify app Ingress has TLS section, backend port "https", and passthrough annotation
         await().ignoreExceptions().until(() -> {
             var appIngress = client.network().v1().ingresses().inNamespace(namespace)
                     .withName(registry.getMetadata().getName() + "-app-ingress").get();
@@ -213,6 +220,10 @@ public class TlsITTest extends ITBase {
             assertThat(appIngress.getSpec().getRules().get(0).getHttp().getPaths().get(0)
                     .getBackend().getService().getPort().getName()).isEqualTo("https");
 
+            // OpenShift Route termination annotation should be "passthrough"
+            assertThat(appIngress.getMetadata().getAnnotations())
+                    .containsEntry("route.openshift.io/termination", "passthrough");
+
             return true;
         });
 
@@ -223,6 +234,50 @@ public class TlsITTest extends ITBase {
 
             Assertions.assertEquals(1, service.getPorts().size());
             assertThat(service.getPorts().get(0).getPort()).isEqualTo(443);
+
+            return true;
+        });
+    }
+
+    /**
+     * Test OpenShift edge-terminated TLS using default router certificate (no tlsSecretName).
+     */
+    @Test
+    void testOpenShiftEdgeTLS() {
+        var registry = ResourceFactory.deserialize("/k8s/examples/tls/openshift-edge-tls.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+        registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost("app"));
+        registry.getSpec().getUi().getIngress().setHost(ingressManager.getIngressHost("ui"));
+
+        client.resource(registry).create();
+
+        // Deployments
+        await().ignoreExceptions().until(() -> {
+            assertThat(client.apps().deployments().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
+                    .getReadyReplicas()).isEqualTo(1);
+            return true;
+        });
+
+        // Verify Ingress has TLS section (without secretName) and edge annotation
+        await().ignoreExceptions().until(() -> {
+            var appIngress = client.network().v1().ingresses().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-ingress").get();
+
+            assertThat(appIngress.getSpec().getTls()).hasSize(1);
+            assertThat(appIngress.getSpec().getTls().get(0).getHosts())
+                    .contains(registry.getSpec().getApp().getIngress().getHost());
+            // No secretName since we use the default router cert
+            assertThat(appIngress.getSpec().getTls().get(0).getSecretName()).isNull();
+
+            // Backend port should be "http" (edge termination, not passthrough)
+            assertThat(appIngress.getSpec().getRules().get(0).getHttp().getPaths().get(0)
+                    .getBackend().getService().getPort().getName()).isEqualTo("http");
+
+            // OpenShift Route termination annotation
+            assertThat(appIngress.getMetadata().getAnnotations())
+                    .containsEntry("route.openshift.io/termination", "edge");
 
             return true;
         });

@@ -309,6 +309,18 @@ spec:
 
                           For edge-terminated TLS, set this field and do NOT configure app-level TLS (spec.app.tls). For TLS passthrough, configure both this field and app-level TLS.
                         type: string
+                      tlsTermination:
+                        description: |-
+                          TLS termination type for the operator-managed Ingress. Supported values: `edge`, `passthrough`, `reencrypt`.
+
+                          On OpenShift, this controls the Route TLS termination via the `route.openshift.io/termination` annotation. Use `edge` for TLS terminated at the router/ingress (recommended for most deployments). Use `passthrough` when app-level TLS (spec.app.tls) is configured and the app handles HTTPS directly.
+
+                          IMPORTANT: On cloud-based OpenShift (ROSA, ARO, GCP), HTTPS is typically mandatory. Set this to `edge` to ensure the operator-managed Ingress works correctly.
+                        enum:
+                        - edge
+                        - passthrough
+                        - reencrypt
+                        type: string
                     type: object
                   kafkasql:
                     description: |-
@@ -3751,6 +3763,18 @@ spec:
                           Name of a Kubernetes TLS Secret (type kubernetes.io/tls) to use for TLS termination on the operator-managed Ingress. When set, the Ingress will be configured with a TLS section referencing this secret and the configured host.
 
                           For edge-terminated TLS, set this field and do NOT configure app-level TLS (spec.app.tls). For TLS passthrough, configure both this field and app-level TLS.
+                        type: string
+                      tlsTermination:
+                        description: |-
+                          TLS termination type for the operator-managed Ingress. Supported values: `edge`, `passthrough`, `reencrypt`.
+
+                          On OpenShift, this controls the Route TLS termination via the `route.openshift.io/termination` annotation. Use `edge` for TLS terminated at the router/ingress (recommended for most deployments). Use `passthrough` when app-level TLS (spec.app.tls) is configured and the app handles HTTPS directly.
+
+                          IMPORTANT: On cloud-based OpenShift (ROSA, ARO, GCP), HTTPS is typically mandatory. Set this to `edge` to ensure the operator-managed Ingress works correctly.
+                        enum:
+                        - edge
+                        - passthrough
+                        - reencrypt
                         type: string
                     type: object
                   networkPolicy:

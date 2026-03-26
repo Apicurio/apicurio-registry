@@ -6,6 +6,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
+import io.apicurio.registry.operator.api.v1.spec.TLSTermination;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.networking.v1.HTTPIngressPath;
@@ -77,20 +78,27 @@ public final class IngressUtils {
     }
 
     /**
-     * Configure TLS on an Ingress resource by adding an IngressTLS section.
+     * Configure TLS on an Ingress resource by adding an IngressTLS section
+     * and the OpenShift Route termination annotation.
      *
      * @param ingress the Ingress to configure
      * @param host the hostname for the TLS section
-     * @param tlsSecretName the name of the TLS secret
+     * @param tlsSecretName the name of the TLS secret (may be null for OpenShift default cert)
+     * @param tlsTermination the TLS termination type (may be null)
      */
-    public static void configureIngressTLS(Ingress ingress, String host, String tlsSecretName) {
-        if (!isBlank(tlsSecretName) && !isBlank(host)) {
-            ingress.getSpec().setTls(List.of(
-                    new IngressTLSBuilder()
-                            .withHosts(host)
-                            .withSecretName(tlsSecretName)
-                            .build()
-            ));
+    public static void configureIngressTLS(Ingress ingress, String host, String tlsSecretName,
+            TLSTermination tlsTermination) {
+        if (!isBlank(host) && (tlsTermination != null || !isBlank(tlsSecretName))) {
+            var tlsBuilder = new IngressTLSBuilder().withHosts(host);
+            if (!isBlank(tlsSecretName)) {
+                tlsBuilder.withSecretName(tlsSecretName);
+            }
+            ingress.getSpec().setTls(List.of(tlsBuilder.build()));
+        }
+
+        if (tlsTermination != null) {
+            ingress.getMetadata().getAnnotations()
+                    .put("route.openshift.io/termination", tlsTermination.getValue());
         }
     }
 }

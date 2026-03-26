@@ -59,11 +59,13 @@ public class UIIngressResource extends CRUDKubernetesDependentResource<Ingress, 
         });
 
         // Configure TLS on the Ingress
-        var tlsSecretName = primary.withSpec().withUi().withIngress().getTlsSecretName();
+        var uiIngressSpec = primary.withSpec().withUi().withIngress();
+        var tlsSecretName = uiIngressSpec.getTlsSecretName();
+        var tlsTermination = uiIngressSpec.getTlsTermination();
         var host = getHost(COMPONENT_UI, primary);
-        configureIngressTLS(i, host, tlsSecretName);
+        configureIngressTLS(i, host, tlsSecretName, tlsTermination);
 
-        if (isBlank(tlsSecretName)) {
+        if (isBlank(tlsSecretName) && tlsTermination == null) {
             log.warn("Ingress for component {} is configured without TLS. "
                     + "This configuration should only be used for development purposes.", COMPONENT_UI);
         }

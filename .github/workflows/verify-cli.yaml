@@ -19,7 +19,7 @@ jobs:
             os-name: linux-x86_64
             test-args: '-Dtest.app.image=quay.io/apicurio/apicurio-registry:latest-release'
           - runner: macos-14
-            os-name: osx-aarch64
+            os-name: osx-aarch_64
             # Docker is not available on macOS runners (see https://github.com/douglascamata/setup-docker-macos-action/issues/35),
             # skip @DockerRequired tests
             test-args: '-Dgroups=!docker-required'

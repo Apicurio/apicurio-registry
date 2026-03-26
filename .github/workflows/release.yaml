@@ -227,7 +227,7 @@ jobs:
           - runner: ubuntu-22.04
             os-name: linux-x86_64
           - runner: macos-14
-            os-name: osx-aarch64
+            os-name: osx-aarch_64
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Apicurio Registry Checkout
@@ -292,7 +292,7 @@ jobs:
           ls -la artifacts/
           echo "=== CLI ZIPs ==="
           ls -la cli-zips/
-          for classifier in linux-x86_64 osx-aarch64; do
+          for classifier in linux-x86_64 osx-aarch_64; do
             if ! ls cli-zips/*-${classifier}.zip 1>/dev/null 2>&1; then
               echo "ERROR: Missing CLI ZIP for ${classifier}"
               exit 1

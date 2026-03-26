@@ -260,9 +260,9 @@
                                 <configuration>
                                     <artifacts>
                                         <artifact>
-                                            <file>${project.build.directory}/apicurio-registry-cli-${project.version}-osx-aarch64.zip</file>
+                                            <file>${project.build.directory}/apicurio-registry-cli-${project.version}-osx-aarch_64.zip</file>
                                             <type>zip</type>
-                                            <classifier>osx-aarch64</classifier>
+                                            <classifier>osx-aarch_64</classifier>
                                         </artifact>
                                     </artifacts>
                                 </configuration>

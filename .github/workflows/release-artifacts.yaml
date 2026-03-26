@@ -119,7 +119,7 @@ jobs:
         run: |
           RELEASE_VERSION=${{ needs.prepare.outputs.release-version }}
           gh release download "${RELEASE_VERSION}" \
-            --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch64.zip" \
+            --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch_64.zip" \
             --dir cli/target/
 
       - name: Maven Deploy

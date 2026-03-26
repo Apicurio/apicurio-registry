@@ -44,8 +44,9 @@ __pycache__
 PROJECT_INDEX.md
 PROJECT_INDEX.json
 
-# Claude
-.claude
+# Claude Code — personal/local files (gitignored)
+.claude/settings.local.json
+CLAUDE.local.md
 claudedocs
 
 # Serena MCP

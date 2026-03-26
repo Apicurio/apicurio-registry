@@ -122,6 +122,11 @@ jobs:
             --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch_64.zip" \
             --dir cli/target/
 
+      - name: Patch CLI pom.xml (workaround for frozen tag)
+        working-directory: registry
+        run: |
+          sed -i 's/osx-aarch64/osx-aarch_64/g' cli/pom.xml
+
       - name: Maven Deploy
         working-directory: registry
         run: |

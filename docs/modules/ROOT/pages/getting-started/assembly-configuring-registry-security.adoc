@@ -362,6 +362,10 @@ Without an OIDC-compliant provider, the following {registry} features do not wor
 |Owner-based authorization
 |Not available
 |Depends on principal identity, which is empty when the provider does not expose standard claims.
+
+|Group-based access
+|Not available
+|Requires the `groups` claim in the OIDC token, which non-compliant providers do not issue.
 |===
 
 By deploying Dex between {registry} and your identity provider, all three features work because Dex exposes standard OIDC discovery, issues JWTs with standard claims (`sub`, `name`, `email`, `groups`), and provides a standard JWKS endpoint.
@@ -382,7 +386,9 @@ helm repo update
 {kubernetes-client} create namespace dex
 ----
 
-. Create a Helm values file named `dex-values.yaml` with the following content. Replace the placeholder values with your actual configuration:
+. Create a Helm values file named `dex-values.yaml` with the following content. Replace the placeholder values with your actual configuration.
++
+{registry} needs two OAuth clients: a public client for the browser-based UI (which cannot hold a secret) and a confidential client for the backend and CLI. You must also configure `allowedOrigins` so the UI can fetch the Dex OIDC discovery endpoint via CORS.
 +
 [source,yaml]
 ----
@@ -396,6 +402,8 @@ config:
 
   web:
     http: 0.0.0.0:5556
+    allowedOrigins:
+      - "https://<registry-ui-route>"
 
   oauth2:
     skipApprovalScreen: true
@@ -408,6 +416,15 @@ config:
       absoluteLifetime: "720h"
 
   staticClients:
+    # Public client for the browser UI (no secret)
+    - id: apicurio-registry-ui
+      name: Apicurio Registry UI
+      public: true
+      redirectURIs:
+        - "https://<registry-ui-route>/"
+        - "https://<registry-ui-route>/dashboard"
+
+    # Confidential client for the backend / CLI
     - id: apicurio-registry
       name: Apicurio Registry
       secret: <GENERATE_A_SECURE_SECRET>
@@ -424,6 +441,10 @@ ingress:
         - path: /
           pathType: Prefix
 ----
++
+IMPORTANT: The UI client must be `public: true` because the browser-based authorization code flow with PKCE cannot securely store a client secret. If you use a single confidential client for both UI and backend, the UI login will fail with `invalid_client` errors. The `/dashboard` redirect URI is needed because the {registry} UI redirects there after login.
++
+NOTE: When generating the client secret, avoid special characters such as `+`, `/`, or `=` that may cause URL encoding mismatches. Use `openssl rand -base64 32 | tr -d '+/=' | head -c 32` to generate a safe secret.
 +
 ifdef::apicurio-registry[]
 On OpenShift, create a Route instead of using Ingress:
@@ -479,12 +500,12 @@ helm upgrade dex dex/dex -n dex -f dex-values.yaml
 |-
 
 |`QUARKUS_OIDC_CLIENT_ID`
-|The client ID for the {registry} REST API. Must match the `staticClients.id` configured in Dex.
+|The client ID for the {registry} REST API. Must match the public client ID (`apicurio-registry-ui`) so the backend accepts tokens issued by Dex for the UI.
 |String
 |`registry-api`
 
 |`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
-|The client ID for the {registry} web console. Can be the same as the REST API client ID when using Dex.
+|The client ID for the {registry} web console. Must match the public Dex static client.
 |String
 |`apicurio-registry`
 
@@ -502,6 +523,11 @@ helm upgrade dex dex/dex -n dex -f dex-values.yaml
 |The JWT claim to use as the principal identity for artifact ownership. Set to `email` because Dex populates this as a flat top-level claim.
 |String
 |`sub`
+
+|`APICURIO_UI_AUTH_OIDC_SCOPE`
+|The OIDC scopes requested by the {registry} web console. Must include `groups` so that the UI token contains group membership for role-based authorization.
+|String
+|`openid profile email`
 |===
 +
 For example, when using Dex, set these values:
@@ -510,12 +536,15 @@ For example, when using Dex, set these values:
 ----
 QUARKUS_OIDC_TENANT_ENABLED=true
 QUARKUS_OIDC_AUTH_SERVER_URL=https://dex.example.com
-QUARKUS_OIDC_CLIENT_ID=apicurio-registry
-APICURIO_UI_AUTH_OIDC_CLIENT_ID=apicurio-registry
+QUARKUS_OIDC_CLIENT_ID=apicurio-registry-ui
+APICURIO_UI_AUTH_OIDC_CLIENT_ID=apicurio-registry-ui
 QUARKUS_OIDC_AUTHENTICATION_SCOPES=openid,email,profile,groups
 QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH=groups
 QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM=email
+APICURIO_UI_AUTH_OIDC_SCOPE=openid profile email groups
 ----
++
+IMPORTANT: Both `QUARKUS_OIDC_CLIENT_ID` and `APICURIO_UI_AUTH_OIDC_CLIENT_ID` must be set to the public client ID (`apicurio-registry-ui`). If they do not match, the backend will reject tokens issued for a different audience with `InvalidJwtSignatureException` errors.
 
 . Configure role-based authorization. Dex passes upstream group membership in the `groups` claim. Map your upstream groups to {registry} roles:
 +
@@ -588,7 +617,7 @@ APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION=true
 +
 With this setting, only the user who created an artifact can modify or delete it. For more details on owner-only authorization, see xref:registry-security-obac-enabled[].
 
-. If you are using the {registry} Operator on {kubernetes}, you can configure all of the above in the `ApicurioRegistry3` custom resource. The `spec.app.auth` section covers the standard OIDC settings, and Dex-specific properties must be set using `spec.app.env`:
+. If you are using the {registry} Operator on {kubernetes}, you can configure all of the above in the `ApicurioRegistry3` custom resource. The `spec.app.auth` section covers the standard OIDC settings, and Dex-specific properties must be set using `spec.app.env`. Use `spec.app.ingress` with TLS annotations instead of the bare `host` field:
 +
 [source,yaml]
 ----
@@ -596,19 +625,27 @@ apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry3
 metadata:
   name: apicurio-registry
+  namespace: apicurio-registry
 spec:
   app:
-    host: apicurio-registry-app.apps.<cluster-domain>
+    ingress:
+      host: apicurio-registry-app-apicurio-registry.apps.<cluster-domain>
+      annotations:
+        route.openshift.io/termination: edge
     auth:
       enabled: true
-      appClientId: apicurio-registry
-      uiClientId: apicurio-registry
+      appClientId: apicurio-registry-ui
+      uiClientId: apicurio-registry-ui
+      redirectUri: "https://apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>/"
       authServerUrl: "https://dex.<cluster-domain>"
       anonymousReadsEnabled: true
+      tls:
+        tlsVerificationType: "none"
       authz:
         enabled: true
         readAccessEnabled: true
         ownerOnlyEnabled: true
+        groupAccessEnabled: false
         roles:
           source: token
           admin: "registry-admins"
@@ -627,8 +664,18 @@ spec:
       - name: QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM
         value: "email"
   ui:
-    host: apicurio-registry-ui.apps.<cluster-domain>
+    ingress:
+      host: apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>
+      annotations:
+        route.openshift.io/termination: edge
+    env:
+      - name: APICURIO_UI_AUTH_OIDC_SCOPE
+        value: "openid profile email groups"
+      - name: REGISTRY_API_URL
+        value: "https://apicurio-registry-app-apicurio-registry.apps.<cluster-domain>/apis/registry/v3"
 ----
++
+IMPORTANT: Both `appClientId` and `uiClientId` must be set to the public Dex client (`apicurio-registry-ui`). The `redirectUri` must be specified for silent token refresh to work. The `REGISTRY_API_URL` in the UI env section must use `https://` because the operator defaults to `http://`, which breaks when authentication is enabled.
 +
 NOTE: A complete example CR is available in the link:{attachmentsdir}/apicurio-registry-dex-cr.yaml[Dex example CR].
 
@@ -801,11 +848,17 @@ When running Dex in production, consider the following:
 [discrete]
 === Dex troubleshooting
 
-* *Groups not appearing in the token*: Verify that `QUARKUS_OIDC_AUTHENTICATION_SCOPES` includes `groups`. Decode the JWT to inspect: `echo $TOKEN | cut -d. -f2 | base64 -d | jq .`
+* *CORS errors fetching `/.well-known/openid-configuration`*: Add `allowedOrigins` to the Dex `web` config with your {registry} UI route URL. Without this, the browser blocks the UI from discovering Dex endpoints.
+* *`invalid_client` error during UI login*: The UI client must be configured as `public: true` in Dex's `staticClients`. If the client has a `secret`, the browser-based authorization code flow will fail.
+* *`invalid_client` with special characters in secret*: If your generated secret contains `+`, `/`, or `=`, URL encoding may cause mismatches. Regenerate with `tr -d '+/='` or use alphanumeric-only characters.
+* *`InvalidJwtSignatureException` or audience mismatch*: Both `appClientId` and `uiClientId` in the {registry} CR must match the Dex static client ID that the UI uses (`apicurio-registry-ui`). If they do not match, the backend will reject tokens issued for a different audience.
+* *Groups not appearing in the token*: Verify that `QUARKUS_OIDC_AUTHENTICATION_SCOPES` includes `groups` on the backend, and `APICURIO_UI_AUTH_OIDC_SCOPE` includes `groups` on the UI. Decode the JWT to inspect: `echo $TOKEN | cut -d. -f2 | base64 -d | jq .`
 * *Owner field is empty*: Check that `QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM` is set to a claim that Dex populates, such as `email`, `name`, or `sub`.
+* *Silent token refresh fails with 400*: Ensure `redirectUri` is set in the auth config and the URI is registered in Dex's `redirectURIs` for the client.
 * *UI redirects to Dex but gets an error*: Check Dex logs (`{kubernetes-client} logs -n dex deploy/dex`). This is usually a redirect URI mismatch or connector misconfiguration.
+* *UI makes API calls over HTTP instead of HTTPS*: Set `REGISTRY_API_URL` in the UI env section to the HTTPS URL of the {registry} app. The operator defaults to `http://`, which breaks when authentication is enabled.
 * *"OIDC Server is not available"*: The {registry} pod cannot reach Dex. Check DNS resolution, network policies, and TLS trust configuration.
-* *"Invalid client ID"*: Ensure the `staticClients.id` in Dex configuration matches the `appClientId` and `uiClientId` in the {registry} CR or environment variables.
+* *Logout does not work*: Dex does not implement the OIDC `end_session_endpoint`. The UI logout clears the local session but the Dex session may persist. Users may need to clear browser cookies or the Dex session will re-authenticate automatically.
 
 [role="_additional-resources"]
 .Additional resources

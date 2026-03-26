@@ -3,6 +3,11 @@
 # This CR configures Apicurio Registry to use Dex as the OIDC provider.
 # Replace placeholder values (<...>) with your actual configuration.
 #
+# Important:
+# - Both appClientId and uiClientId must use the PUBLIC Dex client (apicurio-registry-ui)
+# - The redirectUri must be set for silent token refresh
+# - REGISTRY_API_URL must use https:// (the operator defaults to http://)
+#
 apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry3
 metadata:
@@ -10,11 +15,15 @@ metadata:
   namespace: apicurio-registry
 spec:
   app:
-    host: apicurio-registry-app-apicurio-registry.apps.<cluster-domain>
+    ingress:
+      host: apicurio-registry-app-apicurio-registry.apps.<cluster-domain>
+      annotations:
+        route.openshift.io/termination: edge
     auth:
       enabled: true
-      appClientId: apicurio-registry
-      uiClientId: apicurio-registry
+      appClientId: apicurio-registry-ui
+      uiClientId: apicurio-registry-ui
+      redirectUri: "https://apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>/"
       authServerUrl: "https://dex.<cluster-domain>"
       anonymousReadsEnabled: true
       tls:
@@ -45,4 +54,14 @@ spec:
       - name: QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM
         value: "email"
   ui:
-    host: apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>
+    ingress:
+      host: apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>
+      annotations:
+        route.openshift.io/termination: edge
+    env:
+      # UI must also request groups scope for RBAC to work
+      - name: APICURIO_UI_AUTH_OIDC_SCOPE
+        value: "openid profile email groups"
+      # Override the API URL to use HTTPS (operator defaults to http://)
+      - name: REGISTRY_API_URL
+        value: "https://apicurio-registry-app-apicurio-registry.apps.<cluster-domain>/apis/registry/v3"

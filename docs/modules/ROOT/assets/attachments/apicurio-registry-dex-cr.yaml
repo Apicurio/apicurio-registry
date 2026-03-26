@@ -1,0 +1,48 @@
+# Example ApicurioRegistry3 CR with Dex OIDC authentication
+#
+# This CR configures Apicurio Registry to use Dex as the OIDC provider.
+# Replace placeholder values (<...>) with your actual configuration.
+#
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: apicurio-registry
+  namespace: apicurio-registry
+spec:
+  app:
+    host: apicurio-registry-app-apicurio-registry.apps.<cluster-domain>
+    auth:
+      enabled: true
+      appClientId: apicurio-registry
+      uiClientId: apicurio-registry
+      authServerUrl: "https://dex.<cluster-domain>"
+      anonymousReadsEnabled: true
+      tls:
+        tlsVerificationType: "none"  # Set to "certificate" in production and provide a truststore
+      authz:
+        enabled: true
+        readAccessEnabled: true
+        ownerOnlyEnabled: true
+        groupAccessEnabled: false
+        roles:
+          source: token
+          admin: "registry-admins"
+          developer: "registry-developers"
+          readOnly: "registry-readers"
+        adminOverride:
+          enabled: true
+          from: token
+          type: role
+          role: "registry-admins"
+    env:
+      # Request the groups scope so Dex includes group membership in the token
+      - name: QUARKUS_OIDC_AUTHENTICATION_SCOPES
+        value: "openid,email,profile,groups"
+      # Dex passes group membership in the "groups" claim
+      - name: QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH
+        value: "groups"
+      # Use the email claim as the principal identity for artifact ownership
+      - name: QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM
+        value: "email"
+  ui:
+    host: apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>

@@ -37,7 +37,7 @@ public abstract class AbstractContentValidator implements ContentValidator {
                 .collect(Collectors.toSet());
 
         if (!violations.isEmpty()) {
-            throw new RuleViolationException("Unmapped reference(s) detected.",
+            throw new RuleViolationException(violationDescription,
                     RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(), violations);
         }
     }

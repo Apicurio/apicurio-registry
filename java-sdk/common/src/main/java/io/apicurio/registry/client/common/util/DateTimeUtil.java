@@ -13,17 +13,21 @@ import org.eclipse.microprofile.config.ConfigProvider;
 /**
  * Utility class for parsing date-time values from Kiota ParseNode with support for legacy date formats.
  *
- * This utility provides backward compatibility with Apicurio Registry servers that use non-ISO-8601
- * compliant date formats (e.g., "2025-10-29T21:54:37+0000" instead of "2025-10-29T21:54:37+00:00").
+ * This utility provides backward compatibility with Apicurio Registry servers (versions prior to 4.0.0)
+ * that used non-ISO-8601 compliant date formats (e.g., "2025-10-29T21:54:37+0000" instead of
+ * "2025-10-29T21:54:37+00:00").
  *
- * The legacy format was used in versions prior to 3.0 when the {@code apicurio.apis.date-format}
- * configuration property was set to {@code yyyy-MM-dd'T'HH:mm:ssZ}.
+ * The legacy format was used in versions prior to 4.0.0 when the deprecated {@code apicurio.apis.date-format}
+ * configuration property was set to {@code yyyy-MM-dd'T'HH:mm:ssZ}. This property has been removed in v4.0.0.
  *
- * The legacy date format can be configured via:
+ * The legacy date format can still be configured for backward compatibility via:
  * <ul>
  *   <li>System property: {@code -Dapicurio.apis.date-format=yyyy-MM-dd'T'HH:mm:ssZ}</li>
  *   <li>Environment variable: {@code APICURIO_APIS_DATE_FORMAT=yyyy-MM-dd'T'HH:mm:ssZ}</li>
  * </ul>
+ *
+ * <strong>Note:</strong> Starting from v4.0.0, the server always uses ISO-8601 format. This utility
+ * is maintained only for clients connecting to older server versions.
  *
  * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/6799">Issue #6799</a>
  */

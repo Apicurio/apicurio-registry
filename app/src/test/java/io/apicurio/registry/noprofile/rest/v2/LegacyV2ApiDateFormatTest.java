@@ -5,40 +5,28 @@ import io.apicurio.registry.rest.client.v2.models.ArtifactContent;
 import io.apicurio.registry.rest.client.v2.models.IfExists;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
-import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
-
 /**
- * Tests that the v2 Java client SDK fails to parse date fields when the server
- * uses the legacy (non-ISO-8601 compliant) date format. This test demonstrates
- * the bug reported in issue #6799 where dates formatted as "2025-10-29T21:54:37+0000"
- * (without colon in timezone) cannot be parsed by OffsetDateTime.
+ * Tests that the v2 Java client SDK can successfully parse date fields using ISO-8601 format.
+ *
+ * This test verifies that the server now uses ISO-8601 compliant date format
+ * (e.g., "2025-10-29T21:54:37Z") which is compatible with generated client SDKs.
+ *
+ * Prior to v4.0.0, the server supported custom date formats via the deprecated
+ * {@code apicurio.apis.date-format} property, which caused SDK incompatibility issues.
+ *
+ * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/6799">Issue #6799</a>
  */
 @QuarkusTest
-@TestProfile(LegacyV2ApiDateFormatTest.LegacyV2DateFormatTestProfile.class)
 class LegacyV2ApiDateFormatTest extends AbstractResourceTestBase {
 
     /**
-     * Test profile that configures the server to use the legacy date format
-     * (yyyy-MM-dd'T'HH:mm:ssZ) which produces dates like "2025-10-29T21:54:37+0000"
-     * instead of ISO-8601 compliant "2025-10-29T21:54:37Z" or "2025-10-29T21:54:37+00:00".
-     */
-    public static class LegacyV2DateFormatTestProfile implements QuarkusTestProfile {
-        @Override
-        public Map<String, String> getConfigOverrides() {
-            return Map.of("apicurio.apis.date-format", "yyyy-MM-dd'T'HH:mm:ssZ");
-        }
-    }
-
-    /**
-     * Test that creating an artifact fails to parse the returned metadata
-     * when using the legacy date format.
+     * Test that creating an artifact successfully parses the returned metadata
+     * using ISO-8601 date format.
      */
     @Test
-    void testCreateArtifactFailsLegacyDateFormatParsing() {
+    void testCreateArtifactParsesIso8601DateFormat() {
         String groupId  = TestUtils.generateGroupId();
         String artifactContentString = resourceToString("openapi-empty.json");
         String artifactId = "testCreateArtifact";
@@ -46,7 +34,7 @@ class LegacyV2ApiDateFormatTest extends AbstractResourceTestBase {
         ArtifactContent artifactContent = new ArtifactContent();
         artifactContent.setContent(artifactContentString);
 
-        // Attempt to create artifact - should fail when parsing the returned ArtifactMetaData
+        // Create artifact - should successfully parse the returned ArtifactMetaData with ISO-8601 dates
         clientV2.groups()
                 .byGroupId(groupId)
                 .artifacts()
@@ -58,18 +46,18 @@ class LegacyV2ApiDateFormatTest extends AbstractResourceTestBase {
     }
 
     /**
-     * Test that retrieving artifact metadata fails to parse date fields
-     * when using the legacy date format.
+     * Test that retrieving artifact metadata successfully parses date fields
+     * using ISO-8601 date format.
      */
     @Test
-    void testGetArtifactMetadataFailsLegacyDateFormatParsing() {
+    void testGetArtifactMetadataParsesIso8601DateFormat() {
         String groupId  = TestUtils.generateGroupId();
         String artifactId = "testGetArtifactMetadata";
 
-        // Create artifact using REST API directly (bypassing client SDK)
+        // Create artifact
         createArtifact(groupId, artifactId);
 
-        // Attempt to get artifact metadata - should be able to parse the dateTime
+        // Get artifact metadata - should successfully parse ISO-8601 dates
         clientV2.groups()
                 .byGroupId(groupId)
                 .artifacts()
@@ -79,18 +67,18 @@ class LegacyV2ApiDateFormatTest extends AbstractResourceTestBase {
     }
 
     /**
-     * Test that retrieving version metadata fails to parse date fields
-     * when using the legacy date format.
+     * Test that retrieving version metadata successfully parses date fields
+     * using ISO-8601 date format.
      */
     @Test
-    void testGetVersionMetadataFailsLegacyDateFormatParsing() {
+    void testGetVersionMetadataParsesIso8601DateFormat() {
         String groupId  = TestUtils.generateGroupId();
         String artifactId = "testGetVersionMetadata";
 
-        // Create artifact using REST API directly (bypassing client SDK)
+        // Create artifact
         createArtifact(groupId, artifactId);
 
-        // Attempt to get version metadata - should be able to parse the dateTime
+        // Get version metadata - should successfully parse ISO-8601 dates
         clientV2.groups()
                 .byGroupId(groupId)
                 .artifacts()
@@ -102,18 +90,18 @@ class LegacyV2ApiDateFormatTest extends AbstractResourceTestBase {
     }
 
     /**
-     * Test that listing artifact versions fails to parse date fields
-     * when using the legacy date format.
+     * Test that listing artifact versions successfully parses date fields
+     * using ISO-8601 date format.
      */
     @Test
-    void testListVersionsFailsLegacyDateFormatParsing() {
+    void testListVersionsParsesIso8601DateFormat() {
         String groupId  = TestUtils.generateGroupId();
         String artifactId = "testListVersions";
 
-        // Create artifact using REST API directly (bypassing client SDK)
+        // Create artifact
         createArtifact(groupId, artifactId);
 
-        // Attempt to list versions - should be able to parse the dateTime
+        // List versions - should successfully parse ISO-8601 dates
         clientV2.groups()
                 .byGroupId(groupId)
                 .artifacts()
@@ -123,18 +111,18 @@ class LegacyV2ApiDateFormatTest extends AbstractResourceTestBase {
     }
 
     /**
-     * Test that searching for artifacts fails to parse date fields
-     * when using the legacy date format.
+     * Test that searching for artifacts successfully parses date fields
+     * using ISO-8601 date format.
      */
     @Test
-    void testSearchArtifactsFailsLegacyDateFormatParsing() {
+    void testSearchArtifactsParsesIso8601DateFormat() {
         String groupId  = TestUtils.generateGroupId();
         String artifactId = "testSearchArtifacts";
 
-        // Create artifact using REST API directly (bypassing client SDK)
+        // Create artifact
         createArtifact(groupId, artifactId);
 
-        // Attempt to search artifacts - should be able to parse the dateTime
+        // Search artifacts - should successfully parse ISO-8601 dates
         clientV2.search()
                 .artifacts()
                 .get(requestConfig -> {
@@ -143,8 +131,7 @@ class LegacyV2ApiDateFormatTest extends AbstractResourceTestBase {
     }
 
     /**
-     * Helper method to create an artifact using the REST API directly,
-     * bypassing the v2 client SDK to avoid date parsing issues.
+     * Helper method to create an artifact using the REST API.
      */
     private void createArtifact(String groupId, String artifactId) {
         try {

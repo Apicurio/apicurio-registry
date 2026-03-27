@@ -1,0 +1,135 @@
+= Migration Guide: Custom Date Format Configuration Removal (v4.0.0)
+
+== Overview
+
+Starting with Apicurio Registry v4.0.0, the custom date format configuration properties have been removed. The server now exclusively uses ISO-8601 compliant date-time format for all REST API responses.
+
+== Removed Configuration Properties
+
+The following configuration properties have been removed:
+
+* `apicurio.apis.date-format`
+* `apicurio.apis.date-format-timezone`
+
+These properties were deprecated in v3.1.2 due to incompatibility issues with generated client SDKs.
+
+== Background
+
+Custom date format configuration caused incompatibility with client SDKs generated from the OpenAPI specification. The OpenAPI specification requires ISO-8601 compliant date-time formats, and custom formats broke SDK date parsing functionality.
+
+For more details, see https://github.com/Apicurio/apicurio-registry/issues/6799[Issue #6799].
+
+== Impact
+
+=== Server-Side Changes
+
+* The server now always uses ISO-8601 format: `yyyy-MM-dd'T'HH:mm:ss'Z'`
+* All date-time values are returned in UTC timezone
+* Example format: `2026-03-27T02:15:00Z`
+
+=== Client-Side Compatibility
+
+* **Java SDK v2/v3**: Fully compatible with ISO-8601 format
+* **Generated SDKs**: Now work correctly without date parsing errors
+* **Legacy clients**: Clients expecting custom date formats will need updates
+
+== Migration Steps
+
+=== Step 1: Remove Custom Configuration
+
+If you have configured custom date formats in your `application.properties` or environment variables, remove them:
+
+[source,properties]
+----
+# REMOVE these lines:
+# apicurio.apis.date-format=yyyy-MM-dd'T'HH:mm:ssZ
+# apicurio.apis.date-format-timezone=UTC
+----
+
+=== Step 2: Update Client Code
+
+If your client code was written to handle custom date formats, update it to expect ISO-8601 format:
+
+**Before (custom format):**
+[source,java]
+----
+// Custom format: 2026-03-27T02:15:00+0000
+SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+Date date = format.parse(dateString);
+----
+
+**After (ISO-8601):**
+[source,java]
+----
+// ISO-8601 format: 2026-03-27T02:15:00Z
+OffsetDateTime dateTime = OffsetDateTime.parse(dateString);
+----
+
+=== Step 3: Test Your Integration
+
+After upgrading to v4.0.0:
+
+1. Verify that your client applications can parse date-time values correctly
+2. Test all API endpoints that return date-time fields
+3. Ensure generated SDKs work without date parsing errors
+
+== Backward Compatibility
+
+=== Client SDK Support
+
+The Java SDK includes backward compatibility support for clients connecting to older server versions (pre-v4.0.0) that may still use custom date formats. This is handled automatically by the `DateTimeUtil` class.
+
+If you need to connect to an older server with custom date format, you can configure it via:
+
+[source,bash]
+----
+# System property
+-Dapicurio.apis.date-format=yyyy-MM-dd'T'HH:mm:ssZ
+
+# Environment variable
+export APICURIO_APIS_DATE_FORMAT=yyyy-MM-dd'T'HH:mm:ssZ
+----
+
+**Note:** This is only needed for clients connecting to pre-v4.0.0 servers. New v4.0.0+ servers always use ISO-8601.
+
+== Benefits
+
+After this change:
+
+* ✅ Full compatibility with generated client SDKs
+* ✅ Compliance with OpenAPI specification standards
+* ✅ Consistent date-time handling across all APIs
+* ✅ Reduced configuration complexity
+* ✅ Better interoperability with third-party tools
+
+== Troubleshooting
+
+=== Date Parsing Errors
+
+If you encounter date parsing errors after upgrading:
+
+1. **Check client SDK version**: Ensure you're using a compatible SDK version
+2. **Verify date format**: Confirm the server is returning ISO-8601 format
+3. **Update parsing code**: Replace custom date parsing with ISO-8601 parsing
+
+=== Legacy System Integration
+
+If you have legacy systems that cannot be updated to handle ISO-8601:
+
+1. Consider using a proxy or adapter layer to transform date formats
+2. Update the legacy system to support ISO-8601 (recommended)
+3. Contact support for migration assistance
+
+== Additional Resources
+
+* https://github.com/Apicurio/apicurio-registry/issues/6799[Issue #6799: Date format incompatibility]
+* https://datatracker.ietf.org/doc/html/rfc3339[RFC 3339: Date and Time on the Internet]
+* https://spec.openapis.org/oas/v3.1.0#data-types[OpenAPI Data Types Specification]
+
+== Support
+
+If you need assistance with migration, please:
+
+* Open an issue on https://github.com/Apicurio/apicurio-registry/issues[GitHub]
+* Join the community discussion on https://github.com/Apicurio/apicurio-registry/discussions[GitHub Discussions]
+* Contact the Apicurio team for enterprise support

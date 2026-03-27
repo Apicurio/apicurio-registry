@@ -1425,16 +1425,6 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.apis.date-format`
-|`unknown`
-|`yyyy-MM-dd'T'HH:mm:ss'Z'`
-|
-|
-|`apicurio.apis.date-format-timezone`
-|`unknown`
-|`UTC`
-|
-|
 |`apicurio.app.id`
 |`unknown`
 |`apicurio-registry`

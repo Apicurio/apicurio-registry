@@ -2,10 +2,16 @@ package io.apicurio.deployment;
 
 import java.util.Optional;
 
-public class Constants {
+/**
+ * Constants used by the deployment infrastructure.
+ */
+public final class Constants {
+
+    private Constants() {
+    }
 
     /**
-     * Registry image placeholder
+     * Registry image placeholder.
      */
     static final String REGISTRY_IMAGE = "registry-image";
 
@@ -15,17 +21,18 @@ public class Constants {
     static final String AUTH = "auth";
 
     /**
-     * Tag for sql db upgrade tests profile.
+     * Tag for kafkasql tests profile.
      */
     static final String KAFKA_SQL = "kafkasqlit";
 
     /**
-     * Tag for sql db upgrade tests profile.
+     * Tag for kafkasql snapshotting tests profile.
      */
-    static final String KAFKA_SQL_SNAPSHOTTING = "kafkasql-snapshotting";
+    static final String KAFKA_SQL_SNAPSHOTTING =
+            "kafkasql-snapshotting";
 
     /**
-     * Tag for sql db upgrade tests profile.
+     * Tag for sql tests profile.
      */
     static final String SQL = "sqlit";
 
@@ -39,5 +46,10 @@ public class Constants {
      */
     static final String ICEBERG = "iceberg";
 
-    public static final String TEST_PROFILE = Optional.ofNullable(System.getProperty("groups")).orElse("");
+    /**
+     * Active test groups from the Maven groups property.
+     */
+    public static final String TEST_PROFILE =
+            Optional.ofNullable(
+                    System.getProperty("groups")).orElse("");
 }

@@ -50,7 +50,7 @@ PROJECT_INDEX.json
 # Local Claude files
 .claude/settings.local.json
 CLAUDE.local.md
-claudedocs1
+claudedocs
 
 # Serena MCP
 .serena

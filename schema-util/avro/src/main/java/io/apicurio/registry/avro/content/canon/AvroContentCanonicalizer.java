@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.BaseContentCanonicalizer;
+import io.apicurio.registry.content.canon.ContentCanonicalizationException;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import org.apache.avro.Schema;
 
@@ -31,10 +32,14 @@ public class AvroContentCanonicalizer extends BaseContentCanonicalizer {
      */
     @Override
     protected TypedContent doCanonicalize(TypedContent content,
-                                          Map<String, TypedContent> refs) throws Exception {
-        Schema schema = new Schema.Parser().parse(content.getContent().content());
-        String canonical = schema.toString();
-        return TypedContent.create(ContentHandle.create(canonical), content.getContentType());
+                                         Map<String, TypedContent> refs) throws ContentCanonicalizationException {
+        try {
+            Schema schema = new Schema.Parser().parse(content.getContent().content());
+            String canonical = schema.toString();
+            return TypedContent.create(ContentHandle.create(canonical), content.getContentType());
+        } catch (Exception e) {
+            throw new ContentCanonicalizationException("Failed to canonicalize Avro content", e);
+        }
     }
 }
 

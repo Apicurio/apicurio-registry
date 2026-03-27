@@ -1,0 +1,483 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="deploying-registry-secured-kafka_{context}"]
+= Deploying {registry} with a secured Kafka instance
+
+[role="_abstract"]
+You can deploy {registry} with KafkaSQL storage connected to a Kafka instance that requires TLS encryption, SASL authentication, or both.
+{registry} supports multiple security configurations for Kafka connections, including TLS-only encryption, OAUTHBEARER authentication, and SCRAM-SHA-512 authentication.
+
+* xref:secured-kafka-overview_{context}[]
+* xref:secured-kafka-prerequisites_{context}[]
+* xref:secured-kafka-tls_{context}[]
+* xref:secured-kafka-scram_{context}[]
+* xref:secured-kafka-oauth_{context}[]
+* xref:secured-kafka-access-operator_{context}[]
+* xref:secured-kafka-security-protocols_{context}[]
+* xref:secured-kafka-topic-config_{context}[]
+* xref:secured-kafka-troubleshooting_{context}[]
+
+
+[id="secured-kafka-overview_{context}"]
+== Secured Kafka overview
+
+[role="_abstract"]
+When you use KafkaSQL storage, {registry} connects to a Kafka cluster as both a producer and a consumer.
+If your Kafka cluster enforces TLS encryption or SASL authentication, you must configure {registry} with the appropriate security settings.
+
+You can configure secured Kafka connections by using these methods:
+
+* The `ApicurioRegistry3` custom resource `tls` and `auth` sections for TLS and OAUTHBEARER authentication
+* Environment variables in the `spec.app.env` section of the custom resource for SCRAM-SHA-512 authentication
+ifndef::service-registry-downstream[]
+* The {kafka-streams} Kafka Access Operator (available starting with {registry} version 3.2.0) for automatic configuration
+endif::[]
+
+The security protocol that {registry} uses depends on which combination of TLS and authentication you configure:
+
+.Security protocol matrix
+[%header,cols="2,2,3"]
+|===
+|TLS configured
+|Authentication configured
+|Security protocol
+
+|No
+|No
+|`PLAINTEXT`
+
+|Yes
+|No
+|`SSL`
+
+|No
+|Yes
+|`SASL_PLAINTEXT`
+
+|Yes
+|Yes
+|`SASL_SSL`
+|===
+
+
+[id="secured-kafka-prerequisites_{context}"]
+== Prerequisites for secured Kafka deployment
+
+[role="_abstract"]
+Before you deploy {registry} with a secured Kafka instance, verify that you have the required resources.
+
+* You have cluster administrator access to an {kubernetes} cluster.
+* You have installed the {operator}.
+* You have a Kafka cluster with security enabled (TLS, SASL, or both).
+ifdef::apicurio-registry[]
+** For {kafka-streams}, see the https://strimzi.io/docs/overview/latest/[{kafka-streams} documentation].
+endif::[]
+* If your Kafka cluster uses TLS, you have access to the cluster CA certificate in PKCS12 format.
+* If your Kafka cluster uses SASL authentication, you have the required credentials (SCRAM-SHA-512 username and password, or OAUTHBEARER client ID, client secret, and token endpoint URL).
+
+
+[id="secured-kafka-tls_{context}"]
+== Configuring KafkaSQL with TLS encryption
+
+[role="_abstract"]
+When your Kafka cluster requires TLS encryption, you configure {registry} with the Kafka cluster CA certificate so that {registry} can verify the broker identity.
+
+.Prerequisites
+* The Kafka cluster CA certificate is available as a {kubernetes} Secret in PKCS12 format.
+ifdef::apicurio-registry[]
+** {kafka-streams} creates a Secret named `<cluster-name>-cluster-ca-cert` that contains the CA certificate.
+endif::[]
+
+.Procedure
+
+. Create or update your `ApicurioRegistry3` custom resource with the `tls` configuration:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-kafkasql-tls
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "my-cluster-kafka-bootstrap.my-project.svc:9093"
+        tls:
+          truststoreSecretRef:
+            name: my-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: my-cluster-cluster-ca-cert
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
+
+. Apply the custom resource:
++
+[source,bash]
+----
+{kubernetes-client} apply -f my-registry.yaml
+----
+
+NOTE: The operator sets the security protocol to `SSL` when you configure TLS without authentication.
+
+For mutual TLS (mTLS), where the Kafka cluster also verifies the {registry} client certificate, add the keystore configuration:
+
+[source,yaml]
+----
+tls:
+  keystoreSecretRef:
+    name: apicurio-client-auth
+  keystorePasswordSecretRef:
+    name: apicurio-client-auth
+  truststoreSecretRef:
+    name: my-cluster-cluster-ca-cert
+  truststorePasswordSecretRef:
+    name: my-cluster-cluster-ca-cert
+----
+
+
+[id="secured-kafka-scram_{context}"]
+== Configuring KafkaSQL with SCRAM-SHA-512 authentication
+
+[role="_abstract"]
+When your Kafka cluster uses SCRAM-SHA-512 authentication, you configure the SASL credentials by using environment variables in the `spec.app.env` section of the `ApicurioRegistry3` custom resource.
+
+IMPORTANT: The structured `auth` section of the custom resource supports only OAUTHBEARER authentication. For SCRAM-SHA-512, you must use environment variables as described in this procedure.
+
+.Prerequisites
+* Your Kafka cluster is configured with a SASL listener that uses SCRAM-SHA-512.
+* You have created a {kubernetes} Secret that contains the JAAS configuration for your Kafka user.
+ifdef::apicurio-registry[]
+** {kafka-streams} automatically creates this Secret when you create a `KafkaUser` resource with `authentication.type: scram-sha-512`.
+endif::[]
+
+.Procedure
+
+. Verify that your {kubernetes} Secret contains the `sasl.jaas.config` key with the JAAS login module definition:
++
+----
+org.apache.kafka.common.security.scram.ScramLoginModule required username="my-user" password="<password>";
+----
++
+IMPORTANT: The `sasl.jaas.config` value must be a one-line login module definition. Do not include the `KafkaClient { ... }` wrapper.
+
+. Create or update your `ApicurioRegistry3` custom resource with the SCRAM-SHA-512 configuration:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-apicurioregistry-kafkasql-scram
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "my-cluster-kafka-bootstrap.my-project.svc:9093"
+        tls:
+          truststoreSecretRef:
+            name: my-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: my-cluster-cluster-ca-cert
+    env:
+      - name: APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL
+        value: "SASL_SSL"
+      - name: APICURIO_KAFKA_COMMON_SASL_MECHANISM
+        value: "SCRAM-SHA-512"
+      - name: APICURIO_KAFKA_COMMON_SASL_JAAS_CONFIG
+        valueFrom:
+          secretKeyRef:
+            name: my-user
+            key: sasl.jaas.config
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
+
+. Apply the custom resource:
++
+[source,bash]
+----
+{kubernetes-client} apply -f my-registry.yaml
+----
+
+. Verify that the {registry} pod starts successfully:
++
+[source,bash]
+----
+{kubernetes-client} get pods -l app=example-apicurioregistry-kafkasql-scram
+----
+
+
+[id="secured-kafka-oauth_{context}"]
+== Configuring KafkaSQL with OAUTHBEARER authentication
+
+[role="_abstract"]
+When your Kafka cluster uses OAUTHBEARER authentication, you configure the OAuth credentials by using the structured `auth` section of the `ApicurioRegistry3` custom resource.
+
+.Prerequisites
+* Your Kafka cluster is configured with an OAuth-enabled listener.
+* You have the OAuth client ID, client secret, and token endpoint URL.
+* You have stored the client ID and client secret in a {kubernetes} Secret.
+
+.Procedure
+
+. Create a {kubernetes} Secret that contains the OAuth client credentials:
++
+[source,bash]
+----
+{kubernetes-client} create secret generic kafka-oauth-credentials \
+  --from-literal=clientId=my-client-id \
+  --from-literal=clientSecret=my-client-secret
+----
+
+. Create or update your `ApicurioRegistry3` custom resource with the OAUTHBEARER configuration:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-kafkasql-oauth
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "my-cluster-kafka-bootstrap.my-project.svc:9093"
+        tls:
+          truststoreSecretRef:
+            name: my-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: my-cluster-cluster-ca-cert
+        auth:
+          enabled: true
+          mechanism: OAUTHBEARER
+          clientIdRef:
+            name: kafka-oauth-credentials
+            key: clientId
+          clientSecretRef:
+            name: kafka-oauth-credentials
+            key: clientSecret
+          tokenEndpoint: https://identity-server.example.com/token
+          loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
+
+. Apply the custom resource:
++
+[source,bash]
+----
+{kubernetes-client} apply -f my-registry.yaml
+----
+
+NOTE: When you configure both TLS and OAUTHBEARER authentication, the operator sets the security protocol to `SASL_SSL`.
+
+
+ifndef::service-registry-downstream[]
+[id="secured-kafka-access-operator_{context}"]
+== Configuring KafkaSQL with the {kafka-streams} Kafka Access Operator
+
+[role="_abstract"]
+Starting with {registry} version 3.2.0, you can use the {kafka-streams} Kafka Access Operator to automatically provide all Kafka connection details, including security credentials, in a single {kubernetes} Secret.
+
+.Prerequisites
+* The {kafka-streams} Kafka Access Operator is installed on your {kubernetes} cluster.
+* You have a {kafka-streams} Kafka cluster with a configured listener and a `KafkaUser` resource.
+
+.Procedure
+
+. Create a `KafkaUser` resource that grants {registry} access to the required Kafka topics:
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: apicurio-registry
+  labels:
+    strimzi.io/cluster: example-cluster
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: kafkasql-journal
+        operations:
+          - All
+      - resource:
+          type: topic
+          name: kafkasql-snapshots
+        operations:
+          - All
+      - resource:
+          type: topic
+          name: registry-events
+        operations:
+          - All
+      - resource:
+          type: group
+          name: '*'
+        operations:
+          - All
+----
+
+. Create a `KafkaAccess` resource that references your Kafka cluster and user:
++
+[source,yaml]
+----
+apiVersion: access.strimzi.io/v1alpha1
+kind: KafkaAccess
+metadata:
+  name: my-kafka-access
+spec:
+  kafka:
+    name: example-cluster
+    listener: tls
+  user:
+    kind: KafkaUser
+    apiGroup: kafka.strimzi.io
+    name: apicurio-registry
+----
+
+. Create the `ApicurioRegistry3` custom resource that references the `KafkaAccess` Secret:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-kafkasql-access
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        kafkaAccessSecretName: my-kafka-access
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
+
+. Apply all resources:
++
+[source,bash]
+----
+{kubernetes-client} apply -f kafkauser.yaml -f kafkaaccess.yaml -f my-registry.yaml
+----
+
+NOTE: When you specify `kafkaAccessSecretName`, it takes precedence over `bootstrapServers`. The Kafka Access Operator provides all connection details automatically, including bootstrap servers, security protocol, TLS certificates, and SASL credentials.
+endif::[]
+
+
+[id="secured-kafka-security-protocols_{context}"]
+== Kafka security protocol reference
+
+[role="_abstract"]
+{registry} uses the `apicurio.kafka.common.security.protocol` property (environment variable `APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL`) to determine how to connect to the Kafka cluster.
+
+When you use the operator, the operator sets the security protocol automatically based on your TLS and authentication configuration.
+When you configure security manually by using environment variables, you must set the security protocol explicitly.
+
+.Kafka security protocol values
+[%header,cols="3,7"]
+|===
+|Protocol
+|Description
+
+|`PLAINTEXT`
+|No encryption and no authentication. Use for unsecured Kafka clusters only.
+
+|`SSL`
+|TLS encryption without SASL authentication. The operator sets this protocol when you configure TLS only.
+
+|`SASL_PLAINTEXT`
+|SASL authentication without TLS encryption. The operator sets this protocol when you configure OAUTHBEARER authentication without TLS.
+
+|`SASL_SSL`
+|TLS encryption with SASL authentication. The operator sets this protocol when you configure both TLS and OAUTHBEARER authentication. You must set this protocol manually when you use SCRAM-SHA-512 authentication.
+|===
+
+
+[id="secured-kafka-topic-config_{context}"]
+== Configuring Kafka topics for {registry}
+
+[role="_abstract"]
+{registry} uses Kafka topics to store artifact data. You must configure these topics with the correct retention settings to prevent data loss.
+
+By default, {registry} auto-creates the required topics. If your Kafka cluster does not allow auto-creation, or if you want to control topic settings, create the topics manually.
+
+ifdef::apicurio-registry[]
+When you use {kafka-streams}, you can create topics by using the `KafkaTopic` custom resource:
+endif::[]
+
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: kafkasql-journal
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "-1"
+    retention.bytes: "-1"
+----
+
+WARNING: You must configure the Kafka topic used by {registry} with `cleanup.policy: delete` and infinite retention (`retention.ms: -1` and `retention.bytes: -1`). Using `cleanup.policy: compact` can result in data loss.
+
+
+[id="secured-kafka-troubleshooting_{context}"]
+== Troubleshooting secured Kafka connections
+
+[role="_abstract"]
+You might encounter errors when you configure {registry} to connect to a secured Kafka instance.
+
+.Common secured Kafka connection errors and fixes
+[%header,cols="4,3,5"]
+|===
+|Error
+|Cause
+|Fix
+
+|`java.lang.IllegalArgumentException: Could not find a 'KafkaClient' entry in the JAAS configuration. System property 'java.security.auth.login.config' is not set`
+|SASL authentication requires a valid login context, but the `sasl.jaas.config` property is not set correctly.
+|Set the `APICURIO_KAFKA_COMMON_SASL_JAAS_CONFIG` environment variable by using a `secretKeyRef` that points to a Secret containing the one-line JAAS login module definition.
+
+|`java.io.IOException: /etc/kafka/secrets/jaas.conf (No such file or directory)`
+|A previous configuration attempted to mount a physical `jaas.conf` file that no longer exists. Cached `JAVA_TOOL_OPTIONS` or invalid volume mounts can persist after changes.
+|Remove any `JAVA_TOOL_OPTIONS` environment variable or volume mount that references `jaas.conf` from the custom resource. Use the `APICURIO_KAFKA_COMMON_SASL_JAAS_CONFIG` environment variable instead of file mounts.
+
+|`Admission Webhook Warning: unknown field "spec.app.storage.kafkasql.auth.usernameSecretRef"`
+|The structured `auth` section of the custom resource does not support SCRAM-SHA-512 fields like `usernameSecretRef`. These fields are not part of the `ApicurioRegistry3` CRD.
+|Use environment variables (`APICURIO_KAFKA_COMMON_SASL_MECHANISM` and `APICURIO_KAFKA_COMMON_SASL_JAAS_CONFIG`) in the `spec.app.env` section instead of the structured `auth` section for SCRAM-SHA-512 authentication.
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* xref:deploying-registry-kafkasql_{context}[]
+ifdef::apicurio-registry[]
+* https://strimzi.io/docs/overview/latest/[{kafka-streams} documentation]
+endif::[]
+* {registry-config-reference}

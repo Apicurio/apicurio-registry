@@ -9,6 +9,7 @@
 ** xref:getting-started/assembly-installing-registry-storage-openshift.adoc[]
 ** xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[]
 ** xref:getting-started/assembly-deploying-registry-operator.adoc[]
+** xref:getting-started/assembly-deploying-registry-secured-kafka.adoc[]
 ** xref:getting-started/assembly-implementing-multitenancy.adoc[]
 ** xref:getting-started/assembly-registry-high-availability.adoc[]
 * Migration

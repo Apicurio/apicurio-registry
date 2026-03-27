@@ -44,11 +44,13 @@ __pycache__
 PROJECT_INDEX.md
 PROJECT_INDEX.json
 
-# Claude Code — personal/local files (gitignored)
+# Ignore .claude directories in subdirectories (e.g. module/.claude) but keep the root one
+**/.claude
+!/.claude
+# Local Claude files
 .claude/settings.local.json
 CLAUDE.local.md
-claudedocs
+claudedocs1
 
 # Serena MCP
 .serena
-

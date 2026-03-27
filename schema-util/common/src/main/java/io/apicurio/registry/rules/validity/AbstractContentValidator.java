@@ -7,6 +7,7 @@ import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,9 +29,9 @@ public abstract class AbstractContentValidator implements ContentValidator {
             Set<String> requiredReferences, String violationDescription) throws RuleViolationException {
 
         Set<String> mappedRefNames = references.stream()
-                .map(this::extractReferenceName)
-                .filter(Object::nonNull)
-                .collect(Collectors.toSet());
+        .map(ref -> extractReferenceName(ref))
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
 
         Set<RuleViolation> violations = requiredReferences.stream()
                 .filter(ref -> !mappedRefNames.contains(ref))

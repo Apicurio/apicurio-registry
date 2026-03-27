@@ -18,7 +18,8 @@ import java.util.Map;
 public class JsonContentCanonicalizer extends BaseContentCanonicalizer {
 
     private final ObjectMapper mapper = new ObjectMapper()
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+            .configure(com.fasterxml.jackson.databind.MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true);
 
     /**
      * @see ContentCanonicalizer#canonicalize(TypedContent, Map)

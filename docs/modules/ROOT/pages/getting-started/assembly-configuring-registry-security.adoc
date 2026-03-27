@@ -684,7 +684,7 @@ There are a few important details in this CR:
 +
 *Two-client architecture* — Both `appClientId` and `uiClientId` are set to `apicurio-registry-ui` (the public Dex client). The browser-based UI uses `oidc-client-ts`, which cannot securely hold a client secret. If you use a confidential client for the UI, the token exchange will fail with `Invalid client credentials`. The backend validates JWT signatures via the JWKS endpoint and does not need a client secret. The separate confidential client (`apicurio-registry`) is kept for CLI/API token exchange via curl or scripts.
 +
-*UI scope with `groups`* — The `APICURIO_UI_AUTH_OIDC_SCOPE` env var adds `groups` to the scope the UI requests from Dex. Without this, the default scope (`openid profile email`) does not include groups, and Dex will not put group membership in the token. RBAC then denies all write operations because it cannot determine the user's role.
+*UI scope with `groups`* — The `APICURIO_UI_AUTH_OIDC_SCOPE` env var adds `groups` to the scope the UI requests from Dex. Without this, the default scope (`openid profile email`) does not include groups, and Dex will not put group membership in the token. RBAC then denies all write operations because it cannot determine the user's role. This has been verified on a live cluster with Dex v2.45.1 and the OpenShift connector: tokens include the `groups` claim with the user's OpenShift group memberships, and {registry} successfully resolves roles for RBAC authorization.
 +
 *Explicit `redirectUri`* — Without this, `oidc-client-ts` uses `window.location.href` as the redirect URI for silent token refresh. After the initial login, the URL may still contain `?code=...&state=...` query parameters, which do not match any registered redirect URI in Dex, causing a 400 error.
 +
@@ -853,13 +853,17 @@ NOTE: Dex supports using multiple connectors simultaneously. This enables federa
 The configuration above covers the browser-based UI flow. For CI/CD pipelines, Kafka SerDes, and services that need to interact with the {registry} API without a browser, additional considerations apply.
 
 [discrete]
-==== Dex `client_credentials` support
+==== Dex `client_credentials` support (unreleased as of v2.45.1)
 
-As of March 2026, Dex supports `client_credentials` grant behind a feature flag. Enable it by setting an environment variable on the Dex deployment:
+Dex added `client_credentials` support via link:https://github.com/dexidp/dex/pull/4583[PR #4583] (merged March 3, 2026), but this feature is *not included in Dex v2.45.1* — the latest stable release at time of writing. It will ship in v2.46.0 or later.
+
+NOTE: To test before a stable release, use the `dexidp/dex:master` image from Docker Hub (rebuilt daily by Dex CI). For production, wait for v2.46.0+.
+
+Enable it by setting an environment variable on the Dex deployment:
 
 [source,yaml]
 ----
-# In the Dex Deployment spec
+# In the Dex Deployment spec (requires Dex master or >= v2.46.0)
 env:
   - name: DEX_CLIENT_CREDENTIAL_GRANT_ENABLED_BY_DEFAULT
     value: "true"
@@ -878,7 +882,7 @@ TOKEN_RESPONSE=$(curl -s -X POST "https://dex.<cluster-domain>/token" \
 ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r .access_token)
 ----
 
-IMPORTANT: Dex `client_credentials` tokens *do not include the `groups` claim*. Since {registry} uses `groups` for RBAC, M2M clients authenticating via `client_credentials` will have no assigned role.
+IMPORTANT: Even with `client_credentials` working, the tokens *do not include the `groups` claim*. The `groups` scope is accepted but no groups are populated because there is no upstream connector or user in the `client_credentials` flow — the token is built solely from the static client definition, which has no group membership. Since {registry} uses `groups` for RBAC, M2M clients authenticating via `client_credentials` will have no assigned role.
 
 .M2M access with Dex `client_credentials`
 [.table-expandable,width="100%",cols="4,2,6",options="header"]
@@ -906,6 +910,22 @@ IMPORTANT: Dex `client_credentials` tokens *do not include the `groups` claim*. 
 For the most common Kafka use case — *consumers fetching schemas* — you do not need `client_credentials` at all. Set `anonymousReadsEnabled: true` in the {registry} CR and the SerDes can read schemas without any token. This is the recommended approach for read-heavy workloads.
 
 For *schema registration* (typically done by developers or CI/CD, not by Kafka producers at runtime), use the authorization code flow with the confidential client and a service user that has the right groups.
+
+[discrete]
+==== Upcoming fix: groups on static clients
+
+The lack of groups in `client_credentials` tokens has been reported in link:https://github.com/dexidp/dex/issues/4690[dexidp/dex#4690], and a fix has been submitted in link:https://github.com/dexidp/dex/pull/4691[dexidp/dex#4691]. The fix adds a `clientCredentialsClaims` sub-struct to static client definitions, keeping identity attributes separate from core client fields:
+
+[source,yaml]
+----
+staticClients:
+  - id: apicurio-registry
+    secret: "..."
+    clientCredentialsClaims:
+      groups: ["registry-admins"]   # included in client_credentials tokens
+----
+
+Track the PR for when this lands in a stable Dex release.
 
 [discrete]
 ==== When to use {keycloak} instead
@@ -942,6 +962,7 @@ When running Dex in production, consider the following:
 * *`invalid_client` when exchanging authorization code*: If the client secret contains special characters (`+`, `/`, `=`), use `--data-urlencode` instead of `-d` in curl.
 * *Owner field is empty*: Check that `QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM` is set to a claim that Dex populates, such as `email`, `name`, or `sub`.
 * *UI redirects to Dex but gets an error*: Check Dex logs (`{kubernetes-client} logs -n dex deploy/dex`). This is usually a redirect URI mismatch or connector misconfiguration.
+* *`client_credentials` returns `unsupported_grant_type`*: This grant type was added in link:https://github.com/dexidp/dex/pull/4583[Dex PR #4583] (merged March 3, 2026) but is not included in v2.45.1 or earlier. You need Dex >= v2.46.0 or a build from `master`.
 * *"OIDC Server is not available"*: The {registry} pod cannot reach Dex. Check DNS resolution, network policies, and TLS trust configuration.
 
 [role="_additional-resources"]

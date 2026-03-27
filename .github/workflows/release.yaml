@@ -171,8 +171,8 @@ jobs:
         run: |
           ./mvnw clean package \
             --no-transfer-progress \
-            -Pprod -pl '!cli' \
-            -DskipTests=true \
+            -Pprod -Dfull -pl '!cli' \
+            -DskipTests \
             -DskipCommitIdPlugin=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
@@ -250,7 +250,7 @@ jobs:
           ./mvnw clean package \
             --no-transfer-progress \
             -pl cli -am \
-            -DskipTests=true \
+            -DskipTests \
             -Dquarkus.native.container-build=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5

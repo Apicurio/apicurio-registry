@@ -93,7 +93,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         working-directory: registry
         run: |
-          ./mvnw clean package -am --no-transfer-progress -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dcli-skip-native \
+          ./mvnw clean package -am --no-transfer-progress -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Registry UI

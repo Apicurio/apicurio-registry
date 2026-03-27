@@ -5,7 +5,7 @@
   "type": "module",
   "description": "LLM/AI Model Schema artifact types for Apicurio Registry",
   "dependencies": {
-    "@apicurio/artifact-type-builtins": "^3.2.0",
+    "@apicurio/artifact-type-builtins": "^3.2.1",
     "yaml": "^2.8.3"
   },
   "devDependencies": {

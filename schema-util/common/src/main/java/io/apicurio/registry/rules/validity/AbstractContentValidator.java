@@ -29,6 +29,7 @@ public abstract class AbstractContentValidator implements ContentValidator {
 
         Set<String> mappedRefNames = references.stream()
                 .map(this::extractReferenceName)
+                .filter(Object::nonNull)
                 .collect(Collectors.toSet());
 
         Set<RuleViolation> violations = requiredReferences.stream()

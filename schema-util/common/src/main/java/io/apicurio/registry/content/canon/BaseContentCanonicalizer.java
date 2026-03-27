@@ -31,7 +31,7 @@ public abstract class BaseContentCanonicalizer implements ContentCanonicalizer {
      * Handle canonicalization errors. Override for custom error handling.
      */
     protected TypedContent handleCanonicalizationError(Throwable t, TypedContent content) {
-        log.error("Failed to canonicalize content, returning original", t);
+        log.debug("Failed to canonicalize content, returning original", t);
         return content;
     }
 

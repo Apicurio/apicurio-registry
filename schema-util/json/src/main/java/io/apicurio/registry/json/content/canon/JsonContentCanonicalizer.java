@@ -7,7 +7,6 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.BaseContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import org.apache.avro.Schema;
 
 import java.io.IOException;
 import java.util.Map;
@@ -25,16 +24,17 @@ public class JsonContentCanonicalizer extends BaseContentCanonicalizer {
      * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
      */
     @Override
-    public TypedContent doCanonicalize(TypedContent content,
+    protected TypedContent doCanonicalize(TypedContent content,
                                           Map<String, TypedContent> refs) throws Exception {
-        Schema schema = new Schema.Parser().parse(content.getContent().content());
-        String canonical = schema.toString();
+        JsonNode jsonNode = readAsJsonNode(content);
+        processJsonNode(jsonNode);
+        String canonical = mapper.writeValueAsString(jsonNode);
         return TypedContent.create(ContentHandle.create(canonical), content.getContentType());
     }
 
     /**
      * Perform any additional processing on the JSON node. The base JSON canonicalizer does nothing extra.
-     * 
+     *
      * @param node
      */
     protected void processJsonNode(JsonNode node) {

@@ -1,12 +1,12 @@
 package io.apicurio.registry.openapi.content.canon;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.BaseContentCanonicalizer;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import org.apache.avro.Schema;
 
 import java.util.Map;
 
@@ -23,10 +23,10 @@ public class OpenApiContentCanonicalizer extends BaseContentCanonicalizer {
      * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
      */
     @Override
-    public TypedContent doCanonicalize(TypedContent content,
+    protected TypedContent doCanonicalize(TypedContent content,
                                           Map<String, TypedContent> refs) throws Exception {
-        Schema schema = new Schema.Parser().parse(content.getContent().content());
-        String canonical = schema.toString();
+        JsonNode jsonNode = mapper.readTree(content.getContent().content());
+        String canonical = mapper.writeValueAsString(jsonNode);
         return TypedContent.create(ContentHandle.create(canonical), content.getContentType());
     }
 

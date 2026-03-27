@@ -30,6 +30,6 @@ generate: check
 test: bin/go
 	GOBIN=$(PROJECT_BIN) ${GO} test ./... -count=1
 
-.PHONY: test
+.PHONY: format
 format: bin/go
 	GOBIN=$(PROJECT_BIN) ${GO} fmt ./...

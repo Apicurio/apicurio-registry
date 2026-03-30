@@ -2,7 +2,6 @@ package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.Labels;
@@ -61,7 +60,7 @@ public class GroupCreateCommand extends AbstractCommand {
             newGroup.setLabels(newLabels);
         }
         try {
-            var group = convert(Client.getInstance().getRegistryClient().groups().post(newGroup));
+            var group = convert(client.getRegistryClient().groups().post(newGroup));
             switch (outputType.getOutputType()) {
                 case json -> output.writeStdErrChunk(out -> successMessage(out, group.getGroupId()));
                 case table -> output.writeStdOutChunk(out -> successMessage(out, group.getGroupId()));

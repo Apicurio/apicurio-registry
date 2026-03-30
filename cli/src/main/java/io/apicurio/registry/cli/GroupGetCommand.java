@@ -3,7 +3,6 @@ package io.apicurio.registry.cli;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -50,7 +49,7 @@ public class GroupGetCommand extends AbstractCommand {
     public void run(OutputBuffer output) throws JsonProcessingException {
         try {
             //noinspection ConstantConditions
-            var group = convert(Client.getInstance().getRegistryClient().groups().byGroupId(groupId).get());
+            var group = convert(client.getRegistryClient().groups().byGroupId(groupId).get());
             // TODO: Should we include the `default` group in the list?
             printGroup(output, group, outputType);
         } catch (ProblemDetails ex) {

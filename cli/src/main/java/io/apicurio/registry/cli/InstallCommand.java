@@ -2,7 +2,6 @@ package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
-import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import org.jboss.logging.Logger;
@@ -60,7 +59,7 @@ public class InstallCommand extends AbstractCommand {
     @Override
     public void run(final OutputBuffer output) throws IOException {
         // Location of the directory where the current CLI binary is running from
-        final Path currentPath = Config.getInstance().getAcrCurrentHomePath();
+        final Path currentPath = config.getAcrCurrentHomePath();
         log.debugf("Current home path: %s", currentPath);
 
         final Path cliHomePath = determineCliHomePath();
@@ -81,7 +80,7 @@ public class InstallCommand extends AbstractCommand {
      */
     private Path determineCliHomePath() throws IOException {
         // Default home directory, where the CLI should be installed
-        final String installDir = Config.getInstance().getEnv(ENV_ACR_INSTALL_PATH);
+        final String installDir = config.getEnv(ENV_ACR_INSTALL_PATH);
         if (isBlank(installDir)) {
             throw new CliException("Environment variable " + ENV_ACR_INSTALL_PATH + " is not set.", VALIDATION_ERROR_RETURN_CODE);
         }
@@ -89,7 +88,7 @@ public class InstallCommand extends AbstractCommand {
         final Path installDirPath = Paths.get(installDir).normalize().toAbsolutePath();
 
         // Location of the CLI home directory, set only if the CLI is already installed
-        final String cliHome = Config.getInstance().getEnv(ENV_ACR_HOME);
+        final String cliHome = config.getEnv(ENV_ACR_HOME);
         log.debugf("%s=%s", ENV_ACR_HOME, cliHome);
         Path cliHomePath = null;
 
@@ -160,7 +159,7 @@ public class InstallCommand extends AbstractCommand {
      * Gets the user's home directory path.
      */
     private Path getUserHomePath() {
-        final String userHome = Config.getInstance().getEnv(ENV_HOME);
+        final String userHome = config.getEnv(ENV_HOME);
         if (isBlank(userHome)) {
             throw new CliException(ENV_HOME + " environment variable is not set.", VALIDATION_ERROR_RETURN_CODE);
         }

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.OutputType;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -74,14 +73,14 @@ public class ArtifactGetCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId);
+        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
         try {
-            final var client = Client.getInstance().getRegistryClient();
-            ArtifactUtil.validateGroup(client, resolvedGroupId);
+            final var registryClient = client.getRegistryClient();
+            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
             if (outputOptions != null && outputOptions.content) {
-                fetchContent(client, resolvedGroupId, output);
+                fetchContent(registryClient, resolvedGroupId, output);
             } else {
-                fetchMetadata(client, resolvedGroupId, output);
+                fetchMetadata(registryClient, resolvedGroupId, output);
             }
         } catch (ProblemDetails ex) {
             output.writeStdErrChunk(err -> {

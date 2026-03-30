@@ -195,7 +195,7 @@
     <picocli.version>4.7.7</picocli.version>
 
     <!-- Logging -->
-    <log4j.version>2.25.3</log4j.version>
+    <log4j.version>2.25.4</log4j.version>
 
     <!-- Confluent API / client -->
     <confluent.version>8.0.0</confluent.version>
@@ -290,7 +290,7 @@
     <apicurio-maven-plugin.version>0.0.8</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.0</proto-plugin.version>
+    <proto-plugin.version>5.1.1</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
@@ -305,7 +305,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>4.0.30</groovy.version>
+    <groovy.version>4.0.31</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>1.21.4</pulsar.testcontainers.version>
@@ -1275,7 +1275,7 @@
       <plugin>
         <groupId>io.github.git-commit-id</groupId>
         <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>9.0.2</version>
+        <version>9.1.0</version>
         <configuration>
           <skip>${skipCommitIdPlugin}</skip>
           <generateGitPropertiesFile>true</generateGitPropertiesFile>

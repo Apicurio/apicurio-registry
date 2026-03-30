@@ -23,19 +23,9 @@ public interface Constants {
      */
     String SERDES = "serdes";
     /**
-     * Tag for web ui tests
-     */
-    String UI = "ui";
-
-    /**
      * Tag for acceptance tests, less tests than smoke testing
      */
     String ACCEPTANCE = "acceptance";
-
-    /**
-     * Tag for clustered tests, the suite will deploy the registry as a cluster of 2 replicas
-     */
-    String CLUSTERED = "clustered";
 
     /**
      * Tag for migration tests, the suite will deploy two registries and perform data migration between the
@@ -53,18 +43,6 @@ public interface Constants {
      * kafkasql.
      */
     String KAFKA_SQL_SNAPSHOTTING = "kafkasql-snapshotting";
-
-    /**
-     * Tag for sql tests, the test will be executed only when the storage variant is sql.
-     */
-    String SQL = "sqlit";
-
-    /**
-     * Tag for sql storage db schema upgrade tests. Consists of one test that deploys an older version of the
-     * registry, populates the db, and then deploys the latest version of the registry. Used to test the db
-     * schema upgrade process.
-     */
-    String DB_UPGRADE = "dbupgrade";
 
     /**
      * Tag for Debezium integration tests
@@ -89,7 +67,7 @@ public interface Constants {
     /**
      * Tag for kubernetesops tests, the test will be executed only when the storage variant is kubernetesops.
      */
-    String KUBERNETES_OPS = "kubernetesopsit";
+    String KUBERNETES_OPS = "kubernetesops";
 
     /**
      * Tag for Iceberg REST Catalog integration tests
@@ -100,11 +78,6 @@ public interface Constants {
      * Tag for search tests, requires Elasticsearch to be available and the search feature enabled
      */
     String SEARCH = "search";
-
-    /**
-     * Tag for slow-running tests
-     */
-    String SLOW = "slow";
 
     Path LOGS_DIR = Paths.get("target/logs/");
 

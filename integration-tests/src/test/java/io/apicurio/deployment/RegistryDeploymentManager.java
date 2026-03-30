@@ -105,29 +105,30 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         kubernetesClient.load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE)).serverSideApply();
 
         // Based on the configuration, deploy the appropriate variant
+        String registryImage = System.getProperty("registry-image");
         if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
             LOGGER.info(
                     "Deploying In Memory Registry Variant with image: {} ##################################################",
-                    System.getProperty("registry-in-memory-image"));
-            InMemoryDeploymentManager.deployInMemoryApp(System.getProperty("registry-in-memory-image"));
+                    registryImage);
+            InMemoryDeploymentManager.deployInMemoryApp(registryImage);
             testLogsIdentifier = "apicurio-registry-memory";
         } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
             LOGGER.info(
                     "Deploying SQL Registry Variant with image: {} ##################################################",
-                    System.getProperty("registry-sql-image"));
-            SqlDeploymentManager.deploySqlApp(System.getProperty("registry-sql-image"));
+                    registryImage);
+            SqlDeploymentManager.deploySqlApp(registryImage);
             testLogsIdentifier = "apicurio-registry-sql";
         } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
             LOGGER.info(
                     "Deploying Kafka SQL Registry Variant with image: {} ##################################################",
-                    System.getProperty("registry-kafkasql-image"));
-            KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
+                    registryImage);
+            KafkaSqlDeploymentManager.deployKafkaApp(registryImage);
             testLogsIdentifier = "apicurio-registry-kafka";
         } else if (Boolean.parseBoolean(System.getProperty("deployKubernetesOps"))) {
             LOGGER.info(
                     "Deploying KubernetesOps Registry Variant with image: {} ##################################################",
-                    System.getProperty("registry-kubernetesops-image"));
-            KubernetesOpsDeploymentManager.deployKubernetesOpsApp(System.getProperty("registry-kubernetesops-image"));
+                    registryImage);
+            KubernetesOpsDeploymentManager.deployKubernetesOpsApp(registryImage);
             testLogsIdentifier = "apicurio-registry-kubernetesops";
         }
 

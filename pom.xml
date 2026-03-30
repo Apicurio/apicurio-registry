@@ -1346,6 +1346,19 @@
       <modules>
         <module>integration-tests</module>
       </modules>
+      <build>
+        <plugins>
+          <!-- Skip unit tests in upstream modules when running integration tests.
+               The -Dgroups property leaks to surefire via the command line,
+               and modules without JUnit 5 on their test classpath would fail. -->
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <skipTests>true</skipTests>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
     <profile>
       <id>examples</id>

@@ -23,6 +23,7 @@
     </modules>
 
     <properties>
+        <projectRoot>${project.basedir}/../..</projectRoot>
         <quarkus.version>3.27.0</quarkus.version>
         <compiler-plugin.version>3.13.0</compiler-plugin.version>
         <maven.compiler.release>17</maven.compiler.release>

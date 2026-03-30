@@ -405,13 +405,13 @@ The following {registry} configuration options are available for each component 
 |`3.2.0`
 |Branch to read from. _(experimental)_
 |`apicurio.gitops.repo.dir`
-|`optional<string>`
-|
+|`string`
+|`default`
 |`3.2.0`
 |Directory name of the Git repository, relative to the workspace. _(experimental)_
 |`apicurio.gitops.workspace`
 |`string`
-|`.`
+|`/repos`
 |`3.2.0`
 |Base directory where Git repositories are mounted. Repository directories are resolved relative to this path. _(experimental)_
 |===

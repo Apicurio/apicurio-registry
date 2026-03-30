@@ -69,6 +69,20 @@ jobs:
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
 
+  publish-gitops-sync-image:
+    name: Publish GitOps Sync Docker Image
+    uses: ./.github/workflows/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry-gitops-sync'
+      dockerfile: './distro/gitops/Dockerfile'
+      context: './distro/gitops'
+      tag: 'latest-snapshot'
+      push-to-dockerhub: false
+      platforms: 'linux/amd64,linux/arm64'
+    secrets:
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
   publish-support-chat-image:
     name: Publish Support Chat Docker Image
     runs-on: ubuntu-22.04

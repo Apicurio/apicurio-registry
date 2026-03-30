@@ -1,0 +1,80 @@
+/*
+ * Copyright 2025 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.apicurio.registry.storage.impl.polling;
+
+import lombok.Builder;
+import lombok.Getter;
+
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * Tracks the current synchronization status of a polling-based storage.
+ * Updated after each poll/load cycle to reflect the latest state.
+ */
+@Getter
+@Builder(toBuilder = true)
+public class PollingStorageStatus {
+
+    public enum SyncState {
+        /** Storage has not yet completed its first data load. */
+        INITIALIZING,
+        /** Storage is idle, serving the latest successfully loaded data. */
+        IDLE,
+        /** A poll detected changes and the storage is loading new data. */
+        LOADING,
+        /** The last load attempt failed;
+         *  storage continues serving previous data. */
+        ERROR
+    }
+
+    /** Current synchronization state. */
+    private final SyncState syncState;
+
+    /** Marker string identifying the current data (e.g., Git commit SHA). */
+    private final String currentMarker;
+
+    /** When the last successful sync completed. */
+    private final Instant lastSuccessfulSync;
+
+    /** When the last sync attempt occurred (successful or not). */
+    private final Instant lastSyncAttempt;
+
+    /** Number of groups loaded in the last successful sync. */
+    private final int groupCount;
+
+    /** Number of artifacts loaded in the last successful sync. */
+    private final int artifactCount;
+
+    /** Number of versions loaded in the last successful sync. */
+    private final int versionCount;
+
+    /** Errors from the last failed load attempt,
+     *  empty if last load was successful. */
+    private final List<String> lastErrors;
+
+    /**
+     * Creates an initial status in the INITIALIZING state.
+     * @return the initial status
+     */
+    public static PollingStorageStatus initializing() {
+        return PollingStorageStatus.builder()
+                .syncState(SyncState.INITIALIZING)
+                .lastErrors(List.of())
+                .build();
+    }
+}

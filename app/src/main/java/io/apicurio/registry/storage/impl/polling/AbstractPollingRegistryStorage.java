@@ -20,6 +20,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -68,6 +69,9 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
     private int switchRetryCount = 0;
     private static final int MAX_SWITCH_RETRIES = 3;
 
+    // The processing result pending switch (holds load stats)
+    private PollingProcessingResult pendingProcessingResult = null;
+
     // Tracks whether the first successful data load has completed.
     // Used by isReady() to prevent serving empty results before initial data is available.
     private volatile boolean isReady = false;
@@ -96,9 +100,19 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
 
     private Instant lastRefresh = Instant.MIN;
 
+    private volatile PollingStorageStatus status = PollingStorageStatus.initializing();
+
     @Override
     public String storageName() {
         return pollingConfig.getStorageName();
+    }
+
+    /**
+     * Converts a poll marker to a human-readable string for status reporting.
+     * Override in subclasses if the marker's toString() is not suitable (e.g., Git RevCommit).
+     */
+    protected String markerToString(MARKER marker) {
+        return marker != null ? marker.toString() : null;
     }
 
     protected void initialize(PollingStorageConfig pollingConfig, PollingDataSourceManager<MARKER> pollingDataSourceManager) {
@@ -148,10 +162,23 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
 
                 switch (state) {
                     case READY_TO_SWITCH -> {
+                        String markerStr = markerToString(pendingResult.getMarker());
                         if (doSwitch()) {
                             switchRetryCount = 0;
                             pendingResult.commit();
                             pendingResult = null;
+                            var completedResult = pendingProcessingResult;
+                            pendingProcessingResult = null;
+                            status = PollingStorageStatus.builder()
+                                    .syncState(PollingStorageStatus.SyncState.IDLE)
+                                    .currentMarker(markerStr)
+                                    .lastSuccessfulSync(Instant.now())
+                                    .lastSyncAttempt(status.getLastSyncAttempt())
+                                    .groupCount(completedResult.getGroupCount())
+                                    .artifactCount(completedResult.getArtifactCount())
+                                    .versionCount(completedResult.getVersionCount())
+                                    .lastErrors(Collections.emptyList())
+                                    .build();
                             if (!isReady) {
                                 isReady = true;
                                 log.info("{} initial data load completed, storage is now ready", storageName());
@@ -162,6 +189,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                                 log.error("{} failed to acquire write lock after {} attempts, " +
                                         "discarding pending update to prevent deadlock", storageName(), MAX_SWITCH_RETRIES);
                                 pendingResult = null;
+                                pendingProcessingResult = null;
                                 state = State.READY_TO_WRITE;
                                 switchRetryCount = 0;
                             }
@@ -205,16 +233,28 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
      */
     private void loadInactive(PollingResult<MARKER> pollResult) {
         try {
+            String markerStr = markerToString(pollResult.getMarker());
+            status = status.toBuilder()
+                    .syncState(PollingStorageStatus.SyncState.LOADING)
+                    .lastSyncAttempt(Instant.now())
+                    .build();
+
             inactive.deleteAllUserData();
             var result = pollingDataSourceManager.process(inactive, pollResult);
             if (result.isSuccessful()) {
                 log.info("{} update loaded successfully (marker: {})", storageName(), pollResult.getMarker());
                 pendingResult = pollResult;
+                pendingProcessingResult = result;
                 state = State.READY_TO_SWITCH;
             } else {
                 log.error("{} update failed to load (marker: {}). {} error(s):",
                         storageName(), pollResult.getMarker(), result.getErrors().size());
                 result.getErrors().forEach(e -> log.error("  - {}", e));
+                status = status.toBuilder()
+                        .syncState(PollingStorageStatus.SyncState.ERROR)
+                        .currentMarker(markerStr)
+                        .lastErrors(result.getErrors())
+                        .build();
             }
         } catch (Exception e) {
             log.error("{} failed to load data into inactive storage: {}", storageName(), e.getMessage(), e);
@@ -280,6 +320,21 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
         } catch (InterruptedException ex) {
             throw new RegistryStorageException("Could not acquire read lock to get the active storage", ex);
         }
+    }
+
+    /**
+     * Returns the current synchronization status of this storage.
+     */
+    public PollingStorageStatus getStatus() {
+        return status;
+    }
+
+    /**
+     * Requests an immediate synchronization by resetting the last refresh time.
+     * The next scheduler invocation will poll without waiting for the poll period.
+     */
+    public void requestSync() {
+        lastRefresh = Instant.MIN;
     }
 
     @Override

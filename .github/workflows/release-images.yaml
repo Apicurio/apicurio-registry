@@ -137,6 +137,14 @@ jobs:
             make image-build image-push
           fi
 
+      - name: Build and push Apicurio Registry GitOps Sync image
+        working-directory: registry
+        run: |
+          docker buildx build --push -f ./distro/gitops/Dockerfile \
+              -t quay.io/apicurio/apicurio-registry-gitops-sync:$RELEASE_VERSION \
+              -t quay.io/apicurio/apicurio-registry-gitops-sync:latest \
+              --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/gitops
+
       - name: Build and push Apicurio Registry MCP Server image
         working-directory: registry/mcp
         run: |

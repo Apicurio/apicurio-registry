@@ -1,14 +1,12 @@
-# GitOps Local Volume Example - Docker Compose
+# GitOps Pull Mode (HTTPS) - Docker Compose
 #
-# Clones the example repository into a Docker volume and runs the registry
-# in GitOps mode. No sidecar needed — the registry reads directly from the volume.
+# Pulls schemas from a public Git repository over HTTPS using the GitOps sidecar.
+# Uses dev security mode to allow HTTP/HTTPS without SSH keys.
 #
-# Run:
-#   cd examples/gitops
-#   docker compose up
-#
-# To run as the staging registry (includes experimental schemas):
-#   APICURIO_POLLING_STORAGE_ID=staging docker compose up
+# Setup:
+#   1. Fork https://github.com/Apicurio/apicurio-registry-gitops-sync-example
+#   2. Update APICURIO_GITOPS_REPO_URL below with your fork URL
+#   3. Run: docker compose up
 #
 # Endpoints:
 #   - Registry API: http://localhost:8080/apis/registry/v3
@@ -16,25 +14,15 @@
 
 services:
 
-  # Clone the example repository into a Docker volume
-  git-init:
-    container_name: git-init
-    image: alpine/git:latest
+  git-sync:
+    container_name: gitops-sidecar
+    image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
+    environment:
+      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-https://github.com/Apicurio/apicurio-registry-gitops-sync-example.git}"
+      APICURIO_GITOPS_SECURITY: "dev"
     volumes:
-      - git-repo:/repos/default
-    entrypoint: ["sh", "-c"]
-    command:
-      - |
-        if [ ! -d /repos/default/.git ]; then
-          echo "Cloning example GitOps repository..."
-          git clone https://github.com/Apicurio/apicurio-registry-gitops-example.git /tmp/repo
-          cp -r /tmp/repo/* /tmp/repo/.* /repos/default/ 2>/dev/null || true
-          echo "Example repository initialized."
-        else
-          echo "Repository already initialized, skipping."
-        fi
+      - git-repo:/repos
 
-  # Apicurio Registry (GitOps mode)
   registry:
     container_name: registry-gitops
     image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
@@ -52,12 +40,11 @@ services:
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     volumes:
-      - git-repo:/repos/default:ro
+      - git-repo:/repos:ro
     ports:
       - "8080:8080"
     depends_on:
-      git-init:
-        condition: service_completed_successfully
+      - git-sync
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
       interval: 10s
@@ -65,7 +52,6 @@ services:
       retries: 10
       start_period: 30s
 
-  # Apicurio Registry UI
   ui:
     container_name: registry-ui
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot

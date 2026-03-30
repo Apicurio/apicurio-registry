@@ -746,6 +746,27 @@ The following table lists all Iceberg REST Catalog API endpoints supported by {r
 |POST
 |`/apis/iceberg/v1/{prefix}/tables/rename`
 |Rename a table
+|GET
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views`
+|List views in a namespace
+|POST
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views`
+|Create a view
+|GET
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views/{view}`
+|Load a view
+|POST
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views/{view}`
+|Replace/commit a view
+|HEAD
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views/{view}`
+|Check if a view exists
+|DELETE
+|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views/{view}`
+|Drop a view
+|POST
+|`/apis/iceberg/v1/{prefix}/views/rename`
+|Rename a view
 |===
 
 
@@ -755,10 +776,9 @@ The following table lists all Iceberg REST Catalog API endpoints supported by {r
 [role="_abstract"]
 The {registry} Iceberg REST Catalog implementation has the following limitations:
 
-* *Views are not supported.* Only Iceberg tables are currently supported. The `ICEBERG_VIEW` artifact type is reserved for future use.
 * *Multi-table transactions are not supported.* Each CommitTable operation is scoped to a single table. Cross-table atomic commits are not available.
 * *Server-side content management.* {registry} stores table metadata but does not manage data files. Clients are responsible for writing data files to the configured warehouse location.
-* *Rename is not atomic.* Renaming a table creates the destination and then deletes the source as two separate operations. If the delete fails, both the source and destination may temporarily exist.
+* *Rename is not atomic.* Renaming a table or view creates the destination and then deletes the source as two separate operations. If the delete fails, the source may need manual cleanup.
 * *Experimental feature.* The Iceberg REST Catalog API requires `apicurio.features.experimental.enabled=true` and may change in future releases.
 
 

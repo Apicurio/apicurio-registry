@@ -13,8 +13,10 @@ import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.exceptions.NamespaceNotEmptyException;
 import org.apache.iceberg.exceptions.NoSuchNamespaceException;
 import org.apache.iceberg.exceptions.NoSuchTableException;
+import org.apache.iceberg.exceptions.NoSuchViewException;
 import org.apache.iceberg.rest.RESTCatalog;
 import org.apache.iceberg.types.Types;
+import org.apache.iceberg.view.View;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -45,8 +47,9 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
 
     private RESTCatalog catalog;
 
-    // Track namespaces and tables created during tests for cleanup
+    // Track namespaces, tables, and views created during tests for cleanup
     private final java.util.Deque<TableIdentifier> createdTables = new java.util.ArrayDeque<>();
+    private final java.util.Deque<TableIdentifier> createdViews = new java.util.ArrayDeque<>();
     private final java.util.Deque<Namespace> createdNamespaces = new java.util.ArrayDeque<>();
 
     @BeforeAll
@@ -61,7 +64,16 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
 
     @AfterEach
     void cleanupTestData() {
-        // Drop tables first (LIFO order)
+        // Drop views first (LIFO order)
+        while (!createdViews.isEmpty()) {
+            TableIdentifier view = createdViews.pop();
+            try {
+                catalog.dropView(view);
+            } catch (Exception e) {
+                LOGGER.warn("Failed to clean up view {}: {}", view, e.getMessage());
+            }
+        }
+        // Drop tables (LIFO order)
         while (!createdTables.isEmpty()) {
             TableIdentifier table = createdTables.pop();
             try {
@@ -533,5 +545,187 @@ class IcebergCatalogIT extends ApicurioRegistryBaseIT {
     void testLoadNonExistentNamespace() {
         Namespace nonExistent = Namespace.of("ns_does_not_exist_" + UUID.randomUUID());
         assertThrows(NoSuchNamespaceException.class, () -> catalog.loadNamespaceMetadata(nonExistent));
+    }
+
+    // ========== View Lifecycle ==========
+
+    private View createTestView(Namespace ns, String viewName) {
+        TableIdentifier viewId = TableIdentifier.of(ns, viewName);
+        View view = catalog.buildView(viewId)
+                .withSchema(simpleSchema())
+                .withQuery("spark", "SELECT * FROM t1")
+                .withDefaultNamespace(ns)
+                .create();
+        createdViews.push(viewId);
+        return view;
+    }
+
+    @Test
+    void testCreateAndLoadView() {
+        Namespace ns = createTestNamespace("view_create");
+        String viewName = uniqueName("test_view");
+        TableIdentifier viewId = TableIdentifier.of(ns, viewName);
+
+        View created = createTestView(ns, viewName);
+        assertNotNull(created);
+
+        View loaded = catalog.loadView(viewId);
+        assertNotNull(loaded);
+        assertEquals(3, loaded.schema().columns().size());
+        assertNotNull(loaded.currentVersion());
+        assertFalse(loaded.currentVersion().representations().isEmpty(),
+                "View should have at least one representation");
+    }
+
+    @Test
+    void testListViews() {
+        Namespace ns = createTestNamespace("view_list");
+        String view1 = uniqueName("view_a");
+        String view2 = uniqueName("view_b");
+        createTestView(ns, view1);
+        createTestView(ns, view2);
+
+        List<TableIdentifier> views = catalog.listViews(ns);
+        Set<String> viewNames = views.stream()
+                .map(TableIdentifier::name)
+                .collect(Collectors.toSet());
+        assertTrue(viewNames.contains(view1));
+        assertTrue(viewNames.contains(view2));
+    }
+
+    @Test
+    void testViewExists() {
+        Namespace ns = createTestNamespace("view_exists");
+        String viewName = uniqueName("exists_view");
+        TableIdentifier viewId = TableIdentifier.of(ns, viewName);
+
+        assertFalse(catalog.viewExists(viewId));
+        createTestView(ns, viewName);
+        assertTrue(catalog.viewExists(viewId));
+    }
+
+    @Test
+    void testDropView() {
+        Namespace ns = createTestNamespace("view_drop");
+        String viewName = uniqueName("drop_view");
+        TableIdentifier viewId = TableIdentifier.of(ns, viewName);
+        catalog.buildView(viewId)
+                .withSchema(simpleSchema())
+                .withQuery("spark", "SELECT 1")
+                .withDefaultNamespace(ns)
+                .create();
+        // Don't track since we drop manually
+
+        assertTrue(catalog.dropView(viewId));
+        assertFalse(catalog.viewExists(viewId));
+    }
+
+    @Test
+    void testRenameView() {
+        Namespace ns = createTestNamespace("view_rename");
+        String originalName = uniqueName("orig_view");
+        String newName = uniqueName("renamed_view");
+        TableIdentifier originalId = TableIdentifier.of(ns, originalName);
+        TableIdentifier newId = TableIdentifier.of(ns, newName);
+
+        catalog.buildView(originalId)
+                .withSchema(simpleSchema())
+                .withQuery("spark", "SELECT 1")
+                .withDefaultNamespace(ns)
+                .create();
+        // Track the new name for cleanup
+        createdViews.push(newId);
+
+        catalog.renameView(originalId, newId);
+        assertFalse(catalog.viewExists(originalId));
+        assertTrue(catalog.viewExists(newId));
+    }
+
+    @Test
+    void testRenameViewAcrossNamespaces() {
+        Namespace ns1 = createTestNamespace("view_ren_src");
+        Namespace ns2 = createTestNamespace("view_ren_dst");
+        String viewName = uniqueName("cross_view");
+        TableIdentifier srcId = TableIdentifier.of(ns1, viewName);
+        TableIdentifier dstId = TableIdentifier.of(ns2, viewName);
+
+        catalog.buildView(srcId)
+                .withSchema(simpleSchema())
+                .withQuery("spark", "SELECT 1")
+                .withDefaultNamespace(ns1)
+                .create();
+        createdViews.push(dstId);
+
+        catalog.renameView(srcId, dstId);
+        assertFalse(catalog.viewExists(srcId));
+        assertTrue(catalog.viewExists(dstId));
+    }
+
+    @Test
+    void testViewProperties() {
+        Namespace ns = createTestNamespace("view_props");
+        String viewName = uniqueName("props_view");
+        TableIdentifier viewId = TableIdentifier.of(ns, viewName);
+
+        catalog.buildView(viewId)
+                .withSchema(simpleSchema())
+                .withQuery("spark", "SELECT 1")
+                .withDefaultNamespace(ns)
+                .withProperty("custom.key", "custom_value")
+                .create();
+        createdViews.push(viewId);
+
+        View loaded = catalog.loadView(viewId);
+        assertEquals("custom_value", loaded.properties().get("custom.key"));
+
+        loaded.updateProperties()
+                .set("new.key", "new_value")
+                .commit();
+
+        View reloaded = catalog.loadView(viewId);
+        assertEquals("new_value", reloaded.properties().get("new.key"));
+    }
+
+    @Test
+    void testReplaceViewVersion() {
+        Namespace ns = createTestNamespace("view_replace");
+        String viewName = uniqueName("replace_view");
+        TableIdentifier viewId = TableIdentifier.of(ns, viewName);
+
+        View view = catalog.buildView(viewId)
+                .withSchema(simpleSchema())
+                .withQuery("spark", "SELECT * FROM t1")
+                .withDefaultNamespace(ns)
+                .create();
+        createdViews.push(viewId);
+
+        int originalVersionId = view.currentVersion().versionId();
+
+        // Replace the view version with a new SQL query
+        view.replaceVersion()
+                .withSchema(simpleSchema())
+                .withQuery("spark", "SELECT * FROM t2 WHERE id > 0")
+                .withDefaultNamespace(ns)
+                .commit();
+
+        View reloaded = catalog.loadView(viewId);
+        assertTrue(reloaded.currentVersion().versionId() > originalVersionId,
+                "New version should have a higher version ID");
+    }
+
+    @Test
+    void testDropNonEmptyNamespaceWithViewFails() {
+        Namespace ns = createTestNamespace("view_nonempty");
+        createTestView(ns, uniqueName("blocker_view"));
+
+        assertThrows(NamespaceNotEmptyException.class, () -> catalog.dropNamespace(ns));
+    }
+
+    @Test
+    void testLoadNonExistentView() {
+        Namespace ns = createTestNamespace("view_err");
+        TableIdentifier nonExistent = TableIdentifier.of(ns, "does_not_exist");
+
+        assertThrows(NoSuchViewException.class, () -> catalog.loadView(nonExistent));
     }
 }

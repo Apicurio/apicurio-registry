@@ -6,7 +6,7 @@ on:
         description: 'Release tag name'
         required: true
   release:
-    types: [ released, prereleased ]
+    types: [ released ]
 
 
 env:
@@ -21,8 +21,6 @@ jobs:
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
     runs-on: ubuntu-22.04
     timeout-minutes: 120
-    env:
-      RELEASE_TYPE: release
     steps:
       - name: View Disk Usage
         run: df -h
@@ -55,12 +53,6 @@ jobs:
           touch release.json && curl https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${{ github.event.inputs.tag }} > release.json
           echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
           echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
-
-      - name: Determine Release Type
-        if: "contains(env.RELEASE_VERSION, 'RC')"
-        run: |
-          echo "This is a pre-release. Setting 'RELEASE_TYPE' to 'pre-release'"
-          echo "RELEASE_TYPE=pre-release" >> $GITHUB_ENV
 
       - name: Download Source Code
         run: git clone --branch $RELEASE_VERSION --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git registry

@@ -1208,6 +1208,14 @@
             <version>${version.puppycrawl}</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <configLocation>${projectRoot}/.checkstyle/simple.xml</configLocation>
+          <headerLocation>${projectRoot}/.checkstyle/java.header</headerLocation>
+          <suppressionsLocation>${projectRoot}/.checkstyle/suppressions.xml</suppressionsLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
+        </configuration>
         <executions>
           <execution>
             <id>validate</id>
@@ -1215,14 +1223,6 @@
               <goal>check</goal>
             </goals>
             <phase>validate</phase>
-            <configuration>
-              <configLocation>.checkstyle/simple.xml</configLocation>
-              <headerLocation>.checkstyle/java.header</headerLocation>
-              <suppressionsLocation>.checkstyle/suppressions.xml</suppressionsLocation>
-              <includeTestSourceDirectory>true</includeTestSourceDirectory>
-              <consoleOutput>true</consoleOutput>
-              <failsOnError>true</failsOnError>
-            </configuration>
           </execution>
         </executions>
       </plugin>

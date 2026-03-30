@@ -14,6 +14,10 @@
     <name>apicurio-registry-config-generator</name>
     <description>Configuration documentation generator</description>
 
+    <properties>
+        <projectRoot>${project.basedir}/../..</projectRoot>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.apicurio</groupId>

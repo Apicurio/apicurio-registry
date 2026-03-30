@@ -1,0 +1,53 @@
+# GitOps Pull Mode (SSH) - Quarkus Dev Mode
+#
+# Use this when running the registry locally with `mvn quarkus:dev`.
+# The sidecar pulls from a private repo into a local directory; Registry reads from it.
+#
+# Setup:
+#   1. Generate an SSH key pair (if you haven't already):
+#      ssh-keygen -t ed25519 -f secrets/id_ed25519 -N "" -C "apicurio-gitops-sidecar"
+#
+#   2. Add the public key as a deploy key in your Git repository
+#
+#   3. (Recommended) Pre-populate known_hosts:
+#      ssh-keyscan github.com > secrets/known_hosts
+#
+#   4. Update APICURIO_GITOPS_REPO_URL below
+#
+#   5. Start the sidecar and UI:
+#      cd examples/gitops/pull-ssh
+#      docker compose -f docker-compose-dev.yaml up
+#
+#   6. Start Registry in dev mode:
+#      cd app
+#      mvn quarkus:dev \
+#        -Dapicurio.storage.kind=gitops \
+#        -Dapicurio.features.experimental.enabled=true \
+#        -Dapicurio.polling-storage.id=prod \
+#        -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops/pull-ssh/repos
+#
+# Endpoints:
+#   - Registry API: http://localhost:8080/apis/registry/v3
+#   - Registry UI:  http://localhost:8888
+
+services:
+
+  git-sync:
+    container_name: gitops-sidecar
+    image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
+    environment:
+      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-git@github.com:your-org/your-schemas.git}"
+      APICURIO_GITOPS_SSH_KEY: "/secrets/id_ed25519"
+      # Uncomment the next line after creating secrets/known_hosts:
+      # APICURIO_GITOPS_SSH_KNOWN_HOSTS: "/secrets/known_hosts"
+    volumes:
+      - ./repos:/repos
+      - ./secrets:/secrets:ro
+
+  ui:
+    container_name: registry-ui
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    ports:
+      - "8888:8080"

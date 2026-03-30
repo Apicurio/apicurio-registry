@@ -72,7 +72,9 @@ public class ProcessingState {
     }
 
     public PollingProcessingResult getResult() {
-        return isSuccessful() ? PollingProcessingResult.success() : PollingProcessingResult.failure(errors);
+        return isSuccessful()
+                ? PollingProcessingResult.success(groupCount, artifactCount, versionCount)
+                : PollingProcessingResult.failure(errors);
     }
 
     public Set<PollingDataFile> fromTypeIndex(Type type) {

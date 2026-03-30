@@ -43,21 +43,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 @QuarkusTest
 public class InstallCommandTest {
 
-    @TempDir
-    Path tempDir;
-
     @Inject
     Config config;
 
     @Inject
     CommandLine.IFactory factory;
 
+    private Path tempDir;
     private Path acrHome;
     private Path userHome;
     private Path installPath;
 
     @BeforeEach
-    public void setUp() throws IOException {
+    public void setUp(@TempDir Path tempDir) throws IOException {
+        this.tempDir = tempDir;
         // Create directory structure for test
         acrHome = tempDir.resolve("acr-home");
         userHome = tempDir.resolve("user-home");

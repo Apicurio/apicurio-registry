@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
+import io.quarkus.test.junit.QuarkusTest;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -18,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Basic smoke tests for the Apicurio Registry CLI.
  */
+@QuarkusTest
 @TestMethodOrder(OrderAnnotation.class)
 public class GroupCommandTest extends AbstractCLITest {
 

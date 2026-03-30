@@ -98,22 +98,16 @@ Integration tests and examples are always opt-in via their own profiles:
 
 ### Testing
 
-Unit tests run as part of the normal build. For integration tests, use the `integration-tests` module:
+Unit tests run as part of the normal build (`mvn clean install`). Integration tests
+are in a separate module and need to be explicitly enabled:
 
 ```bash
-# Run default integration tests (smoke + serdes + acceptance) with local app
+# Run default integration tests (smoke + serdes + acceptance)
 ./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am
-
-# Run a specific test group
-./mvnw verify -Pintegration-tests -Plocal-tests -Dgroups=auth -pl integration-tests -am
-
-# Run against a remote deployment (e.g., in-memory)
-./mvnw verify -Pintegration-tests -Premote-mem -pl integration-tests -am
 ```
 
-Commonly used test groups include: `smoke`, `serdes`, `acceptance`, `auth`, `migration`,
-`iceberg`, `kafkasql-snapshotting`, `kubernetesopsit`, `debezium`, `search`. See the
-[integration tests module](integration-tests/) for the full list and details.
+See the [integration tests module](integration-tests/) for test groups, deployment
+modes, and detailed usage instructions.
 
 ## Runtime Configuration
 

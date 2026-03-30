@@ -1,6 +1,5 @@
 package io.apicurio.registry.cli;
 
-import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPES;
@@ -15,7 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for the version command — verifies CLI version and server info
  * in both JSON and table output, with and without a server connection.
  */
-@QuarkusTest
 public class VersionCommandTest extends AbstractCLITest {
 
     @Test

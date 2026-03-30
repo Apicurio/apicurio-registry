@@ -1,13 +1,15 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.config.Config;
-import io.apicurio.registry.cli.utils.OutputBuffer;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
+import picocli.CommandLine;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,10 +40,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Tests are split into OS-specific methods using JUnit 5 conditional
  * execution annotations to ensure proper testing on each platform.
  */
+@QuarkusTest
 public class InstallCommandTest {
 
     @TempDir
     Path tempDir;
+
+    @Inject
+    Config config;
+
+    @Inject
+    CommandLine.IFactory factory;
 
     private Path acrHome;
     private Path userHome;
@@ -66,18 +75,18 @@ public class InstallCommandTest {
         Files.writeString(acrHome.resolve(CONFIG_JSON), "{}");
 
         // Set up config to point to our test acr-home
-        Config.getInstance().setAcrCurrentHomePath(acrHome);
+        config.setAcrCurrentHomePath(acrHome);
 
         // Set up environment variable overrides for testing
-        Config.getInstance().setEnvOverride(ENV_HOME, userHome.toString());
-        Config.getInstance().setEnvOverride(ENV_ACR_INSTALL_PATH, installPath.toString());
-        Config.getInstance().setEnvOverride(ENV_ACR_HOME, null); // Simulate fresh install
+        config.setEnvOverride(ENV_HOME, userHome.toString());
+        config.setEnvOverride(ENV_ACR_INSTALL_PATH, installPath.toString());
+        config.setEnvOverride(ENV_ACR_HOME, null); // Simulate fresh install
     }
 
     @AfterEach
     public void tearDown() {
         // Clear environment overrides to avoid test interference
-        Config.getInstance().clearEnvOverrides();
+        config.clearEnvOverrides();
     }
 
     // ========== Test Methods ==========
@@ -189,9 +198,9 @@ public class InstallCommandTest {
     }
 
     private void runInstallCommand() throws IOException {
-        final InstallCommand command = new InstallCommand();
-        final OutputBuffer output = new OutputBuffer(Config.getInstance().getStdOut(), Config.getInstance().getStdErr());
-        command.run(output);
+        var acr = new Acr();
+        var cmd = new CommandLine(acr, factory);
+        cmd.execute("install");
     }
 
     private void setupAndRunInstall() throws IOException {

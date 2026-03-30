@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -50,9 +49,9 @@ public class VersionCommand extends AbstractCommand {
                 .cliVersion(ConfigProvider.getConfig().getValue("version", String.class));
 
         try {
-            final var client = Client.getInstance().getRegistryClient();
-            fetchSystemInfo(client, builder, output);
-            fetchArtifactTypes(client, builder, output);
+            final var registryClient = client.getRegistryClient();
+            fetchSystemInfo(registryClient, builder, output);
+            fetchArtifactTypes(registryClient, builder, output);
         } catch (Exception ex) {
             output.writeStdErrChunk(err ->
                     err.append("Could not connect to server: ").append(ex.getMessage()).append('\n'));

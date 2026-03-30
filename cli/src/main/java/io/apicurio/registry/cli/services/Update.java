@@ -1,8 +1,10 @@
 package io.apicurio.registry.cli.services;
 
 import io.vertx.core.http.HttpMethod;
-import org.jboss.logging.Logger;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.jboss.logging.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
@@ -18,21 +20,13 @@ import java.util.concurrent.TimeUnit;
  * Service for checking and managing CLI updates.
  * Uses MicroProfile Config for configuration management.
  */
+@ApplicationScoped
 public class Update {
 
     private static final Logger log = Logger.getLogger(Update.class);
 
-    private static Update instance;
-
-    public static synchronized Update getInstance() {
-        if (instance == null) {
-            instance = new Update();
-        }
-        return instance;
-    }
-
-    private Update() {
-    }
+    @Inject
+    Client client;
 
     public String getLatestVersion() {
         try {
@@ -51,7 +45,7 @@ public class Update {
             log.debugf("Downloading metadata from: %s", metadataUri);
 
             // Use Vertx HttpClient to download the metadata XML file
-            var httpClient = Client.getInstance().getHttpClient();
+            var httpClient = client.getHttpClient();
             CompletableFuture<String> future = new CompletableFuture<>();
 
             var requestOptions = new io.vertx.core.http.RequestOptions()
@@ -147,7 +141,7 @@ public class Update {
             Path targetFile = targetDir.resolve("apicurio-registry-cli-" + version + ".zip");
 
             // Use Vertx HttpClient to download the file
-            var httpClient = Client.getInstance().getHttpClient();
+            var httpClient = client.getHttpClient();
             CompletableFuture<Path> future = new CompletableFuture<>();
 
             var requestOptions = new io.vertx.core.http.RequestOptions()

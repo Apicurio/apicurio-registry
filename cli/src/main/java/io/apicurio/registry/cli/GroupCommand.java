@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -51,7 +50,7 @@ public class GroupCommand extends AbstractCommand {
     @Override
     public void run(OutputBuffer output) throws JsonProcessingException {
         //noinspection ConstantConditions
-        var groups = convert(Client.getInstance().getRegistryClient().groups().get(r -> {
+        var groups = convert(client.getRegistryClient().groups().get(r -> {
             //noinspection ConstantConditions
             r.queryParameters.offset = (pagination.getPage() - 1) * pagination.getSize();
             r.queryParameters.limit = pagination.getSize();

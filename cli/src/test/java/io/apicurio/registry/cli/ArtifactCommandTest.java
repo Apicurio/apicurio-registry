@@ -3,7 +3,6 @@ package io.apicurio.registry.cli;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
-import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -16,7 +15,6 @@ import java.util.Map;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@QuarkusTest
 @TestMethodOrder(OrderAnnotation.class)
 public class ArtifactCommandTest extends AbstractCLITest {
 

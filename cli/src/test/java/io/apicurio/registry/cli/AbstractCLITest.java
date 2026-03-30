@@ -3,6 +3,8 @@ package io.apicurio.registry.cli;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.tags.DockerRequired;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import picocli.CommandLine;
+import picocli.CommandLine.IFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -25,8 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Base class for CLI tests with common setup and utility methods.
- * Subclasses must be annotated with @QuarkusTest.
+ * Subclasses inherit @QuarkusTest from this class.
  */
+@QuarkusTest
 @DockerRequired
 public abstract class AbstractCLITest {
 
@@ -37,23 +41,22 @@ public abstract class AbstractCLITest {
     protected StringWriter out;
     protected StringWriter err;
 
-    static CommandLine createCLI() {
+    @Inject
+    protected Config config;
+
+    @Inject
+    protected Client client;
+
+    @Inject
+    IFactory factory;
+
+    CommandLine createCLI() {
         var acr = new Acr();
-        return new CommandLine(acr);
+        return new CommandLine(acr, factory);
     }
 
     @BeforeAll
     public static void beforeAll() {
-        var acrHome = Path.of(
-                        AbstractCLITest.class.getClassLoader()
-                                .getResource("acr-home")
-                                .getPath())
-                .normalize();
-        if (!Files.exists(acrHome)) {
-            throw new RuntimeException("Test resource 'acr-home' does not exist");
-        }
-        Config.getInstance().setAcrCurrentHomePath(acrHome);
-
         // Start Apicurio Registry container
         var appImage = ofNullable(System.getProperty("test.app.image"))
                 .orElse("quay.io/apicurio/apicurio-registry:latest-release");
@@ -74,14 +77,24 @@ public abstract class AbstractCLITest {
 
     @BeforeEach
     public void beforeEach() {
-        Client.reset();
+        var acrHome = Path.of(
+                        AbstractCLITest.class.getClassLoader()
+                                .getResource("acr-home")
+                                .getPath())
+                .normalize();
+        if (!Files.exists(acrHome)) {
+            throw new RuntimeException("Test resource 'acr-home' does not exist");
+        }
+        config.setAcrCurrentHomePath(acrHome);
+
+        client.reset();
         cmd = createCLI();
         out = new StringWriter();
         cmd.setOut(new PrintWriter(out));
-        Config.getInstance().setStdOut(value -> out.write(value));
+        config.setStdOut(value -> out.write(value));
         err = new StringWriter();
         cmd.setErr(new PrintWriter(err));
-        Config.getInstance().setStdErr(value -> err.write(value));
+        config.setStdErr(value -> err.write(value));
         executeAndAssertSuccess("context", "create", "test", registryUrl);
     }
 

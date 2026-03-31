@@ -3,6 +3,7 @@ package io.apicurio.registry.noprofile.iceberg.rest.v1;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.restassured.RestAssured;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -18,6 +19,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 @TestProfile(IcebergExperimentalFeaturesProfile.class)
 public class IcebergMetricsTest extends AbstractResourceTestBase {
+
+    private String fetchMetrics() {
+        return RestAssured.given()
+            .baseUri("http://localhost:" + managementTestPort)
+            .when()
+            .get("/q/metrics")
+            .then()
+            .statusCode(200)
+            .extract().body().asString();
+    }
 
     @Test
     public void testNamespaceAndTableMetrics() {
@@ -49,13 +60,8 @@ public class IcebergMetricsTest extends AbstractResourceTestBase {
             .then()
             .statusCode(200);
 
-        // Check metrics
-        String metrics = given()
-            .when()
-            .get("/q/metrics")
-            .then()
-            .statusCode(200)
-            .extract().body().asString();
+        // Check metrics on management port
+        String metrics = fetchMetrics();
 
         assertTrue(metrics.contains("iceberg_namespace_operations_total"),
                 "Expected iceberg_namespace_operations_total metric");
@@ -124,13 +130,8 @@ public class IcebergMetricsTest extends AbstractResourceTestBase {
             .then()
             .statusCode(200);
 
-        // Check commit metrics
-        String metrics = given()
-            .when()
-            .get("/q/metrics")
-            .then()
-            .statusCode(200)
-            .extract().body().asString();
+        // Check commit metrics on management port
+        String metrics = fetchMetrics();
 
         assertTrue(metrics.contains("iceberg_commit_duration_seconds"),
                 "Expected iceberg_commit_duration_seconds metric");
@@ -153,13 +154,8 @@ public class IcebergMetricsTest extends AbstractResourceTestBase {
             .then()
             .statusCode(404);
 
-        // Check error metrics
-        String metrics = given()
-            .when()
-            .get("/q/metrics")
-            .then()
-            .statusCode(200)
-            .extract().body().asString();
+        // Check error metrics on management port
+        String metrics = fetchMetrics();
 
         assertTrue(metrics.contains("iceberg_errors_total"),
                 "Expected iceberg_errors_total metric");

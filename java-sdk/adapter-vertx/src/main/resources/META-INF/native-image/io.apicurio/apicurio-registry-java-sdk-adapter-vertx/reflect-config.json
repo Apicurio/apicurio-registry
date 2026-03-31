@@ -1,0 +1,12 @@
+[
+  {
+    "name": "io.apicurio.registry.client.common.VertxAdapterFactory",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.apicurio.registry.client.common.DefaultVertxInstance",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  }
+]

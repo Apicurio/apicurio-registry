@@ -10,7 +10,7 @@ on:
         required: true
         default: 'all'
   release:
-    types: [released, prereleased]
+    types: [released]
 
 permissions:
   id-token: write
@@ -112,9 +112,21 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      - name: Download macOS CLI ZIP from GitHub Release
+        working-directory: registry
+        env:
+          GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        run: |
+          RELEASE_VERSION=${{ needs.prepare.outputs.release-version }}
+          gh release download "${RELEASE_VERSION}" \
+            --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch_64.zip" \
+            --dir cli/target/
+
       - name: Maven Deploy
         working-directory: registry
-        run: mvn -B --settings /home/runner/.m2/settings.xml deploy -Pprod -Prelease -DskipTests
+        run: |
+          mvn -B --settings /home/runner/.m2/settings.xml deploy \
+            -Pprod -Prelease -Dfull -DskipTests -DcliAttachArtifacts
 
   # SBOMs Generation
   release-sboms:
@@ -150,7 +162,7 @@ jobs:
       - name: Maven Install
         run: |
           cd registry
-          mvn install -Pprod -DskipTests
+          mvn install -Pprod -Dfull -DskipTests
 
       - name: Generate Maven SBOMs
         run: |

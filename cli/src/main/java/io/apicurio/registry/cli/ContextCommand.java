@@ -1,7 +1,6 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
-import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import picocli.CommandLine.Command;
@@ -25,7 +24,7 @@ public class ContextCommand extends AbstractCommand {
     @Override
     public void run(OutputBuffer output) throws Exception {
         output.writeStdOutChunk(out -> {
-            var currentContext = Config.getInstance().read().getCurrentContext();
+            var currentContext = config.read().getCurrentContext();
             if (isBlank(currentContext)) {
                 out.append("No current context is set.");
             } else {
@@ -34,7 +33,7 @@ public class ContextCommand extends AbstractCommand {
             out.append('\n');
             var table = new TableBuilder();
             table.addColumns("ID", "Registry URL", GROUP_ID);
-            Config.getInstance().read().getContext().forEach((id, context) -> {
+            config.read().getContext().forEach((id, context) -> {
                 table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl(), context.getGroupId());
             });
             table.print(out);

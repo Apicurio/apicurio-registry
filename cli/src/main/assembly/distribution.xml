@@ -1,13 +1,15 @@
 <assembly>
-    <id>distribution</id>
+    <id>${os.detected.classifier}</id>
     <formats>
         <format>zip</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
     <files>
         <file>
-            <source>${project.build.directory}/acr.jar</source>
+            <source>${project.build.directory}/${project.build.finalName}-runner</source>
+            <destName>acr_runner</destName>
             <outputDirectory>/</outputDirectory>
+            <fileMode>0755</fileMode>
         </file>
         <file>
             <source>${project.build.directory}/acr_completions</source>
@@ -17,14 +19,29 @@
             <source>${project.basedir}/README.md</source>
             <outputDirectory>/</outputDirectory>
         </file>
+        <file>
+            <source>${project.basedir}/src/main/scripts/common/config.json</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
     </files>
     <fileSets>
+        <!-- Common scripts (acr wrapper) -->
         <fileSet>
-            <directory>${project.basedir}/src/main/scripts</directory>
+            <directory>${project.basedir}/src/main/scripts/common</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>acr</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+        <!-- OS-specific scripts (acr_env) — selected by os.detected.name (linux or osx) -->
+        <fileSet>
+            <directory>${project.basedir}/src/main/scripts/${os.detected.name}</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
                 <include>*</include>
             </includes>
+            <fileMode>0755</fileMode>
         </fileSet>
     </fileSets>
 </assembly>

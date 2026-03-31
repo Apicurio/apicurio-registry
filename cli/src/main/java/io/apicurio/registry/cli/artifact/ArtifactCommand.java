@@ -5,7 +5,6 @@ import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -67,12 +66,12 @@ public class ArtifactCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws JsonProcessingException {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId);
+        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
         try {
-            final var client = Client.getInstance().getRegistryClient();
-            ArtifactUtil.validateGroup(client, resolvedGroupId);
+            final var registryClient = client.getRegistryClient();
+            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
             //noinspection ConstantConditions
-            final var artifacts = convert(client
+            final var artifacts = convert(registryClient
                     .groups().byGroupId(resolvedGroupId).artifacts().get(r -> {
                         //noinspection ConstantConditions
                         r.queryParameters.offset = (pagination.getPage() - 1) * pagination.getSize();

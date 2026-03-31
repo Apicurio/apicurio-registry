@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.1-SNAPSHOT</version>
+    <version>3.2.2-SNAPSHOT</version>
   </parent>
   <artifactId>apicurio-registry-integration-tests</artifactId>
 
@@ -101,11 +101,6 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-utils-converter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-utils-kafka</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

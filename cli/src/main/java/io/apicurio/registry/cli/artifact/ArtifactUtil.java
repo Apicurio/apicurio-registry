@@ -16,14 +16,14 @@ final class ArtifactUtil {
     private ArtifactUtil() {
     }
 
-    static String resolveGroupId(final String groupId) {
+    static String resolveGroupId(final String groupId, final Config config) {
         if (!isBlank(groupId)) {
             return groupId;
         }
-        final var config = Config.getInstance().read();
-        final var contextName = config.getCurrentContext();
+        final var configModel = config.read();
+        final var contextName = configModel.getCurrentContext();
         if (!isBlank(contextName)) {
-            final var context = config.getContext().get(contextName);
+            final var context = configModel.getContext().get(contextName);
             if (context != null && !isBlank(context.getGroupId())) {
                 return context.getGroupId();
             }

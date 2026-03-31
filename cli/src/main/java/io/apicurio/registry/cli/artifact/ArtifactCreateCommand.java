@@ -3,7 +3,6 @@ package io.apicurio.registry.cli.artifact;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -101,7 +100,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
     @Override
     @SuppressWarnings("unchecked")
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId);
+        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
 
         final var newArtifact = new CreateArtifact();
         newArtifact.setArtifactId(artifactId);
@@ -134,7 +133,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
         }
 
         try {
-            final var result = Client.getInstance().getRegistryClient()
+            final var result = client.getRegistryClient()
                     .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);
             //noinspection ConstantConditions
             final var artifact = convert(result.getArtifact());

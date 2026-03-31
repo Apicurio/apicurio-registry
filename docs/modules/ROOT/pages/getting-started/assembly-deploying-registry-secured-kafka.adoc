@@ -107,8 +107,10 @@ spec:
         tls:
           truststoreSecretRef:
             name: my-cluster-cluster-ca-cert
+            key: ca.p12
           truststorePasswordSecretRef:
             name: my-cluster-cluster-ca-cert
+            key: ca.password
     ingress:
       host: registry.example.com
   ui:
@@ -132,12 +134,16 @@ For mutual TLS (mTLS), where the Kafka cluster also verifies the {registry} clie
 tls:
   keystoreSecretRef:
     name: apicurio-client-auth
+    key: user.p12
   keystorePasswordSecretRef:
     name: apicurio-client-auth
+    key: user.password
   truststoreSecretRef:
     name: my-cluster-cluster-ca-cert
+    key: ca.p12
   truststorePasswordSecretRef:
     name: my-cluster-cluster-ca-cert
+    key: ca.password
 ----
 
 
@@ -183,8 +189,10 @@ spec:
         tls:
           truststoreSecretRef:
             name: my-cluster-cluster-ca-cert
+            key: ca.p12
           truststorePasswordSecretRef:
             name: my-cluster-cluster-ca-cert
+            key: ca.password
     env:
       - name: APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL
         value: "SASL_SSL"
@@ -215,6 +223,8 @@ spec:
 ----
 {kubernetes-client} get pods -l app=example-apicurioregistry-kafkasql-scram
 ----
+
+NOTE: This example uses `SASL_SSL` because TLS is also configured via the `tls` section. If you use SCRAM-SHA-512 without TLS, set `APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL` to `SASL_PLAINTEXT` instead.
 
 
 [id="secured-kafka-oauth_{context}"]
@@ -256,8 +266,10 @@ spec:
         tls:
           truststoreSecretRef:
             name: my-cluster-cluster-ca-cert
+            key: ca.p12
           truststorePasswordSecretRef:
             name: my-cluster-cluster-ca-cert
+            key: ca.password
         auth:
           enabled: true
           mechanism: OAUTHBEARER
@@ -434,6 +446,20 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: kafkasql-journal
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    cleanup.policy: delete
+    retention.ms: "-1"
+    retention.bytes: "-1"
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: kafkasql-snapshots
   labels:
     strimzi.io/cluster: my-cluster
 spec:

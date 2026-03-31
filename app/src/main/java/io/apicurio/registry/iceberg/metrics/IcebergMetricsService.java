@@ -1,5 +1,6 @@
 package io.apicurio.registry.iceberg.metrics;
 
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -27,13 +28,17 @@ import static io.apicurio.registry.metrics.MetricsConstants.ICEBERG_VIEW_OPERATI
 
 /**
  * Metrics service for Iceberg REST Catalog operations. Tracks business-level events such as namespace/table/view
- * lifecycle operations, commit durations, commit conflicts, and error types using Micrometer.
+ * lifecycle operations, commit durations, commit conflicts, and error types. Records metrics via both Micrometer
+ * (Prometheus) and OpenTelemetry (OTLP) for full observability coverage.
  */
 @ApplicationScoped
 public class IcebergMetricsService {
 
     @Inject
     MeterRegistry registry;
+
+    @Inject
+    OTelMetricsProvider otelMetrics;
 
     @ConfigProperty(name = "apicurio.metrics.iceberg.enabled", defaultValue = "true")
     boolean enabled;
@@ -50,16 +55,19 @@ public class IcebergMetricsService {
     public void recordNamespaceCreated() {
         incrementOperationCounter(ICEBERG_NAMESPACE_OPERATIONS, ICEBERG_NAMESPACE_OPERATIONS_DESCRIPTION,
                 "created", "success");
+        otelMetrics.recordIcebergNamespaceOperation("created");
     }
 
     public void recordNamespaceDeleted() {
         incrementOperationCounter(ICEBERG_NAMESPACE_OPERATIONS, ICEBERG_NAMESPACE_OPERATIONS_DESCRIPTION,
                 "deleted", "success");
+        otelMetrics.recordIcebergNamespaceOperation("deleted");
     }
 
     public void recordNamespaceUpdated() {
         incrementOperationCounter(ICEBERG_NAMESPACE_OPERATIONS, ICEBERG_NAMESPACE_OPERATIONS_DESCRIPTION,
                 "updated", "success");
+        otelMetrics.recordIcebergNamespaceOperation("updated");
     }
 
     // Table operations
@@ -67,21 +75,25 @@ public class IcebergMetricsService {
     public void recordTableCreated() {
         incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION, "created",
                 "success");
+        otelMetrics.recordIcebergTableOperation("created");
     }
 
     public void recordTableDeleted() {
         incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION, "deleted",
                 "success");
+        otelMetrics.recordIcebergTableOperation("deleted");
     }
 
     public void recordTableRenamed() {
         incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION, "renamed",
                 "success");
+        otelMetrics.recordIcebergTableOperation("renamed");
     }
 
     public void recordTableCommitted() {
         incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION,
                 "committed", "success");
+        otelMetrics.recordIcebergTableOperation("committed");
     }
 
     // View operations
@@ -89,21 +101,25 @@ public class IcebergMetricsService {
     public void recordViewCreated() {
         incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, "created",
                 "success");
+        otelMetrics.recordIcebergViewOperation("created");
     }
 
     public void recordViewDeleted() {
         incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, "deleted",
                 "success");
+        otelMetrics.recordIcebergViewOperation("deleted");
     }
 
     public void recordViewRenamed() {
         incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, "renamed",
                 "success");
+        otelMetrics.recordIcebergViewOperation("renamed");
     }
 
     public void recordViewReplaced() {
         incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, "replaced",
                 "success");
+        otelMetrics.recordIcebergViewOperation("replaced");
     }
 
     // Commit conflicts
@@ -114,6 +130,7 @@ public class IcebergMetricsService {
         }
         Counter.builder(ICEBERG_COMMIT_CONFLICTS).description(ICEBERG_COMMIT_CONFLICTS_DESCRIPTION)
                 .tag(ICEBERG_TAG_ENTITY_TYPE, entityType).register(registry).increment();
+        otelMetrics.recordIcebergCommitConflict(entityType);
     }
 
     // Commit duration timer
@@ -142,6 +159,7 @@ public class IcebergMetricsService {
         }
         Counter.builder(ICEBERG_ERRORS).description(ICEBERG_ERRORS_DESCRIPTION)
                 .tag(ICEBERG_TAG_ERROR_TYPE, errorType).register(registry).increment();
+        otelMetrics.recordIcebergError(errorType);
     }
 
     // Internal helpers

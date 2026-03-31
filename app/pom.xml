@@ -504,6 +504,8 @@
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <org.jboss.logging.provider>jboss</org.jboss.logging.provider>
             <project.build.directory>${project.build.directory}</project.build.directory>
+            <!-- Prevent OTel SPI conflict between Quarkus ContextStorageProvider and SDK testing -->
+            <io.opentelemetry.context.contextStorageProvider>default</io.opentelemetry.context.contextStorageProvider>
           </systemPropertyVariables>
         </configuration>
       </plugin>

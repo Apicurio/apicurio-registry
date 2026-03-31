@@ -3,9 +3,9 @@ package io.apicurio.registry.utils.tests;
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
 
@@ -17,15 +17,16 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
     private static final Network network = Network.newNetwork();
 
     private static final KafkaContainer kafkaContainer = DebeziumKafkaContainer
-            .defaultKRaftContainer(network);
+            .defaultKafkaContainer(network);
 
-    public static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(
+    public static PostgreSQLContainer postgresContainer = new PostgreSQLContainer(
             DockerImageName.parse("quay.io/debezium/postgres:15").asCompatibleSubstituteFor("postgres"))
             .withDatabaseName("registry").withUsername("postgres").withPassword("postgres")
             .withNetwork(network).withNetworkAliases("postgres");
 
     public static DebeziumContainer debeziumContainer = new DebeziumContainer(
-            "quay.io/debezium/connect:2.6.2.Final").withNetwork(network).withKafka(kafkaContainer)
+            "quay.io/debezium/connect:2.6.2.Final").withNetwork(network)
+            .withKafka(network, kafkaContainer.getBootstrapServers())
             .dependsOn(kafkaContainer);
 
     @Override
@@ -57,22 +58,10 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
     public class DebeziumKafkaContainer {
         private static final String defaultImage = "confluentinc/cp-kafka:7.2.10";
 
-        public static KafkaContainer defaultKRaftContainer(Network network) {
-            try (KafkaContainer kafka = new KafkaContainer(DockerImageName.parse(defaultImage))
-                    .withNetwork(network).withKraft()) {
-                return kafka;
-            } catch (Exception e) {
-                throw new RuntimeException("Cannot create KRaftContainer with default image.", e);
-            }
-        }
-
         public static KafkaContainer defaultKafkaContainer(Network network) {
-            try (KafkaContainer kafka = new KafkaContainer(DockerImageName.parse(defaultImage))
-                    .withNetwork(network)) {
-                return kafka;
-            } catch (Exception e) {
-                throw new RuntimeException("Cannot create KafkaContainer with default image.", e);
-            }
+            // In testcontainers 2.x, KRaft is the default mode
+            return new KafkaContainer(DockerImageName.parse(defaultImage))
+                    .withNetwork(network);
         }
     }
 }

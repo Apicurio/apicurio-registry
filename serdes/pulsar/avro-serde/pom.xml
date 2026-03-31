@@ -31,7 +31,7 @@
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>pulsar</artifactId>
+      <artifactId>testcontainers-pulsar</artifactId>
       <version>${pulsar.testcontainers.version}</version>
       <scope>test</scope>
     </dependency>

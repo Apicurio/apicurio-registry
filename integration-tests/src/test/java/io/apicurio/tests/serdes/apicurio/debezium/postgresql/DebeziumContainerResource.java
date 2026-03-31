@@ -6,7 +6,7 @@ import io.apicurio.tests.serdes.apicurio.debezium.SharedDebeziumInfrastructure;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Container resource for Debezium PostgreSQL integration tests.
@@ -16,7 +16,7 @@ public class DebeziumContainerResource extends BaseDebeziumContainerResource {
 
     private static final Logger log = LoggerFactory.getLogger(DebeziumContainerResource.class);
 
-    public static PostgreSQLContainer<?> postgresContainer;
+    public static PostgreSQLContainer postgresContainer;
     public static DebeziumContainer debeziumContainer;
 
     @Override

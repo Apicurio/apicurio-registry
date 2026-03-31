@@ -60,7 +60,8 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
 
         public static KafkaContainer defaultKafkaContainer(Network network) {
             // In testcontainers 2.x, KRaft is the default mode
-            return new KafkaContainer(DockerImageName.parse(defaultImage))
+            return new KafkaContainer(DockerImageName.parse(defaultImage)
+                    .asCompatibleSubstituteFor("apache/kafka"))
                     .withNetwork(network);
         }
     }

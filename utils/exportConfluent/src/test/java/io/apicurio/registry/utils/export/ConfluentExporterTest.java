@@ -70,7 +70,8 @@ public class ConfluentExporterTest {
         network = Network.newNetwork();
 
         // Start Kafka
-        kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"))
+        kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0")
+                .asCompatibleSubstituteFor("apache/kafka"))
                 .withNetwork(network)
                 .withNetworkAliases("kafka");
         kafka.start();

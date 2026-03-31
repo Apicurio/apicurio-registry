@@ -184,7 +184,8 @@ public class SharedDebeziumInfrastructure {
      */
     private static KafkaContainer createKafkaContainer() {
         // In testcontainers 2.x, KRaft is the default mode
-        KafkaContainer container = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.10"))
+        KafkaContainer container = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.10")
+                .asCompatibleSubstituteFor("apache/kafka"))
                 .withNetwork(network);
 
         if (shouldUseHostNetwork()) {

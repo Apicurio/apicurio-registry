@@ -24,7 +24,7 @@ public class IcebergMetricsTest extends AbstractResourceTestBase {
         return RestAssured.given()
             .baseUri("http://localhost:" + managementTestPort)
             .when()
-            .get("/q/metrics")
+            .get("/metrics")
             .then()
             .statusCode(200)
             .extract().body().asString();
@@ -114,9 +114,7 @@ public class IcebergMetricsTest extends AbstractResourceTestBase {
         );
 
         Map<String, Object> commitRequest = Map.of(
-            "requirements", List.of(
-                Map.of("type", "assert-table-uuid")
-            ),
+            "requirements", List.of(),
             "updates", List.of(
                 Map.of("action", "add-schema", "schema", newSchema, "last-column-id", 2),
                 Map.of("action", "set-current-schema", "schema-id", 1)

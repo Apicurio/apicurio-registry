@@ -7,7 +7,10 @@ import io.micrometer.core.instrument.Timer;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import io.apicurio.common.apps.config.Info;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_ICEBERG;
 
 import static io.apicurio.registry.metrics.MetricsConstants.ICEBERG_COMMIT_CONFLICTS;
 import static io.apicurio.registry.metrics.MetricsConstants.ICEBERG_COMMIT_CONFLICTS_DESCRIPTION;
@@ -41,6 +44,7 @@ public class IcebergMetricsService {
     OTelMetricsProvider otelMetrics;
 
     @ConfigProperty(name = "apicurio.metrics.iceberg.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_ICEBERG, description = "Enable Iceberg-specific metrics collection", availableSince = "3.0.0")
     boolean enabled;
 
     private boolean active;

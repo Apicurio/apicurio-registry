@@ -531,6 +531,11 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |Default warehouse location for Iceberg tables
+|`apicurio.metrics.iceberg.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable Iceberg-specific metrics collection
 |===
 
 == import

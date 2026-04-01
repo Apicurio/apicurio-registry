@@ -12,7 +12,9 @@ You can deploy {registry} with KafkaSQL storage connected to a Kafka instance th
 * xref:secured-kafka-tls_{context}[]
 * xref:secured-kafka-scram_{context}[]
 * xref:secured-kafka-oauth_{context}[]
+ifndef::service-registry-downstream[]
 * xref:secured-kafka-access-operator_{context}[]
+endif::[]
 * xref:secured-kafka-security-protocols_{context}[]
 * xref:secured-kafka-topic-config_{context}[]
 * xref:secured-kafka-troubleshooting_{context}[]
@@ -436,9 +438,7 @@ When you configure security manually by using environment variables, you must se
 
 By default, {registry} auto-creates the required topics. If your Kafka cluster does not allow auto-creation, or if you want to control topic settings, create the topics manually.
 
-ifdef::apicurio-registry[]
-When you use {kafka-streams}, you can create topics by using the `KafkaTopic` custom resource:
-endif::[]
+You can create topics by using the `KafkaTopic` custom resource:
 
 [source,yaml]
 ----

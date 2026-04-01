@@ -13,6 +13,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
+import java.util.Locale;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -94,7 +95,7 @@ public class DynamicLogConfigurationService {
      */
     private void applyLogLevel(String logLevel) {
         try {
-            Level level = Level.parse(logLevel);
+            Level level = Level.parse(logLevel.toUpperCase(Locale.ROOT));
             java.util.logging.Logger logger = java.util.logging.Logger.getLogger(APICURIO_LOGGER_NAME);
             logger.setLevel(level);
             log.debug("Set log level for {} to {}", APICURIO_LOGGER_NAME, logLevel);

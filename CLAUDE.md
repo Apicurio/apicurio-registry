@@ -59,7 +59,6 @@ Types: `feat`, `fix`, `chore`, `docs`, `ci`, `test`, `refactor`
 
 ### Code Style
 - Checkstyle config: `.checkstyle/checkstyle.xml`
-- Apache 2.0 license header required on all Java files
 - No star imports, no unused imports
 - Constants: `UPPER_SNAKE_CASE` (exception: logger field `log`)
 - K&R brace style (left curly on same line)

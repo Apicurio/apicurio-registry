@@ -8,6 +8,7 @@ import io.apicurio.registry.resolver.client.RegistryClientFacadeFactory;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
@@ -192,6 +193,20 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     }
 
     protected Map<String, ParsedSchema<S>> resolveReferences(List<RegistryArtifactReference> artifactReferences) {
+        return resolveReferences(artifactReferences, new HashMap<>());
+    }
+
+    /**
+     * Resolves artifact references recursively, using a local deduplication cache to avoid
+     * redundant Registry API calls for the same groupId/artifactId/version across the
+     * resolution tree.
+     *
+     * @param artifactReferences the references to resolve
+     * @param gavCache local cache of already-resolved GAV lookups within this resolution pass
+     * @return map of reference name to parsed schema
+     */
+    private Map<String, ParsedSchema<S>> resolveReferences(List<RegistryArtifactReference> artifactReferences,
+                                                            Map<ArtifactCoordinates, ParsedSchema<S>> gavCache) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
 
         artifactReferences.forEach(reference -> {
@@ -199,18 +214,33 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             String artifactId = reference.getArtifactId();
             String version = reference.getVersion();
 
+            ArtifactCoordinates coords = ArtifactCoordinates.builder()
+                    .groupId(groupId).artifactId(artifactId).version(version).build();
+
+            // Check the local deduplication cache first
+            ParsedSchema<S> cached = gavCache.get(coords);
+            if (cached != null) {
+                resolvedReferences.put(reference.getName(), cached);
+                return;
+            }
+
             final String referenceContent = this.clientFacade.getSchemaByGAV(groupId, artifactId, version);
             final List<RegistryArtifactReference> referenceReferences =
                     this.clientFacade.getReferencesByGAV(groupId, artifactId, version);
 
             if (!referenceReferences.isEmpty()) {
-                final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
+                final Map<String, ParsedSchema<S>> nestedReferences =
+                        resolveReferences(referenceReferences, gavCache);
                 resolvedReferences.putAll(nestedReferences);
-                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(),
-                        referenceContent, resolveReferences(referenceReferences)));
+                ParsedSchema<S> parsed = parseSchemaFromStream(reference.getName(),
+                        referenceContent, nestedReferences);
+                resolvedReferences.put(reference.getName(), parsed);
+                gavCache.put(coords, parsed);
             } else {
-                resolvedReferences.put(reference.getName(),
-                        parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
+                ParsedSchema<S> parsed = parseSchemaFromStream(reference.getName(),
+                        referenceContent, Collections.emptyMap());
+                resolvedReferences.put(reference.getName(), parsed);
+                gavCache.put(coords, parsed);
             }
         });
         return resolvedReferences;

@@ -2,10 +2,13 @@ package io.apicurio.registry.cli.version;
 
 import io.apicurio.registry.cli.artifact.ArtifactUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import picocli.CommandLine.Command;
@@ -15,13 +18,12 @@ import picocli.CommandLine.Parameters;
 import java.util.List;
 import java.util.Map;
 
-import io.apicurio.registry.cli.common.CliException;
-
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 
 /**
- * Updates a version's metadata (name, description, labels) and state.
+ * Updates a version's metadata (name, description, labels), state, and content.
  * Supports state transitions: ENABLED, DISABLED, DEPRECATED.
+ * Content update is only supported for draft versions.
  */
 @Command(
         name = "update",
@@ -78,10 +80,24 @@ public class VersionUpdateCommand extends AbstractCommand {
     )
     private List<String> deleteLabels;
 
+    @Option(
+            names = {"-f", "--file"},
+            description = "Path to the updated content file. Use '-' to read from stdin. " +
+                    "Only draft versions can have their content updated."
+    )
+    private String file;
+
+    @Option(
+            names = {"--content-type"},
+            description = "Content type of the version (e.g. application/json, application/x-protobuf). " +
+                    "Defaults to 'application/json' if not specified."
+    )
+    private String contentType;
+
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        if (name == null && description == null && state == null && setLabels == null && deleteLabels == null) {
-            throw new CliException("At least one update option is required (--name, --description, --state, --set-label, or --delete-label).",
+        if (name == null && description == null && state == null && setLabels == null && deleteLabels == null && file == null) {
+            throw new CliException("At least one update option is required (--name, --description, --state, --set-label, --delete-label, or --file).",
                     CliException.VALIDATION_ERROR_RETURN_CODE);
         }
         final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
@@ -129,6 +145,15 @@ public class VersionUpdateCommand extends AbstractCommand {
                 final var wrappedState = new WrappedVersionState();
                 wrappedState.setState(state);
                 versionPath.state().put(wrappedState);
+            }
+
+            // Update content if provided (only works for draft versions)
+            if (file != null) {
+                final var content = FileUtils.readContent(file);
+                final var versionContent = new VersionContent();
+                versionContent.setContent(content);
+                versionContent.setContentType(contentType != null ? contentType : "application/json");
+                versionPath.content().put(versionContent);
             }
 
             output.writeStdOutChunk(out -> {

@@ -311,6 +311,49 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
 
     @Test
     @Order(12)
+    public void testVersionUpdateDraftContent() throws Exception {
+        // Update the draft version's content
+        Path tempFile = Files.createTempFile("updated-draft-content", ".json");
+        Files.writeString(tempFile, """
+                {"type": "number"}
+                """);
+
+        try {
+            executeAndAssertSuccess("artifact", "version", "update",
+                    "--group", "default", "--artifact", "version-test-artifact",
+                    "--file", tempFile.toString(), "3.0.0-draft");
+
+            // Verify content was updated
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("artifact", "version", "get", "--content",
+                    "--group", "default", "--artifact", "version-test-artifact", "3.0.0-draft");
+            assertThat(out.toString())
+                    .as(withCliOutput("Updated draft content should contain 'number'"))
+                    .contains("number");
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
+    }
+
+    @Test
+    @Order(13)
+    public void testVersionUpdateContentNonDraft() throws Exception {
+        // Updating content on a non-draft version should fail
+        Path tempFile = Files.createTempFile("update-content-non-draft", ".json");
+        Files.writeString(tempFile, """
+                {"type": "string"}
+                """);
+        try {
+            executeAndAssertFailure("artifact", "version", "update",
+                    "--group", "default", "--artifact", "version-test-artifact",
+                    "--file", tempFile.toString(), "2.0.0");
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
+    }
+
+    @Test
+    @Order(14)
     public void testVersionDelete() throws JsonProcessingException {
         executeAndAssertSuccess("artifact", "version", "delete",
                 "--group", "default", "--artifact", "version-test-artifact", "2.0.0");
@@ -325,7 +368,7 @@ public class ArtifactVersionCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(13)
+    @Order(15)
     public void testVersionUsesArtifactIdFromContext() throws Exception {
         // Create context with artifactId
         executeAndAssertSuccess("context", "delete", "--all");

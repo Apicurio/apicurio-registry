@@ -90,6 +90,7 @@
     <module>schema-util/json</module>
     <module>schema-util/kconnect</module>
     <module>schema-util/openapi</module>
+    <module>schema-util/openrpc</module>
     <module>schema-util/protobuf</module>
     <module>schema-util/util-provider</module>
     <module>schema-util/wsdl</module>
@@ -188,7 +189,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.5.3</apicurio-data-models.version>
+    <apicurio-data-models.version>3.0.0</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>
@@ -507,6 +508,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-iceberg</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-openrpc</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

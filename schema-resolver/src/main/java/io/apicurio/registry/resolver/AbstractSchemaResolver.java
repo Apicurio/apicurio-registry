@@ -8,6 +8,7 @@ import io.apicurio.registry.resolver.client.RegistryClientFacadeFactory;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
@@ -22,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -29,6 +31,7 @@ import java.util.Set;
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
 
     protected final ERCache<SchemaLookupResult<S>> schemaCache = new ERCache<>();
+    protected final ConcurrentHashMap<ArtifactCoordinates, ParsedSchema<S>> referenceCache = new ConcurrentHashMap<>();
 
     protected SchemaResolverConfig config;
     protected SchemaParser<S, T> schemaParser;
@@ -191,6 +194,14 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return result.globalId(globalId).parsedSchema(ps).build();
     }
 
+    /**
+     * Resolves artifact references recursively, using an instance-level deduplication cache
+     * to avoid redundant Registry API calls for the same groupId/artifactId/version across
+     * independent resolution trees.
+     *
+     * @param artifactReferences the references to resolve
+     * @return map of reference name to parsed schema
+     */
     protected Map<String, ParsedSchema<S>> resolveReferences(List<RegistryArtifactReference> artifactReferences) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
 
@@ -199,19 +210,35 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             String artifactId = reference.getArtifactId();
             String version = reference.getVersion();
 
+            ArtifactCoordinates coords = ArtifactCoordinates.builder()
+                    .groupId(groupId).artifactId(artifactId).version(version).build();
+
+            ParsedSchema<S> cached = referenceCache.get(coords);
+            if (cached != null) {
+                resolvedReferences.put(reference.getName(), cached);
+                if (cached.hasReferences()) {
+                    for (ParsedSchema<S> nestedRef : cached.getSchemaReferences()) {
+                        resolvedReferences.put(nestedRef.referenceName(), nestedRef);
+                    }
+                }
+                return;
+            }
+
             final String referenceContent = this.clientFacade.getSchemaByGAV(groupId, artifactId, version);
             final List<RegistryArtifactReference> referenceReferences =
                     this.clientFacade.getReferencesByGAV(groupId, artifactId, version);
 
+            ParsedSchema<S> parsedRef;
             if (!referenceReferences.isEmpty()) {
                 final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
                 resolvedReferences.putAll(nestedReferences);
-                resolvedReferences.put(reference.getName(), parseSchemaFromStream(reference.getName(),
-                        referenceContent, resolveReferences(referenceReferences)));
+                parsedRef = parseSchemaFromStream(reference.getName(), referenceContent, nestedReferences);
             } else {
-                resolvedReferences.put(reference.getName(),
-                        parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap()));
+                parsedRef = parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap());
             }
+
+            resolvedReferences.put(reference.getName(), parsedRef);
+            referenceCache.put(coords, parsedRef);
         });
         return resolvedReferences;
     }
@@ -231,6 +258,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     @Override
     public void reset() {
         this.schemaCache.clear();
+        this.referenceCache.clear();
     }
 
     /**

@@ -1,10 +1,10 @@
-package io.apicurio.registry.cli.artifact;
+package io.apicurio.registry.cli.version;
 
+import io.apicurio.registry.cli.artifact.ArtifactUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -21,29 +21,19 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.apicurio.registry.cli.artifact.ArtifactGetCommand.printArtifact;
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
+import static io.apicurio.registry.cli.version.VersionGetCommand.printVersion;
 
-/**
- * Creates a new artifact with optional content from a file or stdin.
- * Supports specifying artifact type, name, description, labels, and
- * an initial version identifier.
- */
+/** Creates a new version for an artifact with content from a file or stdin. */
 @Command(
         name = "create",
         aliases = {"add"},
-        description = "Create a new artifact"
+        description = "Create a new version"
 )
-public class ArtifactCreateCommand extends AbstractCommand {
-
-    @Parameters(
-            index = "0",
-            description = "The artifact ID."
-    )
-    private String artifactId;
+public class VersionCreateCommand extends AbstractCommand {
 
     @Option(
             names = {"-g", "--group"},
@@ -52,48 +42,57 @@ public class ArtifactCreateCommand extends AbstractCommand {
     private String groupId;
 
     @Option(
-            names = {"-t", "--type"},
-            description = "Artifact type (e.g. AVRO, PROTOBUF, JSON, OPENAPI, ASYNCAPI, GRAPHQL, KCONNECT, WSDL, XSD, XML)."
+            names = {"-a", "--artifact"},
+            description = "Artifact ID. If not provided, uses the artifactId from the current context."
     )
-    private String artifactType;
+    private String artifactId;
+
+    @Parameters(
+            index = "0",
+            arity = "0..1",
+            description = "Version identifier. If not provided, the server will generate one."
+    )
+    private String version;
 
     @Option(
             names = {"-f", "--file"},
-            description = "Path to the artifact content file. Use '-' to read from stdin."
+            description = "Path to the version content file. Use '-' to read from stdin.",
+            required = true
     )
     private String file;
 
     @Option(
             names = {"-n", "--name"},
-            description = "Provide artifact name."
+            description = "Provide version name."
     )
     private String name;
 
     @Option(
             names = {"-d", "--description"},
-            description = "Provide artifact description."
+            description = "Provide version description."
     )
     private String description;
 
     @Option(
             names = {"-l", "--label"},
-            description = "Provide a list of artifact labels.",
+            description = "Provide a list of version labels.",
             mapFallbackValue = ""
     )
     private Map<String, String> labels;
 
     @Option(
-            names = {"--version"},
-            description = "Version identifier for the first version."
-    )
-    private String version;
-
-    @Option(
             names = {"--content-type"},
-            description = "Content type of the artifact (e.g. application/json, application/x-protobuf). " +
+            description = "Content type of the version (e.g. application/json, application/x-protobuf). " +
                     "Defaults to 'application/json' if not specified."
     )
     private String contentType;
+
+    @Option(
+            names = {"--draft"},
+            description = "Create the version as a draft.",
+            defaultValue = "false"
+    )
+    private boolean draft;
 
     @Mixin
     private OutputTypeMixin outputType;
@@ -101,51 +100,49 @@ public class ArtifactCreateCommand extends AbstractCommand {
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
+        final var resolvedArtifactId = VersionUtil.resolveArtifactId(artifactId, config);
 
-        final var newArtifact = new CreateArtifact();
-        newArtifact.setArtifactId(artifactId);
-        if (!isBlank(artifactType)) {
-            newArtifact.setArtifactType(artifactType);
+        final var newVersion = new CreateVersion();
+        if (!isBlank(version)) {
+            newVersion.setVersion(version);
         }
         if (!isBlank(name)) {
-            newArtifact.setName(name);
+            newVersion.setName(name);
         }
         if (!isBlank(description)) {
-            newArtifact.setDescription(description);
+            newVersion.setDescription(description);
         }
         if (labels != null) {
             final var newLabels = new Labels();
             newLabels.setAdditionalData(new HashMap<>(labels));
-            newArtifact.setLabels(newLabels);
+            newVersion.setLabels(newLabels);
+        }
+        if (draft) {
+            newVersion.setIsDraft(true);
         }
 
-        if (!isBlank(file)) {
-            final var content = readContent(file);
-            final var firstVersion = new CreateVersion();
-            if (!isBlank(version)) {
-                firstVersion.setVersion(version);
-            }
-            final var versionContent = new VersionContent();
-            versionContent.setContent(content);
-            versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
-            firstVersion.setContent(versionContent);
-            newArtifact.setFirstVersion(firstVersion);
-        }
+        final var content = readContent(file);
+        final var versionContent = new VersionContent();
+        versionContent.setContent(content);
+        versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
+        newVersion.setContent(versionContent);
 
         try {
-            final var result = client.getRegistryClient()
-                    .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);
+            final var registryClient = client.getRegistryClient();
+            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
             //noinspection ConstantConditions
-            final var artifact = convert(result.getArtifact());
+            final var result = convert(registryClient
+                    .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)
+                    .versions().post(newVersion));
             switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
+                case json -> output.writeStdErrChunk(out -> successMessage(out, resolvedGroupId, resolvedArtifactId, result.getVersion()));
+                case table -> output.writeStdOutChunk(out -> successMessage(out, resolvedGroupId, resolvedArtifactId, result.getVersion()));
             }
-            printArtifact(output, artifact, outputType.getOutputType());
+            printVersion(output, result, outputType.getOutputType());
         } catch (ProblemDetails ex) {
             output.writeStdErrChunk(err -> {
-                err.append("Error creating artifact '")
-                        .append(artifactId)
+                err.append("Error creating version for artifact '")
+                        .append(resolvedArtifactId)
                         .append("' in group '")
                         .append(resolvedGroupId)
                         .append("': ")
@@ -156,7 +153,6 @@ public class ArtifactCreateCommand extends AbstractCommand {
         }
     }
 
-    // Reads content from a file path or stdin (when path is "-").
     private static String readContent(final String file) {
         try {
             if ("-".equals(file)) {
@@ -169,8 +165,9 @@ public class ArtifactCreateCommand extends AbstractCommand {
         }
     }
 
-    private static void successMessage(final StringBuilder out, final String groupId, final String artifactId) {
-        out.append("Artifact '").append(artifactId).append("' created successfully in group '")
-                .append(groupId).append("'.\n");
+    private static void successMessage(final StringBuilder out, final String groupId,
+                                       final String artifactId, final String version) {
+        out.append("Version '").append(version).append("' created successfully for artifact '")
+                .append(artifactId).append("' in group '").append(groupId).append("'.\n");
     }
 }

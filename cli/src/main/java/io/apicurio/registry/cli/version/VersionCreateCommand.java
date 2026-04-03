@@ -2,8 +2,8 @@ package io.apicurio.registry.cli.version;
 
 import io.apicurio.registry.cli.artifact.ArtifactUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
-import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
+import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Labels;
@@ -14,14 +14,9 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
@@ -121,7 +116,7 @@ public class VersionCreateCommand extends AbstractCommand {
             newVersion.setIsDraft(true);
         }
 
-        final var content = readContent(file);
+        final var content = FileUtils.readContent(file);
         final var versionContent = new VersionContent();
         versionContent.setContent(content);
         versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
@@ -150,18 +145,6 @@ public class VersionCreateCommand extends AbstractCommand {
                         .append('\n');
             });
             exitQuietServerError();
-        }
-    }
-
-    private static String readContent(final String file) {
-        try {
-            if ("-".equals(file)) {
-                return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
-            } else {
-                return Files.readString(Path.of(file));
-            }
-        } catch (IOException ex) {
-            throw new CliException("Could not read content from: " + file, ex, APPLICATION_ERROR_RETURN_CODE);
         }
     }
 

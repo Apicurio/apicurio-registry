@@ -1,4 +1,4 @@
-package io.apicurio.registry.cli;
+package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
@@ -12,7 +12,7 @@ import picocli.CommandLine.Parameters;
 
 import java.util.Map;
 
-import static io.apicurio.registry.cli.GroupGetCommand.printGroup;
+import static io.apicurio.registry.cli.group.GroupGetCommand.printGroup;
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;

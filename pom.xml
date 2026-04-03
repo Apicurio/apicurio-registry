@@ -66,6 +66,16 @@
       </roles>
       <timezone>Europe/Lisbon</timezone>
     </developer>
+    <developer>
+      <id>vandanayadav7</id>
+      <name>Vandana Yadav</name>
+      <email>vandana.yadav.vs@gmail.com</email>
+      <organization>IBM</organization>
+      <roles>
+        <role>Developer</role>
+      </roles>
+      <timezone>Europe/Dublin</timezone>
+    </developer>
   </developers>
 
   <modules>

@@ -1,4 +1,4 @@
-package io.apicurio.registry.cli;
+package io.apicurio.registry.cli.context;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -17,6 +17,7 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
         description = "Work with contexts",
         subcommands = {
                 ContextCreateCommand.class,
+                ContextUpdateCommand.class,
                 ContextDeleteCommand.class,
         }
 )

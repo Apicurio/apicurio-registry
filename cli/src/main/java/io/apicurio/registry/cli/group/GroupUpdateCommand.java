@@ -1,4 +1,4 @@
-package io.apicurio.registry.cli;
+package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.utils.OutputBuffer;

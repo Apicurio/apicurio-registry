@@ -20,36 +20,21 @@ public final class Constants {
      */
     static final String REGISTRY_IMAGE = "registry-image";
 
-    /**
-     * Tag for auth tests profile.
-     */
-    static final String AUTH = "auth";
+    // ── JUnit 5 test group tag constants ──
 
-    /**
-     * Tag for kafkasql tests profile.
-     */
-    static final String KAFKA_SQL = "kafkasqlit";
-
-    /**
-     * Tag for kafkasql snapshotting tests profile.
-     */
-    static final String KAFKA_SQL_SNAPSHOTTING =
-            "kafkasql-snapshotting";
-
-    /**
-     * Tag for sql tests profile.
-     */
-    static final String SQL = "sqlit";
-
-    /**
-     * Tag for kubernetesops tests profile.
-     */
-    static final String KUBERNETES_OPS = "kubernetesops";
-
-    /**
-     * Tag for iceberg tests profile.
-     */
-    static final String ICEBERG = "iceberg";
+    public static final String SMOKE = "smoke";
+    public static final String SERDES = "serdes";
+    public static final String ACCEPTANCE = "acceptance";
+    public static final String MIGRATION = "migration";
+    public static final String AUTH = "auth";
+    public static final String KAFKA_SQL_SNAPSHOTTING = "kafkasql-snapshotting";
+    public static final String DEBEZIUM = "debezium";
+    public static final String DEBEZIUM_MYSQL = "debezium-mysql";
+    public static final String DEBEZIUM_SNAPSHOT = "debezium-snapshot";
+    public static final String DEBEZIUM_MYSQL_SNAPSHOT = "debezium-mysql-snapshot";
+    public static final String KUBERNETES_OPS = "kubernetesops";
+    public static final String ICEBERG = "iceberg";
+    public static final String SEARCH = "search";
 
     /**
      * Active test groups from the Maven groups property.

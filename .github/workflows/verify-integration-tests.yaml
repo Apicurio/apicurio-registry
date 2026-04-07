@@ -28,8 +28,8 @@ jobs:
           - { storage: h2, name: default, remote-profile: remote-mem }
           - { storage: h2, groups: auth, remote-profile: remote-mem }
           - { storage: h2, groups: migration, remote-profile: remote-mem }
-          - { storage: h2, name: debezium, groups: 'debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot', profile: debezium-all, remote-profile: remote-mem }
-          - { storage: h2, groups: iceberg, profile: iceberg, remote-profile: remote-mem }
+          - { storage: h2, name: debezium, groups: 'debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot', remote-profile: remote-mem }
+          - { storage: h2, groups: iceberg, remote-profile: remote-mem }
           # postgresql storage
           - { storage: postgresql, name: default, remote-profile: remote-sql }
           - { storage: postgresql, groups: auth, remote-profile: remote-sql }
@@ -66,7 +66,6 @@ jobs:
         run: |
           ./mvnw verify -am --no-transfer-progress \
             -Pintegration-tests \
-            ${{ matrix.profile && format('-P{0}', matrix.profile) || '' }} \
             -P${{ matrix.remote-profile }} \
             ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \
             -Dregistry-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \

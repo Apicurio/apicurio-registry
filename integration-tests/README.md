@@ -10,11 +10,11 @@ The integration-tests module is not built by default. To include it, activate th
 `-Pintegration-tests` profile. The project must be built first (`mvn clean install -DskipTests`).
 
 ```bash
-# Run default test groups (smoke + serdes + acceptance) with local app
-./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am
+# Run default test groups (smoke + serdes + acceptance) locally
+./mvnw verify -Pintegration-tests -pl integration-tests -am
 
 # Run a specific test group
-./mvnw verify -Pintegration-tests -Plocal-tests -Dgroups=auth -pl integration-tests -am
+./mvnw verify -Pintegration-tests -Dgroups=auth -pl integration-tests -am
 
 # Run against a remote in-memory deployment (Kubernetes)
 ./mvnw verify -Pintegration-tests -Premote-mem -pl integration-tests -am
@@ -38,7 +38,7 @@ any extra infrastructure.
 | `smoke`                   | Basic functionality tests                        | None                    |
 | `serdes`                  | Serialization/deserialization and converter tests | None                    |
 | `acceptance`              | Acceptance tests                                 | None                    |
-| `iceberg`                 | Iceberg REST Catalog tests                       | None (needs feature flag, see `-Piceberg`) |
+| `iceberg`                 | Iceberg REST Catalog tests                       | None (auto-configured)  |
 | **Docker-based infrastructure** | | |
 | `auth`                    | Authentication tests                             | Docker (Keycloak)       |
 | `migration`               | Data migration between registry versions         | Docker (two registry instances) |
@@ -55,42 +55,55 @@ Multiple groups can be combined using JUnit 5 tag expressions:
 
 ```bash
 # Run smoke and auth tests
-./mvnw verify -Pintegration-tests -Plocal-tests -Dgroups="smoke | auth" -pl integration-tests -am
+./mvnw verify -Pintegration-tests -Dgroups="smoke | auth" -pl integration-tests -am
 ```
 
-## Deployment Profiles
+## Deployment Modes
 
-These profiles configure **how** the registry is deployed for testing:
+The integration tests support four ways to run the registry under test:
 
-| Profile               | Description                                      |
-|-----------------------|--------------------------------------------------|
-| `-Plocal-tests`       | Run the registry embedded in the test JVM via `@QuarkusIntegrationTest` |
-| `-Premote-mem`        | Deploy in-memory registry to a Kubernetes cluster |
-| `-Premote-sql`        | Deploy SQL registry to a Kubernetes cluster      |
-| `-Premote-kafka`      | Deploy KafkaSQL registry to a Kubernetes cluster |
-| `-Premote-kubernetesops` | Deploy via Kubernetes operator                |
+| Mode | How it works | Used by |
+|------|-------------|---------|
+| **Local JAR** (default) | `@QuarkusIntegrationTest` starts the app JAR as a separate process | Developers |
+| **Local Docker** | `@QuarkusIntegrationTest` runs a pre-built Docker image (automatic when container image was built with `-Dquarkus.container-image.build=true`) | Developers |
+| **Kubernetes** | `RegistryDeploymentManager` deploys the registry to a cluster via `-Premote-*` profiles | CI (minikube) |
+| **External** | Tests point at an already-running registry via `-Dquarkus.http.test-host` and `-Dquarkus.http.test-port` | Manual testing, OpenShift |
 
-When no deployment profile is specified, you can point tests at any running registry
-using `-Dquarkus.http.test-host` and `-Dquarkus.http.test-port`.
+The local JAR vs Docker distinction is handled automatically by the Quarkus test
+framework based on whether a container image was produced during the build.
 
-The `remote-*` profiles deploy Docker images to the cluster. The image can be overridden:
+### Kubernetes deployment profiles
+
+For Kubernetes mode, use one of the `remote-*` profiles to select the storage variant:
+
+| Profile                  | Storage variant deployed to the cluster |
+|--------------------------|-----------------------------------------|
+| `-Premote-mem`           | In-memory                               |
+| `-Premote-sql`           | PostgreSQL                              |
+| `-Premote-kafka`         | KafkaSQL                                |
+| `-Premote-kubernetesops` | Kubernetes operator                     |
+
+The registry Docker image is deployed to the cluster. The image can be overridden:
 
 ```bash
 ./mvnw verify -Pintegration-tests -Premote-mem \
-  -Dregistry-in-memory-image=apicurio/apicurio-registry:my-tag \
+  -Dregistry-image=apicurio/apicurio-registry:my-tag \
   -pl integration-tests -am
 ```
 
-## Special Profiles
+## Auto-configured Infrastructure
 
-Some test groups require infrastructure configuration beyond group selection.
-These are activated using Maven profiles:
+Some test groups require additional infrastructure or configuration beyond just
+group selection. `RegistryDeploymentManager` auto-detects the active groups and
+configures the test environment accordingly:
 
-| Profile          | Groups activated                                                          | Extra configuration                     |
-|------------------|---------------------------------------------------------------------------|----------------------------------------|
-| `-Pdebezium-all` | `debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot`        | Deploys all Debezium infrastructure    |
-| `-Piceberg`      | `iceberg`                                                                 | Enables experimental feature flags     |
-| `-Popenshift`    | *(none)*                                                                  | Enables OpenShift-specific resources   |
+| Group pattern | Auto-configuration |
+|---------------|-------------------|
+| `debezium*` | Deploys all Debezium infrastructure (Kafka, PostgreSQL, MySQL, Debezium Connect) |
+| `iceberg` | Enables experimental feature flags (`apicurio.iceberg.enabled`) |
+| `openshift` | Enables OpenShift-specific resources and routing |
+
+No special profiles are needed - just pass `-Dgroups=...` as usual.
 
 ## Helper Script
 

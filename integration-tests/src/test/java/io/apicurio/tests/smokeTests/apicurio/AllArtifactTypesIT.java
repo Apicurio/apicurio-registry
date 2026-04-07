@@ -150,6 +150,24 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
     }
 
     @Test
+    void testOpenApi32() throws Exception {
+        doTest("openapi/3.2-petstore_v1.json", "openapi/3.2-petstore_v2.json", ArtifactType.OPENAPI,
+                ContentTypes.APPLICATION_JSON);
+    }
+
+    @Test
+    void testAsyncApi31() throws Exception {
+        doTest("asyncapi/3.1-streetlights_v1.json", "asyncapi/3.1-streetlights_v2.json",
+                ArtifactType.ASYNCAPI, ContentTypes.APPLICATION_JSON);
+    }
+
+    @Test
+    void testOpenRpc() throws Exception {
+        doTest("openrpc/petstore_v1.json", "openrpc/petstore_v2.json", ArtifactType.OPENRPC,
+                ContentTypes.APPLICATION_JSON);
+    }
+
+    @Test
     void testGraphQL() throws Exception {
         doTest("graphql/swars_v1.graphql", "graphql/swars_v2.graphql", ArtifactType.GRAPHQL,
                 ContentTypes.APPLICATION_GRAPHQL);

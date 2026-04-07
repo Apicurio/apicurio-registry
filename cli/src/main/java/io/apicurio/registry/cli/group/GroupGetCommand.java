@@ -1,4 +1,4 @@
-package io.apicurio.registry.cli;
+package io.apicurio.registry.cli.group;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;

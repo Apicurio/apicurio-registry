@@ -213,6 +213,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             ArtifactCoordinates coords = ArtifactCoordinates.builder()
                     .groupId(groupId).artifactId(artifactId).version(version).build();
 
+            // Check the instance-level deduplication cache first
             ParsedSchema<S> cached = referenceCache.get(coords);
             if (cached != null) {
                 resolvedReferences.put(reference.getName(), cached);
@@ -230,7 +231,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
             ParsedSchema<S> parsedRef;
             if (!referenceReferences.isEmpty()) {
-                final Map<String, ParsedSchema<S>> nestedReferences = resolveReferences(referenceReferences);
+                final Map<String, ParsedSchema<S>> nestedReferences =
+                        resolveReferences(referenceReferences);
                 resolvedReferences.putAll(nestedReferences);
                 parsedRef = parseSchemaFromStream(reference.getName(), referenceContent, nestedReferences);
             } else {

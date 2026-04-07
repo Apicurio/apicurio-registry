@@ -1,4 +1,4 @@
-package io.apicurio.registry.cli;
+package io.apicurio.registry.cli.context;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -7,6 +7,7 @@ import picocli.CommandLine.Command;
 
 import java.util.Objects;
 
+import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.GROUP_ID;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
@@ -16,6 +17,7 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
         description = "Work with contexts",
         subcommands = {
                 ContextCreateCommand.class,
+                ContextUpdateCommand.class,
                 ContextDeleteCommand.class,
         }
 )
@@ -32,9 +34,9 @@ public class ContextCommand extends AbstractCommand {
             }
             out.append('\n');
             var table = new TableBuilder();
-            table.addColumns("ID", "Registry URL", GROUP_ID);
+            table.addColumns("ID", "Registry URL", GROUP_ID, ARTIFACT_ID);
             config.read().getContext().forEach((id, context) -> {
-                table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl(), context.getGroupId());
+                table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl(), context.getGroupId(), context.getArtifactId());
             });
             table.print(out);
         });

@@ -1,5 +1,7 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
+import static io.apicurio.deployment.Constants.*;
+
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
@@ -22,7 +24,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static io.apicurio.tests.utils.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;

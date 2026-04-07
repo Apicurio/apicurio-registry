@@ -69,6 +69,21 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-app</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-app</artifactId>
+      <type>test-jar</type>
+      <exclusions>
+        <exclusion>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-schema-util-provider</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-maven-plugin</artifactId>
       <type>maven-plugin</type>
       <scope>test</scope>
@@ -241,109 +256,77 @@
               </artifactItems>
             </configuration>
           </execution>
+          <execution>
+            <id>unpack-static-resources</id>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>apicurio-registry-app</artifactId>
+                  <version>${project.version}</version>
+                  <type>jar</type>
+                  <overWrite>true</overWrite>
+                  <includes>**/web.xml,**/application.properties</includes>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>true</overWriteSnapshots>
+            </configuration>
+          </execution>
+          <execution>
+            <id>unpack-test-dependencies</id>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <phase>process-test-classes</phase>
+            <configuration>
+              <includeGroupIds>io.apicurio</includeGroupIds>
+              <includeTypes>test-jar</includeTypes>
+              <includeScope>test</includeScope>
+              <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
+              <includes>**/*IT.class, **/*.properties</includes>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>true</overWriteSnapshots>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>set-system-properties</goal>
+            </goals>
+            <configuration>
+              <properties>
+                <property>
+                  <name>quarkus.http.test-scheme</name>
+                  <value>${quarkus.http.test-scheme}</value>
+                </property>
+                <property>
+                  <name>quarkus.http.test-host</name>
+                  <value>${quarkus.http.test-host}</value>
+                </property>
+                <property>
+                  <name>quarkus.http.test-port</name>
+                  <value>${quarkus.http.test-port}</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>
   </build>
 
   <profiles>
-    <!-- Deployment profiles: configure how the registry is deployed for testing -->
-    <profile>
-      <id>local-tests</id>
-      <dependencies>
-        <dependency>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-app</artifactId>
-        </dependency>
-        <dependency>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-app</artifactId>
-          <type>test-jar</type>
-          <exclusions>
-            <exclusion>
-              <groupId>io.apicurio</groupId>
-              <artifactId>apicurio-registry-schema-util-provider</artifactId>
-            </exclusion>
-          </exclusions>
-        </dependency>
-      </dependencies>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>unpack-static-resources</id>
-                <goals>
-                  <goal>unpack</goal>
-                </goals>
-                <phase>generate-resources</phase>
-                <configuration>
-                  <artifactItems>
-                    <artifactItem>
-                      <groupId>${project.groupId}</groupId>
-                      <artifactId>apicurio-registry-app</artifactId>
-                      <version>${project.version}</version>
-                      <type>jar</type>
-                      <overWrite>true</overWrite>
-                      <includes>**/web.xml,**/application.properties</includes>
-                    </artifactItem>
-                  </artifactItems>
-                  <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                  <overWriteReleases>false</overWriteReleases>
-                  <overWriteSnapshots>true</overWriteSnapshots>
-                </configuration>
-              </execution>
-              <execution>
-                <id>unpack-test-dependencies</id>
-                <goals>
-                  <goal>unpack-dependencies</goal>
-                </goals>
-                <phase>process-test-classes</phase>
-                <configuration>
-                  <includeGroupIds>io.apicurio</includeGroupIds>
-                  <includeTypes>test-jar</includeTypes>
-                  <includeScope>test</includeScope>
-                  <outputDirectory>${project.build.directory}/test-classes</outputDirectory>
-                  <includes>**/*IT.class, **/*.properties</includes>
-                  <overWriteReleases>false</overWriteReleases>
-                  <overWriteSnapshots>true</overWriteSnapshots>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>properties-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>set-system-properties</goal>
-                </goals>
-                <configuration>
-                  <properties>
-                    <property>
-                      <name>quarkus.http.test-scheme</name>
-                      <value>${quarkus.http.test-scheme}</value>
-                    </property>
-                    <property>
-                      <name>quarkus.http.test-host</name>
-                      <value>${quarkus.http.test-host}</value>
-                    </property>
-                    <property>
-                      <name>quarkus.http.test-port</name>
-                      <value>${quarkus.http.test-port}</value>
-                    </property>
-                  </properties>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
     <!-- Remote deployment profiles -->
     <profile>
       <id>remote-mem</id>
@@ -457,81 +440,9 @@
       </build>
     </profile>
 
-    <!-- Complex test profiles: these configure infrastructure beyond just group selection (QW-5 will refactor these) -->
-    <profile>
-      <id>debezium-all</id>
-      <properties>
-        <groups>debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot</groups>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>integration-test</goal>
-                </goals>
-                <configuration>
-                  <systemPropertyVariables>
-                    <deployAllDebezium>true</deployAllDebezium>
-                  </systemPropertyVariables>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>iceberg</id>
-      <properties>
-        <groups>iceberg</groups>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>integration-test</goal>
-                </goals>
-                <configuration>
-                  <systemPropertyVariables>
-                    <quarkus.args>-Dapicurio.features.experimental.enabled=true -Dapicurio.iceberg.enabled=true</quarkus.args>
-                  </systemPropertyVariables>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>openshift</id>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>integration-test</goal>
-                </goals>
-                <configuration>
-                  <systemPropertyVariables>
-                    <openshift.resources>true</openshift.resources>
-                  </systemPropertyVariables>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
+    <!-- Infrastructure for debezium, iceberg, and openshift test groups
+         is auto-configured by RegistryDeploymentManager based on the
+         active -Dgroups value. No separate profiles needed. -->
 
   </profiles>
 </project>

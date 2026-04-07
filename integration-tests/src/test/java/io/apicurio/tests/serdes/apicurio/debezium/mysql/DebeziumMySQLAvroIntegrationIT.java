@@ -1,7 +1,7 @@
 package io.apicurio.tests.serdes.apicurio.debezium.mysql;
 
 import io.apicurio.tests.serdes.apicurio.debezium.DebeziumAvroV2DeserializerMixin;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -15,7 +15,7 @@ import org.testcontainers.containers.MySQLContainer;
  *
  * Tests schema auto-registration, evolution, MySQL data types, and CDC operations.
  */
-@Tag(Constants.DEBEZIUM_MYSQL)
+@Tag(DEBEZIUM_MYSQL)
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DebeziumMySQLContainerResource.class, restrictToAnnotatedClass = true)
 public class DebeziumMySQLAvroIntegrationIT extends DebeziumMySQLAvroBaseIT

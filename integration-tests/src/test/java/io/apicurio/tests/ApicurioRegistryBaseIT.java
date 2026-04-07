@@ -140,8 +140,8 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             } else if (rootCauseClassName.endsWith("ProblemDetails")) {
                 logProblemDetails(rootCause);
             }
-            log.error("Root Cause", rootCause);
             log.error("=== =========== ===");
+            log.error("!! Root Cause !!", rootCause);
         }
 
         private void logProblemDetails(Throwable cause) {

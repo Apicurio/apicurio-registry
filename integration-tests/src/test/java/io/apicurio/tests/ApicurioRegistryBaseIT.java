@@ -10,7 +10,6 @@ import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
-import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.utils.tests.SimpleDisplayName;
@@ -133,42 +132,49 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
             log.error("ID:    {}", context.getUniqueId());
             log.error("Error: {} - {}", cause.getClass().getSimpleName(), cause.getMessage());
             Throwable rootCause = getRootCause(cause);
-            if (rootCause instanceof RuleViolationProblemDetails) {
-                logProblemDetails((RuleViolationProblemDetails) rootCause);
-            } else if (rootCause instanceof ProblemDetails) {
-                logProblemDetails((ProblemDetails) rootCause);
+            // Use class name comparison instead of instanceof to handle cross-classloader
+            // scenarios where the same class is loaded by different classloaders.
+            String rootCauseClassName = rootCause.getClass().getName();
+            if (rootCauseClassName.endsWith("RuleViolationProblemDetails")) {
+                logRuleViolationProblemDetails(rootCause);
+            } else if (rootCauseClassName.endsWith("ProblemDetails")) {
+                logProblemDetails(rootCause);
             }
-            // Optional: print stack trace or log somewhere else
             log.error("Root Cause", rootCause);
             log.error("=== =========== ===");
         }
 
-        private void logProblemDetails(ProblemDetails cause) {
+        private void logProblemDetails(Throwable cause) {
             log.error("Problem Details");
-            log.error("    Name:     {}", cause.getName());
-            log.error("    Title:    {}", cause.getTitle());
-            log.error("    Detail:   {}", cause.getDetail());
-            log.error("    Instance: {}", cause.getInstance());
-            log.error("    Type:     {}", cause.getType());
+            log.error("    Name:     {}", invokeGetter(cause, "getName"));
+            log.error("    Title:    {}", invokeGetter(cause, "getTitle"));
+            log.error("    Detail:   {}", invokeGetter(cause, "getDetail"));
+            log.error("    Instance: {}", invokeGetter(cause, "getInstance"));
+            log.error("    Type:     {}", invokeGetter(cause, "getType"));
             log.error("    Message:  {}", cause.getMessage());
-            log.error("    Status:   {}", cause.getStatus());
+            log.error("    Status:   {}", invokeGetter(cause, "getStatus"));
         }
 
-        private void logProblemDetails(RuleViolationProblemDetails cause) {
+        private void logRuleViolationProblemDetails(Throwable cause) {
             log.error("Rule Violation Problem Details");
-            log.error("    Name:     {}", cause.getName());
-            log.error("    Title:    {}", cause.getTitle());
-            log.error("    Detail:   {}", cause.getDetail());
-            log.error("    Instance: {}", cause.getInstance());
-            log.error("    Type:     {}", cause.getType());
-            log.error("    Message:  {}", cause.getMessage());
-            log.error("    Status:   {}", cause.getStatus());
+            logProblemDetails(cause);
             log.error("    Causes:");
-            cause.getCauses().forEach((cause1) -> {
-                log.error("        Context:     {}", cause1.getContext());
-                log.error("        Description: {}", cause1.getDescription());
-                log.error("        ---");
-            });
+            Object causes = invokeGetter(cause, "getCauses");
+            if (causes instanceof Iterable<?>) {
+                for (Object c : (Iterable<?>) causes) {
+                    log.error("        Context:     {}", invokeGetter(c, "getContext"));
+                    log.error("        Description: {}", invokeGetter(c, "getDescription"));
+                    log.error("        ---");
+                }
+            }
+        }
+
+        private Object invokeGetter(Object obj, String methodName) {
+            try {
+                return obj.getClass().getMethod(methodName).invoke(obj);
+            } catch (Exception e) {
+                return "<unavailable>";
+            }
         }
 
         @Override

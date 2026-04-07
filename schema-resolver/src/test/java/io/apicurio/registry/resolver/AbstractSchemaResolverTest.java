@@ -134,6 +134,67 @@ public class AbstractSchemaResolverTest {
         }
     }
 
+    /**
+     * Verifies that when two independent calls to resolveReferences() both reference
+     * the same GAV, the registry client is only called once for that GAV.
+     */
+    @Test
+    void testResolveReferencesCrossInvocationDeduplication() throws Exception {
+        MockRegistryClientFacade mockFacade = new MockRegistryClientFacade("{\"type\":\"string\"}");
+
+        // Schema A references Schema C
+        RegistryArtifactReference refCFromA = RegistryArtifactReference.builder()
+                .name("schema-c.avsc").groupId("default").artifactId("schema-c").version("1").build();
+
+        // Schema B also references Schema C (same GAV)
+        RegistryArtifactReference refCFromB = RegistryArtifactReference.builder()
+                .name("schema-c.avsc").groupId("default").artifactId("schema-c").version("1").build();
+
+        try (TestAbstractSchemaResolver<String, Object> resolver = createResolver(mockFacade)) {
+            // First resolution (Schema A's references)
+            Map<String, ParsedSchema<String>> result1 = resolver.resolveReferences(List.of(refCFromA));
+            assertNotNull(result1.get("schema-c.avsc"));
+            assertEquals(1, mockFacade.getGetSchemaByGAVCallCount(),
+                    "First resolution should fetch from registry");
+
+            // Second resolution (Schema B's references) — should hit the cache
+            Map<String, ParsedSchema<String>> result2 = resolver.resolveReferences(List.of(refCFromB));
+            assertNotNull(result2.get("schema-c.avsc"));
+            assertEquals(1, mockFacade.getGetSchemaByGAVCallCount(),
+                    "Second resolution of the same GAV should use the reference cache, not fetch again");
+        }
+    }
+
+    /**
+     * Verifies that reset() clears the reference cache, so subsequent calls
+     * re-fetch from the registry.
+     */
+    @Test
+    void testResetClearsReferenceCache() throws Exception {
+        MockRegistryClientFacade mockFacade = new MockRegistryClientFacade("{\"type\":\"string\"}");
+
+        RegistryArtifactReference ref = RegistryArtifactReference.builder()
+                .name("schema.avsc").groupId("default").artifactId("my-schema").version("1").build();
+
+        try (TestAbstractSchemaResolver<String, Object> resolver = createResolver(mockFacade)) {
+            // First call — fetches from registry
+            resolver.resolveReferences(List.of(ref));
+            assertEquals(1, mockFacade.getGetSchemaByGAVCallCount());
+
+            // Second call — uses cache
+            resolver.resolveReferences(List.of(ref));
+            assertEquals(1, mockFacade.getGetSchemaByGAVCallCount(), "Should use cache before reset");
+
+            // Reset clears the cache
+            resolver.reset();
+
+            // Third call — should fetch again
+            resolver.resolveReferences(List.of(ref));
+            assertEquals(2, mockFacade.getGetSchemaByGAVCallCount(),
+                    "Should re-fetch from registry after reset");
+        }
+    }
+
     private TestAbstractSchemaResolver<String, Object> createResolver(MockRegistryClientFacade mockFacade) {
         Map<String, String> configs = Collections.singletonMap(SchemaResolverConfig.REGISTRY_URL,
                 "http://localhost");

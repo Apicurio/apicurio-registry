@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Base implementation of {@link SchemaResolver}
@@ -30,6 +31,7 @@ import java.util.Set;
 public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, T> {
 
     protected final ERCache<SchemaLookupResult<S>> schemaCache = new ERCache<>();
+    protected final ConcurrentHashMap<ArtifactCoordinates, ParsedSchema<S>> referenceCache = new ConcurrentHashMap<>();
 
     protected SchemaResolverConfig config;
     protected SchemaParser<S, T> schemaParser;
@@ -192,21 +194,15 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         return result.globalId(globalId).parsedSchema(ps).build();
     }
 
-    protected Map<String, ParsedSchema<S>> resolveReferences(List<RegistryArtifactReference> artifactReferences) {
-        return resolveReferences(artifactReferences, new HashMap<>());
-    }
-
     /**
-     * Resolves artifact references recursively, using a local deduplication cache to avoid
-     * redundant Registry API calls for the same groupId/artifactId/version across the
-     * resolution tree.
+     * Resolves artifact references recursively, using an instance-level deduplication cache
+     * to avoid redundant Registry API calls for the same groupId/artifactId/version across
+     * independent resolution trees.
      *
      * @param artifactReferences the references to resolve
-     * @param gavCache local cache of already-resolved GAV lookups within this resolution pass
      * @return map of reference name to parsed schema
      */
-    private Map<String, ParsedSchema<S>> resolveReferences(List<RegistryArtifactReference> artifactReferences,
-                                                            Map<ArtifactCoordinates, ParsedSchema<S>> gavCache) {
+    protected Map<String, ParsedSchema<S>> resolveReferences(List<RegistryArtifactReference> artifactReferences) {
         Map<String, ParsedSchema<S>> resolvedReferences = new HashMap<>();
 
         artifactReferences.forEach(reference -> {
@@ -217,10 +213,15 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             ArtifactCoordinates coords = ArtifactCoordinates.builder()
                     .groupId(groupId).artifactId(artifactId).version(version).build();
 
-            // Check the local deduplication cache first
-            ParsedSchema<S> cached = gavCache.get(coords);
+            // Check the instance-level deduplication cache first
+            ParsedSchema<S> cached = referenceCache.get(coords);
             if (cached != null) {
                 resolvedReferences.put(reference.getName(), cached);
+                if (cached.hasReferences()) {
+                    for (ParsedSchema<S> nestedRef : cached.getSchemaReferences()) {
+                        resolvedReferences.put(nestedRef.referenceName(), nestedRef);
+                    }
+                }
                 return;
             }
 
@@ -228,20 +229,18 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             final List<RegistryArtifactReference> referenceReferences =
                     this.clientFacade.getReferencesByGAV(groupId, artifactId, version);
 
+            ParsedSchema<S> parsedRef;
             if (!referenceReferences.isEmpty()) {
                 final Map<String, ParsedSchema<S>> nestedReferences =
-                        resolveReferences(referenceReferences, gavCache);
+                        resolveReferences(referenceReferences);
                 resolvedReferences.putAll(nestedReferences);
-                ParsedSchema<S> parsed = parseSchemaFromStream(reference.getName(),
-                        referenceContent, nestedReferences);
-                resolvedReferences.put(reference.getName(), parsed);
-                gavCache.put(coords, parsed);
+                parsedRef = parseSchemaFromStream(reference.getName(), referenceContent, nestedReferences);
             } else {
-                ParsedSchema<S> parsed = parseSchemaFromStream(reference.getName(),
-                        referenceContent, Collections.emptyMap());
-                resolvedReferences.put(reference.getName(), parsed);
-                gavCache.put(coords, parsed);
+                parsedRef = parseSchemaFromStream(reference.getName(), referenceContent, Collections.emptyMap());
             }
+
+            resolvedReferences.put(reference.getName(), parsedRef);
+            referenceCache.put(coords, parsedRef);
         });
         return resolvedReferences;
     }
@@ -261,6 +260,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     @Override
     public void reset() {
         this.schemaCache.clear();
+        this.referenceCache.clear();
     }
 
     /**

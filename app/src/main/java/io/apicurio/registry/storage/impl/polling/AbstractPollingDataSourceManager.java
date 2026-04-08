@@ -12,6 +12,8 @@ import io.apicurio.registry.storage.impl.polling.model.v0.Group;
 import io.apicurio.registry.storage.impl.polling.model.v0.Registry;
 import io.apicurio.registry.storage.impl.polling.model.v0.Rule;
 import io.apicurio.registry.storage.impl.polling.model.v0.Version;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
@@ -419,8 +421,18 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
             e.artifactType = resolvedArtifactType;
             e.contentType = contentType;
 
-            // TODO: Handle references from contentMetadata in the future
-            // if (contentMetadata != null && contentMetadata.getReferences() != null) { ... }
+            if (contentMetadata != null && contentMetadata.getReferences() != null
+                    && !contentMetadata.getReferences().isEmpty()) {
+                List<ArtifactReferenceDto> refs = contentMetadata.getReferences().stream()
+                        .map(ref -> ArtifactReferenceDto.builder()
+                                .groupId(ref.getGroupId())
+                                .artifactId(ref.getArtifactId())
+                                .version(ref.getVersion())
+                                .name(ref.getName())
+                                .build())
+                        .collect(Collectors.toList());
+                e.serializedReferences = RegistryContentUtils.serializeReferences(refs);
+            }
 
             log.debug("Importing content from {}", dataFile.getPath());
             state.getStorage().importContent(e);

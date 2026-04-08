@@ -45,6 +45,11 @@ class KubernetesOpsSmokeTest {
     @BeforeEach
     void setup() {
         KubernetesTestResourceManager.initializeConfigMapStore(kubernetesClient);
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+        configMapStore.load("git/empty");
+        await().atMost(Duration.ofSeconds(30)).until(
+                () -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of()));
     }
 
     @Test

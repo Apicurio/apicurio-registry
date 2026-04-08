@@ -1,6 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="configuring-the-registry_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Configuring your {registry} deployment
 
 [role="_abstract"]
@@ -18,6 +19,7 @@ NOTE: For a list of all available configuration options, see {registry-config-re
 
 
 [id="configuring-registry-ui_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring the {registry} web console
 
 [role="_abstract"]
@@ -26,8 +28,7 @@ You can set optional environment variables to configure the {registry} web conso
 .Prerequisites
 * You have already installed {registry}.
 
-[discrete]
-=== Configuring the web console deployment environment
+**Configuring the web console deployment environment**
 
 When you access the {registry} web console in your browser, some initial configuration settings are loaded. The following configuration settings are required:
 
@@ -40,8 +41,7 @@ Configure the following environment variables to override the default URL:
 
 * `REGISTRY_API_URL`: Specifies the URL for the core {registry} server REST API v3. For example, `\https://registry-api.my-domain.com/apis/registry/v3`
 
-[discrete]
-=== Configuring the web console in read-only mode
+**Configuring the web console in read-only mode**
 
 You can configure the {registry} web console in read-only mode as an optional feature. This mode disables all features in the {registry} web console that allow users to make changes to registered artifacts. For example, this includes the following:
 
@@ -62,6 +62,7 @@ Configure the following environment variable:
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="configuring-registry-observability_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Configuring {registry} observability with OpenTelemetry
 
 [role="_abstract"]
@@ -75,8 +76,7 @@ IMPORTANT: The individual signal properties (`QUARKUS_OTEL_TRACES_ENABLED`, `QUA
 * You have already installed {registry}.
 * You have an OpenTelemetry-compatible backend available (for example, Jaeger, Grafana Tempo, or OpenTelemetry Collector).
 
-[discrete]
-=== Enabling OpenTelemetry
+**Enabling OpenTelemetry**
 
 To enable OpenTelemetry observability, configure the following environment variables:
 
@@ -99,8 +99,7 @@ environment:
   QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
 ----
 
-[discrete]
-=== Configuring trace sampling for production
+**Configuring trace sampling for production**
 
 In production environments, you should configure trace sampling to reduce overhead and control the volume of trace data:
 
@@ -125,8 +124,7 @@ environment:
   QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"
 ----
 
-[discrete]
-=== Configuring structured logging with trace context
+**Configuring structured logging with trace context**
 
 When using JSON logging format, {registry} automatically includes trace context (trace ID and span ID) in log entries. This enables correlation between logs and traces.
 
@@ -138,8 +136,7 @@ environment:
   QUARKUS_LOG_CONSOLE_JSON: "true"
 ----
 
-[discrete]
-=== OpenTelemetry features in {registry}
+**OpenTelemetry features in {registry}**
 
 When OpenTelemetry is enabled, {registry} provides the following observability features:
 
@@ -153,8 +150,7 @@ When OpenTelemetry is enabled, {registry} provides the following observability f
 
 * *Log correlation*: When JSON logging is enabled, trace context is automatically injected into log entries for easy correlation.
 
-[discrete]
-=== Performance considerations
+**Performance considerations**
 
 OpenTelemetry instrumentation adds a small performance overhead. The following table shows the measured impact when all telemetry signals are enabled with 100% sampling:
 
@@ -214,8 +210,7 @@ To reproduce these benchmarks, run the following commands from the project root:
     -DOpenTelemetryPerformanceTest=enabled
 ----
 
-[discrete]
-=== Backwards compatibility
+**Backwards compatibility**
 
 OpenTelemetry support is fully backwards compatible:
 
@@ -231,8 +226,8 @@ OpenTelemetry support is fully backwards compatible:
 
 
 [id="configuring-liveness-readiness-probes_{context}"]
-
-=== Configuring {registry} health checks on OpenShift
+:_mod-docs-content-type: PROCEDURE
+== Configuring {registry} health checks on OpenShift
 
 [role="_abstract"]
 You can configure optional environment variables for liveness and readiness probes to monitor the health of the {registry} server on OpenShift:
@@ -280,14 +275,15 @@ Alternatively, you can perform these steps using the OpenShift `oc` command. For
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 [id="registry-liveness-env-vars_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Environment variables for {registry} health checks
 
+[role="_abstract"]
 This section describes the available environment variables for {registry} health checks on OpenShift. These include liveness and readiness probes to monitor the health of the {registry} server on OpenShift. For an example procedure, see xref:configuring-liveness-readiness-probes_{context}[].
 
 IMPORTANT: The following environment variables are provided for reference only. The default values are designed for most cases and should only be changed if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. These values should be kept as low as possible to avoid unnecessary overhead.
 
-[discrete]
-=== Liveness environment variables
+**Liveness environment variables**
 
 .Environment variables for {registry} liveness probes
 //[%header,cols="5,5,2,5"]
@@ -317,8 +313,7 @@ IMPORTANT: The following environment variables are provided for reference only. 
 
 NOTE: Because OpenShift automatically restarts a Pod that fails a liveness check, the liveness settings, unlike readiness settings, do not directly affect behavior of {registry} on OpenShift.
 
-[discrete]
-=== Readiness environment variables
+**Readiness environment variables**
 
 .Environment variables for {registry} readiness probes
 //[%header,cols="4,5,2,2"]

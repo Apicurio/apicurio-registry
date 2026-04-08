@@ -61,12 +61,11 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
     }
 
     public class DebeziumKafkaContainer {
-        private static final String defaultImage = "confluentinc/cp-kafka:7.2.10";
+        private static final String defaultImage = "apache/kafka:3.8.1";
 
         public static KafkaContainer defaultKafkaContainer(Network network) {
             // In testcontainers 2.x, KRaft is the default mode
-            return new KafkaContainer(DockerImageName.parse(defaultImage)
-                    .asCompatibleSubstituteFor("apache/kafka"))
+            return new KafkaContainer(DockerImageName.parse(defaultImage))
                     .withNetwork(network);
         }
     }

@@ -171,8 +171,8 @@ jobs:
         run: |
           ./mvnw clean package \
             --no-transfer-progress \
-            -Pprod -pl '!cli' \
-            -DskipTests=true \
+            -Pprod -Dfull -pl '!cli' \
+            -DskipTests \
             -DskipCommitIdPlugin=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
@@ -250,7 +250,7 @@ jobs:
           ./mvnw clean package \
             --no-transfer-progress \
             -pl cli -am \
-            -DskipTests=true \
+            -DskipTests \
             -Dquarkus.native.container-build=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
@@ -270,8 +270,6 @@ jobs:
     needs: [release-build-app, release-build-ui, release-build-cli]
     if: github.repository_owner == 'Apicurio'
     runs-on: ubuntu-22.04
-    env:
-      IS_PRE_RELEASE: false
     steps:
       - name: Download Release Artifacts
         uses: actions/download-artifact@v4
@@ -299,20 +297,13 @@ jobs:
             fi
           done
 
-      - name: Determine Release Type
-        if: "contains(github.event.inputs.release-version, 'RC')"
-        run: |
-          echo "This is a pre-release. Setting environment variable 'IS_PRE_RELEASE' to true"
-          echo "IS_PRE_RELEASE=true" >> $GITHUB_ENV
-
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
+        uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.event.inputs.release-version }}
           tag_name: ${{ github.event.inputs.release-version }}
           token: ${{ secrets.ACCESS_TOKEN }}
           target_commitish: ${{ needs.release-prepare.outputs.release-sha }}
-          prerelease: ${{ env.IS_PRE_RELEASE }}
           files: |
             artifacts/*
             cli-zips/*

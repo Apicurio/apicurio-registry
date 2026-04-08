@@ -3,6 +3,7 @@ package io.apicurio.registry.cli;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.tags.DockerRequired;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import picocli.CommandLine;
+import picocli.CommandLine.IFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -37,29 +39,30 @@ public abstract class AbstractCLITest {
     protected StringWriter out;
     protected StringWriter err;
 
-    static CommandLine createCLI() {
+    @Inject
+    protected Config config;
+
+    @Inject
+    protected Client client;
+
+    @Inject
+    IFactory factory;
+
+    CommandLine createCLI() {
         var acr = new Acr();
-        return new CommandLine(acr);
+        return new CommandLine(acr, factory);
     }
 
     @BeforeAll
     public static void beforeAll() {
-        var acrHome = Path.of(
-                        AbstractCLITest.class.getClassLoader()
-                                .getResource("acr-home")
-                                .getPath())
-                .normalize();
-        if (!Files.exists(acrHome)) {
-            throw new RuntimeException("Test resource 'acr-home' does not exist");
-        }
-        Config.getInstance().setAcrCurrentHomePath(acrHome);
-
         // Start Apicurio Registry container
         var appImage = ofNullable(System.getProperty("test.app.image"))
                 .orElse("quay.io/apicurio/apicurio-registry:latest-release");
         registryContainer = new GenericContainer<>(appImage)
                 .withEnv("APICURIO_REST_DELETION_GROUP_ENABLED", "true")
                 .withEnv("APICURIO_REST_DELETION_ARTIFACT_ENABLED", "true")
+                .withEnv("APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED", "true")
+                .withEnv("APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED", "true")
                 .withExposedPorts(8080)
                 .waitingFor(Wait.forHttp("/apis/registry/v3/system/info")
                         .forStatusCode(200)
@@ -74,14 +77,24 @@ public abstract class AbstractCLITest {
 
     @BeforeEach
     public void beforeEach() {
-        Client.reset();
+        var acrHome = Path.of(
+                        AbstractCLITest.class.getClassLoader()
+                                .getResource("acr-home")
+                                .getPath())
+                .normalize();
+        if (!Files.exists(acrHome)) {
+            throw new RuntimeException("Test resource 'acr-home' does not exist");
+        }
+        config.setAcrCurrentHomePath(acrHome);
+
+        client.reset();
         cmd = createCLI();
         out = new StringWriter();
         cmd.setOut(new PrintWriter(out));
-        Config.getInstance().setStdOut(value -> out.write(value));
+        config.setStdOut(value -> out.write(value));
         err = new StringWriter();
         cmd.setErr(new PrintWriter(err));
-        Config.getInstance().setStdErr(value -> err.write(value));
+        config.setStdErr(value -> err.write(value));
         executeAndAssertSuccess("context", "create", "test", registryUrl);
     }
 

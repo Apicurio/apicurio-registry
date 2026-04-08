@@ -77,7 +77,7 @@ compilation to speed up the build. This produces a JVM-mode Quarkus application 
 **no installable ZIP is created**:
 
 ```bash
-mvn clean package -pl cli -am -DskipTests -Dcli-skip-native
+mvn clean package -pl cli -am -DskipTests -DcliSkipNative
 ```
 
 #### GraalVM Version Compatibility

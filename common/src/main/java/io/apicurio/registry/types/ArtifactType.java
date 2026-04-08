@@ -53,4 +53,7 @@ public class ArtifactType {
     /** Apache Iceberg view metadata. */
     public static final String ICEBERG_VIEW = "ICEBERG_VIEW";
 
+    /** OpenRPC specification for JSON-RPC APIs. */
+    public static final String OPENRPC = "OPENRPC";
+
 }

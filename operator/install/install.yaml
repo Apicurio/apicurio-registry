@@ -7206,6 +7206,7 @@ spec:
           httpGet:
             path: /q/health/live
             port: 8080
+          timeoutSeconds: 3
         name: apicurio-registry-operator
         ports:
         - containerPort: 8080
@@ -7215,6 +7216,7 @@ spec:
           httpGet:
             path: /q/health/ready
             port: 8080
+          timeoutSeconds: 3
         resources:
           limits:
             cpu: 200m
@@ -7223,8 +7225,11 @@ spec:
             cpu: 100m
             memory: 100Mi
         startupProbe:
-          failureThreshold: 6
+          failureThreshold: 10
           httpGet:
             path: /q/health/started
             port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 3
       serviceAccountName: apicurio-registry-operator

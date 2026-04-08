@@ -16,6 +16,10 @@
     <name>Order Schema Module</name>
     <description>Avro schema definitions for order processing</description>
 
+    <properties>
+        <projectRoot>${project.basedir}/../../..</projectRoot>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.avro</groupId>

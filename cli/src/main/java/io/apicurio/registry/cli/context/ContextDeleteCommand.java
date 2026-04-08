@@ -1,8 +1,7 @@
-package io.apicurio.registry.cli;
+package io.apicurio.registry.cli.context;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
-import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -33,7 +32,7 @@ public class ContextDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        var config = Config.getInstance().read();
+        var configModel = config.read();
 
         if (all && name != null) {
             throw new CliException("Cannot specify both a context name and --all option.", VALIDATION_ERROR_RETURN_CODE);
@@ -44,25 +43,25 @@ public class ContextDeleteCommand extends AbstractCommand {
 
         if (!all) {
             // Delete a specific context
-            if (!config.getContext().containsKey(name)) {
+            if (!configModel.getContext().containsKey(name)) {
                 throw new CliException("Context '" + name + "' does not exist.", VALIDATION_ERROR_RETURN_CODE);
             }
-            config.getContext().remove(name);
+            configModel.getContext().remove(name);
             // If the deleted context was the current context, clear it
-            if (name.equals(config.getCurrentContext())) {
-                config.setCurrentContext(null);
+            if (name.equals(configModel.getCurrentContext())) {
+                configModel.setCurrentContext(null);
             }
-            Config.getInstance().write(config);
+            config.write(configModel);
             output.writeStdOutChunk(out -> out.append("Context '").append(name).append("' deleted.\n"));
         } else {
             // Delete all contexts
-            if (config.getContext().isEmpty()) {
+            if (configModel.getContext().isEmpty()) {
                 output.writeStdOutChunk(out -> out.append("No contexts to delete.\n"));
             } else {
-                int count = config.getContext().size();
-                config.getContext().clear();
-                config.setCurrentContext(null);
-                Config.getInstance().write(config);
+                int count = configModel.getContext().size();
+                configModel.getContext().clear();
+                configModel.setCurrentContext(null);
+                config.write(configModel);
                 output.writeStdOutChunk(out -> out.append("Deleted all ").append(count).append(" context(s).\n"));
             }
         }

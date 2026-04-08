@@ -20,4 +20,3 @@ paths:
 - Cyclomatic complexity limit: 19
 - Use Lombok (`@Data`, `@Getter`, `@Builder`) only where the module already uses it
 - Never expose stack traces to API clients
-- Run `./mvnw checkstyle:check -pl <module>` before committing

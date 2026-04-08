@@ -10,7 +10,7 @@ on:
         required: true
         default: 'all'
   release:
-    types: [released, prereleased]
+    types: [released]
 
 permissions:
   id-token: write
@@ -126,7 +126,7 @@ jobs:
         working-directory: registry
         run: |
           mvn -B --settings /home/runner/.m2/settings.xml deploy \
-            -Pprod -Prelease -DskipTests -Dcli-attach-extra-zips
+            -Pprod -Prelease -Dfull -DskipTests -DcliAttachArtifacts
 
   # SBOMs Generation
   release-sboms:
@@ -162,7 +162,7 @@ jobs:
       - name: Maven Install
         run: |
           cd registry
-          mvn install -Pprod -DskipTests
+          mvn install -Pprod -Dfull -DskipTests
 
       - name: Generate Maven SBOMs
         run: |

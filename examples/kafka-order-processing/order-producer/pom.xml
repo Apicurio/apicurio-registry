@@ -16,6 +16,10 @@
     <name>Order Producer Application</name>
     <description>Quarkus application that produces order events to Kafka</description>
 
+    <properties>
+        <projectRoot>${project.basedir}/../../..</projectRoot>
+    </properties>
+
     <dependencies>
         <!-- Quarkus -->
         <dependency>

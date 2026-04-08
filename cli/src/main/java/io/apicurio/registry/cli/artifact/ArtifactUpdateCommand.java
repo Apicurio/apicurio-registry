@@ -1,7 +1,6 @@
 package io.apicurio.registry.cli.artifact;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
@@ -12,6 +11,8 @@ import picocli.CommandLine.Parameters;
 
 import java.util.List;
 import java.util.Map;
+
+import io.apicurio.registry.cli.common.CliException;
 
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 
@@ -64,11 +65,15 @@ public class ArtifactUpdateCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId);
+        if (name == null && description == null && setLabels == null && deleteLabels == null) {
+            throw new CliException("At least one update option is required (--name, --description, --set-label, or --delete-label).",
+                    CliException.VALIDATION_ERROR_RETURN_CODE);
+        }
+        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
         try {
-            final var client = Client.getInstance().getRegistryClient();
-            ArtifactUtil.validateGroup(client, resolvedGroupId);
-            final var existing = client
+            final var registryClient = client.getRegistryClient();
+            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
+            final var existing = registryClient
                     .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).get();
             final var updatedArtifact = new EditableArtifactMetaData();
             //noinspection ConstantConditions
@@ -94,7 +99,7 @@ public class ArtifactUpdateCommand extends AbstractCommand {
                     });
                 }
             }
-            client.groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).put(updatedArtifact);
+            registryClient.groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).put(updatedArtifact);
             output.writeStdOutChunk(out -> {
                 out.append("Artifact '").append(artifactId).append("' in group '")
                         .append(resolvedGroupId).append("' updated successfully.\n");

@@ -33,8 +33,10 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
         // Start kafka first so we can get bootstrap servers
         kafkaContainer.start();
 
-        // Configure debezium with kafka bootstrap servers
-        debeziumContainer.withKafka(network, kafkaContainer.getBootstrapServers());
+        // Configure debezium with kafka's internal network address
+        // (external localhost:port is not reachable from within the Docker network)
+        debeziumContainer.withKafka(network,
+                DebeziumKafkaContainer.KAFKA_ALIAS + ":9092");
 
         // Start the postgresql database and debezium
         Startables.deepStart(Stream.of(postgresContainer, debeziumContainer)).join();
@@ -62,11 +64,13 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
 
     public class DebeziumKafkaContainer {
         private static final String defaultImage = "apache/kafka:3.8.1";
+        public static final String KAFKA_ALIAS = "kafka";
 
         public static KafkaContainer defaultKafkaContainer(Network network) {
             // In testcontainers 2.x, KRaft is the default mode
             return new KafkaContainer(DockerImageName.parse(defaultImage))
-                    .withNetwork(network);
+                    .withNetwork(network)
+                    .withNetworkAliases(KAFKA_ALIAS);
         }
     }
 }

@@ -26,13 +26,18 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
 
     public static DebeziumContainer debeziumContainer = new DebeziumContainer(
             "quay.io/debezium/connect:2.6.2.Final").withNetwork(network)
-            .withKafka(network, kafkaContainer.getBootstrapServers())
             .dependsOn(kafkaContainer);
 
     @Override
     public Map<String, String> start() {
-        // Start the postgresql database, kafka, and debezium
-        Startables.deepStart(Stream.of(kafkaContainer, postgresContainer, debeziumContainer)).join();
+        // Start kafka first so we can get bootstrap servers
+        kafkaContainer.start();
+
+        // Configure debezium with kafka bootstrap servers
+        debeziumContainer.withKafka(network, kafkaContainer.getBootstrapServers());
+
+        // Start the postgresql database and debezium
+        Startables.deepStart(Stream.of(postgresContainer, debeziumContainer)).join();
 
         // Register the postgresql connector
         ConnectorConfiguration connector = ConnectorConfiguration.forJdbcContainer(postgresContainer)

@@ -33,10 +33,11 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
         // Start kafka first so we can get bootstrap servers
         kafkaContainer.start();
 
-        // Configure debezium with kafka's internal network address
-        // (external localhost:port is not reachable from within the Docker network)
+        // Configure debezium with kafka's internal network address.
+        // In testcontainers 2.x with apache/kafka, port 9092 is for external (host) access
+        // and port 9093 is the internal broker listener for container-to-container communication.
         debeziumContainer.withKafka(network,
-                DebeziumKafkaContainer.KAFKA_ALIAS + ":9092");
+                DebeziumKafkaContainer.KAFKA_ALIAS + ":9093");
 
         // Start the postgresql database and debezium
         Startables.deepStart(Stream.of(postgresContainer, debeziumContainer)).join();

@@ -117,6 +117,8 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         groups.deleteGroup(groupId as string).then( () => {
             pleaseWait(false);
             appNavigation.navigateTo("/explore");
+        }).catch(error => {
+            setPageError(toPageError(error, "Error deleting group."));
         });
     };
 

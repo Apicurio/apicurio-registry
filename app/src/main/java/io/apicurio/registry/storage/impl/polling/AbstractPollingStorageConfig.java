@@ -41,7 +41,7 @@ public abstract class AbstractPollingStorageConfig implements PollingStorageConf
     @Getter
     Duration pollPeriod;
 
-    @ConfigProperty(name = "apicurio.polling-storage.debounce.quiet-period", defaultValue = "PT30S")
+    @ConfigProperty(name = "apicurio.polling-storage.debounce.quiet-period", defaultValue = "PT3S")
     @Info(category = CATEGORY_STORAGE, experimental = true, description = """
             After detecting a change, wait until no new changes are seen for this duration \
             before loading data. Absorbs rapid successive pushes. \

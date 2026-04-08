@@ -134,6 +134,26 @@ This section explains how to configure {registry} to use KubernetesOps storage.
 |`APICURIO_KUBERNETESOPS_LABEL_REGISTRY_ID`
 |`apicurio.io/registry-id`
 |Label key used to identify ConfigMaps belonging to this registry.
+
+|`APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD`
+|`PT3S`
+|After detecting a change, wait until no new changes are seen for this duration before loading data. Absorbs rapid successive changes. Set to `PT0S` to disable debouncing.
+
+|`APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD`
+|`PT90S`
+|Maximum time to wait for changes to settle before forcing a load. Prevents indefinite delay when changes keep arriving. Set to `PT0S` for no maximum.
+
+|`APICURIO_POLLING_STORAGE_DETERMINISTIC_IDS_ENABLED`
+|`true`
+|When enabled, `contentId` and `globalId` are deterministically generated from content hashes and artifact coordinates if not explicitly specified. When disabled, missing IDs cause an error.
+
+|`APICURIO_POLLING_STORAGE_REQUIRE_REGISTRY_CONFIG`
+|`true`
+|When enabled, a load is rejected if the data source does not contain a registry configuration file matching the configured registry ID. Prevents accidental data loss from empty ConfigMaps.
+
+|`APICURIO_POLLING_STORAGE_FILE_SUFFIXES`
+|`registry,ar`
+|Comma-separated list of file suffixes that identify registry metadata files. Each suffix is combined with extensions (`.yaml`, `.yml`, `.json`) to form the full pattern. For example, suffix `registry` matches `*.registry.yaml`, `*.registry.yml`, and `*.registry.json`. Data keys that do not match a recognized suffix are treated as raw content files.
 |===
 
 . Example deployment configuration:
@@ -340,6 +360,81 @@ data:
 ----
 
 [discrete]
+=== Example: Content references
+
+Content references allow one artifact to reference another (e.g., an Avro schema that imports another record type). Use the `references` field in a `content-v0` entry to declare these relationships.
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: schemas-with-references
+  namespace: apicurio
+  labels:
+    apicurio.io/registry-id: my-registry
+data:
+  group-refs.registry.yaml: |
+    $type: group-v0
+    registryIds: [my-registry]
+    groupId: com.example.refs
+
+  artifact-address.registry.yaml: |
+    $type: artifact-v0
+    registryIds: [my-registry]
+    groupId: com.example.refs
+    artifactId: address
+    artifactType: AVRO
+    versions:
+      - version: "1"
+        state: ENABLED
+        content: content/address.avsc
+
+  artifact-customer.registry.yaml: |
+    $type: artifact-v0
+    registryIds: [my-registry]
+    groupId: com.example.refs
+    artifactId: customer
+    artifactType: AVRO
+    versions:
+      - version: "1"
+        state: ENABLED
+        content: content/customer.avsc
+        contentMetadata: content-customer.registry.yaml
+
+  content-customer.registry.yaml: |
+    $type: content-v0
+    content: content/customer.avsc
+    references:
+      - groupId: com.example.refs
+        artifactId: address
+        version: "1"
+        name: com.example.refs.Address
+
+  content/address.avsc: |
+    {
+      "type": "record",
+      "name": "Address",
+      "namespace": "com.example.refs",
+      "fields": [
+        {"name": "street", "type": "string"},
+        {"name": "city", "type": "string"}
+      ]
+    }
+
+  content/customer.avsc: |
+    {
+      "type": "record",
+      "name": "Customer",
+      "namespace": "com.example.refs",
+      "fields": [
+        {"name": "name", "type": "string"},
+        {"name": "address", "type": "com.example.refs.Address"}
+      ]
+    }
+----
+
+[discrete]
 === Field reference
 
 The following tables list all supported fields for each entity type. Fields marked with `$type` are required for type identification. Unknown fields will cause parse errors.
@@ -394,6 +489,18 @@ The following tables list all supported fields for each entity type. Fields mark
 |`labels`
 |map (string -> string)
 |Key-value labels for the group.
+
+|`owner`
+|string
+|Owner of the group (e.g., username or team name).
+
+|`artifactsType`
+|string
+|Constrains all artifacts in this group to a specific type (e.g., `AVRO`, `PROTOBUF`).
+
+|`rules`
+|list of rules
+|Group-level rules. Each rule has `ruleType` and `config`.
 |===
 
 .artifact-v0 fields
@@ -434,6 +541,10 @@ The following tables list all supported fields for each entity type. Fields mark
 |`labels`
 |map (string -> string)
 |Key-value labels for the artifact.
+
+|`owner`
+|string
+|Owner of the artifact (e.g., username or team name).
 
 |`versions`
 |list of versions
@@ -482,6 +593,10 @@ The following tables list all supported fields for each entity type. Fields mark
 |`globalId`
 |long
 |Explicit global ID. Auto-generated if deterministic IDs are enabled (the default).
+
+|`owner`
+|string
+|Owner of this version (e.g., username or team name).
 |===
 
 .content-v0 fields
@@ -508,7 +623,7 @@ The following tables list all supported fields for each entity type. Fields mark
 |Content references to other artifacts. Each reference has `groupId`, `artifactId`, `version`, and `name`.
 |===
 
-.Rule fields (nested in registry-v0 and artifact-v0)
+.Rule fields (nested in registry-v0, group-v0, and artifact-v0)
 [.table-expandable,width="100%",cols="3,2,5",options="header"]
 |===
 |Field
@@ -601,10 +716,10 @@ If individual schemas consistently exceed 1 MiB, KubernetesOps storage is not th
 [discrete]
 === Update latency
 
-With Watch API enabled (the default), ConfigMap changes are detected in near real-time. When Watch is disabled, changes are detected via polling with a default interval of 30 seconds.
+With Watch API enabled (the default), ConfigMap changes are detected in near real-time. When Watch is disabled, changes are detected via polling with a default interval of 10 seconds.
 
-* With Watch enabled, updates typically propagate within 1-2 seconds
-* With Watch disabled, expect up to one polling interval delay
+* With Watch enabled, updates typically propagate within a few seconds (debounce quiet period + processing time)
+* With Watch disabled, expect up to one polling interval delay (default 10 seconds)
 * Decrease `APICURIO_POLLING_STORAGE_POLL_PERIOD` for faster fallback polling (increases API load)
 * Increase the interval for larger deployments to reduce Kubernetes API load
 

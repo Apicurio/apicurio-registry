@@ -25,4 +25,10 @@ public class Group extends HasSchema {
     private String description;
 
     private Map<String, String> labels;
+
+    private String owner;
+
+    private String artifactsType;
+
+    private List<Rule> rules;
 }

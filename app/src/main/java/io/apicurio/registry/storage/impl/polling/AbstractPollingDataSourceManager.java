@@ -24,6 +24,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
@@ -218,6 +219,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                         artifactEntity.name = artifact.getName();
                         artifactEntity.description = artifact.getDescription();
                         artifactEntity.labels = artifact.getLabels();
+                        artifactEntity.owner = artifact.getOwner();
                         artifactEntity.createdOn = state.getCommitTime();
                         artifactEntity.modifiedOn = state.getCommitTime();
                         state.getStorage().importArtifact(artifactEntity);
@@ -246,6 +248,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     e.name = version.getName();
                     e.description = version.getDescription();
                     e.labels = version.getLabels();
+                    e.owner = version.getOwner();
                     e.contentId = contentId;
                     e.createdOn = state.getCommitTime();
                     e.modifiedOn = state.getCommitTime();
@@ -286,6 +289,25 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
         }
     }
 
+    private void processGroupRules(ProcessingState state, Group group) {
+        var rules = group.getRules();
+        if (rules != null) {
+            for (Rule rule : rules) {
+                try {
+                    var e = new GroupRuleEntity();
+                    e.groupId = group.getGroupId();
+                    e.type = RuleType.fromValue(rule.getRuleType());
+                    e.configuration = rule.getConfig();
+                    log.debug("Importing {}", e);
+                    state.getStorage().importGroupRule(e);
+                } catch (Exception ex) {
+                    state.recordError("Could not import rule %s for group '%s': %s", rule.getRuleType(),
+                            group.getGroupId(), ex.getMessage());
+                }
+            }
+        }
+    }
+
     private Group processGroupRef(ProcessingState state, String groupName) {
         var groupFiles = state.fromTypeIndex(Type.GROUP).stream().filter(f -> {
             Group group = f.getEntityUnchecked();
@@ -311,8 +333,13 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                 e.groupId = group.getGroupId();
                 e.description = group.getDescription();
                 e.labels = group.getLabels();
+                e.owner = group.getOwner();
+                e.artifactsType = group.getArtifactsType();
+                e.createdOn = state.getCommitTime();
+                e.modifiedOn = state.getCommitTime();
                 log.debug("Importing {}", e);
                 state.getStorage().importGroup(e);
+                processGroupRules(state, group);
                 state.incrementGroupCount();
                 groupFile.setProcessed(true);
                 return group;
@@ -379,13 +406,16 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
             return null;
         }
 
-        // Convert YAML content to JSON if parsable as YAML
-        if (ContentTypeUtil.isParsableYaml(data)) {
-            data = ContentTypeUtil.yamlToJson(data);
-        }
-
         try {
             String contentType = detectContentType(dataFile.getPath(), ContentTypes.APPLICATION_JSON);
+
+            // Only convert YAML to JSON for file types that should be stored as JSON
+            // (e.g., .avsc, .json, or files with no YAML extension).
+            // Preserve YAML content as-is for .yaml/.yml files to avoid lossy conversion.
+            if (!ContentTypes.APPLICATION_YAML.equals(contentType)
+                    && ContentTypeUtil.isParsableYaml(data)) {
+                data = ContentTypeUtil.yamlToJson(data);
+            }
             var typedContent = TypedContent.create(data, contentType);
 
             // Determine artifact type from content if not specified

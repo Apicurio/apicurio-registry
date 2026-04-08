@@ -5,6 +5,7 @@ artifactId: address
 artifactType: AVRO
 name: Address Schema
 description: Reusable address record
+owner: alice
 labels:
   domain: common
 versions:
@@ -12,6 +13,7 @@ versions:
     state: ENABLED
     name: Address v1
     description: Initial address schema
+    owner: alice
     labels:
       status: stable
     content: ./content/address.avsc

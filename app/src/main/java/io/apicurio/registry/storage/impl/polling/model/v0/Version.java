@@ -32,4 +32,6 @@ public class Version {
     private String contentMetadata;
 
     private Long globalId;
+
+    private String owner;
 }

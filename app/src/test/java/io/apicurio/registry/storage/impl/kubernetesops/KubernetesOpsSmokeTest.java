@@ -81,7 +81,7 @@ class KubernetesOpsSmokeTest {
         assertNotNull(version.getContentId());
         var content = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
         assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(content.bytes()),
-                MAPPER.readTree(version.getContent().bytes()));
+                YAMLObjectMapper.YAML_MAPPER.readTree(version.getContent().bytes()));
 
         // Waiting to load smoke02
         configMapStore.load("git/smoke02");

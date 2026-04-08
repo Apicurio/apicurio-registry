@@ -95,27 +95,40 @@ class KubernetesOpsReferencesTest {
                 storage.getArtifactRule(GROUP, "customer", RuleType.VALIDITY).getConfiguration());
         assertEquals(Set.of(), Set.copyOf(storage.getArtifactRules(GROUP, "address")));
 
-        // Verify artifact-level metadata (name, description, labels)
+        // Verify artifact-level metadata (name, description, labels, owner)
         var addressMeta = storage.getArtifactMetaData(GROUP, "address");
         assertEquals("Address Schema", addressMeta.getName());
         assertEquals("Reusable address record", addressMeta.getDescription());
         assertEquals(Map.of("domain", "common"), addressMeta.getLabels());
+        assertEquals("alice", addressMeta.getOwner());
 
         var customerMeta = storage.getArtifactMetaData(GROUP, "customer");
         assertEquals("Customer Schema", customerMeta.getName());
         assertEquals("Customer record referencing Address", customerMeta.getDescription());
         assertEquals(Map.of("domain", "crm"), customerMeta.getLabels());
 
-        // Verify version-level metadata (name, description, labels)
+        // Verify version-level metadata (name, description, labels, owner)
         var addressVerMeta = storage.getArtifactVersionMetaData(GROUP, "address", "1");
         assertEquals("Address v1", addressVerMeta.getName());
         assertEquals("Initial address schema", addressVerMeta.getDescription());
         assertEquals(Map.of("status", "stable"), addressVerMeta.getLabels());
+        assertEquals("alice", addressVerMeta.getOwner());
 
         var customerVerMeta = storage.getArtifactVersionMetaData(GROUP, "customer", "1");
         assertEquals("Customer v1", customerVerMeta.getName());
         assertEquals("Customer with address reference", customerVerMeta.getDescription());
         assertEquals(Map.of("status", "stable"), customerVerMeta.getLabels());
+
+        // Verify group-level metadata (owner, artifactsType, rules)
+        var groupMeta = storage.getGroupMetaData(GROUP);
+        assertEquals("test-team", groupMeta.getOwner());
+        assertEquals("AVRO", groupMeta.getArtifactsType());
+
+        // Verify group rules
+        assertEquals(Set.of(RuleType.COMPATIBILITY),
+                Set.copyOf(storage.getGroupRules(GROUP)));
+        assertEquals("BACKWARD",
+                storage.getGroupRule(GROUP, RuleType.COMPATIBILITY).getConfiguration());
     }
 
     @ActivateRequestContext

@@ -27,7 +27,7 @@ public class KubernetesOps {
                     addEnvVar(env, APICURIO_FEATURES_EXPERIMENTAL_ENABLED, "true");
 
                     if (!isBlank(k8sOps.getRegistryId())) {
-                        addEnvVar(env, APICURIO_KUBERNETESOPS_ID, k8sOps.getRegistryId());
+                        addEnvVar(env, APICURIO_POLLING_STORAGE_ID, k8sOps.getRegistryId());
                     }
 
                     if (!isBlank(k8sOps.getNamespace())) {
@@ -35,7 +35,7 @@ public class KubernetesOps {
                     }
 
                     if (!isBlank(k8sOps.getRefreshEvery())) {
-                        addEnvVar(env, APICURIO_KUBERNETESOPS_REFRESH_EVERY, k8sOps.getRefreshEvery());
+                        addEnvVar(env, APICURIO_POLLING_STORAGE_POLL_PERIOD, k8sOps.getRefreshEvery());
                     }
 
                     if (!isBlank(k8sOps.getLabelRegistryId())) {

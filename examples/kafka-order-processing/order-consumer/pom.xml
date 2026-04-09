@@ -16,6 +16,10 @@
     <name>Order Consumer Application</name>
     <description>Quarkus application that consumes order events from Kafka</description>
 
+    <properties>
+        <projectRoot>${project.basedir}/../../..</projectRoot>
+    </properties>
+
     <dependencies>
         <!-- Quarkus -->
         <dependency>

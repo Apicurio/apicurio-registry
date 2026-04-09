@@ -14,6 +14,7 @@
   <description>Custom Debezium SMT with OpenTelemetry instrumentation for trace context propagation</description>
 
   <properties>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

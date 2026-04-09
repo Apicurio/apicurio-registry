@@ -19,7 +19,7 @@ pushd distro/docker/target/docker && docker build -f Dockerfile.jvm -t quay.io/a
 Then run the test with:
 
 ```bash
-mvn verify -pl utils/extra-tests -am -DskipUTs -Pextra-tests -Dregistry3-image=quay.io/apicurio/apicurio-registry:snapshot
+mvn verify -pl utils/extra-tests -am -Pextra-tests -Dregistry3-image=quay.io/apicurio/apicurio-registry:snapshot
 ```
 
 ### Note:

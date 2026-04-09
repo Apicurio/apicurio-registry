@@ -1,6 +1,8 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.artifact.ArtifactCommand;
+import io.apicurio.registry.cli.context.ContextCommand;
+import io.apicurio.registry.cli.group.GroupCommand;
 import io.quarkus.picocli.runtime.annotations.TopCommand;
 import lombok.Getter;
 import picocli.CommandLine.Command;

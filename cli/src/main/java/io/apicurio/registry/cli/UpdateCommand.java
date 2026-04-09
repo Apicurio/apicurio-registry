@@ -63,14 +63,14 @@ public class UpdateCommand extends AbstractCommand {
                 // TODO: This should work, but disable it until we have released the CLI to Maven Central at least once.
                 throw new UnsupportedOperationException("Automatic updates are not yet supported.");
                 /*
-                var latestVersion = Update.getInstance().getLatestVersion();
+                var latestVersion = update.getLatestVersion();
                 // We need to coerce because the version might be non-standard, e.g. 3.1.7.redhat-00001. We'll lose the suffix.
                 if (Semver.parse(ConfigProvider.getConfig().getValue("version", String.class))
                         .isGreaterThanOrEqualTo(Semver.coerce(latestVersion))) {
                     throw new CliException("You are already running the latest version.");
                 }
 
-                zipFilePath = Update.getInstance().downloadVersion(latestVersion, targetDir);
+                zipFilePath = update.downloadVersion(latestVersion, targetDir);
                 */
             }
 

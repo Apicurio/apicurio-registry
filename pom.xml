@@ -66,41 +66,30 @@
       </roles>
       <timezone>Europe/Lisbon</timezone>
     </developer>
+    <developer>
+      <id>vandanayadav7</id>
+      <name>Vandana Yadav</name>
+      <email>vandana.yadav.vs@gmail.com</email>
+      <organization>IBM</organization>
+      <roles>
+        <role>Developer</role>
+      </roles>
+      <timezone>Europe/Dublin</timezone>
+    </developer>
   </developers>
 
   <modules>
+    <!-- Essential modules (always built) -->
     <module>app</module>
-    <module>cli</module>
     <module>common</module>
     <module>config-index/definitions</module>
     <module>config-index/deployment</module>
     <module>config-index/runtime</module>
-    <module>distro</module>
-    <module>docs</module>
-    <module>go-sdk</module>
     <module>java-sdk</module>
-    <module>mcp</module>
-    <module>operator</module>
     <module>schema-resolver</module>
-    <module>serdes/generic/serde-common-avro</module>
-    <module>serdes/generic/serde-common-jsonschema</module>
-    <module>serdes/generic/serde-common-protobuf</module>
-    <module>serdes/generic/serde-common</module>
-    <module>serdes/kafka/avro-serde</module>
-    <module>serdes/kafka/jsonschema-serde</module>
-    <module>serdes/kafka/protobuf-serde</module>
-    <module>serdes/kafka/serde-kafka-common</module>
-    <module>serdes/nats/avro-serde</module>
-    <module>serdes/pulsar/avro-serde</module>
-    <module>utils/converter</module>
-    <module>utils/exportConfluent</module>
-    <module>utils/extra-tests</module>
-    <module>utils/flink</module>
     <module>utils/importexport</module>
-    <module>utils/maven-plugin</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
-    <module>utils/raml-test-micro-service</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
     <module>schema-util/asyncapi</module>
@@ -111,12 +100,12 @@
     <module>schema-util/json</module>
     <module>schema-util/kconnect</module>
     <module>schema-util/openapi</module>
+    <module>schema-util/openrpc</module>
     <module>schema-util/protobuf</module>
     <module>schema-util/util-provider</module>
     <module>schema-util/wsdl</module>
     <module>schema-util/xml</module>
     <module>schema-util/xsd</module>
-
   </modules>
 
   <scm>
@@ -203,9 +192,6 @@
     <!-- Default Quarkus configuration profile -->
     <quarkus.profile>dev</quarkus.profile>
 
-    <!-- Default Skip App build value -->
-    <skipAppTests>false</skipAppTests>
-
     <!-- Default Skip Operator build value -->
     <skipOperatorTests>true</skipOperatorTests>
 
@@ -213,7 +199,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.5.3</apicurio-data-models.version>
+    <apicurio-data-models.version>3.0.1</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>
@@ -290,7 +276,7 @@
     <apicurio-maven-plugin.version>0.0.8</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.1</proto-plugin.version>
+    <proto-plugin.version>5.1.2</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
@@ -532,6 +518,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-iceberg</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-openrpc</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -1162,10 +1153,6 @@
                   <value>${quarkus.profile}</value>
                 </property>
                 <property>
-                  <name>skipAppTests</name>
-                  <value>${skipAppTests}</value>
-                </property>
-                <property>
                   <name>skipOperatorTests</name>
                   <value>${skipOperatorTests}</value>
                 </property>
@@ -1206,6 +1193,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
+          <additionalJOption>-Xdoclint:none</additionalJOption>
           <additionalDependencies>
             <additionalDependency>
               <groupId>jakarta.annotation</groupId>
@@ -1236,6 +1224,14 @@
             <version>${version.puppycrawl}</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <configLocation>${projectRoot}/.checkstyle/simple.xml</configLocation>
+          <headerLocation>${projectRoot}/.checkstyle/java.header</headerLocation>
+          <suppressionsLocation>${projectRoot}/.checkstyle/suppressions.xml</suppressionsLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
+        </configuration>
         <executions>
           <execution>
             <id>validate</id>
@@ -1243,14 +1239,6 @@
               <goal>check</goal>
             </goals>
             <phase>validate</phase>
-            <configuration>
-              <configLocation>.checkstyle/simple.xml</configLocation>
-              <headerLocation>.checkstyle/java.header</headerLocation>
-              <suppressionsLocation>.checkstyle/suppressions.xml</suppressionsLocation>
-              <includeTestSourceDirectory>true</includeTestSourceDirectory>
-              <consoleOutput>true</consoleOutput>
-              <failsOnError>true</failsOnError>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1275,7 +1263,7 @@
       <plugin>
         <groupId>io.github.git-commit-id</groupId>
         <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>9.1.0</version>
+        <version>9.2.0</version>
         <configuration>
           <skip>${skipCommitIdPlugin}</skip>
           <generateGitPropertiesFile>true</generateGitPropertiesFile>
@@ -1310,10 +1298,83 @@
       </properties>
     </profile>
     <profile>
+      <id>non-essential</id>
+      <activation>
+        <property>
+          <name>!fast</name>
+        </property>
+      </activation>
+      <modules>
+        <module>cli</module>
+        <module>distro</module>
+        <module>docs</module>
+        <module>utils/converter</module>
+        <module>utils/maven-plugin</module>
+        <module>utils/raml-test-micro-service</module>
+        <module>serdes/generic/serde-common</module>
+        <module>serdes/generic/serde-common-avro</module>
+        <module>serdes/generic/serde-common-jsonschema</module>
+        <module>serdes/generic/serde-common-protobuf</module>
+        <module>serdes/kafka/avro-serde</module>
+        <module>serdes/kafka/jsonschema-serde</module>
+        <module>serdes/kafka/protobuf-serde</module>
+        <module>serdes/kafka/serde-kafka-common</module>
+        <module>serdes/nats/avro-serde</module>
+        <module>serdes/pulsar/avro-serde</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>full</id>
+      <activation>
+        <property>
+          <name>full</name>
+        </property>
+      </activation>
+      <modules>
+        <!-- Include non-essential modules so -Dfull is a true superset -->
+        <module>cli</module>
+        <module>distro</module>
+        <module>docs</module>
+        <module>utils/converter</module>
+        <module>utils/maven-plugin</module>
+        <module>utils/raml-test-micro-service</module>
+        <module>serdes/generic/serde-common</module>
+        <module>serdes/generic/serde-common-avro</module>
+        <module>serdes/generic/serde-common-jsonschema</module>
+        <module>serdes/generic/serde-common-protobuf</module>
+        <module>serdes/kafka/avro-serde</module>
+        <module>serdes/kafka/jsonschema-serde</module>
+        <module>serdes/kafka/protobuf-serde</module>
+        <module>serdes/kafka/serde-kafka-common</module>
+        <module>serdes/nats/avro-serde</module>
+        <module>serdes/pulsar/avro-serde</module>
+        <!-- Full-only modules -->
+        <module>go-sdk</module>
+        <module>mcp</module>
+        <module>operator</module>
+        <module>utils/exportConfluent</module>
+        <module>utils/extra-tests</module>
+        <module>utils/flink</module>
+      </modules>
+    </profile>
+    <profile>
       <id>integration-tests</id>
       <modules>
         <module>integration-tests</module>
       </modules>
+      <build>
+        <plugins>
+          <!-- Skip unit tests in upstream modules when running integration tests.
+               The -Dgroups property leaks to surefire via the command line,
+               and modules without JUnit 5 on their test classpath would fail. -->
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <skipTests>true</skipTests>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
     <profile>
       <id>examples</id>
@@ -1323,6 +1384,10 @@
     </profile>
     <profile>
       <id>productization</id>
+      <properties>
+        <!-- Deactivates the external-repos profile -->
+        <skipExternalRepos>true</skipExternalRepos>
+      </properties>
       <modules>
         <module>prod-verifier</module>
       </modules>
@@ -1392,45 +1457,12 @@
         </plugins>
       </build>
     </profile>
+    <!-- External repositories, automatically excluded when -Pproductization is used -->
     <profile>
-      <id>java8</id>
-      <activation>
-        <jdk>[1.8,)</jdk>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <configuration>
-              <additionalJOption>-Xdoclint:none</additionalJOption>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <!-- For deploying to github packages -->
-    <profile>
-      <id>github</id>
-      <distributionManagement>
-        <repository>
-          <id>github</id>
-          <name>GitHub Packages</name>
-          <url>https://maven.pkg.github.com/Apicurio/apicurio-registry</url>
-        </repository>
-      </distributionManagement>
-    </profile>
-    <!--
-            conditional repo to be excluded in productization
-            build in prod with:
-            mvn ... -P '!external_repos'
-        -->
-    <profile>
-      <id>external_repos</id>
+      <id>external-repos</id>
       <activation>
         <property>
-          <!-- fake property, assumed never set -->
-          <name>!skipDefault</name>
+          <name>!skipExternalRepos</name>
         </property>
       </activation>
       <repositories>

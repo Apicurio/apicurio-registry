@@ -9,7 +9,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
@@ -23,7 +23,7 @@ import java.util.Map;
  * They are excluded from normal test runs and can be executed via the {@code -Psearch} maven
  * profile or by selecting the {@code search} JUnit tag.
  */
-@Tag(Constants.SEARCH)
+@Tag(SEARCH)
 @QuarkusIntegrationTest
 public class SearchIT extends ApicurioRegistryBaseIT {
 

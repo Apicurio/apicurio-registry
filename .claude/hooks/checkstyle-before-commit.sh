@@ -20,9 +20,10 @@ if [ -z "$MODULES" ]; then
 fi
 
 # Run checkstyle on each affected module
+FLAGS="-Dfull -Pintegration-tests -Pexamples" # Have to enable all profiles, otherwise Maven can't find some modules.
 FAILED=0
 for MODULE in $MODULES; do
-  if ! ./mvnw -q checkstyle:check -pl "$MODULE" 2>/dev/null; then
+  if ! ./mvnw -q checkstyle:check -pl "$MODULE" $FLAGS 2>/dev/null; then
     echo "Checkstyle failed for module: $MODULE" >&2
     FAILED=1
   fi

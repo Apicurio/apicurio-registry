@@ -20,6 +20,11 @@ public final class Columns {
     public static final String ARTIFACT_ID = "Artifact ID";
     public static final String ARTIFACT_TYPE = "Artifact Type";
 
+    public static final String VERSION = "Version";
+    public static final String STATE = "State";
+    public static final String GLOBAL_ID = "Global ID";
+    public static final String CONTENT_ID = "Content ID";
+
     public static final String CLI_VERSION = "CLI version";
     public static final String SERVER_NAME = "Server name";
     public static final String SERVER_VERSION = "Server version";

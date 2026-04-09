@@ -12,7 +12,6 @@ import io.apicurio.tests.serdes.apicurio.KafkaSerdesTester;
 import io.apicurio.tests.serdes.apicurio.SimpleSerdesTesterBuilder;
 import io.apicurio.tests.serdes.apicurio.WrongConfiguredSerdesTesterBuilder;
 import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
-import io.apicurio.tests.utils.Constants;
 import io.apicurio.tests.utils.KafkaFacade;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -35,7 +34,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.apicurio.tests.utils.Constants.SERDES;
+import static io.apicurio.deployment.Constants.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(SERDES)
@@ -55,7 +54,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
     }
 
     @Test
-    @Tag(Constants.ACCEPTANCE)
+    @Tag(ACCEPTANCE)
     void testAvroConfluentSerDes() throws Exception {
         String topicName = TestUtils.generateTopic();
         String subjectName = topicName + "-value";
@@ -113,7 +112,7 @@ public class BasicConfluentSerDesIT extends ConfluentBaseIT {
     }
 
     @Test
-    @Tag(Constants.ACCEPTANCE)
+    @Tag(ACCEPTANCE)
     void testAvroConfluentSerDesFail() throws Exception {
         String topicName = TestUtils.generateTopic();
         String subjectName = "myrecordconfluent2";

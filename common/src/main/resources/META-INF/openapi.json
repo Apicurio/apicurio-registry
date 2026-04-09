@@ -4224,6 +4224,59 @@
         }
       ]
     },
+    "/content/references": {
+      "summary": "Detect external references in artifact content.",
+      "post": {
+        "tags": [
+          "Content"
+        ],
+        "parameters": [
+          {
+            "name": "artifactType",
+            "description": "The type of artifact represented by the content.  If not provided, the server will attempt to auto-detect the type from the content.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "requestBody": {
+          "description": "The content to analyze for external references.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtifactReference"
+                  }
+                }
+              }
+            },
+            "description": "List of references detected in the provided content.  Each reference will have only the `name` field populated.  The `name` value corresponds to the reference string found in the content (e.g. a JSON Schema `$ref` value, a Protobuf import path, or an Avro type name)."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "detectContentReferences",
+        "summary": "Detect references in content",
+        "description": "Analyzes the provided content and returns a list of external references found within it.  The artifact type is used to determine the appropriate reference detection strategy.  If no artifact type is provided, the system will attempt to auto-detect it from the content."
+      }
+    },
     "x-codegen-contextRoot": "/apis/registry/v3"
   },
   "components": {

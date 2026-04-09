@@ -453,6 +453,16 @@ const renderPromptTemplate = async (config: ConfigService, auth: AuthService, gr
         });
 };
 
+const detectContentReferences = async (config: ConfigService, auth: AuthService, content: string, contentType: string, artifactType?: string): Promise<ArtifactReference[]> => {
+    const baseHref = config.artifactsUrl();
+    const endpoint = createEndpoint(baseHref, "/content/references", {}, artifactType ? { artifactType } : {});
+    const options = await createAuthOptions(auth);
+    return axios.post(endpoint, { content, contentType }, {
+        ...options,
+        headers: { ...options.headers, "Content-Type": "application/json" }
+    }).then(response => response.data as ArtifactReference[]);
+};
+
 const normalizeGroupId = (groupId: string|null): string => {
     return groupId || "default";
 };
@@ -510,6 +520,8 @@ export interface GroupsService {
     replaceArtifactBranchVersions(groupId: string|null, artifactId: string, branchId: string, data: ReplaceBranchVersions): Promise<void>;
 
     renderPromptTemplate(groupId: string|null, artifactId: string, version: string, variables: Record<string, any>): Promise<RenderPromptResponse>;
+
+    detectContentReferences(content: string, contentType: string, artifactType?: string): Promise<ArtifactReference[]>;
 }
 
 
@@ -659,6 +671,10 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
 
         renderPromptTemplate(groupId: string|null, artifactId: string, version: string, variables: Record<string, any>): Promise<RenderPromptResponse> {
             return renderPromptTemplate(config, auth, groupId, artifactId, version, variables);
+        },
+
+        detectContentReferences(content: string, contentType: string, artifactType?: string): Promise<ArtifactReference[]> {
+            return detectContentReferences(config, auth, content, contentType, artifactType);
         }
 
     };

@@ -1,7 +1,6 @@
-package io.apicurio.registry.cli;
+package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -48,7 +47,7 @@ public class GroupUpdateCommand extends AbstractCommand {
     @Override
     public void run(OutputBuffer output) throws Exception {
         try {
-            var group = Client.getInstance().getRegistryClient().groups().byGroupId(groupId).get();
+            var group = client.getRegistryClient().groups().byGroupId(groupId).get();
             var updatedGroup = new EditableGroupMetaData();
             updatedGroup.setDescription(group.getDescription());
             updatedGroup.setLabels(group.getLabels());
@@ -63,7 +62,7 @@ public class GroupUpdateCommand extends AbstractCommand {
                     updatedGroup.getLabels().getAdditionalData().remove(key);
                 });
             }
-            Client.getInstance().getRegistryClient().groups().byGroupId(groupId).put(updatedGroup);
+            client.getRegistryClient().groups().byGroupId(groupId).put(updatedGroup);
             output.writeStdOutChunk(out -> {
                 out.append("Group '").append(group.getGroupId()).append("' updated successfully.\n");
             });

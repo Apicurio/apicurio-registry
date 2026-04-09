@@ -13,22 +13,34 @@ on:
 
 jobs:
   integration-tests:
-    name: Integration Tests (${{ matrix.storage }}-${{ matrix.profile }})
+    name: Integration Tests (${{ matrix.storage }}-${{ matrix.name || matrix.groups }})
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        storage: [h2, postgresql, kafkasql]
-        profile: [ci, auth, migration]
+        # 'groups' selects JUnit 5 test tags via -Dgroups. If omitted, pom.xml default is used.
+        # 'name' overrides 'groups' for the job display name when using default groups,
+        # groups contains multiple values or contains special characters.
+        # For single-group entries, name is derived from groups automatically
+        # via ${{ matrix.name || matrix.groups }}.
         include:
-          - storage: h2
-            profile: debezium-all
-          - storage: kafkasql
-            profile: kafkasql-snapshotting
-          - storage: kubernetesops
-            profile: kubernetesopsit
-          - storage: h2
-            profile: iceberg
+          # h2 (in-memory) storage
+          - { storage: h2, name: default, remote-profile: remote-mem }
+          - { storage: h2, groups: auth, remote-profile: remote-mem }
+          - { storage: h2, groups: migration, remote-profile: remote-mem }
+          - { storage: h2, name: debezium, groups: 'debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot', remote-profile: remote-mem }
+          - { storage: h2, groups: iceberg, remote-profile: remote-mem }
+          # postgresql storage
+          - { storage: postgresql, name: default, remote-profile: remote-sql }
+          - { storage: postgresql, groups: auth, remote-profile: remote-sql }
+          - { storage: postgresql, groups: migration, remote-profile: remote-sql }
+          # kafkasql storage
+          - { storage: kafkasql, name: default, remote-profile: remote-kafka }
+          - { storage: kafkasql, groups: auth, remote-profile: remote-kafka }
+          - { storage: kafkasql, groups: migration, remote-profile: remote-kafka }
+          - { storage: kafkasql, groups: kafkasql-snapshotting, remote-profile: remote-kafka }
+          # kubernetesops storage
+          - { storage: kubernetesops, groups: kubernetesops, remote-profile: remote-kubernetesops }
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -50,35 +62,13 @@ jobs:
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
 
-      - name: Set storage-specific variables
-        id: storage-vars
-        run: |
-          case "${{ matrix.storage }}" in
-            h2)
-              echo "remote-profile=remote-mem" >> $GITHUB_OUTPUT
-              echo "image-prop=registry-in-memory-image" >> $GITHUB_OUTPUT
-              ;;
-            postgresql)
-              echo "remote-profile=remote-sql" >> $GITHUB_OUTPUT
-              echo "image-prop=registry-sql-image" >> $GITHUB_OUTPUT
-              ;;
-            kafkasql)
-              echo "remote-profile=remote-kafka" >> $GITHUB_OUTPUT
-              echo "image-prop=registry-kafkasql-image" >> $GITHUB_OUTPUT
-              ;;
-            kubernetesops)
-              echo "remote-profile=remote-kubernetesops" >> $GITHUB_OUTPUT
-              echo "image-prop=registry-kubernetesops-image" >> $GITHUB_OUTPUT
-              ;;
-          esac
-
       - name: Run Integration Tests
         run: |
           ./mvnw verify -am --no-transfer-progress \
             -Pintegration-tests \
-            -P${{ matrix.profile }} \
-            -P${{ steps.storage-vars.outputs.remote-profile }} \
-            -D${{ steps.storage-vars.outputs.image-prop }}=apicurio/apicurio-registry:${{ inputs.image-tag }} \
+            -P${{ matrix.remote-profile }} \
+            ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \
+            -Dregistry-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -pl integration-tests \
             -Dmaven.javadoc.skip=true
 
@@ -90,5 +80,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: tests-logs-${{ matrix.storage }}-${{ matrix.profile }}
+          name: tests-logs-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}
           path: artifacts

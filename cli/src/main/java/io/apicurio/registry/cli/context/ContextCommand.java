@@ -1,13 +1,13 @@
-package io.apicurio.registry.cli;
+package io.apicurio.registry.cli.context;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
-import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import picocli.CommandLine.Command;
 
 import java.util.Objects;
 
+import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.GROUP_ID;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
@@ -17,6 +17,7 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
         description = "Work with contexts",
         subcommands = {
                 ContextCreateCommand.class,
+                ContextUpdateCommand.class,
                 ContextDeleteCommand.class,
         }
 )
@@ -25,7 +26,7 @@ public class ContextCommand extends AbstractCommand {
     @Override
     public void run(OutputBuffer output) throws Exception {
         output.writeStdOutChunk(out -> {
-            var currentContext = Config.getInstance().read().getCurrentContext();
+            var currentContext = config.read().getCurrentContext();
             if (isBlank(currentContext)) {
                 out.append("No current context is set.");
             } else {
@@ -33,9 +34,9 @@ public class ContextCommand extends AbstractCommand {
             }
             out.append('\n');
             var table = new TableBuilder();
-            table.addColumns("ID", "Registry URL", GROUP_ID);
-            Config.getInstance().read().getContext().forEach((id, context) -> {
-                table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl(), context.getGroupId());
+            table.addColumns("ID", "Registry URL", GROUP_ID, ARTIFACT_ID);
+            config.read().getContext().forEach((id, context) -> {
+                table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl(), context.getGroupId(), context.getArtifactId());
             });
             table.print(out);
         });

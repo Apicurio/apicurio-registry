@@ -16,40 +16,30 @@
     <projectRoot>${project.basedir}/..</projectRoot>
   </properties>
 
-  <profiles>
-    <profile>
-      <id>go-sdk-regenerate</id>
-      <activation>
-        <property>
-          <name>!skipNonJavaGen</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <version>${version.exec-maven-plugin}</version>
-            <configuration>
-              <executable>make</executable>
-              <workingDirectory>${project.basedir}</workingDirectory>
-              <arguments>
-                <argument>generate</argument>
-                <argument>format</argument>
-              </arguments>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-                <phase>generate-sources</phase>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>${version.exec-maven-plugin}</version>
+        <configuration>
+          <executable>make</executable>
+          <workingDirectory>${project.basedir}</workingDirectory>
+          <arguments>
+            <argument>generate</argument>
+            <argument>format</argument>
+          </arguments>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>generate-sources</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

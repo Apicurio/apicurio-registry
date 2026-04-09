@@ -1,0 +1,122 @@
+{
+    "asyncapi": "3.1.0",
+    "info": {
+        "title": "Streetlights Kafka API",
+        "version": "2.0.0",
+        "description": "The Smartylighting Streetlights API allows you to remotely manage the city lights using AsyncAPI 3.1."
+    },
+    "defaultContentType": "application/json",
+    "servers": {
+        "production": {
+            "host": "test.mykafkacluster.org:8092",
+            "protocol": "kafka-secure",
+            "description": "Production Kafka broker"
+        }
+    },
+    "channels": {
+        "lightingMeasured": {
+            "address": "smartylighting.streetlights.1.0.event.{streetlightId}.lighting.measured",
+            "messages": {
+                "lightMeasured": {
+                    "$ref": "#/components/messages/lightMeasured"
+                }
+            },
+            "parameters": {
+                "streetlightId": {
+                    "description": "The ID of the streetlight"
+                }
+            }
+        },
+        "lightTurnOnOff": {
+            "address": "smartylighting.streetlights.1.0.action.{streetlightId}.turn.on",
+            "messages": {
+                "turnOnOff": {
+                    "$ref": "#/components/messages/turnOnOff"
+                }
+            },
+            "parameters": {
+                "streetlightId": {
+                    "description": "The ID of the streetlight"
+                }
+            }
+        }
+    },
+    "operations": {
+        "receiveLightMeasurement": {
+            "action": "receive",
+            "channel": {
+                "$ref": "#/channels/lightingMeasured"
+            },
+            "summary": "Receive information about environmental lighting conditions of a particular streetlight.",
+            "messages": [
+                {
+                    "$ref": "#/channels/lightingMeasured/messages/lightMeasured"
+                }
+            ]
+        },
+        "turnOnOff": {
+            "action": "send",
+            "channel": {
+                "$ref": "#/channels/lightTurnOnOff"
+            },
+            "summary": "Command a particular streetlight to turn the lights on or off.",
+            "messages": [
+                {
+                    "$ref": "#/channels/lightTurnOnOff/messages/turnOnOff"
+                }
+            ]
+        }
+    },
+    "components": {
+        "messages": {
+            "lightMeasured": {
+                "name": "lightMeasured",
+                "title": "Light measured",
+                "summary": "Inform about environmental lighting conditions for a particular streetlight.",
+                "payload": {
+                    "$ref": "#/components/schemas/lightMeasuredPayload"
+                }
+            },
+            "turnOnOff": {
+                "name": "turnOnOff",
+                "title": "Turn on/off",
+                "summary": "Command to turn the streetlight on or off.",
+                "payload": {
+                    "$ref": "#/components/schemas/turnOnOffPayload"
+                }
+            }
+        },
+        "schemas": {
+            "lightMeasuredPayload": {
+                "type": "object",
+                "properties": {
+                    "lumens": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Light intensity measured in lumens."
+                    },
+                    "sentAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Date and time when the message was sent."
+                    }
+                }
+            },
+            "turnOnOffPayload": {
+                "type": "object",
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": ["on", "off"],
+                        "description": "Whether to turn on or off the light."
+                    },
+                    "sentAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Date and time when the message was sent."
+                    }
+                }
+            }
+        }
+    }
+}

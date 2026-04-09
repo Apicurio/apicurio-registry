@@ -1,8 +1,7 @@
-package io.apicurio.registry.cli;
+package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -40,10 +39,10 @@ public class GroupDeleteCommand extends AbstractCommand {
     public void run(OutputBuffer output) throws Exception {
         try {
             // Check if the group exists
-            Client.getInstance().getRegistryClient().groups().byGroupId(groupId).get();
+            client.getRegistryClient().groups().byGroupId(groupId).get();
 
             // Check if the group has artifacts
-            var artifacts = Client.getInstance().getRegistryClient().groups().byGroupId(groupId).artifacts().get(r -> {
+            var artifacts = client.getRegistryClient().groups().byGroupId(groupId).artifacts().get(r -> {
                 //noinspection ConstantConditions
                 r.queryParameters.offset = 0;
                 r.queryParameters.limit = 1;
@@ -66,7 +65,7 @@ public class GroupDeleteCommand extends AbstractCommand {
             }
 
             // Delete the group
-            Client.getInstance().getRegistryClient().groups().byGroupId(groupId).delete();
+            client.getRegistryClient().groups().byGroupId(groupId).delete();
 
             output.writeStdOutChunk(out -> {
                 out.append("Group '").append(groupId).append("' deleted successfully");

@@ -1,9 +1,8 @@
 package io.apicurio.registry.cli.artifact;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
-import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
-import io.apicurio.registry.cli.services.Client;
+import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -15,14 +14,10 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 
 import static io.apicurio.registry.cli.artifact.ArtifactGetCommand.printArtifact;
-import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
@@ -99,9 +94,8 @@ public class ArtifactCreateCommand extends AbstractCommand {
     private OutputTypeMixin outputType;
 
     @Override
-    @SuppressWarnings("unchecked")
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId);
+        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
 
         final var newArtifact = new CreateArtifact();
         newArtifact.setArtifactId(artifactId);
@@ -116,12 +110,12 @@ public class ArtifactCreateCommand extends AbstractCommand {
         }
         if (labels != null) {
             final var newLabels = new Labels();
-            newLabels.setAdditionalData((Map<String, Object>) (Map<String, ?>) labels);
+            newLabels.setAdditionalData(new HashMap<>(labels));
             newArtifact.setLabels(newLabels);
         }
 
         if (!isBlank(file)) {
-            final var content = readContent(file);
+            final var content = FileUtils.readContent(file);
             final var firstVersion = new CreateVersion();
             if (!isBlank(version)) {
                 firstVersion.setVersion(version);
@@ -134,7 +128,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
         }
 
         try {
-            final var result = Client.getInstance().getRegistryClient()
+            final var result = client.getRegistryClient()
                     .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);
             //noinspection ConstantConditions
             final var artifact = convert(result.getArtifact());
@@ -154,19 +148,6 @@ public class ArtifactCreateCommand extends AbstractCommand {
                         .append('\n');
             });
             exitQuietServerError();
-        }
-    }
-
-    // Reads content from a file path or stdin (when path is "-").
-    private static String readContent(final String file) {
-        try {
-            if ("-".equals(file)) {
-                return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
-            } else {
-                return Files.readString(Path.of(file));
-            }
-        } catch (IOException ex) {
-            throw new CliException("Could not read content from: " + file, ex, APPLICATION_ERROR_RETURN_CODE);
         }
     }
 

@@ -1,7 +1,7 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
 import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.PartitionSpec;
@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Tag(Constants.ICEBERG)
+@Tag(ICEBERG)
 @QuarkusIntegrationTest
 class IcebergCatalogIT extends ApicurioRegistryBaseIT {
 

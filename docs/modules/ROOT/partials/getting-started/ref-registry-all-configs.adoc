@@ -1193,7 +1193,7 @@ The following {registry} configuration options are available for each component 
 |Maximum time to wait for changes to settle before forcing a load. Prevents indefinite delay when changes keep arriving. Set to PT0S for no maximum. _(experimental)_
 |`apicurio.polling-storage.debounce.quiet-period`
 |`duration`
-|`PT30S`
+|`PT3S`
 |`3.2.0`
 |After detecting a change, wait until no new changes are seen for this duration before loading data. Absorbs rapid successive pushes. Set to PT0S to disable debouncing. _(experimental)_
 |`apicurio.polling-storage.deterministic-ids-enabled`

@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 /**
  * Register artifacts against registry.
  */
-@Mojo(name = "register")
+@Mojo(name = "register", requiresProject = false)
 public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     /**
@@ -64,11 +64,14 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     private RegisterArtifact.AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy;
 
     DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl(true);
+    private static final String ARTIFACTS_PROPERTY_PREFIX = "artifacts.";
 
     /**
      * Validate the configuration.
      */
     protected boolean validate() throws MojoExecutionException {
+        loadArtifactsFromSystemPropertiesIfNeeded();
+
         if (skip) {
             getLog().info("register is skipped.");
             return false;
@@ -117,6 +120,155 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     "Invalid configuration of the Register Artifact(s) mojo. See the output log for details.");
         }
         return true;
+    }
+
+    private void loadArtifactsFromSystemPropertiesIfNeeded() throws MojoExecutionException {
+        if (artifacts != null && !artifacts.isEmpty()) {
+            return;
+        }
+        List<RegisterArtifact> cliArtifacts = parseArtifactsFromSystemProperties();
+        if (!cliArtifacts.isEmpty()) {
+            artifacts = cliArtifacts;
+            getLog().info("Loaded artifact configuration from system properties (artifacts.<index>.<field>).");
+        }
+    }
+
+    private static List<RegisterArtifact> parseArtifactsFromSystemProperties() throws MojoExecutionException {
+        Map<Integer, RegisterArtifact> artifactsByIndex = new TreeMap<>();
+
+        for (String key : System.getProperties().stringPropertyNames()) {
+            ParsedArtifactProperty parsedProperty = parseArtifactPropertyKey(key);
+            if (parsedProperty == null) {
+                continue;
+            }
+
+            String value = System.getProperty(key);
+
+            RegisterArtifact artifact = artifactsByIndex.computeIfAbsent(parsedProperty.index,
+                    idx -> new RegisterArtifact());
+            applyCliArtifactField(artifact, parsedProperty.field, value, key);
+        }
+
+        return new ArrayList<>(artifactsByIndex.values());
+    }
+
+    private static ParsedArtifactProperty parseArtifactPropertyKey(String key) throws MojoExecutionException {
+        if (!key.startsWith(ARTIFACTS_PROPERTY_PREFIX)) {
+            return null;
+        }
+
+        String remainder = key.substring(ARTIFACTS_PROPERTY_PREFIX.length());
+        if (remainder.isEmpty()) {
+            return null;
+        }
+
+        int firstDotIdx = remainder.indexOf('.');
+        if (firstDotIdx == -1) {
+            return new ParsedArtifactProperty(0, remainder);
+        }
+
+        String firstSegment = remainder.substring(0, firstDotIdx);
+        String field = remainder.substring(firstDotIdx + 1);
+        if (field.isEmpty()) {
+            return null;
+        }
+
+        if (isAllDigits(firstSegment)) {
+            return new ParsedArtifactProperty(Integer.parseInt(firstSegment), field);
+        }
+
+        return new ParsedArtifactProperty(0, remainder);
+    }
+
+    private static boolean isAllDigits(String value) {
+        for (int idx = 0; idx < value.length(); idx++) {
+            if (!Character.isDigit(value.charAt(idx))) {
+                return false;
+            }
+        }
+        return !value.isEmpty();
+    }
+
+    private static final class ParsedArtifactProperty {
+        private final int index;
+        private final String field;
+
+        private ParsedArtifactProperty(int index, String field) {
+            this.index = index;
+            this.field = field;
+        }
+    }
+
+    private static void applyCliArtifactField(RegisterArtifact artifact, String field, String value, String propertyKey)
+            throws MojoExecutionException {
+        switch (field) {
+            case "groupId":
+                artifact.setGroupId(value);
+                break;
+            case "artifactId":
+                artifact.setArtifactId(value);
+                break;
+            case "artifactType":
+                artifact.setArtifactType(value);
+                break;
+            case "file":
+                artifact.setFile(value == null ? null : new File(value));
+                break;
+            case "ifExists":
+                artifact.setIfExists(parseIfExists(value, propertyKey));
+                break;
+            case "canonicalize":
+                artifact.setCanonicalize(Boolean.valueOf(value));
+                break;
+            case "minify":
+                artifact.setMinify(Boolean.valueOf(value));
+                break;
+            case "autoRefs":
+                artifact.setAutoRefs(Boolean.valueOf(value));
+                break;
+            case "isDraft":
+                artifact.setIsDraft(Boolean.valueOf(value));
+                break;
+            case "contentType":
+                artifact.setContentType(value);
+                break;
+            case "version":
+                artifact.setVersion(value);
+                break;
+            case "avroAutoRefsNamingStrategy":
+                try {
+                    artifact.setAvroAutoRefsNamingStrategy(RegisterArtifact.AvroAutoRefsNamingStrategy.valueOf(value));
+                } catch (IllegalArgumentException e) {
+                    throw new MojoExecutionException("Invalid value for " + propertyKey + ": " + value
+                            + ". Allowed values are: "
+                            + Arrays.toString(RegisterArtifact.AvroAutoRefsNamingStrategy.values()));
+                }
+                break;
+            default:
+                throw new MojoExecutionException("Unsupported CLI property for artifact configuration: "
+                        + propertyKey + ". Supported fields include groupId, artifactId, artifactType, file, ifExists, "
+                        + "canonicalize, minify, autoRefs, isDraft, contentType, version, avroAutoRefsNamingStrategy.");
+        }
+    }
+
+    private static io.apicurio.registry.rest.v3.beans.IfArtifactExists parseIfExists(String value, String propertyKey)
+            throws MojoExecutionException {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return io.apicurio.registry.rest.v3.beans.IfArtifactExists.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            for (io.apicurio.registry.rest.v3.beans.IfArtifactExists candidate
+                    : io.apicurio.registry.rest.v3.beans.IfArtifactExists.values()) {
+                if (candidate.value().equalsIgnoreCase(value)) {
+                    return candidate;
+                }
+            }
+            throw new MojoExecutionException("Invalid value for " + propertyKey + ": " + value
+                    + ". Allowed values are: "
+                    + Arrays.toString(io.apicurio.registry.rest.v3.beans.IfArtifactExists.values()));
+        }
     }
 
     @Override

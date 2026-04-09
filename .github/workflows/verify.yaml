@@ -153,13 +153,3 @@ jobs:
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
-
-  # ============================================================================
-  # PHASE 10: Trigger Downstream (only on push to main)
-  # ============================================================================
-  trigger-3scale-deploy:
-    name: Trigger 3scale Deploy
-    needs: publish
-    if: github.event_name == 'push'
-    uses: apicurio/apicurio-3scale-gitops/.github/workflows/deploy_latest_registry.yml@main
-    secrets: inherit

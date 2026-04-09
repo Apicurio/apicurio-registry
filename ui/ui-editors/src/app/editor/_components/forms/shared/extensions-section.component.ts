@@ -29,7 +29,7 @@ import {AbstractBaseComponent} from "../../common/base-component";
 import {DocumentService} from "../../../_services/document.service";
 import {SelectionService} from "../../../_services/selection.service";
 import {RenameEntityDialogComponent, RenameEntityEvent} from "../../dialogs/rename-entity.component";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../../../_util/object.util";
 import {ModelUtils} from "../../../_util/model.util";
 import {AddExtensionDialogComponent} from "../../dialogs/add-extension.component";
 import {ComponentType} from "../../../_models/component-type.model";

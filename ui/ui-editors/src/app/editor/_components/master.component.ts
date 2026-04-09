@@ -62,7 +62,7 @@ import {AbstractBaseComponent} from "./common/base-component";
 import {DocumentService} from "../_services/document.service";
 import {RenameEntityDialogComponent, RenameEntityEvent} from "./dialogs/rename-entity.component";
 import {KeypressUtils} from "../_util/keypress.util";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../_util/object.util";
 import {IResponseEditorHandler, ResponseData, ResponseEditorComponent} from "./editors/response-editor.component";
 import {FindResponseDefinitionsVisitor} from "../_visitors/response-definitions.visitor";
 import {CloneResponseDefinitionDialogComponent} from "./dialogs/clone-response-definition.component";

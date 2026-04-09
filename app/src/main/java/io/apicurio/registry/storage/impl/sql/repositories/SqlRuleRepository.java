@@ -21,9 +21,7 @@ import io.apicurio.registry.events.GroupRuleConfigured;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.sql.ResultSet;
@@ -38,34 +36,25 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  * Includes artifact rules, group rules, and global rules.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlRuleRepository {
 
-    @Inject
-    Logger log;
+    private final Logger log;
+    private final SqlStatements sqlStatements;
+    private final HandleFactory handles;
+    private final Event<SqlOutboxEvent> outboxEvent;
+    private final SqlArtifactRepository artifactRepository;
+    private final SqlGroupRepository groupRepository;
 
-    @Inject
-    SqlStatements sqlStatements;
-
-    @Inject
-    HandleFactory handles;
-
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlRuleRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            Event<SqlOutboxEvent> outboxEvent, SqlArtifactRepository artifactRepository,
+            SqlGroupRepository groupRepository) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.outboxEvent = outboxEvent;
+        this.artifactRepository = artifactRepository;
+        this.groupRepository = groupRepository;
     }
-
-    @Inject
-    Event<SqlOutboxEvent> outboxEvent;
-
-    @Inject
-    SqlArtifactRepository artifactRepository;
-
-    @Inject
-    SqlGroupRepository groupRepository;
 
     // ==================== ARTIFACT RULES ====================
 

@@ -2,14 +2,14 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.cdi.Raw;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.decorator.RegistryStorageProxyFactory;
 import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.kubernetesops.KubernetesOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
-import io.apicurio.registry.cdi.Current;
-import io.apicurio.registry.cdi.Raw;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;

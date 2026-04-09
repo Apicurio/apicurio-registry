@@ -56,6 +56,12 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
     @Override
     public void testPlanExecutionStarted(TestPlan testPlan) {
+        // Set quarkus.args for iceberg before Quarkus starts (must be a system property, read by the framework)
+        if (Constants.isGroupActive(Constants.ICEBERG)) {
+            System.setProperty("quarkus.args",
+                    "-Dapicurio.features.experimental.enabled=true -Dapicurio.iceberg.enabled=true");
+        }
+
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
             kubernetesClient = new KubernetesClientBuilder().build();
@@ -105,53 +111,48 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         kubernetesClient.load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE)).serverSideApply();
 
         // Based on the configuration, deploy the appropriate variant
+        String registryImage = System.getProperty("registry-image");
         if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
             LOGGER.info(
                     "Deploying In Memory Registry Variant with image: {} ##################################################",
-                    System.getProperty("registry-in-memory-image"));
-            InMemoryDeploymentManager.deployInMemoryApp(System.getProperty("registry-in-memory-image"));
+                    registryImage);
+            InMemoryDeploymentManager.deployInMemoryApp(registryImage);
             testLogsIdentifier = "apicurio-registry-memory";
         } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
             LOGGER.info(
                     "Deploying SQL Registry Variant with image: {} ##################################################",
-                    System.getProperty("registry-sql-image"));
-            SqlDeploymentManager.deploySqlApp(System.getProperty("registry-sql-image"));
+                    registryImage);
+            SqlDeploymentManager.deploySqlApp(registryImage);
             testLogsIdentifier = "apicurio-registry-sql";
         } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
             LOGGER.info(
                     "Deploying Kafka SQL Registry Variant with image: {} ##################################################",
-                    System.getProperty("registry-kafkasql-image"));
-            KafkaSqlDeploymentManager.deployKafkaApp(System.getProperty("registry-kafkasql-image"));
+                    registryImage);
+            KafkaSqlDeploymentManager.deployKafkaApp(registryImage);
             testLogsIdentifier = "apicurio-registry-kafka";
         } else if (Boolean.parseBoolean(System.getProperty("deployKubernetesOps"))) {
             LOGGER.info(
                     "Deploying KubernetesOps Registry Variant with image: {} ##################################################",
-                    System.getProperty("registry-kubernetesops-image"));
-            KubernetesOpsDeploymentManager.deployKubernetesOpsApp(System.getProperty("registry-kubernetesops-image"));
+                    registryImage);
+            KubernetesOpsDeploymentManager.deployKubernetesOpsApp(registryImage);
             testLogsIdentifier = "apicurio-registry-kubernetesops";
         }
 
-        // Deploy ALL Debezium infrastructure if requested (optimized for CI)
-        // This deploys everything once: Kafka + PostgreSQL + MySQL + both Debezium Connect variants
-        if (Boolean.parseBoolean(System.getProperty("deployAllDebezium"))) {
-            LOGGER.info(
-                    "Deploying ALL Debezium infrastructure (PostgreSQL + MySQL + both converter types) ##################################################");
+        // Deploy Debezium infrastructure based on active test groups.
+        // When all debezium groups are active, deploy everything at once (CI optimization).
+        // Otherwise, deploy only the infrastructure needed for the specific group.
+        boolean hasPostgres = Constants.isGroupActive(Constants.DEBEZIUM) || Constants.isGroupActive(Constants.DEBEZIUM_SNAPSHOT);
+        boolean hasMySQL = Constants.isGroupActive(Constants.DEBEZIUM_MYSQL) || Constants.isGroupActive(Constants.DEBEZIUM_MYSQL_SNAPSHOT);
+        boolean useLocalConverters = Constants.isGroupActive(Constants.DEBEZIUM_SNAPSHOT) || Constants.isGroupActive(Constants.DEBEZIUM_MYSQL_SNAPSHOT);
+
+        if (hasPostgres && hasMySQL) {
+            LOGGER.info("Deploying ALL Debezium infrastructure ##################################################");
             DebeziumDeploymentManager.deployAllDebeziumInfra();
-        }
-        // Deploy Debezium infrastructure if requested (for Debezium integration tests)
-        // Note: With idempotent deployment, multiple calls will reuse already-deployed infrastructure
-        else if (Boolean.parseBoolean(System.getProperty("deployDebezium"))) {
-            LOGGER.info(
-                    "Deploying Debezium PostgreSQL infrastructure ##################################################");
-            boolean useLocalConverters = Boolean.parseBoolean(System.getProperty("deployDebeziumLocalConverters"));
+        } else if (hasPostgres) {
+            LOGGER.info("Deploying Debezium PostgreSQL infrastructure ##################################################");
             DebeziumDeploymentManager.deployDebeziumInfra(useLocalConverters);
-        }
-        // Deploy Debezium MySQL infrastructure if requested (for MySQL Debezium integration tests)
-        // Note: With idempotent deployment, multiple calls will reuse already-deployed infrastructure
-        else if (Boolean.parseBoolean(System.getProperty("deployDebeziumMySQL"))) {
-            LOGGER.info(
-                    "Deploying Debezium MySQL infrastructure ##################################################");
-            boolean useLocalConverters = Boolean.parseBoolean(System.getProperty("deployDebeziumLocalConverters"));
+        } else if (hasMySQL) {
+            LOGGER.info("Deploying Debezium MySQL infrastructure ##################################################");
             DebeziumDeploymentManager.deployDebeziumMySQLInfra(useLocalConverters);
         }
     }
@@ -199,8 +200,8 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     static void setupTestNetworking() {
-        // For openshift, a route to the application is created we use it to set up the networking needs.
-        if (Boolean.parseBoolean(System.getProperty("openshift.resources"))) {
+        // For openshift, a route to the application is created and used for networking.
+        if (Constants.isGroupActive("openshift")) {
 
             OpenShiftClient openShiftClient = new DefaultOpenShiftClient();
 

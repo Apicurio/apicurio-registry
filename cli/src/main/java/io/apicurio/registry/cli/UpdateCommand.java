@@ -4,8 +4,7 @@ import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.jboss.logging.Logger;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.ParentCommand;
@@ -24,7 +23,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 )
 public class UpdateCommand extends AbstractCommand {
 
-    private static final Logger log = LogManager.getRootLogger();
+    private static final Logger log = Logger.getLogger(UpdateCommand.class);
 
     @Option(
             names = {"--path"},
@@ -40,10 +39,14 @@ public class UpdateCommand extends AbstractCommand {
     @Override
     public void run(OutputBuffer output) throws Exception {
         var home = System.getenv("ACR_HOME");
-        log.debug("ACR_HOME={}", home);
+        log.debugf("ACR_HOME=%s", home);
+        if (isBlank(home)) {
+            throw new CliException("ACR_HOME is not set. " +
+                    "Please run the 'install' command first.");
+        }
         var homePath = Path.of(home).normalize().toAbsolutePath();
-        if (isBlank(home) || !Files.exists((homePath))) {
-            throw new CliException("ACR_HOME is not set or the directory does not exist. " +
+        if (!Files.exists(homePath)) {
+            throw new CliException("ACR_HOME directory does not exist: " + homePath + ". " +
                     "Please run the 'install' command first.");
         }
 
@@ -60,14 +63,14 @@ public class UpdateCommand extends AbstractCommand {
                 // TODO: This should work, but disable it until we have released the CLI to Maven Central at least once.
                 throw new UnsupportedOperationException("Automatic updates are not yet supported.");
                 /*
-                var latestVersion = Update.getInstance().getLatestVersion();
+                var latestVersion = update.getLatestVersion();
                 // We need to coerce because the version might be non-standard, e.g. 3.1.7.redhat-00001. We'll lose the suffix.
                 if (Semver.parse(ConfigProvider.getConfig().getValue("version", String.class))
                         .isGreaterThanOrEqualTo(Semver.coerce(latestVersion))) {
                     throw new CliException("You are already running the latest version.");
                 }
 
-                zipFilePath = Update.getInstance().downloadVersion(latestVersion, targetDir);
+                zipFilePath = update.downloadVersion(latestVersion, targetDir);
                 */
             }
 
@@ -79,7 +82,7 @@ public class UpdateCommand extends AbstractCommand {
             if (!acrPath.toFile().setExecutable(true, false)) {
                 throw new CliException("Failed to set executable permission on " + acrPath);
             }
-            log.debug("Running subprocess: {}", acrPath);
+            log.debugf("Running subprocess: %s", acrPath);
             var cmd = new ArrayList<String>(3);
             cmd.add(acrPath.toString());
             cmd.add("install");
@@ -90,7 +93,7 @@ public class UpdateCommand extends AbstractCommand {
             processBuilder.inheritIO(); // Pipe subprocess output to current process
             Process process = processBuilder.start();
             int exitCode = process.waitFor();
-            log.debug("Subprocess exited with code: {}", exitCode);
+            log.debugf("Subprocess exited with code: %s", exitCode);
             if (exitCode != 0) {
                 throw new CliException("Update failed with exit code: " + exitCode, exitCode);
             }

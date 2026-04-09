@@ -26,6 +26,8 @@ public class ArtifactTypeToContentType {
             return ContentTypes.APPLICATION_XML;
         } else if (ArtifactType.GRAPHQL.equals(artifactType)) {
             return ContentTypes.APPLICATION_GRAPHQL;
+        } else if (ArtifactType.OPENRPC.equals(artifactType)) {
+            return ContentTypes.APPLICATION_JSON;
         }
         throw new IllegalArgumentException("Artifact type not supported: " + artifactType);
     }

@@ -8,8 +8,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>apicurio-registry-schema-validation-jsonschema</artifactId>
-  <name>apicurio-registry-schema-validation-jsonschema</name>
+  <artifactId>apicurio-registry-schema-validation-common</artifactId>
+  <name>apicurio-registry-schema-validation-common</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
@@ -18,26 +18,7 @@
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-schema-validation-common</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-resolver</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.networknt</groupId>
-      <artifactId>json-schema-validator</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.json</groupId>
-      <artifactId>json</artifactId>
-    </dependency>
-
-    <!-- Test dependencies -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 

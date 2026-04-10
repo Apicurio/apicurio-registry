@@ -8,15 +8,25 @@ import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.TypeElement;
 import io.apicurio.registry.protobuf.ProtobufDifference;
 import io.apicurio.registry.protobuf.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
-import io.apicurio.registry.resolver.*;
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaLookupResult;
+import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import io.apicurio.schema.validation.ErrorMessageExtractor;
+import io.apicurio.schema.validation.SchemaValidationRecord;
+import io.apicurio.schema.validation.ValidationError;
+import io.apicurio.schema.validation.ValidationResult;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -56,18 +66,18 @@ public class ProtobufValidator {
      * The Protobuf Schema will be fetched from Apicurio Registry using the {@link ArtifactReference} provided in the constructor, this artifact must exist in the registry.
      *
      * @param bean , the object that will be validated against the Protobuf Schema, must implement {@link Message}.
-     * @return ProtobufValidationResult
+     * @return ValidationResult
      */
-    public ProtobufValidationResult validateByArtifactReference(Message bean) {
+    public ValidationResult validateByArtifactReference(Message bean) {
         Objects.requireNonNull(this.artifactReference,
                 "ArtifactReference must be provided when creating JsonValidator in order to use this feature");
         try {
             SchemaLookupResult<ProtobufSchema> schema = this.schemaResolver.resolveSchemaByArtifactReference(
                     this.artifactReference);
-            return validate(schema.getParsedSchema(), new ProtobufRecord(bean, null));
+            return validate(schema.getParsedSchema(), new SchemaValidationRecord<>(bean, null));
         } catch (Exception e) {
-            return ProtobufValidationResult.fromErrors(List.of(
-                new ValidationError("Failed to resolve schema from registry: " + extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
+            return ValidationResult.fromErrors(List.of(
+                new ValidationError("Failed to resolve schema from registry: " + ErrorMessageExtractor.extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
             ));
         }
     }
@@ -75,28 +85,28 @@ public class ProtobufValidator {
     /**
      * Validates the payload of the provided Record against a Protobuf Schema.
      * This method will resolve the schema based on the configuration provided in the constructor. See {@link SchemaResolverConfig} for configuration options and features of {@link SchemaResolver}.
-     * You can use {@link ProtobufRecord} as the implementation for the provided record or you can use an implementation of your own.
+     * You can use {@link SchemaValidationRecord} as the implementation for the provided record or you can use an implementation of your own.
      * Opposite to validateArtifactByReference this method allow to dynamically use a different schema for validating each record.
      *
      * @param record , the record used to resolve the schema used for validation and to provide the payload to validate.
-     * @return ProtobufValidationResult
+     * @return ValidationResult
      */
-    public ProtobufValidationResult validate(Record<Message> record) {
+    public ValidationResult validate(Record<Message> record) {
         try {
             SchemaLookupResult<ProtobufSchema> schema = this.schemaResolver.resolveSchema(record);
             return validate(schema.getParsedSchema(), record);
         } catch (Exception e) {
-            return ProtobufValidationResult.fromErrors(List.of(
-                new ValidationError("Failed to resolve schema from registry: " + extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
+            return ValidationResult.fromErrors(List.of(
+                new ValidationError("Failed to resolve schema from registry: " + ErrorMessageExtractor.extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
             ));
         }
     }
 
-    protected ProtobufValidationResult validate(ParsedSchema<ProtobufSchema> schema, Record<Message> record) {
+    protected ValidationResult validate(ParsedSchema<ProtobufSchema> schema, Record<Message> record) {
         if (schema.getParsedSchema() != null && schema.getParsedSchema().getFileDescriptor()
                 .findMessageTypeByName(record.payload().getDescriptorForType().getName()) == null) {
 
-            return ProtobufValidationResult.fromErrors(List.of(new ValidationError(
+            return ValidationResult.fromErrors(List.of(new ValidationError(
                     "Missing message type " + record.payload().getDescriptorForType().getName()
                             + " in the protobuf schema", "")));
         }
@@ -105,10 +115,10 @@ public class ProtobufValidator {
         if (!diffs.isEmpty()) {
             List<ValidationError> validationErrors = new ArrayList<>();
             diffs.forEach(diff -> validationErrors.add(new ValidationError(diff.getMessage(), "")));
-            return ProtobufValidationResult.fromErrors(validationErrors);
+            return ValidationResult.fromErrors(validationErrors);
         }
 
-        return ProtobufValidationResult.SUCCESS;
+        return ValidationResult.successful();
     }
 
     private List<ProtobufDifference> validate(ParsedSchema<ProtobufSchema> schemaFromRegistry, Message data) {
@@ -193,38 +203,4 @@ public class ProtobufValidator {
         return type.substring(1);
     }
 
-    private String extractErrorMessage(Exception e) {
-        StringBuilder errorMessage = new StringBuilder();
-
-        // Start with the exception type and message
-        errorMessage.append(e.getClass().getSimpleName());
-        String message = getDetailedMessage(e);
-        if (message != null && !message.isEmpty()) {
-            errorMessage.append(": ").append(message);
-        }
-
-        // Add cause chain for more context
-        Throwable cause = e.getCause();
-        while (cause != null) {
-            errorMessage.append(" | Caused by: ").append(cause.getClass().getSimpleName());
-            String causeMessage = getDetailedMessage(cause);
-            if (causeMessage != null && !causeMessage.isEmpty()) {
-                errorMessage.append(": ").append(causeMessage);
-            }
-            cause = cause.getCause();
-        }
-
-        return errorMessage.toString();
-    }
-
-    private String getDetailedMessage(Throwable throwable) {
-        // Special handling for ProblemDetails from Apicurio Registry REST client
-        if (throwable instanceof ProblemDetails) {
-            String detail = ((ProblemDetails) throwable).getDetail();
-            if (detail != null && !detail.isEmpty()) {
-                return detail;
-            }
-        }
-        return throwable.getMessage();
-    }
 }

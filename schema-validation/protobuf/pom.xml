@@ -18,6 +18,10 @@
   <dependencies>
     <dependency>
       <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-validation-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-resolver</artifactId>
     </dependency>
     <dependency>

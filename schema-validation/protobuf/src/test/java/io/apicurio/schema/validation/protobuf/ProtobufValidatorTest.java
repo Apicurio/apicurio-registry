@@ -5,6 +5,8 @@ import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import io.apicurio.schema.validation.SchemaValidationRecord;
+import io.apicurio.schema.validation.ValidationResult;
 import io.apicurio.schema.validation.protobuf.ref.MessageExample2OuterClass.MessageExample2;
 import io.apicurio.schema.validation.protobuf.ref.MessageExampleOuterClass.MessageExample;
 import io.apicurio.schema.validation.protobuf.ref.AddressOuterClass.Address;
@@ -37,9 +39,9 @@ public class ProtobufValidatorTest {
         ParsedSchemaImpl<ProtobufSchema> ps = new ParsedSchemaImpl<ProtobufSchema>().setParsedSchema(
                 protobufSchema).setRawSchema(schemaBytes);
 
-        Record protobufRecord = new ProtobufRecord(messageExample, null);
+        Record protobufRecord = new SchemaValidationRecord<>(messageExample, null);
 
-        final ProtobufValidationResult result = validator.validate(ps, protobufRecord);
+        final ValidationResult result = validator.validate(ps, protobufRecord);
 
         assertTrue(result.success());
     }
@@ -59,9 +61,9 @@ public class ProtobufValidatorTest {
         ParsedSchemaImpl<ProtobufSchema> ps = new ParsedSchemaImpl<ProtobufSchema>().setParsedSchema(
                 protobufSchema).setRawSchema(schemaBytes);
 
-        Record protobufRecord = new ProtobufRecord(messageExample, null);
+        Record protobufRecord = new SchemaValidationRecord<>(messageExample, null);
 
-        final ProtobufValidationResult result = validator.validate(ps, protobufRecord);
+        final ValidationResult result = validator.validate(ps, protobufRecord);
 
         assertFalse(result.success());
         assertNotNull(result.getValidationErrors());
@@ -100,8 +102,8 @@ public class ProtobufValidatorTest {
                 .setAddress(address)
                 .build();
 
-        Record protobufRecord = new ProtobufRecord(person, null);
-        final ProtobufValidationResult result = validator.validate(ps, protobufRecord);
+        Record protobufRecord = new SchemaValidationRecord<>(person, null);
+        final ValidationResult result = validator.validate(ps, protobufRecord);
 
         assertTrue(result.success());
     }
@@ -135,8 +137,8 @@ public class ProtobufValidatorTest {
                 .setValue2(42)
                 .build();
 
-        Record protobufRecord = new ProtobufRecord(wrongMessage, null);
-        final ProtobufValidationResult result = validator.validate(ps, protobufRecord);
+        Record protobufRecord = new SchemaValidationRecord<>(wrongMessage, null);
+        final ValidationResult result = validator.validate(ps, protobufRecord);
 
         assertFalse(result.success());
         assertNotNull(result.getValidationErrors());

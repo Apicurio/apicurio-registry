@@ -14,31 +14,26 @@
  * limitations under the License.
  */
 
-package io.apicurio.schema.validation.json;
+package io.apicurio.schema.validation;
 
-import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.data.Metadata;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
 /**
  * @author Fabian Martinez
  */
-public class JsonRecord implements Record<Object> {
+public class SchemaValidationMetadata implements Metadata {
 
-    private final Object payload;
-    private final JsonMetadata metadata;
+    private final ArtifactReference artifactReference;
 
-    public JsonRecord(Object payload, JsonMetadata metadata) {
-        this.payload = payload;
-        this.metadata = metadata;
+    public SchemaValidationMetadata(
+            ArtifactReference artifactReference) {
+        this.artifactReference = artifactReference;
     }
 
     @Override
-    public JsonMetadata metadata() {
-        return this.metadata;
-    }
-
-    @Override
-    public Object payload() {
-        return this.payload;
+    public ArtifactReference artifactReference() {
+        return this.artifactReference;
     }
 
 }

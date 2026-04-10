@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-package io.apicurio.schema.validation.avro;
+package io.apicurio.schema.validation;
 
+/**
+ * @author Fabian Martinez
+ */
 public class ValidationError {
 
     private String description;
@@ -48,7 +51,8 @@ public class ValidationError {
 
     @Override
     public String toString() {
-        return "{context=" + context + ", description=" + description + "}";
+        return "{context=" + context
+                + ", description=" + description + "}";
     }
 
 }

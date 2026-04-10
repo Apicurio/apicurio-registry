@@ -14,23 +14,25 @@
  * limitations under the License.
  */
 
-package io.apicurio.schema.validation.json;
+package io.apicurio.schema.validation;
 
 import java.util.List;
 
 /**
  * @author Fabian Martinez
  */
-public class JsonValidationResult {
+public class ValidationResult {
 
-    protected static final JsonValidationResult SUCCESS = successful();
+    protected static final ValidationResult SUCCESS = successful();
 
     private boolean success;
     private List<ValidationError> validationErrors;
 
-    private JsonValidationResult(List<ValidationError> validationErrors) {
+    private ValidationResult(
+            List<ValidationError> validationErrors) {
         this.validationErrors = validationErrors;
-        this.success = this.validationErrors == null || this.validationErrors.isEmpty();
+        this.success = this.validationErrors == null
+                || this.validationErrors.isEmpty();
     }
 
     public boolean success() {
@@ -44,18 +46,20 @@ public class JsonValidationResult {
     @Override
     public String toString() {
         if (this.success) {
-            return "JsonValidationResult [ success ]";
+            return "ValidationResult [ success ]";
         } else {
-            return "JsonValidationResult [ errors = " + validationErrors.toString() + " ]";
+            return "ValidationResult [ errors = "
+                    + validationErrors.toString() + " ]";
         }
     }
 
-    public static JsonValidationResult fromErrors(List<ValidationError> errors) {
-        return new JsonValidationResult(errors);
+    public static ValidationResult fromErrors(
+            List<ValidationError> errors) {
+        return new ValidationResult(errors);
     }
 
-    public static JsonValidationResult successful() {
-        return new JsonValidationResult(null);
+    public static ValidationResult successful() {
+        return new ValidationResult(null);
     }
 
 }

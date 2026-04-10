@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 Red Hat
+ * Copyright 2022 Red Hat
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,32 @@
  * limitations under the License.
  */
 
-package io.apicurio.schema.validation.avro;
+package io.apicurio.schema.validation;
 
 import io.apicurio.registry.resolver.data.Record;
-import org.apache.avro.generic.GenericRecord;
 
-public class AvroRecord implements Record<GenericRecord> {
+/**
+ * @author Fabian Martinez
+ */
+public class SchemaValidationRecord<T>
+        implements Record<T> {
 
-    private final GenericRecord payload;
-    private final AvroMetadata metadata;
+    private final T payload;
+    private final SchemaValidationMetadata metadata;
 
-    public AvroRecord(GenericRecord payload, AvroMetadata metadata) {
+    public SchemaValidationRecord(T payload,
+            SchemaValidationMetadata metadata) {
         this.payload = payload;
         this.metadata = metadata;
     }
 
     @Override
-    public AvroMetadata metadata() {
+    public SchemaValidationMetadata metadata() {
         return this.metadata;
     }
 
     @Override
-    public GenericRecord payload() {
+    public T payload() {
         return this.payload;
     }
 

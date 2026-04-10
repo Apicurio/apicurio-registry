@@ -22,7 +22,9 @@ import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.schema.validation.ErrorMessageExtractor;
+import io.apicurio.schema.validation.ValidationError;
+import io.apicurio.schema.validation.ValidationResult;
 import org.apache.avro.AvroTypeException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -70,17 +72,17 @@ public class AvroValidator {
      * The Avro Schema will be fetched from Apicurio Registry using the {@link ArtifactReference} provided in the constructor, this artifact must exist in the registry.
      *
      * @param record , the GenericRecord that will be validated against the Avro Schema.
-     * @return AvroValidationResult
+     * @return ValidationResult
      */
-    public AvroValidationResult validateByArtifactReference(GenericRecord record) {
+    public ValidationResult validateByArtifactReference(GenericRecord record) {
         Objects.requireNonNull(this.artifactReference,
                 "ArtifactReference must be provided when creating AvroValidator in order to use this feature");
         try {
             SchemaLookupResult<Schema> schema = this.schemaResolver.resolveSchemaByArtifactReference(this.artifactReference);
             return validate(schema.getParsedSchema().getParsedSchema(), record);
         } catch (Exception e) {
-            return AvroValidationResult.fromErrors(List.of(
-                new ValidationError("Failed to resolve schema from registry: " + extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
+            return ValidationResult.fromErrors(List.of(
+                new ValidationError("Failed to resolve schema from registry: " + ErrorMessageExtractor.extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
             ));
         }
     }
@@ -90,17 +92,17 @@ public class AvroValidator {
      * The Avro Schema will be fetched from Apicurio Registry using the {@link ArtifactReference} provided in the constructor, this artifact must exist in the registry.
      *
      * @param json , the JSON string that will be validated against the Avro Schema.
-     * @return AvroValidationResult
+     * @return ValidationResult
      */
-    public AvroValidationResult validateByArtifactReference(String json) {
+    public ValidationResult validateByArtifactReference(String json) {
         Objects.requireNonNull(this.artifactReference,
                 "ArtifactReference must be provided when creating AvroValidator in order to use this feature");
         try {
             SchemaLookupResult<Schema> schema = this.schemaResolver.resolveSchemaByArtifactReference(this.artifactReference);
             return validateJson(schema.getParsedSchema().getParsedSchema(), json);
         } catch (Exception e) {
-            return AvroValidationResult.fromErrors(List.of(
-                new ValidationError("Failed to resolve schema from registry: " + extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
+            return ValidationResult.fromErrors(List.of(
+                new ValidationError("Failed to resolve schema from registry: " + ErrorMessageExtractor.extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
             ));
         }
     }
@@ -108,44 +110,44 @@ public class AvroValidator {
     /**
      * Validates the payload of the provided Record against an Avro Schema.
      * This method will resolve the schema based on the configuration provided in the constructor. See {@link SchemaResolverConfig} for configuration options and features of {@link SchemaResolver}.
-     * You can use {@link AvroRecord} as the implementation for the provided record or you can use an implementation of your own.
+     * You can use {@link io.apicurio.schema.validation.SchemaValidationRecord} as the implementation for the provided record or you can use an implementation of your own.
      * Opposite to {@link AvroValidator#validateByArtifactReference(GenericRecord)} this method allows to dynamically use a different schema for validating each record.
      *
      * @param record , the record used to resolve the schema used for validation and to provide the payload to validate.
-     * @return AvroValidationResult
+     * @return ValidationResult
      */
-    public AvroValidationResult validate(Record<GenericRecord> record) {
+    public ValidationResult validate(Record<GenericRecord> record) {
         try {
             SchemaLookupResult<Schema> schema = this.schemaResolver.resolveSchema(record);
             return validate(schema.getParsedSchema().getParsedSchema(), record.payload());
         } catch (Exception e) {
-            return AvroValidationResult.fromErrors(List.of(
-                new ValidationError("Failed to resolve schema from registry: " + extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
+            return ValidationResult.fromErrors(List.of(
+                new ValidationError("Failed to resolve schema from registry: " + ErrorMessageExtractor.extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
             ));
         }
     }
 
-    protected AvroValidationResult validate(Schema schema, GenericRecord record) {
+    protected ValidationResult validate(Schema schema, GenericRecord record) {
         List<ValidationError> errors = new ArrayList<>();
         validateRecord(schema, record, "", errors);
         if (!errors.isEmpty()) {
-            return AvroValidationResult.fromErrors(errors);
+            return ValidationResult.fromErrors(errors);
         }
-        return AvroValidationResult.SUCCESS;
+        return ValidationResult.successful();
     }
 
-    protected AvroValidationResult validateJson(Schema schema, String json) {
+    protected ValidationResult validateJson(Schema schema, String json) {
         try {
             JsonDecoder decoder = DecoderFactory.get().jsonDecoder(schema, json);
             DatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
             reader.read(null, decoder);
-            return AvroValidationResult.SUCCESS;
+            return ValidationResult.successful();
         } catch (AvroTypeException e) {
-            return AvroValidationResult.fromErrors(List.of(
+            return ValidationResult.fromErrors(List.of(
                 new ValidationError(e.getMessage(), "TYPE_ERROR")
             ));
         } catch (Exception e) {
-            return AvroValidationResult.fromErrors(List.of(
+            return ValidationResult.fromErrors(List.of(
                 new ValidationError(e.getMessage(), "VALIDATION_ERROR")
             ));
         }
@@ -249,38 +251,6 @@ public class AvroValidator {
             return schema.getTypes().stream().anyMatch(s -> s.getType() == Schema.Type.NULL);
         }
         return false;
-    }
-
-    private String extractErrorMessage(Exception e) {
-        StringBuilder errorMessage = new StringBuilder();
-
-        errorMessage.append(e.getClass().getSimpleName());
-        String message = getDetailedMessage(e);
-        if (message != null && !message.isEmpty()) {
-            errorMessage.append(": ").append(message);
-        }
-
-        Throwable cause = e.getCause();
-        while (cause != null) {
-            errorMessage.append(" | Caused by: ").append(cause.getClass().getSimpleName());
-            String causeMessage = getDetailedMessage(cause);
-            if (causeMessage != null && !causeMessage.isEmpty()) {
-                errorMessage.append(": ").append(causeMessage);
-            }
-            cause = cause.getCause();
-        }
-
-        return errorMessage.toString();
-    }
-
-    private String getDetailedMessage(Throwable throwable) {
-        if (throwable instanceof ProblemDetails) {
-            String detail = ((ProblemDetails) throwable).getDetail();
-            if (detail != null && !detail.isEmpty()) {
-                return detail;
-            }
-        }
-        return throwable.getMessage();
     }
 
 }

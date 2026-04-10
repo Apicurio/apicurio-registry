@@ -204,8 +204,16 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @PreDestroy
     void onDestroy() {
         stopped = true;
-        journalConsumer.close();
-        snapshotsConsumer.close();
+        try {
+            journalConsumer.close();
+        } catch (Exception e) {
+            log.debug("Ignoring journal consumer close error during shutdown: {}", e.getMessage());
+        }
+        try {
+            snapshotsConsumer.close();
+        } catch (Exception e) {
+            log.debug("Ignoring snapshots consumer close error during shutdown: {}", e.getMessage());
+        }
     }
 
     /**
@@ -332,9 +340,10 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
             } finally {
                 try {
                     consumer.close();
-                } catch (IllegalStateException e) {
+                } catch (Exception e) {
                     // The CDI container may already be shut down during test profile switches,
-                    // causing the proxy to fail. Safe to ignore during shutdown.
+                    // causing the proxy to fail with a RuntimeException wrapping an
+                    // IllegalStateException. Safe to ignore during shutdown.
                     log.debug("Ignoring consumer close error during shutdown: {}", e.getMessage());
                 }
             }

@@ -64,9 +64,17 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
     // The poll result pending switch (holds the commit action)
     private PollingResult<MARKER> pendingResult = null;
 
+    // Tracks consecutive switch failures for deadlock prevention
+    private int switchRetryCount = 0;
+    private static final int MAX_SWITCH_RETRIES = 3;
+
     // Tracks whether the first successful data load has completed.
     // Used by isReady() to prevent serving empty results before initial data is available.
     private volatile boolean isReady = false;
+
+    // When a watch event arrives while a refresh is in progress (lock held),
+    // this flag ensures we re-poll immediately after the current cycle completes.
+    private volatile boolean watchEventPending = false;
 
     private volatile boolean initialized = false;
     private PollingStorageConfig pollingConfig;
@@ -121,6 +129,14 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
      * <p>
      * This method is thread-safe.
      */
+    /**
+     * Signals that a watch event was received. If the refresh lock is currently held,
+     * this sets a flag so the next refresh cycle re-polls immediately.
+     */
+    protected void onWatchEvent() {
+        watchEventPending = true;
+    }
+
     protected void tryRefresh() {
         if (!initialized) {
             return;
@@ -132,17 +148,32 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
 
                 switch (state) {
                     case READY_TO_SWITCH -> {
-                        doSwitch();
-                        pendingResult.commit();
-                        pendingResult = null;
-                        if (!isReady) {
-                            isReady = true;
-                            log.info("{} initial data load completed, storage is now ready", storageName());
+                        if (doSwitch()) {
+                            switchRetryCount = 0;
+                            pendingResult.commit();
+                            pendingResult = null;
+                            if (!isReady) {
+                                isReady = true;
+                                log.info("{} initial data load completed, storage is now ready", storageName());
+                            }
+                        } else {
+                            switchRetryCount++;
+                            if (switchRetryCount >= MAX_SWITCH_RETRIES) {
+                                log.error("{} failed to acquire write lock after {} attempts, " +
+                                        "discarding pending update to prevent deadlock", storageName(), MAX_SWITCH_RETRIES);
+                                pendingResult = null;
+                                state = State.READY_TO_WRITE;
+                                switchRetryCount = 0;
+                            }
                         }
                     }
                     case READY_TO_WRITE -> {
                         var now = Instant.now();
-                        if (now.isAfter(lastRefresh.plus(pollingConfig.getPollPeriod()))) {
+                        boolean forceRefresh = watchEventPending;
+                        if (forceRefresh) {
+                            watchEventPending = false;
+                        }
+                        if (forceRefresh || now.isAfter(lastRefresh.plus(pollingConfig.getPollPeriod()))) {
                             lastRefresh = now;
                             log.debug("Running {} poll. Active database is {} and state is {}.",
                                     storageName(), active == green ? "green" : "blue", state);
@@ -156,7 +187,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                                     debouncer.reset();
                                 }
                             } catch (Exception e) {
-                                throw new RuntimeException(e);
+                                log.error("{} poll/load failed: {}", storageName(), e.getMessage(), e);
                             }
                         }
                     }
@@ -186,14 +217,16 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                 result.getErrors().forEach(e -> log.error("  - {}", e));
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("{} failed to load data into inactive storage: {}", storageName(), e.getMessage(), e);
         }
     }
 
     /**
      * Atomically swaps the active and inactive databases.
+     *
+     * @return true if the switch was successful, false if the write lock could not be acquired
      */
-    private void doSwitch() {
+    private boolean doSwitch() {
         try {
             if (switchLock.writeLock().tryLock(5, TimeUnit.SECONDS)) {
                 try {
@@ -205,8 +238,10 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                     switchLock.writeLock().unlock();
                     log.info("{} update published", storageName());
                 }
+                return true;
             } else {
                 log.warn("{} could not acquire write lock for switch within 5 seconds, will retry", storageName());
+                return false;
             }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

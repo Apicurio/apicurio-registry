@@ -28,8 +28,8 @@ public class KubernetesOpsTest {
         assertThat(envVars.get(EnvironmentVariables.APICURIO_FEATURES_EXPERIMENTAL_ENABLED).getValue())
                 .isEqualTo("true");
 
-        assertThat(envVars).containsKey(EnvironmentVariables.APICURIO_KUBERNETESOPS_ID);
-        assertThat(envVars.get(EnvironmentVariables.APICURIO_KUBERNETESOPS_ID).getValue())
+        assertThat(envVars).containsKey(EnvironmentVariables.APICURIO_POLLING_STORAGE_ID);
+        assertThat(envVars.get(EnvironmentVariables.APICURIO_POLLING_STORAGE_ID).getValue())
                 .isEqualTo("my-registry");
 
         assertThat(envVars).containsKey(EnvironmentVariables.APICURIO_KUBERNETESOPS_NAMESPACE);
@@ -48,11 +48,11 @@ public class KubernetesOpsTest {
                 .isEqualTo("kubernetesops");
         assertThat(envVars.get(EnvironmentVariables.APICURIO_FEATURES_EXPERIMENTAL_ENABLED).getValue())
                 .isEqualTo("true");
-        assertThat(envVars.get(EnvironmentVariables.APICURIO_KUBERNETESOPS_ID).getValue())
+        assertThat(envVars.get(EnvironmentVariables.APICURIO_POLLING_STORAGE_ID).getValue())
                 .isEqualTo("my-registry");
         assertThat(envVars.get(EnvironmentVariables.APICURIO_KUBERNETESOPS_NAMESPACE).getValue())
                 .isEqualTo("apicurio");
-        assertThat(envVars.get(EnvironmentVariables.APICURIO_KUBERNETESOPS_REFRESH_EVERY).getValue())
+        assertThat(envVars.get(EnvironmentVariables.APICURIO_POLLING_STORAGE_POLL_PERIOD).getValue())
                 .isEqualTo("10s");
         assertThat(envVars.get(EnvironmentVariables.APICURIO_KUBERNETESOPS_LABEL_REGISTRY_ID).getValue())
                 .isEqualTo("custom.label/registry");
@@ -73,12 +73,12 @@ public class KubernetesOpsTest {
                 .isEqualTo("kubernetesops");
         assertThat(envVars.get(EnvironmentVariables.APICURIO_FEATURES_EXPERIMENTAL_ENABLED).getValue())
                 .isEqualTo("true");
-        assertThat(envVars.get(EnvironmentVariables.APICURIO_KUBERNETESOPS_ID).getValue())
+        assertThat(envVars.get(EnvironmentVariables.APICURIO_POLLING_STORAGE_ID).getValue())
                 .isEqualTo("my-registry");
 
         // Optional fields should not be set
         assertThat(envVars).doesNotContainKey(EnvironmentVariables.APICURIO_KUBERNETESOPS_NAMESPACE);
-        assertThat(envVars).doesNotContainKey(EnvironmentVariables.APICURIO_KUBERNETESOPS_REFRESH_EVERY);
+        assertThat(envVars).doesNotContainKey(EnvironmentVariables.APICURIO_POLLING_STORAGE_POLL_PERIOD);
         assertThat(envVars).doesNotContainKey(EnvironmentVariables.APICURIO_KUBERNETESOPS_LABEL_REGISTRY_ID);
         assertThat(envVars).doesNotContainKey(EnvironmentVariables.APICURIO_KUBERNETESOPS_WATCH_ENABLED);
         assertThat(envVars).doesNotContainKey(EnvironmentVariables.APICURIO_KUBERNETESOPS_WATCH_RECONNECT_DELAY);

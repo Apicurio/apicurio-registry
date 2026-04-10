@@ -45,7 +45,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     /**
      * The list of artifacts to register.
      */
-    @Parameter(required = true)
+    @Parameter(required = false)
     List<RegisterArtifact> artifacts;
 
     /**

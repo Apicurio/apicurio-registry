@@ -1,20 +1,41 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
 // A2A (Agent-to-Agent) Protocol Features Documentation
-[id="assembly-a2a-features"]
-= A2A Protocol Features in Apicurio Registry
+[id="assembly-a2a-features_{context}"]
+:_mod-docs-content-type: ASSEMBLY
+= A2A Protocol Features in {registry}
 
-Apicurio Registry implements the A2A (Agent-to-Agent) protocol, enabling AI agent discovery, orchestration, and lifecycle management. This document provides comprehensive documentation of all A2A features.
+[role="_abstract"]
+{registry} implements the A2A (Agent-to-Agent) protocol, enabling AI agent discovery, orchestration, and lifecycle management.
 
+* xref:a2a-overview_{context}[]
+* xref:a2a-configuration_{context}[]
+* xref:a2a-well-known-endpoints_{context}[]
+* xref:a2a-agent-card-artifact-type_{context}[]
+* xref:a2a-validation-rules_{context}[]
+* xref:a2a-compatibility-checking_{context}[]
+* xref:a2a-automatic-label-extraction_{context}[]
+* xref:a2a-registry-built-in-skills_{context}[]
+* xref:a2a-llm-lifecycle-management_{context}[]
+* xref:a2a-multi-agent-workflow_{context}[]
+* xref:a2a-java-sdk-usage_{context}[]
+* xref:a2a-rest-api-reference_{context}[]
+* xref:a2a-troubleshooting_{context}[]
+
+[id="a2a-overview_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Overview
 
-The A2A protocol enables AI agents to discover and communicate with each other through standardized endpoints. Apicurio Registry serves as both:
+[role="_abstract"]
+The A2A protocol enables AI agents to discover and communicate with each other through standardized endpoints. {registry} serves as both:
 
-1. **An A2A Agent** - Exposing its own capabilities (schema validation, search, artifact management)
-2. **An Agent Registry** - Storing and discovering other agents' Agent Cards
+1. **An A2A Agent** — Exposing its own capabilities (schema validation, search, artifact management)
+2. **An Agent Registry** — Storing and discovering other agents' Agent Cards
 
 [source,text]
 ----
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Apicurio Registry                                  │
+│                           {registry}                                         │
 │                                                                              │
 │  ┌─────────────────────┐        ┌──────────────────────────────────────┐    │
 │  │  Registry as Agent  │        │        Agent Card Registry           │    │
@@ -32,9 +53,12 @@ The A2A protocol enables AI agents to discover and communicate with each other t
 └─────────────────────────────────────────────────────────────────────────────┘
 ----
 
+[id="a2a-configuration_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Configuration
 
-A2A features are controlled via configuration properties:
+[role="_abstract"]
+You can control A2A features by using the following configuration properties:
 
 [cols="2,1,3"]
 |===
@@ -42,7 +66,7 @@ A2A features are controlled via configuration properties:
 
 |`apicurio.a2a.enabled`
 |`true`
-|Enable/disable A2A protocol support
+|Enables or disables A2A protocol support
 
 |`apicurio.a2a.agent.name`
 |`Apicurio Registry`
@@ -70,18 +94,23 @@ A2A features are controlled via configuration properties:
 
 |`apicurio.a2a.agent.capabilities.streaming`
 |`false`
-|Whether streaming is supported
+|Specifies whether streaming is supported
 
 |`apicurio.a2a.agent.capabilities.push-notifications`
 |`false`
-|Whether push notifications are supported
+|Specifies whether push notifications are supported
 |===
 
+[id="a2a-well-known-endpoints_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Well-Known Endpoints
 
-=== GET /.well-known/agent.json
+[role="_abstract"]
+The A2A protocol exposes well-known endpoints for agent discovery and retrieval.
 
-Returns the Agent Card for the Apicurio Registry instance itself.
+**GET /.well-known/agent.json**
+
+Returns the Agent Card for your {registry} instance.
 
 **Response:** Agent Card JSON document
 
@@ -117,9 +146,9 @@ Returns the Agent Card for the Apicurio Registry instance itself.
 }
 ----
 
-=== GET /.well-known/agents
+**GET /.well-known/agents**
 
-Search for registered Agent Cards with filtering support.
+Searches for registered Agent Cards with filtering support.
 
 **Query Parameters:**
 
@@ -183,24 +212,29 @@ curl "http://localhost:8080/.well-known/agents?skill=translation&capability=stre
 }
 ----
 
-=== GET /.well-known/agents/{groupId}/{artifactId}
+**GET /.well-known/agents/\{groupId\}/\{artifactId\}**
 
-Retrieve a specific registered Agent Card.
+Retrieves a specific registered Agent Card.
 
 **Path Parameters:**
-- `groupId` - The group containing the agent card
+
+- `groupId` - The group that contains the agent card
 - `artifactId` - The artifact ID of the agent card
 
 **Query Parameters:**
+
 - `version` (optional) - Specific version (defaults to latest)
 
 **Response:** Agent Card JSON document
 
+[id="a2a-agent-card-artifact-type_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Agent Card Artifact Type
 
-Agent Cards are stored as artifacts with type `AGENT_CARD`.
+[role="_abstract"]
+{registry} stores Agent Cards as artifacts with type `AGENT_CARD`.
 
-=== Creating an Agent Card
+**Creating an Agent Card**
 
 [source,bash]
 ----
@@ -219,9 +253,9 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/ai-agents/artifacts"
   }'
 ----
 
-=== Agent Card JSON Schema
+**Agent Card JSON Schema**
 
-Agent Cards must conform to the A2A specification:
+Agent Cards conform to the following A2A specification:
 
 [source,json]
 ----
@@ -274,8 +308,11 @@ Agent Cards must conform to the A2A specification:
 }
 ----
 
+[id="a2a-validation-rules_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Validation Rules
 
+[role="_abstract"]
 Agent Cards support three validation levels:
 
 [cols="1,3"]
@@ -297,9 +334,12 @@ Agent Cards support three validation levels:
 - Array types for modes
 |===
 
+[id="a2a-compatibility-checking_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Compatibility Checking
 
-When versioning Agent Cards, compatibility rules are enforced:
+[role="_abstract"]
+When you version Agent Cards, {registry} enforces the following compatibility rules:
 
 **Compatible Changes (allowed):**
 - Adding new skills
@@ -314,9 +354,12 @@ When versioning Agent Cards, compatibility rules are enforced:
 - Removing authentication schemes
 - Removing input/output modes
 
+[id="a2a-automatic-label-extraction_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Automatic Label Extraction
 
-When Agent Cards are stored, labels are automatically extracted for search:
+[role="_abstract"]
+When you store Agent Cards, {registry} automatically extracts labels for search:
 
 [cols="2,3"]
 |===
@@ -341,11 +384,14 @@ When Agent Cards are stored, labels are automatically extracted for search:
 |Agent URL
 |===
 
-This enables efficient capability-based discovery using the Registry's label search.
+You can use these labels to perform efficient capability-based discovery through the registry label search.
 
+[id="a2a-registry-built-in-skills_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Registry Built-in Skills
 
-Apicurio Registry exposes itself as an A2A agent with these skills:
+[role="_abstract"]
+{registry} exposes itself as an A2A agent with the following skills:
 
 [cols="1,2"]
 |===
@@ -367,11 +413,14 @@ Apicurio Registry exposes itself as an A2A agent with these skills:
 |Discover and manage A2A agent cards stored in the registry
 |===
 
+[id="a2a-llm-lifecycle-management_{context}"]
+:_mod-docs-content-type: CONCEPT
 == LLM Lifecycle Management
 
-The A2A integration extends to full LLM lifecycle management with additional artifact types:
+[role="_abstract"]
+A2A integration extends to full LLM lifecycle management with the following additional artifact types:
 
-=== MODEL_SCHEMA
+**MODEL_SCHEMA**
 
 Defines input/output schemas for LLM agents:
 
@@ -393,7 +442,7 @@ Defines input/output schemas for LLM agents:
 }
 ----
 
-=== PROMPT_TEMPLATE
+**PROMPT_TEMPLATE**
 
 Stores versioned prompt templates with variable support:
 
@@ -420,9 +469,9 @@ metadata:
   outputSchema: urn:apicurio:llm-agents.schemas/sentiment-output
 ----
 
-=== Linking Artifacts
+**Linking Artifacts**
 
-Agent Cards can reference their schemas and prompts using URN references:
+You can reference schemas and prompts from Agent Cards by using URN references:
 
 [source,json]
 ----
@@ -439,9 +488,12 @@ Agent Cards can reference their schemas and prompts using URN references:
 }
 ----
 
+[id="a2a-multi-agent-workflow_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Example: Multi-Agent Workflow
 
-The `examples/a2a-real-world-integration` demonstrates context chaining:
+[role="_abstract"]
+The `examples/a2a-real-world-integration` example demonstrates context chaining:
 
 [source,text]
 ----
@@ -476,7 +528,7 @@ Customer Message
 └──────────────────────────────────────────────────────────────────────────┘
 ----
 
-=== Running the Example
+**Running the Example**
 
 [source,bash]
 ----
@@ -485,11 +537,16 @@ docker-compose up -d
 mvn clean compile exec:java
 ----
 
-Access the Web UI at http://localhost:9000.
+You can access the web UI at http://localhost:9000.
 
+[id="a2a-java-sdk-usage_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Java SDK Usage
 
-=== Discovering Agents
+[role="_abstract"]
+You can use the Java SDK to discover and register A2A agents.
+
+**Discovering Agents**
 
 [source,java]
 ----
@@ -508,7 +565,7 @@ for (var agent : agents.getAgents()) {
 }
 ----
 
-=== Registering an Agent Card
+**Registering an Agent Card**
 
 [source,java]
 ----
@@ -532,9 +589,14 @@ client.groups().byGroupId("ai-agents").artifacts()
     });
 ----
 
+[id="a2a-rest-api-reference_{context}"]
+:_mod-docs-content-type: REFERENCE
 == REST API Reference
 
-=== Core A2A Endpoints
+[role="_abstract"]
+The following table lists the core A2A REST API endpoints.
+
+**Core A2A Endpoints**
 
 [cols="2,1,4"]
 |===
@@ -565,33 +627,40 @@ client.groups().byGroupId("ai-agents").artifacts()
 |Get Agent Card content
 |===
 
+[id="a2a-troubleshooting_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Troubleshooting
 
-=== A2A Endpoints Return 404
+[role="_abstract"]
+Use the following information to troubleshoot common A2A issues.
 
-Ensure A2A is enabled:
+**A2A Endpoints Return 404**
+
+Ensure that A2A is enabled:
 [source,properties]
 ----
 apicurio.a2a.enabled=true
 ----
 
-=== Agent Card Validation Fails
+**Agent Card Validation Fails**
 
-Check that:
-1. The `name` field is present and non-empty
-2. Skills have both `id` and `name` fields
-3. Capabilities are boolean values
-4. The JSON is well-formed
+Check the following items:
 
-=== Search Returns No Results
+1. The `name` field is present and non-empty.
+2. Skills have both `id` and `name` fields.
+3. Capabilities are boolean values.
+4. The JSON is well-formed.
 
-Verify:
-1. Agent Cards are stored with type `AGENT_CARD`
-2. Labels were extracted (check artifact labels)
-3. Search filters match stored values exactly
+**Search Returns No Results**
 
-== See Also
+Verify the following items:
 
+1. Agent Cards are stored with type `AGENT_CARD`.
+2. Labels were extracted (check artifact labels).
+3. Search filters match stored values exactly.
+
+[role="_additional-resources"]
+.Additional resources
 * xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM Artifact Types]
 * link:https://google.github.io/A2A/[A2A Protocol Specification]
 * xref:getting-started/assembly-configuring-the-registry.adoc[Registry Configuration]

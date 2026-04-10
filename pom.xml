@@ -87,6 +87,10 @@
     <module>config-index/runtime</module>
     <module>java-sdk</module>
     <module>schema-resolver</module>
+    <module>schema-validation/common</module>
+    <module>schema-validation/jsonschema</module>
+    <module>schema-validation/avro</module>
+    <module>schema-validation/protobuf</module>
     <module>utils/importexport</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
@@ -528,6 +532,26 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-resolver</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-validation-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-validation-jsonschema</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-validation-avro</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-validation-protobuf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -33,8 +33,8 @@ public class ConfluentTestUtils {
         int registeredId = restService.registerSchema(schemaString, subject);
 
         // the newly registered schema should be immediately readable on the leader
-        assertEquals("Registered schema should be found", schemaString,
-                restService.getId(registeredId).getSchemaString());
+        assertEquals(schemaString, restService.getId(registeredId).getSchemaString(),
+                "Registered schema should be found");
 
         return registeredId;
     }
@@ -45,8 +45,8 @@ public class ConfluentTestUtils {
                 .getId();
 
         // the newly registered schema should be immediately readable on the leader
-        assertEquals("Registered schema should be found", schemaString,
-                restService.getId(registeredId).getSchemaString());
+        assertEquals(schemaString, restService.getId(registeredId).getSchemaString(),
+                "Registered schema should be found");
     }
 
     public static List<String> getRandomCanonicalAvroString(int num) {

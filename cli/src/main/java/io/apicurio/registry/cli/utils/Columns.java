@@ -30,4 +30,7 @@ public final class Columns {
     public static final String SERVER_VERSION = "Server version";
     public static final String SERVER_BUILT_ON = "Server built on";
     public static final String ARTIFACT_TYPES = "Artifact types";
+
+    public static final String RULE_TYPE = "Rule Type";
+    public static final String CONFIG = "Config";
 }

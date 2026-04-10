@@ -3,6 +3,7 @@ package io.apicurio.registry.cli;
 import io.apicurio.registry.cli.artifact.ArtifactCommand;
 import io.apicurio.registry.cli.context.ContextCommand;
 import io.apicurio.registry.cli.group.GroupCommand;
+import io.apicurio.registry.cli.globalrule.GlobalRuleCommand;
 import io.quarkus.picocli.runtime.annotations.TopCommand;
 import lombok.Getter;
 import picocli.CommandLine.Command;
@@ -24,6 +25,7 @@ import static picocli.CommandLine.ScopeType.INHERIT;
         subcommands = {
                 ArtifactCommand.class,
                 ContextCommand.class,
+                GlobalRuleCommand.class,
                 GroupCommand.class,
                 InstallCommand.class,
                 UpdateCommand.class,

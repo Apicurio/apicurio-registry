@@ -1,6 +1,4 @@
-FROM registry.access.redhat.com/ubi10/ubi-minimal:latest
-
-RUN microdnf install -y java-21-openjdk-headless && microdnf clean all
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime:latest
 
 ENV APP_URL="${docker.app.file}" \
     JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"

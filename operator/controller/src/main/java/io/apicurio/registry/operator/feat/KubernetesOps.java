@@ -3,7 +3,9 @@ package io.apicurio.registry.operator.feat;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.KubernetesOpsSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
+import io.apicurio.registry.operator.api.v1.spec.StorageType;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,5 +58,51 @@ public class KubernetesOps {
                     log.debug("KubernetesOps storage configured with registry ID: {}",
                             k8sOps.getRegistryId());
                 });
+    }
+
+    /**
+     * Check if KubernetesOps storage is enabled for the given primary resource.
+     */
+    public static boolean isEnabled(ApicurioRegistry3 primary) {
+        return ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(AppSpec::getStorage)
+                .map(StorageSpec::getType)
+                .map(type -> type == StorageType.KUBERNETESOPS)
+                .orElse(false);
+    }
+
+    /**
+     * Get the configured namespace, or fall back to the primary resource's namespace.
+     */
+    public static String getNamespace(ApicurioRegistry3 primary) {
+        return ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(AppSpec::getStorage)
+                .map(StorageSpec::getKubernetesops)
+                .map(KubernetesOpsSpec::getNamespace)
+                .filter(ns -> !isBlank(ns))
+                .orElse(primary.getMetadata().getNamespace());
+    }
+
+    /**
+     * Get the service account name for the KubernetesOps storage.
+     */
+    public static String getServiceAccountName(ApicurioRegistry3 primary) {
+        return primary.getMetadata().getName() + "-kubeops";
+    }
+
+    /**
+     * Get the role name for the KubernetesOps storage.
+     */
+    public static String getRoleName(ApicurioRegistry3 primary) {
+        return primary.getMetadata().getName() + "-kubeops";
+    }
+
+    /**
+     * Get the role binding name for the KubernetesOps storage.
+     */
+    public static String getRoleBindingName(ApicurioRegistry3 primary) {
+        return primary.getMetadata().getName() + "-kubeops";
     }
 }

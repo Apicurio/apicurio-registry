@@ -7132,6 +7132,14 @@ rules:
   - configmaps
   - pods
   - services
+  - serviceaccounts
+  verbs:
+  - '*'
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
   verbs:
   - '*'
 - apiGroups:

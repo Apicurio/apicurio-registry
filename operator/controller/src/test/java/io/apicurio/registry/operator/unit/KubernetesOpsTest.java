@@ -13,6 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class KubernetesOpsTest {
 
+    private static final ClassLoader CLASS_LOADER = KubernetesOpsTest.class.getClassLoader();
+
     @Test
     public void testBasicConfiguration() {
         var registry = deserialize("k8s/examples/kubernetesops/example-basic.yaml");
@@ -95,8 +97,49 @@ public class KubernetesOpsTest {
         assertThat(envVars).isEmpty();
     }
 
+    @Test
+    void testIsEnabled() {
+        var registry = deserialize("k8s/examples/kubernetesops/example-default.yaml");
+        assertThat(KubernetesOps.isEnabled(registry)).isTrue();
+    }
+
+    @Test
+    void testIsNotEnabledForSimpleCR() {
+        var registry = deserialize("k8s/examples/simple.apicurioregistry3.yaml");
+        assertThat(KubernetesOps.isEnabled(registry)).isFalse();
+    }
+
+    @Test
+    void testServiceAccountName() {
+        var registry = deserialize("k8s/examples/kubernetesops/example-default.yaml");
+        assertThat(KubernetesOps.getServiceAccountName(registry)).isEqualTo("my-registry-kubeops");
+    }
+
+    @Test
+    void testRoleName() {
+        var registry = deserialize("k8s/examples/kubernetesops/example-default.yaml");
+        assertThat(KubernetesOps.getRoleName(registry)).isEqualTo("my-registry-kubeops");
+    }
+
+    @Test
+    void testRoleBindingName() {
+        var registry = deserialize("k8s/examples/kubernetesops/example-default.yaml");
+        assertThat(KubernetesOps.getRoleBindingName(registry)).isEqualTo("my-registry-kubeops");
+    }
+
+    @Test
+    void testNamespaceDefaultsToPrimaryNamespace() {
+        var registry = deserialize("k8s/examples/kubernetesops/example-default.yaml");
+        assertThat(KubernetesOps.getNamespace(registry)).isEqualTo("test-ns");
+    }
+
+    @Test
+    void testCustomNamespace() {
+        var registry = deserialize("k8s/examples/kubernetesops/example-custom-namespace.yaml");
+        assertThat(KubernetesOps.getNamespace(registry)).isEqualTo("configmaps-ns");
+    }
+
     private ApicurioRegistry3 deserialize(String path) {
-        return ResourceFactory.deserialize(path, ApicurioRegistry3.class,
-                KubernetesOpsTest.class.getClassLoader());
+        return ResourceFactory.deserialize(path, ApicurioRegistry3.class, CLASS_LOADER);
     }
 }

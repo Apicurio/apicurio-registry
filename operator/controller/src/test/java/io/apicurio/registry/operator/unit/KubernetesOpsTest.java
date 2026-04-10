@@ -8,7 +8,6 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -28,7 +28,7 @@ import {ProblemsService} from "../../_services/problems.service";
 import {DocumentService} from "../../_services/document.service";
 import {AbstractBaseComponent} from "./base-component";
 import {SelectionService} from "../../_services/selection.service";
-import {ArrayUtils} from "apicurio-ts-core";
+import {ArrayUtils} from "../../_util/array.util";
 import {KeypressUtils} from "../../_util/keypress.util";
 
 @Component({

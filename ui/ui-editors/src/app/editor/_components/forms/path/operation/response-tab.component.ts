@@ -29,7 +29,7 @@ import {DocumentService} from "../../../../_services/document.service";
 import {EditExample20Event} from "../../../dialogs/edit-example-20.component";
 import {AbstractBaseComponent} from "../../../common/base-component";
 import {SelectionService} from "../../../../_services/selection.service";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../../../../_util/object.util";
 
 
 @Component({

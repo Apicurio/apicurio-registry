@@ -78,6 +78,7 @@ jobs:
             java-sdk/client-v2/target/
             config-index/definitions/target/
             common/target/
+            schema-util/common/target/
           retention-days: 1
 
   build-ui:

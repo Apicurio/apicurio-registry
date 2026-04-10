@@ -212,7 +212,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 artifact.setArtifactType(value);
                 break;
             case "file":
-                artifact.setFile(value == null ? null : new File(value));
+                artifact.setFile(value == null ? null : new File(value).getAbsoluteFile());
                 break;
             case "ifExists":
                 artifact.setIfExists(parseIfExists(value, propertyKey));

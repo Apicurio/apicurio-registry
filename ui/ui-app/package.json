@@ -62,5 +62,8 @@
     "react-dom": "19.2.4",
     "react-router": "7.14.0",
     "yaml": "2.8.3"
+  },
+  "overrides": {
+    "dompurify": "3.3.2"
   }
 }

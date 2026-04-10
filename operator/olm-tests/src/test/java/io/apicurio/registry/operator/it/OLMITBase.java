@@ -162,7 +162,18 @@ public abstract class OLMITBase {
         rawResource = rawResource.replace("${PLACEHOLDER_PACKAGE}", "apicurio-registry-3.v" + projectVersion.toLowerCase());
         rawResource = rawResource.replace("${PLACEHOLDER_VERSION}", projectVersion);
         rawResource = rawResource.replace("${PLACEHOLDER_LC_VERSION}", projectVersion.toLowerCase());
+        rawResource = rawResource.replace("${PLACEHOLDER_CHANNEL}", deriveChannel(projectVersion));
         return rawResource;
+    }
+
+    private static String deriveChannel(String version) {
+        // Derive minor-version channel from version (e.g., "3.2.1" -> "3.2.x", "3.3.0-SNAPSHOT" -> "3.3.x")
+        var lc = version.toLowerCase();
+        var parts = lc.split("\\.");
+        if (parts.length >= 2) {
+            return parts[0] + "." + parts[1] + ".x";
+        }
+        return lc;
     }
 
     @AfterEach

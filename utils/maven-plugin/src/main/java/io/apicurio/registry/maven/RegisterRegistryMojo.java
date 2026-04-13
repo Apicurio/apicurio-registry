@@ -201,6 +201,12 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     private static void applyCliArtifactField(RegisterArtifact artifact, String field, String value, String propertyKey)
             throws MojoExecutionException {
+        ParsedListProperty parsedListProperty = parseListProperty(field);
+        if (parsedListProperty != null) {
+            applyCliArtifactListField(artifact, parsedListProperty, value, propertyKey);
+            return;
+        }
+
         switch (field) {
             case "groupId":
                 artifact.setGroupId(value);
@@ -247,7 +253,128 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             default:
                 throw new MojoExecutionException("Unsupported CLI property for artifact configuration: "
                         + propertyKey + ". Supported fields include groupId, artifactId, artifactType, file, ifExists, "
-                        + "canonicalize, minify, autoRefs, isDraft, contentType, version, avroAutoRefsNamingStrategy.");
+                        + "canonicalize, minify, autoRefs, isDraft, contentType, version, "
+                        + "avroAutoRefsNamingStrategy, references.<index>.<field>, "
+                        + "existingReferences.<index>.<field>, protoPaths.<index>.");
+        }
+    }
+
+    private static void applyCliArtifactListField(RegisterArtifact artifact, ParsedListProperty parsedListProperty,
+                                                  String value, String propertyKey) throws MojoExecutionException {
+        switch (parsedListProperty.listName) {
+            case "references":
+                RegisterArtifactReference reference = getOrCreateListItem(artifact.getReferences(),
+                        artifact::setReferences, parsedListProperty.index, RegisterArtifactReference::new);
+                if (parsedListProperty.field == null) {
+                    throw new MojoExecutionException("Missing field for reference configuration: " + propertyKey);
+                }
+                if ("name".equals(parsedListProperty.field)) {
+                    reference.setName(value);
+                } else {
+                    applyCliArtifactField(reference, parsedListProperty.field, value, propertyKey);
+                }
+                break;
+            case "existingReferences":
+                ExistingReference existingReference = getOrCreateListItem(artifact.getExistingReferences(),
+                        artifact::setExistingReferences, parsedListProperty.index, ExistingReference::new);
+                if (parsedListProperty.field == null) {
+                    throw new MojoExecutionException("Missing field for existingReference configuration: " + propertyKey);
+                }
+                applyCliExistingReferenceField(existingReference, parsedListProperty.field, value, propertyKey);
+                break;
+            case "protoPaths":
+                if (parsedListProperty.field != null) {
+                    throw new MojoExecutionException("Unsupported protoPaths CLI property: " + propertyKey
+                            + ". Use protoPaths.<index>=<path>.");
+                }
+                List<File> protoPaths = artifact.getProtoPaths();
+                if (protoPaths == null) {
+                    protoPaths = new ArrayList<>();
+                    artifact.setProtoPaths(protoPaths);
+                }
+                ensureListSize(protoPaths, parsedListProperty.index);
+                protoPaths.set(parsedListProperty.index, value == null ? null : new File(value).getAbsoluteFile());
+                break;
+            default:
+                throw new MojoExecutionException("Unsupported CLI list property for artifact configuration: "
+                        + propertyKey);
+        }
+    }
+
+    private static void applyCliExistingReferenceField(ExistingReference existingReference, String field, String value,
+                                                       String propertyKey) throws MojoExecutionException {
+        switch (field) {
+            case "groupId":
+                existingReference.setGroupId(value);
+                break;
+            case "artifactId":
+                existingReference.setArtifactId(value);
+                break;
+            case "version":
+                existingReference.setVersion(value);
+                break;
+            case "resourceName":
+                existingReference.setResourceName(value);
+                break;
+            default:
+                throw new MojoExecutionException("Unsupported CLI property for existingReference configuration: "
+                        + propertyKey + ". Supported fields include resourceName, groupId, artifactId, version.");
+        }
+    }
+
+    private static ParsedListProperty parseListProperty(String field) {
+        int firstDotIdx = field.indexOf('.');
+        if (firstDotIdx == -1) {
+            return null;
+        }
+
+        String listName = field.substring(0, firstDotIdx);
+        String remainder = field.substring(firstDotIdx + 1);
+        int secondDotIdx = remainder.indexOf('.');
+
+        String indexSegment = secondDotIdx == -1 ? remainder : remainder.substring(0, secondDotIdx);
+        if (!isAllDigits(indexSegment)) {
+            return null;
+        }
+
+        String nestedField = secondDotIdx == -1 ? null : remainder.substring(secondDotIdx + 1);
+        if (nestedField != null && nestedField.isEmpty()) {
+            return null;
+        }
+
+        return new ParsedListProperty(listName, Integer.parseInt(indexSegment), nestedField);
+    }
+
+    private static <T> T getOrCreateListItem(List<T> list, java.util.function.Consumer<List<T>> setter, int index,
+                                             java.util.function.Supplier<T> supplier) {
+        if (list == null) {
+            list = new ArrayList<>();
+            setter.accept(list);
+        }
+        ensureListSize(list, index);
+        T item = list.get(index);
+        if (item == null) {
+            item = supplier.get();
+            list.set(index, item);
+        }
+        return item;
+    }
+
+    private static <T> void ensureListSize(List<T> list, int index) {
+        while (list.size() <= index) {
+            list.add(null);
+        }
+    }
+
+    private static final class ParsedListProperty {
+        private final String listName;
+        private final int index;
+        private final String field;
+
+        private ParsedListProperty(String listName, int index, String field) {
+            this.listName = listName;
+            this.index = index;
+            this.field = field;
         }
     }
 

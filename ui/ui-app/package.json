@@ -21,7 +21,7 @@
     "@kiota-community/kiota-wasm": "0.0.3",
     "@monaco-editor/react": "4.7.0",
     "@types/luxon": "3.7.1",
-    "@types/node": "25.5.2",
+    "@types/node": "25.6.0",
     "@types/pluralize": "0.0.33",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
@@ -64,6 +64,6 @@
     "yaml": "2.8.3"
   },
   "overrides": {
-    "dompurify": "3.3.2"
+    "dompurify": "3.3.3"
   }
 }

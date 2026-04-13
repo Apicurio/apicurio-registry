@@ -487,13 +487,20 @@ livenessProbe:
   httpGet:
     path: /health/live
     port: 9000
+
+# After (with TLS enabled)
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 9000
+    scheme: HTTPS
 ----
 
 * *Prometheus scrape targets* - Update your Prometheus configuration or `ServiceMonitor` resources to scrape metrics from port `9000` at path `/metrics`.
 
 * *Network policies* - If you use Kubernetes `NetworkPolicy` resources, ensure that ingress traffic on port `9000` is allowed from your monitoring infrastructure and the kubelet (for health probes).
 
-* *TLS considerations* - The management interface runs as a separate HTTP server and is *not affected* by TLS configuration on the application port. Health probes should always use `scheme: HTTP` with port `9000`, even if TLS is enabled on the main application port (8443).
+* *TLS considerations* - The management interface inherits the default TLS configuration from the Quarkus TLS registry. When TLS is enabled, the management interface on port `9000` also serves HTTPS, and health probes must use `scheme: HTTPS`. The {operator} handles this automatically.
 
 * *{operator} managed deployments* - If you are using the {operator}, it will automatically configure the correct probe ports. No manual changes are required for operator-managed deployments.
 

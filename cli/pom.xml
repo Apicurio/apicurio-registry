@@ -76,6 +76,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-schema-util-common</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.semver4j</groupId>
             <artifactId>semver4j</artifactId>
         </dependency>

@@ -226,6 +226,17 @@ spec:
                                 fieldPath:
                                   type: string
                               type: object
+                            fileKeyRef:
+                              properties:
+                                key:
+                                  type: string
+                                optional:
+                                  type: boolean
+                                path:
+                                  type: string
+                                volumeName:
+                                  type: string
+                              type: object
                             resourceFieldRef:
                               properties:
                                 containerName:
@@ -302,6 +313,24 @@ spec:
                           Name of an IngressClass cluster resource. Ingress controller implementations use this field to know whether they should be serving this Ingress resource, by a transitive connection (controller -> IngressClass -> Ingress resource).
 
                           See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.
+                        type: string
+                      tlsSecretName:
+                        description: |-
+                          Name of a Kubernetes TLS Secret (type kubernetes.io/tls) to use for TLS termination on the operator-managed Ingress. When set, the Ingress will be configured with a TLS section referencing this secret and the configured host.
+
+                          For edge-terminated TLS, set this field and do NOT configure app-level TLS (spec.app.tls). For TLS passthrough, configure both this field and app-level TLS.
+                        type: string
+                      tlsTermination:
+                        description: |-
+                          TLS termination type for the operator-managed Ingress. Supported values: `edge`, `passthrough`, `reencrypt`.
+
+                          On OpenShift, this controls the Route TLS termination via the `route.openshift.io/termination` annotation. Use `edge` for TLS terminated at the router/ingress (recommended for most deployments). Use `passthrough` when app-level TLS (spec.app.tls) is configured and the app handles HTTPS directly.
+
+                          IMPORTANT: On cloud-based OpenShift (ROSA, ARO, GCP), HTTPS is typically mandatory. Set this to `edge` to ensure the operator-managed Ingress works correctly.
+                        enum:
+                        - edge
+                        - passthrough
+                        - reencrypt
                         type: string
                     type: object
                   kafkasql:
@@ -816,6 +845,17 @@ spec:
                                               fieldPath:
                                                 type: string
                                             type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
+                                                type: string
+                                            type: object
                                           resourceFieldRef:
                                             properties:
                                               containerName:
@@ -1144,6 +1184,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -1372,6 +1428,17 @@ spec:
                                               fieldPath:
                                                 type: string
                                             type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
+                                                type: string
+                                            type: object
                                           resourceFieldRef:
                                             properties:
                                               containerName:
@@ -1700,6 +1767,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -1891,6 +1974,8 @@ spec:
                             type: boolean
                           hostname:
                             type: string
+                          hostnameOverride:
+                            type: string
                           imagePullSecrets:
                             items:
                               properties:
@@ -1932,6 +2017,17 @@ spec:
                                               apiVersion:
                                                 type: string
                                               fieldPath:
+                                                type: string
+                                            type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
                                                 type: string
                                             type: object
                                           resourceFieldRef:
@@ -2262,6 +2358,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -3182,6 +3294,21 @@ spec:
                                                       type: object
                                                   type: object
                                                 type: array
+                                            type: object
+                                          podCertificate:
+                                            properties:
+                                              certificateChainPath:
+                                                type: string
+                                              credentialBundlePath:
+                                                type: string
+                                              keyPath:
+                                                type: string
+                                              keyType:
+                                                type: string
+                                              maxExpirationSeconds:
+                                                type: integer
+                                              signerName:
+                                                type: string
                                             type: object
                                           secret:
                                             properties:
@@ -3721,6 +3848,17 @@ spec:
                                 fieldPath:
                                   type: string
                               type: object
+                            fileKeyRef:
+                              properties:
+                                key:
+                                  type: string
+                                optional:
+                                  type: boolean
+                                path:
+                                  type: string
+                                volumeName:
+                                  type: string
+                              type: object
                             resourceFieldRef:
                               properties:
                                 containerName:
@@ -3775,6 +3913,24 @@ spec:
                           Name of an IngressClass cluster resource. Ingress controller implementations use this field to know whether they should be serving this Ingress resource, by a transitive connection (controller -> IngressClass -> Ingress resource).
 
                           See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.
+                        type: string
+                      tlsSecretName:
+                        description: |-
+                          Name of a Kubernetes TLS Secret (type kubernetes.io/tls) to use for TLS termination on the operator-managed Ingress. When set, the Ingress will be configured with a TLS section referencing this secret and the configured host.
+
+                          For edge-terminated TLS, set this field and do NOT configure app-level TLS (spec.app.tls). For TLS passthrough, configure both this field and app-level TLS.
+                        type: string
+                      tlsTermination:
+                        description: |-
+                          TLS termination type for the operator-managed Ingress. Supported values: `edge`, `passthrough`, `reencrypt`.
+
+                          On OpenShift, this controls the Route TLS termination via the `route.openshift.io/termination` annotation. Use `edge` for TLS terminated at the router/ingress (recommended for most deployments). Use `passthrough` when app-level TLS (spec.app.tls) is configured and the app handles HTTPS directly.
+
+                          IMPORTANT: On cloud-based OpenShift (ROSA, ARO, GCP), HTTPS is typically mandatory. Set this to `edge` to ensure the operator-managed Ingress works correctly.
+                        enum:
+                        - edge
+                        - passthrough
+                        - reencrypt
                         type: string
                     type: object
                   networkPolicy:
@@ -4248,6 +4404,17 @@ spec:
                                               fieldPath:
                                                 type: string
                                             type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
+                                                type: string
+                                            type: object
                                           resourceFieldRef:
                                             properties:
                                               containerName:
@@ -4576,6 +4743,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -4804,6 +4987,17 @@ spec:
                                               fieldPath:
                                                 type: string
                                             type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
+                                                type: string
+                                            type: object
                                           resourceFieldRef:
                                             properties:
                                               containerName:
@@ -5132,6 +5326,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -5323,6 +5533,8 @@ spec:
                             type: boolean
                           hostname:
                             type: string
+                          hostnameOverride:
+                            type: string
                           imagePullSecrets:
                             items:
                               properties:
@@ -5364,6 +5576,17 @@ spec:
                                               apiVersion:
                                                 type: string
                                               fieldPath:
+                                                type: string
+                                            type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
                                                 type: string
                                             type: object
                                           resourceFieldRef:
@@ -5694,6 +5917,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -6615,6 +6854,21 @@ spec:
                                                   type: object
                                                 type: array
                                             type: object
+                                          podCertificate:
+                                            properties:
+                                              certificateChainPath:
+                                                type: string
+                                              credentialBundlePath:
+                                                type: string
+                                              keyPath:
+                                                type: string
+                                              keyType:
+                                                type: string
+                                              maxExpirationSeconds:
+                                                type: integer
+                                              signerName:
+                                                type: string
+                                            type: object
                                           secret:
                                             properties:
                                               items:
@@ -6878,6 +7132,14 @@ rules:
   - configmaps
   - pods
   - services
+  - serviceaccounts
+  verbs:
+  - '*'
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
   verbs:
   - '*'
 - apiGroups:

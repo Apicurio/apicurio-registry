@@ -31,10 +31,12 @@ import io.apicurio.registry.iceberg.rest.v1.beans.Update;
 import io.apicurio.registry.iceberg.rest.v1.beans.ViewMetadata;
 import io.apicurio.registry.iceberg.rest.v1.beans.UpdateNamespacePropertiesRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.UpdateNamespacePropertiesResponse;
+import io.apicurio.registry.iceberg.metrics.IcebergMetricsService;
 import io.apicurio.registry.iceberg.rest.v1.impl.commit.TableRequirementValidator;
 import io.apicurio.registry.iceberg.rest.v1.impl.commit.TableUpdateApplicator;
 import io.apicurio.registry.iceberg.rest.v1.impl.commit.ViewRequirementValidator;
 import io.apicurio.registry.iceberg.rest.v1.impl.commit.ViewUpdateApplicator;
+import io.micrometer.core.instrument.Timer;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -103,6 +105,9 @@ public class IcebergApiResourceImpl implements ApisResource {
 
     @Inject
     ObjectMapper objectMapper;
+
+    @Inject
+    IcebergMetricsService metricsService;
 
     private void requireIcebergEnabled() {
         if (!icebergConfig.isEnabled()) {
@@ -197,6 +202,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .build();
 
         storage.createGroup(dto);
+        metricsService.recordNamespaceCreated();
 
         CreateNamespaceResponse response = new CreateNamespaceResponse();
         response.setNamespace(namespace);
@@ -255,6 +261,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         }
 
         storage.deleteGroup(groupId);
+        metricsService.recordNamespaceDeleted();
     }
 
     @Override
@@ -299,6 +306,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                         .labels(currentLabels)
                         .build();
         storage.updateGroupMetaData(groupId, editableDto);
+        metricsService.recordNamespaceUpdated();
 
         UpdateNamespacePropertiesResponse response = new UpdateNamespacePropertiesResponse();
         response.setUpdated(updated);
@@ -434,6 +442,7 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         storage.createArtifact(groupId, tableName, ArtifactType.ICEBERG_TABLE, artifactMetaData, null,
                 content, versionMetaData, null, false, false, getCurrentUser());
+        metricsService.recordTableCreated();
 
         TableMetadata tableMetadata;
         try {
@@ -494,6 +503,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         requireIcebergEnabled();
         String groupId = namespaceToGroupId(namespace);
         storage.deleteArtifact(groupId, table);
+        metricsService.recordTableDeleted();
     }
 
     @Override
@@ -502,6 +512,8 @@ public class IcebergApiResourceImpl implements ApisResource {
     public LoadTableResponse commitTable(String prefix, String namespace, String table,
             CommitTableRequest data) {
         requireIcebergEnabled();
+
+        Timer.Sample commitTimerSample = metricsService.startCommitTimer();
 
         String groupId = namespaceToGroupId(namespace);
 
@@ -564,6 +576,9 @@ public class IcebergApiResourceImpl implements ApisResource {
         storage.createArtifactVersionIfLatest(groupId, table,
                 null, ArtifactType.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(),
                 null, false, getCurrentUser(), baseVersionOrder, artifactMetaData);
+
+        metricsService.recordTableCommitted();
+        metricsService.stopCommitTimer(commitTimerSample, "table", "success");
 
         // Build and return the response
         return buildLoadTableResponse(newMetadata);
@@ -689,6 +704,7 @@ public class IcebergApiResourceImpl implements ApisResource {
             log.warn("Rename succeeded but failed to delete source table {}/{}, it may need manual cleanup",
                     sourceGroupId, sourceTable, e);
         }
+        metricsService.recordTableRenamed();
     }
 
     // --- Views ---
@@ -825,6 +841,7 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         storage.createArtifact(groupId, viewName, ArtifactType.ICEBERG_VIEW, artifactMetaData, null,
                 content, versionMetaData, null, false, false, getCurrentUser());
+        metricsService.recordViewCreated();
 
         return buildLoadViewResponse(metadata);
     }
@@ -872,6 +889,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         requireIcebergEnabled();
         String groupId = namespaceToGroupId(namespace);
         storage.deleteArtifact(groupId, view);
+        metricsService.recordViewDeleted();
     }
 
     @Override
@@ -880,6 +898,8 @@ public class IcebergApiResourceImpl implements ApisResource {
     public LoadViewResponse replaceView(String prefix, String namespace, String view,
             CommitViewRequest data) {
         requireIcebergEnabled();
+
+        Timer.Sample commitTimerSample = metricsService.startCommitTimer();
 
         String groupId = namespaceToGroupId(namespace);
 
@@ -942,6 +962,9 @@ public class IcebergApiResourceImpl implements ApisResource {
                 null, ArtifactType.ICEBERG_VIEW, content, EditableVersionMetaDataDto.builder().build(),
                 null, false, getCurrentUser(), baseVersionOrder, artifactMetaData);
 
+        metricsService.recordViewReplaced();
+        metricsService.stopCommitTimer(commitTimerSample, "view", "success");
+
         return buildLoadViewResponse(newMetadata);
     }
 
@@ -999,6 +1022,7 @@ public class IcebergApiResourceImpl implements ApisResource {
             log.warn("Rename succeeded but failed to delete source view {}/{}, it may need manual cleanup",
                     sourceGroupId, sourceView, e);
         }
+        metricsService.recordViewRenamed();
     }
 
     private LoadViewResponse buildLoadViewResponse(Map<String, Object> metadata) {

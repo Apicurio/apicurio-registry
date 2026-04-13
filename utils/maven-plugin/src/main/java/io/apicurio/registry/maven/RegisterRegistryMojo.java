@@ -22,6 +22,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +30,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Register artifacts against registry.
@@ -469,12 +472,25 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         // Register all the references first, then register the artifact.
         List<ArtifactReference> registeredReferences = new ArrayList<>(externalReferences.size());
+        Map<String, VersionMetaData> resolvedRegistryReferences = new HashMap<>(); // avoid multiple lookups
         for (ExternalReference externalRef : externalReferences) {
             IndexedResource iresource = index.lookup(externalRef.getResource(),
                     Paths.get(artifact.getFile().toURI()));
 
-            // TODO: need a way to resolve references that are not local (already registered in the registry)
             if (iresource == null) {
+                Optional<ArtifactReference> registryReference = resolveRegistryReference(registryClient,
+                        externalRef, resolvedRegistryReferences);
+                if (registryReference.isPresent()) {
+                    registeredReferences.add(registryReference.get());
+                    continue;
+                }
+
+                if (isAbsoluteUri(externalRef.getResource())) {
+                    getLog().debug("Skipping external reference not managed by Apicurio Registry: "
+                            + externalRef.getFullReference());
+                    continue;
+                }
+
                 throw new MojoExecutionException("Reference could not be resolved.  From: "
                         + artifact.getFile().getName() + "  To: " + externalRef.getFullReference());
             }
@@ -519,6 +535,147 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         registrationStack.pop();
         return registerArtifact(registryClient, artifact, registeredReferences);
+    }
+
+    private Optional<ArtifactReference> resolveRegistryReference(RegistryClient registryClient,
+                                                                 ExternalReference externalRef,
+                                                                 Map<String, VersionMetaData> resolvedRegistryReferences) {
+        Optional<RegistryReferenceLocation> location = parseRegistryReferenceLocation(externalRef.getResource());
+        if (location.isEmpty()) {
+            return Optional.empty();
+        }
+
+        RegistryReferenceLocation ref = location.get();
+        VersionMetaData vmd = resolvedRegistryReferences.get(externalRef.getResource());
+        if (vmd == null) {
+            vmd = getRegistryReferenceMetadata(registryClient, ref);
+            resolvedRegistryReferences.put(externalRef.getResource(), vmd);
+        }
+        return Optional.of(buildReferenceFromMetadata(vmd, registryReferenceName(externalRef.getFullReference())));
+    }
+
+    private VersionMetaData getRegistryReferenceMetadata(RegistryClient registryClient,
+                                                         RegistryReferenceLocation ref) {
+        return registryClient.groups().byGroupId(ref.groupId).artifacts()
+                .byArtifactId(ref.artifactId).versions().byVersionExpression(ref.versionExpression).get();
+    }
+
+    private Optional<RegistryReferenceLocation> parseRegistryReferenceLocation(String resource) {
+        if (resource == null || registryUrl == null) {
+            return Optional.empty();
+        }
+
+        if (!isSameApicurioServer(registryUrl, resource)) {
+            return Optional.empty();
+        }
+
+        URI registryUri = URI.create(registryUrl);
+        URI resourceUri = URI.create(resource);
+        String registryPath = stripTrailingSlash(registryUri.getRawPath());
+        Pattern registryArtifactUrlPattern = Pattern.compile("^" + Pattern.quote(registryPath)
+                + "/groups/([^/]+)/artifacts/([^/]+)/versions/([^/]+)(?:/content)?$");
+        Matcher matcher = registryArtifactUrlPattern.matcher(resourceUri.getRawPath());
+        if (!matcher.matches()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new RegistryReferenceLocation(
+                decodePathSegment(matcher.group(1)),
+                decodePathSegment(matcher.group(2)),
+                decodePathSegment(matcher.group(3))));
+    }
+
+    private static boolean isSameApicurioServer(String registryUrl, String resource) {
+        try {
+            URI registryUri = URI.create(registryUrl);
+            URI resourceUri = URI.create(resource);
+
+            return Objects.equals(lowercase(registryUri.getScheme()), lowercase(resourceUri.getScheme()))
+                    && Objects.equals(lowercase(registryUri.getHost()), lowercase(resourceUri.getHost()))
+                    && effectivePort(registryUri) == effectivePort(resourceUri);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+
+    }
+
+    private static int effectivePort(URI uri) {
+        if (uri.getPort() != -1) {
+            return uri.getPort();
+        }
+        if ("http".equalsIgnoreCase(uri.getScheme())) {
+            return 80;
+        }
+        if ("https".equalsIgnoreCase(uri.getScheme())) {
+            return 443;
+        }
+        return -1;
+    }
+
+    private static String lowercase(String value) {
+        return value == null ? null : value.toLowerCase(Locale.ROOT);
+    }
+
+    private static String stripTrailingSlash(String path) {
+        if (path == null || path.isEmpty() || "/".equals(path)) {
+            return "";
+        }
+        while (path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
+        return path;
+    }
+
+    private static String decodePathSegment(String segment) {
+        try {
+            return URI.create("https://xxx/" + segment).getPath().substring(1);
+        } catch (IllegalArgumentException e) {
+            return segment;
+        }
+    }
+
+    private static String registryReferenceName(String fullReference) {
+        try {
+            URI uri = URI.create(fullReference);
+            if (uri.getRawPath() == null) {
+                return fullReference;
+            }
+
+            StringBuilder name = new StringBuilder(uri.getRawPath());
+            if (uri.getRawQuery() != null) {
+                name.append('?').append(uri.getRawQuery());
+            }
+            if (uri.getRawFragment() != null) {
+                name.append('#').append(uri.getRawFragment());
+            }
+            return name.toString();
+        } catch (IllegalArgumentException e) {
+            return fullReference;
+        }
+    }
+
+    public static boolean isAbsoluteUri(String resourceName) {
+        if (resourceName == null) {
+            return false;
+        }
+
+        try {
+            return URI.create(resourceName).isAbsolute();
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private static class RegistryReferenceLocation {
+        private final String groupId;
+        private final String artifactId;
+        private final String versionExpression;
+
+        private RegistryReferenceLocation(String groupId, String artifactId, String versionExpression) {
+            this.groupId = groupId;
+            this.artifactId = artifactId;
+            this.versionExpression = versionExpression;
+        }
     }
 
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,

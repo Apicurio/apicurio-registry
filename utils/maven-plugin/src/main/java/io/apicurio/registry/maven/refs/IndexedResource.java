@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
 
+import static io.apicurio.registry.maven.RegisterRegistryMojo.isAbsoluteUri;
+
 public class IndexedResource {
 
     private final Path path;
@@ -72,6 +74,10 @@ public class IndexedResource {
             if (this.resourceName.equals(resourceName)) {
                 return true;
             }
+        }
+
+        if (isAbsoluteUri(resourceName)) {
+            return false;
         }
 
         // The resource name will otherwise be a relative path to the resource.

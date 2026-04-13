@@ -51,3 +51,7 @@ claudedocs
 # Serena MCP
 .serena
 
+# Vale linting tooling
+.vale.ini
+.vale/
+

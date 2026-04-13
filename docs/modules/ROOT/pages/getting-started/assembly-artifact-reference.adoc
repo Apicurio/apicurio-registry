@@ -1,8 +1,8 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+:_mod-docs-content-type: ASSEMBLY
 [id="registry-artifact-reference_{context}"]
 = {registry} artifact reference
-//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
 This chapter provides reference information on the supported artifact types, states, and metadata that are stored in {registry}.
@@ -11,6 +11,7 @@ This chapter provides reference information on the supported artifact types, sta
 * xref:registry-artifact-states_{context}[]
 * xref:registry-group-metadata_{context}[]
 * xref:registry-artifact-metadata_{context}[]
+* xref:registry-ai-ml-artifact-types_{context}[]
 * xref:registry-artifact-version-metadata_{context}[]
 
 [role="_additional-resources"]
@@ -23,8 +24,9 @@ This chapter provides reference information on the supported artifact types, sta
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
+// ref-registry-artifact-types
+:_mod-docs-content-type: REFERENCE
 [id="registry-artifact-types_{context}"]
-
 == {registry} artifact types
 
 [role="_abstract"]
@@ -74,12 +76,15 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |http://www.w3.org/2001/XMLSchema
 |===
 
-[discrete]
-=== AI/ML artifact types
+// ref-registry-ai-ml-artifact-types
+:_mod-docs-content-type: REFERENCE
+[id="registry-ai-ml-artifact-types_{context}"]
+== AI/ML artifact types
 
+[role="_abstract"]
 {registry} includes built-in support for AI/ML artifact types designed for LLMOps and prompt engineering workflows.
 
-==== MODEL_SCHEMA
+.MODEL_SCHEMA
 Defines and validates AI/ML model input/output schemas and metadata. Use this artifact type to:
 
 * Document model input/output contracts using JSON Schema
@@ -89,7 +94,7 @@ Defines and validates AI/ML model input/output schemas and metadata. Use this ar
 
 Content types: `application/json`, `application/x-yaml`
 
-==== PROMPT_TEMPLATE
+.PROMPT_TEMPLATE
 Version-controlled prompt templates with variable schemas. Use this artifact type to:
 
 * Store prompt templates with `{{variable}}` syntax
@@ -109,8 +114,9 @@ Content types: `application/x-yaml`, `application/json`, `text/x-prompt-template
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
+// ref-registry-artifact-states
+:_mod-docs-content-type: REFERENCE
 [id="registry-artifact-states_{context}"]
-
 == {registry} artifact version states
 
 [role="_abstract"]
@@ -133,6 +139,8 @@ The valid artifact version states in {registry} are `ENABLED`, `DISABLED`, and `
 
 // Metadata created by nebel
 
+// ref-registry-group-metadata
+:_mod-docs-content-type: REFERENCE
 [id="registry-group-metadata_{context}"]
 == {registry} group metadata
 
@@ -198,6 +206,8 @@ For more details, see the `/groups/\{groupId\}` endpoint in the {registry-rest-a
 
 // Metadata created by nebel
 
+// ref-registry-artifact-metadata
+:_mod-docs-content-type: REFERENCE
 [id="registry-artifact-metadata_{context}"]
 == {registry} artifact metadata
 
@@ -274,6 +284,8 @@ For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoin
 
 // Metadata created by nebel
 
+// ref-registry-artifact-version-metadata
+:_mod-docs-content-type: REFERENCE
 [id="registry-artifact-version-metadata_{context}"]
 == {registry} artifact version metadata
 

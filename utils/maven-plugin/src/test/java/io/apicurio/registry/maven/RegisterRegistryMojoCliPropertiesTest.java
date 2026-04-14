@@ -44,6 +44,7 @@ public class RegisterRegistryMojoCliPropertiesTest {
         System.setProperty("artifacts.ifExists", "FIND_OR_CREATE_VERSION");
         System.setProperty("artifacts.canonicalize", "true");
         System.setProperty("artifacts.autoRefs", "true");
+        System.setProperty("artifacts.versionStrategy", "API_INFO_VERSION");
 
         RegisterRegistryMojo mojo = new RegisterRegistryMojo();
         mojo.validate();
@@ -59,6 +60,7 @@ public class RegisterRegistryMojoCliPropertiesTest {
         assertEquals(IfArtifactExists.FIND_OR_CREATE_VERSION, artifact.getIfExists());
         assertEquals(Boolean.TRUE, artifact.getCanonicalize());
         assertEquals(Boolean.TRUE, artifact.getAutoRefs());
+        assertEquals(RegisterArtifact.VersionStrategy.API_INFO_VERSION, artifact.getVersionStrategy());
     }
 
     @Test
@@ -123,6 +125,7 @@ public class RegisterRegistryMojoCliPropertiesTest {
                 "canonicalize",
                 "minify",
                 "autoRefs",
+                "versionStrategy",
                 "avroAutoRefsNamingStrategy",
                 "isDraft",
                 "contentType",

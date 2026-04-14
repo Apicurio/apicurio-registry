@@ -2,6 +2,7 @@ package io.apicurio.registry.maven;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
@@ -245,6 +246,15 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             case "version":
                 artifact.setVersion(value);
                 break;
+            case "versionStrategy":
+                try {
+                    artifact.setVersionStrategy(RegisterArtifact.VersionStrategy.valueOf(value));
+                } catch (IllegalArgumentException e) {
+                    throw new MojoExecutionException("Invalid value for " + propertyKey + ": " + value
+                            + ". Allowed values are: "
+                            + Arrays.toString(RegisterArtifact.VersionStrategy.values()));
+                }
+                break;
             case "avroAutoRefsNamingStrategy":
                 try {
                     artifact.setAvroAutoRefsNamingStrategy(RegisterArtifact.AvroAutoRefsNamingStrategy.valueOf(value));
@@ -258,7 +268,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 throw new MojoExecutionException("Unsupported CLI property for artifact configuration: "
                         + propertyKey + ". Supported fields include groupId, artifactId, artifactType, file, ifExists, "
                         + "canonicalize, minify, autoRefs, isDraft, contentType, version, "
-                        + "avroAutoRefsNamingStrategy, references.<index>.<field>, "
+                        + "versionStrategy, avroAutoRefsNamingStrategy, references.<index>.<field>, "
                         + "existingReferences.<index>.<field>, protoPaths.<index>.");
         }
     }
@@ -625,7 +635,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             throws ExecutionException, InterruptedException, MojoFailureException, MojoExecutionException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
-        String version = artifact.getVersion();
         String type = artifact.getArtifactType();
         Boolean canonicalize = artifact.getCanonicalize();
         Boolean isDraft = artifact.getIsDraft();
@@ -643,6 +652,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        String version = resolveVersion(artifact, data);
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
@@ -706,6 +716,62 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 return null;
             }
         }
+    }
+
+    private String resolveVersion(RegisterArtifact artifact, String data) throws MojoExecutionException {
+        if (artifact.getVersion() != null && !artifact.getVersion().isBlank()) {
+            return artifact.getVersion();
+        }
+
+        if (artifact.getVersionStrategy() == RegisterArtifact.VersionStrategy.API_INFO_VERSION
+                && isApiArtifact(artifact.getArtifactType())) {
+            return extractApiInfoVersion(artifact, data);
+        }
+
+        return null;
+    }
+
+    private boolean isApiArtifact(String artifactType) {
+        return ArtifactType.OPENAPI.equals(artifactType) || ArtifactType.ASYNCAPI.equals(artifactType);
+    }
+
+    private String extractApiInfoVersion(RegisterArtifact artifact, String data) throws MojoExecutionException {
+        try {
+            JsonNode root = getVersionExtractionMapper(artifact).readTree(data);
+            JsonNode versionNode = root.path("info").path("version");
+            if (versionNode.isTextual()) {
+                String version = versionNode.asText();
+                if (!version.isBlank()) {
+                    return version;
+                }
+            }
+            return null;
+        } catch (IOException e) {
+            throw new MojoExecutionException("Failed to extract info.version from API artifact: "
+                    + artifact.getFile().getPath(), e);
+        }
+    }
+
+    private ObjectMapper getVersionExtractionMapper(RegisterArtifact artifact) {
+        return isYamlContent(artifact) ? new ObjectMapper(new YAMLFactory()) : new ObjectMapper();
+    }
+
+    private boolean isYamlContent(RegisterArtifact artifact) {
+        String contentType = artifact.getContentType();
+        if (contentType != null) {
+            String normalizedContentType = contentType.toLowerCase(Locale.ROOT);
+            if (normalizedContentType.contains("yaml") || normalizedContentType.contains("yml")) {
+                return true;
+            }
+        }
+
+        File file = artifact.getFile();
+        if (file == null) {
+            return false;
+        }
+
+        String fileName = file.getName().toLowerCase(Locale.ROOT);
+        return fileName.endsWith(".yaml") || fileName.endsWith(".yml");
     }
 
     private static boolean hasReferences(RegisterArtifact artifact) {

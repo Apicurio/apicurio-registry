@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.storage.dto.ContractRuleDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import io.apicurio.registry.storage.impl.sql.mappers.ContractRuleDtoMapper;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
@@ -16,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 
@@ -142,9 +146,9 @@ public class SqlContractRuleRepository {
                 .bind(3, category)
                 .bind(4, orderIndex)
                 .bind(5, rule.getName())
-                .bind(6, rule.getKind().name())
+                .bind(6, rule.getKind() != null ? rule.getKind().name() : null)
                 .bind(7, rule.getType())
-                .bind(8, rule.getMode().name())
+                .bind(8, rule.getMode() != null ? rule.getMode().name() : null)
                 .bind(9, rule.getExpr())
                 .bind(10, serializeParams(rule.getParams()))
                 .bind(11, serializeTags(rule.getTags()))
@@ -188,5 +192,52 @@ public class SqlContractRuleRepository {
         } catch (JsonProcessingException e) {
             throw new RegistryStorageException("Failed to serialize contract rule tags", e);
         }
+    }
+
+    public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
+            throws RegistryStorageException {
+        log.debug("Getting contract rules by tag: {}", tag);
+        return handles.withHandle(handle -> {
+            String likePattern = "%\"" + tag + "\"%";
+            return handle.createQuery(sqlStatements.selectContractRulesByTag())
+                    .bind(0, likePattern)
+                    .map(rs -> {
+                        ContractRuleDto rule = ContractRuleDtoMapper.instance.map(rs);
+                        return ContractRuleWithCoordinatesDto.builder()
+                                .groupId(RegistryContentUtils
+                                        .denormalizeGroupId(rs.getString("groupId")))
+                                .artifactId(rs.getString("artifactId"))
+                                .globalId(rs.getObject("globalId") != null
+                                        ? rs.getLong("globalId") : null)
+                                .ruleCategory(rs.getString("ruleCategory"))
+                                .rule(rule)
+                                .build();
+                    })
+                    .list();
+        });
+    }
+
+    @SuppressWarnings("resource")
+    public void importContractRule(ContractRuleEntity entity) {
+        handles.withHandleNoException(handle -> {
+            handle.createUpdate(sqlStatements.importContractRule())
+                    .bind(0, normalizeGroupId(entity.groupId))
+                    .bind(1, entity.artifactId)
+                    .bind(2, entity.globalId)
+                    .bind(3, entity.ruleCategory)
+                    .bind(4, entity.orderIndex)
+                    .bind(5, entity.ruleName)
+                    .bind(6, entity.kind)
+                    .bind(7, entity.ruleType)
+                    .bind(8, entity.mode)
+                    .bind(9, entity.expr)
+                    .bind(10, entity.params)
+                    .bind(11, entity.tags)
+                    .bind(12, entity.onSuccess)
+                    .bind(13, entity.onFailure)
+                    .bind(14, entity.disabled)
+                    .execute();
+            return null;
+        });
     }
 }

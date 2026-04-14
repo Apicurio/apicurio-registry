@@ -125,6 +125,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     io.apicurio.registry.contracts.ContractMetadataMapper contractMetadataMapper;
 
+    @Inject
+    io.apicurio.registry.contracts.ContractMetadataValidator contractMetadataValidator;
+
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceType)
@@ -2013,6 +2016,61 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         storage.deleteVersionContractRuleset(
                 new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ContractMetadata transitionContractStatus(String groupId, String artifactId,
+            ContractStatusTransition data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        ContractStatus targetStatus = ContractStatus.valueOf(data.getStatus().value());
+
+        // Get current metadata to check current status
+        ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
+        ContractMetadataDto currentMetadata = contractMetadataMapper.fromLabels(existing.getLabels());
+
+        // Validate transition
+        contractMetadataValidator.validateStatusTransition(currentMetadata.getStatus(), targetStatus);
+
+        // Build updated labels
+        Map<String, String> mergedLabels = new java.util.HashMap<>(
+                existing.getLabels() != null ? existing.getLabels() : Collections.emptyMap());
+
+        // Update the status label
+        mergedLabels.put(io.apicurio.registry.contracts.ContractLabels.PREFIX + "status",
+                targetStatus.name());
+
+        // If transitioning to STABLE, set the stableDate if not already set
+        if (targetStatus == ContractStatus.STABLE
+                && !mergedLabels.containsKey(
+                        io.apicurio.registry.contracts.ContractLabels.PREFIX + "stableDate")) {
+            mergedLabels.put(io.apicurio.registry.contracts.ContractLabels.PREFIX + "stableDate",
+                    java.time.LocalDate.now().toString());
+        }
+
+        // If transitioning to DEPRECATED, set the deprecatedDate if not already set
+        if (targetStatus == ContractStatus.DEPRECATED
+                && !mergedLabels.containsKey(
+                        io.apicurio.registry.contracts.ContractLabels.PREFIX + "deprecatedDate")) {
+            mergedLabels.put(
+                    io.apicurio.registry.contracts.ContractLabels.PREFIX + "deprecatedDate",
+                    java.time.LocalDate.now().toString());
+        }
+
+        EditableArtifactMetaDataDto metaDto = new EditableArtifactMetaDataDto();
+        metaDto.setName(existing.getName());
+        metaDto.setDescription(existing.getDescription());
+        metaDto.setOwner(existing.getOwner());
+        metaDto.setLabels(mergedLabels);
+        storage.updateArtifactMetaData(rawGroupId, artifactId, metaDto);
+
+        ContractMetadataDto result = contractMetadataMapper.fromLabels(mergedLabels);
+        return toContractMetadataBean(result);
     }
 
     // -- Contract mapping helpers --

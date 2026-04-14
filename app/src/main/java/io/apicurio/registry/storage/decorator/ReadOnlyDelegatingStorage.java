@@ -8,6 +8,7 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -158,6 +159,12 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     public ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId,
             String version) throws VersionNotFoundException, RegistryStorageException {
         return delegate.getVersionContractRuleset(groupId, artifactId, version);
+    }
+
+    @Override
+    public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
+            throws RegistryStorageException {
+        return delegate.getContractRulesByTag(tag);
     }
 
     @Override

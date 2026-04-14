@@ -3628,6 +3628,50 @@
         "description": "Returns a paginated list of all versions that match the posted content.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
+    "/search/contract/rules": {
+      "summary": "Search for contract rules by tag.",
+      "get": {
+        "tags": [
+          "Search",
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "description": "The tag value to search for in contract rules.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractRuleSearchResult"
+                  }
+                }
+              }
+            },
+            "description": "A list of contract rules matching the specified tag, with their artifact coordinates."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "searchContractRulesByTag",
+        "summary": "Search contract rules by tag",
+        "description": "Returns all contract rules across all artifacts that contain the specified tag."
+      }
+    },
     "/groups/{groupId}/artifacts/{artifactId}/branches/{branchId}/versions": {
       "summary": "Manage the versions in a branch.",
       "get": {
@@ -4365,6 +4409,71 @@
         }
       ]
     },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/status": {
+      "summary": "Transition the contract lifecycle status.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractStatusTransition"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractMetadata"
+                }
+              }
+            },
+            "description": "The updated contract metadata after the status transition."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "transitionContractStatus",
+        "summary": "Transition contract status",
+        "description": "Transitions the contract status. Valid transitions: DRAFT to STABLE, DRAFT to DEPRECATED, STABLE to DEPRECATED. Reverse transitions are not allowed."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/groups/{groupId}/artifacts/{artifactId}/contract/ruleset": {
       "summary": "Manage contract ruleset for an artifact (artifact-level).",
       "get": {
@@ -4946,6 +5055,10 @@
           "artifactId": {
             "$ref": "#/components/schemas/ArtifactId",
             "description": ""
+          },
+          "contractMetadata": {
+            "$ref": "#/components/schemas/ContractMetadata",
+            "description": "Contract metadata projected from the artifact labels. Only present when data contracts are enabled and contract labels exist."
           }
         },
         "example": {
@@ -6865,6 +6978,56 @@
           "disabled": {
             "description": "Whether the rule is disabled.",
             "type": "boolean"
+          }
+        }
+      },
+      "ContractRuleSearchResult": {
+        "title": "ContractRuleSearchResult",
+        "description": "A contract rule with its artifact coordinates, returned by tag search.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "description": "The group ID of the artifact containing the rule.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID containing the rule.",
+            "type": "string"
+          },
+          "globalId": {
+            "description": "The global ID of the version (null for artifact-level rules).",
+            "type": "integer",
+            "format": "int64"
+          },
+          "ruleCategory": {
+            "description": "The rule category (DOMAIN or MIGRATION).",
+            "type": "string",
+            "enum": [
+              "DOMAIN",
+              "MIGRATION"
+            ]
+          },
+          "rule": {
+            "$ref": "#/components/schemas/ContractRule"
+          }
+        }
+      },
+      "ContractStatusTransition": {
+        "title": "ContractStatusTransition",
+        "description": "Request body for transitioning the contract lifecycle status.",
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "description": "The target lifecycle status. Valid transitions: DRAFT to STABLE, DRAFT to DEPRECATED, STABLE to DEPRECATED.",
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "STABLE",
+              "DEPRECATED"
+            ]
           }
         }
       }

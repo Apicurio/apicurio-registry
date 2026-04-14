@@ -28,6 +28,7 @@ import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -54,6 +55,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -494,6 +496,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     void deleteVersionContractRuleset(String groupId, String artifactId, String version)
             throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets all contract rules across all artifacts that contain the specified tag.
+     *
+     * @param tag the tag to search for
+     * @return list of matching contract rules with their artifact coordinates
+     * @throws RegistryStorageException
+     */
+    List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
+            throws RegistryStorageException;
 
     /**
      * Gets a sorted set of all artifact versions that exist for a given artifact.
@@ -1068,6 +1080,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void importArtifactVersion(ArtifactVersionEntity entity);
 
     void importArtifactRule(ArtifactRuleEntity entity);
+
+    void importContractRule(ContractRuleEntity entity);
 
     void importBranch(BranchEntity entity);
 

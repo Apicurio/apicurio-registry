@@ -29,6 +29,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -354,6 +355,11 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void importContractRule(ContractRuleEntity entity) {
         readOnlyViolation();
     }
 

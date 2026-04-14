@@ -1440,4 +1440,24 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteContractRulesByGlobalId() {
         return "DELETE FROM contract_rules WHERE globalId = ?";
     }
+
+    @Override
+    public String exportContractRules() {
+        return "SELECT * FROM contract_rules r";
+    }
+
+    @Override
+    public String exportContractRulesByGroupId() {
+        return "SELECT * FROM contract_rules r WHERE r.groupId = ?";
+    }
+
+    @Override
+    public String importContractRule() {
+        return "INSERT INTO contract_rules (groupId, artifactId, globalId, ruleCategory, orderIndex, ruleName, kind, ruleType, mode, expr, params, tags, onSuccess, onFailure, disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    @Override
+    public String selectContractRulesByTag() {
+        return "SELECT r.* FROM contract_rules r WHERE r.tags LIKE ?";
+    }
 }

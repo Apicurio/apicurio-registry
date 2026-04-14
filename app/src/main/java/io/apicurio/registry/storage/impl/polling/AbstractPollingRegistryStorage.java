@@ -373,6 +373,11 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
     }
 
     @Override
+    public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag) {
+        return proxy(storage -> storage.getContractRulesByTag(tag));
+    }
+
+    @Override
     public List<String> getArtifactVersions(String groupId, String artifactId) {
         return proxy(storage -> storage.getArtifactVersions(groupId, artifactId));
     }

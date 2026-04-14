@@ -7,6 +7,7 @@ import io.apicurio.registry.storage.dto.ContractRuleDto;
 import io.apicurio.registry.storage.dto.RuleAction;
 import io.apicurio.registry.storage.dto.RuleKind;
 import io.apicurio.registry.storage.dto.RuleMode;
+import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 import java.sql.ResultSet;
@@ -55,7 +56,7 @@ public class ContractRuleDtoMapper implements RowMapper<ContractRuleDto> {
             return objectMapper.readValue(json, new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
-            return Collections.emptyMap();
+            throw new RegistryStorageException("Failed to deserialize contract rule params", e);
         }
     }
 
@@ -67,7 +68,7 @@ public class ContractRuleDtoMapper implements RowMapper<ContractRuleDto> {
             return objectMapper.readValue(json, new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
-            return Collections.emptySet();
+            throw new RegistryStorageException("Failed to deserialize contract rule tags", e);
         }
     }
 }

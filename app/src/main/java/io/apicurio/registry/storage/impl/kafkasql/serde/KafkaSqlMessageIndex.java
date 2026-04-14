@@ -43,6 +43,7 @@ public class KafkaSqlMessageIndex {
                 DeleteRoleMapping1Message.class, ImportArtifact1Message.class,
                 ImportArtifactRule1Message.class, ImportArtifactVersion1Message.class,
                 ImportBranch1Message.class, ImportComment1Message.class, ImportContent1Message.class,
+                ImportContractRule1Message.class,
                 ImportGlobalRule1Message.class, ImportGroup1Message.class, NextCommentId0Message.class,
                 NextContentId0Message.class, NextGlobalId0Message.class, ReplaceBranchVersions3Message.class,
                 ResetCommentId0Message.class, ResetContentId0Message.class, ResetGlobalId0Message.class,

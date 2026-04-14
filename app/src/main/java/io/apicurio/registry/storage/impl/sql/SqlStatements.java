@@ -793,4 +793,12 @@ public interface SqlStatements {
     String deleteContractRulesByArtifact();
 
     String deleteContractRulesByGlobalId();
+
+    String exportContractRules();
+
+    String exportContractRulesByGroupId();
+
+    String importContractRule();
+
+    String selectContractRulesByTag();
 }

@@ -49,10 +49,10 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<String> 
     });
 
     @Override
-    protected long getCommitTime(String marker) {
+    protected Instant getCommitTime(String marker) {
         // Use the most recent ConfigMap timestamp for stable createdOn/modifiedOn values
         // that survive pod restarts, falling back to current time if no timestamps available
-        return lastConfigMapTimestamp > 0 ? lastConfigMapTimestamp : Instant.now().getEpochSecond();
+        return lastConfigMapTimestamp > 0 ? Instant.ofEpochMilli(lastConfigMapTimestamp) : Instant.now();
     }
 
     @Override
@@ -91,7 +91,7 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<String> 
             var creationTimestamp = configMap.getMetadata().getCreationTimestamp();
             if (creationTimestamp != null) {
                 try {
-                    long ts = Instant.parse(creationTimestamp).getEpochSecond();
+                    long ts = Instant.parse(creationTimestamp).toEpochMilli();
                     if (ts > maxTimestamp) {
                         maxTimestamp = ts;
                     }

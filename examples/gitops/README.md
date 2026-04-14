@@ -198,6 +198,8 @@ groupId: my-group
 description: Description of the group
 labels:
   key: value
+createdOn: "2024-03-04"
+modifiedOn: "2024-06-15T10:30:00Z"
 ```
 
 The `registryIds` field lists which Registry instances should load this group.
@@ -212,17 +214,36 @@ artifactId: my-artifact
 artifactType: AVRO
 name: Human-readable name
 description: Description of the artifact
+createdOn: "2024-03-04"
+modifiedOn: "2024-06-15"
 rules:
   - ruleType: COMPATIBILITY
     config: BACKWARD
 versions:
   - version: "1.0.0"
     state: ENABLED
+    createdOn: "2024-03-04"
     content: ./path/to/schema.avsc
   - version: "2.0.0"
     state: ENABLED
+    createdOn: "2024-06-15T10:30:00Z"
     content: ./path/to/schema-v2.avsc
 ```
+
+### Timestamps
+
+The `createdOn` and `modifiedOn` fields are optional on groups, artifacts, and versions.
+When omitted, the Git commit time is used as a fallback.
+
+Supported formats:
+
+| Format | Example |
+|--------|---------|
+| Date only (midnight UTC) | `2024-03-04` |
+| ISO 8601 with timezone | `2024-03-04T10:30:00Z` |
+| ISO 8601 with offset | `2024-03-04T11:30:00+01:00` |
+| ISO 8601 without timezone (UTC) | `2024-03-04T10:30:00` |
+| Unix milliseconds | `1709510400000` |
 
 ### Supported Content Types
 

@@ -21,14 +21,13 @@ services:
     container_name: git-init
     image: alpine/git:latest
     volumes:
-      - git-repo:/repos/default
+      - git-repo:/repos
     entrypoint: ["sh", "-c"]
     command:
       - |
         if [ ! -d /repos/default/.git ]; then
           echo "Cloning example GitOps repository..."
-          git clone https://github.com/Apicurio/apicurio-registry-gitops-example.git /tmp/repo
-          cp -r /tmp/repo/* /tmp/repo/.* /repos/default/ 2>/dev/null || true
+          git clone https://github.com/Apicurio/apicurio-registry-gitops-example.git /repos/default
           echo "Example repository initialized."
         else
           echo "Repository already initialized, skipping."
@@ -52,7 +51,7 @@ services:
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     volumes:
-      - git-repo:/repos/default:ro
+      - git-repo:/repos:ro
     ports:
       - "8080:8080"
     depends_on:

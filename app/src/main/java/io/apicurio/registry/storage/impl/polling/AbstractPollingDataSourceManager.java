@@ -29,6 +29,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,9 +60,9 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
      * Returns the commit/change time from the poll result marker.
      *
      * @param marker the marker from the PollingResult
-     * @return epoch seconds representing the change time
+     * @return the commit time as an Instant
      */
-    protected abstract long getCommitTime(MARKER marker);
+    protected abstract Instant getCommitTime(MARKER marker);
 
     @Override
     public PollingProcessingResult process(RegistryStorage storage, PollingResult<MARKER> pollResult) throws Exception {
@@ -220,8 +221,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                         artifactEntity.description = artifact.getDescription();
                         artifactEntity.labels = artifact.getLabels();
                         artifactEntity.owner = artifact.getOwner();
-                        artifactEntity.createdOn = state.getCommitTime();
-                        artifactEntity.modifiedOn = state.getCommitTime();
+                        artifactEntity.createdOn = TimestampParser.parse(artifact.getCreatedOn(), state.getCommitTime());
+                        artifactEntity.modifiedOn = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
                         state.getStorage().importArtifact(artifactEntity);
                         state.incrementArtifactCount();
                         artifactImported = true;
@@ -250,8 +251,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     e.labels = version.getLabels();
                     e.owner = version.getOwner();
                     e.contentId = contentId;
-                    e.createdOn = state.getCommitTime();
-                    e.modifiedOn = state.getCommitTime();
+                    e.createdOn = TimestampParser.parse(version.getCreatedOn(), state.getCommitTime());
+                    e.modifiedOn = TimestampParser.parse(version.getModifiedOn(), state.getCommitTime());
 
                     log.debug("Importing {}", e);
                     state.getStorage().importArtifactVersion(e);
@@ -335,8 +336,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                 e.labels = group.getLabels();
                 e.owner = group.getOwner();
                 e.artifactsType = group.getArtifactsType();
-                e.createdOn = state.getCommitTime();
-                e.modifiedOn = state.getCommitTime();
+                e.createdOn = TimestampParser.parse(group.getCreatedOn(), state.getCommitTime());
+                e.modifiedOn = TimestampParser.parse(group.getModifiedOn(), state.getCommitTime());
                 log.debug("Importing {}", e);
                 state.getStorage().importGroup(e);
                 processGroupRules(state, group);

@@ -34,6 +34,10 @@ public class Artifact extends HasSchema {
 
     private String owner;
 
+    private String createdOn;
+
+    private String modifiedOn;
+
     private List<Version> versions;
 
     private List<Rule> rules;

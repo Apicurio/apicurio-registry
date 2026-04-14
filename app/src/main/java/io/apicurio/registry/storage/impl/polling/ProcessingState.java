@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.impl.polling.model.v0.Registry;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,7 +31,7 @@ public class ProcessingState {
 
     @Getter
     @Setter
-    private long commitTime;
+    private Instant commitTime;
     private final List<String> errors = new ArrayList<>();
 
     @Getter

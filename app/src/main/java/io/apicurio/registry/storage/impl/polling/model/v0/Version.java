@@ -34,4 +34,8 @@ public class Version {
     private Long globalId;
 
     private String owner;
+
+    private String createdOn;
+
+    private String modifiedOn;
 }

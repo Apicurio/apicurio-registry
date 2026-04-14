@@ -65,6 +65,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl(true);
     private static final String ARTIFACTS_PROPERTY_PREFIX = "artifacts.";
+    private static final int MAX_CLI_LIST_INDEX = 100;
 
     /**
      * Validate the configuration.
@@ -271,6 +272,9 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 if ("name".equals(parsedListProperty.field)) {
                     reference.setName(value);
                 } else {
+                    // RegisterArtifactReference inherits the shared artifact fields, so reference
+                    // entries intentionally reuse the same CLI setter logic. If the reference type
+                    // ever introduces a conflicting field, this path should be revisited.
                     applyCliArtifactField(reference, parsedListProperty.field, value, propertyKey);
                 }
                 break;
@@ -322,7 +326,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private static ParsedListProperty parseListProperty(String field) {
+    private static ParsedListProperty parseListProperty(String field) throws MojoExecutionException {
         int firstDotIdx = field.indexOf('.');
         if (firstDotIdx == -1) {
             return null;
@@ -336,13 +340,18 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         if (!isAllDigits(indexSegment)) {
             return null;
         }
+        int index = Integer.parseInt(indexSegment);
+        if (index > MAX_CLI_LIST_INDEX) {
+            throw new MojoExecutionException("CLI list index " + index
+                    + " exceeds the maximum supported value of " + MAX_CLI_LIST_INDEX + ".");
+        }
 
         String nestedField = secondDotIdx == -1 ? null : remainder.substring(secondDotIdx + 1);
         if (nestedField != null && nestedField.isEmpty()) {
             return null;
         }
 
-        return new ParsedListProperty(listName, Integer.parseInt(indexSegment), nestedField);
+        return new ParsedListProperty(listName, index, nestedField);
     }
 
     private static <T> T getOrCreateListItem(List<T> list, java.util.function.Consumer<List<T>> setter, int index,

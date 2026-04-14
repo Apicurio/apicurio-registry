@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class RegisterRegistryMojoCliPropertiesTest {
 
@@ -107,6 +108,22 @@ public class RegisterRegistryMojoCliPropertiesTest {
         assertEquals("2.0.0", existingReference.getVersion());
 
         assertEquals(List.of(protoPathOne.toFile(), protoPathTwo.toFile()), artifact.getProtoPaths());
+    }
+
+    @Test
+    void testRejectsExcessiveCliListIndex() throws IOException {
+        Path artifactFile = Files.createFile(tempDir.resolve("api.yaml"));
+
+        System.setProperty("artifacts.groupId", "my.group.id");
+        System.setProperty("artifacts.artifactId", "my-artifact-id");
+        System.setProperty("artifacts.artifactType", "ASYNCAPI");
+        System.setProperty("artifacts.file", artifactFile.toString());
+        System.setProperty("artifacts.references.101.name", "too-big");
+
+        RegisterRegistryMojo mojo = new RegisterRegistryMojo();
+
+        MojoExecutionException exception = assertThrows(MojoExecutionException.class, mojo::validate);
+        assertEquals("CLI list index 101 exceeds the maximum supported value of 100.", exception.getMessage());
     }
 
     @Test

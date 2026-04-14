@@ -114,7 +114,7 @@ mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
   -Dartifacts.0.artifactId=ExampleAPI \
   -Dartifacts.0.artifactType=ASYNCAPI \
   -Dartifacts.0.file=./src/main/resources/apis/example.yaml \
-  -Dartifacts.0.references.0.name=/apis/registry/v3/groups/master/artifacts/kafka-bindings.yml/versions/branch=latest/content#/components/messageTraits/kafkaKeyString \
+  -Dartifacts.0.references.0.name=SharedRecord \
   -Dartifacts.0.existingReferences.0.resourceName=./avro/shared.avsc \
   -Dartifacts.0.existingReferences.0.groupId=TestGroup \
   -Dartifacts.0.existingReferences.0.artifactId=shared-avro \

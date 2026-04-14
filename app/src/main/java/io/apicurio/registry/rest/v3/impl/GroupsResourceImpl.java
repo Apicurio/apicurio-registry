@@ -1978,14 +1978,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ContractRuleSet getVersionContractRuleset(String groupId, String artifactId,
-            String version) {
+            String versionExpression) {
         checkContractsEnabled();
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        ParameterValidationUtils.requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         ContractRuleSetDto dto = storage.getVersionContractRuleset(
-                new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version);
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
         return toContractRuleSetBean(dto);
     }
 
@@ -1993,29 +1996,36 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public ContractRuleSet setVersionContractRuleset(String groupId, String artifactId,
-            String version, ContractRuleSet data) {
+            String versionExpression, ContractRuleSet data) {
         checkContractsEnabled();
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        ParameterValidationUtils.requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         ContractRuleSetDto dto = toContractRuleSetDto(data);
         storage.setVersionContractRuleset(
-                new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version, dto);
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), dto);
         return data;
     }
 
     @Override
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void deleteVersionContractRuleset(String groupId, String artifactId, String version) {
+    public void deleteVersionContractRuleset(String groupId, String artifactId,
+            String versionExpression) {
         checkContractsEnabled();
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        ParameterValidationUtils.requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         storage.deleteVersionContractRuleset(
-                new GroupId(groupId).getRawGroupIdWithNull(), artifactId, version);
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
     }
 
     @Override

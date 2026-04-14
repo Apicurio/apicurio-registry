@@ -4575,7 +4575,7 @@
         }
       ]
     },
-    "/groups/{groupId}/artifacts/{artifactId}/versions/{version}/contract/ruleset": {
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/ruleset": {
       "summary": "Manage contract ruleset for a specific artifact version.",
       "get": {
         "tags": [
@@ -4681,8 +4681,8 @@
           "required": true
         },
         {
-          "name": "version",
-          "description": "The artifact version.",
+          "name": "versionExpression",
+          "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
           "schema": {
             "type": "string"
           },

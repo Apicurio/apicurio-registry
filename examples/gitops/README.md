@@ -8,7 +8,7 @@ The registry is read-only — all changes are made by modifying files in the Git
 
 | Example               | Description                                             | Sidecar | Security  |
 |-----------------------|---------------------------------------------------------|---------|-----------|
-| [Local volume](#local-volume)   | Git repo initialized from a local directory, no sidecar | No      | N/A       |
+| [Local volume](#local-volume)   | Git repo cloned locally, no sidecar | No      | N/A       |
 | [Pull HTTPS](#pull-https)     | Sidecar pulls from a public repo over HTTPS             | Yes     | `dev`     |
 | [Pull SSH](#pull-ssh) | Sidecar pulls from a private repo over SSH              | Yes     | `default` |
 
@@ -18,8 +18,9 @@ Each example has two compose files:
 
 ## Local Volume
 
-The simplest setup — a local directory is initialized as a Git repo inside a Docker volume.
-No sidecar needed. Good for trying out GitOps mode.
+The simplest setup — the example repository is cloned locally and mounted into the
+registry container. No sidecar needed. Good for trying out GitOps mode and experimenting
+with changes.
 
 ```bash
 cd examples/gitops
@@ -79,15 +80,13 @@ APICURIO_GITOPS_REPO_URL=https://github.com/your-user/apicurio-registry-gitops-e
 cd examples/gitops/pull-https
 docker compose -f docker-compose-dev.yaml up
 
-# Terminal 2 — start Registry pointing to the sidecar's volume
+# Terminal 2 — start Registry pointing to the sidecar's clone
 cd app
 mvn quarkus:dev \
   -Dapicurio.storage.kind=gitops \
   -Dapicurio.features.experimental.enabled=true \
   -Dapicurio.polling-storage.id=prod \
-  -Dapicurio.gitops.workspace=/tmp/gitops-repos \
-  -Dapicurio.gitops.repo.dir=example \
-  -Dapicurio.gitops.repo.branch=main
+  -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops/pull-https/repos
 ```
 
 ## Pull SSH
@@ -135,15 +134,13 @@ cd examples/gitops/pull-ssh
 APICURIO_GITOPS_REPO_URL=git@github.com:your-org/your-schemas.git \
   docker compose -f docker-compose-dev.yaml up
 
-# Terminal 2 — start Registry
+# Terminal 2 — start Registry pointing to the sidecar's clone
 cd app
 mvn quarkus:dev \
   -Dapicurio.storage.kind=gitops \
   -Dapicurio.features.experimental.enabled=true \
   -Dapicurio.polling-storage.id=prod \
-  -Dapicurio.gitops.workspace=/tmp/gitops-repos \
-  -Dapicurio.gitops.repo.dir=example \
-  -Dapicurio.gitops.repo.branch=main
+  -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops/pull-ssh/repos
 ```
 
 ### Security Notes
@@ -254,3 +251,10 @@ Content files are detected by file extension:
 - `.proto` — Protocol Buffers
 - `.graphql` — GraphQL
 - `.xml`, `.xsd`, `.wsdl` — XML Schema / WSDL
+
+## Related Documentation
+
+- [GitOps Storage Overview](../../app/src/main/java/io/apicurio/registry/storage/impl/gitops/README.md) — architecture, configuration properties, management API, error handling
+- [GitOps Sync Container](../../distro/gitops/README.md) — sidecar image configuration, security levels, threat model, build instructions
+- [Example Repository](https://github.com/Apicurio/apicurio-registry-gitops-example) — sample multi-registry data
+- [GitOps Design Epic](https://github.com/Apicurio/apicurio-registry/issues/7480) — design document and implementation plan

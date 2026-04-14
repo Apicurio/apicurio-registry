@@ -37,7 +37,11 @@ public class PollingStorageStatus {
         IDLE,
         /** A poll detected changes and the storage is loading new data. */
         LOADING,
-        /** The last load attempt failed;
+        /** Data has been loaded and is waiting for the active/inactive switch.
+         *  This state indicates the write lock could not be acquired immediately,
+         *  typically because read operations are in progress. */
+        SWITCHING,
+        /** The last load or switch attempt failed;
          *  storage continues serving previous data. */
         ERROR
     }

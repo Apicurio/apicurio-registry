@@ -4530,7 +4530,7 @@
         "type": "object",
         "properties": {
           "syncState": {
-            "description": "The current synchronization state of the GitOps storage. Possible values: INITIALIZING (first load not yet completed), IDLE (serving latest data), LOADING (sync in progress), ERROR (last sync failed, serving previous data).",
+            "description": "The current synchronization state of the GitOps storage. Possible values: INITIALIZING (first load not yet completed), IDLE (serving latest data), LOADING (sync in progress), SWITCHING (data loaded, waiting for write lock to publish), ERROR (last sync or switch failed, serving previous data).",
             "type": "string"
           },
           "currentMarker": {

@@ -4,22 +4,27 @@
 # The sidecar pulls from a private repo into a local directory; Registry reads from it.
 #
 # Setup:
-#   1. Generate an SSH key pair (if you haven't already):
-#      ssh-keygen -t ed25519 -f secrets/id_ed25519 -N "" -C "apicurio-gitops-sidecar"
 #
-#   2. Add the public key as a deploy key in your Git repository
+#   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
 #
-#   3. (Recommended) Pre-populate known_hosts:
+#   2. Generate an SSH key pair (if you haven't already):
+#      cd examples/gitops/pull-ssh
+#      ssh-keygen -t ed25519 -f secrets/id_ed25519 -N "" -C "apicurio-registry-gitops-sync"
+#
+#   3. Add the public key (secrets/id_ed25519.pub) as a deploy key in your Git repository:
+#      - GitHub: Settings > Deploy keys > Add deploy key (read-only access is sufficient)
+#      - GitLab: Settings > Repository > Deploy keys
+#
+#   4. (Recommended) Pre-populate known_hosts to avoid TOFU:
+#      cd examples/gitops/pull-ssh
 #      ssh-keyscan github.com > secrets/known_hosts
-#
-#   4. Update APICURIO_GITOPS_REPO_URL below
 #
 #   5. Start the sidecar and UI:
 #      cd examples/gitops/pull-ssh
-#      docker compose -f docker-compose-dev.yaml up
+#      APICURIO_GITOPS_REPO_URL=git@github.com:your-org/apicurio-registry-gitops-example.git docker compose -f docker-compose-dev.yaml up
 #
 #   6. Start Registry in dev mode:
-#      cd app
+#      mvn clean install -Dfast -pl app -am -DskipTests && cd app
 #      mvn quarkus:dev \
 #        -Dapicurio.storage.kind=gitops \
 #        -Dapicurio.features.experimental.enabled=true \
@@ -32,19 +37,21 @@
 
 services:
 
-  git-sync:
-    container_name: gitops-sidecar
+  gitops-sync:
+    container_name: gitops-sync
     image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
     environment:
-      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-git@github.com:your-org/your-schemas.git}"
+      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-git@github.com:your-org/apicurio-registry-gitops-example.git}"
       APICURIO_GITOPS_SSH_KEY: "/secrets/id_ed25519"
       # Uncomment the next line after creating secrets/known_hosts:
       # APICURIO_GITOPS_SSH_KNOWN_HOSTS: "/secrets/known_hosts"
+      # and then enable strict security mode:
+      # APICURIO_GITOPS_SECURITY: "strict"
     volumes:
       - ./repos:/repos
       - ./secrets:/secrets:ro
 
-  ui:
+  registry-ui:
     container_name: registry-ui
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
     environment:

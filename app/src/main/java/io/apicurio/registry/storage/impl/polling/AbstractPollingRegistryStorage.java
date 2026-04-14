@@ -30,8 +30,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static io.apicurio.registry.exception.RuntimeAssertionFailedException.assertion;
-import static io.quarkus.runtime.configuration.ConfigUtils.isProfileActive;
 
 /**
  * Abstract base class for polling-based registry storage implementations.
@@ -76,9 +74,9 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
     // Used by isReady() to prevent serving empty results before initial data is available.
     private volatile boolean isReady = false;
 
-    // When a watch event arrives while a refresh is in progress (lock held),
-    // this flag ensures we re-poll immediately after the current cycle completes.
-    private volatile boolean watchEventPending = false;
+    // When set, the next refresh cycle will poll immediately without waiting
+    // for the poll period. Used by requestSync() and K8s watch callbacks.
+    private volatile boolean syncRequested = false;
 
     private volatile boolean initialized = false;
     private PollingStorageConfig pollingConfig;
@@ -86,17 +84,6 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
     private Debouncer<PollingResult<MARKER>> debouncer;
 
     private final ReentrantLock refreshLock = new ReentrantLock();
-
-    /**
-     * Returns the refresh lock. Holding this lock prevents the scheduler from
-     * polling and loading data. Used by tests that directly manipulate the
-     * blue/green storages to prevent concurrent access.
-     * The `test` profile must be active to access the lock.
-     */
-    public ReentrantLock getRefreshLock() {
-        assertion(isProfileActive("test"), "Refresh lock can only be accessed when the 'test' profile is active.");
-        return refreshLock;
-    }
 
     private Instant lastRefresh = Instant.MIN;
 
@@ -143,14 +130,6 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
      * <p>
      * This method is thread-safe.
      */
-    /**
-     * Signals that a watch event was received. If the refresh lock is currently held,
-     * this sets a flag so the next refresh cycle re-polls immediately.
-     */
-    protected void onWatchEvent() {
-        watchEventPending = true;
-    }
-
     protected void tryRefresh() {
         if (!initialized) {
             return;
@@ -188,21 +167,33 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                             if (switchRetryCount >= MAX_SWITCH_RETRIES) {
                                 log.error("{} failed to acquire write lock after {} attempts, " +
                                         "discarding pending update to prevent deadlock", storageName(), MAX_SWITCH_RETRIES);
+                                status = status.toBuilder()
+                                        .syncState(PollingStorageStatus.SyncState.ERROR)
+                                        .lastErrors(List.of("Failed to publish update: could not acquire write lock after "
+                                                + MAX_SWITCH_RETRIES + " attempts"))
+                                        .build();
                                 pendingResult = null;
                                 pendingProcessingResult = null;
                                 state = State.READY_TO_WRITE;
                                 switchRetryCount = 0;
+                            } else {
+                                status = status.toBuilder()
+                                        .syncState(PollingStorageStatus.SyncState.SWITCHING)
+                                        .build();
                             }
                         }
                     }
                     case READY_TO_WRITE -> {
                         var now = Instant.now();
-                        boolean forceRefresh = watchEventPending;
+                        boolean forceRefresh = syncRequested;
                         if (forceRefresh) {
-                            watchEventPending = false;
+                            syncRequested = false;
                         }
                         if (forceRefresh || now.isAfter(lastRefresh.plus(pollingConfig.getPollPeriod()))) {
                             lastRefresh = now;
+                            status = status.toBuilder()
+                                    .lastSyncAttempt(now)
+                                    .build();
                             log.debug("Running {} poll. Active database is {} and state is {}.",
                                     storageName(), active == green ? "green" : "blue", state);
                             try {
@@ -236,7 +227,6 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
             String markerStr = markerToString(pollResult.getMarker());
             status = status.toBuilder()
                     .syncState(PollingStorageStatus.SyncState.LOADING)
-                    .lastSyncAttempt(Instant.now())
                     .build();
 
             inactive.deleteAllUserData();
@@ -250,6 +240,9 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                 log.error("{} update failed to load (marker: {}). {} error(s):",
                         storageName(), pollResult.getMarker(), result.getErrors().size());
                 result.getErrors().forEach(e -> log.error("  - {}", e));
+                // Data errors won't be fixed by retrying the same commit — commit the marker
+                // so we stop re-detecting this change. A new commit will trigger a fresh attempt.
+                pollResult.commit();
                 status = status.toBuilder()
                         .syncState(PollingStorageStatus.SyncState.ERROR)
                         .currentMarker(markerStr)
@@ -257,7 +250,13 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                         .build();
             }
         } catch (Exception e) {
+            // Transient errors (H2 issues, OOM, etc.) — don't commit the marker,
+            // so the next poll cycle will retry the same commit.
             log.error("{} failed to load data into inactive storage: {}", storageName(), e.getMessage(), e);
+            status = status.toBuilder()
+                    .syncState(PollingStorageStatus.SyncState.ERROR)
+                    .lastErrors(List.of("Transient error: " + e.getMessage()))
+                    .build();
         }
     }
 
@@ -330,11 +329,11 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
     }
 
     /**
-     * Requests an immediate synchronization by resetting the last refresh time.
+     * Requests an immediate synchronization.
      * The next scheduler invocation will poll without waiting for the poll period.
      */
     public void requestSync() {
-        lastRefresh = Instant.MIN;
+        syncRequested = true;
     }
 
     @Override

@@ -1,7 +1,7 @@
 # GitOps Local Volume Example - Docker Compose
 #
-# Clones the example repository into a Docker volume and runs the registry
-# in GitOps mode. No sidecar needed — the registry reads directly from the volume.
+# Clones the example repository into a local directory `examples/gitops/example-repo` and runs the registry
+# in GitOps mode. The local clone can be modified to test GitOps reload behavior.
 #
 # Run:
 #   cd examples/gitops
@@ -16,18 +16,20 @@
 
 services:
 
-  # Clone the example repository into a Docker volume
-  git-init:
-    container_name: git-init
+  # Clone the example repository into a local directory
+  gitops-init:
+    container_name: gitops-init
     image: alpine/git:latest
     volumes:
-      - git-repo:/repos
+      - .:/work
     entrypoint: ["sh", "-c"]
     command:
       - |
-        if [ ! -d /repos/default/.git ]; then
+        if [ ! -d /work/example-repo/.git ]; then
           echo "Cloning example GitOps repository..."
-          git clone https://github.com/Apicurio/apicurio-registry-gitops-example.git /repos/default
+          git clone https://github.com/Apicurio/apicurio-registry-gitops-example.git /work/example-repo
+          # Match ownership to the bind-mounted parent directory so files are editable on the host
+          chown -R "$(stat -c '%u:%g' /work)" /work/example-repo
           echo "Example repository initialized."
         else
           echo "Repository already initialized, skipping."
@@ -35,7 +37,7 @@ services:
 
   # Apicurio Registry (GitOps mode)
   registry:
-    container_name: registry-gitops
+    container_name: registry
     image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
     environment:
       QUARKUS_PROFILE: "prod"
@@ -46,16 +48,15 @@ services:
       APICURIO_POLLING_STORAGE_POLL_PERIOD: "PT5S"
       APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: "PT5S"
       APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: "PT30S"
-      LOG_LEVEL: "INFO"
       QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     volumes:
-      - git-repo:/repos:ro
+      - ./example-repo:/repos/default:ro
     ports:
       - "8080:8080"
     depends_on:
-      git-init:
+      gitops-init:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
@@ -65,7 +66,7 @@ services:
       start_period: 30s
 
   # Apicurio Registry UI
-  ui:
+  registry-ui:
     container_name: registry-ui
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
     environment:
@@ -76,5 +77,3 @@ services:
       registry:
         condition: service_healthy
 
-volumes:
-  git-repo:

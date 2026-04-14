@@ -4,9 +4,14 @@
 # Uses dev security mode to allow HTTP/HTTPS without SSH keys.
 #
 # Setup:
-#   1. Fork https://github.com/Apicurio/apicurio-registry-gitops-sync-example
-#   2. Update APICURIO_GITOPS_REPO_URL below with your fork URL
-#   3. Run: docker compose up
+#
+#   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
+#
+#   2. (Recommended) Update APICURIO_GITOPS_REPO_URL below with your fork URL
+#
+#   3. Run:
+#      cd examples/gitops/pull-https
+#      docker compose up
 #
 # Endpoints:
 #   - Registry API: http://localhost:8080/apis/registry/v3
@@ -14,17 +19,18 @@
 
 services:
 
-  git-sync:
-    container_name: gitops-sidecar
+  gitops-sync:
+    container_name: gitops-sync
     image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
     environment:
-      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-https://github.com/Apicurio/apicurio-registry-gitops-sync-example.git}"
+      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-https://github.com/Apicurio/apicurio-registry-gitops-example.git}"
       APICURIO_GITOPS_SECURITY: "dev"
+      APICURIO_GITOPS_REPO_BRANCH: "test"
     volumes:
       - git-repo:/repos
 
   registry:
-    container_name: registry-gitops
+    container_name: registry
     image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
     environment:
       QUARKUS_PROFILE: "prod"
@@ -35,7 +41,6 @@ services:
       APICURIO_POLLING_STORAGE_POLL_PERIOD: "PT5S"
       APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: "PT5S"
       APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: "PT30S"
-      LOG_LEVEL: "INFO"
       QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
@@ -44,7 +49,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - git-sync
+      - gitops-sync
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
       interval: 10s
@@ -52,7 +57,7 @@ services:
       retries: 10
       start_period: 30s
 
-  ui:
+  registry-ui:
     container_name: registry-ui
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
     environment:

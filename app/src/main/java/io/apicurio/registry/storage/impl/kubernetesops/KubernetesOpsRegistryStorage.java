@@ -63,7 +63,7 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
 
         // Always set the pending flag so that if the lock is held,
         // the next refresh cycle will re-poll immediately
-        onWatchEvent();
+        requestSync();
 
         try {
             // Activate request context since the watch callback runs in a background thread

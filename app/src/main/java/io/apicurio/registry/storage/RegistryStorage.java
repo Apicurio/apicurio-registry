@@ -27,6 +27,7 @@ import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
+import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -426,6 +427,73 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the contract ruleset for an artifact (artifact-level rules that apply to all versions).
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws RegistryStorageException
+     */
+    ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException;
+
+    /**
+     * Creates or replaces the contract ruleset for an artifact (artifact-level).
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param ruleset
+     * @throws RegistryStorageException
+     */
+    void setArtifactContractRuleset(String groupId, String artifactId, ContractRuleSetDto ruleset)
+            throws RegistryStorageException;
+
+    /**
+     * Deletes the contract ruleset for an artifact (artifact-level).
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws RegistryStorageException
+     */
+    void deleteArtifactContractRuleset(String groupId, String artifactId) throws RegistryStorageException;
+
+    /**
+     * Gets the contract ruleset for a specific artifact version.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Creates or replaces the contract ruleset for a specific artifact version.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @param ruleset
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Deletes the contract ruleset for a specific artifact version.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException;
 
     /**
      * Gets a sorted set of all artifact versions that exist for a given artifact.

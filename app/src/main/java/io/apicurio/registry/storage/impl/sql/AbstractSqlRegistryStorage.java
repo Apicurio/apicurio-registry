@@ -165,6 +165,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     SqlExportRepository exportRepository;
     SqlEventRepository eventRepository;
     SqlCleanupRepository cleanupRepository;
+    SqlContractRuleRepository contractRuleRepository;
 
     private volatile boolean isReady = false;
     private volatile Instant isAliveLastCheck = Instant.MIN;
@@ -289,6 +290,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 securityIdentity, outboxEvent, branchRepository, artifactRepository,
                 contentRepository, sequenceRepository, utils);
         cleanupRepository = new SqlCleanupRepository(handleFactory, sqlStatements, log, ruleRepository);
+
+        // Level 4.5: depend on level 4 (versionRepository)
+        contractRuleRepository = new SqlContractRuleRepository(handleFactory, sqlStatements, log,
+                versionRepository);
 
         // Level 5: depend on level 4
         commentRepository = new SqlCommentRepository(handleFactory, sqlStatements, log,
@@ -820,6 +825,42 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
 
         ruleRepository.deleteGroupRule(groupId, rule);
+    }
+
+    @Override
+    public ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException {
+        return contractRuleRepository.getArtifactContractRuleset(groupId, artifactId);
+    }
+
+    @Override
+    public void setArtifactContractRuleset(String groupId, String artifactId,
+            ContractRuleSetDto ruleset) throws RegistryStorageException {
+        contractRuleRepository.setArtifactContractRuleset(groupId, artifactId, ruleset);
+    }
+
+    @Override
+    public void deleteArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException {
+        contractRuleRepository.deleteArtifactContractRuleset(groupId, artifactId);
+    }
+
+    @Override
+    public ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId,
+            String version) throws VersionNotFoundException, RegistryStorageException {
+        return contractRuleRepository.getVersionContractRuleset(groupId, artifactId, version);
+    }
+
+    @Override
+    public void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException {
+        contractRuleRepository.setVersionContractRuleset(groupId, artifactId, version, ruleset);
+    }
+
+    @Override
+    public void deleteVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException {
+        contractRuleRepository.deleteVersionContractRuleset(groupId, artifactId, version);
     }
 
     @Override

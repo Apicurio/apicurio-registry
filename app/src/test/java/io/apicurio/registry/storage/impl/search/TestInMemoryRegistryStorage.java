@@ -15,6 +15,7 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -895,6 +896,39 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public List<DynamicConfigPropertyDto> getConfigProperties() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setArtifactContractRuleset(String groupId, String artifactId,
+            ContractRuleSetDto ruleset) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deleteArtifactContractRuleset(String groupId, String artifactId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId,
+            String version) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deleteVersionContractRuleset(String groupId, String artifactId, String version) {
         throw new UnsupportedOperationException();
     }
 }

@@ -1,34 +1,35 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+:_mod-docs-content-type: ASSEMBLY
 [id="registry-config-reference_{context}"]
 = {registry} configuration reference
-//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-This chapter provides reference information on the configuration options that are available for {registry}.
+You can use the following reference information to configure {registry}.
 
 * xref:all-registry-configs_{context}[]
 
+[role="_additional-resources"]
 .Additional resources
-* For details on migrating a 2.x Apicurio Registry deployment to 3.x see xref:migration-table_{context}[]
-
-* For details on setting configuration options by using the Core Registry API, see the `/admin/config/properties` endpoint in the {registry-rest-api}.
-* For details on client configuration options for Kafka serializers and deserializers, see
-{registry-client-serdes-config}.
+* xref:migration-table_{context}[{registry} version 2 to version 3 configuration changes]
+* {registry-rest-api}[Core Registry API configuration endpoints]
+* {registry-client-serdes-config}[Kafka serializer and deserializer configuration]
 
 //INCLUDES
 
 include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]
 
+// ref-migration-table
+:_mod-docs-content-type: REFERENCE
 [id="migration-table_{context}"]
 == {registry} version 2 to version 3 configuration changes
 
-{registry} v3 has simplified the configuration options, removing duplicates and improving consistency.
-For most options, the only change is ssrenaming of the prefix from `registry` to `apicurio`, for example, changing `registry.kafkasql.bootstrap.servers` to `apicurio.kafkasql.bootstrap.servers`.
+[role="_abstract"]
+{registry} v3 simplifies the configuration options by removing duplicates and improving consistency.
+For most options, the only change is renaming of the prefix from `registry` to `apicurio`, for example, changing `registry.kafkasql.bootstrap.servers` to `apicurio.kafkasql.bootstrap.servers`.
 
-NOTE: For each configuration property you can override the value by using the corresponding environment variable, for example, `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS`.s
+NOTE: For each configuration property, you can override the value by using the corresponding environment variable, for example, `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS`.
 
-=== api
 .api configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -40,7 +41,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.disable.apis`
 |===
 
-=== auth
 .auth configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -100,7 +100,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`quarkus.oidc.token-path`
 |===
 
-=== cache
 .cache configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -110,7 +109,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.config.cache.enabled`
 |===
 
-=== ccompat
 .ccompat configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -124,7 +122,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.ccompat.use-canonical-hash`
 |===
 
-=== download
 .download configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -134,7 +131,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.download.href.ttl.seconds`
 |===
 
-=== events
 .events configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -144,7 +140,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`removed`
 |===
 
-=== health
 .health configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -188,7 +183,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.storage.metrics.cache.check-period.ms`
 |===
 
-=== import
 .import configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -198,7 +192,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.import.url`
 |===
 
-=== kafka
 .kafka configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -210,7 +203,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`Removed`
 |===
 
-=== limits
 .limits configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -244,7 +236,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.storage.metrics.cache.max-size`
 |===
 
-=== redirects
 .redirects configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -260,7 +251,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.url.override.port`
 |===
 
-=== rest
 .rest configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -270,7 +260,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.rest.artifact.deletion.enabled`
 |===
 
-=== store
 .store configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===
@@ -282,7 +271,6 @@ NOTE: For each configuration property you can override the value by using the co
 |`apicurio.sql.init`
 |===
 
-=== ui
 .ui configuration options
 [.table-expandable,width="100%",cols="2,2",options="header"]
 |===

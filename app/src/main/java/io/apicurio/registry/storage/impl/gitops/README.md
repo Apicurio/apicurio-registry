@@ -169,14 +169,46 @@ These properties are shared between GitOps and KubernetesOps storage implementat
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| `apicurio.gitops.workspace` | `.` | Base directory where Git repositories are mounted. |
-| `apicurio.gitops.repo.dir` | *(required)* | Directory name of the Git repository, relative to the workspace. |
+| `apicurio.gitops.workspace` | `/repos` | Base directory where Git repositories are mounted. |
+| `apicurio.gitops.repo.dir` | `default` | Directory name of the Git repository, relative to the workspace. |
 | `apicurio.gitops.repo.branch` | `main` | Branch to read from. |
+
+## Management API
+
+The registry exposes management endpoints at `/apis/registry/v3/admin/gitops/` when running
+in GitOps mode. These return HTTP 409 if a different storage backend is active.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/admin/gitops/status` | GET | Returns current sync state, commit SHA, load stats, and errors |
+| `/admin/gitops/sync` | POST | Triggers an immediate sync (returns 204) |
+
+The status response includes:
+- `syncState` — one of `INITIALIZING`, `IDLE`, `LOADING`, `SWITCHING`, `ERROR`
+- `currentMarker` — Git commit SHA currently loaded
+- `lastSuccessfulSync` / `lastSyncAttempt` — timestamps
+- `groupCount`, `artifactCount`, `versionCount` — load statistics
+- `lastErrors` — error messages from the last failed load (empty on success)
+
+## Timestamps
+
+Groups, artifacts, and versions support optional `createdOn` and `modifiedOn` fields.
+When omitted, the Git commit time is used as a fallback.
+
+Supported formats: ISO 8601 (`2024-03-04`, `2024-03-04T10:30:00Z`, `2024-03-04T10:30:00+01:00`),
+ISO 8601 without timezone (assumed UTC), or unix milliseconds.
 
 ## Error Handling
 
 If any file fails to parse or validate, the **entire load is rejected**. The blue-green swap does not happen,
-and the last known good data continues being served. Errors are logged with file paths and details.
+and the last known good data continues being served. Errors are logged with file paths and details and
+are visible via the management API status endpoint.
+
+**Data errors** (invalid rules, missing files, parse failures) mark the commit as processed — the same
+broken commit will not be retried. A new commit that fixes the issue will trigger a fresh load.
+
+**Transient errors** (database issues, out-of-memory) do not mark the commit — the next poll cycle will
+retry the same commit automatically.
 
 Error categories:
 - Malformed YAML/JSON syntax in metadata files
@@ -185,23 +217,30 @@ Error categories:
 - Missing content files (broken relative path references)
 - Duplicate artifacts or groups
 
+## GitOps Sync Container
+
+A pre-built container image (`quay.io/apicurio/apicurio-registry-gitops-sync`) is available
+for pulling from remote Git repositories. It runs as a sidecar alongside the registry,
+managing a shared volume. See [`distro/gitops/README.md`](../../../../distro/gitops/README.md)
+for configuration, security levels, and deployment details.
+
 ## Future Work
 
 The following features are planned but not yet implemented:
 
 - **Multi-repository aggregation** — load data from multiple Git repositories into a single registry
-- **Management API** — REST endpoints for sync status, errors, and manual sync triggers
-- **Sidecar containers** — pre-built sidecars for pull model (git-sync) and push model (SSH server)
+- **Push model** — SSH server in the sync container accepting `git push` (experimental, included in the image but not production-ready)
 - **Dry-run validation** — validate schema changes from a branch without affecting live data
 - **CLI validator** — offline validation of `*.registry.yaml` files without a running registry
 - **Rule enforcement during loading** — validate compatibility and other rules at load time
+- **Per-file git history timestamps** — derive `createdOn`/`modifiedOn` from git log per file
 
 For the full design document and implementation plan, see the
 [GitOps design epic](https://github.com/Apicurio/apicurio-registry/issues/7480).
 
 ## Getting Started
 
-For a complete working example with Docker Compose, see `examples/gitops/`.
+For complete working examples with Docker Compose, see [`examples/gitops/`](../../../../examples/gitops/).
 
 <!--
 

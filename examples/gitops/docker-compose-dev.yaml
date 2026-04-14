@@ -1,15 +1,18 @@
 # GitOps Local Volume Example - Quarkus Dev Mode
 #
 # Use this when running the registry locally with `mvn quarkus:dev`.
-# Clones the example repo into examples/gitops/example-repo/ and starts the UI.
+#
+# Clones the example repository into a local directory `examples/gitops/example-repo` and runs the registry
+# in GitOps mode. The local clone can be modified to test GitOps reload behavior.
 #
 # Setup:
+#
 #   1. Start the setup container and UI:
 #      cd examples/gitops
 #      docker compose -f docker-compose-dev.yaml up
 #
 #   2. Start Registry in dev mode:
-#      cd app
+#      mvn clean install -Dfast -pl app -am -DskipTests && cd app
 #      mvn quarkus:dev \
 #        -Dapicurio.storage.kind=gitops \
 #        -Dapicurio.features.experimental.enabled=true \
@@ -17,14 +20,18 @@
 #        -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops \
 #        -Dapicurio.gitops.repo.dir=example-repo
 #
+# To run as the staging registry (includes experimental schemas):
+#   -Dapicurio.polling-storage.id==staging
+#
 # Endpoints:
 #   - Registry API: http://localhost:8080/apis/registry/v3
 #   - Registry UI:  http://localhost:8888
 
 services:
 
-  setup:
-    container_name: gitops-setup
+  # Clone the example repository into a local directory
+  gitops-init:
+    container_name: gitops-init
     image: alpine/git:latest
     volumes:
       - .:/work
@@ -34,12 +41,13 @@ services:
         if [ ! -d /work/example-repo/.git ]; then
           echo "Cloning example GitOps repository..."
           git clone https://github.com/Apicurio/apicurio-registry-gitops-example.git /work/example-repo
+          chown -R "$(stat -c '%u:%g' /work)" /work/example-repo
           echo "Done."
         else
           echo "Example repository already exists, skipping."
         fi
 
-  ui:
+  registry-ui:
     container_name: registry-ui
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
     environment:

@@ -135,7 +135,7 @@ public class GitManager extends AbstractPollingDataSourceManager<RevCommit> {
             return PollingResult.noChanges(currentCommit);
         }
 
-        log.info("Detected change: {} -> {}", previousCommit != null ? previousCommit.name() : "(initial)",
+        log.debug("Detected change: {} -> {}", previousCommit != null ? previousCommit.name() : "(initial)",
                 currentCommit.name());
 
         // Walk the tree at the pinned commit SHA and collect files.

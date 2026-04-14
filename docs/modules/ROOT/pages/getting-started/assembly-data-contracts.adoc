@@ -427,7 +427,7 @@ The Data Contracts REST API provides endpoints for managing contract metadata an
 
 === Contract metadata endpoints
 
-Contract metadata is stored as artifact labels using the reserved `contract.*` namespace.
+Contract metadata is stored as artifact labels using the reserved `contract.*` namespace. When contract metadata labels exist on an artifact, the `contractMetadata` field is automatically populated in artifact GET responses (for example, `GET /groups/{groupId}/artifacts/{artifactId}`).
 
 .Contract metadata REST API endpoints
 [cols="1,3,3", options="header"]
@@ -483,6 +483,30 @@ Contract rulesets can be managed at the artifact level (applying to all versions
 |Delete the contract ruleset for a specific version
 |===
 
+=== Contract status transition endpoint
+
+.Contract status transition endpoint
+[cols="1,3,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|POST
+|`/groups/{groupId}/artifacts/{artifactId}/contract/status`
+|Change lifecycle status with transition validation
+|===
+
+=== Contract rule search endpoint
+
+.Contract rule search endpoint
+[cols="1,3,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|GET
+|`/search/contract/rules?tag={tag}`
+|Search for contract rules by tag across all artifacts and versions
+|===
+
 === Planned endpoints
 
 NOTE: The following endpoints are planned for future releases and are not yet implemented.
@@ -491,10 +515,6 @@ NOTE: The following endpoints are planned for future releases and are not yet im
 [cols="1,3,3", options="header"]
 |===
 |Method |Endpoint |Description
-
-|POST
-|`/groups/{groupId}/artifacts/{artifactId}/contract/status`
-|Change lifecycle status with validation
 
 |POST
 |`/groups/{groupId}/artifacts/{artifactId}/contract/promote`
@@ -627,6 +647,64 @@ curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifac
 ----
 curl -X DELETE \
   http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/ruleset
+----
+
+=== Example: Transitioning contract status
+
+[source,bash]
+----
+curl -X POST \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/status \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "status": "STABLE"
+  }'
+----
+
+.Response
+[source,json]
+----
+{
+  "status": "STABLE",
+  "ownerTeam": "Platform Team",
+  "ownerDomain": "payments",
+  "supportContact": "platform@example.com",
+  "classification": "CONFIDENTIAL",
+  "stage": "DEV",
+  "stableDate": "2026-04-14T10:30:00Z"
+}
+----
+
+NOTE: The `stableDate` and `deprecatedDate` fields are automatically populated when transitioning to STABLE or DEPRECATED status. Invalid transitions (for example, `DEPRECATED` → `STABLE`) return a 409 Conflict response.
+
+=== Example: Searching contract rules by tag
+
+[source,bash]
+----
+curl "http://localhost:8080/apis/registry/v3/search/contract/rules?tag=PII"
+----
+
+.Response
+[source,json]
+----
+[
+  {
+    "groupId": "my-group",
+    "artifactId": "my-artifact",
+    "globalId": null,
+    "ruleCategory": "DOMAIN",
+    "rule": {
+      "name": "encryptPII",
+      "kind": "TRANSFORM",
+      "type": "ENCRYPT",
+      "mode": "WRITE",
+      "tags": ["PII"],
+      "params": {"encrypt.kek.name": "pii-key"},
+      "onFailure": "ERROR",
+      "disabled": false
+    }
+  }
+]
 ----
 
 === Example: Setting a version-level contract ruleset

@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
 
-import static io.apicurio.registry.maven.RegisterRegistryMojo.isAbsoluteUri;
+import static io.apicurio.registry.maven.ReferenceUrlUtil.isAbsoluteUri;
 
 public class IndexedResource {
 

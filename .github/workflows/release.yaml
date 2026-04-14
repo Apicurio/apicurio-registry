@@ -77,7 +77,7 @@ jobs:
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.RELEASE_DOCS_VERSION }}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json
 
           # TODO: Operator docs
 
@@ -349,7 +349,7 @@ jobs:
           mvn versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.SNAPSHOT_DOCS_VERSION }}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.SNAPSHOT_DOCS_VERSION }}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.SNAPSHOT_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json
 
           # TODO: Operator docs
 

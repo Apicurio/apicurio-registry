@@ -10,9 +10,9 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
+import static io.apicurio.registry.cli.common.RuleUtil.printRule;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleConfig;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
-import static io.apicurio.registry.cli.globalrule.GlobalRuleGetCommand.printRule;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 
 @Command(

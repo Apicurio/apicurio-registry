@@ -21,7 +21,7 @@
 #        -Dapicurio.gitops.repo.dir=example-repo
 #
 # To run as the staging registry (includes experimental schemas):
-#   -Dapicurio.polling-storage.id==staging
+#   -Dapicurio.polling-storage.id=staging
 #
 # Endpoints:
 #   - Registry API: http://localhost:8080/apis/registry/v3

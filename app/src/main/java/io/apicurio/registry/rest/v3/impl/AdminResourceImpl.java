@@ -641,6 +641,11 @@ public class AdminResourceImpl implements AdminResource {
         result.setArtifactCount(status.getArtifactCount());
         result.setVersionCount(status.getVersionCount());
         result.setLastErrors(status.getLastErrors());
+        if (status.getSources() != null) {
+            var sources = new io.apicurio.registry.rest.v3.beans.Sources();
+            status.getSources().forEach(sources::setAdditionalProperty);
+            result.setSources(sources);
+        }
         return result;
     }
 

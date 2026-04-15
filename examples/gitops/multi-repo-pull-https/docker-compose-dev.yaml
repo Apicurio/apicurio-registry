@@ -1,25 +1,22 @@
-# GitOps Pull Mode (HTTPS) - Quarkus Dev Mode
+# GitOps Multi-Repo Example - Quarkus Dev Mode
 #
 # Use this when running the registry locally with `mvn quarkus:dev`.
-# The sidecar pulls from a remote repo into a local directory; Registry reads from it.
+# The sidecar pulls two branches into local directories; Registry reads from them.
 #
 # Setup:
-#
-#   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
-#
-#   2. (Recommended) Update APICURIO_GITOPS_REPO_URL below with your fork URL
-#
-#   3. Start the sidecar and UI:
-#      cd examples/gitops/pull-https
+#   1. Start the sidecar and UI:
+#      cd examples/gitops/multi-repo-pull-https
 #      docker compose -f docker-compose-dev.yaml up
 #
-#   4. Start Registry in dev mode:
+#   2. Start Registry in dev mode:
 #      mvn clean install -Dfast -pl app -am -DskipTests && cd app
 #      mvn quarkus:dev \
 #        -Dapicurio.storage.kind=gitops \
 #        -Dapicurio.features.experimental.enabled=true \
 #        -Dapicurio.polling-storage.id=prod \
-#        -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops/pull-https/repos \
+#        -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops/multi-repo-pull-https/repos \
+#        -Dapicurio.gitops.repos.0.dir=platform \
+#        -Dapicurio.gitops.repos.1.dir=fulfillment \
 #        -Dapicurio.log.level=debug
 #
 # Endpoints:
@@ -43,8 +40,14 @@ services:
     container_name: gitops-sync
     image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
     environment:
-      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-https://github.com/Apicurio/apicurio-registry-gitops-example.git}"
       APICURIO_GITOPS_SECURITY: "dev"
+      # Platform team repo (main branch)
+      APICURIO_GITOPS_REPOS_0_DIR: "platform"
+      APICURIO_GITOPS_REPOS_0_URL: "https://github.com/Apicurio/apicurio-registry-gitops-example.git"
+      # Fulfillment team repo (fulfillment branch)
+      APICURIO_GITOPS_REPOS_1_DIR: "fulfillment"
+      APICURIO_GITOPS_REPOS_1_BRANCH: "fulfillment"
+      APICURIO_GITOPS_REPOS_1_URL: "https://github.com/Apicurio/apicurio-registry-gitops-example.git"
     volumes:
       - ./repos:/repos
     depends_on:

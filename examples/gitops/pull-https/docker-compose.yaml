@@ -25,7 +25,6 @@ services:
     environment:
       APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-https://github.com/Apicurio/apicurio-registry-gitops-example.git}"
       APICURIO_GITOPS_SECURITY: "dev"
-      APICURIO_GITOPS_REPO_BRANCH: "test"
     volumes:
       - git-repo:/repos
 
@@ -41,7 +40,7 @@ services:
       APICURIO_POLLING_STORAGE_POLL_PERIOD: "PT5S"
       APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: "PT5S"
       APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: "PT30S"
-      QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
+      APICURIO_LOG_LEVEL: "debug"
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     volumes:

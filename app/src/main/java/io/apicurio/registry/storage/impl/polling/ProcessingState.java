@@ -43,6 +43,9 @@ public class ProcessingState {
     @Getter
     private final Map<String, Long> contentHashToId = new HashMap<>();
 
+    // Track artifact sources for cross-repo conflict detection (groupId:artifactId -> sourceId)
+    private final Map<String, String> artifactSources = new HashMap<>();
+
     // Counters for summary logging
     @Getter
     private int groupCount = 0;
@@ -58,6 +61,26 @@ public class ProcessingState {
     public ProcessingState(PollingStorageConfig config, RegistryStorage storage) {
         this.config = config;
         this.storage = storage;
+    }
+
+    /**
+     * Checks whether an artifact from the given source conflicts with a previously
+     * registered artifact from a different source. If no conflict, registers the artifact.
+     *
+     * @return true if there is a conflict (same artifact from a different source)
+     */
+    public boolean checkArtifactConflict(String groupId, String artifactId, String sourceId) {
+        String key = groupId + ":" + artifactId;
+        String previousSource = artifactSources.putIfAbsent(key, sourceId);
+        return previousSource != null && !previousSource.equals(sourceId);
+    }
+
+    /**
+     * Returns the source ID that first registered the given artifact.
+     * Used for conflict error messages.
+     */
+    public String getArtifactSource(String groupId, String artifactId) {
+        return artifactSources.get(groupId + ":" + artifactId);
     }
 
     public void recordError(String message, Object... params) {
@@ -83,7 +106,7 @@ public class ProcessingState {
     }
 
     public void index(PollingDataFile file) {
-        pathIndex.put(file.getPath(), file);
+        pathIndex.put(file.getSourceId() + ":" + file.getPath(), file);
         file.getAny().ifPresent(a -> typeIndex.computeIfAbsent(a.getType(), k -> new HashSet<>()).add(file));
     }
 }

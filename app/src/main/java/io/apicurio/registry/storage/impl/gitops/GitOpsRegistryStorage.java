@@ -11,7 +11,7 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
-import org.eclipse.jgit.revwalk.RevCommit;
+import java.util.Map;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
@@ -21,7 +21,7 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 @StorageMetricsApply
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "gitops")
-public class GitOpsRegistryStorage extends AbstractPollingRegistryStorage<RevCommit> {
+public class GitOpsRegistryStorage extends AbstractPollingRegistryStorage<GitOpsMarker> {
 
     @ConfigProperty(name = "apicurio.storage.kind")
     @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0")
@@ -43,8 +43,14 @@ public class GitOpsRegistryStorage extends AbstractPollingRegistryStorage<RevCom
     }
 
     @Override
-    protected String markerToString(RevCommit marker) {
-        return marker != null ? marker.name() : null;
+    protected Map<String, String> markerToSources(GitOpsMarker marker) {
+        if (marker == null) {
+            return null;
+        }
+        var result = new java.util.LinkedHashMap<String, String>();
+        marker.getCommits().forEach((id, commit) ->
+                result.put(id, commit != null ? commit.name() : null));
+        return result;
     }
 
     @Scheduled(concurrentExecution = SKIP, every = "${apicurio.polling-storage.try-refresh.every:2.5s}")

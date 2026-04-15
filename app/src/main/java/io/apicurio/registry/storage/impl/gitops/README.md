@@ -167,11 +167,39 @@ These properties are shared between GitOps and KubernetesOps storage implementat
 
 ### GitOps-Specific Properties (`apicurio.gitops.*`)
 
+#### Single-repo (shorthand)
+
 | Property | Default | Description |
 |----------|---------|-------------|
 | `apicurio.gitops.workspace` | `/repos` | Base directory where Git repositories are mounted. |
 | `apicurio.gitops.repo.dir` | `default` | Directory name of the Git repository, relative to the workspace. |
 | `apicurio.gitops.repo.branch` | `main` | Branch to read from. |
+
+#### Multi-repo (indexed)
+
+For multiple repositories, use indexed properties. If indexed repos are configured,
+the single-repo shorthand properties must not be set.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `apicurio.gitops.repos.N.dir` | *(required)* | Directory name for repo N. |
+| `apicurio.gitops.repos.N.branch` | `main` | Branch to read from for repo N. |
+| `apicurio.gitops.repos.N.id` | *(dir name)* | Optional identifier for repo N, used in status reporting. |
+
+Indexes must be dense (0, 1, 2, ... — no gaps). Example:
+
+```properties
+apicurio.gitops.repos.0.dir=platform
+apicurio.gitops.repos.1.dir=fulfillment
+apicurio.gitops.repos.1.branch=fulfillment
+```
+
+When using environment variables, use the standard underscore format:
+`APICURIO_GITOPS_REPOS_0_DIR`.
+
+**Conflict detection:** If the same `groupId:artifactId` appears in files from
+different repositories, the entire load is rejected. Each artifact must be defined
+in exactly one repository.
 
 ## Management API
 
@@ -189,6 +217,7 @@ The status response includes:
 - `lastSuccessfulSync` / `lastSyncAttempt` — timestamps
 - `groupCount`, `artifactCount`, `versionCount` — load statistics
 - `lastErrors` — error messages from the last failed load (empty on success)
+- `sources` — per-source markers (map of source ID → marker, e.g., repo ID → commit SHA)
 
 ## Timestamps
 
@@ -228,7 +257,6 @@ for configuration, security levels, and deployment details.
 
 The following features are planned but not yet implemented:
 
-- **Multi-repository aggregation** — load data from multiple Git repositories into a single registry
 - **Push model** — SSH server in the sync container accepting `git push` (experimental, included in the image but not production-ready)
 - **Dry-run validation** — validate schema changes from a branch without affecting live data
 - **CLI validator** — offline validation of `*.registry.yaml` files without a running registry

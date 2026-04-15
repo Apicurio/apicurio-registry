@@ -21,6 +21,7 @@ import lombok.Getter;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Tracks the current synchronization status of a polling-based storage.
@@ -70,6 +71,10 @@ public class PollingStorageStatus {
     /** Errors from the last failed load attempt,
      *  empty if last load was successful. */
     private final List<String> lastErrors;
+
+    /** Per-source markers (source ID -> current marker string, e.g., commit SHA).
+     *  Null for single-source storage implementations. */
+    private final Map<String, String> sources;
 
     /**
      * Creates an initial status in the INITIALIZING state.

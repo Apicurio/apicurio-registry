@@ -130,12 +130,22 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
             for (PollingDataFile file : state.fromTypeIndex(Type.ARTIFACT)) {
                 Artifact artifact = file.getEntityUnchecked();
 
-                if (matchesRegistryId(artifact.getRegistryIds())) {
-                    processArtifact(state, file, artifact);
-                } else {
+                if (!matchesRegistryId(artifact.getRegistryIds())) {
                     log.debug("Ignoring artifact {} (registryIds {} does not include {})",
                             artifact.getArtifactId(), artifact.getRegistryIds(), pollingConfig.getRegistryId());
+                    continue;
                 }
+
+                if (state.checkArtifactConflict(artifact.getGroupId(), artifact.getArtifactId(), file.getSourceId())) {
+                    state.recordError("Artifact '%s:%s' is defined in multiple sources: '%s' and '%s'. "
+                            + "Each artifact must be defined in exactly one source.",
+                            artifact.getGroupId(), artifact.getArtifactId(),
+                            state.getArtifactSource(artifact.getGroupId(), artifact.getArtifactId()),
+                            file.getSourceId());
+                    continue;
+                }
+
+                processArtifact(state, file, artifact);
             }
         } else {
             log.debug("No registry config found for ID '{}'. requireRegistryConfig={}",
@@ -160,7 +170,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     var dto = new DynamicConfigPropertyDto();
                     dto.setName(property.getName());
                     dto.setValue(property.getValue());
-                    log.debug("Importing {}", dto);
+                    log.trace("Importing {}",dto);
                     state.getStorage().setConfigProperty(dto);
                 } catch (Exception ex) {
                     state.recordError("Could not import configuration property %s: %s", property.getName(),
@@ -178,7 +188,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     var e = new GlobalRuleEntity();
                     e.ruleType = RuleType.fromValue(globalRule.getRuleType());
                     e.configuration = globalRule.getConfig();
-                    log.debug("Importing {}", e);
+                    log.trace("Importing {}",e);
                     state.getStorage().importGlobalRule(e);
                 } catch (Exception ex) {
                     state.recordError("Could not import global rule %s: %s", globalRule.getRuleType(),
@@ -254,7 +264,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     e.createdOn = TimestampParser.parse(version.getCreatedOn(), state.getCommitTime());
                     e.modifiedOn = TimestampParser.parse(version.getModifiedOn(), state.getCommitTime());
 
-                    log.debug("Importing {}", e);
+                    log.trace("Importing {}",e);
                     state.getStorage().importArtifactVersion(e);
                     state.incrementVersionCount();
                 } catch (Exception ex) {
@@ -280,7 +290,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     e.artifactId = artifact.getArtifactId();
                     e.type = RuleType.fromValue(rule.getRuleType());
                     e.configuration = rule.getConfig();
-                    log.debug("Importing {}", e);
+                    log.trace("Importing {}",e);
                     state.getStorage().importArtifactRule(e);
                 } catch (Exception ex) {
                     state.recordError("Could not import rule %s for artifact '%s': %s", rule.getRuleType(),
@@ -299,7 +309,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     e.groupId = group.getGroupId();
                     e.type = RuleType.fromValue(rule.getRuleType());
                     e.configuration = rule.getConfig();
-                    log.debug("Importing {}", e);
+                    log.trace("Importing {}",e);
                     state.getStorage().importGroupRule(e);
                 } catch (Exception ex) {
                     state.recordError("Could not import rule %s for group '%s': %s", rule.getRuleType(),
@@ -338,7 +348,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                 e.artifactsType = group.getArtifactsType();
                 e.createdOn = TimestampParser.parse(group.getCreatedOn(), state.getCommitTime());
                 e.modifiedOn = TimestampParser.parse(group.getModifiedOn(), state.getCommitTime());
-                log.debug("Importing {}", e);
+                log.trace("Importing {}",e);
                 state.getStorage().importGroup(e);
                 processGroupRules(state, group);
                 state.incrementGroupCount();
@@ -465,7 +475,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                 e.serializedReferences = RegistryContentUtils.serializeReferences(refs);
             }
 
-            log.debug("Importing content from {}", dataFile.getPath());
+            log.trace("Importing content from {}",dataFile.getPath());
             state.getStorage().importContent(e);
             state.getContentHashToId().put(contentHash, contentId);
             dataFile.setProcessed(true);
@@ -478,7 +488,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
 
     private PollingDataFile findFileByPathRef(ProcessingState state, PollingDataFile base, String ref) {
         String resolved = Path.of(base.getPath()).resolveSibling(ref).normalize().toString();
-        return state.getPathIndex().get(resolved);
+        return state.getPathIndex().get(base.getSourceId() + ":" + resolved);
     }
 
     /**

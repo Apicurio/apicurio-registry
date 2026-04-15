@@ -1,0 +1,84 @@
+# GitOps Multi-Repo Example - Docker Compose
+#
+# Aggregates schemas from two Git branches (simulating two team repositories)
+# into a single registry instance using the GitOps sidecar.
+#
+# - Platform team (main branch): registry config, common schemas, order events
+# - Fulfillment team (fulfillment branch): shipment events, experimental schemas
+#
+# Build local images (if using local changes):
+#   mvn clean install -pl distro/docker -am -DskipTests
+#   docker build -f distro/docker/target/docker/Dockerfile.jvm -t quay.io/apicurio/apicurio-registry:local distro/docker/target/docker
+#   docker build -t quay.io/apicurio/apicurio-registry-gitops-sync:local distro/gitops
+#
+# Run:
+#   cd examples/gitops/multi-repo-pull-https
+#   docker compose up
+#
+# Run with local images:
+#   REGISTRY_IMAGE=quay.io/apicurio/apicurio-registry:local SIDECAR_IMAGE=quay.io/apicurio/apicurio-registry-gitops-sync:local docker compose up
+#
+# To run as staging (includes experimental schemas):
+#   APICURIO_POLLING_STORAGE_ID=staging docker compose up
+#
+# Endpoints:
+#   - Registry API: http://localhost:8080/apis/registry/v3
+#   - Registry UI:  http://localhost:8888
+
+services:
+
+  gitops-sync:
+    container_name: gitops-sync
+    image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
+    environment:
+      APICURIO_GITOPS_SECURITY: "dev"
+      # Platform team repo (main branch)
+      APICURIO_GITOPS_REPOS_0_DIR: "platform"
+      APICURIO_GITOPS_REPOS_0_URL: "https://github.com/Apicurio/apicurio-registry-gitops-example.git"
+      # Fulfillment team repo (fulfillment branch)
+      APICURIO_GITOPS_REPOS_1_DIR: "fulfillment"
+      APICURIO_GITOPS_REPOS_1_BRANCH: "fulfillment"
+      APICURIO_GITOPS_REPOS_1_URL: "https://github.com/Apicurio/apicurio-registry-gitops-example.git"
+    volumes:
+      - git-repos:/repos
+
+  registry:
+    container_name: registry
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:local}
+    environment:
+      QUARKUS_PROFILE: "prod"
+      APICURIO_STORAGE_KIND: "gitops"
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_POLLING_STORAGE_ID: "${APICURIO_POLLING_STORAGE_ID:-prod}"
+      # Multi-repo: two directories under /repos
+      APICURIO_GITOPS_REPOS_0_DIR: "platform"
+      APICURIO_GITOPS_REPOS_1_DIR: "fulfillment"
+      APICURIO_LOG_LEVEL: "debug"
+      QUARKUS_HTTP_CORS: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    volumes:
+      - git-repos:/repos:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - gitops-sync
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  registry-ui:
+    container_name: registry-ui
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    ports:
+      - "8888:8080"
+    depends_on:
+      registry:
+        condition: service_healthy
+
+volumes:
+  git-repos:

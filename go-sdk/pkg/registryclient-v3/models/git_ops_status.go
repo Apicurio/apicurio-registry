@@ -21,6 +21,8 @@ type GitOpsStatus struct {
 	lastSuccessfulSync *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// ISO 8601 timestamp of the last synchronization attempt (successful or not).
 	lastSyncAttempt *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
+	// Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA). Only present when multiple sources are configured.
+	sources GitOpsStatus_sourcesable
 	// The current synchronization state of the GitOps storage. Possible values: INITIALIZING (first load not yet completed), IDLE (serving latest data), LOADING (sync in progress), SWITCHING (data loaded, waiting for write lock to publish), ERROR (last sync or switch failed, serving previous data).
 	syncState *string
 	// Number of artifact versions loaded in the last successful sync.
@@ -128,6 +130,16 @@ func (m *GitOpsStatus) GetFieldDeserializers() map[string]func(i878a80d2330e89d2
 		}
 		return nil
 	}
+	res["sources"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateGitOpsStatus_sourcesFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetSources(val.(GitOpsStatus_sourcesable))
+		}
+		return nil
+	}
 	res["syncState"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -173,6 +185,12 @@ func (m *GitOpsStatus) GetLastSuccessfulSync() *i336074805fc853987abe6f7fe3ad97a
 // returns a *Time when successful
 func (m *GitOpsStatus) GetLastSyncAttempt() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
 	return m.lastSyncAttempt
+}
+
+// GetSources gets the sources property value. Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA). Only present when multiple sources are configured.
+// returns a GitOpsStatus_sourcesable when successful
+func (m *GitOpsStatus) GetSources() GitOpsStatus_sourcesable {
+	return m.sources
 }
 
 // GetSyncState gets the syncState property value. The current synchronization state of the GitOps storage. Possible values: INITIALIZING (first load not yet completed), IDLE (serving latest data), LOADING (sync in progress), SWITCHING (data loaded, waiting for write lock to publish), ERROR (last sync or switch failed, serving previous data).
@@ -221,6 +239,12 @@ func (m *GitOpsStatus) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e
 	}
 	{
 		err := writer.WriteTimeValue("lastSyncAttempt", m.GetLastSyncAttempt())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteObjectValue("sources", m.GetSources())
 		if err != nil {
 			return err
 		}
@@ -281,6 +305,11 @@ func (m *GitOpsStatus) SetLastSyncAttempt(value *i336074805fc853987abe6f7fe3ad97
 	m.lastSyncAttempt = value
 }
 
+// SetSources sets the sources property value. Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA). Only present when multiple sources are configured.
+func (m *GitOpsStatus) SetSources(value GitOpsStatus_sourcesable) {
+	m.sources = value
+}
+
 // SetSyncState sets the syncState property value. The current synchronization state of the GitOps storage. Possible values: INITIALIZING (first load not yet completed), IDLE (serving latest data), LOADING (sync in progress), SWITCHING (data loaded, waiting for write lock to publish), ERROR (last sync or switch failed, serving previous data).
 func (m *GitOpsStatus) SetSyncState(value *string) {
 	m.syncState = value
@@ -300,6 +329,7 @@ type GitOpsStatusable interface {
 	GetLastErrors() []string
 	GetLastSuccessfulSync() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetLastSyncAttempt() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
+	GetSources() GitOpsStatus_sourcesable
 	GetSyncState() *string
 	GetVersionCount() *int32
 	SetArtifactCount(value *int32)
@@ -308,6 +338,7 @@ type GitOpsStatusable interface {
 	SetLastErrors(value []string)
 	SetLastSuccessfulSync(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetLastSyncAttempt(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
+	SetSources(value GitOpsStatus_sourcesable)
 	SetSyncState(value *string)
 	SetVersionCount(value *int32)
 }

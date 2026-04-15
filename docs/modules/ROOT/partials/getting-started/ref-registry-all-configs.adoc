@@ -400,15 +400,15 @@ The following {registry} configuration options are available for each component 
 |Available from
 |Description
 |`apicurio.gitops.repo.branch`
-|`string`
-|`main`
+|`optional<string>`
+|
 |`3.2.0`
-|Branch to read from. _(experimental)_
+|Branch to read from. This is a shorthand for single-repo setups. For multiple repositories, use the indexed apicurio.gitops.repos.N.branch properties instead. _(experimental)_
 |`apicurio.gitops.repo.dir`
-|`string`
-|`default`
+|`optional<string>`
+|
 |`3.2.0`
-|Directory name of the Git repository, relative to the workspace. _(experimental)_
+|Directory name of the Git repository, relative to the workspace. This is a shorthand for single-repo setups. For multiple repositories, use the indexed apicurio.gitops.repos.N.dir properties instead. _(experimental)_
 |`apicurio.gitops.workspace`
 |`string`
 |`/repos`

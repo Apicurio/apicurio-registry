@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -102,6 +103,15 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
         return marker != null ? marker.toString() : null;
     }
 
+    /**
+     * Extracts per-repo markers from the poll marker for status reporting.
+     * Returns null by default. Override in subclasses that support multi-repo
+     * (e.g., GitOps with multiple repositories).
+     */
+    protected Map<String, String> markerToSources(MARKER marker) {
+        return null;
+    }
+
     protected void initialize(PollingStorageConfig pollingConfig, PollingDataSourceManager<MARKER> pollingDataSourceManager) {
         this.pollingConfig = pollingConfig;
         this.pollingDataSourceManager = pollingDataSourceManager;
@@ -141,7 +151,8 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
 
                 switch (state) {
                     case READY_TO_SWITCH -> {
-                        String markerStr = markerToString(pendingResult.getMarker());
+                        MARKER completedMarker = pendingResult.getMarker();
+                        String markerStr = markerToString(completedMarker);
                         if (doSwitch()) {
                             switchRetryCount = 0;
                             pendingResult.commit();
@@ -151,6 +162,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                             status = PollingStorageStatus.builder()
                                     .syncState(PollingStorageStatus.SyncState.IDLE)
                                     .currentMarker(markerStr)
+                                    .sources(markerToSources(completedMarker))
                                     .lastSuccessfulSync(Instant.now())
                                     .lastSyncAttempt(status.getLastSyncAttempt())
                                     .groupCount(completedResult.getGroupCount())

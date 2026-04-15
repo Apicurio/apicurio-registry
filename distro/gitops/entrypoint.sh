@@ -2,16 +2,28 @@
 #
 # Apicurio Registry GitOps Sidecar Entrypoint
 #
-# Manages a local Git repository clone for the Apicurio Registry GitOps storage.
+# Manages local Git repository clones for the Apicurio Registry GitOps storage.
 # Supports both pull mode (periodic fetch from remote) and push mode (SSH server
 # accepting pushes). The registry container reads from a shared volume.
 #
 # Configuration via environment variables (matching registry property names where applicable):
 #
+# Shared with registry:
 #   APICURIO_GITOPS_WORKSPACE          Base directory for repos (default: /repos)
+#
+# Single-repo shorthand:
 #   APICURIO_GITOPS_REPO_DIR           Repository directory name (default: default)
 #   APICURIO_GITOPS_REPO_BRANCH        Branch to track (default: main)
 #   APICURIO_GITOPS_REPO_URL           Remote repository URL (pull mode, required if pull enabled)
+#
+# Multi-repo (indexed, takes precedence over single-repo):
+#   APICURIO_GITOPS_REPOS_0_DIR        First repo directory name
+#   APICURIO_GITOPS_REPOS_0_BRANCH     First repo branch (default: main)
+#   APICURIO_GITOPS_REPOS_0_URL        First repo remote URL
+#   APICURIO_GITOPS_REPOS_1_DIR        Second repo directory name
+#   ... and so on
+#
+# Pull/push mode:
 #   APICURIO_GITOPS_PULL_ENABLED       Enable periodic pulling (default: true)
 #   APICURIO_GITOPS_PULL_INTERVAL      Seconds between fetches (default: 30)
 #   APICURIO_GITOPS_PULL_DEPTH         Clone/fetch depth, 0 = full (default: 1)
@@ -19,6 +31,8 @@
 #                                      NOTE: Push mode is experimental and not yet fully supported.
 #                                      Do not use in production.
 #   APICURIO_GITOPS_PUSH_PORT          SSH server port (default: 2222)
+#
+# SSH configuration:
 #   APICURIO_GITOPS_SSH_KEY            Path to SSH private key for pulling (optional)
 #   APICURIO_GITOPS_SSH_KNOWN_HOSTS    Path to known_hosts file (optional)
 #   APICURIO_GITOPS_SSH_AUTHORIZED_KEYS Path to authorized_keys for push mode (optional)
@@ -37,9 +51,6 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 WORKSPACE="${APICURIO_GITOPS_WORKSPACE:-/repos}"
-REPO_DIR="${APICURIO_GITOPS_REPO_DIR:-default}"
-BRANCH="${APICURIO_GITOPS_REPO_BRANCH:-main}"
-REPO_URL="${APICURIO_GITOPS_REPO_URL:-}"
 PULL_ENABLED="${APICURIO_GITOPS_PULL_ENABLED:-true}"
 PULL_INTERVAL="${APICURIO_GITOPS_PULL_INTERVAL:-30}"
 PULL_DEPTH="${APICURIO_GITOPS_PULL_DEPTH:-1}"
@@ -51,8 +62,12 @@ SSH_AUTHORIZED_KEYS="${APICURIO_GITOPS_SSH_AUTHORIZED_KEYS:-}"
 SSH_HOST_KEY="${APICURIO_GITOPS_SSH_HOST_KEY:-}"
 SECURITY="${APICURIO_GITOPS_SECURITY:-default}"
 
-REPO_PATH="${WORKSPACE}/${REPO_DIR}"
 TEMPLATE_DIR="/usr/local/share/apicurio-gitops"
+
+# Arrays to hold per-repo configuration (populated by build_repo_list)
+REPO_DIRS=()
+REPO_BRANCHES=()
+REPO_URLS=()
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -123,6 +138,77 @@ render_template() {
 }
 
 # ---------------------------------------------------------------------------
+# Repo list construction
+# ---------------------------------------------------------------------------
+
+build_repo_list() {
+    # Try indexed format: APICURIO_GITOPS_REPOS_0_DIR, APICURIO_GITOPS_REPOS_1_DIR, ...
+    # Same single-underscore format used by both the sidecar and registry.
+    local i=0
+    while true; do
+        local dir_var="APICURIO_GITOPS_REPOS_${i}_DIR"
+        local branch_var="APICURIO_GITOPS_REPOS_${i}_BRANCH"
+        local url_var="APICURIO_GITOPS_REPOS_${i}_URL"
+
+        local dir="${!dir_var:-}"
+        if [ -z "${dir}" ]; then
+            # Require dense indexes — no gaps allowed
+            local next_var="APICURIO_GITOPS_REPOS_$((i + 1))_DIR"
+            if [ -n "${!next_var:-}" ]; then
+                error "Missing repo at index ${i} but index $((i + 1)) is set. Indexes must be dense (no gaps)."
+            fi
+            break
+        fi
+
+        REPO_DIRS+=("${dir}")
+        REPO_BRANCHES+=("${!branch_var:-main}")
+        REPO_URLS+=("${!url_var:-}")
+        i=$((i + 1))
+    done
+
+    local has_shorthand=false
+    if [ -n "${APICURIO_GITOPS_REPO_DIR:-}" ] || [ -n "${APICURIO_GITOPS_REPO_BRANCH:-}" ] || [ -n "${APICURIO_GITOPS_REPO_URL:-}" ]; then
+        has_shorthand=true
+    fi
+
+    if [ ${#REPO_DIRS[@]} -gt 0 ] && [ "${has_shorthand}" = "true" ]; then
+        error "Cannot use both single-repo (APICURIO_GITOPS_REPO_DIR/BRANCH/URL) and multi-repo (APICURIO_GITOPS_REPOS_N_*) configuration. Use one or the other."
+    fi
+
+    # Fall back to single-repo shorthand if no indexed repos found
+    if [ ${#REPO_DIRS[@]} -eq 0 ]; then
+        REPO_DIRS+=("${APICURIO_GITOPS_REPO_DIR:-default}")
+        REPO_BRANCHES+=("${APICURIO_GITOPS_REPO_BRANCH:-main}")
+        REPO_URLS+=("${APICURIO_GITOPS_REPO_URL:-}")
+    fi
+
+    validate_repo_list
+}
+
+validate_repo_list() {
+    local seen_dirs=""
+    local seen_dir_branches=""
+
+    for i in "${!REPO_DIRS[@]}"; do
+        local dir="${REPO_DIRS[$i]}"
+        local branch="${REPO_BRANCHES[$i]}"
+        local dir_branch="${dir}:${branch}"
+
+        # Check for duplicate directory names (used as repo IDs)
+        if echo "${seen_dirs}" | grep -qF "|${dir}|"; then
+            error "Duplicate repository directory: '${dir}'. Each repository must have a unique directory name."
+        fi
+        seen_dirs="${seen_dirs}|${dir}|"
+
+        # Check for duplicate dir+branch combinations
+        if echo "${seen_dir_branches}" | grep -qF "|${dir_branch}|"; then
+            error "Duplicate repository: dir='${dir}', branch='${branch}'. The same directory and branch combination cannot be configured twice."
+        fi
+        seen_dir_branches="${seen_dir_branches}|${dir_branch}|"
+    done
+}
+
+# ---------------------------------------------------------------------------
 # Security validation
 # ---------------------------------------------------------------------------
 
@@ -135,14 +221,12 @@ validate_security_level() {
     log "Security level: ${SECURITY}"
 }
 
-validate_repo_url() {
-    if [ -z "${REPO_URL}" ]; then
-        return
-    fi
-    # In default and strict modes, reject plaintext HTTP URLs (credentials could leak)
-    if ! is_dev && echo "${REPO_URL}" | grep -qiE '^http://'; then
-        error "Plaintext HTTP repository URLs are not allowed in ${SECURITY} mode. Use HTTPS or SSH, or set APICURIO_GITOPS_SECURITY=dev."
-    fi
+validate_repo_urls() {
+    for url in "${REPO_URLS[@]}"; do
+        if [ -n "${url}" ] && ! is_dev && echo "${url}" | grep -qiE '^http://'; then
+            error "Plaintext HTTP repository URLs are not allowed in ${SECURITY} mode. Use HTTPS or SSH, or set APICURIO_GITOPS_SECURITY=dev."
+        fi
+    done
 }
 
 validate_ssh_key_permissions() {
@@ -317,39 +401,47 @@ start_ssh_server() {
 # ---------------------------------------------------------------------------
 
 init_repo() {
-    if [ -d "${REPO_PATH}/.git" ]; then
-        log "Repository already exists at ${REPO_PATH}"
+    local repo_dir="$1"
+    local repo_branch="$2"
+    local repo_url="$3"
+    local repo_path="${WORKSPACE}/${repo_dir}"
+
+    if [ -d "${repo_path}/.git" ]; then
+        log "[${repo_dir}] Repository already exists"
         return 0
     fi
 
     if [ "${PULL_ENABLED}" = "true" ]; then
-        if [ -z "${REPO_URL}" ]; then
-            error "APICURIO_GITOPS_REPO_URL is required when pull mode is enabled"
+        if [ -z "${repo_url}" ]; then
+            error "[${repo_dir}] Repository URL is required when pull mode is enabled"
         fi
 
-        log "Cloning ${REPO_URL} (branch: ${BRANCH}) into ${REPO_PATH}..."
+        log "[${repo_dir}] Cloning ${repo_url} (branch: ${repo_branch})..."
         local depth_args=""
         if [ "${PULL_DEPTH}" -gt 0 ] 2>/dev/null; then
             depth_args="--depth ${PULL_DEPTH}"
         fi
         # shellcheck disable=SC2086
-        git clone ${depth_args} --branch "${BRANCH}" --single-branch \
-            "${REPO_URL}" "${REPO_PATH}"
-        success "Clone complete"
+        git clone ${depth_args} --branch "${repo_branch}" --single-branch \
+            "${repo_url}" "${repo_path}"
+        success "[${repo_dir}] Clone complete"
     else
         # Push-only mode: init a bare-like repo that can receive pushes
-        log "Initializing repository at ${REPO_PATH} for push mode..."
-        mkdir -p "${REPO_PATH}"
-        git init --initial-branch="${BRANCH}" "${REPO_PATH}"
-        # Configure to allow receiving pushes to the checked-out branch
-        git -C "${REPO_PATH}" config receive.denyCurrentBranch updateInstead
-        success "Repository initialized for push mode"
+        log "[${repo_dir}] Initializing for push mode..."
+        mkdir -p "${repo_path}"
+        git init --initial-branch="${repo_branch}" "${repo_path}"
+        git -C "${repo_path}" config receive.denyCurrentBranch updateInstead
+        success "[${repo_dir}] Repository initialized for push mode"
     fi
 }
 
 pull_once() {
-    if [ ! -d "${REPO_PATH}/.git" ]; then
-        warning "Repository not found at ${REPO_PATH}, skipping pull"
+    local repo_dir="$1"
+    local repo_branch="$2"
+    local repo_path="${WORKSPACE}/${repo_dir}"
+
+    if [ ! -d "${repo_path}/.git" ]; then
+        warning "[${repo_dir}] Repository not found, skipping pull"
         return 1
     fi
 
@@ -358,22 +450,23 @@ pull_once() {
         fetch_args="--depth ${PULL_DEPTH}"
     fi
 
-    # Fetch and reset to remote branch tip
     # shellcheck disable=SC2086
-    if git -C "${REPO_PATH}" fetch ${fetch_args} origin "${BRANCH}" 2>&1; then
-        git -C "${REPO_PATH}" reset --hard "origin/${BRANCH}" >/dev/null 2>&1
+    if git -C "${repo_path}" fetch ${fetch_args} origin "${repo_branch}" 2>&1; then
+        git -C "${repo_path}" reset --hard "origin/${repo_branch}" >/dev/null 2>&1
         return 0
     else
-        warning "Fetch failed"
+        warning "[${repo_dir}] Fetch failed"
         return 1
     fi
 }
 
 pull_loop() {
-    log "Starting pull loop (interval: ${PULL_INTERVAL}s, branch: ${BRANCH})"
+    log "Starting pull loop (interval: ${PULL_INTERVAL}s, ${#REPO_DIRS[@]} repo(s))"
     while true; do
         sleep "${PULL_INTERVAL}"
-        pull_once || true
+        for i in "${!REPO_DIRS[@]}"; do
+            pull_once "${REPO_DIRS[$i]}" "${REPO_BRANCHES[$i]}" || true
+        done
     done
 }
 
@@ -381,14 +474,16 @@ pull_loop() {
 # Signal handling
 # ---------------------------------------------------------------------------
 
+PULL_PIDS=()
+
 cleanup() {
     log "Shutting down..."
     if [ -n "${SSHD_PID:-}" ]; then
         kill "${SSHD_PID}" 2>/dev/null || true
     fi
-    if [ -n "${PULL_PID:-}" ]; then
-        kill "${PULL_PID}" 2>/dev/null || true
-    fi
+    for pid in "${PULL_PIDS[@]}"; do
+        kill "${pid}" 2>/dev/null || true
+    done
     exit 0
 }
 
@@ -400,26 +495,41 @@ trap cleanup SIGTERM SIGINT
 
 main() {
     log "Apicurio Registry GitOps sidecar starting"
+
+    build_repo_list
+
     log "  Workspace: ${WORKSPACE}"
-    log "  Repo dir:  ${REPO_DIR}"
-    log "  Branch:    ${BRANCH}"
+    log "  Repos:     ${#REPO_DIRS[@]}"
+    for i in "${!REPO_DIRS[@]}"; do
+        log "    [${REPO_DIRS[$i]}] branch=${REPO_BRANCHES[$i]} url=${REPO_URLS[$i]:-<local>}"
+    done
     log "  Pull:      ${PULL_ENABLED} (interval: ${PULL_INTERVAL}s, depth: ${PULL_DEPTH})"
     log "  Push:      ${PUSH_ENABLED} (port: ${PUSH_PORT})"
 
     validate_security_level
-    validate_repo_url
+    validate_repo_urls
 
     mkdir -p "${WORKSPACE}"
 
     # Set up SSH client if key is provided (for pull authentication)
+    local has_ssh_url=false
+    for url in "${REPO_URLS[@]}"; do
+        if echo "${url}" | grep -qiE '^(git@|ssh://)'; then
+            has_ssh_url=true
+            break
+        fi
+    done
+
     if [ -n "${SSH_KEY}" ] || [ -n "${SSH_KNOWN_HOSTS}" ]; then
         setup_ssh_client
-    elif is_strict && [ "${PULL_ENABLED}" = "true" ] && echo "${REPO_URL}" | grep -qiE '^(git@|ssh://)'; then
+    elif is_strict && [ "${PULL_ENABLED}" = "true" ] && [ "${has_ssh_url}" = "true" ]; then
         error "APICURIO_GITOPS_SSH_KNOWN_HOSTS is required in strict mode when using SSH repository URLs."
     fi
 
-    # Initialize the repository
-    init_repo
+    # Initialize all repositories
+    for i in "${!REPO_DIRS[@]}"; do
+        init_repo "${REPO_DIRS[$i]}" "${REPO_BRANCHES[$i]}" "${REPO_URLS[$i]}"
+    done
 
     # Start push mode (SSH server) if enabled
     if [ "${PUSH_ENABLED}" = "true" ]; then
@@ -430,15 +540,15 @@ main() {
     # Start pull loop if enabled
     if [ "${PULL_ENABLED}" = "true" ]; then
         pull_loop &
-        PULL_PID=$!
-        log "Pull loop started (PID: ${PULL_PID})"
+        PULL_PIDS+=($!)
+        log "Pull loop started (PID: ${PULL_PIDS[0]})"
     fi
 
     # Wait for any background process to exit
     if [ -n "${SSHD_PID:-}" ]; then
         wait "${SSHD_PID}" || true
-    elif [ -n "${PULL_PID:-}" ]; then
-        wait "${PULL_PID}" || true
+    elif [ ${#PULL_PIDS[@]} -gt 0 ]; then
+        wait "${PULL_PIDS[0]}" || true
     else
         # Neither pull nor push enabled — just keep running
         warning "Neither pull nor push mode is enabled. Container will idle."

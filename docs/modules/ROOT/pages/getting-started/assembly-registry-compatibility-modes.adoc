@@ -1,5 +1,6 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+:_mod-docs-content-type: ASSEMBLY
 [id="registry-compatibility-modes_{context}"]
 = {registry} schema compatibility modes
 
@@ -18,6 +19,8 @@ You can configure schema compatibility modes in {registry} to control what schem
 * {registry-rule-reference}
 
 
+// ref-registry-compatibility-overview
+:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-overview_{context}"]
 == Overview of compatibility rules
 
@@ -41,6 +44,8 @@ For a list of supported artifact types, see the content rule maturity matrix in 
 * {registry-rules}
 
 
+// ref-registry-compatibility-mode-descriptions
+:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-mode-descriptions_{context}"]
 == Compatibility mode descriptions
 
@@ -80,13 +85,15 @@ Both old and new consumers can read data that either the old or new version of t
 
 |`FULL_TRANSITIVE`
 |The new artifact is both forward and backward compatible with all previously added artifacts.
-`FULL_TRANSITIVE` is the strictest compatibility mode and guarantees complete interoperability across all schema versions.
+`FULL_TRANSITIVE` is the strictest compatibility mode and enforces complete interoperability across all schema versions.
 |===
 
 NOTE: The `BACKWARD` and `FORWARD` modes compare the proposed schema only with the most recently added version.
-The transitive modes (`BACKWARD_TRANSITIVE`, `FORWARD_TRANSITIVE`, and `FULL_TRANSITIVE`) compare the proposed schema against all existing versions, which provides stronger guarantees but restricts the changes you can make.
+The transitive modes (`BACKWARD_TRANSITIVE`, `FORWARD_TRANSITIVE`, and `FULL_TRANSITIVE`) compare the proposed schema against all existing versions, which provides stricter validation but restricts the changes you can make.
 
 
+// ref-registry-compatibility-avro
+:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-avro_{context}"]
 == Avro schema compatibility
 
@@ -94,7 +101,7 @@ The transitive modes (`BACKWARD_TRANSITIVE`, `FORWARD_TRANSITIVE`, and `FULL_TRA
 {registry} uses the Apache Avro library to check compatibility for Avro schemas.
 The tables in each section describe common Avro schema changes and whether they maintain or break backward and forward compatibility.
 
-=== Backward compatible changes for Avro
+.Backward compatible changes for Avro
 
 You can make these changes to an Avro schema and maintain backward compatibility.
 Consumers using the new schema can still read data that the previous schema wrote.
@@ -115,7 +122,7 @@ Consumers using the new schema can still read data that the previous schema wrot
 |The new consumer handles the existing union types and the new one. For example, you can change `"string"` to `["null", "string"]`.
 |===
 
-=== Backward incompatible changes for Avro
+.Backward incompatible changes for Avro
 
 If you make these changes, you break backward compatibility.
 Consumers using the new schema cannot read data that the previous schema wrote.
@@ -139,7 +146,7 @@ Consumers using the new schema cannot read data that the previous schema wrote.
 |The new consumer expects a different data type than what the old data contains. For example, changing `string` to `int` breaks compatibility.
 |===
 
-=== Forward compatible changes for Avro
+.Forward compatible changes for Avro
 
 You can make these changes to an Avro schema and maintain forward compatibility.
 Consumers using the previous schema can still read data that the new schema writes.
@@ -157,9 +164,9 @@ Consumers using the previous schema can still read data that the new schema writ
 |The old consumer fills in the missing field by using the default value from its own schema.
 |===
 
-=== Transitive compatibility example for Avro
+.Transitive compatibility example for Avro
 
-Consider an example that demonstrates how transitive compatibility differs from non-transitive compatibility:
+The following example demonstrates how transitive compatibility differs from non-transitive compatibility:
 
 * *Version 1*: `{fields: [name: string]}`
 * *Version 2*: `{fields: [name: string, email: string (default: "")]}`
@@ -170,6 +177,8 @@ However, Version 3 is _not_ backward compatible with Version 1 because the `emai
 As a result, Version 3 passes the `BACKWARD` check but fails the `BACKWARD_TRANSITIVE` check.
 
 
+// ref-registry-compatibility-json-schema
+:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-json-schema_{context}"]
 == JSON Schema compatibility
 
@@ -177,7 +186,7 @@ As a result, Version 3 passes the `BACKWARD` check but fails the `BACKWARD_TRANS
 {registry} uses a custom library to analyze differences between JSON Schema versions.
 Because JSON Schema uses a constraint-based validation model, a backward compatible change typically makes the new schema more permissive so that it accepts all data that the previous schema accepted.
 
-=== Backward compatible changes for JSON Schema
+.Backward compatible changes for JSON Schema
 
 You can make these changes to a JSON Schema and maintain backward compatibility.
 The new schema continues to validate all data that the previous schema validated.
@@ -225,7 +234,7 @@ The new schema continues to validate all data that the previous schema validated
 |The new schema relaxes the array constraint. Old data with unique items remains valid.
 |===
 
-=== Backward incompatible changes for JSON Schema
+.Backward incompatible changes for JSON Schema
 
 If you make these changes, you break backward compatibility.
 The new schema rejects data that the previous schema validated.
@@ -274,6 +283,8 @@ The new schema rejects data that the previous schema validated.
 |===
 
 
+// ref-registry-compatibility-protobuf
+:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-protobuf_{context}"]
 == Protobuf schema compatibility
 
@@ -281,7 +292,7 @@ The new schema rejects data that the previous schema validated.
 {registry} checks Protobuf schema compatibility based on the wire format contract.
 Because Protobuf uses numeric field tags to identify fields on the wire, compatibility rules focus on preserving tag numbers and field types.
 
-=== Backward compatible changes for Protobuf
+.Backward compatible changes for Protobuf
 
 You can make these changes to a Protobuf schema and maintain backward compatibility.
 Consumers using the new schema can still read data that the previous schema wrote.
@@ -302,7 +313,7 @@ Consumers using the new schema can still read data that the previous schema wrot
 |Old data and existing RPC calls are unaffected by the new method.
 |===
 
-=== Backward incompatible changes for Protobuf
+.Backward incompatible changes for Protobuf
 
 If you make these changes, you break backward compatibility.
 Consumers using the new schema cannot read data that the previous schema wrote.
@@ -335,9 +346,9 @@ Consumers using the new schema cannot read data that the previous schema wrote.
 |Changing the input or output message type breaks the RPC contract.
 |===
 
-=== Reserving fields in Protobuf
+.Reserving fields in Protobuf
 
-When you remove a field from a Protobuf schema, you should reserve both the tag number and the field name to prevent reuse:
+When you remove a field from a Protobuf schema, reserve both the tag number and the field name to prevent reuse:
 
 ----
 message Person {
@@ -351,14 +362,16 @@ message Person {
 Reserving fields is critical for maintaining forward and backward compatibility because it prevents accidental reuse of tag numbers or field names.
 
 
+// ref-registry-compatibility-openapi
+:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-openapi_{context}"]
 == OpenAPI compatibility
 
 [role="_abstract"]
 {registry} checks OpenAPI specification compatibility by comparing operations and schemas between versions.
-Changes that remove or restrict existing API contracts are considered incompatible.
+{registry} considers changes that remove or restrict existing API contracts to be incompatible.
 
-=== Backward compatible changes for OpenAPI
+.Backward compatible changes for OpenAPI
 
 You can make these changes to an OpenAPI specification and maintain backward compatibility.
 Existing API clients continue to operate without modification.
@@ -385,7 +398,7 @@ Existing API clients continue to operate without modification.
 |Existing clients typically handle unexpected status codes gracefully.
 |===
 
-=== Backward incompatible changes for OpenAPI
+.Backward incompatible changes for OpenAPI
 
 If you make these changes, you break backward compatibility.
 Existing API clients might receive errors or unexpected responses.

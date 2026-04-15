@@ -1,0 +1,11 @@
+{
+  "name": "annotated_tool",
+  "inputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "category": 123,
+    "provider": true,
+    "requiresAuth": "yes"
+  }
+}

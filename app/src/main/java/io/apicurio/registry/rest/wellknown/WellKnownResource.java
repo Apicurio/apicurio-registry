@@ -2,6 +2,7 @@ package io.apicurio.registry.rest.wellknown;
 
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
+import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -82,14 +83,54 @@ public interface WellKnownResource {
             @QueryParam("limit") @DefaultValue("20") Integer limit);
 
     /**
+     * Returns a specific registered MCP tool definition by group and artifact ID.
+     *
+     * @param groupId the group ID of the MCP tool artifact
+     * @param artifactId the artifact ID of the MCP tool
+     * @param version optional version (defaults to latest)
+     * @return the MCP tool definition content
+     */
+    @GET
+    @Path("/mcp-tools/{groupId}/{artifactId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    Response getRegisteredMcpTool(
+            @PathParam("groupId") String groupId,
+            @PathParam("artifactId") String artifactId,
+            @QueryParam("version") String version);
+
+    /**
+     * Search for registered MCP tool definitions by various criteria.
+     *
+     * @param name filter by tool name (partial match)
+     * @param category filter by tool category
+     * @param provider filter by tool provider
+     * @param parameter filter by input parameter name
+     * @param offset pagination offset
+     * @param limit pagination limit
+     * @return search results containing matching MCP tools
+     */
+    @GET
+    @Path("/mcp-tools")
+    @Produces(MediaType.APPLICATION_JSON)
+    McpToolSearchResults searchMcpTools(
+            @QueryParam("name") String name,
+            @QueryParam("category") List<String> categories,
+            @QueryParam("provider") List<String> providers,
+            @QueryParam("parameter") List<String> parameters,
+            @QueryParam("offset") @DefaultValue("0") Integer offset,
+            @QueryParam("limit") @DefaultValue("20") Integer limit);
+
+    /**
      * Returns the JSON Schema for a specific LLM artifact type.
-     * This enables IDE autocompletion and validation for PROMPT_TEMPLATE and MODEL_SCHEMA artifacts.
+     * This enables IDE autocompletion and validation for PROMPT_TEMPLATE, MODEL_SCHEMA,
+     * and MCP_TOOL artifacts.
      *
      * Supported types:
      * - prompt-template (versions: v1)
      * - model-schema (versions: v1)
+     * - mcp-tool (versions: v1)
      *
-     * @param type the schema type (e.g., "prompt-template", "model-schema")
+     * @param type the schema type (e.g., "prompt-template", "model-schema", "mcp-tool")
      * @param version the schema version (e.g., "v1")
      * @return the JSON Schema
      */

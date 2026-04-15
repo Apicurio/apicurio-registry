@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spec.modelcontextprotocol.io/schemas/mcp-tool.json",
+  "title": "MCP Tool Definition",
+  "description": "Schema for MCP (Model Context Protocol) tool definitions stored as registry artifacts.",
+  "type": "object",
+  "required": ["name", "inputSchema"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the tool. Must be unique within a server."
+    },
+    "description": {
+      "type": "string",
+      "description": "A human-readable description of what the tool does."
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of this tool definition."
+    },
+    "inputSchema": {
+      "type": "object",
+      "description": "A JSON Schema object defining the expected parameters for the tool.",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "The JSON Schema type (typically 'object')."
+        },
+        "properties": {
+          "type": "object",
+          "description": "The input parameter definitions.",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "required": {
+          "type": "array",
+          "description": "List of required parameter names.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "annotations": {
+      "type": "object",
+      "description": "Optional metadata annotations for the tool.",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "The provider or source of this tool."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category this tool belongs to."
+        },
+        "requiresAuth": {
+          "type": "boolean",
+          "description": "Whether the tool requires authentication to use."
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

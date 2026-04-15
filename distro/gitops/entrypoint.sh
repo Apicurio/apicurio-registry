@@ -115,10 +115,11 @@ render_template() {
     for pair in "$@"; do
         local key="${pair%%=*}"
         local value="${pair#*=}"
-        content=$(echo "${content}" | sed "s|{{${key}}}|${value}|g")
+        local placeholder="{{${key}}}"
+        content="${content//${placeholder}/${value}}"
     done
 
-    echo "${content}" > "${output}"
+    printf '%s' "${content}" > "${output}"
 }
 
 # ---------------------------------------------------------------------------

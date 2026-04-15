@@ -245,7 +245,6 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                 pollResult.commit();
                 status = status.toBuilder()
                         .syncState(PollingStorageStatus.SyncState.ERROR)
-                        .currentMarker(markerStr)
                         .lastErrors(result.getErrors())
                         .build();
             }

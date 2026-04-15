@@ -200,6 +200,7 @@ modifiedOn: "2024-06-15T10:30:00Z"
 ```
 
 The `registryIds` field lists which Registry instances should load this group.
+If omitted or empty, the group is loaded by all registry instances.
 
 ### Artifact Definition (`*.registry.yaml`)
 

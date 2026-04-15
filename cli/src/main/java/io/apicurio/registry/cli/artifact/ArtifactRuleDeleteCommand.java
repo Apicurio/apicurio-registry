@@ -1,4 +1,4 @@
-package io.apicurio.registry.cli.group;
+package io.apicurio.registry.cli.artifact;
 
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
@@ -11,21 +11,26 @@ import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
-import static io.apicurio.registry.cli.common.RuleUtil.rejectDefaultGroup;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
 
 @Command(
         name = "delete",
         aliases = {"remove", "rm"},
-        description = "Delete a group rule or all group rules"
+        description = "Delete an artifact rule or all artifact rules"
 )
-public class GroupRuleDeleteCommand extends AbstractCommand {
+public class ArtifactRuleDeleteCommand extends AbstractCommand {
 
     @Option(
             names = {"-g", "--group"},
-            description = "Group ID. If not provided, uses the groupId from the current context. Group rules are not available for the 'default' group."
+            description = "Group ID. If not provided, uses the groupId from the current context, or 'default'."
     )
     private String groupId;
+
+    @Option(
+            names = {"-a", "--artifact"},
+            description = "Artifact ID. If not provided, uses the artifactId from the current context."
+    )
+    private String artifactId;
 
     @Parameters(
             index = "0",
@@ -36,7 +41,7 @@ public class GroupRuleDeleteCommand extends AbstractCommand {
 
     @Option(
             names = {"--all"},
-            description = "Delete all group rules.",
+            description = "Delete all artifact rules.",
             defaultValue = "false"
     )
     private boolean all;
@@ -44,7 +49,7 @@ public class GroupRuleDeleteCommand extends AbstractCommand {
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
-        rejectDefaultGroup(resolvedGroupId);
+        final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
         if (all && ruleType != null) {
             throw new CliException(
                     "Cannot use --all together with a specific rule type. Use either --all or specify a rule type.",
@@ -53,7 +58,7 @@ public class GroupRuleDeleteCommand extends AbstractCommand {
         }
         if (!all && ruleType == null) {
             throw new CliException(
-                    "Please specify a rule type to delete, or use --all to delete all group rules.",
+                    "Please specify a rule type to delete, or use --all to delete all artifact rules.",
                     VALIDATION_ERROR_RETURN_CODE
             );
         }
@@ -62,15 +67,21 @@ public class GroupRuleDeleteCommand extends AbstractCommand {
         }
         try {
             final var registryClient = client.getRegistryClient();
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
             if (all) {
-                registryClient.groups().byGroupId(resolvedGroupId).rules().delete();
+                registryClient.groups().byGroupId(resolvedGroupId)
+                        .artifacts().byArtifactId(resolvedArtifactId).rules().delete();
                 output.writeStdOutChunk(out -> {
-                    out.append("All rules deleted successfully for group '").append(resolvedGroupId).append("'.\n");
+                    out.append("All rules deleted successfully for artifact '")
+                            .append(resolvedArtifactId).append("' in group '")
+                            .append(resolvedGroupId).append("'.\n");
                 });
             } else {
-                registryClient.groups().byGroupId(resolvedGroupId).rules().byRuleType(ruleType).delete();
+                registryClient.groups().byGroupId(resolvedGroupId)
+                        .artifacts().byArtifactId(resolvedArtifactId).rules().byRuleType(ruleType).delete();
                 output.writeStdOutChunk(out -> {
-                    out.append("Rule '").append(ruleType).append("' deleted successfully for group '")
+                    out.append("Rule '").append(ruleType).append("' deleted successfully for artifact '")
+                            .append(resolvedArtifactId).append("' in group '")
                             .append(resolvedGroupId).append("'.\n");
                 });
             }
@@ -78,7 +89,9 @@ public class GroupRuleDeleteCommand extends AbstractCommand {
             output.writeStdErrChunk(err -> {
                 err.append("Error deleting rule")
                         .append(ruleType != null ? " '" + ruleType + "'" : "s")
-                        .append(" for group '")
+                        .append(" for artifact '")
+                        .append(resolvedArtifactId)
+                        .append("' in group '")
                         .append(resolvedGroupId)
                         .append("': ")
                         .append(ex.getDetail())

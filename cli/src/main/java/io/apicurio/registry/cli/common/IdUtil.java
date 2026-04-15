@@ -1,19 +1,19 @@
-package io.apicurio.registry.cli.artifact;
+package io.apicurio.registry.cli.common;
 
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.rest.client.RegistryClient;
 
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
 /**
- * Shared utility for resolving the group ID across artifact commands.
- * Priority: CLI flag → context groupId → "default".
+ * Shared utility for resolving and validating group and artifact IDs across CLI commands.
  */
-public final class ArtifactUtil {
+public final class IdUtil {
 
     private static final String DEFAULT_GROUP = "default";
 
-    private ArtifactUtil() {
+    private IdUtil() {
     }
 
     public static String resolveGroupId(final String groupId, final Config config) {
@@ -29,6 +29,22 @@ public final class ArtifactUtil {
             }
         }
         return DEFAULT_GROUP;
+    }
+
+    public static String resolveArtifactId(final String artifactId, final Config config) {
+        if (!isBlank(artifactId)) {
+            return artifactId;
+        }
+        final var configModel = config.read();
+        final var contextName = configModel.getCurrentContext();
+        if (!isBlank(contextName)) {
+            final var context = configModel.getContext().get(contextName);
+            if (context != null && !isBlank(context.getArtifactId())) {
+                return context.getArtifactId();
+            }
+        }
+        throw new CliException("Artifact ID is required. Provide it via --artifact or set it in the context.",
+                VALIDATION_ERROR_RETURN_CODE);
     }
 
     // Validates the group exists. Skips validation for the "default" group as it is implicit.

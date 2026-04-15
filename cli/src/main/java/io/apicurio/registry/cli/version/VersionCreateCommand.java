@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli.version;
 
-import io.apicurio.registry.cli.artifact.ArtifactUtil;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.FileUtils;
@@ -94,8 +94,8 @@ public class VersionCreateCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
-        final var resolvedArtifactId = VersionUtil.resolveArtifactId(artifactId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
+        final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
 
         final var newVersion = new CreateVersion();
         if (!isBlank(version)) {
@@ -124,7 +124,7 @@ public class VersionCreateCommand extends AbstractCommand {
 
         try {
             final var registryClient = client.getRegistryClient();
-            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
             //noinspection ConstantConditions
             final var result = convert(registryClient
                     .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)

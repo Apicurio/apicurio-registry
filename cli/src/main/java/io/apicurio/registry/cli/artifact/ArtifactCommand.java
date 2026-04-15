@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.artifact;
 
+import io.apicurio.registry.cli.common.IdUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
@@ -42,9 +43,10 @@ import static io.apicurio.registry.cli.utils.Conversions.convertToString;
         description = "Work with artifacts",
         subcommands = {
                 ArtifactCreateCommand.class,
-                ArtifactUpdateCommand.class,
-                ArtifactGetCommand.class,
                 ArtifactDeleteCommand.class,
+                ArtifactGetCommand.class,
+                ArtifactRuleCommand.class,
+                ArtifactUpdateCommand.class,
                 VersionCommand.class
         }
 )
@@ -68,10 +70,10 @@ public class ArtifactCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws JsonProcessingException {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         try {
             final var registryClient = client.getRegistryClient();
-            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
             //noinspection ConstantConditions
             final var artifacts = convert(registryClient
                     .groups().byGroupId(resolvedGroupId).artifacts().get(r -> {

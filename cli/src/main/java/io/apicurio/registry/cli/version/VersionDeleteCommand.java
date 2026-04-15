@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli.version;
 
-import io.apicurio.registry.cli.artifact.ArtifactUtil;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -39,12 +39,12 @@ public class VersionDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
-        final var resolvedArtifactId = VersionUtil.resolveArtifactId(artifactId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
+        final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
         try {
             final var registryClient = client.getRegistryClient();
-            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
-            ArtifactUtil.validateArtifact(registryClient, resolvedGroupId, resolvedArtifactId);
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
+            IdUtil.validateArtifact(registryClient, resolvedGroupId, resolvedArtifactId);
             registryClient.groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)
                     .versions().byVersionExpression(versionExpression).delete();
             output.writeStdOutChunk(out -> {

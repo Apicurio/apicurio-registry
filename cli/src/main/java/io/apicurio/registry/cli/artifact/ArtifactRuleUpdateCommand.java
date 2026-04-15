@@ -1,12 +1,10 @@
-package io.apicurio.registry.cli.group;
+package io.apicurio.registry.cli.artifact;
 
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
-import io.apicurio.registry.rest.client.models.RuleType;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -14,23 +12,27 @@ import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.common.RuleUtil.printRule;
-import static io.apicurio.registry.cli.common.RuleUtil.rejectDefaultGroup;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleConfig;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 
 @Command(
-        name = "create",
-        aliases = {"add"},
-        description = "Create a new group rule"
+        name = "update",
+        description = "Update the configuration of an existing artifact rule"
 )
-public class GroupRuleCreateCommand extends AbstractCommand {
+public class ArtifactRuleUpdateCommand extends AbstractCommand {
 
     @Option(
             names = {"-g", "--group"},
-            description = "Group ID. If not provided, uses the groupId from the current context. Group rules are not available for the 'default' group."
+            description = "Group ID. If not provided, uses the groupId from the current context, or 'default'."
     )
     private String groupId;
+
+    @Option(
+            names = {"-a", "--artifact"},
+            description = "Artifact ID. If not provided, uses the artifactId from the current context."
+    )
+    private String artifactId;
 
     @Parameters(
             index = "0",
@@ -55,35 +57,29 @@ public class GroupRuleCreateCommand extends AbstractCommand {
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
-        rejectDefaultGroup(resolvedGroupId);
+        final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
         validateRuleType(ruleType);
         validateRuleConfig(ruleType, ruleConfig);
         try {
             final var registryClient = client.getRegistryClient();
-            final var newRule = new CreateRule();
-            newRule.setRuleType(RuleType.forValue(ruleType));
-            newRule.setConfig(ruleConfig);
-            registryClient.groups().byGroupId(resolvedGroupId).rules().post(newRule);
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
+            final var rule = new io.apicurio.registry.rest.client.models.Rule();
+            rule.setConfig(ruleConfig);
+            //noinspection ConstantConditions
+            final var updatedRule = convert(registryClient.groups().byGroupId(resolvedGroupId)
+                    .artifacts().byArtifactId(resolvedArtifactId).rules().byRuleType(ruleType).put(rule));
             switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType, resolvedGroupId));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType, resolvedGroupId));
+                case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType, resolvedArtifactId, resolvedGroupId));
+                case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType, resolvedArtifactId, resolvedGroupId));
             }
-            try {
-                //noinspection ConstantConditions
-                final var rule = convert(registryClient.groups().byGroupId(resolvedGroupId).rules().byRuleType(ruleType).get());
-                printRule(output, rule, outputType);
-            } catch (final ProblemDetails ex) {
-                output.writeStdErrChunk(err -> {
-                    err.append("Warning: Group rule was created but failed to retrieve details: ")
-                            .append(ex.getDetail())
-                            .append('\n');
-                });
-            }
+            printRule(output, updatedRule, outputType);
         } catch (final ProblemDetails ex) {
             output.writeStdErrChunk(err -> {
-                err.append("Error creating rule '")
+                err.append("Error updating rule '")
                         .append(ruleType)
-                        .append("' for group '")
+                        .append("' for artifact '")
+                        .append(resolvedArtifactId)
+                        .append("' in group '")
                         .append(resolvedGroupId)
                         .append("': ")
                         .append(ex.getDetail())
@@ -93,7 +89,9 @@ public class GroupRuleCreateCommand extends AbstractCommand {
         }
     }
 
-    private static void successMessage(final StringBuilder out, final String ruleType, final String groupId) {
-        out.append("Rule '").append(ruleType).append("' created successfully for group '").append(groupId).append("'.\n");
+    private static void successMessage(final StringBuilder out, final String ruleType,
+                                       final String artifactId, final String groupId) {
+        out.append("Rule '").append(ruleType).append("' updated successfully for artifact '")
+                .append(artifactId).append("' in group '").append(groupId).append("'.\n");
     }
 }

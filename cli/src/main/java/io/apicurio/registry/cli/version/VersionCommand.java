@@ -1,7 +1,7 @@
 package io.apicurio.registry.cli.version;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.apicurio.registry.cli.artifact.ArtifactUtil;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
@@ -63,11 +63,11 @@ public class VersionCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws JsonProcessingException {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
-        final var resolvedArtifactId = VersionUtil.resolveArtifactId(artifactId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
+        final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
         try {
             final var registryClient = client.getRegistryClient();
-            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
             //noinspection ConstantConditions
             final var versions = convert(registryClient
                     .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)

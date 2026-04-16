@@ -415,6 +415,22 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
     }
 
     @Override
+    public ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId) {
+        return proxy(storage -> storage.getArtifactContractRuleset(groupId, artifactId));
+    }
+
+    @Override
+    public ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId,
+            String version) {
+        return proxy(storage -> storage.getVersionContractRuleset(groupId, artifactId, version));
+    }
+
+    @Override
+    public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag) {
+        return proxy(storage -> storage.getContractRulesByTag(tag));
+    }
+
+    @Override
     public List<String> getArtifactVersions(String groupId, String artifactId) {
         return proxy(storage -> storage.getArtifactVersions(groupId, artifactId));
     }

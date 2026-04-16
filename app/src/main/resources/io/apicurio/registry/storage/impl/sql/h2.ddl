@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 102);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 103);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -106,3 +106,9 @@ ALTER TABLE branch_versions ADD CONSTRAINT FK_branch_versions_2 FOREIGN KEY (gro
 CREATE INDEX IDX_branch_versions_1 ON branch_versions(groupId, artifactId, branchId, branchOrder);
 CREATE INDEX IDX_branch_versions_2 ON branch_versions(branchId);
 CREATE INDEX IDX_branch_versions_3 ON branch_versions(branchOrder);
+
+CREATE TABLE contract_rules (ruleId BIGINT AUTO_INCREMENT NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, globalId BIGINT, ruleCategory VARCHAR(32) NOT NULL, orderIndex INT NOT NULL, ruleName VARCHAR(512) NOT NULL, kind VARCHAR(32) NOT NULL, ruleType VARCHAR(256) NOT NULL, mode VARCHAR(32) NOT NULL, expr TEXT, params TEXT, tags TEXT, onSuccess VARCHAR(32), onFailure VARCHAR(32), disabled BOOLEAN NOT NULL DEFAULT FALSE);
+ALTER TABLE contract_rules ADD PRIMARY KEY (ruleId);
+ALTER TABLE contract_rules ADD CONSTRAINT FK_contract_rules_1 FOREIGN KEY (globalId) REFERENCES versions(globalId) ON DELETE CASCADE;
+CREATE INDEX IDX_contract_rules_1 ON contract_rules(groupId, artifactId);
+CREATE INDEX IDX_contract_rules_2 ON contract_rules(globalId);

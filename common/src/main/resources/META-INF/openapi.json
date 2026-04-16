@@ -3693,6 +3693,50 @@
         "description": "Returns a paginated list of all versions that match the posted content.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
+    "/search/contract/rules": {
+      "summary": "Search for contract rules by tag.",
+      "get": {
+        "tags": [
+          "Search",
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "description": "The tag value to search for in contract rules.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractRuleSearchResult"
+                  }
+                }
+              }
+            },
+            "description": "A list of contract rules matching the specified tag, with their artifact coordinates."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "searchContractRulesByTag",
+        "summary": "Search contract rules by tag",
+        "description": "Returns all contract rules across all artifacts that contain the specified tag."
+      }
+    },
     "/groups/{groupId}/artifacts/{artifactId}/branches/{branchId}/versions": {
       "summary": "Manage the versions in a branch.",
       "get": {
@@ -4342,6 +4386,376 @@
         "description": "Analyzes the provided content and returns a list of external references found within it.  The artifact type is used to determine the appropriate reference detection strategy.  If no artifact type is provided, the system will attempt to auto-detect it from the content."
       }
     },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/metadata": {
+      "summary": "Manage contract metadata for an artifact.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractMetadata"
+                }
+              }
+            },
+            "description": "The contract metadata for the artifact."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getContractMetadata",
+        "summary": "Get contract metadata",
+        "description": "Returns the contract metadata for an artifact, projected from its labels."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditableContractMetadata"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractMetadata"
+                }
+              }
+            },
+            "description": "The updated contract metadata."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updateContractMetadata",
+        "summary": "Update contract metadata",
+        "description": "Creates or updates the contract metadata for an artifact."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/status": {
+      "summary": "Transition the contract lifecycle status.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractStatusTransition"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractMetadata"
+                }
+              }
+            },
+            "description": "The updated contract metadata after the status transition."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "transitionContractStatus",
+        "summary": "Transition contract status",
+        "description": "Transitions the contract status. Valid transitions: DRAFT to STABLE, DRAFT to DEPRECATED, STABLE to DEPRECATED. Reverse transitions are not allowed."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/ruleset": {
+      "summary": "Manage contract ruleset for an artifact (artifact-level).",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The contract ruleset for the artifact."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getArtifactContractRuleset",
+        "summary": "Get artifact contract ruleset",
+        "description": "Returns the contract ruleset for the artifact (artifact-level rules that apply to all versions)."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractRuleSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The updated contract ruleset."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "setArtifactContractRuleset",
+        "summary": "Set artifact contract ruleset",
+        "description": "Creates or replaces the contract ruleset for the artifact."
+      },
+      "delete": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "204": {
+            "description": "The contract ruleset was deleted."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteArtifactContractRuleset",
+        "summary": "Delete artifact contract ruleset",
+        "description": "Deletes the contract ruleset for the artifact."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/ruleset": {
+      "summary": "Manage contract ruleset for a specific artifact version.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The contract ruleset for the version."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getVersionContractRuleset",
+        "summary": "Get version contract ruleset",
+        "description": "Returns the contract ruleset for a specific artifact version."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractRuleSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The updated contract ruleset."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "setVersionContractRuleset",
+        "summary": "Set version contract ruleset",
+        "description": "Creates or replaces the contract ruleset for a specific version."
+      },
+      "delete": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "204": {
+            "description": "The contract ruleset was deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteVersionContractRuleset",
+        "summary": "Delete version contract ruleset",
+        "description": "Deletes the contract ruleset for a specific version."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "x-codegen-contextRoot": "/apis/registry/v3"
   },
   "components": {
@@ -4753,6 +5167,10 @@
           "artifactId": {
             "$ref": "#/components/schemas/ArtifactId",
             "description": ""
+          },
+          "contractMetadata": {
+            "$ref": "#/components/schemas/ContractMetadata",
+            "description": "Contract metadata projected from the artifact labels. Only present when data contracts are enabled and contract labels exist."
           }
         },
         "example": {
@@ -6465,6 +6883,263 @@
             "totalEdges": 1,
             "maxDepth": 1,
             "hasCycles": false
+          }
+        }
+      },
+      "ContractMetadata": {
+        "title": "ContractMetadata",
+        "description": "Contract metadata for an artifact.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "description": "The contract lifecycle status.",
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "STABLE",
+              "DEPRECATED"
+            ]
+          },
+          "ownerTeam": {
+            "description": "The team that owns the contract.",
+            "type": "string"
+          },
+          "ownerDomain": {
+            "description": "The domain the contract belongs to.",
+            "type": "string"
+          },
+          "supportContact": {
+            "description": "Support contact email.",
+            "type": "string"
+          },
+          "classification": {
+            "description": "Data classification level.",
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "INTERNAL",
+              "CONFIDENTIAL",
+              "RESTRICTED"
+            ]
+          },
+          "stage": {
+            "description": "Promotion stage.",
+            "type": "string",
+            "enum": [
+              "DEV",
+              "STAGE",
+              "PROD"
+            ]
+          },
+          "stableDate": {
+            "description": "ISO-8601 date when contract became stable.",
+            "type": "string"
+          },
+          "deprecatedDate": {
+            "description": "ISO-8601 date when contract was deprecated.",
+            "type": "string"
+          },
+          "deprecationReason": {
+            "description": "Reason for deprecation.",
+            "type": "string"
+          }
+        }
+      },
+      "EditableContractMetadata": {
+        "title": "EditableContractMetadata",
+        "description": "Editable contract metadata fields.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "description": "The contract lifecycle status.",
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "STABLE",
+              "DEPRECATED"
+            ]
+          },
+          "ownerTeam": {
+            "description": "The team that owns the contract.",
+            "type": "string"
+          },
+          "ownerDomain": {
+            "description": "The domain the contract belongs to.",
+            "type": "string"
+          },
+          "supportContact": {
+            "description": "Support contact email.",
+            "type": "string"
+          },
+          "classification": {
+            "description": "Data classification level.",
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "INTERNAL",
+              "CONFIDENTIAL",
+              "RESTRICTED"
+            ]
+          },
+          "stage": {
+            "description": "Promotion stage.",
+            "type": "string",
+            "enum": [
+              "DEV",
+              "STAGE",
+              "PROD"
+            ]
+          }
+        }
+      },
+      "ContractRuleSet": {
+        "title": "ContractRuleSet",
+        "description": "A set of contract rules, divided into domain and migration categories.",
+        "type": "object",
+        "properties": {
+          "domainRules": {
+            "description": "Rules for domain validation.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractRule"
+            }
+          },
+          "migrationRules": {
+            "description": "Rules for version migration.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractRule"
+            }
+          }
+        }
+      },
+      "ContractRule": {
+        "title": "ContractRule",
+        "description": "A single contract rule definition.",
+        "required": [
+          "name",
+          "kind",
+          "type",
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The rule name.",
+            "type": "string"
+          },
+          "kind": {
+            "description": "The rule kind.",
+            "type": "string",
+            "enum": [
+              "CONDITION",
+              "TRANSFORM"
+            ]
+          },
+          "type": {
+            "description": "Rule executor type (CEL, CEL_FIELD, ENCRYPT, etc.).",
+            "type": "string"
+          },
+          "mode": {
+            "description": "When the rule is applied.",
+            "type": "string",
+            "enum": [
+              "WRITE",
+              "READ",
+              "WRITEREAD",
+              "UPGRADE",
+              "DOWNGRADE"
+            ]
+          },
+          "expr": {
+            "description": "The rule expression.",
+            "type": "string"
+          },
+          "params": {
+            "description": "Rule parameters.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "description": "Tags for categorizing the rule.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onSuccess": {
+            "description": "Action on rule success.",
+            "type": "string",
+            "enum": [
+              "NONE",
+              "ERROR",
+              "DLQ"
+            ]
+          },
+          "onFailure": {
+            "description": "Action on rule failure.",
+            "type": "string",
+            "enum": [
+              "NONE",
+              "ERROR",
+              "DLQ"
+            ]
+          },
+          "disabled": {
+            "description": "Whether the rule is disabled.",
+            "type": "boolean"
+          }
+        }
+      },
+      "ContractRuleSearchResult": {
+        "title": "ContractRuleSearchResult",
+        "description": "A contract rule with its artifact coordinates, returned by tag search.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "description": "The group ID of the artifact containing the rule.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID containing the rule.",
+            "type": "string"
+          },
+          "globalId": {
+            "description": "The global ID of the version (null for artifact-level rules).",
+            "type": "integer",
+            "format": "int64"
+          },
+          "ruleCategory": {
+            "description": "The rule category (DOMAIN or MIGRATION).",
+            "type": "string",
+            "enum": [
+              "DOMAIN",
+              "MIGRATION"
+            ]
+          },
+          "rule": {
+            "$ref": "#/components/schemas/ContractRule"
+          }
+        }
+      },
+      "ContractStatusTransition": {
+        "title": "ContractStatusTransition",
+        "description": "Request body for transitioning the contract lifecycle status.",
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "description": "The target lifecycle status. Valid transitions: DRAFT to STABLE, DRAFT to DEPRECATED, STABLE to DEPRECATED.",
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "STABLE",
+              "DEPRECATED"
+            ]
           }
         }
       }

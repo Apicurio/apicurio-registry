@@ -43,6 +43,7 @@ public class KafkaSqlMessageIndex {
                 DeleteRoleMapping1Message.class, ImportArtifact1Message.class,
                 ImportArtifactRule1Message.class, ImportArtifactVersion1Message.class,
                 ImportBranch1Message.class, ImportComment1Message.class, ImportContent1Message.class,
+                ImportContractRule1Message.class,
                 ImportGlobalRule1Message.class, ImportGroup1Message.class, NextCommentId0Message.class,
                 NextContentId0Message.class, NextGlobalId0Message.class, ReplaceBranchVersions3Message.class,
                 ResetCommentId0Message.class, ResetContentId0Message.class, ResetGlobalId0Message.class,
@@ -53,7 +54,11 @@ public class KafkaSqlMessageIndex {
                 UpdateGroupMetaData2Message.class, UpdateRoleMapping2Message.class,
                 UpdateArtifactVersionState5Message.class, UpdateArtifactVersionContent5Message.class,
                 UpdateGroupRule3Message.class, DeleteGroupRule2Message.class, DeleteGroupRules1Message.class,
-                ImportGroupRule1Message.class, ExecuteSqlStatement1Message.class);
+                ImportGroupRule1Message.class, ExecuteSqlStatement1Message.class,
+                SetArtifactContractRuleset3Message.class,
+                DeleteArtifactContractRuleset2Message.class,
+                SetVersionContractRuleset4Message.class,
+                DeleteVersionContractRuleset3Message.class);
     }
 
     public static Class<? extends KafkaSqlMessage> lookup(String name) {

@@ -288,8 +288,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public McpToolSearchResults searchMcpTools(String name, List<String> categories,
-            List<String> providers, List<String> parameters, Integer offset, Integer limit) {
+    public McpToolSearchResults searchMcpTools(String name, List<String> parameters,
+            Integer offset, Integer limit) {
         if (!mcpToolsConfig.isEnabled()) {
             throw new NotFoundException("MCP tools support is disabled");
         }
@@ -300,18 +300,6 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         if (!StringUtil.isEmpty(name)) {
             filters.add(SearchFilter.ofName(name));
-        }
-
-        if (categories != null && !categories.isEmpty()) {
-            for (String category : categories) {
-                filters.add(SearchFilter.ofStructure("mcp_tool:category:" + category));
-            }
-        }
-
-        if (providers != null && !providers.isEmpty()) {
-            for (String provider : providers) {
-                filters.add(SearchFilter.ofStructure("mcp_tool:provider:" + provider));
-            }
         }
 
         if (parameters != null && !parameters.isEmpty()) {
@@ -333,11 +321,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     /**
      * Converts a searched artifact DTO into an MCP tool search result by fetching and parsing
-     * the latest version content to extract category, provider, and parameters.
+     * the latest version content to extract title and parameters.
      */
     private McpToolSearchResult convertToMcpToolSearchResult(SearchedArtifactDto artifact) {
-        String category = null;
-        String provider = null;
+        String title = null;
         List<String> parameters = new ArrayList<>();
 
         try {
@@ -351,15 +338,9 @@ public class WellKnownResourceImpl implements WellKnownResource {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(stored.getContent().content());
 
-            // Extract annotations
-            JsonNode annotations = root.path("annotations");
-            if (annotations.isObject()) {
-                if (annotations.has("category") && annotations.get("category").isTextual()) {
-                    category = annotations.get("category").asText();
-                }
-                if (annotations.has("provider") && annotations.get("provider").isTextual()) {
-                    provider = annotations.get("provider").asText();
-                }
+            // Extract title
+            if (root.has("title") && root.get("title").isTextual()) {
+                title = root.get("title").asText();
             }
 
             // Extract parameter names from inputSchema
@@ -378,11 +359,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .groupId(artifact.getGroupId())
                 .artifactId(artifact.getArtifactId())
                 .name(artifact.getName())
+                .title(title)
                 .description(artifact.getDescription())
                 .owner(artifact.getOwner())
                 .createdOn(artifact.getCreatedOn().getTime())
-                .category(category)
-                .provider(provider)
                 .parameters(parameters)
                 .build();
     }

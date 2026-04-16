@@ -102,8 +102,6 @@ public interface WellKnownResource {
      * Search for registered MCP tool definitions by various criteria.
      *
      * @param name filter by tool name (partial match)
-     * @param category filter by tool category
-     * @param provider filter by tool provider
      * @param parameter filter by input parameter name
      * @param offset pagination offset
      * @param limit pagination limit
@@ -114,8 +112,6 @@ public interface WellKnownResource {
     @Produces(MediaType.APPLICATION_JSON)
     McpToolSearchResults searchMcpTools(
             @QueryParam("name") String name,
-            @QueryParam("category") List<String> categories,
-            @QueryParam("provider") List<String> providers,
             @QueryParam("parameter") List<String> parameters,
             @QueryParam("offset") @DefaultValue("0") Integer offset,
             @QueryParam("limit") @DefaultValue("20") Integer limit);

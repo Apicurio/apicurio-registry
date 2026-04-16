@@ -17,14 +17,14 @@ import java.util.Set;
 /**
  * Content validator for MCP (Model Context Protocol) tool definition artifacts.
  *
- * Validates that the content is a valid MCP tool definition JSON document.
+ * Validates that the content is a valid MCP tool definition JSON document per the MCP specification 2025-11-25.
  *
  * Validation levels:
  * - NONE: No validation
  * - SYNTAX_ONLY: Validates that the content is valid JSON and is an object
  * - FULL: Full schema validation including required fields, type checking, and structure validation
  *
- * @see <a href="https://spec.modelcontextprotocol.io/specification/server/tools/">MCP Tools</a>
+ * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools</a>
  */
 public class McpToolContentValidator implements ContentValidator {
 
@@ -55,8 +55,9 @@ public class McpToolContentValidator implements ContentValidator {
 
             // FULL level: comprehensive validation
             validateNameField(tree, violations);
-            validateStringFields(tree, violations);
+            validateOptionalStringFields(tree, violations);
             validateInputSchemaField(tree, violations);
+            validateOutputSchemaField(tree, violations);
             validateAnnotationsField(tree, violations);
 
             if (!violations.isEmpty()) {
@@ -84,9 +85,9 @@ public class McpToolContentValidator implements ContentValidator {
         }
     }
 
-    private void validateStringFields(JsonNode tree, Set<RuleViolation> violations) {
+    private void validateOptionalStringFields(JsonNode tree, Set<RuleViolation> violations) {
+        JsonValidationUtils.validateOptionalString(tree, "title", violations);
         JsonValidationUtils.validateOptionalString(tree, "description", violations);
-        JsonValidationUtils.validateOptionalString(tree, "version", violations);
     }
 
     private void validateInputSchemaField(JsonNode tree, Set<RuleViolation> violations) {
@@ -103,12 +104,16 @@ public class McpToolContentValidator implements ContentValidator {
             return;
         }
 
-        // inputSchema must have a "type" field
+        // inputSchema must have a "type" field with value "object"
         if (!inputSchema.has("type")) {
             violations.add(new RuleViolation("'inputSchema' must have a 'type' field",
                     "/inputSchema/type"));
         } else if (!inputSchema.get("type").isTextual()) {
             violations.add(new RuleViolation("'inputSchema.type' must be a string",
+                    "/inputSchema/type"));
+        } else if (!"object".equals(inputSchema.get("type").asText())) {
+            violations.add(new RuleViolation(
+                    "'inputSchema.type' must be 'object' per the MCP specification",
                     "/inputSchema/type"));
         }
 
@@ -130,6 +135,13 @@ public class McpToolContentValidator implements ContentValidator {
         }
     }
 
+    private void validateOutputSchemaField(JsonNode tree, Set<RuleViolation> violations) {
+        if (tree.has("outputSchema") && !tree.get("outputSchema").isObject()) {
+            violations.add(new RuleViolation("'outputSchema' field must be an object",
+                    "/outputSchema"));
+        }
+    }
+
     private void validateAnnotationsField(JsonNode tree, Set<RuleViolation> violations) {
         if (!tree.has("annotations")) {
             return;
@@ -142,19 +154,35 @@ public class McpToolContentValidator implements ContentValidator {
             return;
         }
 
-        if (annotations.has("category") && !annotations.get("category").isTextual()) {
-            violations.add(new RuleViolation("'annotations.category' must be a string",
-                    "/annotations/category"));
+        // title: optional string (fallback display name per MCP spec)
+        JsonValidationUtils.validateOptionalString(annotations, "title", violations);
+
+        // audience: optional array of strings ("user", "assistant")
+        if (annotations.has("audience")) {
+            JsonNode audience = annotations.get("audience");
+            if (!audience.isArray()) {
+                violations.add(new RuleViolation("'annotations.audience' must be an array",
+                        "/annotations/audience"));
+            } else {
+                JsonValidationUtils.validateStringArray(audience,
+                        "/annotations/audience", "audience role", violations);
+            }
         }
 
-        if (annotations.has("provider") && !annotations.get("provider").isTextual()) {
-            violations.add(new RuleViolation("'annotations.provider' must be a string",
-                    "/annotations/provider"));
-        }
-
-        if (annotations.has("requiresAuth") && !annotations.get("requiresAuth").isBoolean()) {
-            violations.add(new RuleViolation("'annotations.requiresAuth' must be a boolean",
-                    "/annotations/requiresAuth"));
+        // priority: optional number between 0 and 1
+        if (annotations.has("priority")) {
+            JsonNode priority = annotations.get("priority");
+            if (!priority.isNumber()) {
+                violations.add(new RuleViolation("'annotations.priority' must be a number",
+                        "/annotations/priority"));
+            } else {
+                double value = priority.asDouble();
+                if (value < 0 || value > 1) {
+                    violations.add(new RuleViolation(
+                            "'annotations.priority' must be between 0 and 1",
+                            "/annotations/priority"));
+                }
+            }
         }
     }
 

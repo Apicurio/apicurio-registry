@@ -279,8 +279,8 @@ class McpToolCompatibilityCheckerTest {
                         }
                     },
                     "annotations": {
-                        "category": "database",
-                        "provider": "internal"
+                        "audience": ["user"],
+                        "priority": 0.5
                     }
                 }
                 """;
@@ -295,9 +295,9 @@ class McpToolCompatibilityCheckerTest {
                         }
                     },
                     "annotations": {
-                        "category": "search",
-                        "provider": "external",
-                        "requiresAuth": true
+                        "audience": ["user", "assistant"],
+                        "priority": 0.9,
+                        "lastModified": "2025-11-25T10:30:00Z"
                     }
                 }
                 """;

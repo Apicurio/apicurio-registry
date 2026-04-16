@@ -10,11 +10,10 @@ public class McpToolSearchResult {
     private String groupId;
     private String artifactId;
     private String name;
+    private String title;
     private String description;
     private String owner;
     private long createdOn;
-    private String category;
-    private String provider;
     private List<String> parameters;
 
     public McpToolSearchResult() {
@@ -44,6 +43,14 @@ public class McpToolSearchResult {
         this.name = name;
     }
 
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -66,22 +73,6 @@ public class McpToolSearchResult {
 
     public void setCreatedOn(long createdOn) {
         this.createdOn = createdOn;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getProvider() {
-        return provider;
-    }
-
-    public void setProvider(String provider) {
-        this.provider = provider;
     }
 
     public List<String> getParameters() {
@@ -114,6 +105,11 @@ public class McpToolSearchResult {
             return this;
         }
 
+        public Builder title(String title) {
+            result.title = title;
+            return this;
+        }
+
         public Builder description(String description) {
             result.description = description;
             return this;
@@ -126,16 +122,6 @@ public class McpToolSearchResult {
 
         public Builder createdOn(long createdOn) {
             result.createdOn = createdOn;
-            return this;
-        }
-
-        public Builder category(String category) {
-            result.category = category;
-            return this;
-        }
-
-        public Builder provider(String provider) {
-            result.provider = provider;
             return this;
         }
 

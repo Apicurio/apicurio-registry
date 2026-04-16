@@ -4,8 +4,8 @@
     "type": "object"
   },
   "annotations": {
-    "category": 123,
-    "provider": true,
-    "requiresAuth": "yes"
+    "title": 123,
+    "audience": "not-an-array",
+    "priority": "not-a-number"
   }
 }

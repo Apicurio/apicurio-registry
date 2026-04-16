@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Extracts structured elements from MCP tool definition content for search indexing. Parses the MCP tool JSON
- * and extracts category, provider, and input parameters as structured elements.
+ * and extracts input parameter names as structured elements.
  */
 public class McpToolStructuredContentExtractor implements StructuredContentExtractor {
 
@@ -27,28 +27,12 @@ public class McpToolStructuredContentExtractor implements StructuredContentExtra
             JsonNode root = objectMapper.readTree(content.content());
             List<StructuredElement> elements = new ArrayList<>();
 
-            extractAnnotationField(root, "category", elements);
-            extractAnnotationField(root, "provider", elements);
             extractParameters(root, elements);
 
             return elements;
         } catch (Exception e) {
             log.debug("Failed to extract structured content from MCP tool: {}", e.getMessage());
             return Collections.emptyList();
-        }
-    }
-
-    /**
-     * Extracts a string field from the annotations object.
-     */
-    private void extractAnnotationField(JsonNode root, String fieldName,
-            List<StructuredElement> elements) {
-        JsonNode annotations = root.path("annotations");
-        if (!annotations.isMissingNode() && annotations.isObject()) {
-            JsonNode field = annotations.get(fieldName);
-            if (field != null && field.isTextual()) {
-                elements.add(new StructuredElement(fieldName, field.asText()));
-            }
         }
     }
 

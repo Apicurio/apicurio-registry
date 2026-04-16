@@ -1,7 +1,7 @@
 {
   "name": "search_database",
+  "title": "Database Search Tool",
   "description": "Search the product database with filters",
-  "version": "1.0.0",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -10,9 +10,17 @@
     },
     "required": ["query"]
   },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "results": { "type": "array", "description": "Search results" },
+      "total": { "type": "integer", "description": "Total count" }
+    },
+    "required": ["results", "total"]
+  },
   "annotations": {
-    "provider": "internal",
-    "category": "database",
-    "requiresAuth": true
+    "title": "DB Search",
+    "audience": ["user", "assistant"],
+    "priority": 0.8
   }
 }

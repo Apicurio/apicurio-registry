@@ -18,7 +18,7 @@ import java.util.Set;
  * - Adding required parameters: Backward incompatible
  * - Removing required parameters: Backward incompatible
  * - Changing inputSchema type: Backward incompatible
- * - Changing name, description, version, annotations: Always compatible
+ * - Changing name, title, description, annotations: Always compatible
  */
 public class McpToolCompatibilityChecker
         extends AbstractCompatibilityChecker<McpToolCompatibilityDifference> {

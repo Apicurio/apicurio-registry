@@ -11,7 +11,7 @@ import java.util.Map;
  * MCP tools are JSON documents that describe tools available to AI agents following the MCP specification.
  * This accepter validates that the content is valid JSON and contains required MCP tool fields.
  *
- * @see <a href="https://spec.modelcontextprotocol.io/specification/server/tools/">MCP Tools</a>
+ * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools</a>
  */
 public class McpToolContentAccepter implements ContentAccepter {
 

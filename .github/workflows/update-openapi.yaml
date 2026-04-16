@@ -46,8 +46,12 @@ jobs:
         run: |
           cd registry
           git add ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
-          git commit -m "Automatically updated the core v2 API OpenAPI definition."
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Automatically updated the core v2 API OpenAPI definition."
+            git push
+          fi
 
   validate:
     needs: update-openapi

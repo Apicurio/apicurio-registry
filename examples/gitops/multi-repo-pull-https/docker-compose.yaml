@@ -6,17 +6,10 @@
 # - Platform team (main branch): registry config, common schemas, order events
 # - Fulfillment team (fulfillment branch): shipment events, experimental schemas
 #
-# Build local images (if using local changes):
-#   mvn clean install -pl distro/docker -am -DskipTests
-#   docker build -f distro/docker/target/docker/Dockerfile.jvm -t quay.io/apicurio/apicurio-registry:local distro/docker/target/docker
-#   docker build -t quay.io/apicurio/apicurio-registry-gitops-sync:local distro/gitops
+# Steps:
 #
-# Run:
-#   cd examples/gitops/multi-repo-pull-https
-#   docker compose up
-#
-# Run with local images:
-#   REGISTRY_IMAGE=quay.io/apicurio/apicurio-registry:local SIDECAR_IMAGE=quay.io/apicurio/apicurio-registry-gitops-sync:local docker compose up
+#   1. Run:
+#      docker compose up
 #
 # To run as staging (includes experimental schemas):
 #   APICURIO_POLLING_STORAGE_ID=staging docker compose up

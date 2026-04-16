@@ -1,24 +1,17 @@
-# GitOps Pull Mode (SSH) - Quarkus Dev Mode
+# GitOps Push Mode Example - Quarkus Dev Mode
 #
-# Use this when running the registry locally with `mvn quarkus:dev`.
-# The sidecar pulls from a private repo into a local directory; Registry reads from it.
+# The sidecar accepts git push over SSH. Use this when running the registry
+# locally with `mvn quarkus:dev`.
 #
 # Steps:
 #
-#   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
-#
-#   2. Generate an SSH key pair (if you haven't already):
+#   1. Generate an SSH key pair (if you haven't already):
 #      ssh-keygen -t ed25519 -f secrets/id_ed25519 -N "" -C "apicurio-registry-gitops-sync"
 #
-#   3. Add the public key (secrets/id_ed25519.pub) as a deploy key in your Git repository.
+#   2. Start the sidecar and UI:
+#      docker compose -f docker-compose-dev.yaml up
 #
-#   4. (Recommended) Pre-populate known_hosts:
-#      ssh-keyscan github.com > secrets/known_hosts
-#
-#   5. Start the sidecar and UI:
-#      APICURIO_GITOPS_REPO_URL=git@github.com:your-org/your-schemas.git docker compose -f docker-compose-dev.yaml up
-#
-#   6. Start Registry in dev mode:
+#   3. Start Registry in dev mode:
 #      pushd ../../..
 #      mvn clean install -Dfast -pl app -am -DskipTests
 #      cd app
@@ -26,19 +19,33 @@
 #        -Dapicurio.storage.kind=gitops \
 #        -Dapicurio.features.experimental.enabled=true \
 #        -Dapicurio.polling-storage.id=prod \
-#        -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops/pull-ssh/repos \
+#        -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops/push/repos \
 #        -Dapicurio.log.level=debug
+#
+#   4. Either:
+#       a. Configure git directly:
+#          export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i $(pwd)/secrets/id_ed25519"
+#          Remember to unset GIT_SSH_COMMAND after testing to avoid affecting other git operations.
+#       b. Copy the authorized (client) SSH private SSH key to `~/.ssh` and configure SSH to use it for localhost in `~/.ssh/config`.
+#          Recommended when using APICURIO_GITOPS_SECURITY="strict" and the host key is stable.
+#
+#   5. Add the sidecar as a git remote and push schemas:
+#      git clone git@github.com:Apicurio/apicurio-registry-gitops-example.git default
+#      cd default
+#      git remote add registry ssh://git@localhost:2222/repos/default
+#      git push registry main
 #
 # Endpoints:
 #   - Registry API: http://localhost:8080/apis/registry/v3
 #   - Registry UI:  http://localhost:8888
+#   - SSH push:     ssh://git@localhost:2222/repos/default
 
 services:
 
   # The sidecar runs as a non-root 'git' user, but bind-mounted directories
   # are owned by root (created by Docker) or the host user. This init container
   # creates the repos directory with world-writable permissions so the sidecar
-  # can clone into it. Not needed for Docker volume mounts (full-stack compose).
+  # can write to it. Not needed for Docker volume mounts (full-stack compose).
   setup:
     container_name: setup
     image: alpine:latest
@@ -50,15 +57,14 @@ services:
     container_name: gitops-sync
     image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
     environment:
-      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-git@github.com:your-org/apicurio-registry-gitops-example.git}"
+      APICURIO_GITOPS_MODE: "push"
       APICURIO_GITOPS_SECURITY: "dev"
-      APICURIO_GITOPS_PULL_SSH_KEYS: "/secrets/id_ed25519"
-      # Uncomment the next line after creating secrets/known_hosts
-      # (then you can remove APICURIO_GITOPS_SECURITY=dev to use strict mode):
-      # APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS: "/secrets/known_hosts"
+      APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS: "/secrets/id_ed25519.pub"
     volumes:
       - ./repos:/repos
       - ./secrets:/secrets:ro
+    ports:
+      - "2222:2222"
     depends_on:
       setup:
         condition: service_completed_successfully

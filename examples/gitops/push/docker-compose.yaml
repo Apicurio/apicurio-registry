@@ -1,28 +1,36 @@
-# GitOps Pull Mode (SSH) - Docker Compose
+# GitOps Push Mode Example - Docker Compose
 #
-# Pulls schemas from a private Git repository over SSH using the GitOps sidecar.
-# Uses dev security mode (TOFU for host verification).
+# The sidecar accepts git push over SSH. Schemas are pushed directly
+# to the registry's backing repository from the host.
+#
+# Uses dev security mode — auto-generates SSH host keys and
+# initializes an empty repository ready to receive pushes.
 #
 # Steps:
 #
-#   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
-#
-#   2. Generate an authorized (client) SSH key pair (if you haven't already):
+#   1. Generate an authorized (client) SSH key pair (if you haven't already):
 #      ssh-keygen -t ed25519 -f secrets/id_ed25519 -N "" -C "apicurio-registry-gitops-sync"
 #
-#   3. Add the authorized (client) SSH public key (secrets/id_ed25519.pub) as a deploy key in your Git repository:
-#      - GitHub: Settings > Deploy keys > Add deploy key (read-only access is sufficient)
-#      - GitLab: Settings > Repository > Deploy keys
+#   2. Run:
+#      docker compose up
 #
-#   4. (Recommended) Pre-populate known_hosts to avoid TOFU:
-#      ssh-keyscan github.com > secrets/known_hosts
+#   3. Either:
+#       a. Configure git directly:
+#          export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i $(pwd)/secrets/id_ed25519"
+#          Remember to unset GIT_SSH_COMMAND after testing to avoid affecting other git operations.
+#       b. Copy the authorized (client) SSH private SSH key to `~/.ssh` and configure SSH to use it for localhost in `~/.ssh/config`.
+#          Recommended when using APICURIO_GITOPS_SECURITY="strict" and the host key is stable.
 #
-#   5. Run:
-#      APICURIO_GITOPS_REPO_URL=git@github.com:your-org/apicurio-registry-gitops-example.git docker compose up
+#   4. Add the sidecar as a git remote and push schemas:
+#      git clone git@github.com:Apicurio/apicurio-registry-gitops-example.git default
+#      cd default
+#      git remote add registry ssh://git@localhost:2222/repos/default
+#      git push registry main
 #
 # Endpoints:
 #   - Registry API: http://localhost:8080/apis/registry/v3
 #   - Registry UI:  http://localhost:8888
+#   - SSH push:     ssh://git@localhost:2222/repos/default
 
 services:
 
@@ -30,15 +38,14 @@ services:
     container_name: gitops-sync
     image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
     environment:
-      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-git@github.com:your-org/apicurio-registry-gitops-example.git}"
+      APICURIO_GITOPS_MODE: "push"
       APICURIO_GITOPS_SECURITY: "dev"
-      APICURIO_GITOPS_PULL_SSH_KEYS: "/secrets/id_ed25519"
-      # Uncomment the next line after creating secrets/known_hosts
-      # (then you can remove APICURIO_GITOPS_SECURITY=dev to use strict mode):
-      # APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS: "/secrets/known_hosts"
+      APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS: "/secrets/id_ed25519.pub"
     volumes:
       - git-repo:/repos
       - ./secrets:/secrets:ro
+    ports:
+      - "2222:2222"
 
   registry:
     container_name: registry
@@ -48,11 +55,6 @@ services:
       APICURIO_STORAGE_KIND: "gitops"
       APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
       APICURIO_POLLING_STORAGE_ID: "${APICURIO_POLLING_STORAGE_ID:-prod}"
-      # Faster startup for the example (lower debounce)
-      APICURIO_POLLING_STORAGE_POLL_PERIOD: "PT5S"
-      APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: "PT5S"
-      APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: "PT30S"
-      LOG_LEVEL: "INFO"
       APICURIO_LOG_LEVEL: "debug"
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"

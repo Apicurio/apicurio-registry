@@ -3,13 +3,15 @@
 # Use this when running the registry locally with `mvn quarkus:dev`.
 # The sidecar pulls two branches into local directories; Registry reads from them.
 #
-# Setup:
+# Steps:
+#
 #   1. Start the sidecar and UI:
-#      cd examples/gitops/multi-repo-pull-https
 #      docker compose -f docker-compose-dev.yaml up
 #
 #   2. Start Registry in dev mode:
-#      mvn clean install -Dfast -pl app -am -DskipTests && cd app
+#      pushd ../../..
+#      mvn clean install -Dfast -pl app -am -DskipTests
+#      cd app
 #      mvn quarkus:dev \
 #        -Dapicurio.storage.kind=gitops \
 #        -Dapicurio.features.experimental.enabled=true \

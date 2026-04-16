@@ -3,6 +3,7 @@ package io.apicurio.registry.maven;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
@@ -392,6 +393,18 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
+    private record ResolvedArtifactVersion(String version, Boolean isDraft, boolean derivedFromApiInfoVersion,
+                                           boolean derivedFromSnapshot) {
+        private boolean shouldUpdateDraftContentOnConflict() {
+            return Boolean.TRUE.equals(isDraft) && version != null;
+        }
+
+        private boolean shouldPromoteDraftOnConflict() {
+            return derivedFromApiInfoVersion && !derivedFromSnapshot && !Boolean.TRUE.equals(isDraft)
+                    && version != null;
+        }
+    }
+
     private static io.apicurio.registry.rest.v3.beans.IfArtifactExists parseIfExists(String value, String propertyKey)
             throws MojoExecutionException {
         if (value == null || value.isBlank()) {
@@ -637,7 +650,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         String artifactId = artifact.getArtifactId();
         String type = artifact.getArtifactType();
         Boolean canonicalize = artifact.getCanonicalize();
-        Boolean isDraft = artifact.getIsDraft();
         String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON
                 : artifact.getContentType();
         String data = null;
@@ -652,15 +664,15 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        String version = resolveVersion(artifact, data);
+        ResolvedArtifactVersion resolvedArtifactVersion = resolveVersion(artifact, data);
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(type);
 
         CreateVersion createVersion = new CreateVersion();
-        createVersion.setVersion(version);
-        createVersion.setIsDraft(isDraft);
+        createVersion.setVersion(resolvedArtifactVersion.version());
+        createVersion.setIsDraft(resolvedArtifactVersion.isDraft());
         createArtifact.setFirstVersion(createVersion);
 
         VersionContent content = new VersionContent();
@@ -695,22 +707,27 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             return vmd.getVersion();
         } catch (RuleViolationProblemDetails | ProblemDetails e) {
 
-            // If this is a draft, and we got a 409, then we should try to update the artifact content instead.
-            if (Boolean.TRUE.equals(artifact.getIsDraft()) && e.getResponseStatusCode() == 409) {
+            if (e.getResponseStatusCode() == 409
+                    && resolvedArtifactVersion.shouldUpdateDraftContentOnConflict()) {
                 try {
                     registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
-                            .versions().byVersionExpression(version).content()
+                            .versions().byVersionExpression(resolvedArtifactVersion.version()).content()
                             .put(content, config -> {
 
                     });
                     getLog().info(String.format("Successfully updated artifact [%s] / [%s].",
                             groupId, artifactId));
                     // Return version metadata
-                    return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
+                    return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                            .versions().byVersionExpression(resolvedArtifactVersion.version()).get();
                 } catch (RuleViolationProblemDetails | ProblemDetails pd) {
                     logAndThrow(pd);
                     return null;
                 }
+            } else if (e.getResponseStatusCode() == 409
+                    && resolvedArtifactVersion.shouldPromoteDraftOnConflict()) {
+                return promoteExistingDraftVersion(registryClient, groupId, artifactId, content,
+                        resolvedArtifactVersion, e);
             } else {
                 logAndThrow(e);
                 return null;
@@ -718,17 +735,61 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private String resolveVersion(RegisterArtifact artifact, String data) throws MojoExecutionException {
+    private ResolvedArtifactVersion resolveVersion(RegisterArtifact artifact, String data) throws MojoExecutionException {
         if (artifact.getVersion() != null && !artifact.getVersion().isBlank()) {
-            return artifact.getVersion();
+            return new ResolvedArtifactVersion(artifact.getVersion(), artifact.getIsDraft(), false, false);
         }
 
         if (artifact.getVersionStrategy() == RegisterArtifact.VersionStrategy.API_INFO_VERSION
                 && isApiArtifact(artifact.getArtifactType())) {
-            return extractApiInfoVersion(artifact, data);
+            String apiInfoVersion = extractApiInfoVersion(artifact, data);
+            if (apiInfoVersion == null) {
+                return new ResolvedArtifactVersion(null, artifact.getIsDraft(), false, false);
+            }
+            if (apiInfoVersion.endsWith("-SNAPSHOT")) {
+                return new ResolvedArtifactVersion(
+                        apiInfoVersion.substring(0, apiInfoVersion.length() - "-SNAPSHOT".length()),
+                        Boolean.TRUE,
+                        true,
+                        true);
+            }
+            return new ResolvedArtifactVersion(apiInfoVersion, artifact.getIsDraft(), true, false);
         }
 
-        return null;
+        return new ResolvedArtifactVersion(null, artifact.getIsDraft(), false, false);
+    }
+
+    private VersionMetaData promoteExistingDraftVersion(RegistryClient registryClient, String groupId,
+                                                        String artifactId, VersionContent content,
+                                                        ResolvedArtifactVersion resolvedArtifactVersion,
+                                                        ApiException registrationError)
+            throws MojoExecutionException, MojoFailureException, InterruptedException, ExecutionException {
+        try {
+            VersionMetaData existingVersion = registryClient.groups().byGroupId(groupId).artifacts()
+                    .byArtifactId(artifactId).versions().byVersionExpression(resolvedArtifactVersion.version()).get();
+            if (!VersionState.DRAFT.equals(existingVersion.getState())) {
+                logAndThrow(registrationError);
+                return null;
+            }
+
+            registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(resolvedArtifactVersion.version()).content().put(content, config -> {
+                    });
+
+            WrappedVersionState enabled = new WrappedVersionState();
+            enabled.setState(VersionState.ENABLED);
+            registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(resolvedArtifactVersion.version()).state().put(enabled);
+
+            getLog().info(String.format("Successfully promoted draft artifact [%s] / [%s] version [%s].",
+                    groupId, artifactId, resolvedArtifactVersion.version()));
+
+            return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(resolvedArtifactVersion.version()).get();
+        } catch (RuleViolationProblemDetails | ProblemDetails e) {
+            logAndThrow(e);
+            return null;
+        }
     }
 
     private boolean isApiArtifact(String artifactType) {

@@ -98,6 +98,14 @@ mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
 
 Use `artifacts.<field>` when registering a single artifact, or `artifacts.<index>.<field>` such as `artifacts.0.groupId` and `artifacts.1.groupId` when registering multiple artifacts.
 
+For OpenAPI and AsyncAPI artifacts, you can set `versionStrategy` to `API_INFO_VERSION` to derive the version from the `info.version` field in the API document when `version` is not explicitly configured.
+
+* If the derived version ends with `-SNAPSHOT`, the Maven plug-in strips the suffix before registration and registers the version as a draft.
+* When the API document later uses the same version without the `-SNAPSHOT` suffix, the Maven plug-in updates the existing draft content and promotes that version to `ENABLED`.
+* For other artifact types, `API_INFO_VERSION` is ignored.
+
+To update draft content or promote a draft created in this way, artifact version mutability must be enabled on the server. For more details, see xref:assembly-deploying-registry-operator.adoc#configuring-registry-operator_{context}[Enabling artifact version mutability].
+
 For list properties, use an additional numeric index. The following formats are supported:
 
 * `artifacts.<index>.references.<index>.<field>`
@@ -114,13 +122,26 @@ mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
   -Dartifacts.0.artifactId=ExampleAPI \
   -Dartifacts.0.artifactType=ASYNCAPI \
   -Dartifacts.0.file=./src/main/resources/apis/example.yaml \
-  -Dartifacts.0.references.0.name=/apis/registry/v3/groups/master/artifacts/kafka-bindings.yml/versions/branch=latest/content#/components/messageTraits/kafkaKeyString \
+  -Dartifacts.0.references.0.name=SharedRecord \
   -Dartifacts.0.existingReferences.0.resourceName=./avro/shared.avsc \
   -Dartifacts.0.existingReferences.0.groupId=TestGroup \
   -Dartifacts.0.existingReferences.0.artifactId=shared-avro \
   -Dartifacts.0.existingReferences.0.version=1 \
   -Dartifacts.0.protoPaths.0=./src/main/proto \
   -Dartifacts.0.protoPaths.1=./src/main/proto/common
+----
+
+The following example derives the artifact version from an AsyncAPI or OpenAPI document:
+
+[source,shell]
+----
+mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
+  -Dapicurio.url=MY-REGISTRY-URL/apis/registry/v3 \
+  -Dartifacts.groupId=TestGroup \
+  -Dartifacts.artifactId=ExampleAPI \
+  -Dartifacts.artifactType=ASYNCAPI \
+  -Dartifacts.file=./src/main/resources/apis/example.yaml \
+  -Dartifacts.versionStrategy=API_INFO_VERSION
 ----
 
 [role="_additional-resources"]

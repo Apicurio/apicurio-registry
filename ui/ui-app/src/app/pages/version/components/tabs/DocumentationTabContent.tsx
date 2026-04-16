@@ -6,6 +6,7 @@ import {
     AgentCardVisualizer,
     AsyncApiVisualizer,
     JsonSchemaVisualizer,
+    McpToolVisualizer,
     ModelSchemaVisualizer,
     OpenApiVisualizer,
     PromptTemplateVisualizer
@@ -14,7 +15,7 @@ import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 
 enum VisualizerType {
-    OPENAPI, ASYNCAPI, AGENT_CARD, JSON_SCHEMA, MODEL_SCHEMA, PROMPT_TEMPLATE, OTHER
+    OPENAPI, ASYNCAPI, AGENT_CARD, MCP_TOOL, JSON_SCHEMA, MODEL_SCHEMA, PROMPT_TEMPLATE, OTHER
 }
 
 const getVisualizerType = (artifactType: string): VisualizerType => {
@@ -26,6 +27,9 @@ const getVisualizerType = (artifactType: string): VisualizerType => {
     }
     if (artifactType === ArtifactTypes.AGENT_CARD) {
         return VisualizerType.AGENT_CARD;
+    }
+    if (artifactType === ArtifactTypes.MCP_TOOL) {
+        return VisualizerType.MCP_TOOL;
     }
     if (artifactType === ArtifactTypes.JSON) {
         return VisualizerType.JSON_SCHEMA;
@@ -121,6 +125,9 @@ export const DocumentationTabContent: FunctionComponent<DocumentationTabContentP
             </If>
             <If condition={visualizerType === VisualizerType.AGENT_CARD}>
                 <AgentCardVisualizer spec={parsedContent} />
+            </If>
+            <If condition={visualizerType === VisualizerType.MCP_TOOL}>
+                <McpToolVisualizer spec={parsedContent} />
             </If>
             <If condition={visualizerType === VisualizerType.JSON_SCHEMA}>
                 <JsonSchemaVisualizer spec={parsedContent} />

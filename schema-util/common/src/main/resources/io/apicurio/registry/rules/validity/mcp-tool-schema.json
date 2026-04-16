@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://apicurio.io/schemas/mcp-tool.json",
+  "title": "MCP Tool Definition",
+  "description": "Schema for MCP (Model Context Protocol) tool definitions stored as registry artifacts, based on the MCP specification 2025-11-25.",
+  "type": "object",
+  "required": ["name", "inputSchema"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for the tool. Should be between 1 and 128 characters."
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable name of the tool for display purposes."
+    },
+    "description": {
+      "type": "string",
+      "description": "A human-readable description of what the tool does."
+    },
+    "inputSchema": {
+      "type": "object",
+      "description": "A JSON Schema object defining the expected parameters for the tool.",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "object",
+          "description": "The JSON Schema type. Must be 'object' per the MCP specification."
+        },
+        "properties": {
+          "type": "object",
+          "description": "The input parameter definitions.",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "required": {
+          "type": "array",
+          "description": "List of required parameter names.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "Optional JSON Schema defining expected output structure for structured results.",
+      "additionalProperties": true
+    },
+    "annotations": {
+      "type": "object",
+      "description": "Optional ToolAnnotations per the MCP specification (title, audience, priority).",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "An optional title for the tool annotation. Used as fallback display name if top-level title is absent."
+        },
+        "audience": {
+          "type": "array",
+          "description": "Describes the intended audience, e.g. 'user', 'assistant'.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "priority": {
+          "type": "number",
+          "description": "Priority hint (0 to 1). Higher values indicate higher priority.",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

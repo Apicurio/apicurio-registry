@@ -707,6 +707,22 @@ The following {registry} configuration options are available for each component 
 |Dynamic log level for Apicurio Registry
 |===
 
+== mcp
+.mcp configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.mcp-tools.enabled`
+|`boolean`
+|`false`
+|`3.0.0`
+|Enable MCP tool definition discovery endpoints _(experimental)_
+|===
+
 == observability
 .observability configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]

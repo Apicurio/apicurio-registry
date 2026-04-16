@@ -22,22 +22,32 @@ public class PollingProcessingResult {
      */
     private final List<String> errors;
 
-    private PollingProcessingResult(boolean successful, List<String> errors) {
+    private final int groupCount;
+    private final int artifactCount;
+    private final int versionCount;
+
+    private PollingProcessingResult(boolean successful, List<String> errors,
+                                    int groupCount, int artifactCount, int versionCount) {
         this.successful = successful;
         this.errors = errors;
+        this.groupCount = groupCount;
+        this.artifactCount = artifactCount;
+        this.versionCount = versionCount;
     }
 
     /**
-     * Creates a successful processing result.
+     * Creates a successful processing result with load statistics.
      */
-    public static PollingProcessingResult success() {
-        return new PollingProcessingResult(true, Collections.emptyList());
+    public static PollingProcessingResult success(int groupCount, int artifactCount, int versionCount) {
+        return new PollingProcessingResult(true, Collections.emptyList(),
+                groupCount, artifactCount, versionCount);
     }
 
     /**
      * Creates a failed processing result with the given errors.
      */
     public static PollingProcessingResult failure(List<String> errors) {
-        return new PollingProcessingResult(false, errors != null ? errors : Collections.emptyList());
+        return new PollingProcessingResult(false, errors != null ? errors : Collections.emptyList(),
+                0, 0, 0);
     }
 }

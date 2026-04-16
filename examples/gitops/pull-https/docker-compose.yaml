@@ -1,14 +1,17 @@
-# GitOps Local Volume Example - Docker Compose
+# GitOps Pull Mode (HTTPS) - Docker Compose
 #
-# Clones the example repository into a local directory `examples/gitops/example-repo` and runs the registry
-# in GitOps mode. The local clone can be modified to test GitOps reload behavior.
+# Pulls schemas from a public Git repository over HTTPS using the GitOps sidecar.
+# Uses dev security mode to allow HTTP/HTTPS without SSH keys.
 #
-# Run:
-#   cd examples/gitops
-#   docker compose up
+# Setup:
 #
-# To run as the staging registry (includes experimental schemas):
-#   APICURIO_POLLING_STORAGE_ID=staging docker compose up
+#   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
+#
+#   2. (Recommended) Update APICURIO_GITOPS_REPO_URL below with your fork URL
+#
+#   3. Run:
+#      cd examples/gitops/pull-https
+#      docker compose up
 #
 # Endpoints:
 #   - Registry API: http://localhost:8080/apis/registry/v3
@@ -16,26 +19,16 @@
 
 services:
 
-  # Clone the example repository into a local directory
-  gitops-init:
-    container_name: gitops-init
-    image: alpine/git:latest
+  gitops-sync:
+    container_name: gitops-sync
+    image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
+    environment:
+      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-https://github.com/Apicurio/apicurio-registry-gitops-example.git}"
+      APICURIO_GITOPS_SECURITY: "dev"
+      APICURIO_GITOPS_REPO_BRANCH: "test"
     volumes:
-      - .:/work
-    entrypoint: ["sh", "-c"]
-    command:
-      - |
-        if [ ! -d /work/example-repo/.git ]; then
-          echo "Cloning example GitOps repository..."
-          git clone https://github.com/Apicurio/apicurio-registry-gitops-example.git /work/example-repo
-          # Match ownership to the bind-mounted parent directory so files are editable on the host
-          chown -R "$(stat -c '%u:%g' /work)" /work/example-repo
-          echo "Example repository initialized."
-        else
-          echo "Repository already initialized, skipping."
-        fi
+      - git-repo:/repos
 
-  # Apicurio Registry (GitOps mode)
   registry:
     container_name: registry
     image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
@@ -52,12 +45,11 @@ services:
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     volumes:
-      - ./example-repo:/repos/default:ro
+      - git-repo:/repos:ro
     ports:
       - "8080:8080"
     depends_on:
-      gitops-init:
-        condition: service_completed_successfully
+      - gitops-sync
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
       interval: 10s
@@ -65,7 +57,6 @@ services:
       retries: 10
       start_period: 30s
 
-  # Apicurio Registry UI
   registry-ui:
     container_name: registry-ui
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
@@ -77,3 +68,5 @@ services:
       registry:
         condition: service_healthy
 
+volumes:
+  git-repo:

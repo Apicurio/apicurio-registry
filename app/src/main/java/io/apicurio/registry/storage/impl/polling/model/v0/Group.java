@@ -30,5 +30,9 @@ public class Group extends HasSchema {
 
     private String artifactsType;
 
+    private String createdOn;
+
+    private String modifiedOn;
+
     private List<Rule> rules;
 }

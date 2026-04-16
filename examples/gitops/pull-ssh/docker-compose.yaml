@@ -1,0 +1,86 @@
+# GitOps Pull Mode (SSH) - Docker Compose
+#
+# Pulls schemas from a private Git repository over SSH using the GitOps sidecar.
+# Uses default security mode (TOFU for host verification).
+#
+# Setup:
+#
+#   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
+#
+#   2. Generate an SSH key pair (if you haven't already):
+#      cd examples/gitops/pull-ssh
+#      ssh-keygen -t ed25519 -f secrets/id_ed25519 -N "" -C "apicurio-registry-gitops-sync"
+#
+#   3. Add the public key (secrets/id_ed25519.pub) as a deploy key in your Git repository:
+#      - GitHub: Settings > Deploy keys > Add deploy key (read-only access is sufficient)
+#      - GitLab: Settings > Repository > Deploy keys
+#
+#   4. (Recommended) Pre-populate known_hosts to avoid TOFU:
+#      cd examples/gitops/pull-ssh
+#      ssh-keyscan github.com > secrets/known_hosts
+#
+#   5. Run:
+#      APICURIO_GITOPS_REPO_URL=git@github.com:your-org/apicurio-registry-gitops-example.git docker compose up
+#
+# Endpoints:
+#   - Registry API: http://localhost:8080/apis/registry/v3
+#   - Registry UI:  http://localhost:8888
+
+services:
+
+  gitops-sync:
+    container_name: gitops-sync
+    image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
+    environment:
+      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-git@github.com:your-org/apicurio-registry-gitops-example.git}"
+      APICURIO_GITOPS_SSH_KEY: "/secrets/id_ed25519"
+      # Uncomment the next line after creating secrets/known_hosts:
+      # APICURIO_GITOPS_SSH_KNOWN_HOSTS: "/secrets/known_hosts"
+      # and then enable strict security mode:
+      # APICURIO_GITOPS_SECURITY: "strict"
+    volumes:
+      - git-repo:/repos
+      - ./secrets:/secrets:ro
+
+  registry:
+    container_name: registry
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
+    environment:
+      QUARKUS_PROFILE: "prod"
+      APICURIO_STORAGE_KIND: "gitops"
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_POLLING_STORAGE_ID: "${APICURIO_POLLING_STORAGE_ID:-prod}"
+      # Faster startup for the example (lower debounce)
+      APICURIO_POLLING_STORAGE_POLL_PERIOD: "PT5S"
+      APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: "PT5S"
+      APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: "PT30S"
+      LOG_LEVEL: "INFO"
+      QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
+      QUARKUS_HTTP_CORS: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    volumes:
+      - git-repo:/repos:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - gitops-sync
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  registry-ui:
+    container_name: registry-ui
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    ports:
+      - "8888:8080"
+    depends_on:
+      registry:
+        condition: service_healthy
+
+volumes:
+  git-repo:

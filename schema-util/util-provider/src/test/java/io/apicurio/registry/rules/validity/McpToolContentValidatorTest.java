@@ -82,8 +82,8 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
             validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
         Assertions.assertFalse(error.getCauses().isEmpty());
-        // Should have violations for audience (not array), priority (not number),
-        // lastModified (not string)
+        // Should have violations for title (not string), audience (not array),
+        // and priority (not number)
         Assertions.assertTrue(error.getCauses().size() >= 3);
     }
 

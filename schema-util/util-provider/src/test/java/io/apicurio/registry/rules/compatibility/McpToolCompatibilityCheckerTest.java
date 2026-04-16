@@ -249,7 +249,6 @@ class McpToolCompatibilityCheckerTest {
                 {
                     "name": "renamed_tool",
                     "description": "New description",
-                    "version": "2.0.0",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -264,7 +263,7 @@ class McpToolCompatibilityCheckerTest {
                 createMcpTool(proposed), Map.of());
 
         assertTrue(result.isCompatible(),
-                "Changing name, description, and version should be compatible");
+                "Changing name and description should be compatible");
     }
 
     @Test
@@ -296,8 +295,7 @@ class McpToolCompatibilityCheckerTest {
                     },
                     "annotations": {
                         "audience": ["user", "assistant"],
-                        "priority": 0.9,
-                        "lastModified": "2025-11-25T10:30:00Z"
+                        "priority": 0.9
                     }
                 }
                 """;

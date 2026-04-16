@@ -62,8 +62,7 @@
           "type": "array",
           "description": "Describes the intended audience, e.g. 'user', 'assistant'.",
           "items": {
-            "type": "string",
-            "enum": ["user", "assistant"]
+            "type": "string"
           }
         },
         "priority": {

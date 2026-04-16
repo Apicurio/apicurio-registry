@@ -1,5 +1,6 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+:_mod-docs-content-type: ASSEMBLY
 [id="configuring-registry-security_{context}"]
 = Configuring {registry} security options
 
@@ -17,8 +18,8 @@ NOTE: For a list of all available configuration options, see {registry-config-re
 //INCLUDES
 
 
-// Metadata created by nebel
-
+// proc-registry-security-keycloak
+:_mod-docs-content-type: PROCEDURE
 [id="registry-security-keycloak_{context}"]
 
 == Configuring {registry} authentication and authorization with {keycloak}
@@ -74,7 +75,7 @@ NOTE: If you are using {keycloak} service accounts, the client *Access Type* mus
 ** *Client ID*: `apicurio-registry`
 ** *Client Protocol*: `openid-connect`
 ** *Access Type*: `public`
-** *Valid Redirect URLs*: `\http://my-registry-url:8080/*`
+** *Valid Redirect URLs*: `http://my-registry-url:8080/*`
 ** *Web Origins*: `+`
 +
 You can use the defaults for the other client settings.
@@ -93,7 +94,7 @@ You can use the defaults for the other client settings.
 |String
 |`false`
 |`QUARKUS_OIDC_AUTH_SERVER_URL`
-|The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
+|The URL of the {keycloak} authentication server. For example, `http://localhost:8080`.
 |String
 |-
 |`QUARKUS_OIDC_CLIENT_ID`
@@ -180,8 +181,8 @@ endif::[]
 
 
 
-// Metadata created by nebel
-
+// proc-registry-security-azure
+:_mod-docs-content-type: PROCEDURE
 [id="registry-security-azure_{context}"]
 
 == Configuring {registry} authentication and authorization with Microsoft Azure Active Directory
@@ -205,19 +206,19 @@ To secure {registry} with Azure AD, you require a valid directory in Azure AD wi
 +
 ** *Name*: Enter your application name. For example: `apicurio-registry-example`
 ** *Supported account types*: Click *Accounts in any organizational directory*.
-** *Redirect URI*: Select *Single-page application* from the list, and enter your {registry} web console application host. For example: `\https://test-registry.com/ui/`
+** *Redirect URI*: Select *Single-page application* from the list, and enter your {registry} web console application host. For example: `https://test-registry.com/ui/`
 +
 IMPORTANT: You must register your {registry} application host as a *Redirect URI*. When logging in, users are redirected from {registry} to Azure AD for authentication, and you want to send them back to your application afterwards. Azure AD does not allow any redirect URLs that are not registered.
 
 . Click *Register*. You can view your app registration details by selecting *Manage > App registrations* > *apicurio-registry-example*.
 
 . Select *Manage > Authentication* and ensure that the application is configured with your redirect URLs and tokens as follows:
-** *Redirect URIs*: For example: `\https://test-registry.com/ui/`
+** *Redirect URIs*: For example: `https://test-registry.com/ui/`
 ** *Implicit grant and hybrid flows*: Click *ID tokens (used for implicit and hybrid flows)*
 
 . Select *Azure AD > Admin > App registrations > Your app > Application (client) ID*. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
 
-. Select *Azure AD > Admin > App registrations > Your app > Directory (tenant) ID*. For example: `\https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`
+. Select *Azure AD > Admin > App registrations > Your app > Directory (tenant) ID*. For example: `https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`
 
 . In {registry}, configure the following environment variables with your Azure AD settings:
 +
@@ -235,7 +236,7 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |Your Azure AD Application (client) ID obtained in step 5. For example: `123456a7-b8c9-012d-e3f4-5fg67h8i901`
 |`QUARKUS_OIDC_AUTH_SERVER_URL`
 |The URL for authentication in Azure AD.
-|Your Azure AD Application (tenant) ID obtained in step 6. For example: `\https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`.
+|Your Azure AD Application (tenant) ID obtained in step 6. For example: `https://login.microsoftonline.com/1a2bc34d-567e-89f1-g0hi-1j2kl3m4no56/v2.0`.
 |===
 
 . In {registry}, configure the following environment variables for {registry}-specific settings:
@@ -251,10 +252,10 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |`true`
 |`QUARKUS_HTTP_CORS_ORIGINS`
 |The host for your {registry} deployment for cross-origin resource sharing (CORS).
-|For example: `\https://test-registry.com`
+|For example: `https://test-registry.com`
 |`APICURIO_UI_AUTH_OIDC_REDIRECT_URI`
 |The host for your {registry} web console.
-|For example: `\https://test-registry.com/ui`
+|For example: `https://test-registry.com/ui`
 |`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
 |Enables role-based authorization in {registry}.
 |`true`
@@ -281,7 +282,6 @@ NOTE: When you enable roles in {registry}, you must also create the same roles i
 |`id`
 |===
 
-[discrete]
 === Multiple role mappings for Azure Entra ID
 
 When using Azure Entra ID (formerly Azure AD), you may need to map multiple Azure AD groups or app roles to a single {registry} role. This is useful when:
@@ -302,7 +302,6 @@ APICURIO_AUTH_ROLES_READONLY=sr-readonly,abcd1234-aaaa-bbbb-cccc-ddddeeeefffff,A
 
 With this configuration, a user with any of the listed roles or group memberships will be granted the corresponding {registry} authorization level.
 
-[discrete]
 === Client-specific OAuth scopes for Azure Entra ID
 
 Azure Entra ID requires that each app registration uses a unique scope. When you have multiple app registrations (for example, one for developers and one for read-only access), you can configure client-specific scopes:
@@ -975,8 +974,8 @@ When running Dex in production, consider the following:
 
 
 
-// Metadata created by nebel
-
+// ref-registry-security-settings
+:_mod-docs-content-type: REFERENCE
 [id="registry-security-settings_{context}"]
 
 == {registry} authentication and authorization configuration options
@@ -1000,7 +999,6 @@ This chapter provides details on the following configuration options:
 * xref:registry-security-auth-read[{registry} authenticated read access]
 * xref:registry-security-anon-read[{registry} anonymous read-only access]
 
-[discrete]
 [id="registry-security-authn-keycloak"]
 === {registry} authentication by using OpenID Connect with {keycloak}
 
@@ -1018,7 +1016,7 @@ You can set the following environment variables to configure authentication for 
 |String
 |`false`
 |`QUARKUS_OIDC_AUTH_SERVER_URL`
-|The URL of the {keycloak} authentication server. For example, `\http://localhost:8080`.
+|The URL of the {keycloak} authentication server. For example, `http://localhost:8080`.
 |String
 |-
 |`QUARKUS_OIDC_CLIENT_ID`
@@ -1047,7 +1045,6 @@ You can set the following environment variables to configure authentication for 
 
 |===
 
-[discrete]
 [id="registry-security-authn-http"]
 === {registry} authentication by using HTTP basic
 
@@ -1070,8 +1067,7 @@ By default, {registry} supports authentication by using OpenID Connect. Users or
 |`false`
 |===
 
-[discrete]
-==== {registry} HTTP basic client credentials cache expiry
+.{registry} HTTP basic client credentials cache expiry
 
 You can also configure the HTTP basic client credentials cache expiry time. By default, when using HTTP basic authentication, {registry} caches JWT tokens, and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default.
 
@@ -1091,7 +1087,6 @@ When using {keycloak}, it is best to set this configuration to your {keycloak} J
 |===
 
 
-[discrete]
 [id=registry-security-rbac-enabled]
 ===  {registry} role-based authorization
 
@@ -1116,8 +1111,7 @@ You can set the following options to `true` to enable role-based authorization i
 
 You can then configure role-based authorization to use roles included in the user's authentication token (for example, granted when authenticating by using {keycloak}), or to use role mappings managed internally by {registry}.
 
-[discrete]
-==== Use roles assigned in {keycloak}
+.Using roles assigned in {keycloak}
 
 To enable using roles assigned by {keycloak}, set the following environment variables:
 
@@ -1175,8 +1169,7 @@ of the following user roles in {keycloak}. However, you can configure different 
 |Access to read and search operations only. This role cannot configure any rules.
 |===
 
-[discrete]
-==== Manage roles directly in {registry}
+.Managing roles directly in {registry}
 
 To enable using roles managed internally by {registry}, set the following environment variable:
 
@@ -1200,8 +1193,7 @@ Users can be granted exactly one role: `ADMIN`, `DEVELOPER`, or `READ_ONLY`. Onl
 privileges can grant access to other users.
 
 
-[discrete]
-==== {registry} admin-override configuration
+.{registry} admin-override configuration
 
 Because there are no default admin users in {registry}, it is usually helpful to configure another way for users to be identified as admins. You can configure this admin-override feature by using the following environment variables:
 
@@ -1242,7 +1234,6 @@ For example, you can use this admin-override feature to assign the `sr-admin` ro
 in {keycloak}, which grants that user the admin role.  That user can then use the `/admin/roleMappings`
 REST API (or associated UI) to grant roles to additional users (including additional admins).
 
-[discrete]
 [id=registry-security-obac-enabled]
 === {registry} owner-only authorization
 
@@ -1276,7 +1267,6 @@ When owner-only authorization is enabled, only the user who created an artifact 
 
 When owner-only authorization and group owner-only authorization are both enabled, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group.
 
-[discrete]
 [id=registry-security-auth-read]
 === {registry} authenticated read access
 
@@ -1303,7 +1293,6 @@ To enable authenticated read access, you must first enable role-based authorizat
 
 For more details, see xref:registry-security-rbac-enabled[].
 
-[discrete]
 [id=registry-security-anon-read]
 === {registry} anonymous read-only access
 
@@ -1338,15 +1327,15 @@ calls to the REST API, set the following options to `true`:
 
 
 
-// Metadata created by nebel
-
+// proc-registry-cors-configuration
+:_mod-docs-content-type: PROCEDURE
 [id="registry-cors-configuration_{context}"]
 
 == Configuring {registry} Cross-Origin Resource Sharing (CORS)
 
 [role="_abstract"]
-If you are building a browser-based application (React, Angular, Vue, or plain JavaScript) that calls the {registry} REST API, you must configure Cross-Origin Resource Sharing (CORS) to allow your application to communicate with {registry} from a different origin.
-Without the correct CORS configuration on the {registry} server, the browser blocks API calls from your application, even though the same requests succeed from a non-browser client like `curl`.
+To allow your browser-based application (React, Angular, Vue, or plain JavaScript) to call the {registry} REST API from a different origin, you must configure Cross-Origin Resource Sharing (CORS).
+Without the correct CORS configuration on the {registry} server, the browser blocks API calls from your application, even though the same requests succeed from a non-browser client such as `curl`.
 {registry} includes built-in CORS support based on the Quarkus HTTP CORS filter that you can configure for your deployment.
 
 * xref:registry-cors-understanding_{context}[]
@@ -1359,13 +1348,16 @@ Without the correct CORS configuration on the {registry} server, the browser blo
 * xref:registry-cors-troubleshooting_{context}[]
 
 
+// con-registry-cors-understanding
+:_mod-docs-content-type: CONCEPT
 [id="registry-cors-understanding_{context}"]
 === Understanding CORS
 
-Browsers enforce a same-origin policy that prevents a web page served from one origin (for example, `\https://my-app.example.com`) from making HTTP requests to a different origin (for example, `\https://registry.example.com`).
+[role="_abstract"]
+Browsers enforce a same-origin policy that prevents a web page served from one origin (for example, `https://my-app.example.com`) from making HTTP requests to a different origin (for example, `https://registry.example.com`).
 CORS is the mechanism by which a server explicitly allows cross-origin requests by including specific HTTP response headers such as `Access-Control-Allow-Origin`.
 
-Consider a typical scenario where your browser application runs at `\https://my-app.example.com` and {registry} runs at `\https://registry.example.com`.
+Consider a typical scenario where your browser application runs at `https://my-app.example.com` and {registry} runs at `https://registry.example.com`.
 When your JavaScript code calls the {registry} REST API:
 
 [source,javascript]
@@ -1389,9 +1381,12 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ----
 
 
+// ref-registry-cors-defaults
+:_mod-docs-content-type: REFERENCE
 [id="registry-cors-defaults_{context}"]
 === {registry} CORS defaults
 
+[role="_abstract"]
 {registry} ships with CORS enabled by default, configured for the bundled {registry} web console.
 The default settings from `application.properties` are:
 
@@ -1405,7 +1400,7 @@ The default settings from `application.properties` are:
 |`true`
 
 |`quarkus.http.cors.origins`
-|`\http://localhost:8888,\http://127.0.0.1:8888`
+|`http://localhost:8888,http://127.0.0.1:8888`
 
 |`quarkus.http.cors.methods`
 |`GET,PUT,POST,PATCH,DELETE,OPTIONS`
@@ -1419,11 +1414,14 @@ If your application runs on a different host, port, or protocol, {registry} reje
 You must add your application's origin to the allowed list.
 
 
+// ref-registry-cors-env-vars
+:_mod-docs-content-type: REFERENCE
 [id="registry-cors-env-vars_{context}"]
 === Configuring CORS environment variables
 
+[role="_abstract"]
 You can override the default CORS settings by using environment variables.
-Using environment variables is the recommended approach when you run {registry} in a container.
+Environment variables are the recommended approach because they let you configure {registry} without modifying configuration files.
 
 .{registry} CORS environment variables
 [.table-expandable,width="100%",cols="3,5,4",options="header"]
@@ -1438,7 +1436,7 @@ Using environment variables is the recommended approach when you run {registry} 
 
 |`QUARKUS_HTTP_CORS_ORIGINS`
 |A comma-separated list of allowed origins, or `*` to allow all origins.
-|`\https://my-app.example.com,\https://other.example.com`
+|`https://my-app.example.com,https://other.example.com`
 
 |`QUARKUS_HTTP_CORS_METHODS`
 |A comma-separated list of allowed HTTP methods.
@@ -1454,12 +1452,16 @@ NOTE: Setting `QUARKUS_HTTP_CORS_ORIGINS` by using an environment variable compl
 For the full set of Quarkus CORS options, see the link:https://quarkus.io/guides/http-reference#cors-filter[Quarkus HTTP Reference - CORS Filter].
 
 
+ifndef::service-registry-downstream[]
+// proc-registry-cors-local-dev
+:_mod-docs-content-type: PROCEDURE
 [id="registry-cors-local-dev_{context}"]
 === Configuring CORS for local development
 
+[role="_abstract"]
 During local development, you can allow all origins by using `*` as the value for `QUARKUS_HTTP_CORS_ORIGINS`.
 
-Use a Docker Compose configuration like this example to run {registry} with CORS open for all origins:
+Use a Docker Compose configuration such as this example to run {registry} with CORS open for all origins:
 
 [source,yaml]
 ----
@@ -1500,12 +1502,18 @@ console.log(data);
 ----
 
 WARNING: Using `QUARKUS_HTTP_CORS_ORIGINS: "*"` is acceptable for local development but should not be used in production. A wildcard origin allows any website to make requests to your {registry} instance.
+endif::[]
 
 
+// proc-registry-cors-production
+:_mod-docs-content-type: PROCEDURE
 [id="registry-cors-production_{context}"]
 === Configuring CORS for production
 
-In production, you should explicitly list the origins that are allowed to access the {registry} REST API.
+[role="_abstract"]
+In production, explicitly list the origins that are allowed to access the {registry} REST API.
+
+TIP: If you deploy {registry} by using the {kubernetes} Operator, see xref:registry-cors-operator_{context}[]. The operator includes automatic CORS origin detection based on your Ingress configuration, and you often do not need to configure CORS manually.
 
 To allow a single origin:
 
@@ -1533,12 +1541,14 @@ services:
       - "8080:8080"
 ----
 
-TIP: If you still want to access the bundled {registry} web console, include its origin in the list. For example: `\https://my-app.example.com,\https://registry-ui.example.com`.
 
 
+// proc-registry-cors-authentication
+:_mod-docs-content-type: PROCEDURE
 [id="registry-cors-authentication_{context}"]
 === Configuring CORS with authentication
 
+[role="_abstract"]
 When you use OIDC authentication (for example, {keycloak}), CORS and authentication work together.
 Your browser application must send an `Authorization` header with a bearer token, and the {registry} CORS configuration must allow that header for authenticated cross-origin requests to succeed.
 
@@ -1605,9 +1615,12 @@ When you configure CORS with authentication, keep these points in mind:
 NOTE: Authentication is a complex topic with many possible configurations ({keycloak}, Microsoft Entra ID, and other OIDC providers). For a complete guide to configuring authentication, see xref:registry-security-settings_{context}[].
 
 
+// proc-registry-cors-operator
+:_mod-docs-content-type: PROCEDURE
 [id="registry-cors-operator_{context}"]
 === Configuring CORS with the {kubernetes} Operator
 
+[role="_abstract"]
 When you deploy {registry} by using the {kubernetes} Operator, you can set CORS environment variables in the `ApicurioRegistry3` custom resource.
 
 To configure explicit origins:
@@ -1625,18 +1638,23 @@ spec:
         value: "https://my-app.example.com,https://admin.example.com"
 ----
 
-The {registry} Operator includes built-in logic for automatic CORS origin detection:
+The {registry} Operator includes built-in logic for automatic CORS origin detection. In most {kubernetes} deployments, you do not need to configure CORS manually:
 
-. If you set `QUARKUS_HTTP_CORS_ORIGINS` in the `spec.app.env` section, those origins are used.
-. If you do not configure origins, the operator automatically detects the UI Ingress host and adds both `\http://` and `\https://` variants of that host to the allowed origins.
-. If no Ingress host is found, the operator defaults to `*` (allow all origins).
+. If you set `QUARKUS_HTTP_CORS_ORIGINS` in the `spec.app.env` section, those origins are used (manual override).
+. If you do not configure origins and you have an Ingress for the registry UI, the operator automatically detects the Ingress host and adds both `http://` and `https://` variants of that host to the allowed origins.
+. If you do not configure origins and no Ingress is found, the operator defaults to `*` (allow all origins).
 
-In many {kubernetes} deployments, you do not need to configure CORS manually because the operator handles it automatically based on your Ingress configuration.
+You only need to configure `QUARKUS_HTTP_CORS_ORIGINS` manually if your browser application runs on a different origin than the one auto-detected from your Ingress.
+
+NOTE: This automatic CORS detection works whether your networking layer uses {kubernetes} Ingress or OpenShift Routes. CORS is configured at the application level, not at the networking layer.
 
 
+// ref-registry-cors-troubleshooting
+:_mod-docs-content-type: REFERENCE
 [id="registry-cors-troubleshooting_{context}"]
 === Troubleshooting CORS errors
 
+[role="_abstract"]
 .Common CORS errors and fixes
 [%header,cols="3,3,4"]
 |===
@@ -1646,7 +1664,7 @@ In many {kubernetes} deployments, you do not need to configure CORS manually bec
 
 |"No Access-Control-Allow-Origin header is present on the requested resource"
 |Your application's origin is not in the {registry} allowed origins list.
-|Add your application's origin to `QUARKUS_HTTP_CORS_ORIGINS`. Include the protocol and port (for example, `\https://my-app.example.com:3000`, not only the hostname `my-app.example.com`).
+|Add your application's origin to `QUARKUS_HTTP_CORS_ORIGINS`. Include the protocol and port (for example, `https://my-app.example.com:3000`, not only the hostname `my-app.example.com`).
 
 |Preflight request fails with 403
 |The HTTP method or a request header is not allowed by the CORS configuration.
@@ -1661,16 +1679,19 @@ In many {kubernetes} deployments, you do not need to configure CORS manually bec
 |Use explicit origins instead of `*` when your application needs to send credentials.
 |===
 
+// proc-registry-cors-diagnosing
+:_mod-docs-content-type: PROCEDURE
 [id="registry-cors-diagnosing_{context}"]
 ==== Diagnosing CORS errors with browser developer tools
 
 [role="_abstract"]
 You can use your browser developer tools to identify the cause of CORS errors.
 
-*Prerequisites*
+.Prerequisites
+
 * {registry} is installed and running.
 
-*Procedure*
+.Procedure
 
 . Open your browser developer tools (F12).
 . Go to the *Network* tab.

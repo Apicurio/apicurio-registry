@@ -33,6 +33,10 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";
 
+    /** Upper bound on cause-chain hops walked when classifying a thrown exception; defends
+     *  against indirect cycles (real chains rarely exceed 5 levels). */
+    static final int MAX_CAUSE_CHAIN_DEPTH = 32;
+
     private final ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProtobufDeserializer.class);
@@ -190,8 +194,7 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
      */
     static boolean isRecoverableSchemaResolutionError(Throwable t) {
         Throwable cause = t;
-        // Bound the walk to defeat pathological self-referential cause chains.
-        for (int i = 0; cause != null && i < 32; i++) {
+        for (int i = 0; cause != null && i < MAX_CAUSE_CHAIN_DEPTH; i++) {
             if (cause instanceof ApiException
                     || cause instanceof IOException
                     || cause instanceof UncheckedIOException
@@ -200,6 +203,7 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
             }
             Throwable next = cause.getCause();
             if (next == cause) {
+                // Direct self-reference. Indirect cycles are bounded by MAX_CAUSE_CHAIN_DEPTH.
                 break;
             }
             cause = next;

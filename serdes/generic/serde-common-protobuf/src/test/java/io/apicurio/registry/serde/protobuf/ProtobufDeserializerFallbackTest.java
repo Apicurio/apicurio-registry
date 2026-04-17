@@ -147,8 +147,47 @@ public class ProtobufDeserializerFallbackTest {
     }
 
     /**
-     * Programming errors and configuration mistakes are <strong>not</strong> recoverable -
-     * silently swallowing them would mask real bugs.
+     * The cause-chain walker must terminate even when the chain contains an indirect cycle
+     * (A causes B, B causes A). Without {@link ProtobufDeserializer#MAX_CAUSE_CHAIN_DEPTH} this
+     * would loop forever, hanging the deserializer thread on a single bad message.
+     */
+    @Test
+    public void testRecoverableErrorDetection_terminatesOnIndirectCycle() {
+        // Build a hostile exception type whose getCause() participates in a cycle without
+        // touching the private cause field (which is sealed off on JDK 17+). This simulates
+        // a buggy/hostile exception implementation - exactly what the depth bound defends against.
+        class CyclingException extends RuntimeException {
+            private Throwable next;
+
+            CyclingException(String msg) { super(msg); }
+
+            @Override
+            public synchronized Throwable getCause() { return next; }
+        }
+        CyclingException a = new CyclingException("a");
+        CyclingException b = new CyclingException("b");
+        a.next = b;
+        b.next = a;
+
+        assertFalse(ProtobufDeserializer.isRecoverableSchemaResolutionError(a),
+                "Walker must terminate (and return false) when the chain is an indirect cycle "
+                        + "containing no recoverable types");
+    }
+
+    /**
+     * Sanity check that the published bound is large enough to cover any realistic chain depth
+     * the schema resolver and its wrappers can produce. Shrinking the bound below 8 would risk
+     * missing a buried recoverable cause in production.
+     */
+    @Test
+    public void testRecoverableErrorDetection_depthBoundIsGenerous() {
+        assertTrue(ProtobufDeserializer.MAX_CAUSE_CHAIN_DEPTH >= 8,
+                "Cause-chain depth bound must be >= 8 to cover realistic resolver wrapping");
+    }
+
+    /**
+     * Programming errors and configuration mistakes are not recoverable - silently swallowing
+     * them would mask real bugs.
      */
     @Test
     public void testRecoverableErrorDetection_rejectsProgrammingErrors() {

@@ -1,6 +1,7 @@
 package io.apicurio.registry.noprofile.storage;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.avro.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
@@ -11,7 +12,11 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.apache.avro.Schema;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Test;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -110,6 +115,32 @@ public class AvroCanonicalHashUpgraderTest extends AbstractResourceTestBase {
         assertEquals(hashBefore, getCanonicalHash(contentId));
     }
 
+    @Test
+    void testUpgraderUsesCorrectArtifactTypeNotContentType() throws Exception {
+        String artifactId = "testArtifactTypeVsContentType";
+        String avroSchema = "{\"type\":\"record\",\"name\":\"TypeTest\","
+                + "\"namespace\":\"com.example\","
+                + "\"fields\":[{\"name\":\"name\",\"type\":\"string\"}]}";
+
+        createArtifact(GROUP_ID, artifactId, ArtifactType.AVRO, avroSchema,
+                ContentTypes.APPLICATION_JSON);
+
+        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(GROUP_ID, artifactId,
+                "1");
+        long contentId = storedVersion.getContentId();
+
+        // Independently compute the expected canonical hash using Avro's standard canonicalization
+        Schema normalized = AvroContentCanonicalizer
+                .normalizeSchema(new Schema.Parser().parse(avroSchema));
+        String expectedAvroHash = DigestUtils
+                .sha256Hex(normalized.toString().getBytes(StandardCharsets.UTF_8));
+
+        // Stored hash must match the Avro canonical hash, not some other canonicalization
+        assertEquals(expectedAvroHash, getCanonicalHash(contentId));
+        // Content type in the DB must remain the MIME type, not the artifact type
+        assertEquals(ContentTypes.APPLICATION_JSON, getContentType(contentId));
+    }
+
     private String getCanonicalHash(long contentId) {
         return handles.withHandleNoException(
                 (Handle handle) -> handle
@@ -123,6 +154,13 @@ public class AvroCanonicalHashUpgraderTest extends AbstractResourceTestBase {
                     .bind(1, contentId).execute();
             return null;
         });
+    }
+
+    private String getContentType(long contentId) {
+        return handles.withHandleNoException(
+                (Handle handle) -> handle
+                        .createQuery("SELECT contentType FROM content WHERE contentId = ?")
+                        .bind(0, contentId).map(rs -> rs.getString("contentType")).one());
     }
 
     private void runUpgrader() {

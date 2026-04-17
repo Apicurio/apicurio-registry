@@ -101,6 +101,7 @@ public class DynamicLogConfigurationServiceTest {
     @BeforeEach
     void setUp() {
         originalLogLevelProperty = System.getProperty("apicurio.log.level");
+        System.clearProperty("apicurio.log.level");
     }
 
     @Test

@@ -1,11 +1,10 @@
-package io.apicurio.registry.cli.globalrule;
+package io.apicurio.registry.cli.group;
 
+import io.apicurio.registry.cli.artifact.ArtifactUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
-import io.apicurio.registry.rest.client.models.RuleType;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -13,16 +12,22 @@ import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.common.RuleUtil.printRule;
+import static io.apicurio.registry.cli.common.RuleUtil.rejectDefaultGroup;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleConfig;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 
 @Command(
-        name = "create",
-        aliases = {"add"},
-        description = "Create a new global rule"
+        name = "update",
+        description = "Update the configuration of an existing group rule"
 )
-public class GlobalRuleCreateCommand extends AbstractCommand {
+public class GroupRuleUpdateCommand extends AbstractCommand {
+
+    @Option(
+            names = {"-g", "--group"},
+            description = "Group ID. If not provided, uses the groupId from the current context. Group rules are not available for the 'default' group."
+    )
+    private String groupId;
 
     @Parameters(
             index = "0",
@@ -46,32 +51,26 @@ public class GlobalRuleCreateCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
+        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
+        rejectDefaultGroup(resolvedGroupId);
         validateRuleType(ruleType);
         validateRuleConfig(ruleType, ruleConfig);
         try {
-            final var newRule = new CreateRule();
-            newRule.setRuleType(RuleType.forValue(ruleType));
-            newRule.setConfig(ruleConfig);
-            client.getRegistryClient().admin().rules().post(newRule);
+            final var rule = new io.apicurio.registry.rest.client.models.Rule();
+            rule.setConfig(ruleConfig);
+            //noinspection ConstantConditions
+            final var updatedRule = convert(client.getRegistryClient().groups().byGroupId(resolvedGroupId).rules().byRuleType(ruleType).put(rule));
             switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType));
+                case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType, resolvedGroupId));
+                case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType, resolvedGroupId));
             }
-            try {
-                //noinspection ConstantConditions
-                final var rule = convert(client.getRegistryClient().admin().rules().byRuleType(ruleType).get());
-                printRule(output, rule, outputType);
-            } catch (final ProblemDetails ex) {
-                output.writeStdErrChunk(err -> {
-                    err.append("Warning: Global rule was created but failed to retrieve details: ")
-                            .append(ex.getDetail())
-                            .append('\n');
-                });
-            }
+            printRule(output, updatedRule, outputType);
         } catch (final ProblemDetails ex) {
             output.writeStdErrChunk(err -> {
-                err.append("Error creating global rule '")
+                err.append("Error updating rule '")
                         .append(ruleType)
+                        .append("' for group '")
+                        .append(resolvedGroupId)
                         .append("': ")
                         .append(ex.getDetail())
                         .append('\n');
@@ -80,7 +79,7 @@ public class GlobalRuleCreateCommand extends AbstractCommand {
         }
     }
 
-    private static void successMessage(final StringBuilder out, final String ruleType) {
-        out.append("Global rule '").append(ruleType).append("' created successfully.\n");
+    private static void successMessage(final StringBuilder out, final String ruleType, final String groupId) {
+        out.append("Rule '").append(ruleType).append("' updated successfully for group '").append(groupId).append("'.\n");
     }
 }

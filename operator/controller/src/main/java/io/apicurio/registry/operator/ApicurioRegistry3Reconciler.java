@@ -6,6 +6,9 @@ import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
 import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
+import io.apicurio.registry.operator.resource.app.AppRoleBindingResource;
+import io.apicurio.registry.operator.resource.app.AppRoleResource;
+import io.apicurio.registry.operator.resource.app.AppServiceAccountResource;
 import io.apicurio.registry.operator.resource.app.AppServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
@@ -34,6 +37,9 @@ import static io.apicurio.registry.operator.CRContext.deleteCRContext;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppNetworkPolicyActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppPodDisruptionBudgetActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.KubernetesOpsRoleActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.KubernetesOpsRoleBindingActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.KubernetesOpsServiceAccountActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UINetworkPolicyActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UIPodDisruptionBudgetActivationCondition;
@@ -41,6 +47,9 @@ import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_NETWORK_POLICY_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_POD_DISRUPTION_BUDGET_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_ROLE_BINDING_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_ROLE_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ACCOUNT_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_DEPLOYMENT_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
@@ -79,6 +88,23 @@ import static io.apicurio.registry.operator.utils.Mapper.copy;
                         name = APP_NETWORK_POLICY_ID,
                         dependsOn = {APP_DEPLOYMENT_ID},
                         activationCondition = AppNetworkPolicyActivationCondition.class
+                ),
+                // ===== KubernetesOps RBAC
+                @Dependent(
+                        type = AppServiceAccountResource.class,
+                        name = APP_SERVICE_ACCOUNT_ID,
+                        activationCondition = KubernetesOpsServiceAccountActivationCondition.class
+                ),
+                @Dependent(
+                        type = AppRoleResource.class,
+                        name = APP_ROLE_ID,
+                        activationCondition = KubernetesOpsRoleActivationCondition.class
+                ),
+                @Dependent(
+                        type = AppRoleBindingResource.class,
+                        name = APP_ROLE_BINDING_ID,
+                        dependsOn = {APP_SERVICE_ACCOUNT_ID, APP_ROLE_ID},
+                        activationCondition = KubernetesOpsRoleBindingActivationCondition.class
                 ),
                 // ===== Registry UI
                 @Dependent(

@@ -1,0 +1,17 @@
+{
+  "$id": "https://example.com/order.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Order",
+  "type": "object",
+  "properties": {
+    "orderId": {
+      "type": "string"
+    },
+    "customer": {
+      "$ref": "customer.json#/$defs/Customer"
+    },
+    "shippingAddress": {
+      "$ref": "address.json"
+    }
+  }
+}

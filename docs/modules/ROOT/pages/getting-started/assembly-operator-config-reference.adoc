@@ -240,18 +240,23 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 |Default
 
 |`type`
-|Storage type: `<empty>` (in-memory), `postgresql`, or `kafkasql`
+|Storage type: `<empty>` (in-memory), `postgresql`, `mysql`, `kafkasql`, or `kubernetesops`
 |String
 |`""` (in-memory)
 
 |`sql`
-|SQL database configuration. Required when `type` is `postgresql`
+|SQL database configuration. Required when `type` is `postgresql` or `mysql`
 |<<SqlSpec>>
 |None
 
 |`kafkasql`
 |KafkaSQL storage configuration. Required when `type` is `kafkasql`
 |<<KafkaSqlSpec>>
+|None
+
+|`kubernetesops`
+|KubernetesOps storage configuration (read-only, experimental). Required when `type` is `kubernetesops`
+|<<KubernetesOpsSpec>>
 |None
 |===
 
@@ -340,8 +345,13 @@ Configure KafkaSQL storage:
 |Type
 |Default
 
+|`kafkaAccessSecretName`
+|Name of a Kubernetes Secret produced by the Strimzi Kafka Access Operator (type `servicebinding.io/kafka`). When set, the operator reads connection details (bootstrap servers, TLS certificates, SASL credentials) from this secret instead of requiring manual configuration. Available starting with {registry} version 3.2.0.
+|String
+|None
+
 |`bootstrapServers`
-|Kafka bootstrap servers address. Required for KafkaSQL storage.
+|Kafka bootstrap servers address. Required if `kafkaAccessSecretName` is not set.
 |String
 |None
 
@@ -367,6 +377,17 @@ spec:
         bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9092
 ----
 
+Example using the Kafka Access Operator (available starting with version 3.2.0):
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        kafkaAccessSecretName: my-kafka-access
+----
+
 === KafkaSqlTLSSpec
 
 Configure TLS for KafkaSQL storage:
@@ -377,6 +398,16 @@ Configure TLS for KafkaSQL storage:
 |Description
 |Type
 |Default
+
+|`keystoreSecretRef`
+|Reference to a Secret containing the TLS keystore (PKCS12 format). Default key: `user.p12`
+|<<SecretKeyRef>>
+|None
+
+|`keystorePasswordSecretRef`
+|Reference to a Secret containing the TLS keystore password. Default key: `user.password`
+|<<SecretKeyRef>>
+|None
 
 |`truststoreSecretRef`
 |Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
@@ -389,7 +420,7 @@ Configure TLS for KafkaSQL storage:
 |None
 |===
 
-Example:
+Example with mutual TLS (client certificate authentication):
 [source,yaml]
 ----
 spec:
@@ -399,13 +430,17 @@ spec:
       kafkasql:
         bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9093
         tls:
+          keystoreSecretRef:
+            name: my-user
+          keystorePasswordSecretRef:
+            name: my-user
           truststoreSecretRef:
             name: kafka-cluster-ca-cert
-            key: ca.p12
           truststorePasswordSecretRef:
             name: kafka-cluster-ca-cert
-            key: ca.password
 ----
+
+NOTE: Default keys match the secret structure produced by the {kafka-streams} Operator, so you typically only need to specify the secret `name`.
 
 === KafkaSqlAuthSpec
 
@@ -471,10 +506,80 @@ spec:
           loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 ----
 
-NOTE: The operator provides first-class support for OAuth (OAUTHBEARER) authentication. For other SASL mechanisms
-such as SCRAM-SHA-512 or PLAIN, you can use custom environment variables via the `spec.app.env` field to configure
-the Kafka client properties directly. See the xref:getting-started/assembly-config-reference.adoc[] for available
-`apicurio.kafkasql.*` configuration properties.
+NOTE: The operator provides first-class support for OAuth (OAUTHBEARER) authentication via the `auth` field. For other SASL mechanisms such as SCRAM-SHA-512, the recommended approach is to use the Strimzi Kafka Access Operator via the `kafkaAccessSecretName` field (available starting with {registry} version 3.2.0). Alternatively, you can use custom environment variables via the `spec.app.env` field to configure the Kafka client properties directly. See the xref:getting-started/assembly-config-reference.adoc[] for available `apicurio.kafkasql.*` configuration properties.
+
+=== KubernetesOpsSpec
+
+Configure KubernetesOps storage (read-only, experimental). Loads registry data from Kubernetes ConfigMaps:
+
+[cols="1,2,1,2",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`registryId`
+|Unique identifier for this registry instance. Only ConfigMaps with a matching label will be loaded. Required.
+|String
+|None
+
+|`namespace`
+|Kubernetes namespace to watch for ConfigMaps.
+|String
+|Current namespace
+
+|`refreshEvery`
+|Polling interval for ConfigMap changes. Supports duration format (e.g., `10s`, `1m`).
+|String
+|`30s`
+
+|`labelRegistryId`
+|Label key used to identify ConfigMaps belonging to this registry.
+|String
+|`apicurio.io/registry-id`
+
+|`watchEnabled`
+|Enable Watch API for real-time ConfigMap change detection. Set to `false` to use polling only.
+|Boolean
+|`true`
+
+|`watchReconnectDelay`
+|Base delay before reconnecting after watch failure. Uses exponential backoff up to 5 minutes.
+|String
+|`10s`
+|===
+
+IMPORTANT: KubernetesOps storage is an experimental feature. The operator automatically enables the experimental features gate when this storage type is configured.
+
+Example:
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: kubernetesops
+      kubernetesops:
+        registryId: my-registry
+        namespace: apicurio
+----
+
+Example with custom polling and watch settings:
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: kubernetesops
+      kubernetesops:
+        registryId: my-registry
+        namespace: apicurio
+        refreshEvery: 10s
+        watchEnabled: true
+        watchReconnectDelay: 5s
+----
+
+NOTE: KubernetesOps storage is read-only. All changes must be made by creating or updating ConfigMaps. For more details on ConfigMap format and RBAC requirements, see xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[].
 
 [id="operator-auth-reference_{context}"]
 == Authentication and authorization configuration reference

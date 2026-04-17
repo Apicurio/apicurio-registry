@@ -24,7 +24,7 @@ import {DocumentService} from "../../_services/document.service";
 import {AbstractBaseComponent} from "../common/base-component";
 import { ChangeDetectorRef, Directive } from "@angular/core";
 import {SectionComponent} from "./shared/section.component";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../../_util/object.util";
 import {CodeEditorMode, CodeEditorTheme} from "../common/code-editor.component";
 
 

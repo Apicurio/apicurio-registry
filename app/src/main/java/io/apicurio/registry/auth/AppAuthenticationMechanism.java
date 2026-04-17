@@ -19,14 +19,9 @@ package io.apicurio.registry.auth;
 import io.apicurio.registry.logging.audit.AuditHttpRequestContext;
 import io.apicurio.registry.logging.audit.AuditHttpRequestInfo;
 import io.apicurio.registry.logging.audit.AuditLogService;
-import io.apicurio.rest.client.VertxHttpClientProvider;
-import io.apicurio.rest.client.auth.OidcAuth;
-import io.apicurio.rest.client.auth.exception.AuthErrorHandler;
-import io.apicurio.rest.client.auth.exception.AuthException;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
-import io.apicurio.rest.client.error.ApicurioRestClientException;
-import io.apicurio.rest.client.spi.ApicurioHttpClient;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.WebClient;
 import io.quarkus.arc.Unremovable;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
 import io.quarkus.security.identity.IdentityProviderManager;
@@ -36,7 +31,7 @@ import io.quarkus.vertx.http.runtime.security.*;
 import io.smallrye.jwt.auth.principal.DefaultJWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import io.smallrye.mutiny.Uni;
-import io.vertx.core.Vertx;
+import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Priority;
@@ -81,30 +76,26 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     Logger log;
 
     @Inject
-    Vertx vertx;
+    WebClient webClient;
 
     @Inject
     DefaultJWTParser jwtParser;
 
-    private ApicurioHttpClient httpClient;
+    private String oidcTokenUrl;
 
     private ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
-    private ConcurrentHashMap<String, WrappedValue<ApicurioRestClientException>> cachedAuthFailures;
+    private ConcurrentHashMap<String, WrappedValue<RuntimeException>> cachedAuthFailures;
 
     @PostConstruct
     public void init() {
         if (authConfig.oidcAuthEnabled) {
             cachedAccessTokens = new ConcurrentHashMap<>();
             cachedAuthFailures = new ConcurrentHashMap<>();
-            String oidcTokenUrl;
             if (authConfig.oidcTokenPath.startsWith("http")) {
                 oidcTokenUrl = authConfig.oidcTokenPath;
             } else {
                 oidcTokenUrl = authConfig.authServerUrl + authConfig.oidcTokenPath;
             }
-
-            httpClient = new VertxHttpClientProvider(vertx).create(oidcTokenUrl, Collections.emptyMap(),
-                    null, new AuthErrorHandler());
         }
     }
 
@@ -136,7 +127,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                     try {
                         return authenticateWithClientCredentials(clientCredentials, context,
                                 identityProviderManager);
-                    } catch (AuthException | NotAuthorizedException ex) {
+                    } catch (OidcAuthException | io.quarkus.security.UnauthorizedException ex) {
                         log.warn(String.format(
                                 "Exception trying to get an access token with client credentials with client id: %s",
                                 clientCredentials.getLeft()), ex);
@@ -163,8 +154,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             final Pair<String, String> credentialsFromContext = CredentialsHelper
                     .extractCredentialsFromContext(context);
             if (credentialsFromContext != null) {
-                OidcAuth oidcAuth = new OidcAuth(httpClient, authConfig.clientId, authConfig.clientSecret.get());
-                String jwtToken = oidcAuth.obtainAccessTokenPasswordGrant(credentialsFromContext.getLeft(),
+                String jwtToken = obtainAccessTokenPasswordGrant(credentialsFromContext.getLeft(),
                         credentialsFromContext.getRight());
                 if (jwtToken != null) {
                     // If we manage to get a token from basic credentials, try to authenticate it using the
@@ -178,6 +168,28 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             }
         }
         return Uni.createFrom().nullItem();
+    }
+
+    private String obtainAccessTokenPasswordGrant(String username, String password) {
+        MultiMap form = MultiMap.caseInsensitiveMultiMap()
+                .add("grant_type", "password")
+                .add("client_id", authConfig.clientId)
+                .add("client_secret", authConfig.clientSecret.get())
+                .add("username", username)
+                .add("password", password);
+
+        Buffer responseBody = webClient.postAbs(oidcTokenUrl)
+                .sendForm(form)
+                .toCompletionStage()
+                .toCompletableFuture()
+                .join()
+                .bodyAsBuffer();
+
+        if (responseBody == null) {
+            return null;
+        }
+        JsonObject json = responseBody.toJsonObject();
+        return json.getString("access_token");
     }
 
     private void setAuditLogger(RoutingContext context) {
@@ -273,7 +285,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                 && !cachedAccessTokens.get(credentialsHash).isExpired();
     }
 
-    @Retry(retryOn = AuthException.class, maxRetries = 4, delay = 1, delayUnit = ChronoUnit.SECONDS)
+    @Retry(retryOn = OidcAuthException.class, maxRetries = 4, delay = 1, delayUnit = ChronoUnit.SECONDS)
     public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash) {
         String clientId = clientCredentials.getLeft();
         String clientSecret = clientCredentials.getRight();
@@ -281,22 +293,45 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         // Use client-specific scope resolution for Azure Entra ID multi-scope support
         String scopeForClient = authConfig.getScopeForClient(clientId);
 
-        OidcAuth oidcAuth = new OidcAuth(httpClient, clientId, clientSecret,
-                Duration.ofSeconds(1), scopeForClient);
+        MultiMap form = MultiMap.caseInsensitiveMultiMap()
+                .add("grant_type", "client_credentials")
+                .add("client_id", clientId)
+                .add("client_secret", clientSecret);
+        if (scopeForClient != null) {
+            form.add("scope", scopeForClient);
+        }
+
         try {
-            String jwtToken = oidcAuth.authenticate();
-            // If we manage to get a token from basic credentials,
-            // try to authenticate it using the fetched token using
-            // the identity provider manager
+            var response = webClient.postAbs(oidcTokenUrl)
+                    .sendForm(form)
+                    .toCompletionStage()
+                    .toCompletableFuture()
+                    .join();
+
+            int statusCode = response.statusCode();
+            if (statusCode == 401) {
+                var ex = new io.quarkus.security.UnauthorizedException("OIDC token request returned 401");
+                cachedAuthFailures.put(credentialsHash,
+                        new WrappedValue<>(getAccessTokenExpiration(null), Instant.now(), ex));
+                throw ex;
+            } else if (statusCode == 403) {
+                var ex = new io.quarkus.security.ForbiddenException("OIDC token request returned 403");
+                cachedAuthFailures.put(credentialsHash,
+                        new WrappedValue<>(getAccessTokenExpiration(null), Instant.now(), ex));
+                throw ex;
+            } else if (statusCode < 200 || statusCode >= 300) {
+                throw new OidcAuthException("OIDC token request failed with status " + statusCode);
+            }
+
+            JsonObject json = response.bodyAsJsonObject();
+            String jwtToken = json.getString("access_token");
             cachedAccessTokens.put(credentialsHash,
                     new WrappedValue<>(getAccessTokenExpiration(jwtToken), Instant.now(), jwtToken));
             return jwtToken;
-        } catch (NotAuthorizedException | ForbiddenException ex) {
-            cachedAuthFailures.put(credentialsHash,
-                    new WrappedValue<>(getAccessTokenExpiration(null), Instant.now(), ex));
+        } catch (io.quarkus.security.UnauthorizedException | io.quarkus.security.ForbiddenException ex) {
             throw ex;
         } catch (RuntimeException e) {
-            throw e;
+            throw new OidcAuthException("Failed to obtain access token", e);
         }
     }
 

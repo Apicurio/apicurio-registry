@@ -119,21 +119,41 @@ This section explains how to configure {registry} to use KubernetesOps storage.
 |-
 |Set to `kubernetesops` to enable KubernetesOps storage.
 
-|`APICURIO_KUBERNETESOPS_ID`
-|-
-|*Required*. Unique identifier for this registry instance. Only ConfigMaps with matching label will be loaded.
+|`APICURIO_POLLING_STORAGE_ID`
+|`main`
+|Unique identifier for this registry instance. Only ConfigMaps with matching label will be loaded.
 
 |`APICURIO_KUBERNETESOPS_NAMESPACE`
 |Current namespace
 |Kubernetes namespace to watch for ConfigMaps.
 
-|`APICURIO_KUBERNETESOPS_REFRESH_EVERY`
-|`30s`
-|How often to poll for ConfigMap changes. Supports duration format (e.g., `10s`, `1m`).
+|`APICURIO_POLLING_STORAGE_POLL_PERIOD`
+|`PT10S`
+|Minimum period between polls for ConfigMap changes. Uses ISO 8601 duration format (e.g., `PT10S`, `PT1M`).
 
 |`APICURIO_KUBERNETESOPS_LABEL_REGISTRY_ID`
 |`apicurio.io/registry-id`
 |Label key used to identify ConfigMaps belonging to this registry.
+
+|`APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD`
+|`PT3S`
+|After detecting a change, wait until no new changes are seen for this duration before loading data. Absorbs rapid successive changes. Set to `PT0S` to disable debouncing.
+
+|`APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD`
+|`PT90S`
+|Maximum time to wait for changes to settle before forcing a load. Prevents indefinite delay when changes keep arriving. Set to `PT0S` for no maximum.
+
+|`APICURIO_POLLING_STORAGE_DETERMINISTIC_IDS_ENABLED`
+|`true`
+|When enabled, `contentId` and `globalId` are deterministically generated from content hashes and artifact coordinates if not explicitly specified. When disabled, missing IDs cause an error.
+
+|`APICURIO_POLLING_STORAGE_REQUIRE_REGISTRY_CONFIG`
+|`true`
+|When enabled, a load is rejected if the data source does not contain a registry configuration file matching the configured registry ID. Prevents accidental data loss from empty ConfigMaps.
+
+|`APICURIO_POLLING_STORAGE_FILE_SUFFIXES`
+|`registry,ar`
+|Comma-separated list of file suffixes that identify registry metadata files. Each suffix is combined with extensions (`.yaml`, `.yml`, `.json`) to form the full pattern. For example, suffix `registry` matches `*.registry.yaml`, `*.registry.yml`, and `*.registry.json`. Data keys that do not match a recognized suffix are treated as raw content files.
 |===
 
 . Example deployment configuration:
@@ -156,12 +176,12 @@ spec:
               value: "true"
             - name: APICURIO_STORAGE_KIND
               value: "kubernetesops"
-            - name: APICURIO_KUBERNETESOPS_ID
+            - name: APICURIO_POLLING_STORAGE_ID
               value: "my-registry"
             - name: APICURIO_KUBERNETESOPS_NAMESPACE
               value: "apicurio"
-            - name: APICURIO_KUBERNETESOPS_REFRESH_EVERY
-              value: "30s"
+            - name: APICURIO_POLLING_STORAGE_POLL_PERIOD
+              value: "PT10S"
 ----
 
 . Create the required RBAC resources as described in xref:kubernetesops-rbac-requirements_{context}[].
@@ -179,8 +199,9 @@ ConfigMaps for KubernetesOps storage must use a specific YAML format with `$type
 === ConfigMap requirements
 
 * ConfigMaps must have the registry ID label (e.g., `apicurio.io/registry-id: my-registry`)
-* Each data entry key should be a relative path (e.g., `test/artifact.yaml`)
-* YAML files must contain a `$type` field identifying the entity type
+* Each data entry key is treated as a relative path (e.g., `test/artifact.registry.yaml`)
+* Metadata files (registry, group, artifact, content definitions) should use a recognized file suffix in their data key name. By default, the suffixes `registry` and `ar` are recognized, matching patterns like `*.registry.yaml`, `*.registry.yml`, `*.registry.json`, `*.ar.yaml`, etc. Using recognized suffixes enables better error reporting when files fail to parse. Data keys that do not match a recognized suffix are treated as raw content files (e.g., schema data).
+* Metadata YAML files must contain a `$type` field identifying the entity type
 
 [discrete]
 === Entity types
@@ -219,13 +240,13 @@ metadata:
   labels:
     apicurio.io/registry-id: my-registry
 data:
-  registry.yaml: |
+  registry.registry.yaml: |
     $type: registry-v0
-    id: my-registry
+    registryId: my-registry
     globalRules:
-      - type: VALIDITY
+      - ruleType: VALIDITY
         config: FULL
-    settings: []
+    properties: []
 ----
 
 [discrete]
@@ -241,15 +262,17 @@ metadata:
   labels:
     apicurio.io/registry-id: my-registry
 data:
-  test/group-events.yaml: |
+  group-events.registry.yaml: |
     $type: group-v0
-    registryId: my-registry
-    id: com.example.events
+    registryIds: [my-registry]
+    groupId: com.example.events
     description: "Event schemas for the platform"
 ----
 
 [discrete]
-=== Example: Artifact with content
+=== Example: Artifact with inline content
+
+This example shows the simplest approach, where artifact content is stored directly in the same ConfigMap. The `content` field in each version references another data key by name.
 
 [source,yaml]
 ----
@@ -261,27 +284,21 @@ metadata:
   labels:
     apicurio.io/registry-id: my-registry
 data:
-  test/artifact-user-event.yaml: |
+  artifact-user-event.registry.yaml: |
     $type: artifact-v0
-    registryId: my-registry
+    registryIds: [my-registry]
     groupId: com.example.events
-    id: user-event
+    artifactId: user-event
+    artifactType: AVRO
     versions:
-      - id: "1"
-        globalId: 1
-        contentFile: content-1.yaml
+      - version: "1"
+        state: ENABLED
+        content: user-event.avsc
     rules:
-      - type: COMPATIBILITY
+      - ruleType: COMPATIBILITY
         config: BACKWARD
 
-  test/content-1.yaml: |
-    $type: content-v0
-    registryId: my-registry
-    id: 1
-    contentHash: "sha256:abc123..."
-    dataFile: ../content/user-event.avsc
-
-  content/user-event.avsc: |
+  user-event.avsc: |
     {
       "type": "record",
       "name": "UserEvent",
@@ -294,7 +311,333 @@ data:
     }
 ----
 
-NOTE: The `contentFile` and `dataFile` fields use relative paths. The path resolution works the same as in GitOps storage.
+NOTE: The `content` field in a version uses a relative path that references another data key in the ConfigMap (or across ConfigMaps). Content data keys should *not* use a metadata suffix (e.g., `.registry.yaml`) since they contain raw schema/API data, not registry metadata.
+
+[discrete]
+=== Example: Artifact with content metadata
+
+For advanced use cases, you can use `content-v0` metadata to set an explicit `contentId` or define content references. The version's `contentMetadata` field points to a `content-v0` entry, which in turn points to the actual content via its own `content` field.
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-event-with-metadata
+  namespace: apicurio
+  labels:
+    apicurio.io/registry-id: my-registry
+data:
+  artifact-user-event.registry.yaml: |
+    $type: artifact-v0
+    registryIds: [my-registry]
+    groupId: com.example.events
+    artifactId: user-event
+    artifactType: AVRO
+    versions:
+      - version: "1"
+        state: ENABLED
+        content: user-event.avsc
+        contentMetadata: content-user-event.registry.yaml
+
+  content-user-event.registry.yaml: |
+    $type: content-v0
+    contentId: 1
+    content: user-event.avsc
+    references: []
+
+  user-event.avsc: |
+    {
+      "type": "record",
+      "name": "UserEvent",
+      "namespace": "com.example.events",
+      "fields": [
+        {"name": "userId", "type": "string"},
+        {"name": "action", "type": "string"},
+        {"name": "timestamp", "type": "long"}
+      ]
+    }
+----
+
+[discrete]
+=== Example: Content references
+
+Content references allow one artifact to reference another (e.g., an Avro schema that imports another record type). Use the `references` field in a `content-v0` entry to declare these relationships.
+
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: schemas-with-references
+  namespace: apicurio
+  labels:
+    apicurio.io/registry-id: my-registry
+data:
+  group-refs.registry.yaml: |
+    $type: group-v0
+    registryIds: [my-registry]
+    groupId: com.example.refs
+
+  artifact-address.registry.yaml: |
+    $type: artifact-v0
+    registryIds: [my-registry]
+    groupId: com.example.refs
+    artifactId: address
+    artifactType: AVRO
+    versions:
+      - version: "1"
+        state: ENABLED
+        content: content/address.avsc
+
+  artifact-customer.registry.yaml: |
+    $type: artifact-v0
+    registryIds: [my-registry]
+    groupId: com.example.refs
+    artifactId: customer
+    artifactType: AVRO
+    versions:
+      - version: "1"
+        state: ENABLED
+        content: content/customer.avsc
+        contentMetadata: content-customer.registry.yaml
+
+  content-customer.registry.yaml: |
+    $type: content-v0
+    content: content/customer.avsc
+    references:
+      - groupId: com.example.refs
+        artifactId: address
+        version: "1"
+        name: com.example.refs.Address
+
+  content/address.avsc: |
+    {
+      "type": "record",
+      "name": "Address",
+      "namespace": "com.example.refs",
+      "fields": [
+        {"name": "street", "type": "string"},
+        {"name": "city", "type": "string"}
+      ]
+    }
+
+  content/customer.avsc: |
+    {
+      "type": "record",
+      "name": "Customer",
+      "namespace": "com.example.refs",
+      "fields": [
+        {"name": "name", "type": "string"},
+        {"name": "address", "type": "com.example.refs.Address"}
+      ]
+    }
+----
+
+[discrete]
+=== Field reference
+
+The following tables list all supported fields for each entity type. Fields marked with `$type` are required for type identification. Unknown fields will cause parse errors.
+
+.registry-v0 fields
+[.table-expandable,width="100%",cols="3,2,5",options="header"]
+|===
+|Field
+|Type
+|Description
+
+|`$type`
+|string
+|*Required*. Must be `registry-v0`.
+
+|`registryId`
+|string
+|*Required*. Must match the registry instance ID (`APICURIO_POLLING_STORAGE_ID`).
+
+|`globalRules`
+|list of rules
+|Global validation/compatibility rules. Each rule has `ruleType` (e.g., `VALIDITY`, `COMPATIBILITY`) and `config`.
+
+|`properties`
+|list of properties
+|Configuration properties. Each property has `name` and `value`.
+|===
+
+.group-v0 fields
+[.table-expandable,width="100%",cols="3,2,5",options="header"]
+|===
+|Field
+|Type
+|Description
+
+|`$type`
+|string
+|*Required*. Must be `group-v0`.
+
+|`registryIds`
+|list of strings
+|Registry instance IDs this group belongs to. If empty or omitted, the group is loaded by all registry instances.
+
+|`groupId`
+|string
+|*Required*. Unique group identifier.
+
+|`description`
+|string
+|Group description.
+
+|`labels`
+|map (string -> string)
+|Key-value labels for the group.
+
+|`owner`
+|string
+|Owner of the group (e.g., username or team name).
+
+|`artifactsType`
+|string
+|Constrains all artifacts in this group to a specific type (e.g., `AVRO`, `PROTOBUF`).
+
+|`rules`
+|list of rules
+|Group-level rules. Each rule has `ruleType` and `config`.
+|===
+
+.artifact-v0 fields
+[.table-expandable,width="100%",cols="3,2,5",options="header"]
+|===
+|Field
+|Type
+|Description
+
+|`$type`
+|string
+|*Required*. Must be `artifact-v0`.
+
+|`registryIds`
+|list of strings
+|Registry instance IDs this artifact belongs to. If empty or omitted, the artifact is loaded by all registry instances.
+
+|`groupId`
+|string
+|*Required*. Parent group ID.
+
+|`artifactId`
+|string
+|*Required*. Unique artifact identifier within the group.
+
+|`artifactType`
+|string
+|*Required*. Artifact type: `AVRO`, `PROTOBUF`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `WSDL`, `XSD`, `XML`.
+
+|`name`
+|string
+|Display name for the artifact.
+
+|`description`
+|string
+|Artifact description.
+
+|`labels`
+|map (string -> string)
+|Key-value labels for the artifact.
+
+|`owner`
+|string
+|Owner of the artifact (e.g., username or team name).
+
+|`versions`
+|list of versions
+|*Required*. At least one version. See version fields below.
+
+|`rules`
+|list of rules
+|Artifact-level rules. Each rule has `ruleType` and `config`.
+|===
+
+.Version fields (nested in artifact-v0)
+[.table-expandable,width="100%",cols="3,2,5",options="header"]
+|===
+|Field
+|Type
+|Description
+
+|`version`
+|string
+|*Required*. Version identifier (e.g., `"1"`, `"2.0.0"`).
+
+|`state`
+|string
+|Version state: `ENABLED` (default), `DISABLED`, or `DEPRECATED`.
+
+|`name`
+|string
+|Version display name.
+
+|`description`
+|string
+|Version description.
+
+|`labels`
+|map (string -> string)
+|Key-value labels for this version.
+
+|`content`
+|string
+|*Required*. Relative path to the content data key (e.g., `my-schema.avsc`).
+
+|`contentMetadata`
+|string
+|Relative path to a `content-v0` metadata entry for advanced content configuration.
+
+|`globalId`
+|long
+|Explicit global ID. Auto-generated if deterministic IDs are enabled (the default).
+
+|`owner`
+|string
+|Owner of this version (e.g., username or team name).
+|===
+
+.content-v0 fields
+[.table-expandable,width="100%",cols="3,2,5",options="header"]
+|===
+|Field
+|Type
+|Description
+
+|`$type`
+|string
+|*Required*. Must be `content-v0`.
+
+|`contentId`
+|long
+|Explicit content ID. Auto-generated if deterministic IDs are enabled (the default).
+
+|`content`
+|string
+|*Required*. Relative path to the actual content data key.
+
+|`references`
+|list of references
+|Content references to other artifacts. Each reference has `groupId`, `artifactId`, `version`, and `name`.
+|===
+
+.Rule fields (nested in registry-v0, group-v0, and artifact-v0)
+[.table-expandable,width="100%",cols="3,2,5",options="header"]
+|===
+|Field
+|Type
+|Description
+
+|`ruleType`
+|string
+|Rule type: `VALIDITY`, `COMPATIBILITY`, or `INTEGRITY`.
+
+|`config`
+|string
+|Rule configuration value (e.g., `FULL`, `BACKWARD`, `FORWARD`).
+|===
 
 
 [id="kubernetesops-rbac-requirements_{context}"]
@@ -373,11 +716,11 @@ If individual schemas consistently exceed 1 MiB, KubernetesOps storage is not th
 [discrete]
 === Update latency
 
-With Watch API enabled (the default), ConfigMap changes are detected in near real-time. When Watch is disabled, changes are detected via polling with a default interval of 30 seconds.
+With Watch API enabled (the default), ConfigMap changes are detected in near real-time. When Watch is disabled, changes are detected via polling with a default interval of 10 seconds.
 
-* With Watch enabled, updates typically propagate within 1-2 seconds
-* With Watch disabled, expect up to one polling interval delay
-* Decrease `APICURIO_KUBERNETESOPS_REFRESH_EVERY` for faster fallback polling (increases API load)
+* With Watch enabled, updates typically propagate within a few seconds (debounce quiet period + processing time)
+* With Watch disabled, expect up to one polling interval delay (default 10 seconds)
+* Decrease `APICURIO_POLLING_STORAGE_POLL_PERIOD` for faster fallback polling (increases API load)
 * Increase the interval for larger deployments to reduce Kubernetes API load
 
 [discrete]

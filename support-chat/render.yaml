@@ -1,0 +1,28 @@
+services:
+  # Apicurio Registry (prompt template storage)
+  - type: web
+    name: apicurio-registry
+    runtime: image
+    plan: free
+    image:
+      url: quay.io/apicurio/apicurio-registry:latest
+    envVars:
+      - key: QUARKUS_HTTP_PORT
+        value: "10000"
+
+  # Support Chat Application
+  - type: web
+    name: apicurio-support-chat
+    runtime: image
+    plan: free
+    image:
+      url: quay.io/apicurio/apicurio-registry-support-chat:latest-snapshot
+    envVars:
+      - key: REGISTRY_URL
+        value: "https://apicurio-registry.onrender.com"
+      - key: GOOGLE_AI_GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: "/https://www\\.apicur\\.io/,/https://.*\\.onrender\\.com/"
+      - key: HTTP_PORT
+        value: "10000"

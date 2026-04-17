@@ -366,7 +366,7 @@ This design ensures that:
 
 === Enabling metrics
 
-Metrics are enabled by default. Access the metrics endpoint at `/q/metrics`.
+Metrics are enabled by default. Access the metrics endpoint at `/metrics` on the management port (default 9000).
 
 === Key metrics to monitor
 
@@ -383,8 +383,8 @@ Monitor these metrics for HA deployments:
 ** `apicurio_storage_operation_total` - Total storage operations
 
 * *Health check metrics:*
-** Readiness probe: `/q/health/ready`
-** Liveness probe: `/q/health/live`
+** Readiness probe: `/health/ready` (on management port 9000)
+** Liveness probe: `/health/live` (on management port 9000)
 
 * *JVM metrics:*
 ** `jvm_memory_used_bytes` - Memory usage
@@ -407,8 +407,8 @@ spec:
     matchLabels:
       app: apicurio-registry
   endpoints:
-    - port: http
-      path: /q/metrics
+    - port: management
+      path: /metrics
       interval: 30s
 ----
 
@@ -465,6 +465,44 @@ Follow these practices for safe updates:
 * *Review release notes* - Check for breaking changes or migration steps
 
 IMPORTANT: For patch releases (e.g., 3.1.0 to 3.1.1), rolling updates typically complete without issues. For major or minor version updates, always review the migration guide.
+
+=== Upgrading to the management interface (port 9000)
+
+Starting with {registry} 3.x, health check and metrics endpoints are served on a dedicated management port (9000) instead of the main application port (8080). This is a *breaking change* that requires updates to your deployment configuration when upgrading from earlier versions.
+
+The following items must be updated:
+
+* *Kubernetes liveness and readiness probes* - Update probe definitions to target port `9000` instead of port `8080`. The endpoint paths (`/health/ready` and `/health/live`) remain the same.
++
+[source,yaml]
+----
+# Before (old configuration)
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8080
+
+# After (new configuration)
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 9000
+
+# After (with TLS enabled)
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 9000
+    scheme: HTTPS
+----
+
+* *Prometheus scrape targets* - Update your Prometheus configuration or `ServiceMonitor` resources to scrape metrics from port `9000` at path `/metrics`.
+
+* *Network policies* - If you use Kubernetes `NetworkPolicy` resources, ensure that ingress traffic on port `9000` is allowed from your monitoring infrastructure and the kubelet (for health probes).
+
+* *TLS considerations* - The management interface inherits the default TLS configuration from the Quarkus TLS registry. When TLS is enabled, the management interface on port `9000` also serves HTTPS, and health probes must use `scheme: HTTPS`. The {operator} handles this automatically.
+
+* *{operator} managed deployments* - If you are using the {operator}, it will automatically configure the correct probe ports. No manual changes are required for operator-managed deployments.
 
 [id="ha-backup-restore_{context}"]
 == Backup and restore procedures
@@ -575,5 +613,4 @@ Regularly test your backup and restore procedures:
 
 * For more information on {registry} configuration, see xref:getting-started/assembly-deploying-registry-operator.adoc[].
 * For Kafka HA configuration with {kafka-streams}, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
-* For health checks and metrics, see the
-link:/q/health[Health UI] and link:/q/metrics[Metrics endpoint] in your {registry} deployment.
+* For health checks and metrics, see the health endpoint (`/health/ready` on management port 9000) and metrics endpoint (`/metrics` on management port 9000) in your {registry} deployment.

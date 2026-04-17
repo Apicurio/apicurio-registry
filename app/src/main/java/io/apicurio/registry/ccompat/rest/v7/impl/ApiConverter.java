@@ -1,11 +1,14 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
 
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.ccompat.rest.v7.beans.Schema;
 import io.apicurio.registry.ccompat.rest.v7.beans.SchemaReference;
 import io.apicurio.registry.ccompat.rest.v7.beans.SubjectVersion;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -19,6 +22,10 @@ public class ApiConverter {
 
     @Inject
     CCompatConfig cconfig;
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     public BigInteger convertUnsigned(long value) {
         if (value < 0 || value > Integer.MAX_VALUE) {
@@ -75,7 +82,9 @@ public class ApiConverter {
         SchemaReference schemaReference = new SchemaReference();
         schemaReference.setName(reference.getName());
         schemaReference.setSubject(reference.getArtifactId());
-        schemaReference.setVersion(Integer.parseInt(reference.getVersion()));
+        ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
+                reference.getGroupId(), reference.getArtifactId(), reference.getVersion());
+        schemaReference.setVersion(versionMetaData.getVersionOrder());
         return schemaReference;
     }
 }

@@ -497,6 +497,12 @@ public interface SqlStatements {
      */
     public String selectArtifactVersionStateForUpdate();
 
+    /**
+     * A statement used to select the max versionOrder for an artifact with row-level locking. Used for atomic
+     * conditional version creation.
+     */
+    public String selectMaxVersionOrderForUpdate();
+
     /*
      * The next few statements support globalId and contentId management.
      */
@@ -530,6 +536,26 @@ public interface SqlStatements {
     public String exportArtifactVersions();
 
     public String exportBranches();
+
+    /*
+     * The next few statements support exporting data from a single group.
+     */
+
+    public String exportContentByGroup();
+
+    public String exportGroupsByGroupId();
+
+    public String exportGroupRulesByGroupId();
+
+    public String exportArtifactsByGroupId();
+
+    public String exportArtifactVersionsByGroupId();
+
+    public String exportVersionCommentsByGroupId();
+
+    public String exportBranchesByGroupId();
+
+    public String exportArtifactRulesByGroupId();
 
     /*
      * The next few statements support importing data into the DB.
@@ -711,4 +737,68 @@ public interface SqlStatements {
      * @return SQL statement to release the initialization lock
      */
     public String releaseInitLock();
+
+    /**
+     * Returns a SQL statement to select all version metadata for versions modified since a given timestamp.
+     * Used by the asynchronous search index updater to poll for changes.
+     *
+     * @return SQL query with one timestamp parameter
+     */
+    public String selectVersionsModifiedSince();
+
+    /**
+     * Returns a SQL statement to count versions modified since a given timestamp. Used to cheaply
+     * determine whether an incremental or full rebuild is needed.
+     *
+     * @return SQL query with one timestamp parameter
+     */
+    String countVersionsModifiedSince();
+
+    /**
+     * Returns a SQL statement to select the timestamp of the most recently modified version.
+     * Used by the asynchronous search index updater to determine the starting point for polling.
+     *
+     * @return SQL query returning a single timestamp value
+     */
+    public String selectLatestVersionTimestamp();
+
+    /**
+     * Returns a SQL statement to select all version globalIds. Used by the asynchronous search index
+     * updater for periodic reconciliation to detect deleted versions.
+     *
+     * @return SQL query returning globalId values
+     */
+    public String selectAllVersionGlobalIds();
+
+    /**
+     * A SQL statement to select all versions with their artifact type and content, used for
+     * streaming startup reindex.
+     */
+    String selectAllVersionsWithContent();
+
+    /**
+     * A SQL statement to select versions modified since a given timestamp with their artifact type
+     * and content. Used for streaming incremental search index updates.
+     */
+    String selectVersionsWithContentModifiedSince();
+
+    // ========== Contract Rules ==========
+
+    String selectContractRulesByArtifact();
+
+    String selectContractRulesByGlobalId();
+
+    String insertContractRule();
+
+    String deleteContractRulesByArtifact();
+
+    String deleteContractRulesByGlobalId();
+
+    String exportContractRules();
+
+    String exportContractRulesByGroupId();
+
+    String importContractRule();
+
+    String selectContractRulesByTag();
 }

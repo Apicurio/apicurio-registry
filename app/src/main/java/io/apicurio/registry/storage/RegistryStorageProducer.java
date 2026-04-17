@@ -2,13 +2,14 @@ package io.apicurio.registry.storage;
 
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.common.apps.config.Info;
+import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.cdi.Raw;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
+import io.apicurio.registry.storage.decorator.RegistryStorageProxyFactory;
 import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.kubernetesops.KubernetesOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
-import io.apicurio.registry.cdi.Current;
-import io.apicurio.registry.cdi.Raw;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
@@ -70,11 +71,7 @@ public class RegistryStorageProducer {
                         activeDecorators.stream().map(d -> d.getClass().getName())
                                 .collect(Collectors.toList()));
 
-                for (int i = activeDecorators.size() - 1; i >= 0; i--) {
-                    RegistryStorageDecorator decorator = activeDecorators.get(i);
-                    decorator.setDelegate(cachedCurrent);
-                    cachedCurrent = decorator;
-                }
+                cachedCurrent = RegistryStorageProxyFactory.createProxy(cachedCurrent, activeDecorators);
             } else {
                 log.debug("No RegistryStorage decorator has been enabled");
             }

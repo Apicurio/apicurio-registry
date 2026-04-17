@@ -10,7 +10,7 @@ on:
         required: true
         default: 'all'
   release:
-    types: [released, prereleased]
+    types: [released]
 
 permissions:
   id-token: write

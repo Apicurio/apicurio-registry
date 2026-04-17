@@ -1,0 +1,9 @@
+syntax = "proto3";
+package io.apicurio.schema.validation.protobuf.ref;
+
+message Address {
+
+  string street = 1;
+  string city = 2;
+
+}

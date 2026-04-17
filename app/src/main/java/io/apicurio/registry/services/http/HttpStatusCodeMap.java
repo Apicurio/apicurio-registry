@@ -29,6 +29,7 @@ import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidArtifactStateException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.error.InvalidContractMetadataException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
@@ -42,8 +43,6 @@ import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsOnBranchException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.rest.client.auth.exception.ForbiddenException;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.smallrye.mutiny.TimeoutException;
 import jakarta.inject.Singleton;
 import jakarta.validation.ValidationException;
@@ -89,13 +88,13 @@ public class HttpStatusCodeMap {
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
         map.put(DefaultRuleDeletionException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
         map.put(GroupAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidVersionStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidContractMetadataException.class, HTTP_CONFLICT);
         map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidPropertyValueException.class, HTTP_BAD_REQUEST);
         map.put(io.apicurio.registry.rest.ConflictException.class, HTTP_CONFLICT);
@@ -104,7 +103,6 @@ public class HttpStatusCodeMap {
         map.put(InvalidParameterValueException.class, HTTP_BAD_REQUEST);
         map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the
         // latter for authx only.
-        map.put(NotAuthorizedException.class, HTTP_FORBIDDEN);
         map.put(NotFoundException.class, HTTP_NOT_FOUND);
         map.put(io.quarkus.security.UnauthorizedException.class, HTTP_UNAUTHORIZED);
         map.put(io.quarkus.security.ForbiddenException.class, HTTP_FORBIDDEN);

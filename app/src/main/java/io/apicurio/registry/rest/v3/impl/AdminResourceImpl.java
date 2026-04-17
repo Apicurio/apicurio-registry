@@ -23,6 +23,7 @@ import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.DownloadRef;
+import io.apicurio.registry.rest.v3.beans.GitOpsStatus;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.Rule;
@@ -41,6 +42,8 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
+import io.apicurio.registry.storage.impl.polling.PollingStorageStatus;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -52,6 +55,7 @@ import io.apicurio.registry.utils.impexp.EntityReader;
 import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.servlet.http.HttpServletRequest;
@@ -124,6 +128,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     io.apicurio.registry.services.LogLevelValidator logLevelValidator;
+
+    @Inject
+    Instance<GitOpsRegistryStorage> gitOpsStorage;
 
     @Context
     HttpServletRequest request;
@@ -353,18 +360,23 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#exportData(java.lang.Boolean)
+     * @see io.apicurio.registry.rest.v3.AdminResource#exportData(java.lang.Boolean, java.lang.String)
      */
     @Override
     @MethodMetadata(extractParameters = {"0", MPK_FOR_BROWSER})
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
-    public Response exportData(Boolean forBrowser) {
+    public Response exportData(Boolean forBrowser, String groupId) {
+        // If a groupId is specified, validate that the group exists (throws GroupNotFoundException -> 404)
+        if (groupId != null) {
+            storage.getGroupMetaData(groupId);
+        }
+
         String acceptHeader = request.getHeader("Accept");
         if (Boolean.TRUE.equals(forBrowser) || MediaType.APPLICATION_JSON.equals(acceptHeader)) {
             long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
             DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT)
-                    .expires(expires).build();
+                    .groupId(groupId).expires(expires).build();
             String downloadId = storage.createDownload(downloadCtx);
             String downloadHref = createDownloadHref(downloadId);
             DownloadRef downloadRef = new DownloadRef();
@@ -372,7 +384,7 @@ public class AdminResourceImpl implements AdminResource {
             downloadRef.setHref(downloadHref);
             return Response.ok(downloadRef).type(MediaType.APPLICATION_JSON_TYPE).build();
         } else {
-            return exporter.exportData();
+            return exporter.exportData(groupId);
         }
     }
 
@@ -585,4 +597,52 @@ public class AdminResourceImpl implements AdminResource {
         }
     }
 
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#getGitOpsStatus()
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public GitOpsStatus getGitOpsStatus() {
+        var gitOps = requireGitOpsStorage();
+        var status = gitOps.getStatus();
+        return toGitOpsStatus(status);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#triggerGitOpsSync()
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void triggerGitOpsSync() {
+        var gitOps = requireGitOpsStorage();
+        gitOps.requestSync();
+    }
+
+    private GitOpsRegistryStorage requireGitOpsStorage() {
+        if (gitOpsStorage.isUnsatisfied()) {
+            throw new ConflictException(
+                    "GitOps storage is not enabled. "
+                    + "Set apicurio.storage.kind=gitops "
+                    + "to use this endpoint.");
+        }
+        return gitOpsStorage.get();
+    }
+
+    private static GitOpsStatus toGitOpsStatus(
+            final PollingStorageStatus status) {
+        var result = new GitOpsStatus();
+        result.setSyncState(status.getSyncState().name());
+        result.setCurrentMarker(status.getCurrentMarker());
+        result.setLastSuccessfulSync(status.getLastSuccessfulSync() != null
+                ? java.util.Date.from(status.getLastSuccessfulSync()) : null);
+        result.setLastSyncAttempt(status.getLastSyncAttempt() != null
+                ? java.util.Date.from(status.getLastSyncAttempt()) : null);
+        result.setGroupCount(status.getGroupCount());
+        result.setArtifactCount(status.getArtifactCount());
+        result.setVersionCount(status.getVersionCount());
+        result.setLastErrors(status.getLastErrors());
+        return result;
+    }
+
 }
+

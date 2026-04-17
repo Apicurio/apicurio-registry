@@ -1,0 +1,11 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: my-registry
+  namespace: test-ns
+spec:
+  app:
+    storage:
+      type: kubernetesops
+      kubernetesops:
+        registryId: my-registry

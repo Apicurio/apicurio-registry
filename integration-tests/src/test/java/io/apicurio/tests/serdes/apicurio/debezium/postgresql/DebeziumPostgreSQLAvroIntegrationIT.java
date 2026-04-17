@@ -1,13 +1,13 @@
 package io.apicurio.tests.serdes.apicurio.debezium.postgresql;
 
 import io.apicurio.tests.serdes.apicurio.debezium.DebeziumAvroV2DeserializerMixin;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Tag;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro
@@ -16,7 +16,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC
  * operations.
  */
-@Tag(Constants.DEBEZIUM)
+@Tag(DEBEZIUM)
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DebeziumContainerResource.class, restrictToAnnotatedClass = true)
 public class DebeziumPostgreSQLAvroIntegrationIT extends DebeziumPostgreSQLAvroBaseIT
@@ -33,7 +33,7 @@ public class DebeziumPostgreSQLAvroIntegrationIT extends DebeziumPostgreSQLAvroB
     }
 
     @Override
-    protected PostgreSQLContainer<?> getPostgresContainer() {
+    protected PostgreSQLContainer getPostgresContainer() {
         return DebeziumContainerResource.postgresContainer;
     }
 

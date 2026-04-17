@@ -18,7 +18,7 @@
 import {Component, EventEmitter, Input, Output, QueryList, ViewChildren} from "@angular/core";
 import {ModalDirective} from "ngx-bootstrap/modal";
 import {Aai20Schema} from "@apicurio/data-models";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../../_util/object.util";
 import {DropDownOption, DropDownOptionValue} from "../common/drop-down.component";
 
 

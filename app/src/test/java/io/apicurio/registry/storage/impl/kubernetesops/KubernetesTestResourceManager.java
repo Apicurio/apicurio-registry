@@ -45,9 +45,11 @@ public class KubernetesTestResourceManager implements QuarkusTestResourceLifecyc
         Map<String, String> props = kubernetesServerTestResource.start();
 
         Map<String, String> result = new HashMap<>(props);
-        result.put("apicurio.kubernetesops.id", REGISTRY_ID);
+        result.put("apicurio.polling-storage.id", REGISTRY_ID);
         result.put("apicurio.kubernetesops.namespace", NAMESPACE);
-        result.put("apicurio.kubernetesops.refresh.every", "5s");
+        result.put("apicurio.polling-storage.poll-period", "PT1S");
+        result.put("apicurio.polling-storage.debounce.quiet-period", "PT0S");
+        result.put("apicurio.polling-storage.debounce.max-wait-period", "PT0S");
 
         return result;
     }
@@ -109,7 +111,7 @@ public class KubernetesTestResourceManager implements QuarkusTestResourceLifecyc
                                 .toURI());
 
                 Collection<File> files = FileUtils.listFiles(sourcePath.toFile(),
-                        new String[]{"yaml", "yml", "json"}, true);
+                        new String[]{"yaml", "yml", "json", "avsc", "proto", "graphql", "wsdl", "xsd", "xml"}, true);
 
                 // Create a single ConfigMap with all files using relative paths as keys
                 Map<String, String> configMapData = new HashMap<>();

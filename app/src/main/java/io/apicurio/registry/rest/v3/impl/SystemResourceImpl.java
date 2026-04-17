@@ -12,6 +12,7 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.RestConfig;
+import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.rest.v3.beans.SystemInfo;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfig;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigAuth;
@@ -44,6 +45,9 @@ public class SystemResourceImpl implements SystemResource {
 
     @Inject
     RestConfig restConfig;
+
+    @Inject
+    ElasticsearchSearchConfig esSearchConfig;
 
     /**
      * @see io.apicurio.registry.rest.v3.SystemResource#getSystemInfo()
@@ -81,6 +85,7 @@ public class SystemResourceImpl implements SystemResource {
                         .deleteVersion(restConfig.isArtifactVersionDeletionEnabled())
                         .draftMutability(restConfig.isArtifactVersionMutabilityEnabled())
                         .agents(uiConfig.featureAgents.get())
+                        .searchIndex(esSearchConfig.isEnabled())
                         .settings("true".equals(uiConfig.featureSettings)).build())
                 .build();
     }

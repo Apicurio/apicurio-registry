@@ -138,6 +138,10 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
     }
 
     protected RegistryClient createClient(Vertx vertx) {
+        if (registryUrl == null || registryUrl.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Missing registry URL. Provide -Dapicurio.url=...");
+        }
         RegistryClientOptions clientOptions = RegistryClientOptions.create(registryUrl, vertx);
 
         // Configure authentication

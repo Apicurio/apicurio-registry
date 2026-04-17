@@ -20,7 +20,7 @@ import {SimplifiedType} from "@apicurio/data-models";
 import {AbstractBaseComponent} from "./base-component";
 import {DocumentService} from "../../_services/document.service";
 import {SelectionService} from "../../_services/selection.service";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../../_util/object.util";
 
 @Component({
     selector: "schema-type",

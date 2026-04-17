@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
+    app.kubernetes.io/version: 3.2.2-SNAPSHOT
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -226,6 +226,17 @@ spec:
                                 fieldPath:
                                   type: string
                               type: object
+                            fileKeyRef:
+                              properties:
+                                key:
+                                  type: string
+                                optional:
+                                  type: boolean
+                                path:
+                                  type: string
+                                volumeName:
+                                  type: string
+                              type: object
                             resourceFieldRef:
                               properties:
                                 containerName:
@@ -302,6 +313,24 @@ spec:
                           Name of an IngressClass cluster resource. Ingress controller implementations use this field to know whether they should be serving this Ingress resource, by a transitive connection (controller -> IngressClass -> Ingress resource).
 
                           See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.
+                        type: string
+                      tlsSecretName:
+                        description: |-
+                          Name of a Kubernetes TLS Secret (type kubernetes.io/tls) to use for TLS termination on the operator-managed Ingress. When set, the Ingress will be configured with a TLS section referencing this secret and the configured host.
+
+                          For edge-terminated TLS, set this field and do NOT configure app-level TLS (spec.app.tls). For TLS passthrough, configure both this field and app-level TLS.
+                        type: string
+                      tlsTermination:
+                        description: |-
+                          TLS termination type for the operator-managed Ingress. Supported values: `edge`, `passthrough`, `reencrypt`.
+
+                          On OpenShift, this controls the Route TLS termination via the `route.openshift.io/termination` annotation. Use `edge` for TLS terminated at the router/ingress (recommended for most deployments). Use `passthrough` when app-level TLS (spec.app.tls) is configured and the app handles HTTPS directly.
+
+                          IMPORTANT: On cloud-based OpenShift (ROSA, ARO, GCP), HTTPS is typically mandatory. Set this to `edge` to ensure the operator-managed Ingress works correctly.
+                        enum:
+                        - edge
+                        - passthrough
+                        - reencrypt
                         type: string
                     type: object
                   kafkasql:
@@ -816,6 +845,17 @@ spec:
                                               fieldPath:
                                                 type: string
                                             type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
+                                                type: string
+                                            type: object
                                           resourceFieldRef:
                                             properties:
                                               containerName:
@@ -1144,6 +1184,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -1372,6 +1428,17 @@ spec:
                                               fieldPath:
                                                 type: string
                                             type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
+                                                type: string
+                                            type: object
                                           resourceFieldRef:
                                             properties:
                                               containerName:
@@ -1700,6 +1767,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -1891,6 +1974,8 @@ spec:
                             type: boolean
                           hostname:
                             type: string
+                          hostnameOverride:
+                            type: string
                           imagePullSecrets:
                             items:
                               properties:
@@ -1932,6 +2017,17 @@ spec:
                                               apiVersion:
                                                 type: string
                                               fieldPath:
+                                                type: string
+                                            type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
                                                 type: string
                                             type: object
                                           resourceFieldRef:
@@ -2262,6 +2358,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -3183,6 +3295,21 @@ spec:
                                                   type: object
                                                 type: array
                                             type: object
+                                          podCertificate:
+                                            properties:
+                                              certificateChainPath:
+                                                type: string
+                                              credentialBundlePath:
+                                                type: string
+                                              keyPath:
+                                                type: string
+                                              keyType:
+                                                type: string
+                                              maxExpirationSeconds:
+                                                type: integer
+                                              signerName:
+                                                type: string
+                                            type: object
                                           secret:
                                             properties:
                                               items:
@@ -3332,6 +3459,47 @@ spec:
                   replicas:
                     description: Number of replicas for the component
                     type: integer
+                  searchIndex:
+                    description: |-
+                      Configure Elasticsearch-based search indexing for Apicurio Registry.
+                      When enabled, Registry indexes artifact content in Elasticsearch to support
+                      full-text content and structure searches.
+                    properties:
+                      enabled:
+                        description: |-
+                          Enable Elasticsearch-based search indexing for Apicurio Registry.
+                          When enabled, Registry indexes artifact content in Elasticsearch to support
+                          full-text content and structure searches. Default is false.
+                        type: boolean
+                      hosts:
+                        description: |-
+                          The Elasticsearch hosts to connect to.
+                          Example: elasticsearch:9200
+                        type: string
+                      indexName:
+                        description: |-
+                          The name of the Elasticsearch index to use.
+                          If not specified, defaults to 'apicurio-registry' in the application.
+                        type: string
+                      password:
+                        description: |-
+                          The password for connecting to a secured Elasticsearch cluster.
+                          References name of a Secret that contains the password. Key `password` is assumed by default.
+                        properties:
+                          key:
+                            description: Name of the key in the referenced Secret
+                              that contain the target data. This field might be optional
+                              if a default value has been defined.
+                            type: string
+                          name:
+                            description: Name of a Secret that is being referenced.
+                            type: string
+                        type: object
+                      username:
+                        description: The username for connecting to a secured Elasticsearch
+                          cluster.
+                        type: string
+                    type: object
                   sql:
                     description: |-
                       DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead.
@@ -3420,6 +3588,14 @@ spec:
 
                               Required if `app.storage.type` is `kafkasql`.
                             type: string
+                          kafkaAccessSecretName:
+                            description: Name of a Kubernetes Secret produced by the
+                              Strimzi Kafka Access Operator (type `servicebinding.io/kafka`).
+                              When set, the operator reads connection details (bootstrap
+                              servers, TLS certificates, SASL credentials) from this
+                              secret instead of requiring manual configuration via
+                              `bootstrapServers`, `tls`, and `auth`.
+                            type: string
                           tls:
                             description: Configure KafkaSQL storage when the access
                               to the Kafka cluster is secured using TLS.
@@ -3486,6 +3662,40 @@ spec:
                                 type: object
                             type: object
                         type: object
+                      kubernetesops:
+                        description: Configure KubernetesOps storage type (read-only,
+                          experimental). Loads registry data from Kubernetes ConfigMaps.
+                        properties:
+                          labelRegistryId:
+                            description: Label key used to identify ConfigMaps belonging
+                              to this registry. Defaults to `apicurio.io/registry-id`.
+                            type: string
+                          namespace:
+                            description: Kubernetes namespace to watch for ConfigMaps.
+                              Defaults to the namespace of the registry deployment.
+                            type: string
+                          refreshEvery:
+                            description: How often to poll for ConfigMap changes.
+                              Supports duration format (e.g., `10s`, `1m`). Defaults
+                              to `30s`.
+                            type: string
+                          registryId:
+                            description: |-
+                              Unique identifier for this registry instance. Only ConfigMaps with a matching label will be loaded.
+
+                              Required if `app.storage.type` is `kubernetesops`.
+                            type: string
+                          watchEnabled:
+                            description: Enable Watch API for real-time ConfigMap
+                              change detection. Set to `false` to use polling only.
+                              Defaults to `true`.
+                            type: boolean
+                          watchReconnectDelay:
+                            description: Base delay before reconnecting after watch
+                              failure. Uses exponential backoff up to 5 minutes. Defaults
+                              to `10s`.
+                            type: string
+                        type: object
                       sql:
                         description: Configure SQL storage types.
                         properties:
@@ -3527,10 +3737,12 @@ spec:
                             * `postgresql` - PostgreSQL storage type, must be further configured using the `app.storage.sql` field.
                             * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
                             * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
+                            * `kubernetesops` - KubernetesOps storage type (read-only, experimental), must be further configured using the `app.storage.kubernetesops` field.
 
                           IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.
                         enum:
                         - kafkasql
+                        - kubernetesops
                         - mysql
                         - postgresql
                         type: string
@@ -3636,6 +3848,17 @@ spec:
                                 fieldPath:
                                   type: string
                               type: object
+                            fileKeyRef:
+                              properties:
+                                key:
+                                  type: string
+                                optional:
+                                  type: boolean
+                                path:
+                                  type: string
+                                volumeName:
+                                  type: string
+                              type: object
                             resourceFieldRef:
                               properties:
                                 containerName:
@@ -3690,6 +3913,24 @@ spec:
                           Name of an IngressClass cluster resource. Ingress controller implementations use this field to know whether they should be serving this Ingress resource, by a transitive connection (controller -> IngressClass -> Ingress resource).
 
                           See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class.
+                        type: string
+                      tlsSecretName:
+                        description: |-
+                          Name of a Kubernetes TLS Secret (type kubernetes.io/tls) to use for TLS termination on the operator-managed Ingress. When set, the Ingress will be configured with a TLS section referencing this secret and the configured host.
+
+                          For edge-terminated TLS, set this field and do NOT configure app-level TLS (spec.app.tls). For TLS passthrough, configure both this field and app-level TLS.
+                        type: string
+                      tlsTermination:
+                        description: |-
+                          TLS termination type for the operator-managed Ingress. Supported values: `edge`, `passthrough`, `reencrypt`.
+
+                          On OpenShift, this controls the Route TLS termination via the `route.openshift.io/termination` annotation. Use `edge` for TLS terminated at the router/ingress (recommended for most deployments). Use `passthrough` when app-level TLS (spec.app.tls) is configured and the app handles HTTPS directly.
+
+                          IMPORTANT: On cloud-based OpenShift (ROSA, ARO, GCP), HTTPS is typically mandatory. Set this to `edge` to ensure the operator-managed Ingress works correctly.
+                        enum:
+                        - edge
+                        - passthrough
+                        - reencrypt
                         type: string
                     type: object
                   networkPolicy:
@@ -4163,6 +4404,17 @@ spec:
                                               fieldPath:
                                                 type: string
                                             type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
+                                                type: string
+                                            type: object
                                           resourceFieldRef:
                                             properties:
                                               containerName:
@@ -4491,6 +4743,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -4719,6 +4987,17 @@ spec:
                                               fieldPath:
                                                 type: string
                                             type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
+                                                type: string
+                                            type: object
                                           resourceFieldRef:
                                             properties:
                                               containerName:
@@ -5047,6 +5326,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -5238,6 +5533,8 @@ spec:
                             type: boolean
                           hostname:
                             type: string
+                          hostnameOverride:
+                            type: string
                           imagePullSecrets:
                             items:
                               properties:
@@ -5279,6 +5576,17 @@ spec:
                                               apiVersion:
                                                 type: string
                                               fieldPath:
+                                                type: string
+                                            type: object
+                                          fileKeyRef:
+                                            properties:
+                                              key:
+                                                type: string
+                                              optional:
+                                                type: boolean
+                                              path:
+                                                type: string
+                                              volumeName:
                                                 type: string
                                             type: object
                                           resourceFieldRef:
@@ -5609,6 +5917,22 @@ spec:
                                   type: object
                                 restartPolicy:
                                   type: string
+                                restartPolicyRules:
+                                  items:
+                                    properties:
+                                      action:
+                                        type: string
+                                      exitCodes:
+                                        properties:
+                                          operator:
+                                            type: string
+                                          values:
+                                            items:
+                                              type: integer
+                                            type: array
+                                        type: object
+                                    type: object
+                                  type: array
                                 securityContext:
                                   properties:
                                     allowPrivilegeEscalation:
@@ -6530,6 +6854,21 @@ spec:
                                                   type: object
                                                 type: array
                                             type: object
+                                          podCertificate:
+                                            properties:
+                                              certificateChainPath:
+                                                type: string
+                                              credentialBundlePath:
+                                                type: string
+                                              keyPath:
+                                                type: string
+                                              keyType:
+                                                type: string
+                                              maxExpirationSeconds:
+                                                type: integer
+                                              signerName:
+                                                type: string
+                                            type: object
                                           secret:
                                             properties:
                                               items:
@@ -6753,7 +7092,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
+    app.kubernetes.io/version: 3.2.2-SNAPSHOT
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -6765,7 +7104,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
+    app.kubernetes.io/version: 3.2.2-SNAPSHOT
   name: apicurio-registry-operator-clusterrole
 rules:
 - apiGroups:
@@ -6793,6 +7132,14 @@ rules:
   - configmaps
   - pods
   - services
+  - serviceaccounts
+  verbs:
+  - '*'
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
   verbs:
   - '*'
 - apiGroups:
@@ -6834,7 +7181,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
+    app.kubernetes.io/version: 3.2.2-SNAPSHOT
   name: apicurio-registry-operator-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -6854,8 +7201,8 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.0-SNAPSHOT
-  name: apicurio-registry-operator-v3.2.0-snapshot
+    app.kubernetes.io/version: 3.2.2-SNAPSHOT
+  name: apicurio-registry-operator-v3.2.2-snapshot
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -6866,7 +7213,7 @@ spec:
       app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.2.0-SNAPSHOT
+      app.kubernetes.io/version: 3.2.2-SNAPSHOT
   template:
     metadata:
       labels:
@@ -6875,7 +7222,7 @@ spec:
         app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.2.0-SNAPSHOT
+        app.kubernetes.io/version: 3.2.2-SNAPSHOT
     spec:
       containers:
       - env:
@@ -6903,6 +7250,7 @@ spec:
           httpGet:
             path: /q/health/live
             port: 8080
+          timeoutSeconds: 3
         name: apicurio-registry-operator
         ports:
         - containerPort: 8080
@@ -6912,6 +7260,7 @@ spec:
           httpGet:
             path: /q/health/ready
             port: 8080
+          timeoutSeconds: 3
         resources:
           limits:
             cpu: 200m
@@ -6920,8 +7269,11 @@ spec:
             cpu: 100m
             memory: 100Mi
         startupProbe:
-          failureThreshold: 6
+          failureThreshold: 10
           httpGet:
             path: /q/health/started
             port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 3
       serviceAccountName: apicurio-registry-operator

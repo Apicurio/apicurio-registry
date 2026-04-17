@@ -11,6 +11,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+/**
+ * Utility class for managing {@link VersionState} transitions. Defines the valid state transitions between
+ * version states and provides methods for validating and applying state changes.
+ *
+ * <p>
+ * Valid transitions:
+ * <ul>
+ * <li>ENABLED -> DISABLED, DEPRECATED</li>
+ * <li>DISABLED -> ENABLED, DEPRECATED</li>
+ * <li>DEPRECATED -> ENABLED, DISABLED</li>
+ * </ul>
+ */
 @ApplicationScoped
 public class VersionStateExt {
 

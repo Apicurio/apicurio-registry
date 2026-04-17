@@ -20,7 +20,7 @@ import {TextAreaEditorComponent} from "./inline-editor.base";
 import {OasSchema} from "@apicurio/data-models";
 import {ModelUtils} from "../../_util/model.util";
 import {SelectionService} from "../../_services/selection.service";
-import {StringUtils} from "apicurio-ts-core";
+import {StringUtils} from "../../_util/string.util";
 import {CodeEditorComponent, CodeEditorMode} from "./code-editor.component";
 
 @Component({

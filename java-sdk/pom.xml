@@ -1,177 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.2.2-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>apicurio-registry-java-sdk</artifactId>
+  <artifactId>apicurio-registry-java-sdk-parent</artifactId>
+  <packaging>pom</packaging>
 
-  <name>apicurio-registry-java-sdk</name>
+  <name>Apicurio Registry Java SDK Parent</name>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
   </properties>
-  <dependencies>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-java-sdk-common</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.microsoft.kiota</groupId>
-      <artifactId>microsoft-kiota-abstractions</artifactId>
-    </dependency>
-    <!-- HTTP Adapters - both optional, at least one must be provided by consumer -->
-    <dependency>
-      <groupId>io.kiota</groupId>
-      <artifactId>kiota-http-jdk</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>io.kiota</groupId>
-      <artifactId>kiota-http-vertx</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>io.kiota</groupId>
-      <artifactId>kiota-serialization-jackson</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.microsoft.kiota</groupId>
-      <artifactId>microsoft-kiota-serialization-text</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.microsoft.kiota</groupId>
-      <artifactId>microsoft-kiota-serialization-form</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.microsoft.kiota</groupId>
-      <artifactId>microsoft-kiota-serialization-multipart</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.annotation</groupId>
-      <artifactId>jakarta.annotation-api</artifactId>
-    </dependency>
-    <!-- Vert.x OAuth2 - optional, only needed when using Vert.x adapter with OAuth2 -->
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-auth-oauth2</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>io.kiota</groupId>
-        <artifactId>kiota-maven-plugin</artifactId>
-        <version>${kiota.community.version}</version>
-        <configuration>
-          <kiotaVersion>${kiota.version}</kiotaVersion>
-          <kiotaTimeout>${kiota.timeout}</kiotaTimeout>
-          <baseURL>${kiota.base.url}</baseURL>
-          <file>../common/src/main/resources/META-INF/openapi.json</file>
-          <namespace>io.apicurio.registry.rest.client</namespace>
-          <clientClass>RegistryClient</clientClass>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.gmavenplus</groupId>
-        <artifactId>gmavenplus-plugin</artifactId>
-        <version>${version.gmavenplus-plugin}</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.groovy</groupId>
-            <artifactId>groovy</artifactId>
-            <version>${groovy.version}</version>
-            <scope>runtime</scope>
-          </dependency>
-        </dependencies>
-        <executions>
-          <execution>
-            <id>post-process-kiota</id>
-            <phase>process-sources</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <scripts>
-                <script><![CDATA[
-                  // Post-process Kiota-generated files to support legacy date formats
-                  // See: https://github.com/Apicurio/apicurio-registry/issues/6799
 
-                  def generatedDir = new File(project.build.directory, 'generated-sources/kiota')
-                  if (!generatedDir.exists()) {
-                    log.info('Generated sources directory not found, skipping Kiota post-processing')
-                    return
-                  }
+  <modules>
+    <module>common</module>
+    <module>adapter-vertx</module>
+    <module>adapter-jdk</module>
+    <module>client</module>
+    <module>client-v2</module>
+  </modules>
 
-                  log.info('Post-processing Kiota-generated files in ' + generatedDir)
-
-                  def oldPattern = 'n.getOffsetDateTimeValue()'
-                  def newPattern = 'io.apicurio.registry.client.common.util.DateTimeUtil.getOffsetDateTimeValue(n)'
-
-                  def modifiedCount = 0
-
-                  generatedDir.eachFileRecurse { file ->
-                    if (file.name.endsWith('.java')) {
-                      def content = file.text
-
-                      // Check if file contains the pattern to replace
-                      if (content.contains(oldPattern)) {
-                        // Replace the pattern with fully qualified method call
-                        content = content.replace(oldPattern, newPattern)
-
-                        // Write modified content back to file
-                        file.text = content
-                        modifiedCount++
-                        log.info('  Modified: ' + file.name)
-                      }
-                    }
-                  }
-
-                  log.info('Post-processing complete. Modified ' + modifiedCount + ' files.')
-                ]]></script>
-              </scripts>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>${version.build.helper.maven.plugin}</version>
-        <executions>
-          <execution>
-            <id>add-source</id>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <sources>
-                <source>${project.build.directory}/generated-sources/kiota/</source>
-              </sources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 </project>

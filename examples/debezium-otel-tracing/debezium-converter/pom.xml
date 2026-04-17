@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-examples-debezium-otel-tracing</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.2.2-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -14,6 +14,7 @@
   <description>Custom Debezium SMT with OpenTelemetry instrumentation for trace context propagation</description>
 
   <properties>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

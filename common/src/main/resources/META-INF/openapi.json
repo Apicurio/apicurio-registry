@@ -574,6 +574,14 @@
               "type": "boolean"
             },
             "in": "query"
+          },
+          {
+            "name": "groupId",
+            "description": "If specified, only data belonging to this group will be exported. Global rules will be excluded.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
           }
         ],
         "responses": {
@@ -592,6 +600,9 @@
             },
             "description": "Response when the export is successful."
           },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           },
@@ -604,7 +615,7 @@
         },
         "operationId": "exportData",
         "summary": "Export registry data",
-        "description": "Exports registry data as a ZIP archive."
+        "description": "Exports registry data as a ZIP archive.  If a `groupId` query parameter is provided, only data belonging to the specified group will be exported and global rules will be excluded."
       }
     },
     "/admin/import": {
@@ -2933,6 +2944,71 @@
         "description": "Triggers the creation of a snapshot of the internal database for compatible storages.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
       }
     },
+    "/admin/gitops/status": {
+      "summary": "Get the current GitOps synchronization status.",
+      "get": {
+        "tags": [
+          "GitOps",
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitOpsStatus"
+                }
+              }
+            },
+            "description": "The current GitOps synchronization status."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getGitOpsStatus",
+        "summary": "Get GitOps synchronization status",
+        "description": "**Experimental.** Returns the current synchronization status of the GitOps storage, including the current commit SHA, sync state, load statistics, and any errors from the last sync attempt.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
+    "/admin/gitops/sync": {
+      "summary": "Trigger an immediate GitOps synchronization.",
+      "post": {
+        "tags": [
+          "GitOps",
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Synchronization has been requested. The sync will happen asynchronously on the next scheduler cycle."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "triggerGitOpsSync",
+        "summary": "Trigger GitOps synchronization",
+        "description": "**Experimental.** Requests an immediate synchronization of the GitOps storage. This resets the poll timer so the next scheduler cycle will poll the Git repository without waiting for the configured poll period.\n\nThe synchronization happens asynchronously — this endpoint returns immediately and the actual sync occurs on the next scheduler cycle.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
     "/groups/{groupId}/artifacts/{artifactId}": {
       "summary": "Manage a single artifact.",
       "get": {
@@ -3459,6 +3535,22 @@
               "$ref": "#/components/schemas/ArtifactType"
             },
             "in": "query"
+          },
+          {
+            "name": "content",
+            "description": "Full-text search of artifact content.  Requires the Lucene search index to be enabled.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "structure",
+            "description": "Search by structured content elements (schemas, paths, fields, etc.) using a faceted format. Supports three formats: `type:kind:name` for exact match (e.g. `openapi:schema:Pet`), `kind:name` for cross-type match (e.g. `schema:Pet`), or just `name` for plain text search. Requires the Lucene search index to be enabled.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
           }
         ],
         "responses": {
@@ -3599,6 +3691,50 @@
         "operationId": "searchVersionsByContent",
         "summary": "Search for versions by content",
         "description": "Returns a paginated list of all versions that match the posted content.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
+    "/search/contract/rules": {
+      "summary": "Search for contract rules by tag.",
+      "get": {
+        "tags": [
+          "Search",
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "tag",
+            "description": "The tag value to search for in contract rules.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractRuleSearchResult"
+                  }
+                }
+              }
+            },
+            "description": "A list of contract rules matching the specified tag, with their artifact coordinates."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "searchContractRulesByTag",
+        "summary": "Search contract rules by tag",
+        "description": "Returns all contract rules across all artifacts that contain the specified tag."
       }
     },
     "/groups/{groupId}/artifacts/{artifactId}/branches/{branchId}/versions": {
@@ -4197,6 +4333,429 @@
         }
       ]
     },
+    "/content/references": {
+      "summary": "Detect external references in artifact content.",
+      "post": {
+        "tags": [
+          "Content"
+        ],
+        "parameters": [
+          {
+            "name": "artifactType",
+            "description": "The type of artifact represented by the content.  If not provided, the server will attempt to auto-detect the type from the content.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "requestBody": {
+          "description": "The content to analyze for external references.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtifactReference"
+                  }
+                }
+              }
+            },
+            "description": "List of references detected in the provided content.  Each reference will have only the `name` field populated.  The `name` value corresponds to the reference string found in the content (e.g. a JSON Schema `$ref` value, a Protobuf import path, or an Avro type name)."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "detectContentReferences",
+        "summary": "Detect references in content",
+        "description": "Analyzes the provided content and returns a list of external references found within it.  The artifact type is used to determine the appropriate reference detection strategy.  If no artifact type is provided, the system will attempt to auto-detect it from the content."
+      }
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/metadata": {
+      "summary": "Manage contract metadata for an artifact.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractMetadata"
+                }
+              }
+            },
+            "description": "The contract metadata for the artifact."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getContractMetadata",
+        "summary": "Get contract metadata",
+        "description": "Returns the contract metadata for an artifact, projected from its labels."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditableContractMetadata"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractMetadata"
+                }
+              }
+            },
+            "description": "The updated contract metadata."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updateContractMetadata",
+        "summary": "Update contract metadata",
+        "description": "Creates or updates the contract metadata for an artifact."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/status": {
+      "summary": "Transition the contract lifecycle status.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractStatusTransition"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractMetadata"
+                }
+              }
+            },
+            "description": "The updated contract metadata after the status transition."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "transitionContractStatus",
+        "summary": "Transition contract status",
+        "description": "Transitions the contract status. Valid transitions: DRAFT to STABLE, DRAFT to DEPRECATED, STABLE to DEPRECATED. Reverse transitions are not allowed."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/ruleset": {
+      "summary": "Manage contract ruleset for an artifact (artifact-level).",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The contract ruleset for the artifact."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getArtifactContractRuleset",
+        "summary": "Get artifact contract ruleset",
+        "description": "Returns the contract ruleset for the artifact (artifact-level rules that apply to all versions)."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractRuleSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The updated contract ruleset."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "setArtifactContractRuleset",
+        "summary": "Set artifact contract ruleset",
+        "description": "Creates or replaces the contract ruleset for the artifact."
+      },
+      "delete": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "204": {
+            "description": "The contract ruleset was deleted."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteArtifactContractRuleset",
+        "summary": "Delete artifact contract ruleset",
+        "description": "Deletes the contract ruleset for the artifact."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/ruleset": {
+      "summary": "Manage contract ruleset for a specific artifact version.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The contract ruleset for the version."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getVersionContractRuleset",
+        "summary": "Get version contract ruleset",
+        "description": "Returns the contract ruleset for a specific artifact version."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractRuleSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The updated contract ruleset."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "setVersionContractRuleset",
+        "summary": "Set version contract ruleset",
+        "description": "Creates or replaces the contract ruleset for a specific version."
+      },
+      "delete": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "204": {
+            "description": "The contract ruleset was deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteVersionContractRuleset",
+        "summary": "Delete version contract ruleset",
+        "description": "Deletes the contract ruleset for a specific version."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "x-codegen-contextRoot": "/apis/registry/v3"
   },
   "components": {
@@ -4378,6 +4937,53 @@
           "name"
         ],
         "type": "string"
+      },
+      "GitOpsStatus": {
+        "title": "Root Type for GitOpsStatus",
+        "description": "Describes the current synchronization status of the GitOps storage backend. This includes the current sync state, the Git commit marker, load statistics, and any errors from the last sync attempt.",
+        "type": "object",
+        "properties": {
+          "syncState": {
+            "description": "The current synchronization state of the GitOps storage. Possible values: INITIALIZING (first load not yet completed), IDLE (serving latest data), LOADING (sync in progress), SWITCHING (data loaded, waiting for write lock to publish), ERROR (last sync or switch failed, serving previous data).",
+            "type": "string"
+          },
+          "currentMarker": {
+            "description": "The Git commit SHA currently loaded in the storage. Null if no data has been loaded yet.",
+            "type": "string"
+          },
+          "lastSuccessfulSync": {
+            "description": "ISO 8601 timestamp of the last successful synchronization.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastSyncAttempt": {
+            "description": "ISO 8601 timestamp of the last synchronization attempt (successful or not).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "groupCount": {
+            "description": "Number of groups loaded in the last successful sync.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "artifactCount": {
+            "description": "Number of artifacts loaded in the last successful sync.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "versionCount": {
+            "description": "Number of artifact versions loaded in the last successful sync.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "lastErrors": {
+            "description": "List of error messages from the last failed load attempt. Empty if the last load was successful.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       },
       "SystemInfo": {
         "title": "Root Type for SystemInfo",
@@ -4561,6 +5167,10 @@
           "artifactId": {
             "$ref": "#/components/schemas/ArtifactId",
             "description": ""
+          },
+          "contractMetadata": {
+            "$ref": "#/components/schemas/ContractMetadata",
+            "description": "Contract metadata projected from the artifact labels. Only present when data contracts are enabled and contract labels exist."
           }
         },
         "example": {
@@ -5125,6 +5735,11 @@
           "contentType": {
             "description": "The content-type, such as `application/json` or `text/xml`.",
             "type": "string"
+          },
+          "encoding": {
+            "description": "Optional encoding for the content property. When set to 'base64', the content value will be base64-decoded by the server before processing.",
+            "type": "string",
+            "enum": ["base64"]
           }
         }
       },
@@ -5453,6 +6068,10 @@
             "type": "boolean"
           },
           "agents": {
+            "description": "",
+            "type": "boolean"
+          },
+          "searchIndex": {
             "description": "",
             "type": "boolean"
           }
@@ -6266,6 +6885,263 @@
             "hasCycles": false
           }
         }
+      },
+      "ContractMetadata": {
+        "title": "ContractMetadata",
+        "description": "Contract metadata for an artifact.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "description": "The contract lifecycle status.",
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "STABLE",
+              "DEPRECATED"
+            ]
+          },
+          "ownerTeam": {
+            "description": "The team that owns the contract.",
+            "type": "string"
+          },
+          "ownerDomain": {
+            "description": "The domain the contract belongs to.",
+            "type": "string"
+          },
+          "supportContact": {
+            "description": "Support contact email.",
+            "type": "string"
+          },
+          "classification": {
+            "description": "Data classification level.",
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "INTERNAL",
+              "CONFIDENTIAL",
+              "RESTRICTED"
+            ]
+          },
+          "stage": {
+            "description": "Promotion stage.",
+            "type": "string",
+            "enum": [
+              "DEV",
+              "STAGE",
+              "PROD"
+            ]
+          },
+          "stableDate": {
+            "description": "ISO-8601 date when contract became stable.",
+            "type": "string"
+          },
+          "deprecatedDate": {
+            "description": "ISO-8601 date when contract was deprecated.",
+            "type": "string"
+          },
+          "deprecationReason": {
+            "description": "Reason for deprecation.",
+            "type": "string"
+          }
+        }
+      },
+      "EditableContractMetadata": {
+        "title": "EditableContractMetadata",
+        "description": "Editable contract metadata fields.",
+        "type": "object",
+        "properties": {
+          "status": {
+            "description": "The contract lifecycle status.",
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "STABLE",
+              "DEPRECATED"
+            ]
+          },
+          "ownerTeam": {
+            "description": "The team that owns the contract.",
+            "type": "string"
+          },
+          "ownerDomain": {
+            "description": "The domain the contract belongs to.",
+            "type": "string"
+          },
+          "supportContact": {
+            "description": "Support contact email.",
+            "type": "string"
+          },
+          "classification": {
+            "description": "Data classification level.",
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "INTERNAL",
+              "CONFIDENTIAL",
+              "RESTRICTED"
+            ]
+          },
+          "stage": {
+            "description": "Promotion stage.",
+            "type": "string",
+            "enum": [
+              "DEV",
+              "STAGE",
+              "PROD"
+            ]
+          }
+        }
+      },
+      "ContractRuleSet": {
+        "title": "ContractRuleSet",
+        "description": "A set of contract rules, divided into domain and migration categories.",
+        "type": "object",
+        "properties": {
+          "domainRules": {
+            "description": "Rules for domain validation.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractRule"
+            }
+          },
+          "migrationRules": {
+            "description": "Rules for version migration.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractRule"
+            }
+          }
+        }
+      },
+      "ContractRule": {
+        "title": "ContractRule",
+        "description": "A single contract rule definition.",
+        "required": [
+          "name",
+          "kind",
+          "type",
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The rule name.",
+            "type": "string"
+          },
+          "kind": {
+            "description": "The rule kind.",
+            "type": "string",
+            "enum": [
+              "CONDITION",
+              "TRANSFORM"
+            ]
+          },
+          "type": {
+            "description": "Rule executor type (CEL, CEL_FIELD, ENCRYPT, etc.).",
+            "type": "string"
+          },
+          "mode": {
+            "description": "When the rule is applied.",
+            "type": "string",
+            "enum": [
+              "WRITE",
+              "READ",
+              "WRITEREAD",
+              "UPGRADE",
+              "DOWNGRADE"
+            ]
+          },
+          "expr": {
+            "description": "The rule expression.",
+            "type": "string"
+          },
+          "params": {
+            "description": "Rule parameters.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "description": "Tags for categorizing the rule.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onSuccess": {
+            "description": "Action on rule success.",
+            "type": "string",
+            "enum": [
+              "NONE",
+              "ERROR",
+              "DLQ"
+            ]
+          },
+          "onFailure": {
+            "description": "Action on rule failure.",
+            "type": "string",
+            "enum": [
+              "NONE",
+              "ERROR",
+              "DLQ"
+            ]
+          },
+          "disabled": {
+            "description": "Whether the rule is disabled.",
+            "type": "boolean"
+          }
+        }
+      },
+      "ContractRuleSearchResult": {
+        "title": "ContractRuleSearchResult",
+        "description": "A contract rule with its artifact coordinates, returned by tag search.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "description": "The group ID of the artifact containing the rule.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID containing the rule.",
+            "type": "string"
+          },
+          "globalId": {
+            "description": "The global ID of the version (null for artifact-level rules).",
+            "type": "integer",
+            "format": "int64"
+          },
+          "ruleCategory": {
+            "description": "The rule category (DOMAIN or MIGRATION).",
+            "type": "string",
+            "enum": [
+              "DOMAIN",
+              "MIGRATION"
+            ]
+          },
+          "rule": {
+            "$ref": "#/components/schemas/ContractRule"
+          }
+        }
+      },
+      "ContractStatusTransition": {
+        "title": "ContractStatusTransition",
+        "description": "Request body for transitioning the contract lifecycle status.",
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "description": "The target lifecycle status. Valid transitions: DRAFT to STABLE, DRAFT to DEPRECATED, STABLE to DEPRECATED.",
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "STABLE",
+              "DEPRECATED"
+            ]
+          }
+        }
       }
     },
     "responses": {
@@ -6521,6 +7397,10 @@
     {
       "name": "AI",
       "description": "Operations related to AI/ML artifact management, including prompt template rendering, model schema queries, and LLM integration features."
+    },
+    {
+      "name": "GitOps",
+      "description": "Experimental. Management and status endpoints for the GitOps storage backend. These endpoints are only available when the registry is configured with `apicurio.storage.kind=gitops`."
     }
   ],
   "x-codegen": {

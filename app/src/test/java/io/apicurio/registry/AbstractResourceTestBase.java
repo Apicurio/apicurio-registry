@@ -23,7 +23,6 @@ import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.ProblemDetailsWatcher;
 import io.apicurio.registry.utils.tests.TestUtils;
-import io.apicurio.rest.client.auth.exception.NotAuthorizedException;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.kiota.http.vertx.VertXRequestAdapter;
@@ -406,7 +405,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected void assertNotAuthorized(Exception exception) {
-        if (exception instanceof NotAuthorizedException) {
+        if (exception instanceof io.quarkus.security.UnauthorizedException) {
             // thrown by the token provider adapter
         } else if (exception.getClass().equals(io.apicurio.registry.rest.client.models.ProblemDetails.class)) {
             // Kiota maps 401 errors to ProblemDetails

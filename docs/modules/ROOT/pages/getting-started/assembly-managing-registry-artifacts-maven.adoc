@@ -83,6 +83,21 @@ The most common use case for the Maven plug-in is adding artifacts during a buil
 
 . Build your Maven project, for example, by using the `mvn package` command.
 
+You can also run the `register` goal directly from the command line without a Maven project by passing the artifact configuration as system properties. Use the same field names that you would use in the Maven plug-in configuration:
+
+[source,shell]
+----
+mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
+  -Dapicurio.url=MY-REGISTRY-URL/apis/registry/v3 \
+  -Dartifacts.groupId=TestGroup \
+  -Dartifacts.artifactId=FullNameRecord \
+  -Dartifacts.artifactType=AVRO \
+  -Dartifacts.file=./src/main/resources/schemas/record.avsc \
+  -Dartifacts.ifExists=FAIL
+----
+
+Use `artifacts.<field>` when registering a single artifact, or `artifacts.<index>.<field>` such as `artifacts.0.groupId` and `artifacts.1.groupId` when registering multiple artifacts.
+
 [role="_additional-resources"]
 .Additional resources
  * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].

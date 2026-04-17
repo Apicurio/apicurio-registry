@@ -22,9 +22,9 @@ Starting with Apicurio Registry 3.0, we now produce a single artifact suitable f
 
 Which storage variant will be used is determined by the following configuration:
 
-|Option|Command argument| Env. variable           |
-|---|---|-------------------------|
-|Registry Storage Variant|`-Dapicurio.storage.kind`| `APICURIO_STORAGE_KIND` |
+| Option                   | Command argument          | Env. variable           |
+|--------------------------|---------------------------|-------------------------|
+| Registry Storage Variant | `-Dapicurio.storage.kind` | `APICURIO_STORAGE_KIND` |
 
 For this property, there are three possible values:
 - *sql* - for the SQL storage variant.
@@ -38,7 +38,7 @@ Additionally, there are 2 main configuration profiles:
 ### Getting started (APIs)
 
  ```
- ./mvnw clean install -DskipTests
+ ./mvnw clean install -Dfast -DskipTests
  cd app/
  ../mvnw quarkus:dev
  ```
@@ -63,13 +63,51 @@ This will start up the UI in development mode, hosted on port 8888 of your local
 
 For more information on the UI, see the UI module's [README.md](ui/README.md).
 
-### Build Options
+### Build Tiers
 
-- `-Pprod` enables Quarkus's *prod* configuration profile, which uses configuration options suitable for a production environment,
-  e.g. a higher logging level.
-- `-Pnative` *(experimental)* builds native executables. See [Building a native executable](https://quarkus.io/guides/maven-tooling#building-a-native-executable).
-- `-Ddocker` *(experimental)* builds docker images. Make sure that you have the docker service enabled and running.
-  If you get an error, try `sudo chmod a+rw /var/run/docker.sock`.
+The project uses a three-tier build system to allow developers to build only what they need:
+
+| Tier        | Flag     | What's included                                         | Use case                           |
+|-------------|----------|---------------------------------------------------------|------------------------------------|
+| **Fast**    | `-Dfast` | Core server, Java SDK, schema utilities                 | Quick server development iteration |
+| **Default** | *(none)* | Fast + serializers, CLI, docs, distribution             | Normal development                 |
+| **Full**    | `-Dfull` | Default + MCP server, Go SDK, operator, extra utilities | CI builds, releases                |
+
+```bash
+# Fast: core server only (~3 min)
+./mvnw clean install -Dfast -DskipTests
+
+# Default: normal development
+./mvnw clean install -DskipTests
+
+# Full: everything
+./mvnw clean install -Dfull -DskipTests
+```
+
+Integration tests and examples are always opt-in via their own profiles:
+`-Pintegration-tests`, `-Pexamples`.
+
+### Build Properties
+
+| Property              | Purpose                                                                                  |
+|-----------------------|------------------------------------------------------------------------------------------|
+| `-Pprod`              | Enables Quarkus *prod* configuration profile (higher logging level, production defaults) |
+| `-DskipTests`         | Skip all tests                                                                           |
+| `-DcliSkipNative`     | Skip CLI native image compilation (no executable is produced, but tests can still run)   |
+| `-DskipOperatorTests` | Skip operator tests (default: `true`, requires a running cluster)                        |
+
+### Testing
+
+Unit tests run as part of the normal build (`mvn clean install`). Integration tests
+are in a separate module and need to be explicitly enabled:
+
+```bash
+# Run default integration tests (smoke + serdes + acceptance)
+./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am
+```
+
+See the [integration tests module](integration-tests/) for test groups, deployment
+modes, and detailed usage instructions.
 
 ## Runtime Configuration
 
@@ -79,10 +117,10 @@ The following parameters are available for executable files:
  - By default, the application expects an H2 server running at `jdbc:h2:tcp://localhost:9123/mem:registry`.
  - For configuring the database kind and the datasource values, the following configuration options are available:
 
-| Option                    | Command argument                | Env. variable                  |
-|---------------------------|---------------------------------|--------------------------------|
-| Registry SQL storage kind | `-Dapicurio.storage.sql.kind`   | `APICURIO_STORAGE_SQL_KIND`    |
-| Data Source URL           | `-Dapicurio.datasource.url`     | `APICURIO_DATASOURCE_URL`      |
+| Option                    | Command argument                 | Env. variable                  |
+|---------------------------|----------------------------------|--------------------------------|
+| Registry SQL storage kind | `-Dapicurio.storage.sql.kind`    | `APICURIO_STORAGE_SQL_KIND`    |
+| Data Source URL           | `-Dapicurio.datasource.url`      | `APICURIO_DATASOURCE_URL`      |
 | DS Username               | `-Dapicurio.datasource.username` | `APICURIO_DATASOURCE_USERNAME` |
 | DS Password               | `-Dapicurio.datasource.password` | `APICURIO_DATASOURCE_PASSWORD` |
 
@@ -194,20 +232,20 @@ In order no enable this integration, you will need to set the following environm
 
 ### REST API Environment Variables
 
-|Option|Env. variable|
-|---|---|
-|`QUARKUS_OIDC_TENANT_ENABLED`|Set to `true` to enable (default is `false`)|
-|`QUARKUS_OIDC_AUTH_SERVER_URL`|OIDC Server URL|
-|`QUARKUS_OIDC_CLIENT_ID`|The client for the API|
+| Option                         | Env. variable                                |
+|--------------------------------|----------------------------------------------|
+| `QUARKUS_OIDC_TENANT_ENABLED`  | Set to `true` to enable (default is `false`) |
+| `QUARKUS_OIDC_AUTH_SERVER_URL` | OIDC Server URL                              |
+| `QUARKUS_OIDC_CLIENT_ID`       | The client for the API                       |
 
 ### User Interface Environment Variables
 
-|Option|Env. variable|
-|---|---|
-|`APICURIO_AUTH_TYPE`|Set to `oidc` (default is `none`)|
-|`APICURIO_AUTH_URL`|OIDC auth URL|
-|`APICURIO_AUTH_REDIRECT_URL`|OIDC redirect URL|
-|`APICURIO_AUTH_CLIENT_ID`|The client for the UI|
+| Option                       | Env. variable                     |
+|------------------------------|-----------------------------------|
+| `APICURIO_AUTH_TYPE`         | Set to `oidc` (default is `none`) |
+| `APICURIO_AUTH_URL`          | OIDC auth URL                     |
+| `APICURIO_AUTH_REDIRECT_URL` | OIDC redirect URL                 |
+| `APICURIO_AUTH_CLIENT_ID`    | The client for the UI             |
 
 Note that you will need to have everything configured in your OIDC provider, before starting the application.
 

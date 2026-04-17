@@ -34,15 +34,22 @@ spec:
             httpGet:
               path: /q/health/started
               port: 8080
-            failureThreshold: 6 # 60s
+            # Give the operator more time on slower clusters.
+            # 20 + (10-1)*5 = 65s
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 10
+            timeoutSeconds: 3
           readinessProbe:
             httpGet:
               path: /q/health/ready
               port: 8080
+            timeoutSeconds: 3
           livenessProbe:
             httpGet:
               path: /q/health/live
               port: 8080
+            timeoutSeconds: 3
           resources: # TODO
             requests:
               cpu: 100m

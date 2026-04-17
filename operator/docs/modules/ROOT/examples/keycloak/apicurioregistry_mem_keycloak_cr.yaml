@@ -1,16 +1,19 @@
 apiVersion: registry.apicur.io/v1
-kind: ApicurioRegistry
+kind: ApicurioRegistry3
 metadata:
   name: example-apicurioregistry-keycloak
 spec:
-  configuration:
-    security:
-      keycloak:
-        url: "http://keycloak-http-<namespace>.apps.<cluster host>"
-        # ^ Required
-        # Use an HTTP URL in development.
-        realm: "registry"
-        # apiClientId: "registry-client-api"
-        # ^ Optional (default value)
-        # uiClientId: "registry-client-ui"
-        # ^ Optional (default value)
+  app:
+    auth:
+      enabled: true
+      appClientId: registry-client-api
+      uiClientId: registry-client-ui
+      authServerUrl: "http://keycloak-http-<namespace>.apps.<cluster host>/realms/registry"
+      # ^ Required. Use an HTTP URL in development.
+      redirectUri: "http://example-mem-ui.apps.cluster.example"
+      logoutUrl: "http://example-mem-ui.apps.cluster.example"
+    ingress:
+      host: example-mem-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-mem-ui.apps.cluster.example

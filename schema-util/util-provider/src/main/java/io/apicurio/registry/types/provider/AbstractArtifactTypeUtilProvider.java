@@ -4,6 +4,8 @@ import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.NoopStructuredContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -19,6 +21,7 @@ public abstract class AbstractArtifactTypeUtilProvider implements ArtifactTypeUt
     private volatile ContentDereferencer contentDereferencer;
     private volatile ReferenceFinder referenceFinder;
     private volatile ReferenceArtifactIdentifierExtractor referenceArtifactIdentifierExtractor;
+    private volatile StructuredContentExtractor structuredContentExtractor;
 
     @Override
     public ContentAccepter getContentAccepter() {
@@ -99,5 +102,17 @@ public abstract class AbstractArtifactTypeUtilProvider implements ArtifactTypeUt
     }
 
     protected abstract ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor();
+
+    @Override
+    public StructuredContentExtractor getStructuredContentExtractor() {
+        if (structuredContentExtractor == null) {
+            structuredContentExtractor = createStructuredContentExtractor();
+        }
+        return structuredContentExtractor;
+    }
+
+    protected StructuredContentExtractor createStructuredContentExtractor() {
+        return NoopStructuredContentExtractor.INSTANCE;
+    }
 
 }

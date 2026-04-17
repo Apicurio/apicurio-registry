@@ -87,15 +87,9 @@ public class AgentCardContentValidator implements ContentValidator {
 
     private void validateStringFields(JsonNode tree, Set<RuleViolation> violations) {
         // Validate optional string fields
-        validateOptionalString(tree, "description", violations);
-        validateOptionalString(tree, "version", violations);
-        validateOptionalString(tree, "url", violations);
-    }
-
-    private void validateOptionalString(JsonNode tree, String fieldName, Set<RuleViolation> violations) {
-        if (tree.has(fieldName) && !tree.get(fieldName).isTextual()) {
-            violations.add(new RuleViolation("'" + fieldName + "' field must be a string", "/" + fieldName));
-        }
+        JsonValidationUtils.validateOptionalString(tree, "description", violations);
+        JsonValidationUtils.validateOptionalString(tree, "version", violations);
+        JsonValidationUtils.validateOptionalString(tree, "url", violations);
     }
 
     private void validateProviderField(JsonNode tree, Set<RuleViolation> violations) {
@@ -188,13 +182,15 @@ public class AgentCardContentValidator implements ContentValidator {
             if (skill.has("tags") && !skill.get("tags").isArray()) {
                 violations.add(new RuleViolation("Skill 'tags' must be an array", basePath + "/tags"));
             } else if (skill.has("tags")) {
-                validateStringArray(skill.get("tags"), basePath + "/tags", "tag", violations);
+                JsonValidationUtils.validateStringArray(skill.get("tags"), basePath + "/tags", "tag",
+                        violations);
             }
 
             if (skill.has("examples") && !skill.get("examples").isArray()) {
                 violations.add(new RuleViolation("Skill 'examples' must be an array", basePath + "/examples"));
             } else if (skill.has("examples")) {
-                validateStringArray(skill.get("examples"), basePath + "/examples", "example", violations);
+                JsonValidationUtils.validateStringArray(skill.get("examples"), basePath + "/examples",
+                        "example", violations);
             }
 
             index++;
@@ -202,33 +198,8 @@ public class AgentCardContentValidator implements ContentValidator {
     }
 
     private void validateArrayFields(JsonNode tree, Set<RuleViolation> violations) {
-        validateStringArrayField(tree, "defaultInputModes", violations);
-        validateStringArrayField(tree, "defaultOutputModes", violations);
-    }
-
-    private void validateStringArrayField(JsonNode tree, String fieldName, Set<RuleViolation> violations) {
-        if (!tree.has(fieldName)) {
-            return;
-        }
-
-        JsonNode array = tree.get(fieldName);
-        if (!array.isArray()) {
-            violations.add(new RuleViolation("'" + fieldName + "' field must be an array", "/" + fieldName));
-            return;
-        }
-
-        validateStringArray(array, "/" + fieldName, "item", violations);
-    }
-
-    private void validateStringArray(JsonNode array, String basePath, String itemName, Set<RuleViolation> violations) {
-        int index = 0;
-        for (JsonNode item : array) {
-            if (!item.isTextual()) {
-                violations.add(new RuleViolation("Each " + itemName + " must be a string",
-                        basePath + "/" + index));
-            }
-            index++;
-        }
+        JsonValidationUtils.validateStringArrayField(tree, "defaultInputModes", violations);
+        JsonValidationUtils.validateStringArrayField(tree, "defaultOutputModes", violations);
     }
 
     private void validateAuthenticationField(JsonNode tree, Set<RuleViolation> violations) {
@@ -247,7 +218,8 @@ public class AgentCardContentValidator implements ContentValidator {
                 violations.add(new RuleViolation("'authentication.schemes' must be an array",
                         "/authentication/schemes"));
             } else {
-                validateStringArray(auth.get("schemes"), "/authentication/schemes", "scheme", violations);
+                JsonValidationUtils.validateStringArray(auth.get("schemes"),
+                        "/authentication/schemes", "scheme", violations);
             }
         }
 

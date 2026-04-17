@@ -13,7 +13,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.common.serdes.json.InvalidMessage;
 import io.apicurio.tests.common.serdes.json.ValidMessage;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.apicurio.tests.utils.KafkaFacade;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.kafka.connect.json.JsonSerializer;
@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-@Tag(Constants.SERDES)
+@Tag(SERDES)
 @QuarkusIntegrationTest
 public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
 
@@ -43,7 +43,7 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
     }
 
     @Test
-    @Tag(Constants.ACCEPTANCE)
+    @Tag(ACCEPTANCE)
     void testTopicIdStrategyFindLatest() throws Exception {
         String topicName = TestUtils.generateTopic();
         String artifactId = topicName + "-value";
@@ -81,7 +81,7 @@ public class JsonSchemaSerdeIT extends ApicurioRegistryBaseIT {
 
     // there is no mechanism for json serdes to auto register a schema, yet
     // @Test
-    // @Tag(Constants.ACCEPTANCE)
+    // @Tag(ACCEPTANCE)
     // void testTopicIdStrategyAutoRegister() throws Exception {
     // String topicName = TestUtils.generateTopic();
     // //because of using TopicIdStrategy

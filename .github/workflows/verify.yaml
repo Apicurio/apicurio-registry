@@ -60,7 +60,7 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
 
-  # Path filter for conditional macOS CLI test execution
+  # Path filter for conditional CLI verification (native build + tests)
   detect-cli-changes:
     name: Detect CLI Changes
     needs: build
@@ -78,13 +78,14 @@ jobs:
           filters: |
             cli:
               - 'cli/**'
-              - '.github/workflows/verify-cli-macos.yaml'
+              - 'java-sdk/**'
+              - '.github/workflows/verify-cli.yaml'
 
-  cli-tests-macos:
-    name: CLI Tests (macOS)
+  cli-verify:
+    name: CLI Verification
     needs: detect-cli-changes
     if: needs.detect-cli-changes.outputs.cli == 'true'
-    uses: ./.github/workflows/verify-cli-macos.yaml
+    uses: ./.github/workflows/verify-cli.yaml
     with:
       image-tag: ${{ github.sha }}
 
@@ -122,18 +123,7 @@ jobs:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
-  # PHASE 7: Native Build (reuses build artifacts)
-  # ============================================================================
-  native:
-    name: Native Build
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    uses: ./.github/workflows/verify-native.yaml
-    with:
-      image-tag: ${{ github.sha }}
-
-  # ============================================================================
-  # PHASE 8: Publish Images (only on push to main)
+  # PHASE 7: Publish Images (only on push to main)
   # ============================================================================
   publish:
     name: Publish Images
@@ -163,13 +153,3 @@ jobs:
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
-
-  # ============================================================================
-  # PHASE 10: Trigger Downstream (only on push to main)
-  # ============================================================================
-  trigger-3scale-deploy:
-    name: Trigger 3scale Deploy
-    needs: publish
-    if: github.event_name == 'push'
-    uses: apicurio/apicurio-3scale-gitops/.github/workflows/deploy_latest_registry.yml@main
-    secrets: inherit

@@ -158,6 +158,44 @@ public class ContractMetadataValidator {
         }
     }
 
+    /**
+     * Validates that a status transition is allowed.
+     * Valid transitions: DRAFT -> STABLE, DRAFT -> DEPRECATED, STABLE -> DEPRECATED.
+     * No reverse transitions are allowed.
+     *
+     * @param currentStatus the current contract status (may be null for new contracts)
+     * @param targetStatus the target contract status
+     * @throws InvalidContractMetadataException if the transition is not allowed
+     */
+    public void validateStatusTransition(ContractStatus currentStatus, ContractStatus targetStatus)
+            throws InvalidContractMetadataException {
+        if (targetStatus == null) {
+            throw new InvalidContractMetadataException("Target status must not be null");
+        }
+
+        if (currentStatus == null) {
+            // No current status — any target is valid (initial assignment)
+            return;
+        }
+
+        if (currentStatus == targetStatus) {
+            // No-op transition is allowed
+            return;
+        }
+
+        boolean allowed = switch (currentStatus) {
+            case DRAFT -> targetStatus == ContractStatus.STABLE
+                    || targetStatus == ContractStatus.DEPRECATED;
+            case STABLE -> targetStatus == ContractStatus.DEPRECATED;
+            case DEPRECATED -> false;
+        };
+
+        if (!allowed) {
+            throw new InvalidContractMetadataException(
+                    "Invalid status transition from " + currentStatus + " to " + targetStatus);
+        }
+    }
+
     private void validateSupportContact(String supportContact, List<String> errors) {
         if (supportContact != null && !supportContact.isBlank() && !isValidEmail(supportContact)) {
             errors.add("Invalid email format for supportContact: " + supportContact);

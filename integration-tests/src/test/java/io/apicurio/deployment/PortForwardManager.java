@@ -31,7 +31,7 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
+            if (Constants.isGroupActive(Constants.AUTH)) {
                 startKeycloakPortForward();
             }
         }
@@ -40,7 +40,7 @@ public class PortForwardManager implements BeforeAllCallback, AfterAllCallback, 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
-            if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
+            if (Constants.isGroupActive(Constants.AUTH)) {
                 if (keycloakPortForward != null) {
                     keycloakPortForward.close();
                 }

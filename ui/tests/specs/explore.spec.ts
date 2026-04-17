@@ -93,10 +93,13 @@ test("Explore - Create artifact", async ({ page }) => {
     await page.getByTestId("create-artifact-modal-version").fill("1.0.0");
     await page.locator("#artifact-content").fill(OPENAPI_DATA_STR);
 
-    // Click "Next" on the wizard
+    // Click "Next" on the wizard (skip Artifact References page)
     await page.locator("#next-wizard-page").click();
 
-    // Leave page 4 empty and click "Complete"
+    // Click "Next" on the wizard (skip Version Metadata page)
+    await page.locator("#next-wizard-page").click();
+
+    // Click "Create" on the wizard
     await page.locator("#next-wizard-page").click();
 
     // Make sure we redirected to the artifact page.

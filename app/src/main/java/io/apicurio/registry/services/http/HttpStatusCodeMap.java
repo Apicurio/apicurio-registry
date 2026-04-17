@@ -29,6 +29,7 @@ import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidArtifactStateException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.error.InvalidContractMetadataException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
@@ -93,6 +94,7 @@ public class HttpStatusCodeMap {
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidVersionStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidContractMetadataException.class, HTTP_CONFLICT);
         map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidPropertyValueException.class, HTTP_BAD_REQUEST);
         map.put(io.apicurio.registry.rest.ConflictException.class, HTTP_CONFLICT);

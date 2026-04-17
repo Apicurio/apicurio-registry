@@ -17,7 +17,8 @@
 
 import {Component, EventEmitter, Input, Output, QueryList, ViewChildren} from "@angular/core";
 import {ModalDirective} from "ngx-bootstrap/modal";
-import {ObjectUtils, StringUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../../_util/object.util";
+import {StringUtils} from "../../_util/string.util";
 import {CodeEditorComponent, CodeEditorMode, CodeEditorTheme} from "../common/code-editor.component";
 import * as YAML from 'js-yaml';
 import {Aai20Schema} from "@apicurio/data-models";

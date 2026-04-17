@@ -5,10 +5,8 @@ import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
-import io.apicurio.registry.rules.integrity.IntegrityLevel;
-import io.apicurio.registry.rules.validity.ContentValidator;
+import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
-import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
@@ -24,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * A content validator implementation for the Protobuf content type.
  */
-public class ProtobufContentValidator implements ContentValidator {
+public class ProtobufContentValidator extends AbstractContentValidator {
 
     /**
      * Constructor.
@@ -110,22 +108,13 @@ public class ProtobufContentValidator implements ContentValidator {
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
         try {
-            Set<String> mappedRefs = references.stream().map(ref -> ref.getName())
-                    .collect(Collectors.toSet());
-
             ProtoFileElement protoFileElement = ProtobufFile
                     .toProtoFileElement(content.getContent().content());
             Set<String> allImports = new HashSet<>();
             allImports.addAll(protoFileElement.getImports());
             allImports.addAll(protoFileElement.getPublicImports());
 
-            Set<RuleViolation> violations = allImports.stream()
-                    .filter(_import -> !mappedRefs.contains(_import)).map(missingRef -> new RuleViolation("Unmapped reference detected.", missingRef))
-                    .collect(Collectors.toSet());
-            if (!violations.isEmpty()) {
-                throw new RuleViolationException("Unmapped reference(s) detected.", RuleType.INTEGRITY,
-                        IntegrityLevel.ALL_REFS_MAPPED.name(), violations);
-            }
+            validateMappedReferences(references, allImports, "Unmapped reference detected.");
         }
         catch (RuleViolationException rve) {
             throw rve;

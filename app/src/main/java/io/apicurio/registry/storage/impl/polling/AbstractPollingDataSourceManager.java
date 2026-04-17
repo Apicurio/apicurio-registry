@@ -12,6 +12,8 @@ import io.apicurio.registry.storage.impl.polling.model.v0.Group;
 import io.apicurio.registry.storage.impl.polling.model.v0.Registry;
 import io.apicurio.registry.storage.impl.polling.model.v0.Rule;
 import io.apicurio.registry.storage.impl.polling.model.v0.Version;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
@@ -22,10 +24,12 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -56,9 +60,9 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
      * Returns the commit/change time from the poll result marker.
      *
      * @param marker the marker from the PollingResult
-     * @return epoch seconds representing the change time
+     * @return the commit time as an Instant
      */
-    protected abstract long getCommitTime(MARKER marker);
+    protected abstract Instant getCommitTime(MARKER marker);
 
     @Override
     public PollingProcessingResult process(RegistryStorage storage, PollingResult<MARKER> pollResult) throws Exception {
@@ -216,8 +220,9 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                         artifactEntity.name = artifact.getName();
                         artifactEntity.description = artifact.getDescription();
                         artifactEntity.labels = artifact.getLabels();
-                        artifactEntity.createdOn = state.getCommitTime();
-                        artifactEntity.modifiedOn = state.getCommitTime();
+                        artifactEntity.owner = artifact.getOwner();
+                        artifactEntity.createdOn = TimestampParser.parse(artifact.getCreatedOn(), state.getCommitTime());
+                        artifactEntity.modifiedOn = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
                         state.getStorage().importArtifact(artifactEntity);
                         state.incrementArtifactCount();
                         artifactImported = true;
@@ -244,9 +249,10 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     e.name = version.getName();
                     e.description = version.getDescription();
                     e.labels = version.getLabels();
+                    e.owner = version.getOwner();
                     e.contentId = contentId;
-                    e.createdOn = state.getCommitTime();
-                    e.modifiedOn = state.getCommitTime();
+                    e.createdOn = TimestampParser.parse(version.getCreatedOn(), state.getCommitTime());
+                    e.modifiedOn = TimestampParser.parse(version.getModifiedOn(), state.getCommitTime());
 
                     log.debug("Importing {}", e);
                     state.getStorage().importArtifactVersion(e);
@@ -284,6 +290,25 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
         }
     }
 
+    private void processGroupRules(ProcessingState state, Group group) {
+        var rules = group.getRules();
+        if (rules != null) {
+            for (Rule rule : rules) {
+                try {
+                    var e = new GroupRuleEntity();
+                    e.groupId = group.getGroupId();
+                    e.type = RuleType.fromValue(rule.getRuleType());
+                    e.configuration = rule.getConfig();
+                    log.debug("Importing {}", e);
+                    state.getStorage().importGroupRule(e);
+                } catch (Exception ex) {
+                    state.recordError("Could not import rule %s for group '%s': %s", rule.getRuleType(),
+                            group.getGroupId(), ex.getMessage());
+                }
+            }
+        }
+    }
+
     private Group processGroupRef(ProcessingState state, String groupName) {
         var groupFiles = state.fromTypeIndex(Type.GROUP).stream().filter(f -> {
             Group group = f.getEntityUnchecked();
@@ -309,8 +334,13 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                 e.groupId = group.getGroupId();
                 e.description = group.getDescription();
                 e.labels = group.getLabels();
+                e.owner = group.getOwner();
+                e.artifactsType = group.getArtifactsType();
+                e.createdOn = TimestampParser.parse(group.getCreatedOn(), state.getCommitTime());
+                e.modifiedOn = TimestampParser.parse(group.getModifiedOn(), state.getCommitTime());
                 log.debug("Importing {}", e);
                 state.getStorage().importGroup(e);
+                processGroupRules(state, group);
                 state.incrementGroupCount();
                 groupFile.setProcessed(true);
                 return group;
@@ -377,13 +407,16 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
             return null;
         }
 
-        // Convert YAML content to JSON if parsable as YAML
-        if (ContentTypeUtil.isParsableYaml(data)) {
-            data = ContentTypeUtil.yamlToJson(data);
-        }
-
         try {
             String contentType = detectContentType(dataFile.getPath(), ContentTypes.APPLICATION_JSON);
+
+            // Only convert YAML to JSON for file types that should be stored as JSON
+            // (e.g., .avsc, .json, or files with no YAML extension).
+            // Preserve YAML content as-is for .yaml/.yml files to avoid lossy conversion.
+            if (!ContentTypes.APPLICATION_YAML.equals(contentType)
+                    && ContentTypeUtil.isParsableYaml(data)) {
+                data = ContentTypeUtil.yamlToJson(data);
+            }
             var typedContent = TypedContent.create(data, contentType);
 
             // Determine artifact type from content if not specified
@@ -419,8 +452,18 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
             e.artifactType = resolvedArtifactType;
             e.contentType = contentType;
 
-            // TODO: Handle references from contentMetadata in the future
-            // if (contentMetadata != null && contentMetadata.getReferences() != null) { ... }
+            if (contentMetadata != null && contentMetadata.getReferences() != null
+                    && !contentMetadata.getReferences().isEmpty()) {
+                List<ArtifactReferenceDto> refs = contentMetadata.getReferences().stream()
+                        .map(ref -> ArtifactReferenceDto.builder()
+                                .groupId(ref.getGroupId())
+                                .artifactId(ref.getArtifactId())
+                                .version(ref.getVersion())
+                                .name(ref.getName())
+                                .build())
+                        .collect(Collectors.toList());
+                e.serializedReferences = RegistryContentUtils.serializeReferences(refs);
+            }
 
             log.debug("Importing content from {}", dataFile.getPath());
             state.getStorage().importContent(e);

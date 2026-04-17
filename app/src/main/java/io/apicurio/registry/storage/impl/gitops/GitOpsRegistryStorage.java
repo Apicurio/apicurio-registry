@@ -42,6 +42,11 @@ public class GitOpsRegistryStorage extends AbstractPollingRegistryStorage<RevCom
         storageEvent.fireAsync(StorageEvent.builder().type(StorageEventType.READY).build());
     }
 
+    @Override
+    protected String markerToString(RevCommit marker) {
+        return marker != null ? marker.name() : null;
+    }
+
     @Scheduled(concurrentExecution = SKIP, every = "${apicurio.polling-storage.try-refresh.every:2.5s}")
     void scheduledRefresh() {
         if ("gitops".equals(registryStorageType)) {

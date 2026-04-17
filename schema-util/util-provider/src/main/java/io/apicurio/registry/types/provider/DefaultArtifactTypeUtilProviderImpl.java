@@ -16,8 +16,10 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
                     new AvroArtifactTypeUtilProvider(), new GraphQLArtifactTypeUtilProvider(),
                     new KConnectArtifactTypeUtilProvider(), new WsdlArtifactTypeUtilProvider(),
                     new XsdArtifactTypeUtilProvider(), new XmlArtifactTypeUtilProvider(),
-                    new AgentCardArtifactTypeUtilProvider(), new IcebergTableArtifactTypeUtilProvider(),
-                    new IcebergViewArtifactTypeUtilProvider()));
+                    new AgentCardArtifactTypeUtilProvider(), new McpToolArtifactTypeUtilProvider(),
+                    new IcebergTableArtifactTypeUtilProvider(),
+                    new IcebergViewArtifactTypeUtilProvider(),
+                    new OpenRpcArtifactTypeUtilProvider()));
 
     protected List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
 

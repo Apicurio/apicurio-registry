@@ -5,7 +5,7 @@ import com.github.dockerjava.api.model.ContainerConfig;
 import io.fabric8.kubernetes.api.model.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
@@ -15,7 +15,7 @@ import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
  * Wrapper for MySQL that works in Kubernetes cluster mode.
  * Overrides container methods to return Kubernetes service connection details.
  */
-public class KubernetesMySQLContainerWrapper extends MySQLContainer<KubernetesMySQLContainerWrapper> {
+public class KubernetesMySQLContainerWrapper extends MySQLContainer {
 
     private static final Logger log = LoggerFactory.getLogger(KubernetesMySQLContainerWrapper.class);
 

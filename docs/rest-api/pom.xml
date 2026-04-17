@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-docs</artifactId>
-    <version>3.2.1-SNAPSHOT</version>
+    <version>3.2.2-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -60,6 +60,16 @@
         <role>Developer</role>
       </roles>
       <timezone>+1</timezone>
+    </developer>
+    <developer>
+      <id>vandanayadav7</id>
+      <name>Vandana Yadav</name>
+      <email>vandana.yadav.vs@gmail.com</email>
+      <organization>IBM</organization>
+      <roles>
+        <role>Developer</role>
+      </roles>
+      <timezone>Europe/Dublin</timezone>
     </developer>
   </developers>
 

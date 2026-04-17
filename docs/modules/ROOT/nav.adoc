@@ -19,6 +19,7 @@
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]
+** xref:getting-started/assembly-managing-registry-artifacts-cli.adoc[]
 ** xref:getting-started/assembly-using-the-registry-client.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-maven.adoc[]
 * Apache Flink integration
@@ -34,6 +35,7 @@ ifndef::service-registry-downstream[]
 endif::[]
 * AI Agent Integration
 ** xref:getting-started/assembly-a2a-features.adoc[]
+** xref:getting-started/assembly-mcp-tool-features.adoc[]
 ** xref:getting-started/assembly-llm-artifact-types-implementation.adoc[]
 * Confluent Schema Registry Compatibility
 ** xref:getting-started/assembly-confluent-schema-registry-compatibility.adoc[]

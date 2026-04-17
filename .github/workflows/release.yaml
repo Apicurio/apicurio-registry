@@ -14,12 +14,12 @@ on:
         description: I will notify jsenko if the operator release workflow fails!
 
 jobs:
-  release:
+  # Phase 1: Bump version, commit, push. Fast job that gates all parallel builds.
+  release-prepare:
     runs-on: ubuntu-22.04
-    env:
-      IS_PRE_RELEASE: false
-      MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
     if: github.repository_owner == 'Apicurio'
+    outputs:
+      release-sha: ${{ steps.release-commit.outputs.sha }}
     steps:
 
       - name: Check
@@ -29,45 +29,21 @@ jobs:
             exit 1
           fi
 
-      - name: Calculate Next Version
+      - name: Calculate Versions
         run: |
           RELEASE_VERSION="${{ github.event.inputs.release-version }}"
-
-          # Extract major, minor, and patch from release version (handles versions like 3.0.1 or 3.0.1-RC1)
           MAJOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $1}')
           MINOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $2}')
           PATCH=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $3}')
 
-          # Increment patch version
-          NEXT_PATCH=$((PATCH + 1))
-
-          # Create next version
-          NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
-
-          # Create snapshot version
-          SNAPSHOT_VERSION="${NEXT_VERSION}-SNAPSHOT"
-
-          # Calculate derived versions for release
-          RELEASE_DOCS_VERSION="${MAJOR}.${MINOR}.x"
-          RELEASE_UI_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-
-          # Calculate derived versions for snapshot (next development cycle)
-          SNAPSHOT_DOCS_VERSION="${MAJOR}.${MINOR}.x"
-          SNAPSHOT_UI_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}-Dev"
-
-          echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
-          echo "SNAPSHOT_VERSION=${SNAPSHOT_VERSION}" >> $GITHUB_ENV
-          echo "RELEASE_DOCS_VERSION=${RELEASE_DOCS_VERSION}" >> $GITHUB_ENV
-          echo "RELEASE_UI_VERSION=${RELEASE_UI_VERSION}" >> $GITHUB_ENV
-          echo "SNAPSHOT_DOCS_VERSION=${SNAPSHOT_DOCS_VERSION}" >> $GITHUB_ENV
-          echo "SNAPSHOT_UI_VERSION=${SNAPSHOT_UI_VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_DOCS_VERSION=${MAJOR}.${MINOR}.x" >> $GITHUB_ENV
+          echo "RELEASE_UI_VERSION=${MAJOR}.${MINOR}.${PATCH}" >> $GITHUB_ENV
 
       - name: Log Metadata
         run: |
           echo "Releasing Apicurio Registry version ${{ github.event.inputs.release-version }} from branch ${{ github.event.inputs.branch }}"
-          echo "Next version will be ${{ env.NEXT_VERSION }}"
-          echo "Next Snapshot version will be ${{ env.SNAPSHOT_VERSION }}"
 
+      # JDK is only needed here for mvn versions:set
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -81,12 +57,6 @@ jobs:
 
       - name: Set up json CLI
         run: npm install -g json
-
-      - name: Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Apicurio Registry Checkout
         run: |
@@ -107,7 +77,7 @@ jobs:
           mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.RELEASE_DOCS_VERSION }}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json
 
           # TODO: Operator docs
 
@@ -142,27 +112,6 @@ jobs:
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
           popd
 
-      - name: Build Registry
-        working-directory: registry
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
-        run: |
-          ./mvnw clean package \
-            --no-transfer-progress \
-            -Pprod \
-            -DskipTests=true \
-            -DskipCommitIdPlugin=false \
-            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
-            -Dmaven.wagon.http.retryHandler.count=5
-
-      - name: Build Registry UI
-        working-directory: registry/ui
-        run: |
-          npm install
-          npm run lint
-          npm run build
-          npm run package
-
       - name: (Operator) Configure env. variables
         run: |
           echo "OPERAND_IMAGE_TAG=${{ github.event.inputs.release-version }}" >> $GITHUB_ENV
@@ -180,29 +129,219 @@ jobs:
           git commit -m "ci(operator): pre-release changes for ${{ github.event.inputs.release-version }}"
 
       - name: Commit Release Version Change
+        id: release-commit
         run: |
           cd registry
           git add .
           git commit -m "Automated update to Release Version:: ${{ github.event.inputs.release-version}}"
           git push
+          echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Determine Release Type
-        if: "contains(github.event.inputs.release-version, 'RC')"
+      - name: Slack Notification (Error)
+        if: failure()
         run: |
-          echo "This is a pre-release. Setting environment variable 'IS_PRE_RELEASE' to true"
-          echo "IS_PRE_RELEASE=true" >> $GITHUB_ENV
+          MESSAGE="'${{ github.workflow }}/release-prepare' job FAILED!"
+          REPO="${{ github.repository }}"
+          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
+          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
+          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
+
+  # Phase 2a: Build the registry app (Maven).
+  # Runs in parallel with UI and CLI builds.
+  release-build-app:
+    name: Build Registry App
+    needs: release-prepare
+    if: github.repository_owner == 'Apicurio'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Apicurio Registry Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-prepare.outputs.release-sha }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build Registry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./mvnw clean package \
+            --no-transfer-progress \
+            -Pprod -Dfull -pl '!cli' \
+            -DskipTests \
+            -DskipCommitIdPlugin=false \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.*
+          retention-days: 1
+          if-no-files-found: error
+
+  # Phase 2b: Build the registry UI (npm).
+  # Runs in parallel with app and CLI builds.
+  # This is a validation gate only — the UI is rebuilt independently
+  # by the release-images workflow for Docker image creation.
+  release-build-ui:
+    name: Build Registry UI
+    needs: release-prepare
+    if: github.repository_owner == 'Apicurio'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Apicurio Registry Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-prepare.outputs.release-sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Registry UI
+        working-directory: ui
+        run: |
+          npm install
+          npm run lint
+          npm run build
+          npm run package
+
+  # Phase 2c: Build CLI native binaries for each platform.
+  # Runs in parallel with app and UI builds.
+  release-build-cli:
+    name: Build CLI (${{ matrix.os-name }})
+    needs: release-prepare
+    if: github.repository_owner == 'Apicurio'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            os-name: linux-x86_64
+          - runner: macos-14
+            os-name: osx-aarch_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Apicurio Registry Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-prepare.outputs.release-sha }}
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '23'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Build CLI Native Binary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./mvnw clean package \
+            --no-transfer-progress \
+            -pl cli -am \
+            -DskipTests \
+            -Dquarkus.native.container-build=false \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Upload CLI ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.os-name }}
+          path: cli/target/apicurio-registry-cli-${{ github.event.inputs.release-version }}-*.zip
+          retention-days: 1
+          if-no-files-found: error
+
+  # Phase 3: Create GitHub Release and bump to next snapshot.
+  # Only runs after all builds succeed — if any build fails, no release is created.
+  release-publish:
+    name: Publish Release
+    needs: [release-build-app, release-build-ui, release-build-cli]
+    if: github.repository_owner == 'Apicurio'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: artifacts/
+
+      - name: Download CLI ZIPs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          path: cli-zips/
+          merge-multiple: true
+
+      - name: Verify Release Artifacts
+        run: |
+          echo "=== Release artifacts ==="
+          ls -la artifacts/
+          echo "=== CLI ZIPs ==="
+          ls -la cli-zips/
+          for classifier in linux-x86_64 osx-aarch_64; do
+            if ! ls cli-zips/*-${classifier}.zip 1>/dev/null 2>&1; then
+              echo "ERROR: Missing CLI ZIP for ${classifier}"
+              exit 1
+            fi
+          done
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@1e07f4398721186383de40550babbdf2b84acfc5
+        uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.event.inputs.release-version }}
           tag_name: ${{ github.event.inputs.release-version }}
           token: ${{ secrets.ACCESS_TOKEN }}
-          target_commitish: ${{ github.event.inputs.branch }}
-          prerelease: ${{ env.IS_PRE_RELEASE }}
+          target_commitish: ${{ needs.release-prepare.outputs.release-sha }}
           files: |
-            registry/distro/docker/target/docker/app-files/apicurio-registry-app-${{ github.event.inputs.release-version }}-all.*
-            registry/cli/target/apicurio-registry-cli-${{ github.event.inputs.release-version }}.zip
+            artifacts/*
+            cli-zips/*
+
+      - name: Calculate Next Version
+        run: |
+          RELEASE_VERSION="${{ github.event.inputs.release-version }}"
+          MAJOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $1}')
+          MINOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $2}')
+          PATCH=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $3}')
+          NEXT_PATCH=$((PATCH + 1))
+          NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+
+          echo "SNAPSHOT_VERSION=${NEXT_VERSION}-SNAPSHOT" >> $GITHUB_ENV
+          echo "SNAPSHOT_DOCS_VERSION=${MAJOR}.${MINOR}.x" >> $GITHUB_ENV
+          echo "SNAPSHOT_UI_VERSION=${MAJOR}.${MINOR}.${NEXT_PATCH}-Dev" >> $GITHUB_ENV
+          echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up json CLI
+        run: npm install -g json
+
+      - name: Apicurio Registry Checkout
+        run: |
+          mkdir registry
+          cd registry
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
+          git fetch
+          git checkout ${{ github.event.inputs.branch }}
+          git branch --set-upstream-to=origin/${{ github.event.inputs.branch }}
+          git pull
 
       - name: Update Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |
@@ -210,7 +349,7 @@ jobs:
           mvn versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.SNAPSHOT_DOCS_VERSION }}\'/g" docs/antora.yml
-          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.SNAPSHOT_DOCS_VERSION }}\"/g" app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
+          sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.SNAPSHOT_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json
 
           # TODO: Operator docs
 
@@ -255,7 +394,7 @@ jobs:
       - name: Slack Notification (Always)
         if: always()
         run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
+          MESSAGE="'${{ github.workflow }}' completed with status: ${{ job.status }}"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
@@ -264,7 +403,7 @@ jobs:
       - name: Slack Notification (Error)
         if: failure()
         run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
+          MESSAGE="'${{ github.workflow }}' FAILED!"
           REPO="${{ github.repository }}"
           LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
           PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"

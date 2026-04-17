@@ -1,0 +1,41 @@
+# Apicurio GitOps sidecar SSH server
+Port {{PUSH_PORT}}
+ListenAddress 0.0.0.0
+
+# Host keys
+{{HOST_KEY_DIRECTIVES}}
+
+# Authentication hardening
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+AuthorizedKeysFile {{AUTH_KEYS_DIR}}/authorized_keys
+
+# Restrict to git operations only
+AllowUsers git
+ForceCommand /usr/bin/git-shell -c "${SSH_ORIGINAL_COMMAND}"
+
+# Disable unnecessary features
+X11Forwarding no
+AllowTcpForwarding no
+AllowAgentForwarding no
+PermitTunnel no
+GatewayPorts no
+PrintMotd no
+PrintLastLog no
+
+# Logging
+LogLevel INFO
+
+# Security
+MaxAuthTries 3
+LoginGraceTime 30
+ClientAliveInterval 60
+ClientAliveCountMax 3
+MaxSessions 5
+MaxStartups 5:50:10
+
+# Use privilege separation
+UsePAM no
+PidFile {{SSHD_DIR}}/sshd.pid

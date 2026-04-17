@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.1-SNAPSHOT</version>
+    <version>3.2.2-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -75,12 +75,17 @@
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>mssqlserver</artifactId>
+      <artifactId>testcontainers-mssqlserver</artifactId>
     </dependency>
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>mysql</artifactId>
+      <artifactId>testcontainers-mysql</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-kafka</artifactId>
     </dependency>
 
     <dependency>
@@ -90,7 +95,7 @@
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>pulsar</artifactId>
+      <artifactId>testcontainers-pulsar</artifactId>
     </dependency>
 
     <dependency>
@@ -100,7 +105,7 @@
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>postgresql</artifactId>
+      <artifactId>testcontainers-postgresql</artifactId>
     </dependency>
 
     <dependency>

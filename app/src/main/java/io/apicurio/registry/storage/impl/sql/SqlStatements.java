@@ -781,4 +781,24 @@ public interface SqlStatements {
      * and content. Used for streaming incremental search index updates.
      */
     String selectVersionsWithContentModifiedSince();
+
+    // ========== Contract Rules ==========
+
+    String selectContractRulesByArtifact();
+
+    String selectContractRulesByGlobalId();
+
+    String insertContractRule();
+
+    String deleteContractRulesByArtifact();
+
+    String deleteContractRulesByGlobalId();
+
+    String exportContractRules();
+
+    String exportContractRulesByGroupId();
+
+    String importContractRule();
+
+    String selectContractRulesByTag();
 }

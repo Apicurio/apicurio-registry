@@ -30,6 +30,12 @@ func NewSearchRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 	return NewSearchRequestBuilderInternal(urlParams, requestAdapter)
 }
 
+// Contract the contract property
+// returns a *ContractRequestBuilder when successful
+func (m *SearchRequestBuilder) Contract() *ContractRequestBuilder {
+	return NewContractRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Groups search for groups in the registry.
 // returns a *GroupsRequestBuilder when successful
 func (m *SearchRequestBuilder) Groups() *GroupsRequestBuilder {

@@ -61,6 +61,10 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
     private void triggerRefreshFromWatch() {
         log.debug("Watch triggered refresh");
 
+        // Always set the pending flag so that if the lock is held,
+        // the next refresh cycle will re-poll immediately
+        requestSync();
+
         try {
             // Activate request context since the watch callback runs in a background thread
             ManagedContext requestContext = Arc.container().requestContext();

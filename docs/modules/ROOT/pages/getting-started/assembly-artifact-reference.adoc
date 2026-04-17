@@ -51,6 +51,9 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |`KCONNECT`
 |Apache Kafka Connect schema
 |`2.0.0`
+|`MCP_TOOL`
+|MCP tool definitions (Model Context Protocol)
+|`2025-11-25`
 |`MODEL_SCHEMA`
 |AI/ML model input/output schema definitions
 |`v1`
@@ -78,6 +81,16 @@ You can store and manage a wide range of schema and API artifact types in {regis
 === AI/ML artifact types
 
 {registry} includes built-in support for AI/ML artifact types designed for LLMOps and prompt engineering workflows.
+
+==== MCP_TOOL
+MCP (Model Context Protocol) tool definitions. Use this artifact type to:
+
+* Store MCP tool definitions with input/output schemas
+* Track tool evolution with version history and compatibility checking
+* Enable discovery of tools via well-known endpoints
+* Validate tool definitions against the MCP specification
+
+Content types: `application/json`
 
 ==== MODEL_SCHEMA
 Defines and validates AI/ML model input/output schemas and metadata. Use this artifact type to:

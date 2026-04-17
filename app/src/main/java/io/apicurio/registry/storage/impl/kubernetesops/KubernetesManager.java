@@ -36,6 +36,7 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<String> 
     KubernetesClient kubernetesClient;
 
     private volatile String previousResourceVersion = "";
+    private volatile long lastConfigMapTimestamp = 0;
 
     private Watch configMapWatch;
     private volatile boolean watchActive = false;
@@ -48,8 +49,10 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<String> 
     });
 
     @Override
-    protected long getCommitTime(String marker) {
-        return Instant.now().getEpochSecond();
+    protected Instant getCommitTime(String marker) {
+        // Use the most recent ConfigMap timestamp for stable createdOn/modifiedOn values
+        // that survive pod restarts, falling back to current time if no timestamps available
+        return lastConfigMapTimestamp > 0 ? Instant.ofEpochMilli(lastConfigMapTimestamp) : Instant.now();
     }
 
     @Override
@@ -82,18 +85,38 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<String> 
         List<PollingDataFile> files = new ArrayList<>();
         ProcessingState tempState = new ProcessingState(config, null);
 
+        // Track the most recent ConfigMap modification time for stable timestamps
+        long maxTimestamp = 0;
         for (ConfigMap configMap : configMapList.getItems()) {
+            var creationTimestamp = configMap.getMetadata().getCreationTimestamp();
+            if (creationTimestamp != null) {
+                try {
+                    long ts = Instant.parse(creationTimestamp).toEpochMilli();
+                    if (ts > maxTimestamp) {
+                        maxTimestamp = ts;
+                    }
+                } catch (Exception e) {
+                    log.debug("Could not parse ConfigMap timestamp: {}", creationTimestamp);
+                }
+            }
+
             Map<String, String> data = configMap.getData();
+            String configMapName = configMap.getMetadata().getName();
 
             if (data != null) {
                 for (Map.Entry<String, String> entry : data.entrySet()) {
-                    String dataKey = entry.getKey(); // TODO: Shouldn't this also contain a ConfigMap identifier to ensure uniqueness across multiple ConfigMaps?
+                    // Prefix data key with ConfigMap name to ensure uniqueness across ConfigMaps
+                    String dataKey = configMapName + "/" + entry.getKey();
                     String content = entry.getValue();
 
                     ConfigMapDataFile file = ConfigMapDataFile.create(tempState, dataKey, content);
                     files.add(file);
                 }
             }
+        }
+
+        if (maxTimestamp > 0) {
+            lastConfigMapTimestamp = maxTimestamp;
         }
 
         log.debug("Found {} data files across {} ConfigMaps",

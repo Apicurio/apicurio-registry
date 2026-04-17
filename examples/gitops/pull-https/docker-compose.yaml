@@ -1,0 +1,72 @@
+# GitOps Pull Mode (HTTPS) - Docker Compose
+#
+# Pulls schemas from a public Git repository over HTTPS using the GitOps sidecar.
+# Uses dev security mode to allow HTTP/HTTPS without SSH keys.
+#
+# Setup:
+#
+#   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
+#
+#   2. (Recommended) Update APICURIO_GITOPS_REPO_URL below with your fork URL
+#
+#   3. Run:
+#      cd examples/gitops/pull-https
+#      docker compose up
+#
+# Endpoints:
+#   - Registry API: http://localhost:8080/apis/registry/v3
+#   - Registry UI:  http://localhost:8888
+
+services:
+
+  gitops-sync:
+    container_name: gitops-sync
+    image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
+    environment:
+      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-https://github.com/Apicurio/apicurio-registry-gitops-example.git}"
+      APICURIO_GITOPS_SECURITY: "dev"
+      APICURIO_GITOPS_REPO_BRANCH: "test"
+    volumes:
+      - git-repo:/repos
+
+  registry:
+    container_name: registry
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
+    environment:
+      QUARKUS_PROFILE: "prod"
+      APICURIO_STORAGE_KIND: "gitops"
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_POLLING_STORAGE_ID: "${APICURIO_POLLING_STORAGE_ID:-prod}"
+      # Faster startup for the example (lower debounce)
+      APICURIO_POLLING_STORAGE_POLL_PERIOD: "PT5S"
+      APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: "PT5S"
+      APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: "PT30S"
+      QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
+      QUARKUS_HTTP_CORS: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    volumes:
+      - git-repo:/repos:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - gitops-sync
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  registry-ui:
+    container_name: registry-ui
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    ports:
+      - "8888:8080"
+    depends_on:
+      registry:
+        condition: service_healthy
+
+volumes:
+  git-repo:

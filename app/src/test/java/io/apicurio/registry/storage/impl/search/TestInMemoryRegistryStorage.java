@@ -15,6 +15,8 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -47,6 +49,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -769,6 +772,11 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void importContractRule(ContractRuleEntity entity) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void importBranch(BranchEntity entity) {
         throw new UnsupportedOperationException();
     }
@@ -895,6 +903,44 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public List<DynamicConfigPropertyDto> getConfigProperties() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setArtifactContractRuleset(String groupId, String artifactId,
+            ContractRuleSetDto ruleset) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deleteArtifactContractRuleset(String groupId, String artifactId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId,
+            String version) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deleteVersionContractRuleset(String groupId, String artifactId, String version) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag) {
         throw new UnsupportedOperationException();
     }
 }

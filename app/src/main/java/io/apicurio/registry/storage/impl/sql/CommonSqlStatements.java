@@ -1413,4 +1413,51 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.modifiedOn >= ? "
                 + "ORDER BY v.globalId ASC";
     }
+
+    // ========== Contract Rules ==========
+
+    @Override
+    public String selectContractRulesByArtifact() {
+        return "SELECT r.* FROM contract_rules r WHERE r.groupId = ? AND r.artifactId = ? AND r.globalId IS NULL ORDER BY r.ruleCategory, r.orderIndex";
+    }
+
+    @Override
+    public String selectContractRulesByGlobalId() {
+        return "SELECT r.* FROM contract_rules r WHERE r.globalId = ? ORDER BY r.ruleCategory, r.orderIndex";
+    }
+
+    @Override
+    public String insertContractRule() {
+        return "INSERT INTO contract_rules (groupId, artifactId, globalId, ruleCategory, orderIndex, ruleName, kind, ruleType, mode, expr, params, tags, onSuccess, onFailure, disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    @Override
+    public String deleteContractRulesByArtifact() {
+        return "DELETE FROM contract_rules WHERE groupId = ? AND artifactId = ? AND globalId IS NULL";
+    }
+
+    @Override
+    public String deleteContractRulesByGlobalId() {
+        return "DELETE FROM contract_rules WHERE globalId = ?";
+    }
+
+    @Override
+    public String exportContractRules() {
+        return "SELECT * FROM contract_rules r";
+    }
+
+    @Override
+    public String exportContractRulesByGroupId() {
+        return "SELECT * FROM contract_rules r WHERE r.groupId = ?";
+    }
+
+    @Override
+    public String importContractRule() {
+        return "INSERT INTO contract_rules (groupId, artifactId, globalId, ruleCategory, orderIndex, ruleName, kind, ruleType, mode, expr, params, tags, onSuccess, onFailure, disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    @Override
+    public String selectContractRulesByTag() {
+        return "SELECT r.* FROM contract_rules r WHERE r.tags LIKE ?";
+    }
 }

@@ -132,8 +132,8 @@ The following Confluent Schema Registry features are *not supported* in {registr
 |Use {registry} system API for registry information.
 
 |*Data Contracts - Rules Enforcement*
-|`metadata` and `ruleSet` fields are accepted in requests but NOT enforced or stored. Schema rules are not executed.
-|Use {registry} native content rules (validity, compatibility, integrity) instead.
+|`metadata` and `ruleSet` fields are accepted in requests but NOT enforced or stored via the ccompat API. Schema rules are not executed.
+|Use {registry} native Data Contracts feature (`apicurio.contracts.enabled=true`) for contract metadata and rulesets. See xref:getting-started/assembly-data-contracts.adoc[Data Contracts].
 |===
 
 [discrete]
@@ -155,11 +155,14 @@ Confluent Data Contracts provide governance features including:
 * *Metadata*: Key-value pairs attached to schemas (owner, email, tags)
 * *RuleSets*: Validation and transformation rules using CEL or JSONata
 
-In {registry}, these fields are accepted in API requests for client compatibility but are not processed or stored. Instead, use {registry} native features:
+In {registry}, these fields are accepted in ccompat API requests for client compatibility but are not processed or stored through the ccompat layer. Instead, {registry} provides its own native Data Contracts feature with richer functionality:
 
-* *Labels*: Use artifact labels for metadata
+* *Contract Metadata*: Standardized metadata (status, owner, domain, classification, stage) managed through the `contract/metadata` REST API
+* *Contract Rulesets*: Domain and migration rules at both artifact and version level, managed through the `contract/ruleset` REST API
 * *Content Rules*: Configure validity, compatibility, and integrity rules
 * *Groups*: Organize artifacts by group for governance
+
+See xref:getting-started/assembly-data-contracts.adoc[Data Contracts] for full documentation on the native data contracts feature.
 
 [id="ccompat-migration-considerations_{context}"]
 == Migration considerations
@@ -189,7 +192,7 @@ When migrating from Confluent Schema Registry to {registry}, consider the follow
 |Not supported. Use {registry} import/export API or Kafka topic replication.
 
 |*Data Contracts*
-|Metadata and rules are not enforced. Migrate governance to {registry} native rules.
+|Metadata and rules from the ccompat API are not enforced. Use {registry} native Data Contracts feature for contract metadata and rulesets.
 
 |*Encryption (KEK/DEK)*
 |Not supported. Implement encryption at the application layer.

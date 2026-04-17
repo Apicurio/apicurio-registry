@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.impl.polling.AbstractPollingDataSourceManage
 import io.apicurio.registry.storage.impl.polling.PollingDataFile;
 import io.apicurio.registry.storage.impl.polling.PollingResult;
 import io.apicurio.registry.storage.impl.polling.ProcessingState;
+import java.time.Instant;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -46,8 +47,8 @@ public class GitManager extends AbstractPollingDataSourceManager<RevCommit> {
     private RevCommit previousCommit;
 
     @Override
-    protected long getCommitTime(RevCommit marker) {
-        return marker.getCommitTime();
+    protected Instant getCommitTime(RevCommit marker) {
+        return Instant.ofEpochSecond(marker.getCommitTime());
     }
 
     @Override
@@ -134,7 +135,7 @@ public class GitManager extends AbstractPollingDataSourceManager<RevCommit> {
             return PollingResult.noChanges(currentCommit);
         }
 
-        log.info("Detected change: {} -> {}", previousCommit != null ? previousCommit.name() : "(initial)",
+        log.debug("Detected change: {} -> {}", previousCommit != null ? previousCommit.name() : "(initial)",
                 currentCommit.name());
 
         // Walk the tree at the pinned commit SHA and collect files.

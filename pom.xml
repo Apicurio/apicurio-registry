@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.2.1-SNAPSHOT</version>
+  <version>3.2.2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -66,42 +66,34 @@
       </roles>
       <timezone>Europe/Lisbon</timezone>
     </developer>
+    <developer>
+      <id>vandanayadav7</id>
+      <name>Vandana Yadav</name>
+      <email>vandana.yadav.vs@gmail.com</email>
+      <organization>IBM</organization>
+      <roles>
+        <role>Developer</role>
+      </roles>
+      <timezone>Europe/Dublin</timezone>
+    </developer>
   </developers>
 
   <modules>
+    <!-- Essential modules (always built) -->
     <module>app</module>
-    <module>cli</module>
     <module>common</module>
     <module>config-index/definitions</module>
     <module>config-index/deployment</module>
     <module>config-index/runtime</module>
-    <module>distro</module>
-    <module>docs</module>
-    <module>go-sdk</module>
     <module>java-sdk</module>
-    <module>mcp</module>
-    <module>operator</module>
     <module>schema-resolver</module>
-    <module>serdes/generic/serde-common-avro</module>
-    <module>serdes/generic/serde-common-jsonschema</module>
-    <module>serdes/generic/serde-common-protobuf</module>
-    <module>serdes/generic/serde-common</module>
-    <module>serdes/kafka/avro-serde</module>
-    <module>serdes/kafka/jsonschema-serde</module>
-    <module>serdes/kafka/protobuf-serde</module>
-    <module>serdes/kafka/serde-kafka-common</module>
-    <module>serdes/nats/avro-serde</module>
-    <module>serdes/pulsar/avro-serde</module>
-    <module>utils/converter</module>
-    <module>utils/exportConfluent</module>
-    <module>utils/extra-tests</module>
-    <module>utils/flink</module>
+    <module>schema-validation/common</module>
+    <module>schema-validation/jsonschema</module>
+    <module>schema-validation/avro</module>
+    <module>schema-validation/protobuf</module>
     <module>utils/importexport</module>
-    <module>utils/kafka</module>
-    <module>utils/maven-plugin</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
-    <module>utils/raml-test-micro-service</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
     <module>schema-util/asyncapi</module>
@@ -112,12 +104,12 @@
     <module>schema-util/json</module>
     <module>schema-util/kconnect</module>
     <module>schema-util/openapi</module>
+    <module>schema-util/openrpc</module>
     <module>schema-util/protobuf</module>
     <module>schema-util/util-provider</module>
     <module>schema-util/wsdl</module>
     <module>schema-util/xml</module>
     <module>schema-util/xsd</module>
-
   </modules>
 
   <scm>
@@ -146,31 +138,33 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
-    <quarkus.version>3.27.2</quarkus.version>
+    <quarkus.version>3.33.1</quarkus.version>
     <!--
     # QOSDK
 
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/7.1.4/quarkus-operator-sdk-parent-7.1.4.pom
     to check that the versions match as best as possible:
 
+    - QOSDK 7.7.3 -> Quarkus 3.33.1 (LTS)
     - QOSDK 7.2.1 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - QOSDK 7.2.0 -> Quarkus 3.23.2
     - QOSDK 7.1.4 -> Quarkus 3.20.1
     - QOSDK 7.1.3 -> Quarkus 3.20.0
     -->
-    <quarkus-operator-sdk.version>7.2.1</quarkus-operator-sdk.version>
-    <java-operator-sdk.version>5.0.4</java-operator-sdk.version>
+    <quarkus-operator-sdk.version>7.7.3</quarkus-operator-sdk.version>
+    <java-operator-sdk.version>5.3.2</java-operator-sdk.version>
     <!--
     # Quarkus MCP Server
 
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/mcp/quarkus-mcp-server-parent/1.6.0/quarkus-mcp-server-parent-1.6.0.pom
     to check that the versions match as best as possible:
 
+    - MCP Server 1.11.0 -> Quarkus 3.33.0 (using 3.33.1 patch)
     - MCP Server 1.7.0 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - MCP Server 1.6.1 -> Quarkus 3.20.2.2
     - MCP Server 1.6.0 -> Quarkus 3.20.2.2
     -->
-    <quarkus-mcp-server.version>1.7.0</quarkus-mcp-server.version>
+    <quarkus-mcp-server.version>1.11.0</quarkus-mcp-server.version>
     <!--
     /WARNING
     -->
@@ -188,7 +182,7 @@
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.34.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.67.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.68.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -196,16 +190,13 @@
     <picocli.version>4.7.7</picocli.version>
 
     <!-- Logging -->
-    <log4j.version>2.25.3</log4j.version>
+    <log4j.version>2.25.4</log4j.version>
 
     <!-- Confluent API / client -->
     <confluent.version>8.0.0</confluent.version>
 
     <!-- Default Quarkus configuration profile -->
     <quarkus.profile>dev</quarkus.profile>
-
-    <!-- Default Skip App build value -->
-    <skipAppTests>false</skipAppTests>
 
     <!-- Default Skip Operator build value -->
     <skipOperatorTests>true</skipOperatorTests>
@@ -214,7 +205,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>2.5.3</apicurio-data-models.version>
+    <apicurio-data-models.version>3.0.1</apicurio-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>22.4</graphql.version>
@@ -235,6 +226,7 @@
     <!-- Dependency versions -->
     <lombok.version>1.18.44</lombok.version>
     <commons-codec.version>1.21.0</commons-codec.version>
+    <netty.version>4.1.132.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
     <debezium.version>2.7.4.Final</debezium.version>
@@ -291,7 +283,7 @@
     <apicurio-maven-plugin.version>0.0.8</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.0.2</proto-plugin.version>
+    <proto-plugin.version>5.1.2</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
@@ -306,11 +298,11 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>4.0.30</groovy.version>
+    <groovy.version>4.0.31</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
-    <pulsar.testcontainers.version>1.21.4</pulsar.testcontainers.version>
-    <keycloak.testcontainers.version>3.9.1</keycloak.testcontainers.version>
+    <pulsar.testcontainers.version>2.0.4</pulsar.testcontainers.version>
+    <keycloak.testcontainers.version>4.2.0</keycloak.testcontainers.version>
     <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
@@ -356,11 +348,6 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-java-sdk-adapter-jdk</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-utils-kafka</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -542,7 +529,32 @@
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-openrpc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-resolver</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-validation-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-validation-jsonschema</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-validation-avro</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-validation-protobuf</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -587,6 +599,16 @@
       </dependency>
 
       <!-- Overrides of versions from the Quarkus BOM -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec-http</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec-http2</artifactId>
+        <version>${netty.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>
@@ -945,7 +967,7 @@
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
-        <artifactId>pulsar</artifactId>
+        <artifactId>testcontainers-pulsar</artifactId>
         <version>${pulsar.testcontainers.version}</version>
       </dependency>
       <dependency>
@@ -995,19 +1017,7 @@
         <version>${assertj.core.version}</version>
         <scope>test</scope>
       </dependency>
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers</artifactId>
-        <!--
-        Why is a version override here, when it should be managed by the Quarkus BOM?
-        Docker server expects some minimum API version to be used by the client, and fails if the client uses an older API version (run `docker version`).
-        Testcontainers 1.21.3 uses API version 1.32, and if you have a newer Docker server, it fails with:
-        `client version 1.32 is too old. Minimum supported API version is 1.44, please upgrade your client to a newer version`.
-        Testcontainers 1.21.4 work, and since this is a test dependency, overriding the version seems like an acceptable workaround.
-        TODO: Revisit after Quarkus upgrade.
-        -->
-        <version>1.21.4</version>
-      </dependency>
+      <!-- testcontainers core version now managed by Quarkus 3.33.1 BOM (2.0.3) -->
 
       <!-- Iceberg -->
       <dependency>
@@ -1168,10 +1178,6 @@
                   <value>${quarkus.profile}</value>
                 </property>
                 <property>
-                  <name>skipAppTests</name>
-                  <value>${skipAppTests}</value>
-                </property>
-                <property>
                   <name>skipOperatorTests</name>
                   <value>${skipOperatorTests}</value>
                 </property>
@@ -1212,6 +1218,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
+          <additionalJOption>-Xdoclint:none</additionalJOption>
           <additionalDependencies>
             <additionalDependency>
               <groupId>jakarta.annotation</groupId>
@@ -1242,6 +1249,14 @@
             <version>${version.puppycrawl}</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <configLocation>${projectRoot}/.checkstyle/simple.xml</configLocation>
+          <headerLocation>${projectRoot}/.checkstyle/java.header</headerLocation>
+          <suppressionsLocation>${projectRoot}/.checkstyle/suppressions.xml</suppressionsLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
+        </configuration>
         <executions>
           <execution>
             <id>validate</id>
@@ -1249,14 +1264,6 @@
               <goal>check</goal>
             </goals>
             <phase>validate</phase>
-            <configuration>
-              <configLocation>.checkstyle/simple.xml</configLocation>
-              <headerLocation>.checkstyle/java.header</headerLocation>
-              <suppressionsLocation>.checkstyle/suppressions.xml</suppressionsLocation>
-              <includeTestSourceDirectory>true</includeTestSourceDirectory>
-              <consoleOutput>true</consoleOutput>
-              <failsOnError>true</failsOnError>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1281,7 +1288,7 @@
       <plugin>
         <groupId>io.github.git-commit-id</groupId>
         <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>9.0.2</version>
+        <version>9.2.0</version>
         <configuration>
           <skip>${skipCommitIdPlugin}</skip>
           <generateGitPropertiesFile>true</generateGitPropertiesFile>
@@ -1316,10 +1323,83 @@
       </properties>
     </profile>
     <profile>
+      <id>non-essential</id>
+      <activation>
+        <property>
+          <name>!fast</name>
+        </property>
+      </activation>
+      <modules>
+        <module>cli</module>
+        <module>distro</module>
+        <module>docs</module>
+        <module>utils/converter</module>
+        <module>utils/maven-plugin</module>
+        <module>utils/raml-test-micro-service</module>
+        <module>serdes/generic/serde-common</module>
+        <module>serdes/generic/serde-common-avro</module>
+        <module>serdes/generic/serde-common-jsonschema</module>
+        <module>serdes/generic/serde-common-protobuf</module>
+        <module>serdes/kafka/avro-serde</module>
+        <module>serdes/kafka/jsonschema-serde</module>
+        <module>serdes/kafka/protobuf-serde</module>
+        <module>serdes/kafka/serde-kafka-common</module>
+        <module>serdes/nats/avro-serde</module>
+        <module>serdes/pulsar/avro-serde</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>full</id>
+      <activation>
+        <property>
+          <name>full</name>
+        </property>
+      </activation>
+      <modules>
+        <!-- Include non-essential modules so -Dfull is a true superset -->
+        <module>cli</module>
+        <module>distro</module>
+        <module>docs</module>
+        <module>utils/converter</module>
+        <module>utils/maven-plugin</module>
+        <module>utils/raml-test-micro-service</module>
+        <module>serdes/generic/serde-common</module>
+        <module>serdes/generic/serde-common-avro</module>
+        <module>serdes/generic/serde-common-jsonschema</module>
+        <module>serdes/generic/serde-common-protobuf</module>
+        <module>serdes/kafka/avro-serde</module>
+        <module>serdes/kafka/jsonschema-serde</module>
+        <module>serdes/kafka/protobuf-serde</module>
+        <module>serdes/kafka/serde-kafka-common</module>
+        <module>serdes/nats/avro-serde</module>
+        <module>serdes/pulsar/avro-serde</module>
+        <!-- Full-only modules -->
+        <module>go-sdk</module>
+        <module>mcp</module>
+        <module>operator</module>
+        <module>utils/exportConfluent</module>
+        <module>utils/extra-tests</module>
+        <module>utils/flink</module>
+      </modules>
+    </profile>
+    <profile>
       <id>integration-tests</id>
       <modules>
         <module>integration-tests</module>
       </modules>
+      <build>
+        <plugins>
+          <!-- Skip unit tests in upstream modules when running integration tests.
+               The -Dgroups property leaks to surefire via the command line,
+               and modules without JUnit 5 on their test classpath would fail. -->
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <skipTests>true</skipTests>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
     <profile>
       <id>examples</id>
@@ -1329,6 +1409,10 @@
     </profile>
     <profile>
       <id>productization</id>
+      <properties>
+        <!-- Deactivates the external-repos profile -->
+        <skipExternalRepos>true</skipExternalRepos>
+      </properties>
       <modules>
         <module>prod-verifier</module>
       </modules>
@@ -1398,45 +1482,12 @@
         </plugins>
       </build>
     </profile>
+    <!-- External repositories, automatically excluded when -Pproductization is used -->
     <profile>
-      <id>java8</id>
-      <activation>
-        <jdk>[1.8,)</jdk>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <configuration>
-              <additionalJOption>-Xdoclint:none</additionalJOption>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <!-- For deploying to github packages -->
-    <profile>
-      <id>github</id>
-      <distributionManagement>
-        <repository>
-          <id>github</id>
-          <name>GitHub Packages</name>
-          <url>https://maven.pkg.github.com/Apicurio/apicurio-registry</url>
-        </repository>
-      </distributionManagement>
-    </profile>
-    <!--
-            conditional repo to be excluded in productization
-            build in prod with:
-            mvn ... -P '!external_repos'
-        -->
-    <profile>
-      <id>external_repos</id>
+      <id>external-repos</id>
       <activation>
         <property>
-          <!-- fake property, assumed never set -->
-          <name>!skipDefault</name>
+          <name>!skipExternalRepos</name>
         </property>
       </activation>
       <repositories>

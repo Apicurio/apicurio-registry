@@ -55,6 +55,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -204,8 +205,16 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @PreDestroy
     void onDestroy() {
         stopped = true;
-        journalConsumer.close();
-        snapshotsConsumer.close();
+        try {
+            journalConsumer.close();
+        } catch (Exception e) {
+            log.debug("Ignoring journal consumer close error during shutdown: {}", e.getMessage());
+        }
+        try {
+            snapshotsConsumer.close();
+        } catch (Exception e) {
+            log.debug("Ignoring snapshots consumer close error during shutdown: {}", e.getMessage());
+        }
     }
 
     /**
@@ -279,7 +288,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         submitter.submitBootstrap(bootstrapId);
 
         Runnable runner = () -> {
-            try (consumer) {
+            try {
                 log.info("Subscribing to {}", configuration.getTopic());
                 // Subscribe to the journal topic
                 Collection<String> topics = Collections.singleton(configuration.getTopic());
@@ -328,6 +337,15 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                             records.forEach(record -> processRecord(record, bootstrapId, bootstrapStart));
                         }
                     }
+                }
+            } finally {
+                try {
+                    consumer.close();
+                } catch (Exception e) {
+                    // The CDI container may already be shut down during test profile switches,
+                    // causing the proxy to fail with a RuntimeException wrapping an
+                    // IllegalStateException. Safe to ignore during shutdown.
+                    log.debug("Ignoring consumer close error during shutdown: {}", e.getMessage());
                 }
             }
         };
@@ -624,6 +642,56 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteGroupRules1Message(groupId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException {
+        return sqlStore.getArtifactContractRuleset(groupId, artifactId);
+    }
+
+    @Override
+    public void setArtifactContractRuleset(String groupId, String artifactId,
+            ContractRuleSetDto ruleset) throws RegistryStorageException {
+        var message = new SetArtifactContractRuleset3Message(groupId, artifactId, ruleset);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void deleteArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException {
+        var message = new DeleteArtifactContractRuleset2Message(groupId, artifactId);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId,
+            String version) throws VersionNotFoundException, RegistryStorageException {
+        return sqlStore.getVersionContractRuleset(groupId, artifactId, version);
+    }
+
+    @Override
+    public void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException {
+        var message = new SetVersionContractRuleset4Message(groupId, artifactId, version, ruleset);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void deleteVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException {
+        var message = new DeleteVersionContractRuleset3Message(groupId, artifactId, version);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
+            throws RegistryStorageException {
+        return sqlStore.getContractRulesByTag(tag);
     }
 
     /**
@@ -1030,6 +1098,13 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
         var message = new ImportArtifactRule1Message(entity);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void importContractRule(ContractRuleEntity entity) {
+        var message = new ImportContractRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }

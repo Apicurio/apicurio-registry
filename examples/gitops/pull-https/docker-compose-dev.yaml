@@ -1,0 +1,45 @@
+# GitOps Pull Mode (HTTPS) - Quarkus Dev Mode
+#
+# Use this when running the registry locally with `mvn quarkus:dev`.
+# The sidecar pulls from a remote repo into a local directory; Registry reads from it.
+#
+# Setup:
+#
+#   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
+#
+#   2. (Recommended) Update APICURIO_GITOPS_REPO_URL below with your fork URL
+#
+#   3. Start the sidecar and UI:
+#      cd examples/gitops/pull-https
+#      docker compose -f docker-compose-dev.yaml up
+#
+#   4. Start Registry in dev mode:
+#      mvn clean install -Dfast -pl app -am -DskipTests && cd app
+#      mvn quarkus:dev \
+#        -Dapicurio.storage.kind=gitops \
+#        -Dapicurio.features.experimental.enabled=true \
+#        -Dapicurio.polling-storage.id=prod \
+#        -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops/pull-https/repos
+#
+# Endpoints:
+#   - Registry API: http://localhost:8080/apis/registry/v3
+#   - Registry UI:  http://localhost:8888
+
+services:
+
+  gitops-sync:
+    container_name: gitops-sync
+    image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
+    environment:
+      APICURIO_GITOPS_REPO_URL: "${APICURIO_GITOPS_REPO_URL:-https://github.com/Apicurio/apicurio-registry-gitops-example.git}"
+      APICURIO_GITOPS_SECURITY: "dev"
+    volumes:
+      - ./repos:/repos
+
+  registry-ui:
+    container_name: registry-ui
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    ports:
+      - "8888:8080"

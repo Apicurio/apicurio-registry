@@ -16,7 +16,7 @@
  */
 import {Injectable} from "@angular/core";
 import {Document} from "@apicurio/data-models";
-import {Topic} from "apicurio-ts-core";
+import {Topic} from "../_messaging/topic";
 
 /**
  * A service providing document related functionality, including the ability to

@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.1-SNAPSHOT</version>
+    <version>3.2.2-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -23,11 +23,6 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-common</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-utils-kafka</artifactId>
     </dependency>
 
     <dependency>
@@ -367,12 +362,12 @@
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>mssqlserver</artifactId>
+      <artifactId>testcontainers-mssqlserver</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>mysql</artifactId>
+      <artifactId>testcontainers-mysql</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -501,14 +496,14 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <skipExec>${skipTests}</skipExec>
-          <skipTests>${skipAppTests}</skipTests>
           <groups>${groups}</groups>
           <forkCount>1</forkCount>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <org.jboss.logging.provider>jboss</org.jboss.logging.provider>
             <project.build.directory>${project.build.directory}</project.build.directory>
+            <!-- Prevent OTel SPI conflict between Quarkus ContextStorageProvider and SDK testing -->
+            <io.opentelemetry.context.contextStorageProvider>default</io.opentelemetry.context.contextStorageProvider>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -770,6 +765,26 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
+          <!-- Copy the v3 OpenAPI spec to the api-specifications path served by the Swagger UI.
+               This keeps it in sync with the canonical spec in the common module. -->
+          <execution>
+            <id>copy-openapi-to-api-docs</id>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <phase>process-resources</phase>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}/META-INF/resources/api-specifications/registry/v3</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.build.outputDirectory}/META-INF</directory>
+                  <includes>
+                    <include>openapi.json</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
           <execution>
             <id>copy-dist</id>
             <goals>

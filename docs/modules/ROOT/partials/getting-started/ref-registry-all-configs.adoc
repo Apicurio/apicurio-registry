@@ -73,6 +73,16 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.4.Final`
 |Include stack trace in errors responses
+|`apicurio.apis.date-format`
+|`string`
+|`yyyy-MM-dd'T'HH:mm:ss'Z'`
+|`2.4.3.Final`
+|API date format (DEPRECATED - do not use)
+|`apicurio.apis.date-format-timezone`
+|`string`
+|`UTC`
+|`2.4.3.Final`
+|API date format timezone (DEPRECATED - do not use)
 |`apicurio.apis.v3.base-href`
 |`string`
 |`_`
@@ -395,13 +405,13 @@ The following {registry} configuration options are available for each component 
 |`3.2.0`
 |Branch to read from. _(experimental)_
 |`apicurio.gitops.repo.dir`
-|`optional<string>`
-|
+|`string`
+|`default`
 |`3.2.0`
 |Directory name of the Git repository, relative to the workspace. _(experimental)_
 |`apicurio.gitops.workspace`
 |`string`
-|`.`
+|`/repos`
 |`3.2.0`
 |Base directory where Git repositories are mounted. Repository directories are resolved relative to this path. _(experimental)_
 |===
@@ -531,6 +541,11 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |Default warehouse location for Iceberg tables
+|`apicurio.metrics.iceberg.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable Iceberg-specific metrics collection
 |===
 
 == import
@@ -690,6 +705,22 @@ The following {registry} configuration options are available for each component 
 |`INFO`
 |`3.1.0`
 |Dynamic log level for Apicurio Registry
+|===
+
+== mcp
+.mcp configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.mcp-tools.enabled`
+|`boolean`
+|`false`
+|`3.0.0`
+|Enable MCP tool definition discovery endpoints _(experimental)_
 |===
 
 == observability
@@ -1183,7 +1214,7 @@ The following {registry} configuration options are available for each component 
 |Maximum time to wait for changes to settle before forcing a load. Prevents indefinite delay when changes keep arriving. Set to PT0S for no maximum. _(experimental)_
 |`apicurio.polling-storage.debounce.quiet-period`
 |`duration`
-|`PT30S`
+|`PT3S`
 |`3.2.0`
 |After detecting a change, wait until no new changes are seen for this duration before loading data. Absorbs rapid successive pushes. Set to PT0S to disable debouncing. _(experimental)_
 |`apicurio.polling-storage.deterministic-ids-enabled`
@@ -1425,16 +1456,6 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.apis.date-format`
-|`unknown`
-|`yyyy-MM-dd'T'HH:mm:ss'Z'`
-|
-|
-|`apicurio.apis.date-format-timezone`
-|`unknown`
-|`UTC`
-|
-|
 |`apicurio.app.id`
 |`unknown`
 |`apicurio-registry`

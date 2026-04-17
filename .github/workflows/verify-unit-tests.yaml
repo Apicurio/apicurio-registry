@@ -50,7 +50,7 @@ jobs:
       - name: Run Unit Tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
-          MAVEN_OPTS: -Xmx2g
+          MAVEN_OPTS: -Xmx4g
         run: |
           ./mvnw verify \
             --no-transfer-progress \

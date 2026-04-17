@@ -16,10 +16,16 @@
 
 package io.apicurio.registry.services;
 
+import io.smallrye.config.SmallRyeConfig;
+import io.smallrye.config.SmallRyeConfigBuilder;
+import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -27,6 +33,8 @@ import java.util.logging.Level;
  * {@link DynamicLogConfigurationService}.
  */
 public class DynamicLogConfigurationServiceTest {
+
+    private SmallRyeConfig registeredConfig;
 
     /**
      * Verifies that uppercase log level values are parsed successfully.
@@ -82,6 +90,69 @@ public class DynamicLogConfigurationServiceTest {
                     IllegalArgumentException.class,
                     () -> Level.parse(level.toUpperCase(Locale.ROOT)),
                     "Should reject invalid level: " + level);
+        }
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (registeredConfig != null) {
+            ConfigProviderResolver.instance().releaseConfig(registeredConfig);
+            registeredConfig = null;
+        }
+    }
+
+    @Test
+    void testResolveConfiguredLogLevelReturnsEmptyWhenUnset() {
+        registerConfig(Map.of());
+
+        Assertions.assertTrue(DynamicLogConfigurationService.resolveConfiguredLogLevel().isEmpty());
+    }
+
+    @Test
+    void testResolveConfiguredLogLevelReturnsExplicitValue() {
+        registerConfig(Map.of("apicurio.log.level", "debug"));
+
+        Assertions.assertTrue(DynamicLogConfigurationService.resolveConfiguredLogLevel().isPresent());
+        Assertions.assertEquals("debug", DynamicLogConfigurationService.resolveConfiguredLogLevel().orElseThrow());
+    }
+
+    private void registerConfig(Map<String, String> values) {
+        registeredConfig = new SmallRyeConfigBuilder()
+                .withSources(new MapConfigSource(values))
+                .build();
+        ConfigProviderResolver.instance().registerConfig(registeredConfig, Thread.currentThread().getContextClassLoader());
+    }
+
+    private static final class MapConfigSource implements org.eclipse.microprofile.config.spi.ConfigSource {
+        private final Map<String, String> values;
+
+        private MapConfigSource(Map<String, String> values) {
+            this.values = values;
+        }
+
+        @Override
+        public Map<String, String> getProperties() {
+            return values;
+        }
+
+        @Override
+        public Set<String> getPropertyNames() {
+            return values.keySet();
+        }
+
+        @Override
+        public String getValue(String propertyName) {
+            return values.get(propertyName);
+        }
+
+        @Override
+        public String getName() {
+            return "test";
+        }
+
+        @Override
+        public int getOrdinal() {
+            return 100;
         }
     }
 }

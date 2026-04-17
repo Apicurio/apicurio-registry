@@ -9,9 +9,8 @@ It manages a local Git repository on a shared volume that the registry reads fro
 
 - **Pull mode** (default) — periodically fetches from a remote Git repository, keeping
   the local clone up to date. The registry detects changes and reloads automatically.
-- **Push mode** (experimental, not yet production-ready) — runs an SSH server that accepts
-  `git push` from CI/CD pipelines or developers, making updates available to the registry
-  immediately.
+- **Push mode** — runs an SSH server that accepts `git push` from CI/CD pipelines
+  or developers, making updates available to the registry on the next poll cycle.
 - **SSH authentication** — supports SSH keys for pull mode and authorized_keys for push mode.
 - **Shallow clones** — uses `--depth 1` by default to minimize bandwidth and disk usage.
 - **Graceful shutdown** — handles SIGTERM/SIGINT for clean container orchestration.
@@ -102,16 +101,13 @@ security requirements. Two levels are available:
 4. When a new commit is detected, the registry loads data into its inactive database and performs
    an atomic swap (blue-green loading).
 
-### Push mode (experimental)
+### Push mode
 
 1. On startup, the sidecar initializes a non-bare repository configured with
    `receive.denyCurrentBranch=updateInstead`, allowing pushes to update the working tree.
 2. An SSH server starts on `PUSH_PORT`, restricted to a `git` user with `git-shell`.
 3. External clients push changes via SSH; the working tree updates in place.
 4. The registry detects the new commit on its next poll cycle.
-
-Pull and push modes can run simultaneously (e.g., pull from upstream, accept local overrides
-via push).
 
 ## Security
 
@@ -132,7 +128,7 @@ potential target. The following analysis covers the main risks and mitigations.
 
 | Threat | Mitigation |
 |--------|------------|
-| Key exposure via mounted volume | The sidecar copies the SSH key to `~/.ssh/id_key` with `0600` permissions. The original mount is not modified. |
+| Key exposure via mounted volume | The sidecar copies SSH keys to `~/.ssh/id_key_N` with `0600` permissions. The original mount is not modified. |
 | Man-in-the-middle on SSH connections | When `APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS` is provided, `StrictHostKeyChecking=yes` is enforced. Without it, `accept-new` is used (TOFU). |
 | Key leakage in process listing | The key path is passed via environment variable and used in an SSH config file, not on the command line. |
 | Accidental use of wrong key | `IdentitiesOnly=yes` is set, preventing SSH from trying keys from an agent. |
@@ -148,7 +144,7 @@ MITM attacks. Generate it with `ssh-keyscan github.com > known_hosts`.
 | Shell escape / command injection | The `git` user's login shell is `git-shell`, which only accepts `git-receive-pack`, `git-upload-pack`, and `git-upload-archive`. Arbitrary commands are rejected. |
 | Port scanning / brute force | `MaxAuthTries=3`, `LoginGraceTime=30s`, and `MaxStartups=5:50:10` provide rate limiting and connection throttling. |
 | Network-level attacks | `AllowTcpForwarding=no`, `AllowAgentForwarding=no`, `PermitTunnel=no`, `GatewayPorts=no`, and `X11Forwarding=no` disable all forwarding capabilities. |
-| Host key instability across restarts | Mount a persistent host key via `APICURIO_GITOPS_PUSH_SSH_HOST_KEY` (required in strict mode). In dev mode, keys are auto-generated and the fingerprint is logged for verification. |
+| Host key instability across restarts | Mount a persistent host key via `APICURIO_GITOPS_PUSH_SSH_HOST_KEY` (required in strict mode). In dev mode, keys are auto-generated. |
 | Weak host keys | ED25519 (primary) and RSA-4096 (fallback) host keys are generated. No DSA or small RSA keys. |
 | Root login | `PermitRootLogin=no` and `AllowUsers=git` restrict access to the dedicated `git` user. |
 

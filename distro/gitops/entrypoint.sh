@@ -289,8 +289,6 @@ setup_ssh_client() {
         cp "${PULL_SSH_KNOWN_HOSTS}" "${ssh_dir}/known_hosts"
         chmod 644 "${ssh_dir}/known_hosts"
         success "known_hosts configured"
-    elif is_strict; then
-        error "APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS is required in strict mode. Provide a known_hosts file to prevent MITM attacks."
     fi
 
     # Determine host key checking policy

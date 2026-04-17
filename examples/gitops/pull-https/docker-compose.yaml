@@ -1,7 +1,7 @@
 # GitOps Pull Mode (HTTPS) - Docker Compose
 #
 # Pulls schemas from a public Git repository over HTTPS using the GitOps sidecar.
-# Uses dev security mode to allow HTTP/HTTPS without SSH keys.
+# Uses dev security mode to allow HTTPS without SSH keys.
 #
 # Steps:
 #

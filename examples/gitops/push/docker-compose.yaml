@@ -18,7 +18,7 @@
 #       a. Configure git directly:
 #          export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i $(pwd)/secrets/id_ed25519"
 #          Remember to unset GIT_SSH_COMMAND after testing to avoid affecting other git operations.
-#       b. Copy the authorized (client) SSH private SSH key to `~/.ssh` and configure SSH to use it for localhost in `~/.ssh/config`.
+#       b. Copy the SSH private key to `~/.ssh` and configure SSH to use it for localhost in `~/.ssh/config`.
 #          Recommended when using APICURIO_GITOPS_SECURITY="strict" and the host key is stable.
 #
 #   4. Add the sidecar as a git remote and push schemas:

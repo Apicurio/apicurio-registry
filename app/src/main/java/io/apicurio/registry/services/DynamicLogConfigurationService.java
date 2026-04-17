@@ -43,6 +43,7 @@ public class DynamicLogConfigurationService {
     @Info(category = CATEGORY_LOG, description = "Dynamic log level for Apicurio Registry", availableSince = "3.1.0")
     Supplier<String> logLevel;
 
+    private Level initialLogLevel;
     private String currentAppliedLevel = null;
 
     /**
@@ -54,6 +55,7 @@ public class DynamicLogConfigurationService {
      */
     void onStartup(@Observes StartupEvent event) {
         try {
+            initialLogLevel = java.util.logging.Logger.getLogger(APICURIO_LOGGER_NAME).getLevel();
             resolveConfiguredLogLevel().ifPresent(targetLevel -> {
                 applyLogLevel(targetLevel);
                 currentAppliedLevel = targetLevel;
@@ -80,6 +82,11 @@ public class DynamicLogConfigurationService {
 
             Optional<String> targetLevel = resolveConfiguredLogLevel();
             if (targetLevel.isEmpty()) {
+                if (currentAppliedLevel != null) {
+                    java.util.logging.Logger.getLogger(APICURIO_LOGGER_NAME).setLevel(initialLogLevel);
+                    currentAppliedLevel = null;
+                    log.info("Restored initial log level for {}: {}", APICURIO_LOGGER_NAME, (initialLogLevel == null ? "inherited" : initialLogLevel.getName()));
+                }
                 return;
             }
 

@@ -19,6 +19,7 @@ package io.apicurio.registry.services;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
+import org.eclipse.microprofile.config.spi.ConfigSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -123,7 +124,7 @@ public class DynamicLogConfigurationServiceTest {
         ConfigProviderResolver.instance().registerConfig(registeredConfig, Thread.currentThread().getContextClassLoader());
     }
 
-    private static final class MapConfigSource implements org.eclipse.microprofile.config.spi.ConfigSource {
+    private static final class MapConfigSource implements ConfigSource {
         private final Map<String, String> values;
 
         private MapConfigSource(Map<String, String> values) {

@@ -104,105 +104,6 @@ public class ProtobufDeserializerFallbackTest {
     }
 
     // =========================================================================
-    // shouldAttemptFallback / cause-chain inspection tests
-    // =========================================================================
-
-    /**
-     * Direct test of the cause-chain classifier. An {@link ApiException} (registry HTTP error)
-     * is the canonical recoverable schema-resolution failure.
-     */
-    @Test
-    public void testRecoverableErrorDetection_apiException() {
-        ApiException apiEx = new ApiException("registry returned 503");
-        assertTrue(ProtobufDeserializer.isRecoverableSchemaResolutionError(apiEx),
-                "ApiException must be classified as recoverable");
-    }
-
-    /**
-     * I/O failures (connection refused, timeout, broken stream) are recoverable. The schema
-     * resolver wraps {@link IOException} as {@link UncheckedIOException}; both must qualify.
-     */
-    @Test
-    public void testRecoverableErrorDetection_ioFailures() {
-        UncheckedIOException unchecked = new UncheckedIOException(new ConnectException("refused"));
-        assertTrue(ProtobufDeserializer.isRecoverableSchemaResolutionError(unchecked),
-                "UncheckedIOException(ConnectException) must be classified as recoverable");
-
-        IOException raw = new IOException("eof");
-        assertTrue(ProtobufDeserializer.isRecoverableSchemaResolutionError(raw),
-                "Raw IOException must be classified as recoverable");
-    }
-
-    /**
-     * Recoverable causes can be buried under wrapping {@link RuntimeException}s introduced by
-     * the cache / retry layer of the schema resolver. The classifier must walk the cause chain.
-     */
-    @Test
-    public void testRecoverableErrorDetection_walksCauseChain() {
-        RuntimeException buried = new RuntimeException("cache load failed",
-                new RuntimeException("retry exhausted",
-                        new ApiException("registry 500")));
-        assertTrue(ProtobufDeserializer.isRecoverableSchemaResolutionError(buried),
-                "Classifier must walk the cause chain to find the recoverable cause");
-    }
-
-    /**
-     * The cause-chain walker must terminate even when the chain contains an indirect cycle
-     * (A causes B, B causes A). Without {@link ProtobufDeserializer#MAX_CAUSE_CHAIN_DEPTH} this
-     * would loop forever, hanging the deserializer thread on a single bad message.
-     */
-    @Test
-    public void testRecoverableErrorDetection_terminatesOnIndirectCycle() {
-        // Build a hostile exception type whose getCause() participates in a cycle without
-        // touching the private cause field (which is sealed off on JDK 17+). This simulates
-        // a buggy/hostile exception implementation - exactly what the depth bound defends against.
-        class CyclingException extends RuntimeException {
-            private Throwable next;
-
-            CyclingException(String msg) { super(msg); }
-
-            @Override
-            public synchronized Throwable getCause() { return next; }
-        }
-        CyclingException a = new CyclingException("a");
-        CyclingException b = new CyclingException("b");
-        a.next = b;
-        b.next = a;
-
-        assertFalse(ProtobufDeserializer.isRecoverableSchemaResolutionError(a),
-                "Walker must terminate (and return false) when the chain is an indirect cycle "
-                        + "containing no recoverable types");
-    }
-
-    /**
-     * Sanity check that the published bound is large enough to cover any realistic chain depth
-     * the schema resolver and its wrappers can produce. Shrinking the bound below 8 would risk
-     * missing a buried recoverable cause in production.
-     */
-    @Test
-    public void testRecoverableErrorDetection_depthBoundIsGenerous() {
-        assertTrue(ProtobufDeserializer.MAX_CAUSE_CHAIN_DEPTH >= 8,
-                "Cause-chain depth bound must be >= 8 to cover realistic resolver wrapping");
-    }
-
-    /**
-     * Programming errors and configuration mistakes are not recoverable - silently swallowing
-     * them would mask real bugs.
-     */
-    @Test
-    public void testRecoverableErrorDetection_rejectsProgrammingErrors() {
-        assertFalse(ProtobufDeserializer.isRecoverableSchemaResolutionError(
-                        new NullPointerException("bug")),
-                "NullPointerException is a bug, not a recoverable schema-resolution failure");
-        assertFalse(ProtobufDeserializer.isRecoverableSchemaResolutionError(
-                        new IllegalArgumentException("misconfigured")),
-                "IllegalArgumentException indicates misconfiguration, not a recoverable failure");
-        assertFalse(ProtobufDeserializer.isRecoverableSchemaResolutionError(
-                        new ClassCastException("unexpected type")),
-                "ClassCastException indicates a bug, not a recoverable failure");
-    }
-
-    // =========================================================================
     // parseFallback wire-format tests (simulating realistic registry failures)
     // =========================================================================
 
@@ -353,6 +254,33 @@ public class ProtobufDeserializerFallbackTest {
                         + "the fallback only catches recoverable schema-resolution errors");
 
         assertSame(bug, thrown, "The original NPE must be re-thrown unchanged");
+    }
+
+    /**
+     * The typed catch on {@link IllegalStateException} is narrowed to "cause is
+     * {@link Descriptors.DescriptorValidationException}" because {@code IllegalStateException}
+     * is also thrown by the resolver for non-recoverable conditions (misconfiguration,
+     * "artifact reference cannot be null", etc.). Those must propagate even with the
+     * fallback enabled.
+     */
+    @Test
+    public void testFallbackDoesNotSwallowGenericIllegalState() throws Exception {
+        DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("test.proto")
+                .build();
+        byte[] wireFormatBytes = buildApicurioWireFormat(testMessage.toByteArray(), 1, "Test");
+
+        IllegalStateException notRecoverable = new IllegalStateException("artifact reference cannot be null");
+        ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
+                DescriptorProtos.FileDescriptorProto.class, notRecoverable);
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> deserializer.deserializeData("test-topic", wireFormatBytes),
+                "IllegalStateException without a DescriptorValidationException cause must propagate "
+                        + "even with fallback enabled");
+
+        assertSame(notRecoverable, thrown,
+                "The original IllegalStateException must be re-thrown unchanged");
     }
 
     /**

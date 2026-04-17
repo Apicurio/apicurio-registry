@@ -33,10 +33,6 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     private static final String PROTOBUF_PARSE_METHOD = "parseFrom";
 
-    /** Upper bound on cause-chain hops walked when classifying a thrown exception; defends
-     *  against indirect cycles (real chains rarely exceed 5 levels). */
-    static final int MAX_CAUSE_CHAIN_DEPTH = 32;
-
     private final ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProtobufDeserializer.class);
@@ -114,21 +110,26 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
      * <p>
      * The fallback strips the Apicurio wire-format prefix and parses the raw protobuf bytes
      * directly using the configured return class. It is only triggered for the specific
-     * exception categories that represent transient or recoverable failures of the schema
-     * lookup:
+     * unchecked exception types that represent transient or recoverable failures of the
+     * schema lookup, caught by type rather than by inspecting causes:
      * </p>
      * <ul>
      *   <li>{@link com.microsoft.kiota.ApiException} - registry returned an HTTP error
      *       (404 schema not yet propagated, 5xx registry outage, etc.)</li>
-     *   <li>{@link IOException} / {@link UncheckedIOException} - network or I/O failure
-     *       reading from the registry (connection refused, timeout, broken stream)</li>
-     *   <li>{@link DescriptorValidationException} - the registry returned a descriptor
-     *       that cannot be validated, typically due to missing transitive imports</li>
+     *   <li>{@link UncheckedIOException} - network or I/O failure reading from the registry
+     *       (connection refused, timeout, broken stream); the JDK and {@code IoUtil} wrap
+     *       any underlying {@link java.io.IOException} in this type</li>
+     *   <li>{@link IllegalStateException} <em>only</em> when its direct cause is a
+     *       {@link DescriptorValidationException}; this is how {@link ProtobufSchemaParser}
+     *       surfaces a registry-supplied descriptor with missing transitive imports.
+     *       {@code IllegalStateException} from any other source (configuration errors,
+     *       invalid state in the resolver, etc.) is rethrown unchanged</li>
      * </ul>
      * <p>
      * Programming errors and configuration mistakes ({@link NullPointerException},
-     * {@link IllegalArgumentException}, {@link ClassCastException}, etc.) are <strong>not</strong>
-     * caught and propagate to the caller so real bugs are not silently masked.
+     * {@link IllegalArgumentException}, {@link ClassCastException}, generic
+     * {@link RuntimeException}, etc.) are <strong>not</strong> caught and propagate to the
+     * caller so real bugs are not silently masked.
      * </p>
      * <p>
      * Typical scenarios where the fallback rescues a deserialization:
@@ -141,74 +142,49 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
      * </ul>
      */
     @Override
-    @SuppressWarnings("unchecked")
     public U deserializeData(String topic, byte[] data) {
         try {
             return super.deserializeData(topic, data);
-        } catch (RuntimeException e) {
-            if (shouldAttemptFallback(e)) {
-                log.warn("Schema resolution failed for topic '{}' ({}). "
-                        + "Falling back to direct protobuf parsing with {}.",
-                        topic, rootCauseMessage(e), specificReturnClass.getName());
-                try {
-                    return (U) parseFallback(data);
-                } catch (RuntimeException fallbackEx) {
-                    fallbackEx.addSuppressed(e);
-                    throw fallbackEx;
-                }
+        } catch (ApiException | UncheckedIOException e) {
+            return tryFallback(topic, data, e);
+        } catch (IllegalStateException e) {
+            if (e.getCause() instanceof DescriptorValidationException) {
+                return tryFallback(topic, data, e);
             }
             throw e;
         }
     }
 
     /**
-     * Decides whether a thrown exception represents a recoverable schema-resolution failure
-     * that justifies invoking the direct-parse fallback.
+     * Invokes the direct-parse fallback when it is enabled and a {@code specificReturnClass}
+     * is configured; otherwise rethrows the original error so the caller observes the
+     * unmodified failure.
      *
-     * @param e the exception thrown by the standard deserialization path
-     * @return {@code true} when the fallback is enabled, configured and the exception (or any
-     *         of its causes) is a recognised recoverable schema-resolution failure
+     * @param topic         the topic the message belongs to (for logging only)
+     * @param data          the raw wire-format bytes to fall back on
+     * @param originalError the recoverable schema-resolution failure that triggered fallback
+     * @return the parsed message produced by the fallback
      */
-    private boolean shouldAttemptFallback(Throwable e) {
-        if (!fallbackOnSchemaError
-                || specificReturnClassParseMethod == null
-                || specificReturnClass.equals(DynamicMessage.class)) {
-            return false;
+    @SuppressWarnings("unchecked")
+    private U tryFallback(String topic, byte[] data, RuntimeException originalError) {
+        if (!fallbackEnabled()) {
+            throw originalError;
         }
-        return isRecoverableSchemaResolutionError(e);
+        log.warn("Schema resolution failed for topic '{}' ({}). "
+                + "Falling back to direct protobuf parsing with {}.",
+                topic, rootCauseMessage(originalError), specificReturnClass.getName());
+        try {
+            return (U) parseFallback(data);
+        } catch (RuntimeException fallbackEx) {
+            fallbackEx.addSuppressed(originalError);
+            throw fallbackEx;
+        }
     }
 
-    /**
-     * Walks the cause chain looking for an exception type that represents a recoverable
-     * schema-resolution failure.
-     * <p>
-     * The schema resolver, its retry/cache layer, and the protobuf schema parser may wrap the
-     * underlying cause in one or more {@link RuntimeException}s before it reaches us, so we
-     * inspect the entire chain rather than relying on the top-level exception type.
-     * </p>
-     *
-     * @param t the throwable to inspect (must not be {@code null})
-     * @return {@code true} if the chain contains an {@link ApiException}, {@link IOException},
-     *         {@link UncheckedIOException} or {@link DescriptorValidationException};
-     *         {@code false} for programming/configuration errors that should propagate
-     */
-    static boolean isRecoverableSchemaResolutionError(Throwable t) {
-        Throwable cause = t;
-        for (int i = 0; cause != null && i < MAX_CAUSE_CHAIN_DEPTH; i++) {
-            if (cause instanceof ApiException
-                    || cause instanceof IOException
-                    || cause instanceof UncheckedIOException
-                    || cause instanceof DescriptorValidationException) {
-                return true;
-            }
-            Throwable next = cause.getCause();
-            if (next == cause) {
-                // Direct self-reference. Indirect cycles are bounded by MAX_CAUSE_CHAIN_DEPTH.
-                break;
-            }
-            cause = next;
-        }
-        return false;
+    private boolean fallbackEnabled() {
+        return fallbackOnSchemaError
+                && specificReturnClassParseMethod != null
+                && !specificReturnClass.equals(DynamicMessage.class);
     }
 
     @Override

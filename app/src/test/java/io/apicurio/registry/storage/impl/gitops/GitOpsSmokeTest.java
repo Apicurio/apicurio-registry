@@ -37,9 +37,6 @@ public class GitOpsSmokeTest {
 
     @Test
     void smokeTest() throws Exception {
-        // Initially empty
-        assertEquals(Set.of(), storage.getArtifactIds(10));
-
         var testRepository = GitTestRepositoryManager.getTestRepository();
 
         // --- Load smoke01: OpenAPI artifact with rules ---

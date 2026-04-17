@@ -4984,7 +4984,7 @@
             }
           },
           "sources": {
-            "description": "Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA). Only present when multiple sources are configured.",
+            "description": "Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).",
             "type": "object",
             "additionalProperties": {
               "type": "string"

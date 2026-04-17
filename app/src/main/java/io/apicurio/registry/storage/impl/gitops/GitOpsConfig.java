@@ -52,7 +52,7 @@ public class GitOpsConfig extends AbstractPollingStorageConfig {
      *   <li>Single-repo shorthand: {@code apicurio.gitops.repo.dir} + {@code apicurio.gitops.repo.branch}</li>
      *   <li>Multi-repo indexed: {@code apicurio.gitops.repos.0.dir}, {@code apicurio.gitops.repos.0.branch}, etc.</li>
      * </ul>
-     * If indexed repos are configured, the shorthand properties are ignored.
+     * Using both styles simultaneously is rejected with a {@link ConfigurationException}.
      */
     public List<GitRepoConfig> getRepos() {
         if (repos == null) {
@@ -99,6 +99,14 @@ public class GitOpsConfig extends AbstractPollingStorageConfig {
         for (int i = 0; ; i++) {
             Optional<String> dir = config.getOptionalValue("apicurio.gitops.repos." + i + ".dir", String.class);
             if (dir.isEmpty()) {
+                // Check for gaps: scan ahead to catch skipped indexes (e.g., repos.0, repos.2)
+                for (int j = i + 1; j <= i + 10; j++) {
+                    Optional<String> ahead = config.getOptionalValue("apicurio.gitops.repos." + j + ".dir", String.class);
+                    if (ahead.isPresent()) {
+                        throw new ConfigurationException("Missing apicurio.gitops.repos." + i + ".dir but repos."
+                                + j + ".dir is set. Indexes must be dense (no gaps).");
+                    }
+                }
                 break;
             }
             String branch = config.getOptionalValue("apicurio.gitops.repos." + i + ".branch", String.class)

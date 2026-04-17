@@ -21,7 +21,7 @@ type GitOpsStatus struct {
 	lastSuccessfulSync *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// ISO 8601 timestamp of the last synchronization attempt (successful or not).
 	lastSyncAttempt *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
-	// Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA). Only present when multiple sources are configured.
+	// Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).
 	sources GitOpsStatus_sourcesable
 	// The current synchronization state of the GitOps storage. Possible values: INITIALIZING (first load not yet completed), IDLE (serving latest data), LOADING (sync in progress), SWITCHING (data loaded, waiting for write lock to publish), ERROR (last sync or switch failed, serving previous data).
 	syncState *string
@@ -187,7 +187,7 @@ func (m *GitOpsStatus) GetLastSyncAttempt() *i336074805fc853987abe6f7fe3ad97a6a6
 	return m.lastSyncAttempt
 }
 
-// GetSources gets the sources property value. Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA). Only present when multiple sources are configured.
+// GetSources gets the sources property value. Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).
 // returns a GitOpsStatus_sourcesable when successful
 func (m *GitOpsStatus) GetSources() GitOpsStatus_sourcesable {
 	return m.sources
@@ -305,7 +305,7 @@ func (m *GitOpsStatus) SetLastSyncAttempt(value *i336074805fc853987abe6f7fe3ad97
 	m.lastSyncAttempt = value
 }
 
-// SetSources sets the sources property value. Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA). Only present when multiple sources are configured.
+// SetSources sets the sources property value. Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).
 func (m *GitOpsStatus) SetSources(value GitOpsStatus_sourcesable) {
 	m.sources = value
 }

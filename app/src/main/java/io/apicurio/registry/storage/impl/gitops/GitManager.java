@@ -83,8 +83,11 @@ public class GitManager extends AbstractPollingDataSourceManager<GitOpsMarker> {
             RevCommit commit = newCommits.get(source.getId());
             var result = source.collectFiles(commit);
             if (result == null) {
-                log.warn("[{}] Could not collect files, skipping", source.getId());
-                continue;
+                // Abort the entire poll — serving partial data would cause previously
+                // loaded artifacts from this source to disappear on the next switch.
+                log.warn("[{}] Could not collect files, aborting poll to preserve consistent state",
+                        source.getId());
+                return PollingResult.noChanges(currentMarker());
             }
             allFiles.addAll(result.files());
 

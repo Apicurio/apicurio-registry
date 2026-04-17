@@ -10,12 +10,12 @@ The registry is read-only — all changes are made by modifying files in the Git
 |---------|-------------|---------|----------|
 | [Local volume](#local-volume) | Git repo cloned locally, no sidecar | No | N/A |
 | [Pull HTTPS](#pull-https) | Sidecar pulls from a public repo over HTTPS | Yes | `dev` |
-| [Pull SSH](#pull-ssh) | Sidecar pulls from a private repo over SSH | Yes | `default` |
+| [Pull SSH](#pull-ssh) | Sidecar pulls from a private repo over SSH | Yes | `dev` |
 | [Multi-repo HTTPS pull](#multi-repo-pull-https) | Sidecar pulls two branches (two teams) over HTTPS | Yes | `dev` |
 | [Push](#push) | Sidecar accepts `git push` over SSH | Yes | `dev` |
 
 Each example has a `docker-compose.yaml` for the full stack (registry + sidecar + UI).
-Pull examples also have a `docker-compose-dev.yaml` for use with `mvn quarkus:dev`.
+Most examples also have a `docker-compose-dev.yaml` for use with `mvn quarkus:dev`.
 
 See the comments at the top of each compose file for setup and run instructions.
 

@@ -2,9 +2,11 @@ package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -103,21 +105,36 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     /**
      * Overrides the default deserialization to add a fallback path when schema resolution fails
-     * and both {@code specificReturnClass} and {@code fallbackOnSchemaError} are configured.
+     * for a recoverable reason and both {@code specificReturnClass} and
+     * {@code fallbackOnSchemaError} are configured.
      * <p>
-     * When the schema registry is unreachable, the schema has missing transitive imports, or
-     * the content ID is not yet propagated, the normal deserialization path throws. With the
-     * fallback enabled, the deserializer strips the Apicurio wire-format prefix and parses
-     * the raw protobuf bytes directly using the configured return class.
+     * The fallback strips the Apicurio wire-format prefix and parses the raw protobuf bytes
+     * directly using the configured return class. It is only triggered for the specific
+     * exception categories that represent transient or recoverable failures of the schema
+     * lookup:
      * </p>
-     * <p>
-     * This provides resilience against:
      * <ul>
-     *   <li>Registry downtime or network failures</li>
-     *   <li>Missing transitive proto imports in the registry</li>
-     *   <li>Race conditions during rolling deployments (consumer starts before producer registers schema)</li>
+     *   <li>{@link com.microsoft.kiota.ApiException} - registry returned an HTTP error
+     *       (404 schema not yet propagated, 5xx registry outage, etc.)</li>
+     *   <li>{@link IOException} / {@link UncheckedIOException} - network or I/O failure
+     *       reading from the registry (connection refused, timeout, broken stream)</li>
+     *   <li>{@link DescriptorValidationException} - the registry returned a descriptor
+     *       that cannot be validated, typically due to missing transitive imports</li>
      * </ul>
+     * <p>
+     * Programming errors and configuration mistakes ({@link NullPointerException},
+     * {@link IllegalArgumentException}, {@link ClassCastException}, etc.) are <strong>not</strong>
+     * caught and propagate to the caller so real bugs are not silently masked.
      * </p>
+     * <p>
+     * Typical scenarios where the fallback rescues a deserialization:
+     * </p>
+     * <ul>
+     *   <li>Registry downtime or transient network failures</li>
+     *   <li>Missing transitive proto imports in the registry</li>
+     *   <li>Race conditions during rolling deployments (consumer starts before producer
+     *       registers schema)</li>
+     * </ul>
      */
     @Override
     @SuppressWarnings("unchecked")
@@ -125,8 +142,7 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         try {
             return super.deserializeData(topic, data);
         } catch (RuntimeException e) {
-            if (fallbackOnSchemaError && specificReturnClassParseMethod != null
-                    && !specificReturnClass.equals(DynamicMessage.class)) {
+            if (shouldAttemptFallback(e)) {
                 log.warn("Schema resolution failed for topic '{}' ({}). "
                         + "Falling back to direct protobuf parsing with {}.",
                         topic, rootCauseMessage(e), specificReturnClass.getName());
@@ -139,6 +155,56 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
             }
             throw e;
         }
+    }
+
+    /**
+     * Decides whether a thrown exception represents a recoverable schema-resolution failure
+     * that justifies invoking the direct-parse fallback.
+     *
+     * @param e the exception thrown by the standard deserialization path
+     * @return {@code true} when the fallback is enabled, configured and the exception (or any
+     *         of its causes) is a recognised recoverable schema-resolution failure
+     */
+    private boolean shouldAttemptFallback(Throwable e) {
+        if (!fallbackOnSchemaError
+                || specificReturnClassParseMethod == null
+                || specificReturnClass.equals(DynamicMessage.class)) {
+            return false;
+        }
+        return isRecoverableSchemaResolutionError(e);
+    }
+
+    /**
+     * Walks the cause chain looking for an exception type that represents a recoverable
+     * schema-resolution failure.
+     * <p>
+     * The schema resolver, its retry/cache layer, and the protobuf schema parser may wrap the
+     * underlying cause in one or more {@link RuntimeException}s before it reaches us, so we
+     * inspect the entire chain rather than relying on the top-level exception type.
+     * </p>
+     *
+     * @param t the throwable to inspect (must not be {@code null})
+     * @return {@code true} if the chain contains an {@link ApiException}, {@link IOException},
+     *         {@link UncheckedIOException} or {@link DescriptorValidationException};
+     *         {@code false} for programming/configuration errors that should propagate
+     */
+    static boolean isRecoverableSchemaResolutionError(Throwable t) {
+        Throwable cause = t;
+        // Bound the walk to defeat pathological self-referential cause chains.
+        for (int i = 0; cause != null && i < 32; i++) {
+            if (cause instanceof ApiException
+                    || cause instanceof IOException
+                    || cause instanceof UncheckedIOException
+                    || cause instanceof DescriptorValidationException) {
+                return true;
+            }
+            Throwable next = cause.getCause();
+            if (next == cause) {
+                break;
+            }
+            cause = next;
+        }
+        return false;
     }
 
     @Override

@@ -1,11 +1,15 @@
 package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.Descriptors;
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.ConnectException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,11 +27,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and the fallback deserialization path in {@link ProtobufDeserializer}.
  * <p>
  * The fallback allows the deserializer to skip schema resolution and parse raw protobuf bytes
- * directly when a {@code specificReturnClass} is configured and schema lookup fails.
+ * directly when a {@code specificReturnClass} is configured and schema lookup fails for a
+ * recoverable reason (registry unreachable, missing schema, missing transitive imports, ...).
  * </p>
  * <p>
  * Uses {@link DescriptorProtos.FileDescriptorProto} as the test message type since it is always
  * on the classpath (part of protobuf-java) and has a standard {@code parseFrom(InputStream)} method.
+ * </p>
+ * <p>
+ * The schema resolver used in these tests is configured with realistic failure modes - the
+ * exceptions it throws are exactly the ones the real {@code DefaultSchemaResolver} surfaces when
+ * the registry is unreachable or returns an error. This keeps the tests honest about which
+ * categories of failure the production code is actually willing to recover from, addressing the
+ * review concern about "forcing" the fallback with arbitrary exceptions.
  * </p>
  */
 public class ProtobufDeserializerFallbackTest {
@@ -91,12 +104,73 @@ public class ProtobufDeserializerFallbackTest {
     }
 
     // =========================================================================
-    // parseFallback wire-format tests
+    // shouldAttemptFallback / cause-chain inspection tests
+    // =========================================================================
+
+    /**
+     * Direct test of the cause-chain classifier. An {@link ApiException} (registry HTTP error)
+     * is the canonical recoverable schema-resolution failure.
+     */
+    @Test
+    public void testRecoverableErrorDetection_apiException() {
+        ApiException apiEx = new ApiException("registry returned 503");
+        assertTrue(ProtobufDeserializer.isRecoverableSchemaResolutionError(apiEx),
+                "ApiException must be classified as recoverable");
+    }
+
+    /**
+     * I/O failures (connection refused, timeout, broken stream) are recoverable. The schema
+     * resolver wraps {@link IOException} as {@link UncheckedIOException}; both must qualify.
+     */
+    @Test
+    public void testRecoverableErrorDetection_ioFailures() {
+        UncheckedIOException unchecked = new UncheckedIOException(new ConnectException("refused"));
+        assertTrue(ProtobufDeserializer.isRecoverableSchemaResolutionError(unchecked),
+                "UncheckedIOException(ConnectException) must be classified as recoverable");
+
+        IOException raw = new IOException("eof");
+        assertTrue(ProtobufDeserializer.isRecoverableSchemaResolutionError(raw),
+                "Raw IOException must be classified as recoverable");
+    }
+
+    /**
+     * Recoverable causes can be buried under wrapping {@link RuntimeException}s introduced by
+     * the cache / retry layer of the schema resolver. The classifier must walk the cause chain.
+     */
+    @Test
+    public void testRecoverableErrorDetection_walksCauseChain() {
+        RuntimeException buried = new RuntimeException("cache load failed",
+                new RuntimeException("retry exhausted",
+                        new ApiException("registry 500")));
+        assertTrue(ProtobufDeserializer.isRecoverableSchemaResolutionError(buried),
+                "Classifier must walk the cause chain to find the recoverable cause");
+    }
+
+    /**
+     * Programming errors and configuration mistakes are <strong>not</strong> recoverable -
+     * silently swallowing them would mask real bugs.
+     */
+    @Test
+    public void testRecoverableErrorDetection_rejectsProgrammingErrors() {
+        assertFalse(ProtobufDeserializer.isRecoverableSchemaResolutionError(
+                        new NullPointerException("bug")),
+                "NullPointerException is a bug, not a recoverable schema-resolution failure");
+        assertFalse(ProtobufDeserializer.isRecoverableSchemaResolutionError(
+                        new IllegalArgumentException("misconfigured")),
+                "IllegalArgumentException indicates misconfiguration, not a recoverable failure");
+        assertFalse(ProtobufDeserializer.isRecoverableSchemaResolutionError(
+                        new ClassCastException("unexpected type")),
+                "ClassCastException indicates a bug, not a recoverable failure");
+    }
+
+    // =========================================================================
+    // parseFallback wire-format tests (simulating realistic registry failures)
     // =========================================================================
 
     /**
      * Verifies that the fallback correctly strips the Apicurio wire-format prefix
-     * (magic byte + 4-byte content ID + Ref message) and parses the protobuf payload.
+     * (magic byte + 4-byte content ID + Ref message) and parses the protobuf payload
+     * when the registry returns an HTTP error.
      */
     @Test
     public void testParseFallbackStripsWireFormatAndParsesPayload() throws Exception {
@@ -109,7 +183,7 @@ public class ProtobufDeserializerFallbackTest {
         byte[] wireFormatBytes = buildApicurioWireFormat(testMessage.toByteArray(), 42, "TestMessage");
 
         ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
-                DescriptorProtos.FileDescriptorProto.class);
+                DescriptorProtos.FileDescriptorProto.class, registryUnreachable());
 
         DescriptorProtos.FileDescriptorProto result = deserializer.deserializeData("test-topic", wireFormatBytes);
 
@@ -123,7 +197,8 @@ public class ProtobufDeserializerFallbackTest {
     }
 
     /**
-     * Verifies fallback works with an empty Ref message (varint 0 length prefix).
+     * Verifies fallback works with an empty Ref message (varint 0 length prefix) when the
+     * registry returns a 404 (e.g. the producer's schema has not yet been indexed).
      */
     @Test
     public void testParseFallbackWithEmptyRef() throws Exception {
@@ -134,7 +209,7 @@ public class ProtobufDeserializerFallbackTest {
         byte[] wireFormatBytes = buildApicurioWireFormatEmptyRef(testMessage.toByteArray(), 1);
 
         ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
-                DescriptorProtos.FileDescriptorProto.class);
+                DescriptorProtos.FileDescriptorProto.class, schemaNotFound());
 
         DescriptorProtos.FileDescriptorProto result = deserializer.deserializeData("test-topic", wireFormatBytes);
 
@@ -144,14 +219,36 @@ public class ProtobufDeserializerFallbackTest {
     }
 
     /**
+     * Verifies that the fallback also fires when the registry returns a descriptor whose
+     * imports cannot be resolved - the schema parser surfaces this as a
+     * {@link Descriptors.DescriptorValidationException}, which is in our recoverable set.
+     */
+    @Test
+    public void testFallbackTriggeredByDescriptorValidationException() throws Exception {
+        DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("missing-import.proto")
+                .build();
+
+        byte[] wireFormatBytes = buildApicurioWireFormat(testMessage.toByteArray(), 7, "Test");
+
+        ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
+                DescriptorProtos.FileDescriptorProto.class, missingTransitiveImport());
+
+        DescriptorProtos.FileDescriptorProto result = deserializer.deserializeData("test-topic", wireFormatBytes);
+
+        assertNotNull(result, "Fallback should fire on DescriptorValidationException in cause chain");
+        assertEquals("missing-import.proto", result.getName());
+    }
+
+    /**
      * Verifies that null data returns null per the standard Kafka deserializer contract.
      * This is handled by {@link io.apicurio.registry.serde.AbstractDeserializer#deserializeData}
      * before the fallback path is reached.
      */
     @Test
-    public void testNullDataReturnsNull() throws Exception {
+    public void testNullDataReturnsNull() {
         ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
-                DescriptorProtos.FileDescriptorProto.class);
+                DescriptorProtos.FileDescriptorProto.class, registryUnreachable());
 
         DescriptorProtos.FileDescriptorProto result = deserializer.deserializeData("test-topic", null);
 
@@ -164,7 +261,7 @@ public class ProtobufDeserializerFallbackTest {
 
     /**
      * Verifies that when fallback is disabled (the default), schema resolution failure
-     * propagates as an exception without attempting direct parsing.
+     * propagates as the original exception without attempting direct parsing.
      */
     @Test
     public void testFallbackDisabledPropagatesException() throws Exception {
@@ -174,15 +271,15 @@ public class ProtobufDeserializerFallbackTest {
 
         byte[] wireFormatBytes = buildApicurioWireFormat(testMessage.toByteArray(), 1, "Test");
 
-        // Create deserializer with fallback DISABLED (default)
+        ApiException simulated = new ApiException("registry returned 503 Service Unavailable");
         ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer =
-                new ProtobufDeserializer<>(new ThrowingSchemaResolver<>());
+                new ProtobufDeserializer<>(new ThrowingSchemaResolver<>(simulated));
 
         Map<String, Object> config = new HashMap<>();
         config.put("apicurio.registry.url", "http://localhost:99999/nonexistent");
         config.put("apicurio.registry.deserializer.value.return-class",
                 DescriptorProtos.FileDescriptorProto.class);
-        // fallbackOnSchemaError NOT set — defaults to false
+        // fallbackOnSchemaError NOT set - defaults to false
 
         deserializer.configure(new io.apicurio.registry.serde.config.SerdeConfig(config), false);
 
@@ -190,8 +287,56 @@ public class ProtobufDeserializerFallbackTest {
                 () -> deserializer.deserializeData("test-topic", wireFormatBytes),
                 "With fallback disabled, schema resolution failure should propagate");
 
-        assertTrue(thrown.getMessage().contains("Simulated schema resolution failure"),
-                "Exception should be the original schema resolution error");
+        // The original ApiException must reach the caller untouched (possibly wrapped).
+        assertTrue(thrown == simulated || hasCause(thrown, simulated),
+                "Exception should be (or wrap) the original schema resolution error, was: " + thrown);
+    }
+
+    /**
+     * Critical negative test: a non-recoverable failure such as {@link NullPointerException}
+     * from inside the schema resolver must NOT be swallowed by the fallback, even when the
+     * fallback is enabled. Catching such errors would mask real bugs.
+     */
+    @Test
+    public void testFallbackDoesNotSwallowProgrammingErrors() throws Exception {
+        DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("test.proto")
+                .build();
+        byte[] wireFormatBytes = buildApicurioWireFormat(testMessage.toByteArray(), 1, "Test");
+
+        NullPointerException bug = new NullPointerException("simulated programming bug in resolver");
+        ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
+                DescriptorProtos.FileDescriptorProto.class, bug);
+
+        NullPointerException thrown = assertThrows(NullPointerException.class,
+                () -> deserializer.deserializeData("test-topic", wireFormatBytes),
+                "NullPointerException must propagate even with fallback enabled - "
+                        + "the fallback only catches recoverable schema-resolution errors");
+
+        assertSame(bug, thrown, "The original NPE must be re-thrown unchanged");
+    }
+
+    /**
+     * Companion to the NPE test: an {@link IllegalArgumentException} (typically a configuration
+     * mistake) must also propagate rather than silently activating the fallback.
+     */
+    @Test
+    public void testFallbackDoesNotSwallowIllegalArgument() throws Exception {
+        DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("test.proto")
+                .build();
+        byte[] wireFormatBytes = buildApicurioWireFormat(testMessage.toByteArray(), 1, "Test");
+
+        IllegalArgumentException bug = new IllegalArgumentException("bad config");
+        ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
+                DescriptorProtos.FileDescriptorProto.class, bug);
+
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                () -> deserializer.deserializeData("test-topic", wireFormatBytes),
+                "IllegalArgumentException must propagate - the fallback is for transient registry "
+                        + "failures, not configuration errors");
+
+        assertSame(bug, thrown, "The original IllegalArgumentException must be re-thrown unchanged");
     }
 
     // =========================================================================
@@ -199,16 +344,14 @@ public class ProtobufDeserializerFallbackTest {
     // =========================================================================
 
     /**
-     * Creates a {@link ProtobufDeserializer} configured with fallback enabled and a specific return class.
-     * Uses a {@link ThrowingSchemaResolver} to force the fallback path.
-     *
-     * @param returnClass the protobuf message class to deserialize into
-     * @param <T>         the message type
-     * @return a configured deserializer that will use the fallback path
+     * Creates a {@link ProtobufDeserializer} configured with fallback enabled and a specific
+     * return class. The provided {@code resolverFailure} is what the schema resolver will throw
+     * when invoked, simulating a real registry failure.
      */
     private <T extends com.google.protobuf.Message> ProtobufDeserializer<T> createFallbackDeserializer(
-            Class<T> returnClass) {
-        ProtobufDeserializer<T> deserializer = new ProtobufDeserializer<>(new ThrowingSchemaResolver<>());
+            Class<T> returnClass, RuntimeException resolverFailure) {
+        ProtobufDeserializer<T> deserializer = new ProtobufDeserializer<>(
+                new ThrowingSchemaResolver<>(resolverFailure));
 
         Map<String, Object> config = new HashMap<>();
         config.put("apicurio.registry.url", "http://localhost:99999/nonexistent");
@@ -219,50 +362,111 @@ public class ProtobufDeserializerFallbackTest {
         return deserializer;
     }
 
+    /** Simulates the registry being unreachable (TCP connect refused). */
+    private static RuntimeException registryUnreachable() {
+        return new UncheckedIOException(
+                new ConnectException("Connection refused: registry unreachable"));
+    }
+
+    /** Simulates the registry returning HTTP 404 (schema not yet propagated). */
+    private static RuntimeException schemaNotFound() {
+        ApiException apiEx = new ApiException("Schema content not found");
+        // Status code is package-private to set; the message is enough for our assertions.
+        return apiEx;
+    }
+
+    /**
+     * Simulates the schema parser failing to validate a descriptor returned by the registry,
+     * for example due to a missing transitive import. The {@link Descriptors.DescriptorValidationException}
+     * surfaces wrapped in an {@link IllegalStateException} by {@code ProtobufSchemaParser}.
+     * <p>
+     * We trigger a real validation failure by constructing a {@link DescriptorProtos.FileDescriptorProto}
+     * containing a message field that references an undefined type - exactly the shape of error
+     * a missing transitive import produces. This guarantees the exception is the same type the
+     * protobuf library actually throws in production rather than a hand-crafted impostor.
+     * </p>
+     */
+    private static RuntimeException missingTransitiveImport() {
+        DescriptorProtos.FieldDescriptorProto badField = DescriptorProtos.FieldDescriptorProto.newBuilder()
+                .setName("ref")
+                .setNumber(1)
+                .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE)
+                .setTypeName(".missing.UnresolvedType")
+                .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL)
+                .build();
+        DescriptorProtos.DescriptorProto badMessage = DescriptorProtos.DescriptorProto.newBuilder()
+                .setName("Bad")
+                .addField(badField)
+                .build();
+        DescriptorProtos.FileDescriptorProto bad = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("bad.proto")
+                .setSyntax("proto3")
+                .addMessageType(badMessage)
+                .build();
+        try {
+            Descriptors.FileDescriptor.buildFrom(bad, new Descriptors.FileDescriptor[0]);
+            throw new AssertionError("expected DescriptorValidationException to be thrown - "
+                    + "unresolved field type should not validate");
+        } catch (Descriptors.DescriptorValidationException dve) {
+            return new IllegalStateException("Error parsing protobuf schema", dve);
+        }
+    }
+
+    private static boolean hasCause(Throwable t, Throwable target) {
+        Throwable c = t.getCause();
+        while (c != null) {
+            if (c == target) {
+                return true;
+            }
+            c = c.getCause();
+        }
+        return false;
+    }
+
     /**
      * Builds bytes in Apicurio wire format with a 4-byte content ID (Default4ByteIdHandler):
      * {@code [0x00 magic][4-byte contentId][Ref delimited][protobuf payload]}.
-     *
-     * @param payload   the raw protobuf bytes
-     * @param contentId the schema content ID
-     * @param refName   the message type name for the Ref prefix
-     * @return the complete wire-format byte array
      */
     private byte[] buildApicurioWireFormat(byte[] payload, int contentId, String refName) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        out.write(0x00); // magic byte
-        out.write(ByteBuffer.allocate(4).putInt(contentId).array()); // 4-byte content ID
+        out.write(0x00);
+        out.write(ByteBuffer.allocate(4).putInt(contentId).array());
         Ref ref = Ref.newBuilder().setName(refName).build();
-        ref.writeDelimitedTo(out); // Ref length-delimited
-        out.write(payload); // protobuf payload
+        ref.writeDelimitedTo(out);
+        out.write(payload);
         return out.toByteArray();
     }
 
     /**
      * Builds bytes in Apicurio wire format with an empty Ref (varint 0 length).
-     *
-     * @param payload   the raw protobuf bytes
-     * @param contentId the schema content ID
-     * @return the complete wire-format byte array
      */
     private byte[] buildApicurioWireFormatEmptyRef(byte[] payload, int contentId) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        out.write(0x00); // magic byte
-        out.write(ByteBuffer.allocate(4).putInt(contentId).array()); // 4-byte content ID
+        out.write(0x00);
+        out.write(ByteBuffer.allocate(4).putInt(contentId).array());
         out.write(0x00); // empty Ref: varint 0 length
-        out.write(payload); // protobuf payload
+        out.write(payload);
         return out.toByteArray();
     }
 
     /**
-     * A {@link io.apicurio.registry.resolver.SchemaResolver} that always throws on resolution,
-     * forcing the deserializer into the fallback path. All non-resolution methods are no-ops.
+     * A {@link io.apicurio.registry.resolver.SchemaResolver} stub that surfaces a configurable
+     * exception when {@code resolveSchemaByArtifactReference} is called. The exception passed in
+     * mirrors what the real {@code DefaultSchemaResolver} would throw against a misbehaving
+     * registry (e.g. {@link ApiException}, {@link UncheckedIOException}). All other resolver
+     * methods are no-ops because the deserializer never touches them on the failure path.
      *
      * @param <T> the protobuf message type
      */
     private static class ThrowingSchemaResolver<T extends com.google.protobuf.Message>
             implements io.apicurio.registry.resolver.SchemaResolver<
             io.apicurio.registry.utils.protobuf.schema.ProtobufSchema, T> {
+
+        private final RuntimeException toThrow;
+
+        ThrowingSchemaResolver(RuntimeException toThrow) {
+            this.toThrow = toThrow;
+        }
 
         @Override
         public void setClientFacade(io.apicurio.registry.resolver.client.RegistryClientFacade client) {
@@ -284,14 +488,14 @@ public class ProtobufDeserializerFallbackTest {
         public io.apicurio.registry.resolver.SchemaLookupResult<
                 io.apicurio.registry.utils.protobuf.schema.ProtobufSchema> resolveSchema(
                 io.apicurio.registry.resolver.data.Record<T> data) {
-            throw new RuntimeException("Simulated schema resolution failure — registry unreachable");
+            throw toThrow;
         }
 
         @Override
         public io.apicurio.registry.resolver.SchemaLookupResult<
                 io.apicurio.registry.utils.protobuf.schema.ProtobufSchema> resolveSchemaByArtifactReference(
                 io.apicurio.registry.resolver.strategy.ArtifactReference reference) {
-            throw new RuntimeException("Simulated schema resolution failure — registry unreachable");
+            throw toThrow;
         }
 
         @Override

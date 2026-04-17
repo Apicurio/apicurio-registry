@@ -1,24 +1,33 @@
-package io.apicurio.registry.cli.globalrule;
+package io.apicurio.registry.cli.group;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.apicurio.registry.cli.artifact.ArtifactUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.common.RuleUtil.printRule;
+import static io.apicurio.registry.cli.common.RuleUtil.rejectDefaultGroup;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 
 @Command(
         name = "get",
-        description = "Get the configuration of a global rule"
+        description = "Get the configuration of a group rule"
 )
-public class GlobalRuleGetCommand extends AbstractCommand {
+public class GroupRuleGetCommand extends AbstractCommand {
+
+    @Option(
+            names = {"-g", "--group"},
+            description = "Group ID. If not provided, uses the groupId from the current context. Group rules are not available for the 'default' group."
+    )
+    private String groupId;
 
     @Parameters(
             index = "0",
@@ -31,15 +40,19 @@ public class GlobalRuleGetCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws JsonProcessingException {
+        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
+        rejectDefaultGroup(resolvedGroupId);
         validateRuleType(ruleType);
         try {
             //noinspection ConstantConditions
-            final var rule = convert(client.getRegistryClient().admin().rules().byRuleType(ruleType).get());
+            final var rule = convert(client.getRegistryClient().groups().byGroupId(resolvedGroupId).rules().byRuleType(ruleType).get());
             printRule(output, rule, outputType);
         } catch (final ProblemDetails ex) {
             output.writeStdErrChunk(err -> {
-                err.append("Error retrieving global rule '")
+                err.append("Error retrieving rule '")
                         .append(ruleType)
+                        .append("' for group '")
+                        .append(resolvedGroupId)
                         .append("': ")
                         .append(ex.getDetail())
                         .append('\n');

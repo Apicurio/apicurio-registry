@@ -31,9 +31,10 @@ import static io.apicurio.registry.cli.utils.Conversions.convertToString;
         description = "Work with groups",
         subcommands = {
                 GroupCreateCommand.class,
-                GroupUpdateCommand.class,
+                GroupDeleteCommand.class,
                 GroupGetCommand.class,
-                GroupDeleteCommand.class
+                GroupRuleCommand.class,
+                GroupUpdateCommand.class
         }
 )
 public class GroupCommand extends AbstractCommand {

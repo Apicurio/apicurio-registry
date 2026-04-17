@@ -2,18 +2,20 @@ package io.apicurio.registry.services;
 
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.Info;
-import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -52,10 +54,11 @@ public class DynamicLogConfigurationService {
      */
     void onStartup(@Observes StartupEvent event) {
         try {
-            String targetLevel = logLevel.get();
-            applyLogLevel(targetLevel);
-            currentAppliedLevel = targetLevel;
-            log.info("Applied initial log level configuration at startup: {} = {}", APICURIO_LOGGER_NAME, targetLevel);
+            resolveConfiguredLogLevel().ifPresent(targetLevel -> {
+                applyLogLevel(targetLevel);
+                currentAppliedLevel = targetLevel;
+                log.info("Applied initial log level configuration at startup: {} = {}", APICURIO_LOGGER_NAME, targetLevel);
+            });
         } catch (Exception ex) {
             log.error("Exception thrown when applying initial log level configuration", ex);
         }
@@ -75,17 +78,31 @@ public class DynamicLogConfigurationService {
         try {
             log.trace("Running periodic dynamic log configuration check");
 
-            String targetLevel = logLevel.get();
+            Optional<String> targetLevel = resolveConfiguredLogLevel();
+            if (targetLevel.isEmpty()) {
+                return;
+            }
 
             // Only update if the level has changed
-            if (!targetLevel.equals(currentAppliedLevel)) {
-                applyLogLevel(targetLevel);
-                currentAppliedLevel = targetLevel;
-                log.info("Applied dynamic log level configuration: {} = {}", APICURIO_LOGGER_NAME, targetLevel);
+            if (!targetLevel.get().equals(currentAppliedLevel)) {
+                applyLogLevel(targetLevel.get());
+                currentAppliedLevel = targetLevel.get();
+                log.info("Applied dynamic log level configuration: {} = {}", APICURIO_LOGGER_NAME, targetLevel.get());
             }
         } catch (Exception ex) {
             log.error("Exception thrown when applying dynamic log level configuration", ex);
         }
+    }
+
+    static Optional<String> resolveConfiguredLogLevel() {
+        // Only honor an actual configured value here. The annotation default is
+        // still available to config metadata, but startup must not force it over
+        // Quarkus' native log category configuration.
+        var configValue = ConfigProvider.getConfig().getConfigValue("apicurio.log.level");
+        if (configValue == null || configValue.getValue() == null || configValue.getValue().isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(configValue.getValue());
     }
 
     /**

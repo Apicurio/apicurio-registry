@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.artifact;
 
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
@@ -32,10 +33,10 @@ public class ArtifactDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         try {
             final var registryClient = client.getRegistryClient();
-            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
             registryClient.groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).delete();
             output.writeStdOutChunk(out -> {
                 out.append("Artifact '").append(artifactId).append("' in group '")

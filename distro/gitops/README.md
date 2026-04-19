@@ -27,21 +27,43 @@ All environment variables use the `APICURIO_GITOPS_` prefix. Variables that corr
 registry configuration properties share the same name, so the sidecar and registry can be
 configured consistently.
 
-### Shared with Registry
+### Single-Repo (Shared with Registry)
 
-These variables are understood by both the sidecar and the registry container:
+These variables are understood by both the sidecar and the registry container.
+Use these for simple single-repo setups:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APICURIO_GITOPS_WORKSPACE` | `/repos` | Base directory where repositories are stored |
 | `APICURIO_GITOPS_REPO_DIR` | `default` | Repository directory name, relative to workspace |
 | `APICURIO_GITOPS_REPO_BRANCH` | `main` | Git branch to track |
+| `APICURIO_GITOPS_REPO_URL` | *(required for pull)* | Remote repository URL (sidecar only) |
+
+### Multi-Repo (Indexed)
+
+For multiple repositories, use indexed variables. The same format is used by
+both the sidecar and the registry:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `APICURIO_GITOPS_REPOS_N_DIR` | *(required)* | Directory name for repo N |
+| `APICURIO_GITOPS_REPOS_N_BRANCH` | `main` | Branch to track for repo N |
+| `APICURIO_GITOPS_REPOS_N_URL` | *(required for pull)* | Remote URL for repo N |
+
+Indexes must be dense (0, 1, 2, ... — no gaps). If indexed repos are configured,
+single-repo shorthand variables must not be set.
+
+**Registry equivalent** (in `application.properties` or env vars):
+```properties
+apicurio.gitops.repos.0.dir=platform
+apicurio.gitops.repos.1.dir=fulfillment
+apicurio.gitops.repos.1.branch=fulfillment
+```
 
 ### Sidecar-only
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `APICURIO_GITOPS_REPO_URL` | *(required for pull)* | Remote repository URL (HTTPS or SSH) |
 | `APICURIO_GITOPS_PULL_ENABLED` | `true` | Enable periodic fetching from remote |
 | `APICURIO_GITOPS_PULL_INTERVAL` | `30` | Seconds between fetch attempts |
 | `APICURIO_GITOPS_PULL_DEPTH` | `1` | Git clone/fetch depth. `0` for full history |

@@ -1,7 +1,7 @@
 package io.apicurio.registry.cli.group;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.apicurio.registry.cli.artifact.ArtifactUtil;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -38,7 +38,7 @@ public class GroupRuleCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws JsonProcessingException {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         rejectDefaultGroup(resolvedGroupId);
         try {
             final var ruleTypes = client.getRegistryClient().groups().byGroupId(resolvedGroupId).rules().get();

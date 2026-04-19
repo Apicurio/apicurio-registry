@@ -4982,6 +4982,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "sources": {
+            "description": "Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },

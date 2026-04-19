@@ -18,7 +18,8 @@
 #        -Dapicurio.features.experimental.enabled=true \
 #        -Dapicurio.polling-storage.id=prod \
 #        -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops \
-#        -Dapicurio.gitops.repo.dir=example-repo
+#        -Dapicurio.gitops.repo.dir=example-repo \
+#        -Dapicurio.log.level=debug
 #
 # To run as the staging registry (includes experimental schemas):
 #   -Dapicurio.polling-storage.id=staging

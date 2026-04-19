@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli.group;
 
-import io.apicurio.registry.cli.artifact.ArtifactUtil;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -43,7 +43,7 @@ public class GroupRuleDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         rejectDefaultGroup(resolvedGroupId);
         if (all && ruleType != null) {
             throw new CliException(

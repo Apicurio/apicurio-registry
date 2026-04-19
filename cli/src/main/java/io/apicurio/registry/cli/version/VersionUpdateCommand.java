@@ -1,6 +1,6 @@
 package io.apicurio.registry.cli.version;
 
-import io.apicurio.registry.cli.artifact.ArtifactUtil;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.FileUtils;
@@ -100,12 +100,12 @@ public class VersionUpdateCommand extends AbstractCommand {
             throw new CliException("At least one update option is required (--name, --description, --state, --set-label, --delete-label, or --file).",
                     CliException.VALIDATION_ERROR_RETURN_CODE);
         }
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
-        final var resolvedArtifactId = VersionUtil.resolveArtifactId(artifactId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
+        final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
         try {
             final var registryClient = client.getRegistryClient();
-            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
-            ArtifactUtil.validateArtifact(registryClient, resolvedGroupId, resolvedArtifactId);
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
+            IdUtil.validateArtifact(registryClient, resolvedGroupId, resolvedArtifactId);
             final var versionPath = registryClient
                     .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)
                     .versions().byVersionExpression(versionExpression);

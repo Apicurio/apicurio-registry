@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.artifact;
 
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.FileUtils;
@@ -95,7 +96,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
 
         final var newArtifact = new CreateArtifact();
         newArtifact.setArtifactId(artifactId);

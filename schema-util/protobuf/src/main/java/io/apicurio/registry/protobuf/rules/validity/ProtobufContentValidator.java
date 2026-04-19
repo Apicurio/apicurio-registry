@@ -38,6 +38,7 @@ public class ProtobufContentValidator extends AbstractContentValidator {
                          Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
+                ProtobufFqnConflictDetector.assertNoConflicts(level, content, resolvedReferences);
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
                     // Parse the protobuf content (syntax validation)
                     ProtoFileElement protoFileElement = ProtobufFile
@@ -93,6 +94,9 @@ public class ProtobufContentValidator extends AbstractContentValidator {
 
                     FileDescriptorUtils.parseProtoFileWithDependencies(mainFile, dependencies, requiredDeps, true, true);
                 }
+            }
+            catch (RuleViolationException rve) {
+                throw rve;
             }
             catch (Exception e) {
                 throw new RuleViolationException("Syntax violation for Protobuf artifact.", RuleType.VALIDITY,

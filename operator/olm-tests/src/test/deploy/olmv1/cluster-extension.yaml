@@ -24,5 +24,5 @@ spec:
           olm.operatorframework.io/metadata.name: apicurio-registry-operator-catalog # Intentional for development and testing.
       packageName: ${PLACEHOLDER_PACKAGE_NAME}
       channels:
-        - 3.x
+        - ${PLACEHOLDER_CHANNEL}
       version: ${PLACEHOLDER_LC_VERSION}

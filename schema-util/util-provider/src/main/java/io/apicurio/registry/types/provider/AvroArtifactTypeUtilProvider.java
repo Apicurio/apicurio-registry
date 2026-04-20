@@ -3,7 +3,7 @@ package io.apicurio.registry.types.provider;
 import io.apicurio.registry.avro.content.AvroContentAccepter;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
-import io.apicurio.registry.avro.content.canon.EnhancedAvroContentCanonicalizer;
+import io.apicurio.registry.avro.content.canon.AvroContentCanonicalizer;
 import io.apicurio.registry.avro.content.dereference.AvroDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.avro.content.extract.AvroContentExtractor;
@@ -47,7 +47,7 @@ public class AvroArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
 
     @Override
     protected ContentCanonicalizer createContentCanonicalizer() {
-        return new EnhancedAvroContentCanonicalizer();
+        return new AvroContentCanonicalizer();
     }
 
     @Override

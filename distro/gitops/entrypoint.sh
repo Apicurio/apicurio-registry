@@ -23,25 +23,25 @@
 #   APICURIO_GITOPS_REPOS_1_DIR        Second repo directory name
 #   ... and so on
 #
-# Pull/push mode:
-#   APICURIO_GITOPS_PULL_ENABLED       Enable periodic pulling (default: true)
-#   APICURIO_GITOPS_PULL_INTERVAL      Seconds between fetches (default: 30)
-#   APICURIO_GITOPS_PULL_DEPTH         Clone/fetch depth, 0 = full (default: 1)
-#   APICURIO_GITOPS_PUSH_ENABLED       Enable SSH server for push (default: false)
-#                                      NOTE: Push mode is experimental and not yet fully supported.
-#                                      Do not use in production.
-#   APICURIO_GITOPS_PUSH_PORT          SSH server port (default: 2222)
+# Mode:
+#   APICURIO_GITOPS_MODE               pull (default) or push
+#   APICURIO_GITOPS_PULL_INTERVAL      Seconds between fetches (default: 30, pull mode)
+#   APICURIO_GITOPS_PULL_DEPTH         Clone/fetch depth, 0 = full (default: 1, pull mode)
+#   APICURIO_GITOPS_PUSH_PORT          SSH server port (default: 2222, push mode)
 #
-# SSH configuration:
-#   APICURIO_GITOPS_SSH_KEY            Path to SSH private key for pulling (optional)
-#   APICURIO_GITOPS_SSH_KNOWN_HOSTS    Path to known_hosts file (optional)
-#   APICURIO_GITOPS_SSH_AUTHORIZED_KEYS Path to authorized_keys for push mode (optional)
-#   APICURIO_GITOPS_SSH_HOST_KEY       Path to SSH host private key for push mode (optional)
-#   APICURIO_GITOPS_SECURITY           Security level (default: default)
-#                                      dev     - auto-generate keys, print private keys to log
-#                                      default - auto-generate keys, print fingerprints only, TOFU,
-#                                                reject HTTP URLs
-#                                      strict  - require all keys to be mounted, reject HTTP URLs
+# Pull SSH (for authenticating to remote Git servers):
+#   APICURIO_GITOPS_PULL_SSH_KEYS            Path to SSH private key, or comma-separated list of paths (optional)
+#   APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS    Path to known_hosts file (optional)
+#
+# Push SSH (for the push mode SSH server):
+#   APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS Path to authorized_keys (optional)
+#   APICURIO_GITOPS_PUSH_SSH_HOST_KEY        Path to SSH host private key (optional)
+#
+# Security:
+#   APICURIO_GITOPS_SECURITY           Security level (default: strict)
+#                                      dev    - auto-generate keys, TOFU for host verification,
+#                                               warn on issues
+#                                      strict - require all keys to be mounted, fail on issues
 #
 
 set -euo pipefail
@@ -51,16 +51,15 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 WORKSPACE="${APICURIO_GITOPS_WORKSPACE:-/repos}"
-PULL_ENABLED="${APICURIO_GITOPS_PULL_ENABLED:-true}"
+MODE="${APICURIO_GITOPS_MODE:-pull}"
 PULL_INTERVAL="${APICURIO_GITOPS_PULL_INTERVAL:-30}"
 PULL_DEPTH="${APICURIO_GITOPS_PULL_DEPTH:-1}"
-PUSH_ENABLED="${APICURIO_GITOPS_PUSH_ENABLED:-false}"
 PUSH_PORT="${APICURIO_GITOPS_PUSH_PORT:-2222}"
-SSH_KEY="${APICURIO_GITOPS_SSH_KEY:-}"
-SSH_KNOWN_HOSTS="${APICURIO_GITOPS_SSH_KNOWN_HOSTS:-}"
-SSH_AUTHORIZED_KEYS="${APICURIO_GITOPS_SSH_AUTHORIZED_KEYS:-}"
-SSH_HOST_KEY="${APICURIO_GITOPS_SSH_HOST_KEY:-}"
-SECURITY="${APICURIO_GITOPS_SECURITY:-default}"
+PULL_SSH_KEYS="${APICURIO_GITOPS_PULL_SSH_KEYS:-}"
+PULL_SSH_KNOWN_HOSTS="${APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS:-}"
+PUSH_SSH_AUTHORIZED_KEYS="${APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS:-}"
+PUSH_SSH_HOST_KEY="${APICURIO_GITOPS_PUSH_SSH_HOST_KEY:-}"
+SECURITY="${APICURIO_GITOPS_SECURITY:-strict}"
 
 TEMPLATE_DIR="/usr/local/share/apicurio-gitops"
 
@@ -104,12 +103,16 @@ error() {
 # Security helpers
 # ---------------------------------------------------------------------------
 
-is_dev() {
-    [ "${SECURITY}" = "dev" ]
+is_strict() {
+    [ "${SECURITY}" != "dev" ]
 }
 
-is_strict() {
-    [ "${SECURITY}" = "strict" ]
+is_pull() {
+    [ "${MODE}" = "pull" ]
+}
+
+is_push() {
+    [ "${MODE}" = "push" ]
 }
 
 # Render a template file by replacing {{VAR}} placeholders with shell variables.
@@ -212,10 +215,17 @@ validate_repo_list() {
 # Security validation
 # ---------------------------------------------------------------------------
 
+validate_mode() {
+    case "${MODE}" in
+        pull|push) ;;
+        *) error "Invalid APICURIO_GITOPS_MODE value '${MODE}'. Must be 'pull' or 'push'." ;;
+    esac
+}
+
 validate_security_level() {
     case "${SECURITY}" in
-        dev|default|strict) ;;
-        *) error "Invalid APICURIO_GITOPS_SECURITY value '${SECURITY}'. Must be 'dev', 'default', or 'strict'." ;;
+        dev|strict) ;;
+        *) error "Invalid APICURIO_GITOPS_SECURITY value '${SECURITY}'. Must be 'dev' or 'strict'." ;;
     esac
 
     log "Security level: ${SECURITY}"
@@ -223,8 +233,8 @@ validate_security_level() {
 
 validate_repo_urls() {
     for url in "${REPO_URLS[@]}"; do
-        if [ -n "${url}" ] && ! is_dev && echo "${url}" | grep -qiE '^http://'; then
-            error "Plaintext HTTP repository URLs are not allowed in ${SECURITY} mode. Use HTTPS or SSH, or set APICURIO_GITOPS_SECURITY=dev."
+        if [ -n "${url}" ] && echo "${url}" | grep -qiE '^http://'; then
+            error "Plaintext HTTP repository URLs are not allowed. Use HTTPS or SSH."
         fi
     done
 }
@@ -254,31 +264,36 @@ setup_ssh_client() {
     mkdir -p "${ssh_dir}"
     chmod 700 "${ssh_dir}"
 
-    if [ -n "${SSH_KEY}" ]; then
-        if [ ! -f "${SSH_KEY}" ]; then
-            error "SSH key file not found: ${SSH_KEY}"
-        fi
-        validate_ssh_key_permissions "${SSH_KEY}"
-        # Copy key so we can set permissions without affecting the mounted secret
-        cp "${SSH_KEY}" "${ssh_dir}/id_key"
-        chmod 600 "${ssh_dir}/id_key"
-        success "SSH client key configured"
+    # Support comma-separated list of SSH keys for authenticating to different remotes.
+    # SSH tries each key in order until one works.
+    if [ -n "${PULL_SSH_KEYS}" ]; then
+        local key_index=0
+        local IFS=','
+        for key_path in ${PULL_SSH_KEYS}; do
+            key_path=$(echo "${key_path}" | xargs)  # trim whitespace
+            if [ ! -f "${key_path}" ]; then
+                error "SSH key file not found: ${key_path}"
+            fi
+            validate_ssh_key_permissions "${key_path}"
+            cp "${key_path}" "${ssh_dir}/id_key_${key_index}"
+            chmod 600 "${ssh_dir}/id_key_${key_index}"
+            key_index=$((key_index + 1))
+        done
+        success "${key_index} SSH client key(s) configured"
     fi
 
-    if [ -n "${SSH_KNOWN_HOSTS}" ]; then
-        if [ ! -f "${SSH_KNOWN_HOSTS}" ]; then
-            error "known_hosts file not found: ${SSH_KNOWN_HOSTS}"
+    if [ -n "${PULL_SSH_KNOWN_HOSTS}" ]; then
+        if [ ! -f "${PULL_SSH_KNOWN_HOSTS}" ]; then
+            error "known_hosts file not found: ${PULL_SSH_KNOWN_HOSTS}"
         fi
-        cp "${SSH_KNOWN_HOSTS}" "${ssh_dir}/known_hosts"
+        cp "${PULL_SSH_KNOWN_HOSTS}" "${ssh_dir}/known_hosts"
         chmod 644 "${ssh_dir}/known_hosts"
         success "known_hosts configured"
-    elif is_strict; then
-        error "APICURIO_GITOPS_SSH_KNOWN_HOSTS is required in strict mode. Provide a known_hosts file to prevent MITM attacks."
     fi
 
     # Determine host key checking policy
     local strict_host_key_checking="accept-new"
-    if [ -n "${SSH_KNOWN_HOSTS}" ]; then
+    if [ -n "${PULL_SSH_KNOWN_HOSTS}" ]; then
         strict_host_key_checking="yes"
     fi
 
@@ -287,9 +302,10 @@ setup_ssh_client() {
         "STRICT_HOST_KEY_CHECKING=${strict_host_key_checking}" \
         "SSH_DIR=${ssh_dir}"
 
-    if [ -f "${ssh_dir}/id_key" ]; then
-        echo "    IdentityFile ${ssh_dir}/id_key" >> "${ssh_dir}/config"
-    fi
+    # Add all copied keys as IdentityFile entries
+    for key_file in "${ssh_dir}"/id_key_*; do
+        [ -f "${key_file}" ] && echo "    IdentityFile ${key_file}" >> "${ssh_dir}/config"
+    done
 
     chmod 600 "${ssh_dir}/config"
 
@@ -304,18 +320,18 @@ setup_ssh_client() {
 setup_ssh_host_keys() {
     local sshd_dir="$1"
 
-    if [ -n "${SSH_HOST_KEY}" ]; then
+    if [ -n "${PUSH_SSH_HOST_KEY}" ]; then
         # Use mounted host key
-        if [ ! -f "${SSH_HOST_KEY}" ]; then
-            error "SSH host key file not found: ${SSH_HOST_KEY}"
+        if [ ! -f "${PUSH_SSH_HOST_KEY}" ]; then
+            error "SSH host key file not found: ${PUSH_SSH_HOST_KEY}"
         fi
-        validate_ssh_key_permissions "${SSH_HOST_KEY}"
-        cp "${SSH_HOST_KEY}" "${sshd_dir}/ssh_host_key"
+        validate_ssh_key_permissions "${PUSH_SSH_HOST_KEY}"
+        cp "${PUSH_SSH_HOST_KEY}" "${sshd_dir}/ssh_host_key"
         chmod 600 "${sshd_dir}/ssh_host_key"
 
         # Also copy the public key if it exists alongside the private key
-        if [ -f "${SSH_HOST_KEY}.pub" ]; then
-            cp "${SSH_HOST_KEY}.pub" "${sshd_dir}/ssh_host_key.pub"
+        if [ -f "${PUSH_SSH_HOST_KEY}.pub" ]; then
+            cp "${PUSH_SSH_HOST_KEY}.pub" "${sshd_dir}/ssh_host_key.pub"
         fi
         success "Using mounted SSH host key"
         return
@@ -323,10 +339,10 @@ setup_ssh_host_keys() {
 
     # No host key mounted
     if is_strict; then
-        error "APICURIO_GITOPS_SSH_HOST_KEY is required in strict mode. Mount an SSH host key to ensure stable host identity."
+        error "APICURIO_GITOPS_PUSH_SSH_HOST_KEY is required in strict mode. Mount an SSH host key to ensure stable host identity."
     fi
 
-    # Dev/default mode: auto-generate host keys
+    # Dev mode: auto-generate host keys
     if [ ! -f "${sshd_dir}/ssh_host_ed25519_key" ]; then
         ssh-keygen -t ed25519 -f "${sshd_dir}/ssh_host_ed25519_key" -N "" -q
         log "Generated ED25519 host key"
@@ -334,17 +350,6 @@ setup_ssh_host_keys() {
     if [ ! -f "${sshd_dir}/ssh_host_rsa_key" ]; then
         ssh-keygen -t rsa -b 4096 -f "${sshd_dir}/ssh_host_rsa_key" -N "" -q
         log "Generated RSA host key"
-    fi
-
-    if is_dev; then
-        log "--- BEGIN SSH HOST PRIVATE KEY (dev mode) ---"
-        cat "${sshd_dir}/ssh_host_ed25519_key"
-        log "--- END SSH HOST PRIVATE KEY (dev mode) ---"
-        log "Host public key:"
-        cat "${sshd_dir}/ssh_host_ed25519_key.pub"
-    else
-        log "Host key fingerprint:"
-        ssh-keygen -lf "${sshd_dir}/ssh_host_ed25519_key.pub"
     fi
 }
 
@@ -368,14 +373,14 @@ HostKey ${sshd_dir}/ssh_host_rsa_key"
     mkdir -p "${auth_keys_dir}"
     chmod 700 "${auth_keys_dir}"
 
-    if [ -n "${SSH_AUTHORIZED_KEYS}" ] && [ -f "${SSH_AUTHORIZED_KEYS}" ]; then
-        cp "${SSH_AUTHORIZED_KEYS}" "${auth_keys_dir}/authorized_keys"
+    if [ -n "${PUSH_SSH_AUTHORIZED_KEYS}" ] && [ -f "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
+        cp "${PUSH_SSH_AUTHORIZED_KEYS}" "${auth_keys_dir}/authorized_keys"
         chmod 600 "${auth_keys_dir}/authorized_keys"
         success "Authorized keys configured for push access"
     elif is_strict; then
-        error "APICURIO_GITOPS_SSH_AUTHORIZED_KEYS is required in strict mode. Provide an authorized_keys file to control push access."
+        error "APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS is required in strict mode. Provide an authorized_keys file to control push access."
     else
-        warning "Push mode enabled but no authorized keys configured (APICURIO_GITOPS_SSH_AUTHORIZED_KEYS)"
+        warning "Push mode enabled but no authorized keys configured (APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS)"
     fi
 
     # Render sshd config from template
@@ -391,7 +396,7 @@ HostKey ${sshd_dir}/ssh_host_rsa_key"
 start_ssh_server() {
     local sshd_dir="/home/git/.sshd"
     log "Starting SSH server on port ${PUSH_PORT}..."
-    /usr/sbin/sshd -f "${sshd_dir}/sshd_config" -e &
+    /usr/sbin/sshd -D -f "${sshd_dir}/sshd_config" -e &
     SSHD_PID=$!
     success "SSH server started (PID: ${SSHD_PID})"
 }
@@ -411,7 +416,7 @@ init_repo() {
         return 0
     fi
 
-    if [ "${PULL_ENABLED}" = "true" ]; then
+    if is_pull; then
         if [ -z "${repo_url}" ]; then
             error "[${repo_dir}] Repository URL is required when pull mode is enabled"
         fi
@@ -503,9 +508,15 @@ main() {
     for i in "${!REPO_DIRS[@]}"; do
         log "    [${REPO_DIRS[$i]}] branch=${REPO_BRANCHES[$i]} url=${REPO_URLS[$i]:-<local>}"
     done
-    log "  Pull:      ${PULL_ENABLED} (interval: ${PULL_INTERVAL}s, depth: ${PULL_DEPTH})"
-    log "  Push:      ${PUSH_ENABLED} (port: ${PUSH_PORT})"
+    log "  Mode:      ${MODE}"
+    if is_pull; then
+        log "  Pull:      interval=${PULL_INTERVAL}s, depth=${PULL_DEPTH}"
+    fi
+    if is_push; then
+        log "  Push:      port=${PUSH_PORT}"
+    fi
 
+    validate_mode
     validate_security_level
     validate_repo_urls
 
@@ -520,10 +531,10 @@ main() {
         fi
     done
 
-    if [ -n "${SSH_KEY}" ] || [ -n "${SSH_KNOWN_HOSTS}" ]; then
+    if [ -n "${PULL_SSH_KEYS}" ] || [ -n "${PULL_SSH_KNOWN_HOSTS}" ]; then
         setup_ssh_client
-    elif is_strict && [ "${PULL_ENABLED}" = "true" ] && [ "${has_ssh_url}" = "true" ]; then
-        error "APICURIO_GITOPS_SSH_KNOWN_HOSTS is required in strict mode when using SSH repository URLs."
+    elif is_strict && is_pull && [ "${has_ssh_url}" = "true" ]; then
+        error "APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS is required in strict mode when using SSH repository URLs."
     fi
 
     # Initialize all repositories
@@ -532,28 +543,23 @@ main() {
     done
 
     # Start push mode (SSH server) if enabled
-    if [ "${PUSH_ENABLED}" = "true" ]; then
+    if is_push; then
         setup_ssh_server
         start_ssh_server
     fi
 
     # Start pull loop if enabled
-    if [ "${PULL_ENABLED}" = "true" ]; then
+    if is_pull; then
         pull_loop &
         PULL_PIDS+=($!)
         log "Pull loop started (PID: ${PULL_PIDS[0]})"
     fi
 
-    # Wait for any background process to exit
+    # Wait for the background process to keep the container alive
     if [ -n "${SSHD_PID:-}" ]; then
         wait "${SSHD_PID}" || true
     elif [ ${#PULL_PIDS[@]} -gt 0 ]; then
         wait "${PULL_PIDS[0]}" || true
-    else
-        # Neither pull nor push enabled — just keep running
-        warning "Neither pull nor push mode is enabled. Container will idle."
-        tail -f /dev/null &
-        wait $!
     fi
 }
 

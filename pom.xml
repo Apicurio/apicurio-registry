@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.2.2-SNAPSHOT</version>
+  <version>3.3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>apicurio-registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -87,10 +87,7 @@
     <module>config-index/runtime</module>
     <module>java-sdk</module>
     <module>schema-resolver</module>
-    <module>schema-validation/common</module>
-    <module>schema-validation/jsonschema</module>
-    <module>schema-validation/avro</module>
-    <module>schema-validation/protobuf</module>
+    <module>schema-validation</module>
     <module>utils/importexport</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>

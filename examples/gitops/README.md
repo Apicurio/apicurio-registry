@@ -10,12 +10,12 @@ The registry is read-only — all changes are made by modifying files in the Git
 |---------|-------------|---------|----------|
 | [Local volume](#local-volume) | Git repo cloned locally, no sidecar | No | N/A |
 | [Pull HTTPS](#pull-https) | Sidecar pulls from a public repo over HTTPS | Yes | `dev` |
-| [Pull SSH](#pull-ssh) | Sidecar pulls from a private repo over SSH | Yes | `default` |
+| [Pull SSH](#pull-ssh) | Sidecar pulls from a private repo over SSH | Yes | `dev` |
 | [Multi-repo HTTPS pull](#multi-repo-pull-https) | Sidecar pulls two branches (two teams) over HTTPS | Yes | `dev` |
+| [Push](#push) | Sidecar accepts `git push` over SSH | Yes | `dev` |
 
-Each example has two compose files:
-- `docker-compose.yaml` — full stack (registry + sidecar + UI)
-- `docker-compose-dev.yaml` — for use with `mvn quarkus:dev` (sidecar + UI only)
+Each example has a `docker-compose.yaml` for the full stack (registry + sidecar + UI).
+Most examples also have a `docker-compose-dev.yaml` for use with `mvn quarkus:dev`.
 
 See the comments at the top of each compose file for setup and run instructions.
 
@@ -89,6 +89,34 @@ APICURIO_POLLING_STORAGE_ID=staging docker compose up
 ```
 
 See `multi-repo-pull-https/docker-compose.yaml` for local image build instructions.
+
+## Push
+
+The sidecar runs an SSH server and accepts `git push` directly. Useful for
+restricted networks where outbound Git access is not available, or for CI/CD
+pipelines that push schema changes to the registry.
+
+**Quick setup:**
+
+1. Generate a key: `ssh-keygen -t ed25519 -f push/secrets/id_ed25519 -N ""`
+2. Start the stack:
+
+```bash
+cd examples/gitops/push
+docker compose up
+```
+
+3. Push schemas from a local Git repository:
+
+```bash
+export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i examples/gitops/push/secrets/id_ed25519 -p 2222"
+git remote add registry git@localhost:/repos/default
+git push registry main
+```
+
+The registry detects the new commit on the next poll cycle and loads the data.
+
+See `push/docker-compose.yaml` for full setup instructions.
 
 ## Endpoints
 

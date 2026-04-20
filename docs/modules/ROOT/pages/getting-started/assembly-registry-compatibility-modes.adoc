@@ -170,101 +170,109 @@ As a result, Version 3 passes the `BACKWARD` check but fails the `BACKWARD_TRANS
 
 [role="_abstract"]
 {registry} uses a custom library to analyze differences between JSON Schema versions.
-Because JSON Schema uses a constraint-based validation model, a backward compatible change typically makes the new schema more permissive so that it accepts all data that the previous schema accepted.
+Because JSON Schema uses a constraint-based validation model, the following table describes common changes and whether they maintain or break backward compatibility.
 
-.Backward compatible changes for JSON Schema
-
-You can make these changes to a JSON Schema and maintain backward compatibility.
-The new schema continues to validate all data that the previous schema validated.
-
-.JSON Schema backward compatible changes
-[%header,cols="2,3"]
+.JSON Schema compatibility changes
+[%header,cols="3,1,5"]
 |===
-|Change
-|Description
+|Change type
+|Backward compatible?
+|Reason
 
 |Add a new optional property
+|Yes
 |Old data without the property remains valid under the new schema.
 
 |Remove a property from `required`
+|Yes
 |The new schema relaxes the constraint, so old data with or without the property remains valid.
 
 |Decrease `minProperties`, `minLength`, or `minItems`
-|The new schema relaxes the minimum constraint. Old data that met the stricter minimum still passes validation.
+|Yes
+|The new schema relaxes the minimum constraint. Old data that met the stricter minimum still passes.
 
 |Increase `maxProperties`, `maxLength`, or `maxItems`
-|The new schema relaxes the maximum constraint. Old data that met the stricter maximum still passes validation.
+|Yes
+|The new schema relaxes the maximum constraint. Old data that met the stricter maximum still passes.
 
 |Add a value to `enum`
+|Yes
 |The new schema expands the set of accepted values. Existing valid values remain valid.
 
 |Change `additionalProperties` from `false` to `true`
+|Yes
 |The new schema becomes more permissive by accepting additional properties.
 
 |Extend the `additionalProperties` schema
+|Yes
 |Making the additional properties schema more permissive accepts more data.
 
 |Increase the size of `oneOf` or `anyOf`
+|Yes
 |Adding alternatives to combined schemas accepts more data patterns.
 
 |Decrease `minimum` or `exclusiveMinimum`
-|The new schema relaxes the lower bound. Old data above the previous bound still passes validation.
+|Yes
+|The new schema relaxes the lower bound. Old data above the previous bound still passes.
 
 |Increase `maximum` or `exclusiveMaximum`
-|The new schema relaxes the upper bound. Old data below the previous bound still passes validation.
+|Yes
+|The new schema relaxes the upper bound. Old data below the previous bound still passes.
 
 |Remove a `format` constraint
+|Yes
 |The new schema removes a validation check, making it more permissive.
 
 |Change `uniqueItems` from `true` to `false`
+|Yes
 |The new schema relaxes the array constraint. Old data with unique items remains valid.
-|===
-
-.Backward incompatible changes for JSON Schema
-
-If you make these changes, you break backward compatibility.
-The new schema rejects data that the previous schema validated.
-
-.JSON Schema backward incompatible changes
-[%header,cols="2,3"]
-|===
-|Change
-|Description
 
 |Add a property to `required`
+|No
 |Old data without the newly required property fails validation.
 
 |Increase `minProperties`, `minLength`, or `minItems`
-|The new schema tightens the minimum constraint. Old data that met the previous minimum might fail validation.
+|No
+|The new schema tightens the minimum constraint. Old data that met the previous minimum might fail.
 
 |Decrease `maxProperties`, `maxLength`, or `maxItems`
-|The new schema tightens the maximum constraint. Old data that met the previous maximum might fail validation.
+|No
+|The new schema tightens the maximum constraint. Old data that met the previous maximum might fail.
 
 |Remove a value from `enum`
+|No
 |Old data that contains the removed value fails validation.
 
 |Change `additionalProperties` from `true` to `false`
+|No
 |Old data with additional properties fails validation.
 
 |Change the `type` keyword
+|No
 |Old data of the previous type fails validation. For example, changing `string` to `integer` breaks compatibility.
 
 |Add a `pattern` or `format` constraint
+|No
 |Old data that does not match the new pattern or format fails validation.
 
 |Increase `minimum` or `exclusiveMinimum`
+|No
 |The new schema tightens the lower bound. Old data below the new bound fails validation.
 
 |Decrease `maximum` or `exclusiveMaximum`
+|No
 |The new schema tightens the upper bound. Old data above the new bound fails validation.
 
 |Decrease the size of `oneOf` or `anyOf`
+|No
 |Removing alternatives from combined schemas causes some previously valid data to fail validation.
 
 |Change `uniqueItems` from `false` to `true`
+|No
 |Old data with duplicate items fails validation.
 
 |Change a `const` value
+|No
 |Old data with the previous constant value fails validation.
 |===
 
@@ -276,59 +284,53 @@ The new schema rejects data that the previous schema validated.
 
 [role="_abstract"]
 {registry} checks Protobuf schema compatibility based on the wire format contract.
-Because Protobuf uses numeric field tags to identify fields on the wire, compatibility rules focus on preserving tag numbers and field types.
+Because Protobuf uses numeric field tags to identify fields on the wire, the following table describes common changes and whether they maintain or break backward compatibility.
 
-.Backward compatible changes for Protobuf
-
-You can make these changes to a Protobuf schema and maintain backward compatibility.
-Consumers using the new schema can still read data that the previous schema wrote.
-
-.Protobuf backward compatible changes
-[%header,cols="2,3"]
+.Protobuf schema compatibility changes
+[%header,cols="3,1,5"]
 |===
-|Change
-|Description
+|Change type
+|Backward compatible?
+|Reason
 
 |Add a new field with a new tag number
+|Yes
 |Old data does not contain the new tag, and the new consumer ignores the missing optional field.
 
 |Add a new message type
+|Yes
 |Old data is unaffected by the addition of new message definitions.
 
 |Add a new RPC method to a service
+|Yes
 |Old data and existing RPC calls are unaffected by the new method.
-|===
-
-.Backward incompatible changes for Protobuf
-
-If you make these changes, you break backward compatibility.
-Consumers using the new schema cannot read data that the previous schema wrote.
-
-.Protobuf backward incompatible changes
-[%header,cols="2,3"]
-|===
-|Change
-|Description
 
 |Change a field tag number
+|No
 |Old data uses the original tag number on the wire. The new consumer cannot match the field to its new tag.
 
 |Change a field type
+|No
 |The wire encoding differs between types. For example, changing `string` to `int64` causes parsing failures.
 
 |Rename a field
+|No
 |Although Protobuf uses tag numbers on the wire, renaming a field affects JSON serialization and generated code.
 
 |Remove a field without reserving its tag
+|No
 |Another field might reuse the tag number with a different type, which causes data corruption.
 
 |Change a field label
+|No
 |Changing between `optional`, `required`, or `repeated` alters the wire format and parsing behavior.
 
 |Remove an RPC method from a service
+|No
 |Clients that use the removed RPC method can no longer communicate with the service.
 
 |Change an RPC method signature
+|No
 |Changing the input or output message type breaks the RPC contract.
 |===
 
@@ -355,61 +357,56 @@ Reserving fields is critical for maintaining forward and backward compatibility 
 
 [role="_abstract"]
 {registry} checks OpenAPI specification compatibility by comparing operations and schemas between versions.
-{registry} considers changes that remove or restrict existing API contracts to be incompatible.
+The following table describes common changes and whether they maintain or break backward compatibility.
 
-.Backward compatible changes for OpenAPI
-
-You can make these changes to an OpenAPI specification and maintain backward compatibility.
-Existing API clients continue to operate without modification.
-
-.OpenAPI backward compatible changes
-[%header,cols="2,3"]
+.OpenAPI compatibility changes
+[%header,cols="3,1,5"]
 |===
-|Change
-|Description
+|Change type
+|Backward compatible?
+|Reason
 
 |Add a new path or endpoint
+|Yes
 |Existing clients are not affected by new endpoints that they do not call.
 
 |Add a new optional query parameter
+|Yes
 |Existing clients can continue making requests without the new parameter.
 
 |Add a new optional response header
+|Yes
 |Existing clients can ignore the new header in responses.
 
 |Relax request body schema constraints
+|Yes
 |Existing requests that the old schema validated remain valid when you relax the constraints.
 
 |Add a new response status code
+|Yes
 |Existing clients typically handle unexpected status codes gracefully.
-|===
-
-.Backward incompatible changes for OpenAPI
-
-If you make these changes, you break backward compatibility.
-Existing API clients might receive errors or unexpected responses.
-
-.OpenAPI backward incompatible changes
-[%header,cols="2,3"]
-|===
-|Change
-|Description
 
 |Remove a path or endpoint
+|No
 |Existing clients that depend on the removed endpoint receive errors.
 
 |Remove an operation from a path
+|No
 |Existing clients that use the removed HTTP method (for example, `GET` or `POST`) receive errors.
 
 |Add a new required request parameter
+|No
 |Existing client requests that do not include the new parameter are rejected.
 
 |Tighten request body schema constraints
+|No
 |Existing client requests that the old schema validated might be rejected under the new schema.
 
 |Change a response body schema incompatibly
+|No
 |Existing clients that parse the response according to the old schema might fail.
 
 |Remove a response status code
+|No
 |Existing clients that handle the removed status code might not handle the replacement correctly.
 |===

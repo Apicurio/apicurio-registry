@@ -51,7 +51,7 @@ For a list of supported artifact types, see the content rule maturity matrix in 
 
 [role="_abstract"]
 Compatibility modes act as a set of rules that determine whether a new schema version is allowed based on its ability to work with existing data and applications.
-You can configure one of seven compatibility modes for the `COMPATIBILITY` rule type.
+Compatibility modes act as a set of rules that determine whether a new schema version is allowed based on its ability to work with existing data and applications.
 
 .{registry} compatibility modes
 [%header,cols="1,3"]

@@ -87,10 +87,7 @@
     <module>config-index/runtime</module>
     <module>java-sdk</module>
     <module>schema-resolver</module>
-    <module>schema-validation/common</module>
-    <module>schema-validation/jsonschema</module>
-    <module>schema-validation/avro</module>
-    <module>schema-validation/protobuf</module>
+    <module>schema-validation</module>
     <module>utils/importexport</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>

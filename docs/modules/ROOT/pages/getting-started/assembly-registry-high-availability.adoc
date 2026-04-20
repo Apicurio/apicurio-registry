@@ -359,6 +359,14 @@ This design ensures that:
 * Pod restarts only affect the restarting pod, not others
 * Each replica maintains a consistent view of the data
 
+WARNING: Do not configure a fixed Kafka consumer group ID (for example, by setting
+`APICURIO_KAFKASQL_CONSUMER_GROUP_ID`). KafkaSQL uses an in-memory database that is empty on every
+restart, so the full journal topic must be replayed from the beginning each time. A fixed consumer
+group ID causes Kafka to resume from previously committed offsets, skipping the journal replay and
+resulting in the registry appearing empty after a restart. If you need a recognizable consumer group
+name for monitoring, use the `APICURIO_KAFKASQL_CONSUMER_GROUP_PREFIX` environment variable instead,
+which sets a prefix while still generating a unique group ID on each startup.
+
 [id="ha-monitoring_{context}"]
 == Monitoring high availability deployments
 

@@ -1530,11 +1530,6 @@ The following {registry} configuration options are available for each component 
 |`60s`
 |
 |
-|`apicurio.kafkasql.consumer.group.id`
-|`unknown`
-|`${registry.id}-${quarkus.uuid}`
-|
-|
 |`apicurio.kafkasql.producer.client.id`
 |`unknown`
 |`${registry.id}-producer`

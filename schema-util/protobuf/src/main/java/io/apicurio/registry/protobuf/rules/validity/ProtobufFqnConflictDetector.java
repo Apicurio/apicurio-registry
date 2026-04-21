@@ -74,13 +74,17 @@ final class ProtobufFqnConflictDetector {
      * @param mainContent the main artifact content; must not be null
      * @param resolvedReferences the resolved reference map (reference name to content);
      *                           may be null or empty
+     * @return an insertion-ordered map of reference name to its canonical text schema,
+     *         empty if no references were supplied. The surrounding validator can reuse
+     *         this map for its own dependency-aware parse step instead of re-running the
+     *         text conversion over every reference.
      * @throws RuleViolationException if a binary descriptor is rejected by
      *                                {@code FileDescriptor.buildFrom} with an identifier or
      *                                missing-name error, or if two sources define the same
      *                                fully qualified name with semantically different shapes
      */
-    static void assertNoConflicts(ValidityLevel level, TypedContent mainContent,
-                                  Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
+    static Map<String, String> assertNoConflicts(ValidityLevel level, TypedContent mainContent,
+                                                 Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         validateIdentifiersIfBinary(level, MAIN_SOURCE_NAME, mainContent);
         if (resolvedReferences != null) {
             for (Map.Entry<String, TypedContent> ref : resolvedReferences.entrySet()) {
@@ -96,6 +100,7 @@ final class ProtobufFqnConflictDetector {
             }
         }
         walkSource(MAIN_SOURCE_NAME, mainContent, depsText, known, level);
+        return depsText;
     }
 
     /**
@@ -171,6 +176,13 @@ final class ProtobufFqnConflictDetector {
      * for {@link FileDescriptorUtils#toFileDescriptorProto}. Binary references are converted
      * to their canonical text form so that the loader, which expects text, can resolve them
      * when another file imports them.
+     *
+     * <p>Binary (base64) references are handled transparently:
+     * {@link ProtobufFile#toProtoFileElement(String)} first attempts to parse the input as
+     * text and, on failure, falls back to {@code Base64.getDecoder().decode(...)} followed by
+     * {@code FileDescriptorProto.parseFrom(...)} and a binary-to-text round trip via
+     * {@code FileDescriptorUtils.fileDescriptorToProtoFile}. No discrimination is needed
+     * here.</p>
      *
      * @param resolvedReferences the reference map passed to the validator, possibly null
      * @return a mutable, insertion-ordered map of reference name to text schema; empty if

@@ -37,8 +37,13 @@ public class ProtobufContentValidator extends AbstractContentValidator {
     public void validate(ValidityLevel level, TypedContent content,
                          Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
+            // Run the FQN / identifier hardening checks first. This call throws
+            // RuleViolationException directly, so it is intentionally outside the try/catch
+            // below — that block exists only to wrap unexpected parser errors as syntax
+            // violations and must not catch (and re-wrap) violations raised here.
+            Map<String, String> referenceTextSchemas = ProtobufFqnConflictDetector
+                    .assertNoConflicts(level, content, resolvedReferences);
             try {
-                ProtobufFqnConflictDetector.assertNoConflicts(level, content, resolvedReferences);
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
                     // Parse the protobuf content (syntax validation)
                     ProtoFileElement protoFileElement = ProtobufFile
@@ -76,10 +81,9 @@ public class ProtobufContentValidator extends AbstractContentValidator {
                             .toProtoFileElement(content.getContent().content());
                     String textMainContent = protoFileElement.toSchema();
 
-                    // Convert references if binary and build required deps map with text content
-                    final Map<String, String> requiredDeps = resolvedReferences.entrySet().stream().collect(
-                            Collectors.toMap(Map.Entry::getKey,
-                                    e -> ProtobufFile.toProtoFileElement(e.getValue().getContent().content()).toSchema()));
+                    // Reuse the text schemas already materialized by the FQN detector to
+                    // avoid converting every reference twice (once there, once here).
+                    final Map<String, String> requiredDeps = referenceTextSchemas;
 
                     final Set<FileDescriptorUtils.ProtobufSchemaContent> dependencies = requiredDeps.entrySet()
                             .stream()
@@ -94,9 +98,6 @@ public class ProtobufContentValidator extends AbstractContentValidator {
 
                     FileDescriptorUtils.parseProtoFileWithDependencies(mainFile, dependencies, requiredDeps, true, true);
                 }
-            }
-            catch (RuleViolationException rve) {
-                throw rve;
             }
             catch (Exception e) {
                 throw new RuleViolationException("Syntax violation for Protobuf artifact.", RuleType.VALIDITY,

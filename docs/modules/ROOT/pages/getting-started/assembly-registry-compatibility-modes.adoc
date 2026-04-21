@@ -37,8 +37,8 @@ You can configure the `COMPATIBILITY` rule at three levels. {registry} applies t
 
 NOTE: To disable a rule inherited from a higher level, you must explicitly set the rule at the lower level to `NONE`.
 
-Not all artifact types support compatibility checking.
-For a list of supported artifact types, see the content rule maturity matrix in {registry-rule-reference}.
+Not all artifact types support compatibility checking. The following sections cover the supported types: Avro, JSON Schema, Protobuf, OpenAPI, and XSD.
+For the full list of supported artifact types and rule maturity levels, see the content rule maturity matrix in {registry-rule-reference}.
 
 [role="_additional-resources"]
 .Additional resources
@@ -51,7 +51,6 @@ For a list of supported artifact types, see the content rule maturity matrix in 
 == Compatibility mode descriptions
 
 [role="_abstract"]
-Compatibility modes act as a set of rules that determine whether a new schema version is allowed based on its ability to work with existing data and applications.
 Compatibility modes act as a set of rules that determine whether a new schema version is allowed based on its ability to work with existing data and applications.
 
 .{registry} compatibility modes
@@ -171,7 +170,7 @@ As a result, Version 3 passes the `BACKWARD` check but fails the `BACKWARD_TRANS
 
 [role="_abstract"]
 {registry} uses a custom library to analyze differences between JSON Schema versions.
-Because JSON Schema uses a constraint-based validation model, the following table describes common changes and whether they maintain or break backward compatibility.
+Because JSON Schema uses a constraint-based validation model, the following table describes common changes and whether they maintain or break backward compatibility. For JSON Schema, forward compatibility is the inverse of backward compatibility: a change that makes the schema more permissive is backward compatible but forward incompatible, and a change that makes the schema more restrictive is forward compatible but backward incompatible.
 
 .JSON Schema compatibility changes
 [%header,cols="3,1,5"]
@@ -315,16 +314,16 @@ Because Protobuf uses numeric field tags to identify fields on the wire, the fol
 |The wire encoding differs between types. For example, changing `string` to `int64` causes parsing failures.
 
 |Rename a field
-|No
-|Although Protobuf uses tag numbers on the wire, renaming a field affects JSON serialization and generated code.
+|No*
+|On the binary wire format, renaming a field without changing its tag number is compatible. However, {registry} flags this as incompatible because it breaks JSON serialization and generated code. If you use only binary encoding, this change is safe in practice.
 
 |Remove a field without reserving its tag
 |No
 |Another field might reuse the tag number with a different type, which causes data corruption.
 
-|Change a field label
+|Change a field label (proto2)
 |No
-|Changing between `optional`, `required`, or `repeated` alters the wire format and parsing behavior.
+|In proto2, changing between `optional`, `required`, or `repeated` alters the wire format and parsing behavior. In proto3, `required` is not used, and changing between `optional` and `repeated` can still break compatibility.
 
 |Remove an RPC method from a service
 |No
@@ -384,8 +383,8 @@ The following table describes common changes and whether they maintain or break 
 |Existing requests that the old schema validated remain valid when you relax the constraints.
 
 |Add a new response status code
-|Yes
-|Existing clients typically handle unexpected status codes gracefully.
+|Yes*
+|Existing clients that follow HTTP conventions ignore unknown status codes. However, some clients might not handle unexpected codes correctly. Test client behavior before relying on this change.
 
 |Remove a path or endpoint
 |No
@@ -420,7 +419,7 @@ The following table describes common changes and whether they maintain or break 
 
 [role="_abstract"]
 {registry} checks XML Schema Definition (XSD) compatibility by comparing elements, attributes, types, and constraints between versions.
-The following table describes common changes and whether they maintain or break backward and forward compatibility.
+The following table describes common changes and whether they maintain or break backward and forward compatibility. Actual compatibility can depend on content model details, default values, namespace usage, element ordering, and extension or restriction semantics. Use this table as a general guide and test your specific schema changes.
 
 .XSD schema compatibility changes
 [%header,cols="3,1,1,5"]

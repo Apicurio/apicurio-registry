@@ -3,6 +3,10 @@
   "extends": [
     "config:recommended"
   ],
+  "baseBranches": [
+    "main",
+    "3.2.x"
+  ],
   "enabledManagers": [
     "npm",
     "maven"
@@ -18,8 +22,8 @@
     "examples/**",
     "utils/maven-plugin/src/test/resources/test-builds"
   ],
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 5,
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 10,
   "packageRules": [
     {
       "groupName": "Dependencies: Maven App: All",
@@ -393,6 +397,18 @@
       "schedule": [
         "* 0 15 * *"
       ]
+    },
+
+    {
+      "description": "On 3.2.x branch, only allow patch updates",
+      "matchBaseBranches": [
+        "3.2.x"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "enabled": false
     }
   ]
 }

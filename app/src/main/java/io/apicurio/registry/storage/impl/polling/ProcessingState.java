@@ -87,6 +87,14 @@ public class ProcessingState {
         errors.add(String.format(message, params));
     }
 
+    /**
+     * Records an error with source context (repo ID and file path).
+     */
+    public void recordError(PollingDataFile file, String message, Object... params) {
+        errors.add("[" + file.getSourceId() + "] " + String.format(message, params)
+                + " (file: " + file.getPath() + ")");
+    }
+
     public boolean isSuccessful() {
         return errors.isEmpty();
     }

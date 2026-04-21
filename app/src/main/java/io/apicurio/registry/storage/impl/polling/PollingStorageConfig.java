@@ -58,6 +58,12 @@ public interface PollingStorageConfig {
     List<String> getFileSuffixes();
 
     /**
+     * Returns the label key to use for tagging artifacts with their source ID (e.g., repo ID).
+     * Empty string means disabled.
+     */
+    String getSourceLabelKey();
+
+    /**
      * Checks if a file path matches the registry metadata file convention
      * based on the configured suffixes.
      */

@@ -37,7 +37,7 @@ services:
 
   registry:
     container_name: registry
-    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:local}
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
     environment:
       QUARKUS_PROFILE: "prod"
       APICURIO_STORAGE_KIND: "gitops"

@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-wsdl</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-wsdl</name>
+  <name>Registry :: Schema Util :: WSDL</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

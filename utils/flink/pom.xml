@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-utils-flink</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-utils-flink</name>
+  <name>Registry :: Utils :: Flink</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

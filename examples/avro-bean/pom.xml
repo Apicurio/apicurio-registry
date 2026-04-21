@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-examples-avro-bean</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: Avro Bean</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

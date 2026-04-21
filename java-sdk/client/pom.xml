@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-java-sdk</artifactId>
 
-  <name>apicurio-registry-java-sdk</name>
+  <name>Registry :: Java SDK :: Client</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

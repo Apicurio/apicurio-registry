@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>apicurio-registry-schema-validation-jsonschema</artifactId>
-  <name>apicurio-registry-schema-validation-jsonschema</name>
+  <name>Registry :: Schema Validation :: JSON Schema</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

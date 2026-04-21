@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-resolver</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-resolver</name>
+  <name>Registry :: Schema Resolver</name>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>

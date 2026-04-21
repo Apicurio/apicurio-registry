@@ -6,7 +6,7 @@
   <artifactId>apicurio-registry</artifactId>
   <version>3.3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>apicurio-registry</name>
+  <name>Registry</name>
   <description>Open Source API &amp; Schema Registry</description>
 
   <url>https://www.apicur.io/</url>

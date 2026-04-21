@@ -11,7 +11,7 @@
 
   <artifactId>apicurio-registry-distro-docker</artifactId>
   <packaging>pom</packaging>
-  <name>apicurio-registry-distro-docker</name>
+  <name>Registry :: Distro :: Docker</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

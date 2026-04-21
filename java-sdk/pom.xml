@@ -12,7 +12,7 @@
   <artifactId>apicurio-registry-java-sdk-parent</artifactId>
   <packaging>pom</packaging>
 
-  <name>Apicurio Registry Java SDK Parent</name>
+  <name>Registry :: Java SDK</name>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>

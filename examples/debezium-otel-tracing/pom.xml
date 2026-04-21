@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-examples-debezium-otel-tracing</artifactId>
   <packaging>pom</packaging>
-  <name>Apicurio Registry Examples - Debezium CDC with OpenTelemetry Tracing</name>
+  <name>Registry :: Examples :: Debezium OTel Tracing</name>
   <description>Example demonstrating end-to-end distributed tracing with Debezium CDC, Kafka, and Apicurio Registry</description>
 
   <properties>

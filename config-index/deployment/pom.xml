@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-config-index-deployment</artifactId>
 
-  <name>apicurio-registry-config-index-deployment</name>
+  <name>Registry :: Config Index :: Deployment</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

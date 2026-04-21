@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-jsonschema-serde-kafka</name>
+  <name>Registry :: SerDes :: Kafka :: JSON Schema</name>
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>

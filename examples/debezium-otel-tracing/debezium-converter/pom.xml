@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-examples-debezium-otel-converter</artifactId>
   <packaging>jar</packaging>
-  <name>Apicurio Registry Examples - Debezium OTel SMT</name>
+  <name>Registry :: Examples :: Debezium OTel Tracing :: Converter</name>
   <description>Custom Debezium SMT with OpenTelemetry instrumentation for trace context propagation</description>
 
   <properties>

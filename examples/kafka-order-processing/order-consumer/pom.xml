@@ -13,7 +13,7 @@
 
     <artifactId>apicurio-registry-examples-kafka-order-consumer</artifactId>
     <packaging>jar</packaging>
-    <name>Order Consumer Application</name>
+    <name>Registry :: Examples :: Kafka Order Processing :: Order Consumer</name>
     <description>Quarkus application that consumes order events from Kafka</description>
 
     <properties>

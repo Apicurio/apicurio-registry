@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-tools-kafkasql-topic-import</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: KafkaSQL Topic Import</name>
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>

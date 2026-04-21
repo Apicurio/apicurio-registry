@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-examples-jsonschema-validation</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: JSON Schema Validation</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

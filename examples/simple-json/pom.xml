@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-examples-simple-json</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: Simple JSON</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

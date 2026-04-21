@@ -9,7 +9,7 @@
   </parent>
   <artifactId>apicurio-registry-prod-verifier</artifactId>
   <packaging>pom</packaging>
-  <name>apicurio-registry-prod-verifier</name>
+  <name>Registry :: Prod Verifier</name>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>

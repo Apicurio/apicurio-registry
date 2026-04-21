@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-utils-exportConfluent</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-utils-exportConfluent</name>
+  <name>Registry :: Utils :: Export Confluent</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

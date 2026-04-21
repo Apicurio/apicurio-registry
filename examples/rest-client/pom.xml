@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-examples-rest-client</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: REST Client</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

@@ -11,7 +11,7 @@
 
   <artifactId>apicurio-registry-docs</artifactId>
   <packaging>pom</packaging>
-  <name>apicurio-registry-docs</name>
+  <name>Registry :: Docs</name>
   <description>Open Source API &amp; Schema Registry</description>
 
   <url>https://www.apicur.io/</url>

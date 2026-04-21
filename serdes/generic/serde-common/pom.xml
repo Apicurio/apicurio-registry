@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-serde-common</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-serde-common</name>
+  <name>Registry :: SerDes :: Common</name>
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>

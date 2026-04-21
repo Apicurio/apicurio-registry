@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-avro-serde-kafka</name>
+  <name>Registry :: SerDes :: Kafka :: Avro</name>
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>

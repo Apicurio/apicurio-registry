@@ -13,7 +13,7 @@
 
     <artifactId>apicurio-registry-examples-kafka-order-processing</artifactId>
     <packaging>pom</packaging>
-    <name>Kafka Order Processing Example</name>
+    <name>Registry :: Examples :: Kafka Order Processing</name>
     <description>Complete Kafka example with producer and consumer using Apicurio Registry for schema management</description>
 
     <modules>

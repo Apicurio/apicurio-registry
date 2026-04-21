@@ -9,6 +9,7 @@
 
   <artifactId>apicurio-registry-examples-avro-maven-with-references</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: Avro Maven With References</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

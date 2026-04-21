@@ -1,16 +1,15 @@
 # GitOps Pull Mode (HTTPS) - Docker Compose
 #
 # Pulls schemas from a public Git repository over HTTPS using the GitOps sidecar.
-# Uses dev security mode to allow HTTP/HTTPS without SSH keys.
+# Uses dev security mode to allow HTTPS without SSH keys.
 #
-# Setup:
+# Steps:
 #
 #   1. (Recommended) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
 #
 #   2. (Recommended) Update APICURIO_GITOPS_REPO_URL below with your fork URL
 #
 #   3. Run:
-#      cd examples/gitops/pull-https
 #      docker compose up
 #
 # Endpoints:

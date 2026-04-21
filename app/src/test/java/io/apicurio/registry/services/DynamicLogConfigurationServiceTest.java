@@ -17,6 +17,8 @@
 package io.apicurio.registry.services;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
@@ -27,6 +29,8 @@ import java.util.logging.Level;
  * {@link DynamicLogConfigurationService}.
  */
 public class DynamicLogConfigurationServiceTest {
+
+    private String originalLogLevelProperty;
 
     /**
      * Verifies that uppercase log level values are parsed successfully.
@@ -83,5 +87,33 @@ public class DynamicLogConfigurationServiceTest {
                     () -> Level.parse(level.toUpperCase(Locale.ROOT)),
                     "Should reject invalid level: " + level);
         }
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (originalLogLevelProperty == null) {
+            System.clearProperty("apicurio.log.level");
+        } else {
+            System.setProperty("apicurio.log.level", originalLogLevelProperty);
+        }
+    }
+
+    @BeforeEach
+    void setUp() {
+        originalLogLevelProperty = System.getProperty("apicurio.log.level");
+        System.clearProperty("apicurio.log.level");
+    }
+
+    @Test
+    void testResolveConfiguredLogLevelReturnsEmptyWhenUnset() {
+        Assertions.assertTrue(DynamicLogConfigurationService.resolveConfiguredLogLevel().isEmpty());
+    }
+
+    @Test
+    void testResolveConfiguredLogLevelReturnsExplicitValue() {
+        System.setProperty("apicurio.log.level", "debug");
+
+        Assertions.assertTrue(DynamicLogConfigurationService.resolveConfiguredLogLevel().isPresent());
+        Assertions.assertEquals("debug", DynamicLogConfigurationService.resolveConfiguredLogLevel().orElseThrow());
     }
 }

@@ -13,7 +13,7 @@
 
     <artifactId>apicurio-registry-examples-kafka-order-producer</artifactId>
     <packaging>jar</packaging>
-    <name>Order Producer Application</name>
+    <name>Registry :: Examples :: Kafka Order Processing :: Order Producer</name>
     <description>Quarkus application that produces order events to Kafka</description>
 
     <properties>

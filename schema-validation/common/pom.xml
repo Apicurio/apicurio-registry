@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>apicurio-registry-schema-validation-common</artifactId>
-  <name>apicurio-registry-schema-validation-common</name>
+  <name>Registry :: Schema Validation :: Common</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

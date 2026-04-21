@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-examples-otel-tracing-consumer</artifactId>
   <packaging>jar</packaging>
-  <name>Apicurio Registry Examples - OTel Tracing Consumer</name>
+  <name>Registry :: Examples :: OTel Tracing :: Consumer</name>
   <description>Quarkus consumer application with OpenTelemetry distributed tracing</description>
 
   <properties>

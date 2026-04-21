@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-protobuf</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-protobuf</name>
+  <name>Registry :: Schema Util :: Protobuf</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

@@ -10,6 +10,7 @@
   </parent>
 
   <artifactId>apicurio-registry-examples</artifactId>
+  <name>Registry :: Examples</name>
   <version>3.3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <description>Open Source API &amp; Schema Registry</description>

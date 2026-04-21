@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-examples-protobuf-bean</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: Protobuf Bean</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

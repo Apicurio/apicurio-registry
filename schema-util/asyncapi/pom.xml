@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-asyncapi</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-asyncapi</name>
+  <name>Registry :: Schema Util :: AsyncAPI</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

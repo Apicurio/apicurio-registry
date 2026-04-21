@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-utils-converter</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-utils-converter</name>
+  <name>Registry :: Utils :: Converter</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

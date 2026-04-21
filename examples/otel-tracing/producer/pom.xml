@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-examples-otel-tracing-producer</artifactId>
   <packaging>jar</packaging>
-  <name>Apicurio Registry Examples - OTel Tracing Producer</name>
+  <name>Registry :: Examples :: OTel Tracing :: Producer</name>
   <description>Quarkus producer application with OpenTelemetry distributed tracing</description>
 
   <properties>

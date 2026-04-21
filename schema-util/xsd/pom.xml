@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-xsd</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-xsd</name>
+  <name>Registry :: Schema Util :: XSD</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

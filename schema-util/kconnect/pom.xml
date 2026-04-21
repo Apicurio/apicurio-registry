@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-kconnect</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-kconnect</name>
+  <name>Registry :: Schema Util :: Kafka Connect</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

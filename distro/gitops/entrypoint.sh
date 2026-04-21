@@ -20,6 +20,8 @@
 #   APICURIO_GITOPS_REPOS_0_DIR        First repo directory name
 #   APICURIO_GITOPS_REPOS_0_BRANCH     First repo branch (default: main)
 #   APICURIO_GITOPS_REPOS_0_URL        First repo remote URL
+#   APICURIO_GITOPS_REPOS_0_SSH_KEYS   First repo SSH keys (added alongside global PULL_SSH_KEYS)
+#   APICURIO_GITOPS_REPOS_0_MODE       First repo mode (overrides global MODE, default: pull)
 #   APICURIO_GITOPS_REPOS_1_DIR        Second repo directory name
 #   ... and so on
 #
@@ -67,6 +69,8 @@ TEMPLATE_DIR="/usr/local/share/apicurio-gitops"
 REPO_DIRS=()
 REPO_BRANCHES=()
 REPO_URLS=()
+REPO_SSH_KEYS=()
+REPO_MODES=()
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -152,6 +156,8 @@ build_repo_list() {
         local dir_var="APICURIO_GITOPS_REPOS_${i}_DIR"
         local branch_var="APICURIO_GITOPS_REPOS_${i}_BRANCH"
         local url_var="APICURIO_GITOPS_REPOS_${i}_URL"
+        local ssh_keys_var="APICURIO_GITOPS_REPOS_${i}_SSH_KEYS"
+        local mode_var="APICURIO_GITOPS_REPOS_${i}_MODE"
 
         local dir="${!dir_var:-}"
         if [ -z "${dir}" ]; then
@@ -166,6 +172,8 @@ build_repo_list() {
         REPO_DIRS+=("${dir}")
         REPO_BRANCHES+=("${!branch_var:-main}")
         REPO_URLS+=("${!url_var:-}")
+        REPO_SSH_KEYS+=("${!ssh_keys_var:-}")
+        REPO_MODES+=("${!mode_var:-${MODE}}")
         i=$((i + 1))
     done
 
@@ -183,6 +191,8 @@ build_repo_list() {
         REPO_DIRS+=("${APICURIO_GITOPS_REPO_DIR:-default}")
         REPO_BRANCHES+=("${APICURIO_GITOPS_REPO_BRANCH:-main}")
         REPO_URLS+=("${APICURIO_GITOPS_REPO_URL:-}")
+        REPO_SSH_KEYS+=("")
+        REPO_MODES+=("${MODE}")
     fi
 
     validate_repo_list
@@ -220,6 +230,12 @@ validate_mode() {
         pull|push) ;;
         *) error "Invalid APICURIO_GITOPS_MODE value '${MODE}'. Must be 'pull' or 'push'." ;;
     esac
+    for i in "${!REPO_MODES[@]}"; do
+        case "${REPO_MODES[$i]}" in
+            pull|push) ;;
+            *) error "Invalid mode '${REPO_MODES[$i]}' for repo '${REPO_DIRS[$i]}'. Must be 'pull' or 'push'." ;;
+        esac
+    done
 }
 
 validate_security_level() {
@@ -264,12 +280,19 @@ setup_ssh_client() {
     mkdir -p "${ssh_dir}"
     chmod 700 "${ssh_dir}"
 
-    # Support comma-separated list of SSH keys for authenticating to different remotes.
-    # SSH tries each key in order until one works.
-    if [ -n "${PULL_SSH_KEYS}" ]; then
-        local key_index=0
+    # Collect SSH keys: global keys (PULL_SSH_KEYS) and per-repo keys (REPOS_N_SSH_KEYS).
+    # All keys are added as IdentityFile entries — SSH tries each in order.
+    local key_index=0
+    local all_keys="${PULL_SSH_KEYS}"
+    for repo_keys in "${REPO_SSH_KEYS[@]}"; do
+        if [ -n "${repo_keys}" ]; then
+            all_keys="${all_keys:+${all_keys},}${repo_keys}"
+        fi
+    done
+
+    if [ -n "${all_keys}" ]; then
         local IFS=','
-        for key_path in ${PULL_SSH_KEYS}; do
+        for key_path in ${all_keys}; do
             key_path=$(echo "${key_path}" | xargs)  # trim whitespace
             if [ ! -f "${key_path}" ]; then
                 error "SSH key file not found: ${key_path}"
@@ -409,6 +432,7 @@ init_repo() {
     local repo_dir="$1"
     local repo_branch="$2"
     local repo_url="$3"
+    local repo_mode="$4"
     local repo_path="${WORKSPACE}/${repo_dir}"
 
     if [ -d "${repo_path}/.git" ]; then
@@ -416,7 +440,7 @@ init_repo() {
         return 0
     fi
 
-    if is_pull; then
+    if [ "${repo_mode}" = "pull" ]; then
         if [ -z "${repo_url}" ]; then
             error "[${repo_dir}] Repository URL is required when pull mode is enabled"
         fi
@@ -466,11 +490,13 @@ pull_once() {
 }
 
 pull_loop() {
-    log "Starting pull loop (interval: ${PULL_INTERVAL}s, ${#REPO_DIRS[@]} repo(s))"
+    log "Starting pull loop (interval: ${PULL_INTERVAL}s)"
     while true; do
         sleep "${PULL_INTERVAL}"
         for i in "${!REPO_DIRS[@]}"; do
-            pull_once "${REPO_DIRS[$i]}" "${REPO_BRANCHES[$i]}" || true
+            if [ "${REPO_MODES[$i]}" = "pull" ]; then
+                pull_once "${REPO_DIRS[$i]}" "${REPO_BRANCHES[$i]}" || true
+            fi
         done
     done
 }
@@ -506,15 +532,8 @@ main() {
     log "  Workspace: ${WORKSPACE}"
     log "  Repos:     ${#REPO_DIRS[@]}"
     for i in "${!REPO_DIRS[@]}"; do
-        log "    [${REPO_DIRS[$i]}] branch=${REPO_BRANCHES[$i]} url=${REPO_URLS[$i]:-<local>}"
+        log "    [${REPO_DIRS[$i]}] mode=${REPO_MODES[$i]} branch=${REPO_BRANCHES[$i]} url=${REPO_URLS[$i]:-<local>}"
     done
-    log "  Mode:      ${MODE}"
-    if is_pull; then
-        log "  Pull:      interval=${PULL_INTERVAL}s, depth=${PULL_DEPTH}"
-    fi
-    if is_push; then
-        log "  Push:      port=${PUSH_PORT}"
-    fi
 
     validate_mode
     validate_security_level
@@ -531,36 +550,41 @@ main() {
         fi
     done
 
+    # Determine which modes are in use across all repos
+    local has_pull=false has_push=false
+    for mode in "${REPO_MODES[@]}"; do
+        case "${mode}" in
+            pull) has_pull=true ;;
+            push) has_push=true ;;
+        esac
+    done
+
     if [ -n "${PULL_SSH_KEYS}" ] || [ -n "${PULL_SSH_KNOWN_HOSTS}" ]; then
         setup_ssh_client
-    elif is_strict && is_pull && [ "${has_ssh_url}" = "true" ]; then
+    elif is_strict && [ "${has_pull}" = "true" ] && [ "${has_ssh_url}" = "true" ]; then
         error "APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS is required in strict mode when using SSH repository URLs."
     fi
 
     # Initialize all repositories
     for i in "${!REPO_DIRS[@]}"; do
-        init_repo "${REPO_DIRS[$i]}" "${REPO_BRANCHES[$i]}" "${REPO_URLS[$i]}"
+        init_repo "${REPO_DIRS[$i]}" "${REPO_BRANCHES[$i]}" "${REPO_URLS[$i]}" "${REPO_MODES[$i]}"
     done
 
-    # Start push mode (SSH server) if enabled
-    if is_push; then
+    # Start push mode (SSH server) if any repo uses push
+    if [ "${has_push}" = "true" ]; then
         setup_ssh_server
         start_ssh_server
     fi
 
-    # Start pull loop if enabled
-    if is_pull; then
+    # Start pull loop if any repo uses pull
+    if [ "${has_pull}" = "true" ]; then
         pull_loop &
         PULL_PIDS+=($!)
         log "Pull loop started (PID: ${PULL_PIDS[0]})"
     fi
 
-    # Wait for the background process to keep the container alive
-    if [ -n "${SSHD_PID:-}" ]; then
-        wait "${SSHD_PID}" || true
-    elif [ ${#PULL_PIDS[@]} -gt 0 ]; then
-        wait "${PULL_PIDS[0]}" || true
-    fi
+    # Wait for any background process to keep the container alive
+    wait || true
 }
 
 main "$@"

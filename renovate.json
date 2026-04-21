@@ -22,8 +22,8 @@
     "examples/**",
     "utils/maven-plugin/src/test/resources/test-builds"
   ],
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 5,
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 10,
   "packageRules": [
     {
       "groupName": "Dependencies: Maven App: All",

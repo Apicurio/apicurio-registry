@@ -7,12 +7,16 @@ import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class AvroDataTest {
 
@@ -100,6 +104,69 @@ public class AvroDataTest {
         // no logical type should be set because this decimal is according to avro specification not allowed
         // "Scale must be zero or a positive integer less than or equal to the precision."
         Assertions.assertNull(result.getSchema().getLogicalType());
+    }
+
+    @Test
+    void testConnectSchemaEqualsConsidersParameters() {
+        Schema schema1 = SchemaBuilder.string()
+                .name("io.debezium.data.Enum")
+                .version(1)
+                .parameter("allowed", "station,post_office")
+                .build();
+
+        Schema schema2 = SchemaBuilder.string()
+                .name("io.debezium.data.Enum")
+                .version(1)
+                .parameter("allowed", "station,post_office,plane")
+                .build();
+
+        assertNotEquals(schema1, schema2,
+                "ConnectSchema.equals() must distinguish schemas with different parameters");
+        assertNotEquals(schema1.hashCode(), schema2.hashCode(),
+                "ConnectSchema.hashCode() must differ for schemas with different parameters");
+    }
+
+    @Test
+    void testConnectSchemaEqualsConsidersDefaultValue() {
+        Schema schema1 = SchemaBuilder.int32().defaultValue(0).build();
+        Schema schema2 = SchemaBuilder.int32().defaultValue(1).build();
+
+        assertNotEquals(schema1, schema2,
+                "ConnectSchema.equals() must distinguish schemas with different default values");
+    }
+
+    @Test
+    void testCacheDistinguishesByParameters() {
+        AvroData avroData = new AvroData(5);
+
+        Schema schemaWithParam1 = SchemaBuilder.struct()
+                .name("io.debezium.data.VariableScaleDecimal")
+                .version(1)
+                .field("scale", Schema.INT32_SCHEMA)
+                .field("value", Schema.BYTES_SCHEMA)
+                .parameter("precision", "10")
+                .optional()
+                .build();
+
+        Schema schemaWithParam2 = SchemaBuilder.struct()
+                .name("io.debezium.data.VariableScaleDecimal")
+                .version(1)
+                .field("scale", Schema.INT32_SCHEMA)
+                .field("value", Schema.BYTES_SCHEMA)
+                .parameter("precision", "15")
+                .optional()
+                .build();
+
+        org.apache.avro.Schema avro1 = avroData.fromConnectSchema(schemaWithParam1);
+        org.apache.avro.Schema avro2 = avroData.fromConnectSchema(schemaWithParam2);
+
+        assertNotEquals(avro1, avro2,
+                "Avro schemas from Connect schemas with different parameters must differ");
+
+        assertSame(avro1, avroData.fromConnectSchema(schemaWithParam1),
+                "Cache must return same instance for identical Connect schema");
+        assertSame(avro2, avroData.fromConnectSchema(schemaWithParam2),
+                "Cache must return same instance for identical Connect schema");
     }
 
     @Test

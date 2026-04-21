@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 public class KafkaSqlConfigurationTest {
@@ -19,6 +20,19 @@ public class KafkaSqlConfigurationTest {
         setField("groupPrefix", "apicurio-");
         setField("bootstrapServers", "localhost:9092");
         setField("consumerProperties", new Properties());
+        setField("protocol", Optional.empty());
+        setField("trustStoreLocation", Optional.empty());
+        setField("trustStoreType", Optional.empty());
+        setField("trustStorePassword", Optional.empty());
+        setField("trustStorePasswordDeprecated", Optional.empty());
+        setField("keyStoreLocation", Optional.empty());
+        setField("keyStoreLocationDeprecated", Optional.empty());
+        setField("keyStoreType", Optional.empty());
+        setField("keyStoreTypeDeprecated", Optional.empty());
+        setField("keyStorePassword", Optional.empty());
+        setField("keyStorePasswordDeprecated", Optional.empty());
+        setField("keyPassword", Optional.empty());
+        setField("keyPasswordDeprecated", Optional.empty());
     }
 
     @Test

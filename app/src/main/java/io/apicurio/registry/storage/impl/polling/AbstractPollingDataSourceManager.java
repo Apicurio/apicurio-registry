@@ -277,9 +277,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
             }
             processArtifactRules(state, artifact);
             artifactFile.setProcessed(true);
-        } else {
-            state.recordError(artifactFile, "Could not find group '%s'", artifact.getGroupId());
         }
+        // Note: if group is null, processGroupRef() already recorded the error
     }
 
     private void processArtifactRules(ProcessingState state, Artifact artifact) {

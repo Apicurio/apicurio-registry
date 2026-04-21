@@ -2,7 +2,7 @@ name: Validate OpenAPI schema with Spectral
 on:
   workflow_call: { }
   pull_request:
-    branches: [ main ]
+    branches: [ main, 3.2.x ]
     paths:
       - common/src/main/resources/META-INF/openapi.json
 

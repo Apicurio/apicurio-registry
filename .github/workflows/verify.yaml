@@ -5,13 +5,13 @@ on:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
-    branches: [main]
+    branches: [main, 3.2.x]
   pull_request:
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
       - 'README*'
-    branches: [main]
+    branches: [main, 3.2.x]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

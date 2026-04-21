@@ -25,6 +25,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import java.util.Locale;
+import java.util.Map;
+
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYSTEM;
 
 /**
@@ -32,6 +35,13 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYS
  */
 @ApplicationScoped
 public class System {
+
+    private static final Map<String, String> STORAGE_DISPLAY_NAMES = Map.of(
+            "sql", "SQL",
+            "kafkasql", "KafkaSQL",
+            "gitops", "GitOps",
+            "kubernetesops", "KubernetesOps"
+    );
 
     @Inject
     @ConfigProperty(name = "apicurio.app.name")
@@ -53,8 +63,17 @@ public class System {
     @Info(category = CATEGORY_SYSTEM, registryAvailableSince = "3.0.4")
     String date;
 
+    @Inject
+    @ConfigProperty(name = "apicurio.storage.kind")
+    String storageKind;
+
+    /**
+     * @return the application name, including the storage variant label
+     */
     public String getName() {
-        return name;
+        String displayName = STORAGE_DISPLAY_NAMES.getOrDefault(
+                storageKind.toLowerCase(Locale.ROOT), storageKind);
+        return name + " (" + displayName + ")";
     }
 
     public String getDescription() {

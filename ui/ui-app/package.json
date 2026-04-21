@@ -47,12 +47,12 @@
     "@microsoft/kiota-serialization-multipart": "1.0.0-preview.99",
     "@microsoft/kiota-serialization-text": "1.0.0-preview.99",
     "@patternfly/patternfly": "6.4.0",
-    "@patternfly/react-code-editor": "6.4.1",
-    "@patternfly/react-core": "6.4.1",
+    "@patternfly/react-code-editor": "6.4.3",
+    "@patternfly/react-core": "6.4.3",
     "@patternfly/react-icons": "6.4.0",
-    "@patternfly/react-table": "6.4.1",
+    "@patternfly/react-table": "6.4.3",
     "@xyflow/react": "12.10.2",
-    "axios": "1.15.0",
+    "axios": "1.15.2",
     "html-to-image": "1.11.13",
     "buffer": "6.0.3",
     "luxon": "3.7.2",
@@ -60,7 +60,7 @@
     "pluralize": "8.0.0",
     "react": "19.2.5",
     "react-dom": "19.2.5",
-    "react-router": "7.14.0",
+    "react-router": "7.14.2",
     "yaml": "2.8.3"
   }
 }

@@ -144,8 +144,7 @@ public class CCompatConnectParametersTest extends AbstractResourceTestBase {
         assertNotEquals(id1.getId(), id2.getId(),
                 "Schemas with different connect.parameters 'allowed' values must get different IDs");
 
-        ConfluentTestUtils.checkNumberOfVersions(
-                new io.confluent.kafka.schemaregistry.client.rest.RestService(getRegistryV3ApiUrl() + "/../ccompat/v7"),
+        ConfluentTestUtils.checkNumberOfVersions(buildConfluentClient(),
                 2, subject);
     }
 
@@ -176,8 +175,7 @@ public class CCompatConnectParametersTest extends AbstractResourceTestBase {
         assertNotEquals(id1.getId(), id2.getId(),
                 "Schemas with different default values must get different IDs");
 
-        ConfluentTestUtils.checkNumberOfVersions(
-                new io.confluent.kafka.schemaregistry.client.rest.RestService(getRegistryV3ApiUrl() + "/../ccompat/v7"),
+        ConfluentTestUtils.checkNumberOfVersions(buildConfluentClient(),
                 2, subject);
     }
 

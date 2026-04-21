@@ -48,8 +48,8 @@ both the sidecar and the registry:
 | `APICURIO_GITOPS_REPOS_N_DIR` | *(required)* | Directory name for repo N |
 | `APICURIO_GITOPS_REPOS_N_BRANCH` | `main` | Branch to track for repo N |
 | `APICURIO_GITOPS_REPOS_N_URL` | *(required for pull)* | Remote URL for repo N |
-| `APICURIO_GITOPS_REPOS_N_SSH_KEYS` | *(none)* | SSH keys for repo N (added alongside global `PULL_SSH_KEYS`) |
-| `APICURIO_GITOPS_REPOS_N_MODE` | *(global MODE)* | Mode for repo N: `pull` or `push` (overrides global) |
+| `APICURIO_GITOPS_REPOS_N_SSH_KEYS` | *(none)* | SSH keys for repo N (added alongside global `APICURIO_GITOPS_PULL_SSH_KEYS`) |
+| `APICURIO_GITOPS_REPOS_N_MODE` | *(global `APICURIO_GITOPS_MODE`)* | Mode for repo N: `pull` or `push` (overrides global) |
 
 Indexes must be dense (0, 1, 2, ... — no gaps). If indexed repos are configured,
 single-repo shorthand variables must not be set.

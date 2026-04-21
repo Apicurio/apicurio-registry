@@ -559,7 +559,20 @@ main() {
         esac
     done
 
+    # Check if any SSH keys are configured (global or per-repo)
+    local has_any_ssh_keys=false
     if [ -n "${PULL_SSH_KEYS}" ] || [ -n "${PULL_SSH_KNOWN_HOSTS}" ]; then
+        has_any_ssh_keys=true
+    else
+        for repo_keys in "${REPO_SSH_KEYS[@]}"; do
+            if [ -n "${repo_keys}" ]; then
+                has_any_ssh_keys=true
+                break
+            fi
+        done
+    fi
+
+    if [ "${has_any_ssh_keys}" = "true" ]; then
         setup_ssh_client
     elif is_strict && [ "${has_pull}" = "true" ] && [ "${has_ssh_url}" = "true" ]; then
         error "APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS is required in strict mode when using SSH repository URLs."
@@ -583,8 +596,15 @@ main() {
         log "Pull loop started (PID: ${PULL_PIDS[0]})"
     fi
 
-    # Wait for any background process to keep the container alive
-    wait || true
+    # Wait for background processes. In mixed mode, exit when either dies
+    # so the container can be restarted by the orchestrator.
+    if [ "${has_push}" = "true" ] && [ "${has_pull}" = "true" ]; then
+        wait -n "${SSHD_PID}" "${PULL_PIDS[0]}" || true
+    elif [ "${has_push}" = "true" ]; then
+        wait "${SSHD_PID}" || true
+    elif [ "${has_pull}" = "true" ]; then
+        wait "${PULL_PIDS[0]}" || true
+    fi
 }
 
 main "$@"

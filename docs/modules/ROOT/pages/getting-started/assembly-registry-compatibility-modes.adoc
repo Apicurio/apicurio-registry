@@ -5,7 +5,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = {registry} schema compatibility modes
 
 [role="_abstract"]
-In {registry}, compatibility modes determine which changes are permitted when you upload a new version of an artifact. Because these rules vary depending on the data format (such as Avro, JSON, or Protobuf), each artifact type has its own specific criteria for what constitutes a compatible or incompatible change.
+In {registry}, compatibility modes determine which changes are permitted when you upload a new version of an artifact. Because these rules vary depending on the data format (such as Avro, JSON Schema, Protobuf, OpenAPI, or XSD), each artifact type has its own specific criteria for what constitutes a compatible or incompatible change.
 
 * xref:registry-compatibility-overview_{context}[]
 * xref:registry-compatibility-mode-descriptions_{context}[]
@@ -13,6 +13,7 @@ In {registry}, compatibility modes determine which changes are permitted when yo
 * xref:registry-compatibility-json-schema_{context}[]
 * xref:registry-compatibility-protobuf_{context}[]
 * xref:registry-compatibility-openapi_{context}[]
+* xref:registry-compatibility-xsd_{context}[]
 
 [role="_additional-resources"]
 .Additional resources
@@ -409,4 +410,113 @@ The following table describes common changes and whether they maintain or break 
 |Remove a response status code
 |No
 |Existing clients that handle the removed status code might not handle the replacement correctly.
+|===
+
+
+// ref-registry-compatibility-xsd
+:_mod-docs-content-type: REFERENCE
+[id="registry-compatibility-xsd_{context}"]
+== XSD compatibility
+
+[role="_abstract"]
+{registry} checks XML Schema Definition (XSD) compatibility by comparing elements, attributes, types, and constraints between versions.
+The following table describes common changes and whether they maintain or break backward and forward compatibility.
+
+.XSD schema compatibility changes
+[%header,cols="3,1,1,5"]
+|===
+|Change type
+|Backward compatible?
+|Forward compatible?
+|Reason
+
+|Add an optional element (`minOccurs=0`)
+|Yes
+|No
+|Old data remains valid because the element is optional; old schema does not accept the new element.
+
+|Add a required element (`minOccurs > 0`)
+|No
+|Yes
+|Old data does not contain the required element; new data always provides what the old schema expects.
+
+|Remove an element
+|No
+|No
+|Old data contains the element, which the new schema does not expect; new data omits the element, which the old schema might require.
+
+|Add an optional attribute
+|Yes
+|No
+|Old data remains valid because the attribute is optional; old schema does not recognize the new attribute.
+
+|Add a required attribute
+|No
+|Yes
+|Old data does not contain the required attribute; new data always provides what the old schema expects.
+
+|Remove an attribute
+|No
+|No
+|Old data contains the attribute, which the new schema does not expect; new data omits it, which the old schema might require.
+
+|Decrease `minOccurs`
+|Yes
+|No
+|Old data that met the stricter requirement still passes; old schema rejects data that uses the relaxed requirement.
+
+|Increase `minOccurs`
+|No
+|Yes
+|Old data might not meet the new minimum; new data always meets the old minimum.
+
+|Increase `maxOccurs`
+|Yes
+|No
+|Old data within the previous limit still passes; old schema rejects data that uses the higher limit.
+
+|Decrease `maxOccurs`
+|No
+|Yes
+|Old data might exceed the new limit; new data stays within the old limit.
+
+|Loosen a numeric range (`minInclusive` or `maxInclusive`)
+|Yes
+|No
+|Old values still fall within the expanded range; new values might fall outside the old range.
+
+|Tighten a numeric range (`minInclusive` or `maxInclusive`)
+|No
+|Yes
+|Old values might fall outside the tightened range; new values stay within the old range.
+
+|Loosen string constraints (`minLength` or `maxLength`)
+|Yes
+|No
+|Old strings still meet the relaxed constraints; new strings might violate the old constraints.
+
+|Tighten string constraints (`minLength` or `maxLength`)
+|No
+|Yes
+|Old strings might violate the tightened constraints; new strings meet the old constraints.
+
+|Add an enumeration value
+|Yes
+|No
+|Old data uses existing values that remain valid; new data might use the new value, which the old schema rejects.
+
+|Remove an enumeration value
+|No
+|Yes
+|Old data might use the removed value; new data avoids it.
+
+|Change an element type
+|No
+|No
+|Data types are fundamentally incompatible between versions.
+
+|Remove `nillable` from an element
+|No
+|No
+|Old data with null values becomes invalid under the new schema.
 |===

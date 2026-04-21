@@ -14,7 +14,7 @@ public class SystemResourceTest extends AbstractResourceTestBase {
     @Test
     public void testSystemInformation() {
         given().when().contentType(CT_JSON).get("/registry/v3/system/info").then().statusCode(200)
-                .body("name", notNullValue())
+                .body("name", equalTo("Apicurio Registry (SQL)"))
                 .body("description",
                         equalTo("High performance, runtime registry for schemas and API designs."))
                 .body("version", notNullValue()).body("builtOn", notNullValue());

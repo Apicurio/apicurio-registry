@@ -11,7 +11,6 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
-import java.util.Map;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
@@ -40,17 +39,6 @@ public class GitOpsRegistryStorage extends AbstractPollingRegistryStorage<GitOps
     public void initialize() {
         super.initialize(config, gitManager);
         storageEvent.fireAsync(StorageEvent.builder().type(StorageEventType.READY).build());
-    }
-
-    @Override
-    protected Map<String, String> markerToSources(GitOpsMarker marker) {
-        if (marker == null) {
-            return null;
-        }
-        var result = new java.util.LinkedHashMap<String, String>();
-        marker.getCommits().forEach((id, commit) ->
-                result.put(id, commit != null ? commit.name() : null));
-        return result;
     }
 
     @Scheduled(concurrentExecution = SKIP, every = "${apicurio.polling-storage.try-refresh.every:2.5s}")

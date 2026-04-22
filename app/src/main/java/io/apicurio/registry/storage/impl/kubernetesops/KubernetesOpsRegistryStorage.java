@@ -28,7 +28,7 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 @StorageMetricsApply
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kubernetesops")
-public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage<String> {
+public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage<KubernetesOpsMarker> {
 
     @Inject
     Logger log;

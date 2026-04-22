@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.polling;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.polling.model.Type;
@@ -29,7 +30,6 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,13 +41,16 @@ import java.util.stream.Collectors;
  * Subclasses only need to implement data-source-specific methods (start, poll,
  * commitChange, getPreviousMarker) and provide the registry ID and commit time.
  */
-public abstract class AbstractPollingDataSourceManager<MARKER> implements PollingDataSourceManager<MARKER> {
+public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMarker> implements PollingDataSourceManager<MARKER> {
 
     @Inject
     Logger log;
 
     @Inject
     RegistryStorageContentUtils utils;
+
+    @Inject
+    RulesService rulesService;
 
     private PollingStorageConfig pollingConfig;
 
@@ -58,19 +61,11 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
         pollingConfig = config;
     }
 
-    /**
-     * Returns the commit/change time from the poll result marker.
-     *
-     * @param marker the marker from the PollingResult
-     * @return the commit time as an Instant
-     */
-    protected abstract Instant getCommitTime(MARKER marker);
-
     @Override
     public PollingProcessingResult process(RegistryStorage storage, PollingResult<MARKER> pollResult) throws Exception {
         ProcessingState state = new ProcessingState(pollingConfig, storage);
 
-        state.setCommitTime(getCommitTime(pollResult.getMarker()));
+        state.setCommitTime(pollResult.getMarker().getCommitTime());
 
         for (PollingDataFile file : pollResult.getFiles()) {
             state.index(file);
@@ -78,6 +73,12 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
 
         log.debug("Processing {} files", state.getPathIndex().size());
         processFiles(state);
+
+        // Validate loaded data against configured rules (before blue-green swap)
+        if (state.isSuccessful()) {
+            var validator = new PollingDataValidator(rulesService);
+            validator.validate(state, storage, pollingConfig);
+        }
 
         // Report unprocessed files - distinguish between expected (content/data files) and unexpected
         var unprocessedRegistryFiles = state.getPathIndex().values().stream()

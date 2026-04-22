@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
+
 @ApplicationScoped
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
@@ -78,10 +80,15 @@ public class KafkaSqlSubmitter {
         return producer.get().apply(record).thenApply(rm -> requestId);
     }
 
+    /**
+     * Submits a bootstrap marker message and blocks until it is durably written to Kafka.
+     *
+     * @param bootstrapId unique identifier for this bootstrap sequence
+     */
     public void submitBootstrap(String bootstrapId) {
         KafkaSqlMessageKey key = KafkaSqlMessageKey.builder().messageType(BOOTSTRAP_MESSAGE_TYPE).uuid(bootstrapId)
                 .build();
-        send(key, null);
+        blockOnResult(send(key, null));
     }
 
     public CompletableFuture<UUID> submitMessage(KafkaSqlMessage message) {

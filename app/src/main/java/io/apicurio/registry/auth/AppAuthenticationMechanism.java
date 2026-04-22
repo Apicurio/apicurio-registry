@@ -116,32 +116,42 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                                               IdentityProviderManager identityProviderManager) {
         if (authConfig.basicAuthEnabled) {
             return basicAuthenticationMechanism.authenticate(context, identityProviderManager);
+        } else if (authConfig.proxyHeaderAuthEnabled && authConfig.oidcAuthEnabled) {
+            return proxyHeaderAuthenticationMechanism.authenticate(context, identityProviderManager)
+                .onItem().ifNull().switchTo(() -> {
+                    log.debug("Proxy headers not found, falling back to OIDC authentication");
+                    return authenticateWithOidc(context, identityProviderManager);
+                });
         } else if (authConfig.proxyHeaderAuthEnabled) {
             return proxyHeaderAuthenticationMechanism.authenticate(context, identityProviderManager);
         } else if (authConfig.oidcAuthEnabled) {
-            setAuditLogger(context);
-            if (authConfig.basicClientCredentialsAuthEnabled.get()) {
-                final Pair<String, String> clientCredentials = CredentialsHelper
-                        .extractCredentialsFromContext(context);
-                if (null != clientCredentials) {
-                    try {
-                        return authenticateWithClientCredentials(clientCredentials, context,
-                                identityProviderManager);
-                    } catch (OidcAuthException | io.quarkus.security.UnauthorizedException ex) {
-                        log.warn(String.format(
-                                "Exception trying to get an access token with client credentials with client id: %s",
-                                clientCredentials.getLeft()), ex);
-                        return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-                    }
-                } else {
-                    return customAuthentication(context, identityProviderManager);
+            return authenticateWithOidc(context, identityProviderManager);
+        } else {
+            return Uni.createFrom().nullItem();
+        }
+    }
+
+    private Uni<SecurityIdentity> authenticateWithOidc(RoutingContext context,
+                                                       IdentityProviderManager identityProviderManager) {
+        setAuditLogger(context);
+        if (authConfig.basicClientCredentialsAuthEnabled.get()) {
+            final Pair<String, String> clientCredentials = CredentialsHelper
+                    .extractCredentialsFromContext(context);
+            if (null != clientCredentials) {
+                try {
+                    return authenticateWithClientCredentials(clientCredentials, context,
+                            identityProviderManager);
+                } catch (OidcAuthException | io.quarkus.security.UnauthorizedException ex) {
+                    log.warn(String.format(
+                            "Exception trying to get an access token with client credentials with client id: %s",
+                            clientCredentials.getLeft()), ex);
+                    return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
                 }
             } else {
-                // Once we're done with it in the auth layer, the context must be cleared.
                 return customAuthentication(context, identityProviderManager);
             }
         } else {
-            return Uni.createFrom().nullItem();
+            return customAuthentication(context, identityProviderManager);
         }
     }
 

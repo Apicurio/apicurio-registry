@@ -34,7 +34,7 @@ public abstract class AbstractRegistryInfra {
                 .withNetwork(Network.SHARED)
                 .withExposedPorts(8080)
                 .waitingFor(Wait.forLogMessage(".*KafkaSQL storage bootstrapped in .* ms.*", 1)
-                        .withStartupTimeout(Duration.ofSeconds(30))
+                        .withStartupTimeout(Duration.ofSeconds(60))
                 );
 
         try {

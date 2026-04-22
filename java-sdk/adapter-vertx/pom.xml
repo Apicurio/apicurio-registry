@@ -11,7 +11,7 @@
 
   <artifactId>apicurio-registry-java-sdk-adapter-vertx</artifactId>
 
-  <name>apicurio-registry-java-sdk-adapter-vertx</name>
+  <name>Registry :: Java SDK :: Adapter Vert.x</name>
   <description>Vert.x HTTP adapter for the Apicurio Registry Java SDK.
     Provides VertxAdapterFactory and a shared default Vertx instance.
     This module is isolated so that consumers using only the JDK adapter

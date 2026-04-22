@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-examples-a2a-real-world-integration</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-examples-a2a-real-world-integration</name>
+  <name>Registry :: Examples :: A2A Real World Integration</name>
   <description>Real-world A2A integration example demonstrating actual HTTP communication with working A2A protocol agents, orchestration, and multi-agent workflows</description>
 
   <properties>

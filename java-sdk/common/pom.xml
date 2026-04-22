@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-java-sdk-common</artifactId>
 
-  <name>apicurio-registry-java-sdk-common</name>
+  <name>Registry :: Java SDK :: Common</name>
   <description>Shared code for Apicurio Registry Java SDK v2 and v3.
     Contains adapter detection, client options, retry logic, and OpenTelemetry support.
     HTTP adapter implementations are in separate modules (adapter-vertx, adapter-jdk).</description>

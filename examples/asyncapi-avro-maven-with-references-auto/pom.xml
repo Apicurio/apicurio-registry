@@ -10,6 +10,7 @@
 
     <artifactId>apicurio-registry-examples-asyncapi-avro-maven-with-references-auto</artifactId>
     <packaging>jar</packaging>
+    <name>Registry :: Examples :: AsyncAPI Avro Maven With References Auto</name>
 
     <properties>
         <projectRoot>${project.basedir}/../..</projectRoot>

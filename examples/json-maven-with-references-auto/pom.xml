@@ -9,6 +9,7 @@
 
   <artifactId>apicurio-registry-examples-json-maven-with-references-auto</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: JSON Maven With References Auto</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

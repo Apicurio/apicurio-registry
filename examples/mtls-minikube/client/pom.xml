@@ -12,7 +12,7 @@
 
   <artifactId>apicurio-registry-examples-mtls-minikube-client</artifactId>
   <packaging>jar</packaging>
-  <name>Apicurio Registry :: Examples :: mTLS Minikube Client</name>
+  <name>Registry :: Examples :: mTLS Minikube Client</name>
   <description>Example client demonstrating mutual TLS authentication with Apicurio Registry</description>
 
   <properties>

@@ -9,7 +9,7 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>apicurio-registry-support-chat</name>
+    <name>Registry :: Support Chat</name>
     <description>AI-powered support assistant for Apicurio Registry with RAG and LLM integration</description>
 
     <properties>

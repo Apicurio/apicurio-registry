@@ -11,7 +11,7 @@
   <artifactId>apicurio-registry-operator</artifactId>
   <packaging>pom</packaging>
 
-  <name>Apicurio Registry Operator</name>
+  <name>Registry :: Operator</name>
 
   <modules>
     <module>model</module>

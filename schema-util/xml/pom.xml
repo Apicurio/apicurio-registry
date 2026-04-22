@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-xml</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-xml</name>
+  <name>Registry :: Schema Util :: XML</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

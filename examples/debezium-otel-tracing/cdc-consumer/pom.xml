@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-examples-debezium-otel-cdc-consumer</artifactId>
   <packaging>jar</packaging>
-  <name>Apicurio Registry Examples - Debezium OTel CDC Consumer</name>
+  <name>Registry :: Examples :: Debezium OTel Tracing :: CDC Consumer</name>
   <description>CDC consumer that processes Debezium events with OpenTelemetry tracing</description>
 
   <properties>

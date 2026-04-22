@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-maven-plugin</artifactId>
   <packaging>maven-plugin</packaging>
-  <name>Apicurio Registry Maven Plugin</name>
+  <name>Registry :: Utils :: Maven Plugin</name>
   <description>
     This plugin facilitates fast and easy integration with the Apicurio Registry and a Maven based
     build procedure.  It can be used, for example, to register schemas or API designs at build time.

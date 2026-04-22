@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-app</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-app</name>
+  <name>Registry :: App</name>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>

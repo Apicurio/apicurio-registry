@@ -195,7 +195,7 @@ public class KafkaSqlConfiguration {
     String groupPrefix;
 
     @Inject
-    @RegistryProperties(prefixes = {"apicurio.kafka.common", "apicurio.kafkasql.consumer"}, defaults = {"ssl.endpoint.identification.algorithm="})
+    @RegistryProperties(prefixes = {"apicurio.kafka.common", "apicurio.kafkasql.consumer"}, defaults = {"ssl.endpoint.identification.algorithm="}, excluded = {"group.id", "group-id"})
     Properties consumerProperties;
 
     public Map<String, String> getConsumerProperties() {
@@ -205,7 +205,18 @@ public class KafkaSqlConfiguration {
 
         props.putIfAbsent(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getBootstrapServers());
         props.putIfAbsent(ConsumerConfig.CLIENT_ID_CONFIG, "apicurio-consumer-" + UUID.randomUUID());
-        props.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, getGroupPrefix() + UUID.randomUUID());
+
+        // Always generate a random consumer group ID. KafkaSQL uses an in-memory H2 database that
+        // is empty on every restart, so the full journal must be replayed from the beginning. A fixed
+        // consumer group ID would cause Kafka to resume from committed offsets, skipping the replay
+        // and leaving the registry empty.
+        if (props.containsKey(ConsumerConfig.GROUP_ID_CONFIG)) {
+            log.warn("Ignoring user-configured Kafka consumer group.id. "
+                    + "KafkaSQL requires a unique consumer group on each startup to ensure full journal replay. "
+                    + "Use 'apicurio.kafkasql.consumer.group-prefix' to set a recognizable prefix instead.");
+            props.remove(ConsumerConfig.GROUP_ID_CONFIG);
+        }
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, getGroupPrefix() + UUID.randomUUID());
 
         props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
         props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");

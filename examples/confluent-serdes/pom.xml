@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-examples-confluent-serdes</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: Confluent SerDes</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-graphql</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-graphql</name>
+  <name>Registry :: Schema Util :: GraphQL</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

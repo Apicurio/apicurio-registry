@@ -218,10 +218,20 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         Collection<String> topics = Collections.singleton(configuration.getSnapshotsTopic());
         snapshotsConsumer.subscribe(topics);
 
+        // Wait for partition assignment
+        var assigned = snapshotsConsumer.assignment();
+        while (assigned.isEmpty()) {
+            snapshotsConsumer.poll(configuration.getPollTimeout());
+            assigned = snapshotsConsumer.assignment();
+        }
+
+        // Record the current end offsets so we stop there, even if other pods produce new snapshots
+        var endOffsets = snapshotsConsumer.endOffsets(assigned);
+
         List<ConsumerRecord<String, String>> snapshots = new ArrayList<>();
         String snapshotRecordKey = null;
 
-        // Poll in a loop until we get an empty result, indicating we've reached the end of the topic
+        // Poll until we reach the original end offsets or get an empty result
         ConsumerRecords<String, String> records;
         do {
             records = snapshotsConsumer.poll(configuration.getPollTimeout());
@@ -229,7 +239,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                 records.forEach(snapshots::add);
                 log.debug("Polled {} snapshot records, total collected: {}", records.count(), snapshots.size());
             }
-        } while (records != null && !records.isEmpty());
+        } while (records != null && !records.isEmpty()
+                && endOffsets.entrySet().stream()
+                        .anyMatch(e -> snapshotsConsumer.position(e.getKey()) < e.getValue()));
 
         if (!snapshots.isEmpty()) {
             log.info("Found {} total snapshots in the snapshots topic.", snapshots.size());
@@ -356,7 +368,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // If the key is a Bootstrap key, then we have processed all messages and can set bootstrapped to
         // 'true'
         if (BOOTSTRAP_MESSAGE_TYPE.equals(record.key().getMessageType())) {
-            KafkaSqlMessageKey bkey = (KafkaSqlMessageKey) record.key();
+            KafkaSqlMessageKey bkey = record.key();
             if (bkey.getUuid().equals(bootstrapId)) {
                 this.bootstrapped = true;
                 storageEvent.fireAsync(StorageEvent.builder().type(StorageEventType.READY).build());

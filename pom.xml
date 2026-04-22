@@ -280,7 +280,7 @@
     <apicurio-maven-plugin.version>0.0.8</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.2</proto-plugin.version>
+    <proto-plugin.version>5.1.3</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->

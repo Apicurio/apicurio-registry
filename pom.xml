@@ -221,7 +221,7 @@
     <swagger-parser-v3.version>2.1.39</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
-    <lombok.version>1.18.44</lombok.version>
+    <lombok.version>1.18.46</lombok.version>
     <commons-codec.version>1.21.0</commons-codec.version>
     <netty.version>4.1.132.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>

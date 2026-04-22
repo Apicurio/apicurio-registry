@@ -214,11 +214,10 @@ in GitOps mode. These return HTTP 409 if a different storage backend is active.
 
 The status response includes:
 - `syncState` — one of `INITIALIZING`, `IDLE`, `LOADING`, `SWITCHING`, `ERROR`
-- `currentMarker` — Git commit SHA currently loaded
 - `lastSuccessfulSync` / `lastSyncAttempt` — timestamps
 - `groupCount`, `artifactCount`, `versionCount` — load statistics
-- `lastErrors` — error messages from the last failed load (empty on success)
-- `sources` — per-source markers (map of source ID → marker, e.g., repo ID → commit SHA)
+- `errors` — structured errors from the last failed load, each with `detail`, optional `source` (repo ID), and optional `context` (file path)
+- `sources` — per-source identifiers (map of source ID → abbreviated commit SHA)
 
 ## Timestamps
 
@@ -228,14 +227,74 @@ When omitted, the Git commit time is used as a fallback.
 Supported formats: ISO 8601 (`2024-03-04`, `2024-03-04T10:30:00Z`, `2024-03-04T10:30:00+01:00`),
 ISO 8601 without timezone (assumed UTC), or unix milliseconds.
 
+## Rule Enforcement
+
+Configured rules (validity, compatibility) are enforced during loading. After all data is imported
+into the inactive database, a validation pass checks artifact versions against the rules configured
+in that same data set. If any rule is violated, the load is rejected and the previous data continues
+being served.
+
+**How it works:**
+
+1. Data is loaded into the inactive database (groups, artifacts, versions, rules)
+2. The validator iterates artifacts and resolves the effective rules using the standard hierarchy:
+   artifact rules → group rules → global rules → default rules
+3. For each artifact, it determines which versions need validation and checks them
+
+**Why validate against the current data only:** The validator checks the loaded data against
+itself — not against previously served data. This means if version 2.0 was compatible with 1.0
+when it was originally added, but rules are later tightened, the validator won't retroactively
+fail old versions. This design avoids the need to track rule change history across loads.
+
+### `validatedUpTo`
+
+The `validatedUpTo` field on an artifact controls which versions are validated:
+
+- **Not set** (default) — only the last version is validated against its predecessor.
+  This is safe for the common case of adding new versions incrementally.
+- **Set to a version** (e.g., `"2.0"`) — versions up to and including that version are
+  skipped. Consecutive pairs after it are validated. Use this when adding multiple versions
+  at once, or after tightening rules to avoid re-validating historical data.
+- **Set to the latest version** — skips all validation for this artifact. Use as an explicit
+  opt-out, e.g., after a rule change that would break existing versions.
+
+Example:
+
+```yaml
+$type: artifact-v0
+groupId: orders
+artifactId: order-created
+artifactType: AVRO
+rules:
+  - ruleType: COMPATIBILITY
+    config: BACKWARD
+validatedUpTo: "2.0"      # v1→v2 was valid under old rules, skip re-check
+versions:
+  - version: "1.0"
+    content: ./v1.avsc
+  - version: "2.0"
+    content: ./v2.avsc
+  - version: "3.0"         # Only this is validated (against v2.0)
+    content: ./v3.avsc
+```
+
+### Supported rules
+
+| Rule | Supported | Notes |
+|------|-----------|-------|
+| VALIDITY | Yes | Validates content syntax against artifact type |
+| COMPATIBILITY | Yes | Checks consecutive version pairs |
+| INTEGRITY | Yes | Validates references exist via `content-v0` metadata files |
+
 ## Error Handling
 
 If any file fails to parse or validate, the **entire load is rejected**. The blue-green swap does not happen,
 and the last known good data continues being served. Errors are logged with file paths and details and
 are visible via the management API status endpoint.
 
-**Data errors** (invalid rules, missing files, parse failures) mark the commit as processed — the same
-broken commit will not be retried. A new commit that fixes the issue will trigger a fresh load.
+**Data errors** (invalid rules, missing files, parse failures, rule violations) mark the commit as
+processed — the same broken commit will not be retried. A new commit that fixes the issue will trigger
+a fresh load.
 
 **Transient errors** (database issues, out-of-memory) do not mark the commit — the next poll cycle will
 retry the same commit automatically.
@@ -246,6 +305,7 @@ Error categories:
 - Missing required fields
 - Missing content files (broken relative path references)
 - Duplicate artifacts or groups
+- Rule violations (validity, compatibility)
 
 ## GitOps Sync Container
 
@@ -260,7 +320,6 @@ The following features are planned but not yet implemented:
 
 - **Dry-run validation** — validate schema changes from a branch without affecting live data
 - **CLI validator** — offline validation of `*.registry.yaml` files without a running registry
-- **Rule enforcement during loading** — validate compatibility and other rules at load time
 - **Per-file git history timestamps** — derive `createdOn`/`modifiedOn` from git log per file
 
 For the full design document and implementation plan, see the

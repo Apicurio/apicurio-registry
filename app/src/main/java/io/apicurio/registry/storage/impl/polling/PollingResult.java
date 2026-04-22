@@ -10,10 +10,10 @@ import java.util.List;
  * Contains a marker for logging/identification, a flag indicating whether there are changes,
  * the list of files to process, and a commit action to finalize the change.
  *
- * @param <MARKER> the type of the marker (e.g., RevCommit for Git, String for Kubernetes resourceVersion)
+ * @param <MARKER> the type of the marker (e.g., GitOpsMarker, KubernetesOpsMarker)
  */
 @Getter
-public class PollingResult<MARKER> {
+public class PollingResult<MARKER extends SourceMarker> {
 
     /**
      * A marker identifying the current state of the data source.
@@ -44,7 +44,7 @@ public class PollingResult<MARKER> {
     /**
      * Creates a PollingResult indicating no changes were detected.
      */
-    public static <M> PollingResult<M> noChanges(M marker) {
+    public static <M extends SourceMarker> PollingResult<M> noChanges(M marker) {
         return new PollingResult<>(marker, false, Collections.emptyList(), null);
     }
 
@@ -55,7 +55,7 @@ public class PollingResult<MARKER> {
      * @param files the data files to process
      * @param commitAction action to execute when the change is committed (e.g., update the manager's internal state)
      */
-    public static <M> PollingResult<M> withChanges(M marker, List<PollingDataFile> files, Runnable commitAction) {
+    public static <M extends SourceMarker> PollingResult<M> withChanges(M marker, List<PollingDataFile> files, Runnable commitAction) {
         return new PollingResult<>(marker, true, files != null ? files : Collections.emptyList(), commitAction);
     }
 

@@ -4947,10 +4947,6 @@
             "description": "The current synchronization state of the GitOps storage. Possible values: INITIALIZING (first load not yet completed), IDLE (serving latest data), LOADING (sync in progress), SWITCHING (data loaded, waiting for write lock to publish), ERROR (last sync or switch failed, serving previous data).",
             "type": "string"
           },
-          "currentMarker": {
-            "description": "The Git commit SHA currently loaded in the storage. Null if no data has been loaded yet.",
-            "type": "string"
-          },
           "lastSuccessfulSync": {
             "description": "ISO 8601 timestamp of the last successful synchronization.",
             "format": "date-time",
@@ -4976,21 +4972,41 @@
             "format": "int32",
             "type": "integer"
           },
-          "lastErrors": {
-            "description": "List of error messages from the last failed load attempt. Empty if the last load was successful.",
+          "errors": {
+            "description": "Errors from the last failed load attempt. Empty if the last load was successful.",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/GitOpsError"
             }
           },
           "sources": {
-            "description": "Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).",
+            "description": "Per-source identifiers. Maps source ID (e.g., repository ID, Kubernetes server/namespace) to its current marker (e.g., abbreviated commit SHA, resource version).",
             "type": "object",
             "additionalProperties": {
               "type": "string"
             }
           }
         }
+      },
+      "GitOpsError": {
+        "title": "Root Type for GitOpsError",
+        "description": "Describes an error that occurred during a GitOps sync attempt.",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "description": "A human-readable description of the error.",
+            "type": "string"
+          },
+          "source": {
+            "description": "The source ID (e.g., repository ID) where the error occurred. Absent for global errors not tied to a specific source.",
+            "type": "string"
+          },
+          "context": {
+            "description": "The file path or location where the error occurred. Absent if the error is not file-specific.",
+            "type": "string"
+          }
+        },
+        "required": ["detail"]
       },
       "SystemInfo": {
         "title": "Root Type for SystemInfo",

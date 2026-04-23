@@ -116,6 +116,11 @@ jobs:
         run: |
           echo "OPERAND_IMAGE_TAG=${{ github.event.inputs.release-version }}" >> $GITHUB_ENV
 
+      - name: (Operator) Generate CRD
+        working-directory: registry
+        run: |
+          mvn -pl operator/model -am generate-resources -DskipTests --no-transfer-progress
+
       - name: (Operator) Update install file
         working-directory: registry/operator
         run: |

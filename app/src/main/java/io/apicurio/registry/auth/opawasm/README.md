@@ -9,32 +9,57 @@ Proof of concept using [opa-java-wasm](https://github.com/StyraOSS/opa-java-wasm
 3. At startup, Registry loads the compiled `.wasm` file and creates a thread-safe pool of policy evaluators
 4. On each request, the interceptor evaluates the policy in-process — no network calls, no external OPA server
 
+## How authentication and authorization fit together
+
+Authentication and per-resource authorization are handled by different systems with a clean boundary:
+
+**Keycloak (or any IdP)** handles:
+- Authentication — who is this user?
+- Coarse-grained RBAC — what roles/groups do they have?
+- This is what Registry already does today. Nothing changes here.
+
+**Apicurio Registry (via OPA WASM)** handles:
+- Fine-grained per-resource authorization — can this user read/write *this specific artifact* in *this specific group*?
+- Resource-level grants managed in Registry's own database, evaluated in-process
+- Uses the authenticated identity and roles/groups from the IdP as input to the policy
+
+The IdP doesn't need to know about artifacts, groups, or any Registry-specific resources. No resource synchronization with Keycloak, no UMA. Keycloak manages users and their roles/groups; Registry manages what those users and roles can access at the resource level.
+
+The Rego policy can evaluate grants at either level:
+- **Per-user**: `alice` can write `team-a/*`
+- **Per-role/group**: anyone with IdP group `team-a-developers` can write `team-a/*`
+
+This means user lifecycle stays in the IdP (onboarding, offboarding, team changes), while resource permissions stay in Registry (which team owns which artifacts).
+
 ## Architecture
 
 ```
 REST request
+  → Keycloak/IdP: authentication + RBAC (who is this user, what roles do they have)
   → AuthorizedInterceptor
-    → Admin override / RBAC / OBAC checks (unchanged)
+    → Admin override / RBAC / OBAC checks (unchanged, driven by IdP roles)
     → OPA WASM check (OpaWasmAccessController)
-      → Builds JSON input: { user, operation, resource_type, resource_name }
+      → Builds JSON input: { user, roles (from JWT), operation, resource_type, resource_name }
       → Borrows OPA policy instance from pool
-      → Sets permissions data (roles, grants)
+      → Sets grants data (from database)
       → Evaluates WASM policy in-process
       → Returns allow/deny
 ```
 
 ## Separation of concerns: policy vs data
 
-The Rego policy (`registry-authz.rego`) defines the **authorization logic** — it's generic and ships with Registry. It doesn't change when users or permissions change.
+OPA's design separates **policy logic** (Rego) from **data** (JSON). This is what makes dynamic grant management possible:
 
-The permissions **data** (`permissions.json`) defines **who can access what** — this is what admins manage. It's a simple JSON file:
+- **Rego policy** (`registry-authz.rego`) — the generic authorization logic. Ships with Registry, rarely changes. Defines how to evaluate grants: principal matching, operation hierarchy, resource pattern matching. Only changes when the authorization model itself changes (e.g., adding a new resource type).
+
+- **Grants data** (JSON) — the specific permissions. Who can access what. In the POC this is a static file; in production it would be serialized from the database. The Rego policy evaluates against this data at runtime.
+
+This separation is key: admins manage grants through a REST API or UI, grants are stored in the database, and Registry serializes them as the JSON data context fed into OPA. The Rego policy stays unchanged. No one needs to learn Rego or compile WASM when permissions change.
+
+Example of the data structure (POC uses a static file, production would serialize from DB):
 
 ```json
 {
-  "roles": {
-    "admin": ["admin"],
-    "alice": ["team-a-developer"]
-  },
   "grants": [
     {
       "principal": "alice",
@@ -44,7 +69,7 @@ The permissions **data** (`permissions.json`) defines **who can access what** �
       "resource_pattern": "team-a/"
     },
     {
-      "principal": "bob",
+      "principal_role": "team-b-developers",
       "operation": "read",
       "resource_type": "artifact",
       "resource_pattern": "*"
@@ -52,8 +77,6 @@ The permissions **data** (`permissions.json`) defines **who can access what** �
   ]
 }
 ```
-
-An admin who needs to grant a new user access edits the JSON data file — no Rego knowledge, no WASM compilation.
 
 ## Configuration
 

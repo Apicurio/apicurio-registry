@@ -2,6 +2,8 @@ package io.apicurio.registry.maven;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
@@ -22,6 +24,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +32,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Register artifacts against registry.
@@ -65,6 +70,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl(true);
     private static final String ARTIFACTS_PROPERTY_PREFIX = "artifacts.";
+    private Pattern registryArtifactUrlPattern;
 
     /**
      * Validate the configuration.
@@ -201,6 +207,12 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     private static void applyCliArtifactField(RegisterArtifact artifact, String field, String value, String propertyKey)
             throws MojoExecutionException {
+        ParsedListProperty parsedListProperty = parseListProperty(field);
+        if (parsedListProperty != null) {
+            applyCliArtifactListField(artifact, parsedListProperty, value, propertyKey);
+            return;
+        }
+
         switch (field) {
             case "groupId":
                 artifact.setGroupId(value);
@@ -212,7 +224,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 artifact.setArtifactType(value);
                 break;
             case "file":
-                artifact.setFile(value == null ? null : new File(value));
+                artifact.setFile(value == null ? null : new File(value).getAbsoluteFile());
                 break;
             case "ifExists":
                 artifact.setIfExists(parseIfExists(value, propertyKey));
@@ -235,6 +247,15 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             case "version":
                 artifact.setVersion(value);
                 break;
+            case "versionStrategy":
+                try {
+                    artifact.setVersionStrategy(RegisterArtifact.VersionStrategy.valueOf(value));
+                } catch (IllegalArgumentException e) {
+                    throw new MojoExecutionException("Invalid value for " + propertyKey + ": " + value
+                            + ". Allowed values are: "
+                            + Arrays.toString(RegisterArtifact.VersionStrategy.values()));
+                }
+                break;
             case "avroAutoRefsNamingStrategy":
                 try {
                     artifact.setAvroAutoRefsNamingStrategy(RegisterArtifact.AvroAutoRefsNamingStrategy.valueOf(value));
@@ -247,7 +268,140 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             default:
                 throw new MojoExecutionException("Unsupported CLI property for artifact configuration: "
                         + propertyKey + ". Supported fields include groupId, artifactId, artifactType, file, ifExists, "
-                        + "canonicalize, minify, autoRefs, isDraft, contentType, version, avroAutoRefsNamingStrategy.");
+                        + "canonicalize, minify, autoRefs, isDraft, contentType, version, "
+                        + "versionStrategy, avroAutoRefsNamingStrategy, references.<index>.<field>, "
+                        + "existingReferences.<index>.<field>, protoPaths.<index>.");
+        }
+    }
+
+    private static void applyCliArtifactListField(RegisterArtifact artifact, ParsedListProperty parsedListProperty,
+                                                  String value, String propertyKey) throws MojoExecutionException {
+        switch (parsedListProperty.listName) {
+            case "references":
+                RegisterArtifactReference reference = getOrCreateListItem(artifact.getReferences(),
+                        artifact::setReferences, parsedListProperty.index, RegisterArtifactReference::new);
+                if (parsedListProperty.field == null) {
+                    throw new MojoExecutionException("Missing field for reference configuration: " + propertyKey);
+                }
+                if ("name".equals(parsedListProperty.field)) {
+                    reference.setName(value);
+                } else {
+                    applyCliArtifactField(reference, parsedListProperty.field, value, propertyKey);
+                }
+                break;
+            case "existingReferences":
+                ExistingReference existingReference = getOrCreateListItem(artifact.getExistingReferences(),
+                        artifact::setExistingReferences, parsedListProperty.index, ExistingReference::new);
+                if (parsedListProperty.field == null) {
+                    throw new MojoExecutionException("Missing field for existingReference configuration: " + propertyKey);
+                }
+                applyCliExistingReferenceField(existingReference, parsedListProperty.field, value, propertyKey);
+                break;
+            case "protoPaths":
+                if (parsedListProperty.field != null) {
+                    throw new MojoExecutionException("Unsupported protoPaths CLI property: " + propertyKey
+                            + ". Use protoPaths.<index>=<path>.");
+                }
+                List<File> protoPaths = artifact.getProtoPaths();
+                if (protoPaths == null) {
+                    protoPaths = new ArrayList<>();
+                    artifact.setProtoPaths(protoPaths);
+                }
+                ensureListSize(protoPaths, parsedListProperty.index);
+                protoPaths.set(parsedListProperty.index, value == null ? null : new File(value).getAbsoluteFile());
+                break;
+            default:
+                throw new MojoExecutionException("Unsupported CLI list property for artifact configuration: "
+                        + propertyKey);
+        }
+    }
+
+    private static void applyCliExistingReferenceField(ExistingReference existingReference, String field, String value,
+                                                       String propertyKey) throws MojoExecutionException {
+        switch (field) {
+            case "groupId":
+                existingReference.setGroupId(value);
+                break;
+            case "artifactId":
+                existingReference.setArtifactId(value);
+                break;
+            case "version":
+                existingReference.setVersion(value);
+                break;
+            case "resourceName":
+                existingReference.setResourceName(value);
+                break;
+            default:
+                throw new MojoExecutionException("Unsupported CLI property for existingReference configuration: "
+                        + propertyKey + ". Supported fields include resourceName, groupId, artifactId, version.");
+        }
+    }
+
+    private static ParsedListProperty parseListProperty(String field) {
+        int firstDotIdx = field.indexOf('.');
+        if (firstDotIdx == -1) {
+            return null;
+        }
+
+        String listName = field.substring(0, firstDotIdx);
+        String remainder = field.substring(firstDotIdx + 1);
+        int secondDotIdx = remainder.indexOf('.');
+
+        String indexSegment = secondDotIdx == -1 ? remainder : remainder.substring(0, secondDotIdx);
+        if (!isAllDigits(indexSegment)) {
+            return null;
+        }
+
+        String nestedField = secondDotIdx == -1 ? null : remainder.substring(secondDotIdx + 1);
+        if (nestedField != null && nestedField.isEmpty()) {
+            return null;
+        }
+
+        return new ParsedListProperty(listName, Integer.parseInt(indexSegment), nestedField);
+    }
+
+    private static <T> T getOrCreateListItem(List<T> list, java.util.function.Consumer<List<T>> setter, int index,
+                                             java.util.function.Supplier<T> supplier) {
+        if (list == null) {
+            list = new ArrayList<>();
+            setter.accept(list);
+        }
+        ensureListSize(list, index);
+        T item = list.get(index);
+        if (item == null) {
+            item = supplier.get();
+            list.set(index, item);
+        }
+        return item;
+    }
+
+    private static <T> void ensureListSize(List<T> list, int index) {
+        while (list.size() <= index) {
+            list.add(null);
+        }
+    }
+
+    private static final class ParsedListProperty {
+        private final String listName;
+        private final int index;
+        private final String field;
+
+        private ParsedListProperty(String listName, int index, String field) {
+            this.listName = listName;
+            this.index = index;
+            this.field = field;
+        }
+    }
+
+    private record ResolvedArtifactVersion(String version, Boolean isDraft, boolean derivedFromApiInfoVersion,
+                                           boolean derivedFromSnapshot) {
+        private boolean shouldUpdateDraftContentOnConflict() {
+            return Boolean.TRUE.equals(isDraft) && version != null;
+        }
+
+        private boolean shouldPromoteDraftOnConflict() {
+            return derivedFromApiInfoVersion && !derivedFromSnapshot && !Boolean.TRUE.equals(isDraft)
+                    && version != null;
         }
     }
 
@@ -342,12 +496,25 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         // Register all the references first, then register the artifact.
         List<ArtifactReference> registeredReferences = new ArrayList<>(externalReferences.size());
+        Map<String, VersionMetaData> resolvedRegistryReferences = new HashMap<>(); // avoid multiple lookups
         for (ExternalReference externalRef : externalReferences) {
             IndexedResource iresource = index.lookup(externalRef.getResource(),
                     Paths.get(artifact.getFile().toURI()));
 
-            // TODO: need a way to resolve references that are not local (already registered in the registry)
             if (iresource == null) {
+                Optional<ArtifactReference> registryReference = resolveRegistryReference(registryClient,
+                        externalRef, resolvedRegistryReferences);
+                if (registryReference.isPresent()) {
+                    registeredReferences.add(registryReference.get());
+                    continue;
+                }
+
+                if (ReferenceUrlUtil.isAbsoluteUri(externalRef.getResource())) {
+                    getLog().warn("Skipping external reference not managed by Apicurio Registry: "
+                            + externalRef.getFullReference());
+                    continue;
+                }
+
                 throw new MojoExecutionException("Reference could not be resolved.  From: "
                         + artifact.getFile().getName() + "  To: " + externalRef.getFullReference());
             }
@@ -394,6 +561,63 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return registerArtifact(registryClient, artifact, registeredReferences);
     }
 
+    private Optional<ArtifactReference> resolveRegistryReference(RegistryClient registryClient,
+                                                                 ExternalReference externalRef,
+                                                                 Map<String, VersionMetaData> resolvedRegistryReferences) {
+        Optional<RegistryReferenceLocation> location = parseRegistryReferenceLocation(externalRef.getResource());
+        if (location.isEmpty()) {
+            return Optional.empty();
+        }
+
+        RegistryReferenceLocation ref = location.get();
+        VersionMetaData vmd = resolvedRegistryReferences.get(externalRef.getResource());
+        if (vmd == null) {
+            vmd = getRegistryReferenceMetadata(registryClient, ref);
+            resolvedRegistryReferences.put(externalRef.getResource(), vmd);
+        }
+        return Optional.of(buildReferenceFromMetadata(vmd,
+                ReferenceUrlUtil.registryReferenceName(externalRef.getFullReference())));
+    }
+
+    private VersionMetaData getRegistryReferenceMetadata(RegistryClient registryClient,
+                                                         RegistryReferenceLocation ref) {
+        return registryClient.groups().byGroupId(ref.groupId).artifacts()
+                .byArtifactId(ref.artifactId).versions().byVersionExpression(ref.versionExpression).get();
+    }
+
+    private Optional<RegistryReferenceLocation> parseRegistryReferenceLocation(String resource) {
+        if (resource == null || registryUrl == null) {
+            return Optional.empty();
+        }
+
+        if (!ReferenceUrlUtil.isSameApicurioServer(registryUrl, resource)) {
+            return Optional.empty();
+        }
+
+        URI resourceUri = URI.create(resource);
+        Matcher matcher = registryArtifactUrlPattern.matcher(resourceUri.getRawPath());
+        if (!matcher.matches()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new RegistryReferenceLocation(
+                ReferenceUrlUtil.decodePathSegment(matcher.group(1)),
+                ReferenceUrlUtil.decodePathSegment(matcher.group(2)),
+                ReferenceUrlUtil.decodePathSegment(matcher.group(3))));
+    }
+
+    private static class RegistryReferenceLocation {
+        private final String groupId;
+        private final String artifactId;
+        private final String versionExpression;
+
+        private RegistryReferenceLocation(String groupId, String artifactId, String versionExpression) {
+            this.groupId = groupId;
+            this.artifactId = artifactId;
+            this.versionExpression = versionExpression;
+        }
+    }
+
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
                                              List<ArtifactReference> references) throws FileNotFoundException, ExecutionException,
             InterruptedException, MojoExecutionException, MojoFailureException {
@@ -424,10 +648,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             throws ExecutionException, InterruptedException, MojoFailureException, MojoExecutionException {
         String groupId = artifact.getGroupId();
         String artifactId = artifact.getArtifactId();
-        String version = artifact.getVersion();
         String type = artifact.getArtifactType();
         Boolean canonicalize = artifact.getCanonicalize();
-        Boolean isDraft = artifact.getIsDraft();
         String ct = artifact.getContentType() == null ? ContentTypes.APPLICATION_JSON
                 : artifact.getContentType();
         String data = null;
@@ -442,14 +664,15 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        ResolvedArtifactVersion resolvedArtifactVersion = resolveVersion(artifact, data);
 
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(type);
 
         CreateVersion createVersion = new CreateVersion();
-        createVersion.setVersion(version);
-        createVersion.setIsDraft(isDraft);
+        createVersion.setVersion(resolvedArtifactVersion.version());
+        createVersion.setIsDraft(resolvedArtifactVersion.isDraft());
         createArtifact.setFirstVersion(createVersion);
 
         VersionContent content = new VersionContent();
@@ -484,27 +707,132 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             return vmd.getVersion();
         } catch (RuleViolationProblemDetails | ProblemDetails e) {
 
-            // If this is a draft, and we got a 409, then we should try to update the artifact content instead.
-            if (Boolean.TRUE.equals(artifact.getIsDraft()) && e.getResponseStatusCode() == 409) {
+            if (e.getResponseStatusCode() == 409
+                    && resolvedArtifactVersion.shouldUpdateDraftContentOnConflict()) {
                 try {
                     registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
-                            .versions().byVersionExpression(version).content()
+                            .versions().byVersionExpression(resolvedArtifactVersion.version()).content()
                             .put(content, config -> {
 
                     });
                     getLog().info(String.format("Successfully updated artifact [%s] / [%s].",
                             groupId, artifactId));
                     // Return version metadata
-                    return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
+                    return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                            .versions().byVersionExpression(resolvedArtifactVersion.version()).get();
                 } catch (RuleViolationProblemDetails | ProblemDetails pd) {
                     logAndThrow(pd);
                     return null;
                 }
+            } else if (e.getResponseStatusCode() == 409
+                    && resolvedArtifactVersion.shouldPromoteDraftOnConflict()) {
+                return promoteExistingDraftVersion(registryClient, groupId, artifactId, content,
+                        resolvedArtifactVersion, e);
             } else {
                 logAndThrow(e);
                 return null;
             }
         }
+    }
+
+    private ResolvedArtifactVersion resolveVersion(RegisterArtifact artifact, String data) throws MojoExecutionException {
+        if (artifact.getVersion() != null && !artifact.getVersion().isBlank()) {
+            return new ResolvedArtifactVersion(artifact.getVersion(), artifact.getIsDraft(), false, false);
+        }
+
+        if (artifact.getVersionStrategy() == RegisterArtifact.VersionStrategy.API_INFO_VERSION
+                && isApiArtifact(artifact.getArtifactType())) {
+            String apiInfoVersion = extractApiInfoVersion(artifact, data);
+            if (apiInfoVersion == null) {
+                return new ResolvedArtifactVersion(null, artifact.getIsDraft(), false, false);
+            }
+            if (apiInfoVersion.endsWith("-SNAPSHOT")) {
+                return new ResolvedArtifactVersion(
+                        apiInfoVersion.substring(0, apiInfoVersion.length() - "-SNAPSHOT".length()),
+                        Boolean.TRUE,
+                        true,
+                        true);
+            }
+            return new ResolvedArtifactVersion(apiInfoVersion, artifact.getIsDraft(), true, false);
+        }
+
+        return new ResolvedArtifactVersion(null, artifact.getIsDraft(), false, false);
+    }
+
+    private VersionMetaData promoteExistingDraftVersion(RegistryClient registryClient, String groupId,
+                                                        String artifactId, VersionContent content,
+                                                        ResolvedArtifactVersion resolvedArtifactVersion,
+                                                        ApiException registrationError)
+            throws MojoExecutionException, MojoFailureException, InterruptedException, ExecutionException {
+        try {
+            VersionMetaData existingVersion = registryClient.groups().byGroupId(groupId).artifacts()
+                    .byArtifactId(artifactId).versions().byVersionExpression(resolvedArtifactVersion.version()).get();
+            if (!VersionState.DRAFT.equals(existingVersion.getState())) {
+                logAndThrow(registrationError);
+                return null;
+            }
+
+            registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(resolvedArtifactVersion.version()).content().put(content, config -> {
+                    });
+
+            WrappedVersionState enabled = new WrappedVersionState();
+            enabled.setState(VersionState.ENABLED);
+            registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(resolvedArtifactVersion.version()).state().put(enabled);
+
+            getLog().info(String.format("Successfully promoted draft artifact [%s] / [%s] version [%s].",
+                    groupId, artifactId, resolvedArtifactVersion.version()));
+
+            return registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(resolvedArtifactVersion.version()).get();
+        } catch (RuleViolationProblemDetails | ProblemDetails e) {
+            logAndThrow(e);
+            return null;
+        }
+    }
+
+    private boolean isApiArtifact(String artifactType) {
+        return ArtifactType.OPENAPI.equals(artifactType) || ArtifactType.ASYNCAPI.equals(artifactType);
+    }
+
+    private String extractApiInfoVersion(RegisterArtifact artifact, String data) throws MojoExecutionException {
+        try {
+            JsonNode root = getVersionExtractionMapper(artifact).readTree(data);
+            JsonNode versionNode = root.path("info").path("version");
+            if (versionNode.isTextual()) {
+                String version = versionNode.asText();
+                if (!version.isBlank()) {
+                    return version;
+                }
+            }
+            return null;
+        } catch (IOException e) {
+            throw new MojoExecutionException("Failed to extract info.version from API artifact: "
+                    + artifact.getFile().getPath(), e);
+        }
+    }
+
+    private ObjectMapper getVersionExtractionMapper(RegisterArtifact artifact) {
+        return isYamlContent(artifact) ? new ObjectMapper(new YAMLFactory()) : new ObjectMapper();
+    }
+
+    private boolean isYamlContent(RegisterArtifact artifact) {
+        String contentType = artifact.getContentType();
+        if (contentType != null) {
+            String normalizedContentType = contentType.toLowerCase(Locale.ROOT);
+            if (normalizedContentType.contains("yaml") || normalizedContentType.contains("yml")) {
+                return true;
+            }
+        }
+
+        File file = artifact.getFile();
+        if (file == null) {
+            return false;
+        }
+
+        String fileName = file.getName().toLowerCase(Locale.ROOT);
+        return fileName.endsWith(".yaml") || fileName.endsWith(".yml");
     }
 
     private static boolean hasReferences(RegisterArtifact artifact) {
@@ -531,6 +859,14 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
     public void setArtifacts(List<RegisterArtifact> artifacts) {
         this.artifacts = artifacts;
+    }
+
+    @Override
+    public void setRegistryUrl(String registryUrl) {
+        super.setRegistryUrl(registryUrl);
+        this.registryArtifactUrlPattern = registryUrl == null
+                ? null
+                : ReferenceUrlUtil.createRegistryArtifactUrlPattern(registryUrl);
     }
 
     public void setSkip(boolean skip) {

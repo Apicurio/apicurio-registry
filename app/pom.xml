@@ -16,6 +16,10 @@
     <projectRoot>${project.basedir}/..</projectRoot>
     <maven.compiler.release>21</maven.compiler.release>
     <groups/>
+    <!-- Default empty argLine so that the @{argLine} late-binding reference in
+         maven-surefire-plugin resolves to empty when no plugin (e.g., JaCoCo) sets it.
+         Without this, Java 25+ treats the literal '@{argLine}' as an arg file reference
+         and fails with 'could not open {argLine}'. -->
     <argLine/>
   </properties>
 

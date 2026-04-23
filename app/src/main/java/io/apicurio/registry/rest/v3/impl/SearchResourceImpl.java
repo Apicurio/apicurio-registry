@@ -5,6 +5,7 @@ import io.apicurio.registry.rest.v3.SearchResource;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
@@ -67,6 +68,9 @@ public class SearchResourceImpl implements SearchResource {
 
     @Inject
     RegistryStorageContentUtils contentUtils;
+
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
@@ -133,8 +137,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, oBy, oDir,
+                offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -182,8 +186,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, oBy, oDir,
+                offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -238,8 +242,8 @@ public class SearchResourceImpl implements SearchResource {
             }).forEach(filters::add);
         }
 
-        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        GroupSearchResultsDto results = searchAuthorizer.searchGroups(filters, oBy, oDir,
+                offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -322,8 +326,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofStructure(structure));
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, oBy, oDir,
+                offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -376,8 +380,8 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, oBy, oDir,
+                offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
     }
 

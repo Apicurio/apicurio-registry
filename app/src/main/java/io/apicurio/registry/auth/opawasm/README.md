@@ -199,6 +199,30 @@ This approach is fully self-contained (no external infrastructure beyond what Re
 
 For organizations that already manage team membership in their IdP (Keycloak, Azure AD, Okta), a simpler approach is to map IdP groups to resource permissions rather than managing per-user grants. The grants table would have entries like `(principal_type=group, principal=team-a-developers, operation=write, resource_pattern=team-a/*)`, and the Rego policy would check group membership from JWT claims. This keeps the grants list short (one entry per group, not per user) and avoids duplicating user management that already happens in the IdP.
 
+### Alternative production path: ConfigMap/file-based grants with hot-reload
+
+For teams that manage infrastructure as code and don't need a self-service UI, grants can stay in a JSON file managed through GitOps:
+
+1. **Grants live in a JSON file** mounted as a ConfigMap in Kubernetes (or a local file in bare-metal deployments). Same JSON structure as the POC. Admins manage permissions through their existing GitOps workflow — PR to change permissions, review, merge, ArgoCD/Flux syncs the ConfigMap.
+
+2. **Hot-reload on file change.** Registry watches the mounted file and re-reads it when it changes. No pod restart needed — Kubernetes propagates ConfigMap updates to the mounted volume, Registry detects the change and calls `policy.data(newJson)`.
+
+3. **GitOps-native.** Permissions are version-controlled, reviewed, and audited through Git history. No extra audit infrastructure needed.
+
+4. **No database dependency for authorization.** The policy engine is fully self-contained with the mounted file. Authorization works even if the database is unavailable.
+
+**Trade-offs vs database-backed:**
+
+| | Database + API | ConfigMap/file |
+|---|---|---|
+| **Management UX** | REST API, UI | Git PRs, kubectl |
+| **Audit trail** | DB-level logging | Git history |
+| **Scale** | Any number of grants | Best for role/group-based (small file) |
+| **Infrastructure** | Requires Registry's database | No extra dependencies |
+| **Best fit** | Teams wanting self-service UI | Infrastructure-as-code teams |
+
+Both paths can coexist — Registry could load from file if configured, fall back to database otherwise.
+
 ## What's next
 
 - **Database-backed grants with management API** — replace the static JSON file with a proper storage and REST interface

@@ -6,7 +6,7 @@ default allow := false
 
 # Admin users can do everything
 allow if {
-	user_has_role(input.user, "admin")
+	user_has_role(input.user, "sr-admin")
 }
 
 # Check explicit permission grants
@@ -34,7 +34,13 @@ allow_resource(user, operation, resource_type, resource_name) if {
 	resource_matches(grant, resource_type, resource_name)
 }
 
-# Helper: check if user has a role
+# Helper: check if user has a role (from IdP roles passed in input)
+user_has_role(user, role) if {
+	some r in input.roles
+	r == role
+}
+
+# Fallback: check roles from data (for static config or batch evaluation)
 user_has_role(user, role) if {
 	some r in data.roles[user]
 	r == role

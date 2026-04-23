@@ -5,6 +5,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import com.styra.opa.wasm.OpaPolicy;
 import com.styra.opa.wasm.OpaPolicyPool;
@@ -37,73 +38,73 @@ public class OpaWasmAccessControllerTest {
 
     @Test
     void aliceCanReadOwnArtifact() {
-        Assertions.assertTrue(controller.evaluate("alice", "read", "artifact", "team-a/my-schema"));
+        Assertions.assertTrue(controller.evaluate("alice", Set.of(), "read", "artifact", "team-a/my-schema"));
     }
 
     @Test
     void aliceCanWriteOwnArtifact() {
-        Assertions.assertTrue(controller.evaluate("alice", "write", "artifact", "team-a/my-schema"));
+        Assertions.assertTrue(controller.evaluate("alice", Set.of(), "write", "artifact", "team-a/my-schema"));
     }
 
     @Test
     void aliceCannotWriteSharedArtifact() {
-        Assertions.assertFalse(controller.evaluate("alice", "write", "artifact", "shared/common-schema"));
+        Assertions.assertFalse(controller.evaluate("alice", Set.of(), "write", "artifact", "shared/common-schema"));
     }
 
     @Test
     void aliceCanReadSharedArtifact() {
-        Assertions.assertTrue(controller.evaluate("alice", "read", "artifact", "shared/common-schema"));
+        Assertions.assertTrue(controller.evaluate("alice", Set.of(), "read", "artifact", "shared/common-schema"));
     }
 
     @Test
     void aliceCannotReadTeamBArtifact() {
-        Assertions.assertFalse(controller.evaluate("alice", "read", "artifact", "team-b/their-schema"));
+        Assertions.assertFalse(controller.evaluate("alice", Set.of(), "read", "artifact", "team-b/their-schema"));
     }
 
     @Test
     void bobCanReadAnyArtifact() {
-        Assertions.assertTrue(controller.evaluate("bob", "read", "artifact", "team-a/my-schema"));
-        Assertions.assertTrue(controller.evaluate("bob", "read", "artifact", "team-b/their-schema"));
-        Assertions.assertTrue(controller.evaluate("bob", "read", "artifact", "shared/common-schema"));
+        Assertions.assertTrue(controller.evaluate("bob", Set.of(), "read", "artifact", "team-a/my-schema"));
+        Assertions.assertTrue(controller.evaluate("bob", Set.of(), "read", "artifact", "team-b/their-schema"));
+        Assertions.assertTrue(controller.evaluate("bob", Set.of(), "read", "artifact", "shared/common-schema"));
     }
 
     @Test
     void bobCanWriteOnlyToTeamB() {
-        Assertions.assertTrue(controller.evaluate("bob", "write", "artifact", "team-b/their-schema"));
-        Assertions.assertFalse(controller.evaluate("bob", "write", "artifact", "team-a/my-schema"));
+        Assertions.assertTrue(controller.evaluate("bob", Set.of(), "write", "artifact", "team-b/their-schema"));
+        Assertions.assertFalse(controller.evaluate("bob", Set.of(), "write", "artifact", "team-a/my-schema"));
     }
 
     @Test
     void adminCanDoEverything() {
-        Assertions.assertTrue(controller.evaluate("admin", "read", "artifact", "team-a/x"));
-        Assertions.assertTrue(controller.evaluate("admin", "write", "artifact", "team-b/y"));
-        Assertions.assertTrue(controller.evaluate("admin", "admin", "artifact", "shared/z"));
+        Assertions.assertTrue(controller.evaluate("admin", Set.of("sr-admin"), "read", "artifact", "team-a/x"));
+        Assertions.assertTrue(controller.evaluate("admin", Set.of("sr-admin"), "write", "artifact", "team-b/y"));
+        Assertions.assertTrue(controller.evaluate("admin", Set.of("sr-admin"), "admin", "artifact", "shared/z"));
     }
 
     @Test
     void unknownUserDenied() {
-        Assertions.assertFalse(controller.evaluate("unknown", "read", "artifact", "team-a/my-schema"));
+        Assertions.assertFalse(controller.evaluate("unknown", Set.of(), "read", "artifact", "team-a/my-schema"));
     }
 
     @Test
     void anonymousUserDenied() {
-        Assertions.assertFalse(controller.evaluate("anonymous", "read", "artifact", "team-a/x"));
+        Assertions.assertFalse(controller.evaluate("anonymous", Set.of(), "read", "artifact", "team-a/x"));
     }
 
     @Test
     void groupLevelAuthorizationWorks() {
-        Assertions.assertTrue(controller.evaluate("alice", "read", "group", "team-a"));
-        Assertions.assertTrue(controller.evaluate("alice", "write", "group", "team-a"));
-        Assertions.assertFalse(controller.evaluate("alice", "admin", "group", "team-a"));
-        Assertions.assertFalse(controller.evaluate("alice", "read", "group", "team-b"));
-        Assertions.assertTrue(controller.evaluate("admin", "admin", "group", "team-b"));
+        Assertions.assertTrue(controller.evaluate("alice", Set.of(), "read", "group", "team-a"));
+        Assertions.assertTrue(controller.evaluate("alice", Set.of(), "write", "group", "team-a"));
+        Assertions.assertFalse(controller.evaluate("alice", Set.of(), "admin", "group", "team-a"));
+        Assertions.assertFalse(controller.evaluate("alice", Set.of(), "read", "group", "team-b"));
+        Assertions.assertTrue(controller.evaluate("admin", Set.of("sr-admin"), "admin", "group", "team-b"));
     }
 
     @Test
     void impliesWorks() {
-        Assertions.assertTrue(controller.evaluate("admin", "admin", "artifact", "x"));
-        Assertions.assertTrue(controller.evaluate("admin", "write", "artifact", "x"));
-        Assertions.assertTrue(controller.evaluate("admin", "read", "artifact", "x"));
+        Assertions.assertTrue(controller.evaluate("admin", Set.of("sr-admin"), "admin", "artifact", "x"));
+        Assertions.assertTrue(controller.evaluate("admin", Set.of("sr-admin"), "write", "artifact", "x"));
+        Assertions.assertTrue(controller.evaluate("admin", Set.of("sr-admin"), "read", "artifact", "x"));
     }
 
     @Test
@@ -117,7 +118,7 @@ public class OpaWasmAccessControllerTest {
                 artifact("shared", "schema-6")
         );
 
-        List<SearchedArtifactDto> allowed = controller.filterSearchResults("alice", artifacts);
+        List<SearchedArtifactDto> allowed = controller.filterSearchResults("alice", Set.of(), artifacts);
 
         List<String> allowedNames = allowed.stream()
                 .map(a -> a.getGroupId() + "/" + a.getArtifactId())
@@ -140,7 +141,7 @@ public class OpaWasmAccessControllerTest {
                 artifact("shared", "schema-3")
         );
 
-        List<SearchedArtifactDto> allowed = controller.filterSearchResults("admin", artifacts);
+        List<SearchedArtifactDto> allowed = controller.filterSearchResults("admin", Set.of("sr-admin"), artifacts);
         Assertions.assertEquals(3, allowed.size());
     }
 

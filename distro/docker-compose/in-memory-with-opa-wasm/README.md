@@ -8,7 +8,7 @@ Demonstrates two-layer authorization:
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| Keycloak | 8080 | Authentication + RBAC roles |
+| Keycloak | 8090 | Authentication + RBAC roles |
 | Apicurio Registry API | 8081 | Schema/API registry with per-resource auth |
 | Apicurio Registry UI | 8888 | Web console |
 
@@ -48,7 +48,7 @@ docker compose up -d
 Wait for Keycloak to start (~15 seconds), then access:
 - UI: http://localhost:8888
 - API: http://localhost:8081
-- Keycloak: http://localhost:8080 (admin/admin)
+- Keycloak: http://localhost:8090 (admin/admin)
 
 ## Testing with curl
 
@@ -56,22 +56,22 @@ Get a token for each user:
 
 ```bash
 # Admin token
-ADMIN_TOKEN=$(curl -s -X POST "http://localhost:8080/realms/registry/protocol/openid-connect/token" \
+ADMIN_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password&client_id=registry-api&username=admin&password=admin" | jq -r '.access_token')
 
 # Developer token (team-a access)
-DEV_TOKEN=$(curl -s -X POST "http://localhost:8080/realms/registry/protocol/openid-connect/token" \
+DEV_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password&client_id=registry-api&username=developer&password=developer" | jq -r '.access_token')
 
 # Developer2 token (team-b access)
-DEV2_TOKEN=$(curl -s -X POST "http://localhost:8080/realms/registry/protocol/openid-connect/token" \
+DEV2_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password&client_id=registry-api&username=developer2&password=developer" | jq -r '.access_token')
 
 # Read-only user token
-USER_TOKEN=$(curl -s -X POST "http://localhost:8080/realms/registry/protocol/openid-connect/token" \
+USER_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password&client_id=registry-api&username=user&password=user" | jq -r '.access_token')
 ```

@@ -1,10 +1,12 @@
 package io.apicurio.registry.auth.opawasm;
 
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.styra.opa.wasm.OpaPolicy;
 import com.styra.opa.wasm.OpaPolicyPool;
@@ -70,15 +72,18 @@ public class OpaWasmAccessController extends AbstractAccessController {
                 ? securityIdentity.getPrincipal().getName()
                 : "anonymous";
 
+        Set<String> roles = securityIdentity != null ? securityIdentity.getRoles() : Set.of();
         String resourceType = (style == AuthorizedStyle.GroupOnly) ? "group" : "artifact";
         String operation = toOperationString(level);
 
-        return evaluate(user, operation, resourceType, resourceName);
+        return evaluate(user, roles, operation, resourceType, resourceName);
     }
 
-    boolean evaluate(String user, String operation, String resourceType, String resourceName) {
+    boolean evaluate(String user, Set<String> roles, String operation, String resourceType, String resourceName) {
         ObjectNode input = MAPPER.createObjectNode();
         input.put("user", user);
+        ArrayNode rolesArray = input.putArray("roles");
+        roles.forEach(rolesArray::add);
         input.put("operation", operation);
         input.put("resource_type", resourceType);
         input.put("resource_name", resourceName);
@@ -103,7 +108,7 @@ public class OpaWasmAccessController extends AbstractAccessController {
         }
     }
 
-    public List<SearchedArtifactDto> filterSearchResults(String user, List<SearchedArtifactDto> artifacts) {
+    public List<SearchedArtifactDto> filterSearchResults(String user, Set<String> roles, List<SearchedArtifactDto> artifacts) {
         if (policyPool == null || artifacts.isEmpty()) {
             return artifacts;
         }
@@ -112,7 +117,7 @@ public class OpaWasmAccessController extends AbstractAccessController {
         for (SearchedArtifactDto artifact : artifacts) {
             String name = (artifact.getGroupId() != null ? artifact.getGroupId() : "default")
                     + "/" + artifact.getArtifactId();
-            if (evaluate(user, "read", "artifact", name)) {
+            if (evaluate(user, roles, "read", "artifact", name)) {
                 allowed.add(artifact);
             }
         }

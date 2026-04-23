@@ -39,6 +39,10 @@ public class OpaWasmAccessController extends AbstractAccessController {
         this.policyPool = policyPool;
     }
 
+    void reloadData(String permissionsData) {
+        this.grantsData = GrantsData.parse(permissionsData);
+    }
+
     OpaPolicyPool getPolicyPool() {
         return policyPool;
     }

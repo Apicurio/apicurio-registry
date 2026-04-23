@@ -1,0 +1,6 @@
+from io.apicurio.registry.auth.resourcebased import RegistryArtifact;
+
+// Admin implies Write implies Read
+allow User with name = "superuser" to Admin RegistryArtifact with name like "*";
+
+otherwise deny;

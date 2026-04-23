@@ -154,6 +154,30 @@
       <artifactId>quarkus-jdbc-mssql</artifactId>
     </dependency>
 
+    <!-- Kroxylicious Authorizer -->
+    <dependency>
+      <groupId>io.kroxylicious</groupId>
+      <artifactId>kroxylicious-authorizer-api</artifactId>
+      <version>0.20.0-SNAPSHOT</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.kafka</groupId>
+          <artifactId>kafka-clients</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.kroxylicious</groupId>
+      <artifactId>kroxylicious-authorizer-acl</artifactId>
+      <version>0.20.0-SNAPSHOT</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.kafka</groupId>
+          <artifactId>kafka-clients</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
     <!-- Third Party Libraries -->
     <dependency>
       <groupId>io.roastedroot</groupId>

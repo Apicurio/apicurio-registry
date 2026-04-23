@@ -10,7 +10,6 @@ import java.util.Set;
 import com.styra.opa.wasm.OpaPolicy;
 import com.styra.opa.wasm.OpaPolicyPool;
 
-import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -108,47 +107,67 @@ public class OpaWasmAccessControllerTest {
     }
 
     @Test
-    void searchResultFilteringWorks() {
-        List<SearchedArtifactDto> artifacts = List.of(
-                artifact("team-a", "schema-1"),
-                artifact("team-a", "schema-2"),
-                artifact("team-b", "schema-3"),
-                artifact("shared", "schema-4"),
-                artifact("team-b", "schema-5"),
-                artifact("shared", "schema-6")
-        );
-
-        List<SearchedArtifactDto> allowed = controller.filterSearchResults("alice", Set.of(), artifacts);
-
-        List<String> allowedNames = allowed.stream()
-                .map(a -> a.getGroupId() + "/" + a.getArtifactId())
-                .toList();
-
-        Assertions.assertEquals(4, allowed.size());
-        Assertions.assertTrue(allowedNames.contains("team-a/schema-1"));
-        Assertions.assertTrue(allowedNames.contains("team-a/schema-2"));
-        Assertions.assertTrue(allowedNames.contains("shared/schema-4"));
-        Assertions.assertTrue(allowedNames.contains("shared/schema-6"));
-        Assertions.assertFalse(allowedNames.contains("team-b/schema-3"));
-        Assertions.assertFalse(allowedNames.contains("team-b/schema-5"));
+    void defaultGroupDeniedWhenNoGrant() {
+        Assertions.assertFalse(controller.evaluate("alice", Set.of(), "read", "artifact", "default/my-schema"));
     }
 
     @Test
-    void searchResultFilteringAdminSeesAll() {
-        List<SearchedArtifactDto> artifacts = List.of(
-                artifact("team-a", "schema-1"),
-                artifact("team-b", "schema-2"),
-                artifact("shared", "schema-3")
-        );
-
-        List<SearchedArtifactDto> allowed = controller.filterSearchResults("admin", Set.of("sr-admin"), artifacts);
-        Assertions.assertEquals(3, allowed.size());
+    void defaultGroupAllowedForAdmin() {
+        Assertions.assertTrue(controller.evaluate("admin", Set.of("sr-admin"), "read", "artifact", "default/my-schema"));
     }
 
-    private static SearchedArtifactDto artifact(String groupId, String artifactId) {
-        SearchedArtifactDto dto = new SearchedArtifactDto();
-        dto.setGroupId(groupId);
-        dto.setArtifactId(artifactId);
-        return dto;
+    @Test
+    void buildResourceNameHandlesNull() {
+        Assertions.assertEquals("default/art1", OpaWasmAccessController.buildResourceName(null, "art1"));
+        Assertions.assertEquals("my-group/art1", OpaWasmAccessController.buildResourceName("my-group", "art1"));
+    }
+
+    @Test
+    void grantsDataParsing() {
+        GrantsData data = controller.getGrantsData();
+        Assertions.assertNotNull(data);
+        Assertions.assertTrue(data.isAdmin(Set.of("sr-admin")));
+        Assertions.assertFalse(data.isAdmin(Set.of("sr-developer")));
+    }
+
+    @Test
+    void grantsDataAllowedGroups() {
+        GrantsData data = controller.getGrantsData();
+        Set<String> aliceGroups = data.getAllowedGroups("alice", Set.of(), "artifact");
+        Assertions.assertNotNull(aliceGroups);
+        Assertions.assertTrue(aliceGroups.contains("team-a"));
+        Assertions.assertTrue(aliceGroups.contains("shared"));
+        Assertions.assertFalse(aliceGroups.contains("team-b"));
+    }
+
+    @Test
+    void grantsDataWildcardReturnsNull() {
+        GrantsData data = controller.getGrantsData();
+        Set<String> bobGroups = data.getAllowedGroups("bob", Set.of(), "artifact");
+        Assertions.assertNull(bobGroups);
+    }
+
+    @Test
+    void grantsDataMalformedJsonFailsClosed() {
+        GrantsData data = GrantsData.parse("not valid json{{{");
+        Assertions.assertFalse(data.isAdmin(Set.of("sr-admin")));
+        Set<String> groups = data.getAllowedGroups("alice", Set.of(), "artifact");
+        Assertions.assertNotNull(groups);
+        Assertions.assertTrue(groups.isEmpty());
+    }
+
+    @Test
+    void grantsDataEmptyJsonFailsClosed() {
+        GrantsData data = GrantsData.parse("");
+        Assertions.assertFalse(data.isAdmin(Set.of("anything")));
+        Set<String> groups = data.getAllowedGroups("alice", Set.of(), "artifact");
+        Assertions.assertNotNull(groups);
+        Assertions.assertTrue(groups.isEmpty());
+    }
+
+    @Test
+    void uninitializedControllerDeniesAccess() {
+        OpaWasmAccessController uninit = new OpaWasmAccessController();
+        Assertions.assertFalse(uninit.evaluate("alice", Set.of(), "read", "artifact", "team-a/x"));
     }
 }

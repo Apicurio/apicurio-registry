@@ -393,6 +393,7 @@ public class SearchResourceImpl implements SearchResource {
         }
         List<ContractRuleWithCoordinatesDto> results = storage.getContractRulesByTag(tag);
         return results.stream()
+                .filter(dto -> searchAuthorizer.canReadArtifact(dto.getGroupId(), dto.getArtifactId()))
                 .map(this::toContractRuleSearchResult)
                 .collect(Collectors.toList());
     }

@@ -1,6 +1,5 @@
 package io.apicurio.registry.auth.opawasm;
 
-import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,7 +14,7 @@ import io.apicurio.registry.auth.AbstractAccessController;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.storage.dto.SearchedArtifactDto;
+import io.apicurio.registry.model.GroupId;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -32,26 +31,26 @@ public class OpaWasmAccessController extends AbstractAccessController {
     @Inject
     SecurityIdentity securityIdentity;
 
-    private OpaPolicyPool policyPool;
-    private String permissionsData;
+    private volatile OpaPolicyPool policyPool;
+    private volatile GrantsData grantsData;
 
     void initialize(OpaPolicyPool policyPool, String permissionsData) {
+        this.grantsData = GrantsData.parse(permissionsData);
         this.policyPool = policyPool;
-        this.permissionsData = permissionsData;
     }
 
     OpaPolicyPool getPolicyPool() {
         return policyPool;
     }
 
-    String getPermissionsData() {
-        return permissionsData;
+    GrantsData getGrantsData() {
+        return grantsData;
     }
 
     @Override
     public boolean isAuthorized(InvocationContext context) {
         if (policyPool == null) {
-            LOG.warn("OPA WASM access controller not initialized, denying access.");
+            LOG.error("OPA WASM access controller not initialized, denying access.");
             return false;
         }
 
@@ -83,7 +82,13 @@ public class OpaWasmAccessController extends AbstractAccessController {
         return evaluate(user, roles, operation, resourceType, resourceName);
     }
 
-    boolean evaluate(String user, Set<String> roles, String operation, String resourceType, String resourceName) {
+    public boolean evaluate(String user, Set<String> roles, String operation, String resourceType, String resourceName) {
+        GrantsData data = this.grantsData;
+        if (data == null) {
+            LOG.error("Grants data not loaded, denying access.");
+            return false;
+        }
+
         ObjectNode input = MAPPER.createObjectNode();
         input.put("user", user);
         ArrayNode rolesArray = input.putArray("roles");
@@ -94,7 +99,7 @@ public class OpaWasmAccessController extends AbstractAccessController {
 
         try (OpaPolicyPool.Loan loan = policyPool.borrow()) {
             OpaPolicy policy = loan.policy();
-            policy.data(permissionsData);
+            policy.data(data.getRawJson());
             policy.entrypoint("registry/authz/allow");
             String result = policy.evaluate(input);
             JsonNode resultNode = MAPPER.readTree(result);
@@ -112,29 +117,17 @@ public class OpaWasmAccessController extends AbstractAccessController {
         }
     }
 
-    public List<SearchedArtifactDto> filterSearchResults(String user, Set<String> roles, List<SearchedArtifactDto> artifacts) {
-        if (policyPool == null || artifacts.isEmpty()) {
-            return artifacts;
+    public static String buildResourceName(String groupId, String artifactId) {
+        String normalizedGroup = groupId != null ? new GroupId(groupId).getRawGroupIdWithNull() : "default";
+        if (normalizedGroup == null) {
+            normalizedGroup = "default";
         }
-
-        List<SearchedArtifactDto> allowed = new java.util.ArrayList<>();
-        for (SearchedArtifactDto artifact : artifacts) {
-            String name = (artifact.getGroupId() != null ? artifact.getGroupId() : "default")
-                    + "/" + artifact.getArtifactId();
-            if (evaluate(user, roles, "read", "artifact", name)) {
-                allowed.add(artifact);
-            }
-        }
-        return allowed;
+        return normalizedGroup + "/" + artifactId;
     }
 
     private String extractResourceName(InvocationContext context, AuthorizedStyle style) {
         return switch (style) {
-            case GroupAndArtifact -> {
-                String groupId = getStringParam(context, 0);
-                String artifactId = getStringParam(context, 1);
-                yield (groupId != null ? groupId : "default") + "/" + artifactId;
-            }
+            case GroupAndArtifact -> buildResourceName(getStringParam(context, 0), getStringParam(context, 1));
             case GroupOnly -> getStringParam(context, 0);
             case ArtifactOnly -> getStringParam(context, 0);
             case GlobalId -> String.valueOf(getLongParam(context, 0));
@@ -163,5 +156,4 @@ public class OpaWasmAccessController extends AbstractAccessController {
         }
         return false;
     }
-
 }

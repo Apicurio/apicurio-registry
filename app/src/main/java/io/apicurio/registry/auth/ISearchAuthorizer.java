@@ -19,4 +19,8 @@ public interface ISearchAuthorizer {
 
     VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit);
+
+    default boolean canReadArtifact(String groupId, String artifactId) {
+        return true;
+    }
 }

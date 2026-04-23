@@ -2,6 +2,7 @@ package io.apicurio.registry.auth;
 
 import java.util.Set;
 
+import io.apicurio.registry.auth.opawasm.OpaWasmAccessController;
 import io.apicurio.registry.auth.opawasm.OpaWasmAccessControllerConfig;
 import io.apicurio.registry.auth.opawasm.OpaWasmSearchFilter;
 import io.apicurio.registry.cdi.Current;
@@ -12,6 +13,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
@@ -27,8 +29,14 @@ public class SearchAuthorizerProducer {
     OpaWasmSearchFilter opaFilter;
 
     @Inject
+    OpaWasmAccessController opaAc;
+
+    @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    SecurityIdentity securityIdentity;
 
     @Produces
     @ApplicationScoped
@@ -51,6 +59,15 @@ public class SearchAuthorizerProducer {
                 public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
                         OrderDirection orderDir, int offset, int limit) {
                     return opaFilter.searchVersions(filters, orderBy, orderDir, offset, limit);
+                }
+
+                @Override
+                public boolean canReadArtifact(String groupId, String artifactId) {
+                    String user = securityIdentity != null && !securityIdentity.isAnonymous()
+                            ? securityIdentity.getPrincipal().getName() : "anonymous";
+                    Set<String> roles = securityIdentity != null ? securityIdentity.getRoles() : Set.of();
+                    String resourceName = OpaWasmAccessController.buildResourceName(groupId, artifactId);
+                    return opaAc.evaluate(user, roles, "read", "artifact", resourceName);
                 }
             };
         }

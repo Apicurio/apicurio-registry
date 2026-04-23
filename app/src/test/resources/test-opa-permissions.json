@@ -1,6 +1,9 @@
 {
+  "config": {
+    "admin_roles": ["sr-admin"]
+  },
   "roles": {
-    "admin": ["admin"],
+    "admin": ["sr-admin"],
     "alice": ["team-a-developer"],
     "bob": ["team-b-developer"]
   },

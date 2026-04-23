@@ -1,4 +1,7 @@
 {
+  "config": {
+    "admin_roles": ["sr-admin"]
+  },
   "grants": [
     {
       "principal": "developer",

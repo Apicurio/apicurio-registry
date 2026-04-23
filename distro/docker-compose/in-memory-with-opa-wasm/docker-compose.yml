@@ -31,6 +31,8 @@ services:
       QUARKUS_OIDC_TOKEN_ISSUER: "any"
       # Coarse-grained RBAC (from Keycloak roles)
       apicurio.auth.role-based-authorization: "true"
+      # Experimental features gate (required for OPA WASM)
+      apicurio.features.experimental.enabled: "true"
       # Fine-grained per-resource authorization (OPA WASM)
       apicurio.auth.opa-wasm.enabled: "true"
       apicurio.auth.opa-wasm.policy.path: "/opt/apicurio/opa/registry-authz.wasm"

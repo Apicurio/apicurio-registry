@@ -6,7 +6,8 @@ default allow := false
 
 # Admin users can do everything
 allow if {
-	user_has_role(input.user, "sr-admin")
+	some admin_role in data.config.admin_roles
+	user_has_role(input.user, admin_role)
 }
 
 # Check explicit permission grants
@@ -24,7 +25,8 @@ filter_resources[resource] if {
 }
 
 allow_resource(user, operation, resource_type, resource_name) if {
-	user_has_role(user, "admin")
+	some admin_role in data.config.admin_roles
+	user_has_role(user, admin_role)
 }
 
 allow_resource(user, operation, resource_type, resource_name) if {

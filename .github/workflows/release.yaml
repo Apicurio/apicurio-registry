@@ -272,7 +272,7 @@ jobs:
   # Only runs after all builds succeed — if any build fails, no release is created.
   release-publish:
     name: Publish Release
-    needs: [release-build-app, release-build-ui, release-build-cli]
+    needs: [release-prepare, release-build-app, release-build-ui, release-build-cli]
     if: github.repository_owner == 'Apicurio'
     runs-on: ubuntu-22.04
     steps:

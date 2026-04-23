@@ -15,6 +15,9 @@ services:
       - ../config/realm.json:/opt/keycloak/data/import/realm.json
 
   apicurio-registry:
+    build:
+      context: ../../docker/target/docker
+      dockerfile: Dockerfile.jvm
     image: apicurio/apicurio-registry:latest-snapshot
     container_name: apicurio-registry-api-opa-wasm
     environment:

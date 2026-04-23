@@ -41,8 +41,15 @@ User → Keycloak (authn + JWT with roles)
 
 ## Quick start
 
+Build the Registry image from source (from the repository root):
+
 ```bash
-docker compose up -d
+# Build the app and prepare the docker context
+mvn install -pl distro/docker -am -DskipTests -Dcheckstyle.skip=true
+
+# Start all services (builds the Registry image automatically)
+cd distro/docker-compose/in-memory-with-opa-wasm
+docker compose up -d --build
 ```
 
 Wait for Keycloak to start (~15 seconds), then access:

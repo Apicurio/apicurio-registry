@@ -305,6 +305,17 @@ public class SqlGroupRepository {
                             query.bind(idx, filter.getStringValue());
                         });
                         break;
+                    case groupIdIn:
+                        var gGroupIds = filter.getSetValue();
+                        var gPlaceholders = String.join(", ", gGroupIds.stream().map(g -> "?").toList());
+                        op = filter.isNot() ? "NOT IN" : "IN";
+                        where.append("g.groupId " + op + " (" + gPlaceholders + ")");
+                        for (String gid : gGroupIds) {
+                            binders.add((query, idx) -> {
+                                query.bind(idx, gid);
+                            });
+                        }
+                        break;
                     case labels:
                         op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();

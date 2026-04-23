@@ -44,6 +44,10 @@ public class OpaWasmAccessController extends AbstractAccessController {
         return policyPool;
     }
 
+    String getPermissionsData() {
+        return permissionsData;
+    }
+
     @Override
     public boolean isAuthorized(InvocationContext context) {
         if (policyPool == null) {

@@ -178,6 +178,13 @@
       </exclusions>
     </dependency>
 
+    <!-- OPA WASM in-process policy evaluation -->
+    <dependency>
+      <groupId>com.styra.opa</groupId>
+      <artifactId>opa-java-wasm</artifactId>
+      <version>1.0.3</version>
+    </dependency>
+
     <!-- Third Party Libraries -->
     <dependency>
       <groupId>io.roastedroot</groupId>

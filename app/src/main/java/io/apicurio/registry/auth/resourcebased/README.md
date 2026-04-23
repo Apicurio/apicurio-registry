@@ -132,6 +132,22 @@ mvn test -pl app -Dtest=ResourceBasedAccessControllerTest -Dcheckstyle.skip=true
 - **`AuthorizeResult.partition()` is a perfect fit for search filtering.** Pass a list of search results and get back allowed/denied partitions in one call.
 - **The `implies()` mechanism works.** Granting `Admin` automatically grants `Write` and `Read`.
 
+## Known limitation: policy management
+
+The biggest operational caveat of this POC is policy lifecycle management. ACL rules live in a static file, so any change (adding a user, removing access, onboarding a new team) requires:
+
+1. Editing the rules file
+2. Updating the ConfigMap or volume mount (in Kubernetes)
+3. Restarting the pod — or waiting for mount propagation if hot-reload is implemented
+
+There is no runtime API, no UI, and no audit trail of policy changes. For environments where users and teams change frequently, this is a non-starter.
+
+### Options to address this (roughly ordered by effort)
+
+- **Hot-reload on file change.** Watch the rules file for modifications and re-parse automatically. Avoids pod restarts but still requires ConfigMap updates and provides no management interface.
+- **Management REST API.** Add endpoints for CRUD operations on ACL rules, stored in Registry's own database. Rules loaded from DB at startup and cached in-memory. Provides an audit trail and could be exposed in the UI. This is probably the right middle ground for a production feature.
+- **Registry as policy registry.** Store authorization policies as versioned artifacts in Registry itself (similar to how schemas are managed). Most powerful and most consistent with Registry's identity, but the largest scope — and raises a chicken-and-egg question (the policies that protect Registry are stored in Registry).
+
 ## What's next
 
 - Validate with a full `@QuarkusTest` using Keycloak for authentication + ACL rules for authorization

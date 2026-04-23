@@ -165,16 +165,17 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
      * @param originalError the recoverable schema-resolution failure that triggered fallback
      * @return the parsed message produced by the fallback
      */
-    @SuppressWarnings("unchecked")
     private U tryFallback(String topic, byte[] data, RuntimeException originalError) {
         if (!fallbackEnabled()) {
             throw originalError;
         }
-        log.warn("Schema resolution failed for topic '{}' ({}). "
-                + "Falling back to direct protobuf parsing with {}.",
-                topic, rootCauseMessage(originalError), specificReturnClass.getName());
+        if (log.isWarnEnabled()) {
+            log.warn("Schema resolution failed for topic '{}' ({}). "
+                    + "Falling back to direct protobuf parsing with {}.",
+                    topic, rootCauseMessage(originalError), specificReturnClass.getName());
+        }
         try {
-            return (U) parseFallback(data);
+            return parseFallback(data);
         } catch (RuntimeException fallbackEx) {
             fallbackEx.addSuppressed(originalError);
             throw fallbackEx;
@@ -412,9 +413,12 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
             // Skip the Apicurio wire-format prefix (magic byte + ID) if present.
             // The ID size is determined by the configured IdHandler (typically 4 bytes).
             if (data.length > 0 && data[0] == 0x00) {
-                bais.skip(1); // magic byte
                 int idSize = getSerdeConfigurer().getIdHandler().idSize();
-                bais.skip(idSize);
+                int prefix = 1 + idSize;
+                if (bais.skip(prefix) != prefix) {
+                    throw new IllegalStateException(
+                            "Wire-format prefix truncated: expected " + prefix + " bytes");
+                }
             }
 
             // Skip message indexes if the producer wrote them (Confluent interop)

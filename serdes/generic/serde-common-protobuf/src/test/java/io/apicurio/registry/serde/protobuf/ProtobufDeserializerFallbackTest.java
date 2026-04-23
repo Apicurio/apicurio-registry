@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * review concern about "forcing" the fallback with arbitrary exceptions.
  * </p>
  */
-public class ProtobufDeserializerFallbackTest {
+class ProtobufDeserializerFallbackTest {
 
     // =========================================================================
     // Config tests
@@ -53,7 +53,7 @@ public class ProtobufDeserializerFallbackTest {
      * preserving backward compatibility.
      */
     @Test
-    public void testFallbackDisabledByDefault() {
+    void testFallbackDisabledByDefault() {
         Map<String, Object> configs = new HashMap<>();
         configs.put("apicurio.registry.url", "http://localhost:8081/apis/registry/v3");
 
@@ -67,7 +67,7 @@ public class ProtobufDeserializerFallbackTest {
      * Verifies that fallbackOnSchemaError can be enabled via String config value.
      */
     @Test
-    public void testFallbackEnabledViaStringConfig() {
+    void testFallbackEnabledViaStringConfig() {
         Map<String, Object> configs = new HashMap<>();
         configs.put("apicurio.registry.url", "http://localhost:8081/apis/registry/v3");
         configs.put(ProtobufDeserializerConfig.FALLBACK_ON_SCHEMA_ERROR, "true");
@@ -82,7 +82,7 @@ public class ProtobufDeserializerFallbackTest {
      * Verifies that fallbackOnSchemaError accepts Boolean values directly.
      */
     @Test
-    public void testFallbackAcceptsBooleanValue() {
+    void testFallbackAcceptsBooleanValue() {
         Map<String, Object> configs = new HashMap<>();
         configs.put("apicurio.registry.url", "http://localhost:8081/apis/registry/v3");
         configs.put(ProtobufDeserializerConfig.FALLBACK_ON_SCHEMA_ERROR, Boolean.TRUE);
@@ -98,7 +98,7 @@ public class ProtobufDeserializerFallbackTest {
      * consistent with the existing {@code apicurio.protobuf.derive.class} convention.
      */
     @Test
-    public void testConfigPropertyNamespace() {
+    void testConfigPropertyNamespace() {
         assertTrue(ProtobufDeserializerConfig.FALLBACK_ON_SCHEMA_ERROR.startsWith("apicurio.protobuf."),
                 "Config property should be in the apicurio.protobuf namespace");
     }
@@ -113,7 +113,7 @@ public class ProtobufDeserializerFallbackTest {
      * when the registry returns an HTTP error.
      */
     @Test
-    public void testParseFallbackStripsWireFormatAndParsesPayload() throws Exception {
+    void testParseFallbackStripsWireFormatAndParsesPayload() throws Exception {
         DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
                 .setName("test.proto")
                 .setPackage("test.fallback")
@@ -141,7 +141,7 @@ public class ProtobufDeserializerFallbackTest {
      * registry returns a 404 (e.g. the producer's schema has not yet been indexed).
      */
     @Test
-    public void testParseFallbackWithEmptyRef() throws Exception {
+    void testParseFallbackWithEmptyRef() throws Exception {
         DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
                 .setName("empty-ref.proto")
                 .build();
@@ -164,7 +164,7 @@ public class ProtobufDeserializerFallbackTest {
      * {@link Descriptors.DescriptorValidationException}, which is in our recoverable set.
      */
     @Test
-    public void testFallbackTriggeredByDescriptorValidationException() throws Exception {
+    void testFallbackTriggeredByDescriptorValidationException() throws Exception {
         DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
                 .setName("missing-import.proto")
                 .build();
@@ -186,7 +186,7 @@ public class ProtobufDeserializerFallbackTest {
      * before the fallback path is reached.
      */
     @Test
-    public void testNullDataReturnsNull() {
+    void testNullDataReturnsNull() {
         ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer = createFallbackDeserializer(
                 DescriptorProtos.FileDescriptorProto.class, registryUnreachable());
 
@@ -204,7 +204,7 @@ public class ProtobufDeserializerFallbackTest {
      * propagates as the original exception without attempting direct parsing.
      */
     @Test
-    public void testFallbackDisabledPropagatesException() throws Exception {
+    void testFallbackDisabledPropagatesException() throws Exception {
         DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
                 .setName("test.proto")
                 .build();
@@ -238,7 +238,7 @@ public class ProtobufDeserializerFallbackTest {
      * fallback is enabled. Catching such errors would mask real bugs.
      */
     @Test
-    public void testFallbackDoesNotSwallowProgrammingErrors() throws Exception {
+    void testFallbackDoesNotSwallowProgrammingErrors() throws Exception {
         DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
                 .setName("test.proto")
                 .build();
@@ -264,7 +264,7 @@ public class ProtobufDeserializerFallbackTest {
      * fallback enabled.
      */
     @Test
-    public void testFallbackDoesNotSwallowGenericIllegalState() throws Exception {
+    void testFallbackDoesNotSwallowGenericIllegalState() throws Exception {
         DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
                 .setName("test.proto")
                 .build();
@@ -288,7 +288,7 @@ public class ProtobufDeserializerFallbackTest {
      * mistake) must also propagate rather than silently activating the fallback.
      */
     @Test
-    public void testFallbackDoesNotSwallowIllegalArgument() throws Exception {
+    void testFallbackDoesNotSwallowIllegalArgument() throws Exception {
         DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
                 .setName("test.proto")
                 .build();
@@ -335,11 +335,10 @@ public class ProtobufDeserializerFallbackTest {
                 new ConnectException("Connection refused: registry unreachable"));
     }
 
-    /** Simulates the registry returning HTTP 404 (schema not yet propagated). */
+    /** Simulates the registry returning HTTP 404 (schema not yet propagated).
+     *  The status code is package-private to set; the message is enough for our assertions. */
     private static RuntimeException schemaNotFound() {
-        ApiException apiEx = new ApiException("Schema content not found");
-        // Status code is package-private to set; the message is enough for our assertions.
-        return apiEx;
+        return new ApiException("Schema content not found");
     }
 
     /**
@@ -437,12 +436,14 @@ public class ProtobufDeserializerFallbackTest {
 
         @Override
         public void setClientFacade(io.apicurio.registry.resolver.client.RegistryClientFacade client) {
+            // No-op: tests wire the resolver directly and never install a client facade.
         }
 
         @Override
         public void setArtifactResolverStrategy(
                 io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy<
                         io.apicurio.registry.utils.protobuf.schema.ProtobufSchema, T> strategy) {
+            // No-op: resolver strategy is irrelevant on the failure path exercised by these tests.
         }
 
         @Override
@@ -467,10 +468,12 @@ public class ProtobufDeserializerFallbackTest {
 
         @Override
         public void reset() {
+            // No-op: the test resolver has no state to clear.
         }
 
         @Override
         public void close() {
+            // No-op: the test resolver holds no resources.
         }
     }
 }

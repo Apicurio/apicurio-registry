@@ -121,9 +121,37 @@ mvn test -pl app -Dtest=OpaWasmAccessControllerTest -Dcheckstyle.skip=true
 | **Thread safety** | Synchronous, single-threaded | Thread-safe pool (`OpaPolicyPool`) |
 | **Built-in batching** | `Authorizer.authorize(List<Action>)` | Evaluate per-item (in-process, negligible overhead) |
 
+## Known limitation: static JSON file doesn't scale
+
+The POC loads permissions from a static JSON file. This works for a handful of users but breaks down at scale — a file with hundreds or thousands of user-to-resource grants becomes impossible to manage by hand, and every change requires editing the file and redeploying.
+
+### Production path: database-backed grants with management API
+
+The natural evolution is to store grants in Registry's own database and expose a management API:
+
+1. **New `acl_grants` table** in Registry's SQL storage. Each row is a grant: `(principal, principal_type, operation, resource_type, resource_pattern_type, resource_pattern)`. Same structure as the JSON grants, but queryable and transactional.
+
+2. **Management REST API** at `/apis/registry/v3/admin/acl`. CRUD endpoints for grants:
+   - `GET /acl` — list all grants (filterable by principal, resource type)
+   - `POST /acl` — create a grant
+   - `DELETE /acl/{id}` — revoke a grant
+   - Protected by `AuthorizedLevel.Admin` — only admins can manage ACLs.
+
+3. **Startup and refresh.** On startup, load all grants from the database and serialize them as the OPA data context. Periodically refresh (or refresh on change via a simple version counter) so the in-memory policy data stays current without restarts.
+
+4. **UI integration.** The Console can expose a permissions management page backed by the same API. Admins add/remove grants through the UI instead of editing files.
+
+5. **Audit trail.** Every grant change is a database operation — standard audit logging applies. Who granted what, when.
+
+This approach is fully self-contained (no external infrastructure beyond what Registry already needs), scales to any number of users and grants, and provides a proper management interface. The Rego policy stays generic and unchanged — only the data fed into it changes.
+
+### Alternative: IdP groups instead of per-user grants
+
+For organizations that already manage team membership in their IdP (Keycloak, Azure AD, Okta), a simpler approach is to map IdP groups to resource permissions rather than managing per-user grants. The grants table would have entries like `(principal_type=group, principal=team-a-developers, operation=write, resource_pattern=team-a/*)`, and the Rego policy would check group membership from JWT claims. This keeps the grants list short (one entry per group, not per user) and avoids duplicating user management that already happens in the IdP.
+
 ## What's next
 
-- **Hot-reload of permissions data** — watch the JSON file for changes and update the policy data at runtime without restart
-- **Management REST API** — CRUD operations on grants stored in Registry's database, replacing the JSON file
+- **Database-backed grants with management API** — replace the static JSON file with a proper storage and REST interface
+- **Hot-reload of permissions data** — refresh the OPA data context when grants change without restart
+- **IdP group-based evaluation** — populate roles/groups from JWT claims instead of a static mapping
 - **Registry as policy registry** — store policies as versioned artifacts, serve via OPA Bundle API
-- **Role-based evaluation** — populate roles from JWT claims or IdP groups instead of a static mapping

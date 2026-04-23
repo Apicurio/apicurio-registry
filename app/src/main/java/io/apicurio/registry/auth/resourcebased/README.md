@@ -148,6 +148,32 @@ There is no runtime API, no UI, and no audit trail of policy changes. For enviro
 - **Management REST API.** Add endpoints for CRUD operations on ACL rules, stored in Registry's own database. Rules loaded from DB at startup and cached in-memory. Provides an audit trail and could be exposed in the UI. This is probably the right middle ground for a production feature.
 - **Registry as policy registry.** Store authorization policies as versioned artifacts in Registry itself (similar to how schemas are managed). Most powerful and most consistent with Registry's identity, but the largest scope — and raises a chicken-and-egg question (the policies that protect Registry are stored in Registry).
 
+## Alternative: OPA policies via WASM (opa-java-wasm)
+
+An alternative to the Kroxylicious Authorizer is evaluating [OPA](https://www.openpolicyagent.org/) policies in-process using [opa-java-wasm](https://github.com/StyraOSS/opa-java-wasm), which compiles Rego policies to WebAssembly and runs them in the JVM via Chicory (a pure-Java WASM runtime). Andrea has already built a prototype of this for Apicurio.
+
+### Why this may be a better fit
+
+- **No dependency concerns.** Dependencies are Chicory + Jackson — no Kafka, no transitive entanglement risk.
+- **Industry standard.** OPA/Rego is widely adopted. Many organizations already run OPA infrastructure, have Rego expertise, and use tooling like Styra DAS, bundle servers, `conftest`, and the Rego playground.
+- **More expressive.** Rego can model RBAC, ABAC, relationship-based, attribute-based, and time-based policies — not just ACL-style name matching.
+- **Better policy management story.** OPA has a mature distribution model with bundle servers and hot-reload built in, partially addressing the static-file limitation above.
+- **Data-driven approach.** Ship a generic Rego policy with Registry; admins only manage a JSON/YAML permissions file (who can access what). No Rego knowledge or WASM compilation needed for day-to-day policy changes.
+- **Internal knowledge.** Andrea has already built the opa-java-wasm integration for Apicurio.
+
+### What you lose vs Kroxylicious
+
+- No built-in `ResourceType` enum model, batched `authorize()`, or `AuthorizeResult.partition()` — you build the integration layer yourself (straightforward, but more custom code).
+- No typed framework — policy input/output is JSON, not a Java type system.
+
+### Long-term: Registry as a policy registry
+
+With the OPA approach, a natural evolution is to store OPA policies as versioned artifacts in Registry itself (a new artifact type for Rego source or compiled WASM bundles). Registry could expose an OPA Bundle API-compatible endpoint, and the in-process evaluator pulls policy updates automatically. Admin UX becomes: upload a new policy version through the Registry API or UI, same workflow as pushing a schema. This is significant scope, but aligns with Registry's identity as a versioned artifact store.
+
+### Conclusion
+
+This POC validated the authorization *model* (resource types, per-resource checks in the interceptor, search result filtering). The *engine* underneath could be Kroxylicious ACL, OPA WASM, or something else — the `ResourceBasedAccessController` integration point is the same regardless of which evaluator sits behind it.
+
 ## What's next
 
 - Validate with a full `@QuarkusTest` using Keycloak for authentication + ACL rules for authorization

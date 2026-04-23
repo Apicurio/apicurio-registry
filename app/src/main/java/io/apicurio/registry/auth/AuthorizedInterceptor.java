@@ -1,5 +1,7 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.auth.resourcebased.ResourceBasedAccessController;
+import io.apicurio.registry.auth.resourcebased.ResourceBasedAccessControllerConfig;
 import io.apicurio.registry.util.Priorities;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
@@ -44,6 +46,12 @@ public class AuthorizedInterceptor {
 
     @Inject
     OwnerBasedAccessController obac;
+
+    @Inject
+    ResourceBasedAccessController resourceAc;
+
+    @Inject
+    ResourceBasedAccessControllerConfig resourceAcConfig;
 
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
@@ -148,6 +156,13 @@ public class AuthorizedInterceptor {
                 throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
                         + " is not authorized to perform the requested operation.");
             }
+        }
+
+        // If resource-based authorization is enabled, apply per-resource ACL rules
+        if (resourceAcConfig.isEnabled() && !resourceAc.isAuthorized(context)) {
+            log.warn("Resource-based authorization denied access.");
+            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
+                    + " is not authorized to access the requested resource.");
         }
 
         return context.proceed();

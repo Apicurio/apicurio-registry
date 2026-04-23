@@ -78,6 +78,47 @@ otherwise deny;
 
 Resource names follow the pattern `{groupId}/{artifactId}` for artifacts and `{groupId}` for groups.
 
+## Authentication: where do users come from?
+
+Authentication and authorization are separate concerns in this design. Authentication is handled entirely by Registry's existing mechanisms — the resource-based authorization layer only consumes the authenticated principal name.
+
+### Supported authentication mechanisms
+
+All of Registry's existing authentication options work unchanged:
+
+- **OIDC/OAuth2** (Keycloak, Azure AD, Okta, Auth0, etc.) — `quarkus.oidc.tenant-enabled=true`
+- **HTTP Basic Auth** — `quarkus.http.auth.basic=true` with a properties file or basic-client-credentials exchanged against the OIDC server
+- **Proxy headers** — `apicurio.authn.proxy-header.enabled=true` (e.g., behind Envoy, Nginx, or any auth proxy that sets `X-Forwarded-User`)
+
+### How authentication feeds into authorization
+
+The Quarkus `SecurityIdentity` provides the authenticated principal name. The `ResourceBasedAccessController` uses it to build a Kroxylicious `Subject`:
+
+```java
+Subject subject = new Subject(new User(securityIdentity.getPrincipal().getName()));
+```
+
+The `User` principal in the ACL rules matches against this name. For example, a user authenticates via Keycloak and gets principal `alice`. The rule `allow User with name = "alice" to Read RegistryArtifact with name like "team-a/*"` then grants access. The two layers are fully independent — you can swap authentication providers without changing authorization rules.
+
+### Future: role-based principals
+
+The Kroxylicious `Subject` model supports multiple principals beyond `User`. A future enhancement could populate the `Subject` with additional principals extracted from JWT claims or IdP groups:
+
+```java
+Subject subject = new Subject(Set.of(
+    new User("alice"),
+    new RolePrincipal("team-a-developer")
+));
+```
+
+This would enable rules based on roles or groups rather than individual usernames:
+
+```
+allow RolePrincipal with name = "team-a-developer" to {Read, Write} RegistryArtifact with name like "team-a/*";
+```
+
+This is not implemented in the POC but the framework supports it natively.
+
 ## Running the tests
 
 ```bash

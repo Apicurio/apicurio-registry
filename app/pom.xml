@@ -16,6 +16,7 @@
     <projectRoot>${project.basedir}/..</projectRoot>
     <maven.compiler.release>21</maven.compiler.release>
     <groups/>
+    <argLine/>
   </properties>
 
   <dependencies>
@@ -499,6 +500,7 @@
           <groups>${groups}</groups>
           <forkCount>1</forkCount>
           <argLine>@{argLine} -Xmx4g</argLine>
+          <forkedProcessExitTimeoutInSeconds>1800</forkedProcessExitTimeoutInSeconds>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <org.jboss.logging.provider>jboss</org.jboss.logging.provider>

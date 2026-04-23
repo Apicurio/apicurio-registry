@@ -282,25 +282,10 @@ public class ProtobufSchemaParserTest {
      * </p>
      */
     @Test
-    public void testParseSchemaWithUnresolvableCustomImportFallsBackToDescriptor() throws Exception {
-        // A proto that imports a custom file that won't be in resolvedReferences
-        String schemaWithCustomImport = """
-                syntax = "proto3";
-                package test;
-                import "custom/missing_types.proto";
-                message Wrapper {
-                  string id = 1;
-                }
-                """;
-        byte[] textSchema = schemaWithCustomImport.getBytes();
-
-        // Text parsing will fail because wire-schema can't find "custom/missing_types.proto".
-        // The parser should catch the SchemaException and fall back to parseDescriptor().
-        // Since the text isn't valid binary either, parseDescriptor will also fail -
-        // but the important thing is that SchemaException doesn't propagate as-is.
-
-        // To test the successful fallback path, provide the schema as binary descriptor
-        // (which parseDescriptor can handle) that also declares the missing import.
+    void testParseSchemaWithUnresolvableCustomImportFallsBackToDescriptor() {
+        // Provide the schema as a binary descriptor (which parseDescriptor can handle) that
+        // also declares an import not present in resolvedReferences. The successful fallback
+        // path requires the dependency to be declared but not actually used by message fields.
         DescriptorProtos.FileDescriptorProto fdp = DescriptorProtos.FileDescriptorProto.newBuilder()
                 .setName("wrapper.proto")
                 .setPackage("test")
@@ -339,7 +324,7 @@ public class ProtobufSchemaParserTest {
      * </p>
      */
     @Test
-    public void testParseSchemaWithUnresolvableImportTextOnlyThrowsCleanError() {
+    void testParseSchemaWithUnresolvableImportTextOnlyThrowsCleanError() {
         // Text proto that USES a type from an unresolvable import - this is what actually
         // triggers wire-schema's SchemaException (just declaring an unused import does not).
         // The bytes are also NOT valid binary, so parseDescriptor also fails.

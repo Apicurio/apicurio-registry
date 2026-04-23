@@ -231,10 +231,10 @@ final class ProtobufFqnConflictDetector {
             recordMessage(m, pkg, "", sourceName, known, level);
         }
         for (EnumDescriptorProto e : fdp.getEnumTypeList()) {
-            record(toFqn(pkg, e.getName()), e, sourceName, known, level);
+            recordDefinition(toFqn(pkg, e.getName()), e, sourceName, known, level);
         }
         for (ServiceDescriptorProto s : fdp.getServiceList()) {
-            record(toFqn(pkg, s.getName()), s, sourceName, known, level);
+            recordDefinition(toFqn(pkg, s.getName()), s, sourceName, known, level);
         }
     }
 
@@ -303,12 +303,12 @@ final class ProtobufFqnConflictDetector {
                                       String sourceName, Map<String, Definition> known,
                                       ValidityLevel level) throws RuleViolationException {
         String scopedName = scope.isEmpty() ? message.getName() : scope + "." + message.getName();
-        record(toFqn(packageName, scopedName), shallow(message), sourceName, known, level);
+        recordDefinition(toFqn(packageName, scopedName), shallow(message), sourceName, known, level);
         for (DescriptorProto nested : message.getNestedTypeList()) {
             recordMessage(nested, packageName, scopedName, sourceName, known, level);
         }
         for (EnumDescriptorProto nestedEnum : message.getEnumTypeList()) {
-            record(toFqn(packageName, scopedName + "." + nestedEnum.getName()), nestedEnum,
+            recordDefinition(toFqn(packageName, scopedName + "." + nestedEnum.getName()), nestedEnum,
                     sourceName, known, level);
         }
     }
@@ -339,8 +339,8 @@ final class ProtobufFqnConflictDetector {
      * @throws RuleViolationException if {@code fqn} was already defined in a different
      *                                source with a different descriptor
      */
-    private static void record(String fqn, Message descriptor, String sourceName,
-                               Map<String, Definition> known, ValidityLevel level)
+    private static void recordDefinition(String fqn, Message descriptor, String sourceName,
+                                         Map<String, Definition> known, ValidityLevel level)
             throws RuleViolationException {
         Definition existing = known.get(fqn);
         if (existing == null) {

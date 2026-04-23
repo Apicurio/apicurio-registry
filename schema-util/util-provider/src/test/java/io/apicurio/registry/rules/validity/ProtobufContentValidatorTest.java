@@ -132,27 +132,34 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
                 ContentTypes.APPLICATION_PROTOBUF);
 
         ProtobufContentValidator validator = new ProtobufContentValidator();
+        Map<String, TypedContent> noReferences = Collections.emptyMap();
         Assertions.assertThrows(RuleViolationException.class,
-                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap()));
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, content, noReferences));
     }
 
     @Test
     public void testRejectsConflictingFqnAcrossReferences() {
         // GHSA-xq3m-2v4x-88gg threat model: a main artifact imports two references that
         // both define the same fully qualified name with different fields. Each reference
-        // is individually valid, so protobuf-java's own symbol table accepts the build;
-        // the registry must still reject the upload.
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "import \"refB.proto\";\n"
-                + "message Client { string id = 1; }\n";
-        String refASchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Token { string id = 1; }\n";
-        String refBSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Token { bool admin = 1; }\n";
+        // is individually valid (protobuf-java accepts the build), so the registry has to
+        // be the layer that rejects the upload.
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                message Token { string id = 1; }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                message Token { bool admin = 1; }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -176,12 +183,18 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         // Re-declaring the same FQN across files with byte-identical descriptors is a
         // legitimate pattern (e.g. a schema and its own mirror) and must pass.
         String sharedMessage = "message Token { string id = 1; }";
-        String refASchema = "syntax = \"proto3\";\npackage poison;\n" + sharedMessage + "\n";
-        String refBSchema = "syntax = \"proto3\";\npackage poison;\n" + sharedMessage + "\n";
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "message Client { string id = 1; }\n";
+        String sharedPreamble = """
+                syntax = "proto3";
+                package poison;
+                """;
+        String refASchema = sharedPreamble + sharedMessage + "\n";
+        String refBSchema = sharedPreamble + sharedMessage + "\n";
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                message Client { string id = 1; }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -202,28 +215,34 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         // documentation (line comments, block comments, inline comments, different
         // wording) must pass validation. This is a common real-world situation because
         // schema registries and protobuf tooling often strip or regenerate comments.
-        String refASchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "// Token issued by service A\n"
-                + "// multi-line\n"
-                + "// header\n"
-                + "message Token {\n"
-                + "  string id = 1; // primary identifier\n"
-                + "}\n";
-        String refBSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "/*\n"
-                + " * Token issued by service B.\n"
-                + " * This block comment is intentionally different from ref A.\n"
-                + " */\n"
-                + "message Token {\n"
-                + "  /* field doc */ string id = 1;\n"
-                + "}\n";
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "import \"refB.proto\";\n"
-                + "message Client { string id = 1; }\n";
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                // Token issued by service A
+                // multi-line
+                // header
+                message Token {
+                  string id = 1; // primary identifier
+                }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                /*
+                 * Token issued by service B.
+                 * This block comment is intentionally different from ref A.
+                 */
+                message Token {
+                  /* field doc */ string id = 1;
+                }
+                """;
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -243,9 +262,14 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         // uses compact single-line form, the other uses expanded multi-line form with
         // extra blank lines and mixed indentation. Both describe the same wire shape and
         // must pass validation.
-        String refACompact = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Token { string id = 1; int32 version = 2; }\n";
+        String refACompact = """
+                syntax = "proto3";
+                package poison;
+                message Token { string id = 1; int32 version = 2; }
+                """;
+        // Intentional irregular whitespace: tabs, multi-space gaps, blank lines. Kept as
+        // explicit string concatenation so each line's whitespace is unambiguous and not
+        // subject to text-block incidental-whitespace stripping rules.
         String refBExpanded = "syntax    =    \"proto3\";\n"
                 + "\n"
                 + "package   poison;\n"
@@ -256,12 +280,14 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
                 + "\n"
                 + "      int32     version = 2;\n"
                 + "\n"
-                + "}\n";
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "import \"refB.proto\";\n"
-                + "message Client { string id = 1; }\n";
+                + "}\n"; // NOSONAR java:S6126 - whitespace is the assertion under test
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -280,21 +306,25 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         // Combined regression: a registry round-trip that strips comments and one that
         // reformats whitespace must both compare equal to the original, because the
         // DescriptorProto form carries neither.
-        String original = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "// Comprehensive token definition.\n"
-                + "message Token {\n"
-                + "  string id = 1;                 // primary key\n"
-                + "  int32 version = 2;             // schema version\n"
-                + "  repeated string scopes = 3;    // granted scopes\n"
-                + "}\n";
-        String commentStrippedReformatted = "syntax=\"proto3\";package poison;"
-                + "message Token{string id=1;int32 version=2;repeated string scopes=3;}\n";
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "import \"refB.proto\";\n"
-                + "message Client { string id = 1; }\n";
+        String original = """
+                syntax = "proto3";
+                package poison;
+                // Comprehensive token definition.
+                message Token {
+                  string id = 1;                 // primary key
+                  int32 version = 2;             // schema version
+                  repeated string scopes = 3;    // granted scopes
+                }
+                """;
+        String commentStrippedReformatted =
+                "syntax=\"proto3\";package poison;message Token{string id=1;int32 version=2;repeated string scopes=3;}\n";
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -312,17 +342,23 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
     public void testRejectsConflictingEnumAcrossReferences() {
         // Enum redefinitions must be caught just like message redefinitions, since the
         // recursion in ProtobufFqnConflictDetector walks TypeElement uniformly.
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "import \"refB.proto\";\n"
-                + "message Client { string id = 1; }\n";
-        String refASchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "enum Role { UNKNOWN = 0; ADMIN = 1; }\n";
-        String refBSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "enum Role { UNKNOWN = 0; GUEST = 1; }\n";
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                enum Role { UNKNOWN = 0; ADMIN = 1; }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                enum Role { UNKNOWN = 0; GUEST = 1; }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -343,17 +379,23 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
     public void testRejectsConflictingNestedTypeAcrossReferences() {
         // Nested types must also be covered. Outer.Inner is the same FQN across both refs
         // but with different fields, which must be rejected.
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "import \"refB.proto\";\n"
-                + "message Client { string id = 1; }\n";
-        String refASchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Outer { message Inner { string a = 1; } }\n";
-        String refBSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Outer { message Inner { bool admin = 1; } }\n";
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                message Outer { message Inner { string a = 1; } }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                message Outer { message Inner { bool admin = 1; } }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -373,21 +415,27 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
     @Test
     public void testRejectsConflictingServiceAcrossReferences() {
         // Services are also indexed by FQN and must be compared across refs.
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "import \"refB.proto\";\n"
-                + "message Client { string id = 1; }\n";
-        String refASchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Req { string id = 1; }\n"
-                + "message Resp { string id = 1; }\n"
-                + "service Api { rpc One (Req) returns (Resp); }\n";
-        String refBSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Req { string id = 1; }\n"
-                + "message Resp { string id = 1; }\n"
-                + "service Api { rpc Two (Req) returns (Resp); }\n";
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                message Req { string id = 1; }
+                message Resp { string id = 1; }
+                service Api { rpc One (Req) returns (Resp); }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                message Req { string id = 1; }
+                message Resp { string id = 1; }
+                service Api { rpc Two (Req) returns (Resp); }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -418,10 +466,12 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
                 .build();
         String base64Ref = Base64.getEncoder().encodeToString(fd.toByteArray());
 
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "message Client { string id = 1; }\n";
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                message Client { string id = 1; }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -455,8 +505,9 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
                 ContentTypes.APPLICATION_PROTOBUF);
 
         ProtobufContentValidator validator = new ProtobufContentValidator();
+        Map<String, TypedContent> noReferences = Collections.emptyMap();
         Assertions.assertThrows(RuleViolationException.class,
-                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap()));
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, content, noReferences));
     }
 
     @Test
@@ -483,24 +534,31 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
                 ContentTypes.APPLICATION_PROTOBUF);
 
         ProtobufContentValidator validator = new ProtobufContentValidator();
+        Map<String, TypedContent> noReferences = Collections.emptyMap();
         Assertions.assertThrows(RuleViolationException.class,
-                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap()));
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, content, noReferences));
     }
 
     @Test
     public void testRejectsConflictingFqnAcrossReferencesAtFullLevel() {
         // The detector must engage for ValidityLevel.FULL as well.
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "import \"refB.proto\";\n"
-                + "message Client { string id = 1; }\n";
-        String refASchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Token { string id = 1; }\n";
-        String refBSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Token { bool admin = 1; }\n";
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                message Token { string id = 1; }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                message Token { bool admin = 1; }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -546,14 +604,18 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
                 .build();
         String refBBinary = Base64.getEncoder().encodeToString(fd.toByteArray());
 
-        String refAText = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "message Token { string id = 1; }\n";
-        String mainSchema = "syntax = \"proto3\";\n"
-                + "package poison;\n"
-                + "import \"refA.proto\";\n"
-                + "import \"refB.proto\";\n"
-                + "message Client { string id = 1; }\n";
+        String refAText = """
+                syntax = "proto3";
+                package poison;
+                message Token { string id = 1; }
+                """;
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -576,15 +638,17 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         // to add custom field annotations. Validation must not reject schemas that use this
         // pattern: the binary check allows unknown deps, and the cross-file walk indexes
         // messages/enums/services but not extend declarations.
-        String schema = "syntax = \"proto2\";\n"
-                + "package sample;\n"
-                + "import \"google/protobuf/descriptor.proto\";\n"
-                + "extend google.protobuf.FieldOptions {\n"
-                + "  optional string validate_rule = 50000;\n"
-                + "}\n"
-                + "message User {\n"
-                + "  optional string email = 1 [(validate_rule) = \"email\"];\n"
-                + "}\n";
+        String schema = """
+                syntax = "proto2";
+                package sample;
+                import "google/protobuf/descriptor.proto";
+                extend google.protobuf.FieldOptions {
+                  optional string validate_rule = 50000;
+                }
+                message User {
+                  optional string email = 1 [(validate_rule) = "email"];
+                }
+                """;
 
         TypedContent content = TypedContent.create(ContentHandle.create(schema),
                 ContentTypes.APPLICATION_PROTOBUF);
@@ -603,18 +667,22 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         String descriptorProtoBase64 = Base64.getEncoder().encodeToString(
                 DescriptorProtos.FileDescriptorProto.getDescriptor().getFile().toProto().toByteArray());
 
-        String validateProto = "syntax = \"proto2\";\n"
-                + "package sample;\n"
-                + "import \"google/protobuf/descriptor.proto\";\n"
-                + "extend google.protobuf.FieldOptions {\n"
-                + "  optional string validate_rule = 50000;\n"
-                + "}\n";
-        String mainSchema = "syntax = \"proto2\";\n"
-                + "package sample;\n"
-                + "import \"validate.proto\";\n"
-                + "message User {\n"
-                + "  optional string email = 1 [(validate_rule) = \"email\"];\n"
-                + "}\n";
+        String validateProto = """
+                syntax = "proto2";
+                package sample;
+                import "google/protobuf/descriptor.proto";
+                extend google.protobuf.FieldOptions {
+                  optional string validate_rule = 50000;
+                }
+                """;
+        String mainSchema = """
+                syntax = "proto2";
+                package sample;
+                import "validate.proto";
+                message User {
+                  optional string email = 1 [(validate_rule) = "email"];
+                }
+                """;
 
         TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
                 ContentTypes.APPLICATION_PROTOBUF);

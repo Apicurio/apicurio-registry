@@ -140,10 +140,11 @@ Different registry instances point to different branches of the same repository:
 
 Schema promotion is done through Git merges.
 
-### Push Model for Restricted Networks *(planned)*
+### Push Model for Restricted Networks
 
 In environments where outbound network access is restricted, an external process pushes changes to a
 Git repository hosted inside the cluster. The sidecar exposes an SSH endpoint for receiving pushes.
+See [`distro/gitops/README.md`](../../../../distro/gitops/README.md) for push mode configuration.
 
 ### PR Verification with CI/CD *(planned)*
 
@@ -257,7 +258,6 @@ for configuration, security levels, and deployment details.
 
 The following features are planned but not yet implemented:
 
-- **Push model** — SSH server in the sync container accepting `git push` (experimental, included in the image but not production-ready)
 - **Dry-run validation** — validate schema changes from a branch without affecting live data
 - **CLI validator** — offline validation of `*.registry.yaml` files without a running registry
 - **Rule enforcement during loading** — validate compatibility and other rules at load time

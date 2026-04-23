@@ -150,15 +150,17 @@ There is no runtime API, no UI, and no audit trail of policy changes. For enviro
 
 ## Alternative: OPA policies via WASM (opa-java-wasm)
 
-An alternative to the Kroxylicious Authorizer is evaluating [OPA](https://www.openpolicyagent.org/) policies in-process using [opa-java-wasm](https://github.com/StyraOSS/opa-java-wasm), which compiles Rego policies to WebAssembly and runs them in the JVM via Chicory (a pure-Java WASM runtime). Andrea has already built a prototype of this for Apicurio.
+A separate POC branch implements the same authorization model using [opa-java-wasm](https://github.com/StyraOSS/opa-java-wasm) instead of the Kroxylicious Authorizer: **[PR #7829](https://github.com/Apicurio/apicurio-registry/pull/7829)** (`issue-7724-opa-wasm` branch).
+
+This evaluates OPA policies compiled to WebAssembly in-process via Chicory (a pure-Java WASM runtime). Andrea has already built a prototype of this for Apicurio.
 
 ### Why this may be a better fit
 
 - **No dependency concerns.** Dependencies are Chicory + Jackson — no Kafka, no transitive entanglement risk.
 - **Industry standard.** OPA/Rego is widely adopted. Many organizations already run OPA infrastructure, have Rego expertise, and use tooling like Styra DAS, bundle servers, `conftest`, and the Rego playground.
 - **More expressive.** Rego can model RBAC, ABAC, relationship-based, attribute-based, and time-based policies — not just ACL-style name matching.
-- **Better policy management story.** OPA has a mature distribution model with bundle servers and hot-reload built in, partially addressing the static-file limitation above.
 - **Data-driven approach.** Ship a generic Rego policy with Registry; admins only manage a JSON/YAML permissions file (who can access what). No Rego knowledge or WASM compilation needed for day-to-day policy changes.
+- **Better policy management story.** OPA has a mature distribution model with bundle servers and hot-reload built in, partially addressing the static-file limitation above.
 - **Internal knowledge.** Andrea has already built the opa-java-wasm integration for Apicurio.
 
 ### What you lose vs Kroxylicious
@@ -170,9 +172,33 @@ An alternative to the Kroxylicious Authorizer is evaluating [OPA](https://www.op
 
 With the OPA approach, a natural evolution is to store OPA policies as versioned artifacts in Registry itself (a new artifact type for Rego source or compiled WASM bundles). Registry could expose an OPA Bundle API-compatible endpoint, and the in-process evaluator pulls policy updates automatically. Admin UX becomes: upload a new policy version through the Registry API or UI, same workflow as pushing a schema. This is significant scope, but aligns with Registry's identity as a versioned artifact store.
 
-### Conclusion
+## Alternative: Keycloak Authorization Services
 
-This POC validated the authorization *model* (resource types, per-resource checks in the interceptor, search result filtering). The *engine* underneath could be Kroxylicious ACL, OPA WASM, or something else — the `ResourceBasedAccessController` integration point is the same regardless of which evaluator sits behind it.
+Keycloak's built-in Authorization Services (UMA 2.0) is a natural candidate since many Registry deployments already use Keycloak for authentication.
+
+### What it offers
+
+- **Rich permission model.** Resources, scopes, policies (role-based, user-based, time-based, JavaScript-based, aggregated), and permission evaluation — all managed via the Keycloak Admin Console UI.
+- **Good admin UX.** Permissions are managed through Keycloak's UI, not config files. Non-developers can grant and revoke access without touching code or deployment artifacts.
+- **Already in the ecosystem.** Many Registry deployments already use Keycloak. Adding authorization would be a natural extension with no new infrastructure to deploy.
+- **Token-based evaluation.** The RPT (Requesting Party Token) flow lets the client request permissions for specific resources, and Keycloak returns what's allowed in the token itself — reducing per-request authorization calls.
+- **Standard protocol.** UMA 2.0 is an established standard, not a custom framework.
+
+### Why it's problematic for Registry
+
+- **Resource lifecycle synchronization.** Every artifact in Registry needs a corresponding "resource" registered in Keycloak. Create artifact → create Keycloak resource. Delete artifact → delete Keycloak resource. This synchronization is an ongoing operational burden — if it drifts, authorization breaks silently. With thousands of artifacts changing frequently, keeping the two systems in sync is fragile.
+- **Scale concern.** Keycloak's resource server has to manage a resource per artifact. The Protection API isn't designed for bulk "list all resources user X can access" queries, which is what search/list filtering requires. Filtering a search result page would mean querying Keycloak for permissions on every result — the API wasn't designed for this pattern.
+- **Tight coupling to Keycloak.** Locks out teams using other IdPs (Azure AD, Okta, Auth0). The whole point of the authorization design is to be pluggable. Building on Keycloak Authorization Services means users who authenticate with other providers can't use per-resource authorization at all.
+- **Network latency.** Every authorization check requires a call to Keycloak (unless RPTs are cached). For search result filtering, that's N calls per page. Even with caching, the invalidation problem is hard — how does Registry know when a permission changed in Keycloak?
+- **Complexity.** UMA 2.0 is a complex protocol. Debugging permission denials through Keycloak's evaluation chain (policies → permissions → scopes → resources) is non-trivial, especially for administrators unfamiliar with UMA concepts.
+
+### Verdict
+
+Keycloak Authorization Services could work as one **implementation** behind a pluggable authorization SPI — for teams that are already deep in the Keycloak ecosystem and accept the resource synchronization overhead. But it should not be the only option, and the sync problem makes it unsuitable as the default or primary approach.
+
+## Conclusion
+
+This POC validated the authorization *model* (resource types, per-resource checks in the interceptor, search result filtering). The *engine* underneath could be Kroxylicious ACL, OPA WASM, Keycloak, or something else — the `ResourceBasedAccessController` integration point is the same regardless of which evaluator sits behind it.
 
 ## What's next
 

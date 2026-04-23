@@ -3,15 +3,13 @@ package io.apicurio.registry.auth;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
-import io.apicurio.registry.utils.tests.ProxyAndOidcAuthTestProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -20,10 +18,13 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  * Tests for dual proxy-header + OIDC authentication mode. When both mechanisms are enabled,
  * proxy headers are tried first. If absent, the request falls back to OIDC authentication.
+ *
+ * <p>This test shares {@link AuthTestProfile} with other auth tests to avoid an extra Quarkus
+ * augmentation. The profile enables both proxy-header and OIDC; existing OIDC-only tests are
+ * unaffected because the proxy-header mechanism returns null when no proxy headers are present.</p>
  */
 @QuarkusTest
-@TestProfile(ProxyAndOidcAuthTestProfile.class)
-@Tag(ApicurioTestTags.SLOW)
+@TestProfile(AuthTestProfile.class)
 public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";

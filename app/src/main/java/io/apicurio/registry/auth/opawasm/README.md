@@ -115,7 +115,34 @@ The policy supports:
 - **Resource types** — `artifact` (addressed as `{groupId}/{artifactId}`) and `group`
 - **Search result filtering** — evaluate each result against the policy to filter unauthorized items
 
-## Compiling the policy
+## WASM compilation: when and why
+
+A common concern is whether Registry needs a periodic process to compile Rego policies to WASM at runtime. **It does not.** OPA separates policy logic from data, and only the logic needs to be compiled. The data changes freely at runtime without any compilation step.
+
+**What's static (compiled once, shipped with Registry):**
+
+The Rego policy is the generic evaluation logic — "given a user, an operation, and a resource, check if any grant matches." It's the same for every Registry deployment. It gets compiled to WASM at Registry build/release time (in CI/CD), and the `.wasm` file is bundled in the container image, just like any other compiled artifact. It only changes when we release a new version of Registry that modifies the authorization model itself (e.g., adding a new resource type or a new matching strategy).
+
+**What's dynamic (changes at runtime, no compilation):**
+
+The grants data — who can do what on which resources. This is different for every deployment and changes frequently (new users, new teams, permission changes). It's passed to the compiled WASM policy as the `data` context via `policy.data(jsonString)`. Updating it is just passing a new JSON string — no recompilation, no restart, no downtime.
+
+**The flow:**
+
+```
+At Registry build time (CI/CD, once per release):
+  registry-authz.rego → opa build -t wasm → registry-authz.wasm → bundled in container image
+
+At runtime (on every request):
+  Grants in DB → serialize to JSON → policy.data(json) → evaluate → allow/deny
+
+When grants change (admin adds/removes a permission):
+  Updated grants in DB → re-serialize to JSON → policy.data(newJson) → done, no restart
+```
+
+The WASM binary is like a compiled Java class — you don't recompile it every time the database changes. The logic is compiled once, and it evaluates whatever data you give it.
+
+### Compiling the policy (build time only)
 
 ```bash
 opa build -t wasm -e 'registry/authz/allow' registry-authz.rego -o registry-authz-bundle.tar.gz

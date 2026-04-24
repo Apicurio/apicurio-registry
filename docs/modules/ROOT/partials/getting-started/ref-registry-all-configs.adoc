@@ -217,7 +217,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.authn.mechanism.priority`
 |`string`
 |`basic,proxy-header,oidc`
-|`3.0.0`
+|`3.3.0`
 |Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc.
 |`apicurio.authn.proxy-header.email`
 |`string`

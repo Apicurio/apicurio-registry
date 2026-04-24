@@ -45,22 +45,22 @@ public class System {
 
     @Inject
     @ConfigProperty(name = "apicurio.app.name")
-    @Info(category = CATEGORY_SYSTEM, registryAvailableSince = "3.0.4")
+    @Info(category = CATEGORY_SYSTEM, availableSince = "3.0.4")
     String name;
 
     @Inject
     @ConfigProperty(name = "apicurio.app.description")
-    @Info(category = CATEGORY_SYSTEM, registryAvailableSince = "3.0.4")
+    @Info(category = CATEGORY_SYSTEM, availableSince = "3.0.4")
     String description;
 
     @Inject
     @ConfigProperty(name = "apicurio.app.version")
-    @Info(category = CATEGORY_SYSTEM, registryAvailableSince = "3.0.4")
+    @Info(category = CATEGORY_SYSTEM, availableSince = "3.0.4")
     String version;
 
     @Inject
     @ConfigProperty(name = "apicurio.app.date")
-    @Info(category = CATEGORY_SYSTEM, registryAvailableSince = "3.0.4")
+    @Info(category = CATEGORY_SYSTEM, availableSince = "3.0.4")
     String date;
 
     @Inject

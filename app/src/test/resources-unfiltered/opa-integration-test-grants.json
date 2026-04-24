@@ -1,0 +1,91 @@
+{
+  "config": {
+    "admin_roles": ["sr-admin"]
+  },
+  "grants": [
+    {
+      "principal": "developer-client",
+      "operation": "write",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "team-a/"
+    },
+    {
+      "principal": "developer-client",
+      "operation": "read",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "shared/"
+    },
+    {
+      "principal": "developer-client",
+      "operation": "write",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-a"
+    },
+    {
+      "principal": "developer-client",
+      "operation": "read",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-a"
+    },
+    {
+      "principal": "developer-client",
+      "operation": "read",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "shared"
+    },
+    {
+      "principal": "developer-2-client",
+      "operation": "write",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "team-b/"
+    },
+    {
+      "principal": "developer-2-client",
+      "operation": "read",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "shared/"
+    },
+    {
+      "principal": "developer-2-client",
+      "operation": "write",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-b"
+    },
+    {
+      "principal": "developer-2-client",
+      "operation": "read",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-b"
+    },
+    {
+      "principal": "developer-2-client",
+      "operation": "read",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "shared"
+    },
+    {
+      "principal": "readonly-client",
+      "operation": "read",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "shared/"
+    },
+    {
+      "principal": "readonly-client",
+      "operation": "read",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "shared"
+    }
+  ]
+}

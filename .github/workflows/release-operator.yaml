@@ -39,6 +39,17 @@ jobs:
           git config --global user.email apicurio.ci@gmail.com
           git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
           cd registry && git checkout "$RELEASE_VERSION"
+          # Resolve BRANCH if it's a commit SHA (happens when releasing from non-default branches)
+          if [[ "$BRANCH" =~ ^[0-9a-f]{40}$ ]]; then
+            RESOLVED=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ' | head -1)
+            if [ -n "$RESOLVED" ]; then
+              echo "Resolved branch SHA $BRANCH to $RESOLVED"
+              echo "BRANCH=$RESOLVED" >> $GITHUB_ENV
+            else
+              echo "ERROR: Could not resolve commit $BRANCH to a branch name"
+              exit 1
+            fi
+          fi
 
       - name: Verify Project Version
         working-directory: registry
@@ -238,6 +249,21 @@ jobs:
           git fetch origin
           git rebase "origin/$BRANCH"
           git push origin "$BRANCH"
+
+      - name: Copy install file to main
+        if: env.BRANCH != 'main'
+        working-directory: registry
+        run: |
+          INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
+          git fetch origin
+          git show "origin/$BRANCH:$INSTALL_FILE" > /tmp/install-file.yaml
+          git checkout main
+          git pull origin main
+          cp /tmp/install-file.yaml "$INSTALL_FILE"
+          git add "$INSTALL_FILE"
+          git commit -m "ci(operator): add $RELEASE_VERSION install file from $BRANCH"
+          git rebase origin/main
+          git push origin main
 
       - name: Slack Notification (Always)
         if: always()

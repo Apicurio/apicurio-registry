@@ -1,0 +1,10 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: testgroup
+artifactId: with-bad-ref
+artifactType: JSON
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/schema.json
+    contentMetadata: ./content/schema.metadata.registry.yaml

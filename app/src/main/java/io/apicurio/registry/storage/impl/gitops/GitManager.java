@@ -10,7 +10,6 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,11 +35,6 @@ public class GitManager extends AbstractPollingDataSourceManager<GitOpsMarker> {
     GitOpsConfig config;
 
     private final Map<String, GitRepo> sources = new LinkedHashMap<>();
-
-    @Override
-    protected Instant getCommitTime(GitOpsMarker marker) {
-        return marker.getLatestCommitTime();
-    }
 
     @Override
     public void start() throws IOException {

@@ -116,6 +116,11 @@ jobs:
         run: |
           echo "OPERAND_IMAGE_TAG=${{ github.event.inputs.release-version }}" >> $GITHUB_ENV
 
+      - name: (Operator) Generate CRD
+        working-directory: registry
+        run: |
+          mvn -pl operator/controller -am -Pfull install -DskipTests --no-transfer-progress
+
       - name: (Operator) Update install file
         working-directory: registry/operator
         run: |
@@ -267,7 +272,7 @@ jobs:
   # Only runs after all builds succeed — if any build fails, no release is created.
   release-publish:
     name: Publish Release
-    needs: [release-build-app, release-build-ui, release-build-cli]
+    needs: [release-prepare, release-build-app, release-build-ui, release-build-cli]
     if: github.repository_owner == 'Apicurio'
     runs-on: ubuntu-22.04
     steps:

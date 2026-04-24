@@ -9,7 +9,9 @@ import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.GroupSearchResults;
+import io.apicurio.registry.rest.client.models.SearchedArtifact;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.types.ArtifactType;
@@ -26,9 +28,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,9 +47,9 @@ public class OpaWasmAuthIntegrationTest extends AbstractResourceTestBase {
 
     private RegistryClient adminClient;
     private RegistryClient devClient;
-    private RegistryClient dev2Client;
     private RegistryClient readonlyClient;
-    private boolean groupsCreated = false;
+    private RegistryClient noRoleClient;
+    private boolean initialized = false;
 
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
@@ -58,32 +62,28 @@ public class OpaWasmAuthIntegrationTest extends AbstractResourceTestBase {
         super.beforeAll();
     }
 
-    private void ensureClients() {
-        if (adminClient == null) {
+    @BeforeEach
+    protected void beforeEach() throws Exception {
+        super.beforeEach();
+        if (!initialized) {
             adminClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
                     .oauth2(tokenUrl, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
             devClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
                     .oauth2(tokenUrl, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
-            dev2Client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
-                    .oauth2(tokenUrl, KeycloakTestContainerManager.DEVELOPER_2_CLIENT_ID, "test2"));
             readonlyClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
                     .oauth2(tokenUrl, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
-        }
-        if (!groupsCreated) {
-            createGroupIfNotExists("team-a");
-            createGroupIfNotExists("team-b");
-            createGroupIfNotExists("shared");
-            groupsCreated = true;
+            noRoleClient = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                    .oauth2(tokenUrl, KeycloakTestContainerManager.NO_ROLE_CLIENT_ID, "test1"));
+
+            ensureGroup("team-a");
+            ensureGroup("team-b");
+            ensureGroup("shared");
+            ensureGroup("public");
+            initialized = true;
         }
     }
 
-    @BeforeEach
-    protected void beforeEach() throws Exception {
-        super.beforeEach();
-        ensureClients();
-    }
-
-    private void createGroupIfNotExists(String groupId) {
+    private void ensureGroup(String groupId) {
         try {
             adminClient.groups().byGroupId(groupId).get();
         } catch (Exception e) {
@@ -91,6 +91,12 @@ public class OpaWasmAuthIntegrationTest extends AbstractResourceTestBase {
             cg.setGroupId(groupId);
             adminClient.groups().post(cg);
         }
+    }
+
+    private String createArtifact(RegistryClient client, String groupId) {
+        String id = UUID.randomUUID().toString();
+        client.groups().byGroupId(groupId).artifacts().post(createArtifactRequest(id));
+        return id;
     }
 
     private CreateArtifact createArtifactRequest(String artifactId) {
@@ -106,275 +112,437 @@ public class OpaWasmAuthIntegrationTest extends AbstractResourceTestBase {
         return ca;
     }
 
-    // ==================== ADMIN TESTS ====================
+    // ==================== ADMIN BYPASS ====================
 
     @Test
-    void adminCanCreateArtifactInAnyGroup() {
-        String id = UUID.randomUUID().toString();
-        var result = adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
-        assertNotNull(result.getVersion());
-
-        id = UUID.randomUUID().toString();
-        result = adminClient.groups().byGroupId("team-b").artifacts().post(createArtifactRequest(id));
-        assertNotNull(result.getVersion());
-
-        id = UUID.randomUUID().toString();
-        result = adminClient.groups().byGroupId("shared").artifacts().post(createArtifactRequest(id));
-        assertNotNull(result.getVersion());
+    void adminCanCreateInAnyGroup() {
+        createArtifact(adminClient, "team-a");
+        createArtifact(adminClient, "team-b");
+        createArtifact(adminClient, "shared");
+        createArtifact(adminClient, "public");
     }
 
     @Test
-    void adminCanReadArtifactInAnyGroup() {
-        String id = UUID.randomUUID().toString();
-        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
-
-        ArtifactMetaData meta = adminClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).get();
+    void adminCanReadFromAnyGroup() {
+        String id = createArtifact(adminClient, "team-b");
+        ArtifactMetaData meta = adminClient.groups().byGroupId("team-b").artifacts().byArtifactId(id).get();
         assertNotNull(meta);
+    }
+
+    @Test
+    void adminSeesAllGroupsInSearch() {
+        GroupSearchResults results = adminClient.groups().get(q -> q.queryParameters.limit = 100);
+        List<String> groupIds = results.getGroups().stream().map(g -> g.getGroupId()).toList();
+        assertTrue(groupIds.contains("team-a"));
+        assertTrue(groupIds.contains("team-b"));
+        assertTrue(groupIds.contains("shared"));
+        assertTrue(groupIds.contains("public"));
+    }
+
+    @Test
+    void adminSeesAllArtifactsInSearch() {
+        createArtifact(adminClient, "team-a");
+        createArtifact(adminClient, "team-b");
+        ArtifactSearchResults results = adminClient.search().artifacts().get(q -> q.queryParameters.limit = 100);
+        List<String> groups = results.getArtifacts().stream().map(SearchedArtifact::getGroupId).toList();
+        assertTrue(groups.contains("team-a"));
+        assertTrue(groups.contains("team-b"));
+    }
+
+    // ==================== DEVELOPER POINT ACCESS ====================
+
+    @Test
+    void devCanCreateInOwnGroup() {
+        String id = createArtifact(devClient, "team-a");
+        assertNotNull(id);
+    }
+
+    @Test
+    void devCanReadOwnArtifact() {
+        String id = createArtifact(adminClient, "team-a");
+        ArtifactMetaData meta = devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).get();
         assertEquals(id, meta.getArtifactId());
     }
 
-    // ==================== DEVELOPER (team-a) TESTS ====================
-
     @Test
-    void developerCanCreateArtifactInOwnGroup() {
-        String id = UUID.randomUUID().toString();
-        var result = devClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
-        assertNotNull(result.getVersion());
+    void devCanReadSharedArtifact() {
+        String id = createArtifact(adminClient, "shared");
+        assertNotNull(devClient.groups().byGroupId("shared").artifacts().byArtifactId(id).get());
     }
 
     @Test
-    void developerCanReadArtifactInOwnGroup() {
-        String id = UUID.randomUUID().toString();
-        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
-
-        ArtifactMetaData meta = devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).get();
-        assertNotNull(meta);
-    }
-
-    @Test
-    void developerCanReadSharedArtifact() {
-        String id = UUID.randomUUID().toString();
-        adminClient.groups().byGroupId("shared").artifacts().post(createArtifactRequest(id));
-
-        ArtifactMetaData meta = devClient.groups().byGroupId("shared").artifacts().byArtifactId(id).get();
-        assertNotNull(meta);
-    }
-
-    @Test
-    void developerCannotCreateArtifactInTeamB() {
-        String id = UUID.randomUUID().toString();
+    void devCannotCreateInTeamB() {
         var ex = assertThrows(Exception.class,
-                () -> devClient.groups().byGroupId("team-b").artifacts().post(createArtifactRequest(id)));
+                () -> createArtifact(devClient, "team-b"));
         assertForbidden(ex);
     }
 
     @Test
-    void developerCannotReadTeamBArtifact() {
-        String id = UUID.randomUUID().toString();
-        adminClient.groups().byGroupId("team-b").artifacts().post(createArtifactRequest(id));
-
+    void devCannotReadTeamBArtifact() {
+        String id = createArtifact(adminClient, "team-b");
         var ex = assertThrows(Exception.class,
                 () -> devClient.groups().byGroupId("team-b").artifacts().byArtifactId(id).get());
         assertForbidden(ex);
     }
 
     @Test
-    void developerCannotWriteToShared() {
-        String id = UUID.randomUUID().toString();
+    void devCannotWriteToShared() {
         var ex = assertThrows(Exception.class,
-                () -> devClient.groups().byGroupId("shared").artifacts().post(createArtifactRequest(id)));
+                () -> createArtifact(devClient, "shared"));
         assertForbidden(ex);
     }
 
-    // ==================== CROSS-DEVELOPER TESTS ====================
-    // Note: developer-2-client is not used because the test realm does not assign
-    // sr-developer role to its service account. The cross-team isolation tests below
-    // verify that developer-client cannot access team-b resources.
-
-    // ==================== READONLY USER TESTS ====================
+    // ==================== EXACT PATTERN MATCHING ====================
 
     @Test
-    void readonlyCanReadSharedArtifact() {
-        String id = UUID.randomUUID().toString();
-        adminClient.groups().byGroupId("shared").artifacts().post(createArtifactRequest(id));
-
-        ArtifactMetaData meta = readonlyClient.groups().byGroupId("shared").artifacts().byArtifactId(id).get();
+    void devCanReadExactMatchedArtifactInTeamB() {
+        String id = "public-schema";
+        try {
+            adminClient.groups().byGroupId("team-b").artifacts().post(createArtifactRequest(id));
+        } catch (Exception e) {
+            // already exists
+        }
+        ArtifactMetaData meta = devClient.groups().byGroupId("team-b").artifacts().byArtifactId(id).get();
         assertNotNull(meta);
     }
 
     @Test
-    void readonlyCannotReadTeamAArtifact() {
-        String id = UUID.randomUUID().toString();
-        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
+    void devCannotReadNonMatchedArtifactInTeamB() {
+        String id = createArtifact(adminClient, "team-b");
+        var ex = assertThrows(Exception.class,
+                () -> devClient.groups().byGroupId("team-b").artifacts().byArtifactId(id).get());
+        assertForbidden(ex);
+    }
 
+    // ==================== ROLE-BASED GRANTS ====================
+
+    @Test
+    void roleBasedGrantAllowsAllDevelopersToReadPublic() {
+        String id = createArtifact(adminClient, "public");
+        ArtifactMetaData meta = devClient.groups().byGroupId("public").artifacts().byArtifactId(id).get();
+        assertNotNull(meta);
+    }
+
+    @Test
+    void readonlyRoleGrantAllowsReadingShared() {
+        String id = createArtifact(adminClient, "shared");
+        ArtifactMetaData meta = readonlyClient.groups().byGroupId("shared").artifacts().byArtifactId(id).get();
+        assertNotNull(meta);
+    }
+
+    // ==================== READONLY USER ====================
+
+    @Test
+    void readonlyCannotReadTeamA() {
+        String id = createArtifact(adminClient, "team-a");
         var ex = assertThrows(Exception.class,
                 () -> readonlyClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).get());
         assertForbidden(ex);
     }
 
     @Test
-    void readonlyCannotReadTeamBArtifact() {
-        String id = UUID.randomUUID().toString();
-        adminClient.groups().byGroupId("team-b").artifacts().post(createArtifactRequest(id));
-
+    void readonlyCannotReadTeamB() {
+        String id = createArtifact(adminClient, "team-b");
         var ex = assertThrows(Exception.class,
                 () -> readonlyClient.groups().byGroupId("team-b").artifacts().byArtifactId(id).get());
         assertForbidden(ex);
     }
 
     @Test
-    void readonlyCannotCreateArtifact() {
-        String id = UUID.randomUUID().toString();
+    void readonlyCannotCreateAnywhere() {
         var ex = assertThrows(Exception.class,
-                () -> readonlyClient.groups().byGroupId("shared").artifacts().post(createArtifactRequest(id)));
-        assertForbidden(ex);
-    }
-
-    // ==================== SEARCH FILTERING TESTS ====================
-
-    @Test
-    void searchArtifactsFilteredByPermissions() {
-        String teamAId = "search-test-a-" + UUID.randomUUID();
-        String teamBId = "search-test-b-" + UUID.randomUUID();
-        String sharedId = "search-test-s-" + UUID.randomUUID();
-        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(teamAId));
-        adminClient.groups().byGroupId("team-b").artifacts().post(createArtifactRequest(teamBId));
-        adminClient.groups().byGroupId("shared").artifacts().post(createArtifactRequest(sharedId));
-
-        ArtifactSearchResults devResults = devClient.search().artifacts().get(q -> {
-            q.queryParameters.limit = 100;
-        });
-        boolean hasTeamA = devResults.getArtifacts().stream()
-                .anyMatch(a -> "team-a".equals(a.getGroupId()));
-        boolean hasTeamB = devResults.getArtifacts().stream()
-                .anyMatch(a -> "team-b".equals(a.getGroupId()));
-        boolean hasShared = devResults.getArtifacts().stream()
-                .anyMatch(a -> "shared".equals(a.getGroupId()));
-        assertTrue(hasTeamA, "developer should see team-a artifacts");
-        Assertions.assertFalse(hasTeamB, "developer should NOT see team-b artifacts");
-        assertTrue(hasShared, "developer should see shared artifacts");
-    }
-
-    @Test
-    void searchArtifactsAdminSeesAll() {
-        String teamAId = "admin-search-a-" + UUID.randomUUID();
-        String teamBId = "admin-search-b-" + UUID.randomUUID();
-        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(teamAId));
-        adminClient.groups().byGroupId("team-b").artifacts().post(createArtifactRequest(teamBId));
-
-        ArtifactSearchResults results = adminClient.search().artifacts().get(q -> {
-            q.queryParameters.limit = 100;
-        });
-        boolean hasTeamA = results.getArtifacts().stream()
-                .anyMatch(a -> "team-a".equals(a.getGroupId()));
-        boolean hasTeamB = results.getArtifacts().stream()
-                .anyMatch(a -> "team-b".equals(a.getGroupId()));
-        assertTrue(hasTeamA);
-        assertTrue(hasTeamB);
-    }
-
-    @Test
-    void searchGroupsFilteredByPermissions() {
-        GroupSearchResults devGroups = devClient.search().groups().get(q -> {
-            q.queryParameters.limit = 100;
-        });
-        boolean hasTeamA = devGroups.getGroups().stream()
-                .anyMatch(g -> "team-a".equals(g.getGroupId()));
-        boolean hasTeamB = devGroups.getGroups().stream()
-                .anyMatch(g -> "team-b".equals(g.getGroupId()));
-        boolean hasShared = devGroups.getGroups().stream()
-                .anyMatch(g -> "shared".equals(g.getGroupId()));
-        assertTrue(hasTeamA, "developer should see team-a group");
-        Assertions.assertFalse(hasTeamB, "developer should NOT see team-b group");
-        assertTrue(hasShared, "developer should see shared group");
-    }
-
-    @Test
-    void listGroupsFilteredByPermissions() {
-        GroupSearchResults devGroups = devClient.groups().get(q -> {
-            q.queryParameters.limit = 100;
-        });
-        boolean hasTeamA = devGroups.getGroups().stream()
-                .anyMatch(g -> "team-a".equals(g.getGroupId()));
-        boolean hasTeamB = devGroups.getGroups().stream()
-                .anyMatch(g -> "team-b".equals(g.getGroupId()));
-        assertTrue(hasTeamA, "developer should see team-a");
-        Assertions.assertFalse(hasTeamB, "developer should NOT see team-b");
-    }
-
-    @Test
-    void listArtifactsInGroupFilteredByPermissions() {
-        String id = "list-in-group-" + UUID.randomUUID();
-        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
-
-        ArtifactSearchResults devResults = devClient.groups().byGroupId("team-a").artifacts().get();
-        assertTrue(devResults.getArtifacts().stream()
-                .anyMatch(a -> id.equals(a.getArtifactId())));
-
-        var ex = assertThrows(Exception.class,
-                () -> readonlyClient.groups().byGroupId("team-a").artifacts().get());
+                () -> createArtifact(readonlyClient, "shared"));
         assertForbidden(ex);
     }
 
     @Test
-    void searchVersionsFilteredByPermissions() {
-        String teamAId = "ver-search-a-" + UUID.randomUUID();
-        String teamBId = "ver-search-b-" + UUID.randomUUID();
-        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(teamAId));
-        adminClient.groups().byGroupId("team-b").artifacts().post(createArtifactRequest(teamBId));
-
-        VersionSearchResults devVersions = devClient.search().versions().get(q -> {
-            q.queryParameters.limit = 100;
-        });
-        boolean hasTeamA = devVersions.getVersions().stream()
-                .anyMatch(v -> "team-a".equals(v.getGroupId()));
-        boolean hasTeamB = devVersions.getVersions().stream()
-                .anyMatch(v -> "team-b".equals(v.getGroupId()));
-        assertTrue(hasTeamA, "developer should see team-a versions");
-        Assertions.assertFalse(hasTeamB, "developer should NOT see team-b versions");
-    }
-
-    // ==================== CROSS-TEAM ISOLATION TESTS ====================
-
-    @Test
-    void sameRoleDifferentAccess() {
-        String id = "isolation-" + UUID.randomUUID();
-        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
-
-        devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).get();
-
+    void readonlyCannotReadPublic() {
+        String id = createArtifact(adminClient, "public");
         var ex = assertThrows(Exception.class,
-                () -> dev2Client.groups().byGroupId("team-a").artifacts().byArtifactId(id).get());
+                () -> readonlyClient.groups().byGroupId("public").artifacts().byArtifactId(id).get());
         assertForbidden(ex);
     }
 
+    // ==================== NO-ROLE USER ====================
+
     @Test
-    void crossTeamWriteIsolation() {
-        String id = UUID.randomUUID().toString();
-
-        var result = devClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
-        assertNotNull(result.getVersion());
-
+    void noRoleUserDeniedEverything() {
         var ex = assertThrows(Exception.class,
-                () -> dev2Client.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id + "-2")));
+                () -> noRoleClient.groups().get());
         assertForbidden(ex);
     }
 
-    // ==================== OPERATION HIERARCHY TESTS ====================
+    // ==================== OPERATION HIERARCHY ====================
 
     @Test
     void writeGrantImpliesRead() {
-        String id = UUID.randomUUID().toString();
-        devClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
+        String id = createArtifact(devClient, "team-a");
         ArtifactMetaData meta = devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).get();
         assertNotNull(meta);
     }
 
     @Test
     void readGrantDoesNotImplyWrite() {
-        String id = UUID.randomUUID().toString();
         var ex = assertThrows(Exception.class,
-                () -> readonlyClient.groups().byGroupId("shared").artifacts().post(createArtifactRequest(id)));
+                () -> createArtifact(readonlyClient, "shared"));
         assertForbidden(ex);
+    }
+
+    // ==================== METADATA OPERATIONS ====================
+
+    @Test
+    void devCanUpdateMetadataInOwnGroup() {
+        String id = createArtifact(devClient, "team-a");
+        EditableArtifactMetaData eamd = new EditableArtifactMetaData();
+        eamd.setName("Updated Name");
+        eamd.setDescription("Updated Description");
+        devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).put(eamd);
+
+        ArtifactMetaData meta = devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).get();
+        assertEquals("Updated Name", meta.getName());
+    }
+
+    @Test
+    void devCannotUpdateMetadataInTeamB() {
+        String id = createArtifact(adminClient, "team-b");
+        EditableArtifactMetaData eamd = new EditableArtifactMetaData();
+        eamd.setName("Hacked");
+        var ex = assertThrows(Exception.class,
+                () -> devClient.groups().byGroupId("team-b").artifacts().byArtifactId(id).put(eamd));
+        assertForbidden(ex);
+    }
+
+    // ==================== ARTIFACT DELETION ====================
+
+    @Test
+    void devCanDeleteArtifactInOwnGroup() {
+        String id = createArtifact(devClient, "team-a");
+        devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).delete();
+        var ex = assertThrows(Exception.class,
+                () -> adminClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).get());
+        assertNotFound(ex);
+    }
+
+    @Test
+    void devCannotDeleteArtifactInTeamB() {
+        String id = createArtifact(adminClient, "team-b");
+        var ex = assertThrows(Exception.class,
+                () -> devClient.groups().byGroupId("team-b").artifacts().byArtifactId(id).delete());
+        assertForbidden(ex);
+    }
+
+    // ==================== VERSION OPERATIONS ====================
+
+    @Test
+    void devCanCreateVersionInOwnArtifact() {
+        String id = createArtifact(devClient, "team-a");
+        CreateVersion cv = new CreateVersion();
+        VersionContent vc = new VersionContent();
+        cv.setContent(vc);
+        vc.setContent("{\"type\":\"string\"}");
+        vc.setContentType(ContentTypes.APPLICATION_JSON);
+        var result = devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id).versions().post(cv);
+        assertNotNull(result);
+    }
+
+    @Test
+    void devCannotCreateVersionInTeamBArtifact() {
+        String id = createArtifact(adminClient, "team-b");
+        CreateVersion cv = new CreateVersion();
+        VersionContent vc = new VersionContent();
+        cv.setContent(vc);
+        vc.setContent("{\"type\":\"string\"}");
+        vc.setContentType(ContentTypes.APPLICATION_JSON);
+        var ex = assertThrows(Exception.class,
+                () -> devClient.groups().byGroupId("team-b").artifacts().byArtifactId(id).versions().post(cv));
+        assertForbidden(ex);
+    }
+
+    @Test
+    void devCanListVersionsOfOwnArtifact() {
+        String id = createArtifact(devClient, "team-a");
+        VersionSearchResults versions = devClient.groups().byGroupId("team-a")
+                .artifacts().byArtifactId(id).versions().get();
+        assertTrue(versions.getCount() > 0);
+    }
+
+    // ==================== SEARCH ARTIFACT FILTERING ====================
+
+    @Test
+    void searchArtifactsFilteredByPermissions() {
+        createArtifact(adminClient, "team-a");
+        createArtifact(adminClient, "team-b");
+        createArtifact(adminClient, "shared");
+
+        ArtifactSearchResults results = devClient.search().artifacts().get(q -> q.queryParameters.limit = 100);
+        List<String> groups = results.getArtifacts().stream().map(SearchedArtifact::getGroupId).toList();
+        assertTrue(groups.contains("team-a"), "developer should see team-a");
+        assertTrue(groups.contains("shared"), "developer should see shared");
+    }
+
+    @Test
+    void searchArtifactsDeniedGroupsHidden() {
+        createArtifact(adminClient, "team-b");
+
+        ArtifactSearchResults results = readonlyClient.search().artifacts().get(q -> q.queryParameters.limit = 100);
+        List<String> groups = results.getArtifacts().stream().map(SearchedArtifact::getGroupId).toList();
+        assertFalse(groups.contains("team-a"), "readonly should NOT see team-a");
+        assertFalse(groups.contains("team-b"), "readonly should NOT see team-b");
+    }
+
+    @Test
+    void searchArtifactsWithNameFilter() {
+        String id = "named-schema-" + UUID.randomUUID();
+        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
+
+        ArtifactSearchResults results = devClient.search().artifacts().get(q -> {
+            q.queryParameters.limit = 100;
+            q.queryParameters.artifactId = id;
+        });
+        assertEquals(1, results.getCount());
+        assertEquals(id, results.getArtifacts().get(0).getArtifactId());
+    }
+
+    @Test
+    void searchArtifactsReadonlyCannotFindTeamAArtifact() {
+        String id = "secret-schema-" + UUID.randomUUID();
+        adminClient.groups().byGroupId("team-a").artifacts().post(createArtifactRequest(id));
+
+        ArtifactSearchResults results = readonlyClient.search().artifacts().get(q -> {
+            q.queryParameters.limit = 100;
+            q.queryParameters.artifactId = id;
+        });
+        assertEquals(0, results.getCount());
+    }
+
+    // ==================== SEARCH GROUP FILTERING ====================
+
+    @Test
+    void searchGroupsFilteredByPermissions() {
+        GroupSearchResults results = devClient.search().groups().get(q -> q.queryParameters.limit = 100);
+        List<String> groupIds = results.getGroups().stream().map(g -> g.getGroupId()).toList();
+        assertTrue(groupIds.contains("team-a"), "developer sees team-a");
+        assertTrue(groupIds.contains("shared"), "developer sees shared");
+        assertTrue(groupIds.contains("public"), "developer sees public (role grant)");
+        assertTrue(groupIds.contains("team-b"), "developer sees team-b (has exact artifact grant)");
+    }
+
+    @Test
+    void searchGroupsReadonlySeesOnlyShared() {
+        GroupSearchResults results = readonlyClient.search().groups().get(q -> q.queryParameters.limit = 100);
+        List<String> groupIds = results.getGroups().stream().map(g -> g.getGroupId()).toList();
+        assertTrue(groupIds.contains("shared"), "readonly sees shared");
+        assertFalse(groupIds.contains("team-a"), "readonly doesn't see team-a");
+        assertFalse(groupIds.contains("team-b"), "readonly doesn't see team-b");
+    }
+
+    @Test
+    void listGroupsFilteredByPermissions() {
+        GroupSearchResults results = devClient.groups().get(q -> q.queryParameters.limit = 100);
+        List<String> groupIds = results.getGroups().stream().map(g -> g.getGroupId()).toList();
+        assertTrue(groupIds.contains("team-a"));
+        assertTrue(groupIds.contains("shared"));
+    }
+
+    // ==================== LIST ARTIFACTS IN GROUP ====================
+
+    @Test
+    void listArtifactsInAllowedGroup() {
+        String id = createArtifact(adminClient, "team-a");
+        ArtifactSearchResults results = devClient.groups().byGroupId("team-a").artifacts().get();
+        assertTrue(results.getArtifacts().stream().anyMatch(a -> id.equals(a.getArtifactId())));
+    }
+
+    @Test
+    void listArtifactsInDeniedGroupForbidden() {
+        createArtifact(adminClient, "team-b");
+        var ex = assertThrows(Exception.class,
+                () -> readonlyClient.groups().byGroupId("team-a").artifacts().get());
+        assertForbidden(ex);
+    }
+
+    // ==================== VERSION SEARCH FILTERING ====================
+
+    @Test
+    void searchVersionsFilteredByPermissions() {
+        createArtifact(adminClient, "team-a");
+        createArtifact(adminClient, "team-b");
+
+        VersionSearchResults results = devClient.search().versions().get(q -> q.queryParameters.limit = 100);
+        List<String> groups = results.getVersions().stream().map(v -> v.getGroupId()).toList();
+        assertTrue(groups.contains("team-a"), "developer sees team-a versions");
+    }
+
+    @Test
+    void searchVersionsReadonlyFiltered() {
+        createArtifact(adminClient, "team-a");
+        createArtifact(adminClient, "shared");
+
+        VersionSearchResults results = readonlyClient.search().versions().get(q -> q.queryParameters.limit = 100);
+        List<String> groups = results.getVersions().stream().map(v -> v.getGroupId()).toList();
+        assertTrue(groups.contains("shared"), "readonly sees shared versions");
+        assertFalse(groups.contains("team-a"), "readonly doesn't see team-a versions");
+    }
+
+    // ==================== PAGINATION ====================
+
+    @Test
+    void paginationWorksWithFiltering() {
+        for (int i = 0; i < 5; i++) {
+            createArtifact(adminClient, "team-a");
+        }
+
+        ArtifactSearchResults page1 = devClient.search().artifacts().get(q -> {
+            q.queryParameters.limit = 2;
+            q.queryParameters.offset = 0;
+            q.queryParameters.groupId = "team-a";
+        });
+        ArtifactSearchResults page2 = devClient.search().artifacts().get(q -> {
+            q.queryParameters.limit = 2;
+            q.queryParameters.offset = 2;
+            q.queryParameters.groupId = "team-a";
+        });
+
+        assertEquals(2, page1.getArtifacts().size());
+        assertEquals(2, page2.getArtifacts().size());
+        assertTrue(page1.getCount() >= 5);
+    }
+
+    @Test
+    void paginationCountAccurateForFilteredResults() {
+        for (int i = 0; i < 3; i++) {
+            createArtifact(adminClient, "shared");
+        }
+
+        ArtifactSearchResults results = readonlyClient.search().artifacts().get(q -> {
+            q.queryParameters.limit = 100;
+            q.queryParameters.groupId = "shared";
+        });
+        assertTrue(results.getCount() >= 3);
+        assertEquals(results.getArtifacts().size(), (int) Math.min(results.getCount(), 100));
+    }
+
+    // ==================== MULTIPLE ARTIFACTS SAME GROUP ====================
+
+    @Test
+    void multipleArtifactsInAllowedGroupAllAccessible() {
+        String id1 = createArtifact(devClient, "team-a");
+        String id2 = createArtifact(devClient, "team-a");
+        String id3 = createArtifact(devClient, "team-a");
+
+        assertNotNull(devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id1).get());
+        assertNotNull(devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id2).get());
+        assertNotNull(devClient.groups().byGroupId("team-a").artifacts().byArtifactId(id3).get());
+    }
+
+    @Test
+    void multipleArtifactsInDeniedGroupAllDenied() {
+        String id1 = createArtifact(adminClient, "team-b");
+        String id2 = createArtifact(adminClient, "team-b");
+
+        assertThrows(Exception.class,
+                () -> readonlyClient.groups().byGroupId("team-b").artifacts().byArtifactId(id1).get());
+        assertThrows(Exception.class,
+                () -> readonlyClient.groups().byGroupId("team-b").artifacts().byArtifactId(id2).get());
     }
 }

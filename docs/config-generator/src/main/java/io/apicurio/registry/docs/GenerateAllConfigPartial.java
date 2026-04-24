@@ -228,11 +228,9 @@ public class GenerateAllConfigPartial {
                     var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
                     var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
 
-                    var availableSince = Optional.ofNullable(info.get().value("registryAvailableSince"))
+                    var availableSince = Optional.ofNullable(info.get().value("availableSince"))
                             .map(v -> v.value().toString())
-                            .orElse(Optional.ofNullable(info.get().value("availableSince"))
-                                    .map(v -> v.value().toString())
-                                    .orElse(""));
+                            .orElse("");
 
                     var experimental = Optional.ofNullable(info.get().value("experimental"))
                             .map(v -> (boolean) v.value())
@@ -278,11 +276,9 @@ public class GenerateAllConfigPartial {
             var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
             var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
 
-            var availableSince = Optional.ofNullable(info.get().value("registryAvailableSince"))
+            var availableSince = Optional.ofNullable(info.get().value("availableSince"))
                     .map(v -> v.value().toString())
-                    .orElse(Optional.ofNullable(info.get().value("availableSince"))
-                            .map(v -> v.value().toString())
-                            .orElse(""));
+                    .orElse("");
 
             var experimental = Optional.ofNullable(info.get().value("experimental"))
                     .map(v -> (boolean) v.value())

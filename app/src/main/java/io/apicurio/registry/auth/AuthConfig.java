@@ -32,51 +32,51 @@ public class AuthConfig {
     Config config;
 
     @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable auth", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Enable auth", availableSince = "2.0.0.Final")
     boolean oidcAuthEnabled;
 
     // back to fake auth and use another property
     @Dynamic(label = "HTTP basic authentication", description = "When selected, users are permitted to authenticate using HTTP basic authentication (in addition to OAuth).", requires = "apicurio.authn.enabled=true")
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable basic auth client credentials", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Enable basic auth client credentials", availableSince = "2.1.0.Final")
     Supplier<Boolean> basicClientCredentialsAuthEnabled;
 
     @ConfigProperty(name = "quarkus.http.auth.basic", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable basic auth", availableSince = "1.1.X-SNAPSHOT", registryAvailableSince = "3.X.X.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Enable basic auth", availableSince = "3.X.X.Final")
     boolean basicAuthEnabled;
 
     // TODO: Add suffix?
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration", defaultValue = "10")
-    @Info(category = CATEGORY_AUTH, description = "Default client credentials token expiration time in minutes.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.2.6.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Default client credentials token expiration time in minutes.", availableSince = "2.2.6.Final")
     Integer accessTokenExpiration;
 
     // TODO: Add suffix?
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration-offset", defaultValue = "10")
-    @Info(category = CATEGORY_AUTH, description = "Client credentials token expiration offset from JWT expiration, in seconds.", availableSince = "0.2.7", registryAvailableSince = "2.5.9.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Client credentials token expiration offset from JWT expiration, in seconds.", availableSince = "2.5.9.Final")
     Integer accessTokenExpirationOffset;
 
     @ConfigProperty(name = "apicurio.authn.basic.scope")
-    @Info(category = CATEGORY_AUTH, description = "Client credentials scope.", availableSince = "0.1.21-SNAPSHOT", registryAvailableSince = "2.5.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Client credentials scope.", availableSince = "2.5.0.Final")
     Optional<String> scope;
 
     @ConfigProperty(name = "apicurio.authn.audit.log.prefix", defaultValue = "audit")
-    @Info(category = CATEGORY_AUTH, description = "Prefix used for application audit logging.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.2.6", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Prefix used for application audit logging.", availableSince = "2.2.6")
     String auditLogPrefix;
 
     @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
-    @Info(category = CATEGORY_AUTH, description = "Authentication server endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Authentication server endpoint.", availableSince = "2.1.0.Final")
     String authServerUrl;
 
     @ConfigProperty(name = "quarkus.oidc.token-path", defaultValue = "/protocol/openid-connect/token/")
-    @Info(category = CATEGORY_AUTH, description = "Authentication server token endpoint.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Authentication server token endpoint.", availableSince = "2.1.0.Final")
     String oidcTokenPath;
 
     @ConfigProperty(name = "quarkus.oidc.client-secret")
-    @Info(category = CATEGORY_AUTH, description = "Client secret used by the server for authentication.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.1.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Client secret used by the server for authentication.", availableSince = "2.1.0.Final")
     Optional<String> clientSecret;
 
     @ConfigProperty(name = "quarkus.oidc.client-id", defaultValue = "")
-    @Info(category = CATEGORY_AUTH, description = "Client identifier used by the server for authentication.", availableSince = "0.1.18-SNAPSHOT", registryAvailableSince = "2.0.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Client identifier used by the server for authentication.", availableSince = "2.0.0.Final")
     String clientId;
 
     @ConfigProperty(name = "apicurio.auth.role-based-authorization", defaultValue = "false")
@@ -166,7 +166,7 @@ public class AuthConfig {
     String groupsHeader;
 
     @ConfigProperty(name = "apicurio.authn.proxy-header.trust-proxy-authorization", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "When enabled, authorization checks are skipped and the proxy is trusted to have performed authorization", availableSince = "3.1.0", registryAvailableSince = "3.1.0.Final", studioAvailableSince = "1.0.0")
+    @Info(category = CATEGORY_AUTH, description = "When enabled, authorization checks are skipped and the proxy is trusted to have performed authorization", availableSince = "3.1.0.Final")
     boolean proxyHeaderTrustProxyAuthorization;
 
     @PostConstruct

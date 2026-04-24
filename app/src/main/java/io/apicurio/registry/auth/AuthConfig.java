@@ -171,7 +171,7 @@ public class AuthConfig {
     boolean proxyHeaderTrustProxyAuthorization;
 
     @ConfigProperty(name = "apicurio.authn.mechanism.priority", defaultValue = "basic,proxy-header,oidc")
-    @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc.", availableSince = "3.0.0")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc.", availableSince = "3.3.0")
     String mechanismPriority;
 
     @PostConstruct

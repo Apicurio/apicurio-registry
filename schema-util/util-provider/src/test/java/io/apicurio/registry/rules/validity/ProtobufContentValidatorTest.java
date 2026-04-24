@@ -267,20 +267,24 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
                 package poison;
                 message Token { string id = 1; int32 version = 2; }
                 """;
-        // Intentional irregular whitespace: tabs, multi-space gaps, blank lines. Kept as
-        // explicit string concatenation so each line's whitespace is unambiguous and not
-        // subject to text-block incidental-whitespace stripping rules.
-        String refBExpanded = "syntax    =    \"proto3\";\n"
-                + "\n"
-                + "package   poison;\n"
-                + "\n"
-                + "\n"
-                + "message Token {\n"
-                + "\t  string  id       = 1;\n"
-                + "\n"
-                + "      int32     version = 2;\n"
-                + "\n"
-                + "}\n"; // NOSONAR java:S6126 - whitespace is the assertion under test
+        // Intentional irregular whitespace: tabs, multi-space gaps, blank lines. The
+        // JLS 3.10.6 incidental-whitespace algorithm strips the 16-space common prefix
+        // set by the closing delimiter without touching the interior whitespace; the
+        // `\t` escape stays non-whitespace for stripping purposes and only becomes a
+        // tab character during the subsequent escape-processing step.
+        String refBExpanded = """
+                syntax    =    "proto3";
+
+                package   poison;
+
+
+                message Token {
+                \t  string  id       = 1;
+
+                      int32     version = 2;
+
+                }
+                """;
         String mainSchema = """
                 syntax = "proto3";
                 package poison;

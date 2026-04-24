@@ -250,18 +250,29 @@ jobs:
           git rebase "origin/$BRANCH"
           git push origin "$BRANCH"
 
-      - name: Copy install file to main
+      - name: Sync post-release changes to main
         if: env.BRANCH != 'main'
         working-directory: registry
         run: |
+          # Save the versioned install file before switching branches
           INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
-          git fetch origin
-          git show "origin/$BRANCH:$INSTALL_FILE" > /tmp/install-file.yaml
+          cp "$INSTALL_FILE" /tmp/install-file.yaml
+
+          # Switch to main
           git checkout main
           git pull origin main
+
+          # Copy the versioned install file
           cp /tmp/install-file.yaml "$INSTALL_FILE"
-          git add "$INSTALL_FILE"
-          git commit -m "ci(operator): add $RELEASE_VERSION install file from $BRANCH"
+
+          # Reuse the same make targets as the post-release steps
+          cd operator
+          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+          make release-catalog-template-update
+
+          cd ..
+          git add .
+          git commit -m "ci(operator): sync $RELEASE_VERSION post-release changes from $BRANCH to main"
           git rebase origin/main
           git push origin main
 

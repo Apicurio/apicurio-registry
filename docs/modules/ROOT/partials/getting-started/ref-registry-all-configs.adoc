@@ -1626,6 +1626,10 @@ The following {registry} configuration options are available for each component 
 |`${apicurio.config.dynamic.allow-all}`
 |
 |
+|`apicurio.storage.orphan-cleanup.enabled`
+|`unknown`
+|`true`
+|
 |`apicurio.storage.orphan-cleanup.every`
 |`unknown`
 |`1h`

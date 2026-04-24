@@ -4,6 +4,8 @@ import io.apicurio.registry.cdi.Current;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.time.Instant;
@@ -23,12 +25,20 @@ public class OrphanedContentReaper {
     @Current
     RegistryStorage storage;
 
+    @ConfigProperty(name = "apicurio.storage.orphan-cleanup.enabled", defaultValue = "true")
+    boolean enabled;
+
     /**
      * Minimal granularity is 1 minute.
      */
     @Scheduled(delay = 60, concurrentExecution = SKIP, every = "{apicurio.storage.orphan-cleanup.every}")
     void run() {
         try {
+            if (!enabled) {
+                log.debug("Skipping orphaned content cleanup because it is disabled.");
+                return;
+            }
+
             if (storage.isReady()) {
                 if (!storage.isReadOnly()) {
                     log.debug("Running orphaned content cleanup job at {}", Instant.now());

@@ -9,6 +9,10 @@ on:
         description: Branch to release from
         required: true
         default: main
+      no-more-minor-releases:
+        type: boolean
+        description: "I understand that releasing from main prevents further patch releases from older minor branches (e.g., 3.2.x)"
+        default: false
       notice:
         type: boolean
         description: I will notify jsenko if the operator release workflow fails!
@@ -70,6 +74,35 @@ jobs:
           git checkout ${{ github.event.inputs.branch }}
           git branch --set-upstream-to=origin/${{ github.event.inputs.branch }}
           git pull
+
+      - name: Verify OLM channel linearity
+        working-directory: registry
+        run: |
+          BRANCH="${{ github.event.inputs.branch }}"
+          OUR_PREV_VERSION=$(cd operator && make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
+
+          if [ "$BRANCH" = "main" ]; then
+            # Releasing from main cuts off minor branch releases. Require acknowledgement.
+            if [ "${{ github.event.inputs.no-more-minor-releases }}" != "true" ]; then
+              echo "ERROR: Releasing from main prevents further patch releases from older minor branches."
+              echo "Check the 'no-more-minor-releases' parameter to acknowledge this and retry."
+              exit 1
+            fi
+          else
+            # Releasing from a minor branch — verify main hasn't released ahead.
+            # If main's PREVIOUS_PACKAGE_VERSION differs from ours, main already
+            # released a newer version and the OLM chain would fork.
+            MAIN_PREV_VERSION=$(git show origin/main:operator/Makefile | grep '^PREVIOUS_PACKAGE_VERSION' | sed 's/.*?=\s*//' | tr -d ' ')
+            echo "Branch PREVIOUS_PACKAGE_VERSION: $OUR_PREV_VERSION"
+            echo "Main PREVIOUS_PACKAGE_VERSION:   $MAIN_PREV_VERSION"
+            if [ "$OUR_PREV_VERSION" != "$MAIN_PREV_VERSION" ]; then
+              echo "ERROR: OLM channel linearity violation!"
+              echo "Main has PREVIOUS_PACKAGE_VERSION=$MAIN_PREV_VERSION but this branch has $OUR_PREV_VERSION."
+              echo "A release from main (or another branch) has already advanced the OLM channel."
+              echo "No more patch releases can be made from this branch."
+              exit 1
+            fi
+          fi
 
       - name: Update Release Version ${{ github.event.inputs.release-version}}
         run: |

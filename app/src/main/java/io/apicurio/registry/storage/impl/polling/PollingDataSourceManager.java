@@ -9,7 +9,7 @@ import io.apicurio.registry.storage.RegistryStorage;
  *
  * @param <MARKER> the type of the marker used to track data source state
  */
-public interface PollingDataSourceManager<MARKER> {
+public interface PollingDataSourceManager<MARKER extends SourceMarker> {
 
     /**
      * Initializes the data source manager.

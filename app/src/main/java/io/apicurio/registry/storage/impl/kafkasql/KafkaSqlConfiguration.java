@@ -62,7 +62,7 @@ public class KafkaSqlConfiguration {
             Setting this property to true will partially disable this verification for *all* Apicurio Registry topics. \
             Specifically, 'retention.ms=-1' is not enforced to support automatic cleanup when Apicurio Registry snapshotting feature is used. \
             In this case, snapshots have to be made more frequently than messages are deleted. \
-            IMPORTANT: We might change which topics and which verification checks are affected by this configuration property in the future.""", registryAvailableSince = "3.1.3")
+            IMPORTANT: We might change which topics and which verification checks are affected by this configuration property in the future.""", availableSince = "3.1.3")
     @Getter
     boolean topicConfigurationVerificationOverrideEnabled;
 
@@ -104,7 +104,7 @@ public class KafkaSqlConfiguration {
     // === Snapshots topic and related configurations ===
 
     @ConfigProperty(name = "apicurio.kafkasql.snapshots.topic", defaultValue = "kafkasql-snapshots")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql snapshots topic name", registryAvailableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql snapshots topic name", availableSince = "3.0.0")
     @Getter
     String snapshotsTopic;
 
@@ -115,7 +115,7 @@ public class KafkaSqlConfiguration {
             There are two optional Registry-specific configuration properties: 'partitions' and 'replication.factor'. \
             IMPORTANT: As a temporary compatibility measure, configuration properties for this topic are also inherited from 'apicurio.kafkasql.topic' \
             unless explicitly overridden by this property. This will be removed in a next minor version.\
-            """, registryAvailableSince = "3.1.3")
+            """, availableSince = "3.1.3")
     Properties snapshotTopicProperties;
 
     public Map<String, String> getSnapshotTopicProperties() {
@@ -134,19 +134,19 @@ public class KafkaSqlConfiguration {
     }
 
     @ConfigProperty(name = "apicurio.kafkasql.snapshot.every.seconds", defaultValue = "86400s")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql journal topic snapshot every", registryAvailableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql journal topic snapshot every", availableSince = "3.0.0")
     @Getter
     String snapshotEvery;
 
     @ConfigProperty(name = "apicurio.storage.snapshot.location", defaultValue = "./")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql snapshots store location", registryAvailableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql snapshots store location", availableSince = "3.0.0")
     @Getter
     String snapshotStoreLocation;
 
     // === Events topic and related configurations ===
 
     @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage events topic", registryAvailableSince = "3.0.1")
+    @Info(category = CATEGORY_STORAGE, description = "Kafka sql storage events topic", availableSince = "3.0.1")
     @Getter
     String eventsTopic;
 
@@ -157,7 +157,7 @@ public class KafkaSqlConfiguration {
             There is an optional Registry-specific configuration property: 'replication.factor'. \
             IMPORTANT: As a temporary compatibility measure, configuration properties for this topic are also inherited from 'apicurio.kafkasql.topic' \
             unless explicitly overridden by this property. This will be removed in a next minor version.\
-            """, registryAvailableSince = "3.1.3")
+            """, availableSince = "3.1.3")
     Properties eventsTopicProperties;
 
     public Map<String, String> getEventsTopicProperties() {

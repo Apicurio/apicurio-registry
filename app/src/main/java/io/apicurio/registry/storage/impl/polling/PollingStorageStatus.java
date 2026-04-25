@@ -50,9 +50,6 @@ public class PollingStorageStatus {
     /** Current synchronization state. */
     private final SyncState syncState;
 
-    /** Marker string identifying the current data (e.g., Git commit SHA). */
-    private final String currentMarker;
-
     /** When the last successful sync completed. */
     private final Instant lastSuccessfulSync;
 
@@ -70,10 +67,9 @@ public class PollingStorageStatus {
 
     /** Errors from the last failed load attempt,
      *  empty if last load was successful. */
-    private final List<String> lastErrors;
+    private final List<PollingError> errors;
 
-    /** Per-source markers (source ID -> current marker string, e.g., commit SHA).
-     *  Null for single-source storage implementations. */
+    /** Per-source identifiers (source ID -> short marker string, e.g., abbreviated commit SHA). */
     private final Map<String, String> sources;
 
     /**
@@ -83,7 +79,8 @@ public class PollingStorageStatus {
     public static PollingStorageStatus initializing() {
         return PollingStorageStatus.builder()
                 .syncState(SyncState.INITIALIZING)
-                .lastErrors(List.of())
+                .errors(List.of())
+                .sources(Map.of())
                 .build();
     }
 }

@@ -39,6 +39,17 @@ jobs:
           git config --global user.email apicurio.ci@gmail.com
           git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
           cd registry && git checkout "$RELEASE_VERSION"
+          # Resolve BRANCH if it's a commit SHA (happens when releasing from non-default branches)
+          if [[ "$BRANCH" =~ ^[0-9a-f]{40}$ ]]; then
+            RESOLVED=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ' | head -1)
+            if [ -n "$RESOLVED" ]; then
+              echo "Resolved branch SHA $BRANCH to $RESOLVED"
+              echo "BRANCH=$RESOLVED" >> $GITHUB_ENV
+            else
+              echo "ERROR: Could not resolve commit $BRANCH to a branch name"
+              exit 1
+            fi
+          fi
 
       - name: Verify Project Version
         working-directory: registry
@@ -238,6 +249,32 @@ jobs:
           git fetch origin
           git rebase "origin/$BRANCH"
           git push origin "$BRANCH"
+
+      - name: Sync post-release changes to main
+        if: env.BRANCH != 'main'
+        working-directory: registry
+        run: |
+          # Save the versioned install file before switching branches
+          INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
+          cp "$INSTALL_FILE" /tmp/install-file.yaml
+
+          # Switch to main
+          git checkout main
+          git pull origin main
+
+          # Copy the versioned install file
+          cp /tmp/install-file.yaml "$INSTALL_FILE"
+
+          # Reuse the same make targets as the post-release steps
+          cd operator
+          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+          make release-catalog-template-update
+
+          cd ..
+          git add .
+          git commit -m "ci(operator): sync $RELEASE_VERSION post-release changes from $BRANCH to main"
+          git rebase origin/main
+          git push origin main
 
       - name: Slack Notification (Always)
         if: always()

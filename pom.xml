@@ -175,7 +175,7 @@
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.17.0</okio.version>
-    <kotlin-stdlib.version>2.3.20</kotlin-stdlib.version>
+    <kotlin-stdlib.version>2.3.21</kotlin-stdlib.version>
     <icu4j.version>76.1</icu4j.version>
     <protobuf.version>4.34.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>

@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +36,7 @@ import java.util.function.Function;
  * Provides the blue-green switching pattern for loading data from external sources
  * (Git, Kubernetes ConfigMaps, etc.) without service interruption.
  */
-public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractReadOnlyRegistryStorage {
+public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker> extends AbstractReadOnlyRegistryStorage {
 
     @Inject
     Logger log;
@@ -95,23 +94,6 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
         return pollingConfig.getStorageName();
     }
 
-    /**
-     * Converts a poll marker to a human-readable string for status reporting.
-     * Override in subclasses if the marker's toString() is not suitable (e.g., Git RevCommit).
-     */
-    protected String markerToString(MARKER marker) {
-        return marker != null ? marker.toString() : null;
-    }
-
-    /**
-     * Extracts per-repo markers from the poll marker for status reporting.
-     * Returns null by default. Override in subclasses that support multi-repo
-     * (e.g., GitOps with multiple repositories).
-     */
-    protected Map<String, String> markerToSources(MARKER marker) {
-        return null;
-    }
-
     protected void initialize(PollingStorageConfig pollingConfig, PollingDataSourceManager<MARKER> pollingDataSourceManager) {
         this.pollingConfig = pollingConfig;
         this.pollingDataSourceManager = pollingDataSourceManager;
@@ -152,7 +134,6 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                 switch (state) {
                     case READY_TO_SWITCH -> {
                         MARKER completedMarker = pendingResult.getMarker();
-                        String markerStr = markerToString(completedMarker);
                         if (doSwitch()) {
                             switchRetryCount = 0;
                             pendingResult.commit();
@@ -161,14 +142,13 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                             pendingProcessingResult = null;
                             status = PollingStorageStatus.builder()
                                     .syncState(PollingStorageStatus.SyncState.IDLE)
-                                    .currentMarker(markerStr)
-                                    .sources(markerToSources(completedMarker))
+                                    .sources(completedMarker.toSources())
                                     .lastSuccessfulSync(Instant.now())
                                     .lastSyncAttempt(status.getLastSyncAttempt())
                                     .groupCount(completedResult.getGroupCount())
                                     .artifactCount(completedResult.getArtifactCount())
                                     .versionCount(completedResult.getVersionCount())
-                                    .lastErrors(Collections.emptyList())
+                                    .errors(Collections.emptyList())
                                     .build();
                             if (!isReady) {
                                 isReady = true;
@@ -181,8 +161,8 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                                         "discarding pending update to prevent deadlock", storageName(), MAX_SWITCH_RETRIES);
                                 status = status.toBuilder()
                                         .syncState(PollingStorageStatus.SyncState.ERROR)
-                                        .lastErrors(List.of("Failed to publish update: could not acquire write lock after "
-                                                + MAX_SWITCH_RETRIES + " attempts"))
+                                        .errors(List.of(new PollingError("Failed to publish update: could not acquire write lock after "
+                                                + MAX_SWITCH_RETRIES + " attempts")))
                                         .build();
                                 pendingResult = null;
                                 pendingProcessingResult = null;
@@ -236,7 +216,6 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
      */
     private void loadInactive(PollingResult<MARKER> pollResult) {
         try {
-            String markerStr = markerToString(pollResult.getMarker());
             status = status.toBuilder()
                     .syncState(PollingStorageStatus.SyncState.LOADING)
                     .build();
@@ -257,7 +236,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                 pollResult.commit();
                 status = status.toBuilder()
                         .syncState(PollingStorageStatus.SyncState.ERROR)
-                        .lastErrors(result.getErrors())
+                        .errors(result.getErrors())
                         .build();
             }
         } catch (Exception e) {
@@ -266,7 +245,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
             log.error("{} failed to load data into inactive storage: {}", storageName(), e.getMessage(), e);
             status = status.toBuilder()
                     .syncState(PollingStorageStatus.SyncState.ERROR)
-                    .lastErrors(List.of("Transient error: " + e.getMessage()))
+                    .errors(List.of(new PollingError("Transient error: " + e.getMessage())))
                     .build();
         }
     }

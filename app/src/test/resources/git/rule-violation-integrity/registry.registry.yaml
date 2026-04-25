@@ -1,0 +1,6 @@
+$type: registry-v0
+registryId: test
+globalRules:
+  - ruleType: INTEGRITY
+    config: REFS_EXIST
+properties: []

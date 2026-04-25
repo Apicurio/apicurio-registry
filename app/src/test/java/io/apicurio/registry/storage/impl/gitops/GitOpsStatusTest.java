@@ -23,13 +23,16 @@ import io.restassured.RestAssured;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
@@ -37,8 +40,6 @@ public class GitOpsStatusTest {
 
     @Test
     void statusEndpointReturnsInitializingBeforeFirstLoad() {
-        // The initial state before any data is loaded should be INITIALIZING or IDLE
-        // depending on timing. Just verify the endpoint works.
         given()
                 .when()
                 .get("/apis/registry/v3/admin/gitops/status")
@@ -60,12 +61,12 @@ public class GitOpsStatusTest {
                     .then()
                     .statusCode(200)
                     .body("syncState", equalTo("IDLE"))
-                    .body("currentMarker", notNullValue())
+                    .body("sources", aMapWithSize(1))
                     .body("lastSuccessfulSync", notNullValue())
                     .body("groupCount", greaterThanOrEqualTo(1))
                     .body("artifactCount", greaterThanOrEqualTo(1))
                     .body("versionCount", greaterThanOrEqualTo(1))
-                    .body("lastErrors", empty());
+                    .body("errors", empty());
         });
     }
 
@@ -73,7 +74,6 @@ public class GitOpsStatusTest {
     void statusEndpointShowsErrorOnInvalidData() throws Exception {
         var testRepository = GitTestRepositoryManager.getTestRepository();
 
-        // First load valid data to get to IDLE
         testRepository.load("git/smoke01");
         await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
             given()
@@ -84,7 +84,6 @@ public class GitOpsStatusTest {
                     .body("syncState", equalTo("IDLE"));
         });
 
-        // Load invalid data — should transition to ERROR
         testRepository.load("git/invalid-content-ref");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
             given()
@@ -98,7 +97,6 @@ public class GitOpsStatusTest {
 
     @Test
     void syncEndpointTriggersRefresh() throws Exception {
-        // POST /sync should return 204 and trigger a sync
         given()
                 .when()
                 .post("/apis/registry/v3/admin/gitops/sync")
@@ -110,7 +108,6 @@ public class GitOpsStatusTest {
     void statusEndpointUpdatesMarkerAfterNewCommit() throws Exception {
         var testRepository = GitTestRepositoryManager.getTestRepository();
 
-        // Load initial data
         testRepository.load("git/smoke01");
         await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
             given()
@@ -119,28 +116,23 @@ public class GitOpsStatusTest {
                     .then()
                     .statusCode(200)
                     .body("syncState", equalTo("IDLE"))
-                    .body("currentMarker", notNullValue());
+                    .body("sources", aMapWithSize(1));
         });
 
-        // Get the initial marker
-        String initialMarker = RestAssured.get("/apis/registry/v3/admin/gitops/status")
+        Map<String, String> initialSources = RestAssured.get("/apis/registry/v3/admin/gitops/status")
                 .then()
                 .extract()
-                .path("currentMarker");
+                .path("sources");
 
-        // Load new data
         testRepository.load("git/smoke02");
-
-        // Trigger immediate sync
         given().post("/apis/registry/v3/admin/gitops/sync");
 
-        // Wait for marker to change
         await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
-            String currentMarker = RestAssured.get("/apis/registry/v3/admin/gitops/status")
+            Map<String, String> currentSources = RestAssured.get("/apis/registry/v3/admin/gitops/status")
                     .then()
                     .extract()
-                    .path("currentMarker");
-            org.junit.jupiter.api.Assertions.assertNotEquals(initialMarker, currentMarker);
+                    .path("sources");
+            assertNotEquals(initialSources, currentSources);
         });
     }
 }

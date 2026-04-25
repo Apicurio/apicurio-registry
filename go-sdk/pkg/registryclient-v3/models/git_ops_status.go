@@ -11,17 +11,15 @@ type GitOpsStatus struct {
 	additionalData map[string]any
 	// Number of artifacts loaded in the last successful sync.
 	artifactCount *int32
-	// The Git commit SHA currently loaded in the storage. Null if no data has been loaded yet.
-	currentMarker *string
+	// Errors from the last failed load attempt. Empty if the last load was successful.
+	errors []GitOpsErrorable
 	// Number of groups loaded in the last successful sync.
 	groupCount *int32
-	// List of error messages from the last failed load attempt. Empty if the last load was successful.
-	lastErrors []string
 	// ISO 8601 timestamp of the last successful synchronization.
 	lastSuccessfulSync *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// ISO 8601 timestamp of the last synchronization attempt (successful or not).
 	lastSyncAttempt *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
-	// Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).
+	// Per-source identifiers. Maps source ID (e.g., repository ID, Kubernetes server/namespace) to its current marker (e.g., abbreviated commit SHA, resource version).
 	sources GitOpsStatus_sourcesable
 	// The current synchronization state of the GitOps storage. Possible values: INITIALIZING (first load not yet completed), IDLE (serving latest data), LOADING (sync in progress), SWITCHING (data loaded, waiting for write lock to publish), ERROR (last sync or switch failed, serving previous data).
 	syncState *string
@@ -54,10 +52,10 @@ func (m *GitOpsStatus) GetArtifactCount() *int32 {
 	return m.artifactCount
 }
 
-// GetCurrentMarker gets the currentMarker property value. The Git commit SHA currently loaded in the storage. Null if no data has been loaded yet.
-// returns a *string when successful
-func (m *GitOpsStatus) GetCurrentMarker() *string {
-	return m.currentMarker
+// GetErrors gets the errors property value. Errors from the last failed load attempt. Empty if the last load was successful.
+// returns a []GitOpsErrorable when successful
+func (m *GitOpsStatus) GetErrors() []GitOpsErrorable {
+	return m.errors
 }
 
 // GetFieldDeserializers the deserialization information for the current model
@@ -74,13 +72,19 @@ func (m *GitOpsStatus) GetFieldDeserializers() map[string]func(i878a80d2330e89d2
 		}
 		return nil
 	}
-	res["currentMarker"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
+	res["errors"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetCollectionOfObjectValues(CreateGitOpsErrorFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetCurrentMarker(val)
+			res := make([]GitOpsErrorable, len(val))
+			for i, v := range val {
+				if v != nil {
+					res[i] = v.(GitOpsErrorable)
+				}
+			}
+			m.SetErrors(res)
 		}
 		return nil
 	}
@@ -91,22 +95,6 @@ func (m *GitOpsStatus) GetFieldDeserializers() map[string]func(i878a80d2330e89d2
 		}
 		if val != nil {
 			m.SetGroupCount(val)
-		}
-		return nil
-	}
-	res["lastErrors"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfPrimitiveValues("string")
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			res := make([]string, len(val))
-			for i, v := range val {
-				if v != nil {
-					res[i] = *(v.(*string))
-				}
-			}
-			m.SetLastErrors(res)
 		}
 		return nil
 	}
@@ -169,12 +157,6 @@ func (m *GitOpsStatus) GetGroupCount() *int32 {
 	return m.groupCount
 }
 
-// GetLastErrors gets the lastErrors property value. List of error messages from the last failed load attempt. Empty if the last load was successful.
-// returns a []string when successful
-func (m *GitOpsStatus) GetLastErrors() []string {
-	return m.lastErrors
-}
-
 // GetLastSuccessfulSync gets the lastSuccessfulSync property value. ISO 8601 timestamp of the last successful synchronization.
 // returns a *Time when successful
 func (m *GitOpsStatus) GetLastSuccessfulSync() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
@@ -187,7 +169,7 @@ func (m *GitOpsStatus) GetLastSyncAttempt() *i336074805fc853987abe6f7fe3ad97a6a6
 	return m.lastSyncAttempt
 }
 
-// GetSources gets the sources property value. Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).
+// GetSources gets the sources property value. Per-source identifiers. Maps source ID (e.g., repository ID, Kubernetes server/namespace) to its current marker (e.g., abbreviated commit SHA, resource version).
 // returns a GitOpsStatus_sourcesable when successful
 func (m *GitOpsStatus) GetSources() GitOpsStatus_sourcesable {
 	return m.sources
@@ -213,20 +195,20 @@ func (m *GitOpsStatus) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e
 			return err
 		}
 	}
-	{
-		err := writer.WriteStringValue("currentMarker", m.GetCurrentMarker())
+	if m.GetErrors() != nil {
+		cast := make([]i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, len(m.GetErrors()))
+		for i, v := range m.GetErrors() {
+			if v != nil {
+				cast[i] = v.(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable)
+			}
+		}
+		err := writer.WriteCollectionOfObjectValues("errors", cast)
 		if err != nil {
 			return err
 		}
 	}
 	{
 		err := writer.WriteInt32Value("groupCount", m.GetGroupCount())
-		if err != nil {
-			return err
-		}
-	}
-	if m.GetLastErrors() != nil {
-		err := writer.WriteCollectionOfStringValues("lastErrors", m.GetLastErrors())
 		if err != nil {
 			return err
 		}
@@ -280,19 +262,14 @@ func (m *GitOpsStatus) SetArtifactCount(value *int32) {
 	m.artifactCount = value
 }
 
-// SetCurrentMarker sets the currentMarker property value. The Git commit SHA currently loaded in the storage. Null if no data has been loaded yet.
-func (m *GitOpsStatus) SetCurrentMarker(value *string) {
-	m.currentMarker = value
+// SetErrors sets the errors property value. Errors from the last failed load attempt. Empty if the last load was successful.
+func (m *GitOpsStatus) SetErrors(value []GitOpsErrorable) {
+	m.errors = value
 }
 
 // SetGroupCount sets the groupCount property value. Number of groups loaded in the last successful sync.
 func (m *GitOpsStatus) SetGroupCount(value *int32) {
 	m.groupCount = value
-}
-
-// SetLastErrors sets the lastErrors property value. List of error messages from the last failed load attempt. Empty if the last load was successful.
-func (m *GitOpsStatus) SetLastErrors(value []string) {
-	m.lastErrors = value
 }
 
 // SetLastSuccessfulSync sets the lastSuccessfulSync property value. ISO 8601 timestamp of the last successful synchronization.
@@ -305,7 +282,7 @@ func (m *GitOpsStatus) SetLastSyncAttempt(value *i336074805fc853987abe6f7fe3ad97
 	m.lastSyncAttempt = value
 }
 
-// SetSources sets the sources property value. Per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).
+// SetSources sets the sources property value. Per-source identifiers. Maps source ID (e.g., repository ID, Kubernetes server/namespace) to its current marker (e.g., abbreviated commit SHA, resource version).
 func (m *GitOpsStatus) SetSources(value GitOpsStatus_sourcesable) {
 	m.sources = value
 }
@@ -324,18 +301,16 @@ type GitOpsStatusable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetArtifactCount() *int32
-	GetCurrentMarker() *string
+	GetErrors() []GitOpsErrorable
 	GetGroupCount() *int32
-	GetLastErrors() []string
 	GetLastSuccessfulSync() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetLastSyncAttempt() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetSources() GitOpsStatus_sourcesable
 	GetSyncState() *string
 	GetVersionCount() *int32
 	SetArtifactCount(value *int32)
-	SetCurrentMarker(value *string)
+	SetErrors(value []GitOpsErrorable)
 	SetGroupCount(value *int32)
-	SetLastErrors(value []string)
 	SetLastSuccessfulSync(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetLastSyncAttempt(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetSources(value GitOpsStatus_sourcesable)

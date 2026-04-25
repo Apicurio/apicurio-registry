@@ -15,9 +15,12 @@ import java.util.function.Supplier;
 
 import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(GitopsMultiRepoTestProfile.class)
@@ -63,8 +66,8 @@ public class GitOpsMultiRepoTest {
                 .then()
                 .statusCode(200)
                 .body("syncState", equalTo("IDLE"))
-                .body("sources.repo-a", org.hamcrest.Matchers.notNullValue())
-                .body("sources.repo-b", org.hamcrest.Matchers.notNullValue());
+                .body("sources.repo-a", notNullValue())
+                .body("sources.repo-b", notNullValue());
     }
 
     @Test
@@ -77,14 +80,14 @@ public class GitOpsMultiRepoTest {
 
         await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
             Set<String> artifacts = withContext(() -> storage.getArtifactIds(100));
-            org.junit.jupiter.api.Assertions.assertTrue(artifacts.contains("widget"),
+            assertTrue(artifacts.contains("widget"),
                     "Expected 'widget' in artifacts: " + artifacts);
         });
 
         // Load conflicting data into repo B (same alpha:widget as repo A)
         repoB.load("git/conflict-b");
 
-        // Wait for the conflict to be detected — status should show ERROR
+        // Wait for the conflict to be detected — status should show ERROR with structured errors
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
             given()
                     .when()
@@ -92,13 +95,14 @@ public class GitOpsMultiRepoTest {
                     .then()
                     .statusCode(200)
                     .body("syncState", equalTo("ERROR"))
-                    .body("lastErrors", hasItem(
-                            org.hamcrest.Matchers.containsString("defined in multiple sources")));
+                    .body("errors.detail", hasItem(
+                            containsString("defined in multiple sources")))
+                    .body("errors.source", hasItem(notNullValue()));
         });
 
         // Previous data should still be served (blue-green swap did not happen)
         var artifacts = withContext(() -> storage.getArtifactIds(100));
-        org.junit.jupiter.api.Assertions.assertTrue(artifacts.contains("widget"),
+        assertTrue(artifacts.contains("widget"),
                 "Previous data should still be served after conflict");
     }
 

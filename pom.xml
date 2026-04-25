@@ -299,7 +299,7 @@
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
-    <keycloak.testcontainers.version>4.2.0</keycloak.testcontainers.version>
+    <keycloak.testcontainers.version>4.2.1</keycloak.testcontainers.version>
     <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>

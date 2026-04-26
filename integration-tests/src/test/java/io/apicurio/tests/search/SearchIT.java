@@ -147,6 +147,9 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         registryClient.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(car.getVersion().getVersion()).put(emd);
 
+        // Allow time for ES indexing
+        Thread.sleep(3000);
+
         // Search by label key
         retry(() -> {
             VersionSearchResults results = registryClient.search().versions().get(config -> {

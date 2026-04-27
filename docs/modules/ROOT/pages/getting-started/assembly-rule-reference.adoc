@@ -55,6 +55,7 @@ a| Enforce artifact reference integrity when creating or updating artifacts. Ena
 
 * `FULL`: All artifact reference integrity checks are enabled.
 * `NO_DUPLICATES`: Detect if there are any duplicate artifact references.
+* `NO_CIRCULAR_REFERENCES`: Detect circular reference chains among artifacts.
 * `REFS_EXIST`: Detect if there are any references to non-existent artifacts.
 * `ALL_REFS_MAPPED`: Ensure that all artifact references are mapped.
 * `NONE`: All artifact reference integrity checks are disabled.

@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -169,12 +170,17 @@ public class AuthConfig {
     @Info(category = CATEGORY_AUTH, description = "When enabled, authorization checks are skipped and the proxy is trusted to have performed authorization", availableSince = "3.1.0.Final")
     boolean proxyHeaderTrustProxyAuthorization;
 
+    @ConfigProperty(name = "apicurio.authn.mechanism.priority", defaultValue = "basic,proxy-header,oidc")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc.", availableSince = "3.3.0")
+    String mechanismPriority;
+
     @PostConstruct
     void onConstruct() {
         log.debug("===============================");
         log.debug("OIDC Auth Enabled: " + oidcAuthEnabled);
         log.debug("Basic Auth Enabled: " + basicAuthEnabled);
         log.debug("Proxy Auth Enabled: " + proxyHeaderAuthEnabled);
+        log.debug("Mechanism Priority: " + mechanismPriority);
         log.debug("Anonymous Read Access Enabled: " + anonymousReadAccessEnabled);
         log.debug("Authenticated Read Access Enabled: " + authenticatedReadAccessEnabled);
         log.debug("RBAC Enabled: " + roleBasedAuthorizationEnabled);
@@ -228,6 +234,18 @@ public class AuthConfig {
 
     public boolean isAuthenticatedReadsEnabled() {
         return authenticatedReadAccessEnabled.get();
+    }
+
+    /**
+     * Returns the ordered list of authentication mechanism names from the configured priority.
+     *
+     * @return list of mechanism names (e.g. ["basic", "proxy-header", "oidc"])
+     */
+    public List<String> getMechanismPriorityList() {
+        return Arrays.stream(mechanismPriority.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
     }
 
     /**

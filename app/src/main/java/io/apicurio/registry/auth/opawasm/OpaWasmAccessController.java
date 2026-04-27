@@ -103,7 +103,7 @@ public class OpaWasmAccessController extends AbstractAccessController {
 
         try (OpaPolicyPool.Loan loan = policyPool.borrow()) {
             OpaPolicy policy = loan.policy();
-            policy.data(data.getRawJson());
+            policy.data(data.getDataJsonForUser(user, roles));
             policy.entrypoint("registry/authz/allow");
             String result = policy.evaluate(input);
             JsonNode resultNode = MAPPER.readTree(result);

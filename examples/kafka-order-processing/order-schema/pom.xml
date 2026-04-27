@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-examples-kafka-order-processing</artifactId>
-        <version>3.2.3</version>
+        <version>3.2.4-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 

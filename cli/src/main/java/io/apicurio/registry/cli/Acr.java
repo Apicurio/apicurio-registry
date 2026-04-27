@@ -14,7 +14,7 @@ import static picocli.CommandLine.ScopeType.INHERIT;
 @TopCommand
 @Command(
         name = "acr",
-        description = "Apicurio Registry CLI",
+        description = "Apicurio Registry CLI — manage schemas and APIs from the command line. Currently unstable; its arguments and behavior are subject to backwards-incompatible changes.",
         header = {
                 "   ___        _              _",
                 "  / _ | ___  (_)_____ ______(_)__",
@@ -42,7 +42,7 @@ import static picocli.CommandLine.ScopeType.INHERIT;
 public class Acr {
 
     @Option(
-            names = {"-v", "--verbose"},
+            names = {"--verbose"},
             description = "Enable verbose output.",
             scope = INHERIT
     )

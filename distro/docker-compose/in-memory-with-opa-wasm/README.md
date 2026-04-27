@@ -169,18 +169,19 @@ curl -s -o /dev/null -w "%{http_code}" \
 
 ## Grants file
 
-Edit `grants.json` to change per-resource permissions. The file is mounted read-only into the Registry container. To apply changes, restart the Registry container:
+Edit `grants.json` to change per-resource permissions. The file is mounted into the Registry container and hot-reloaded every 5 seconds — no restart needed:
 
 ```bash
-# Edit grants.json, then:
-docker compose restart apicurio-registry
+# Edit grants.json — changes take effect within 5 seconds
 ```
+
+See `app/src/main/java/io/apicurio/registry/auth/opawasm/README.md` for the full design documentation, scaling characteristics, and known limitations.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `docker-compose.yml` | Service definitions |
-| `grants.json` | Per-resource permission grants (who can access what) |
+| `grants.json` | Per-resource permission grants (who can access what, hot-reloaded) |
 | `registry-authz.rego` | Rego policy source (generic authorization logic) |
 | `registry-authz.wasm` | Compiled WASM policy (loaded by Registry at startup) |

@@ -157,7 +157,7 @@ public class RegistryClientRequestAdapterFactory {
      * InvocationHandler that implements retry logic with exponential backoff for RequestAdapter methods.
      * Retries on transient network exceptions (connection reset, timeout, etc.) for both Vert.x and JDK adapters.
      */
-    private static class RetryInvocationHandler implements InvocationHandler {
+    static class RetryInvocationHandler implements InvocationHandler {
         private final RequestAdapter delegate;
         private final int maxRetryAttempts;
         private final long initialRetryDelayMs;
@@ -207,20 +207,22 @@ public class RegistryClientRequestAdapterFactory {
         }
 
         private boolean isRetryable(Throwable cause) {
-            // Vert.x specific retryable exception - check by class name to avoid compile-time Vertx dependency
-            if ("io.vertx.core.http.HttpClosedException".equals(cause.getClass().getName())) {
-                return true;
-            }
-            // JDK specific retryable exceptions
-            if (cause instanceof java.net.ConnectException) {
-                return true;
-            }
-            if (cause instanceof java.net.SocketTimeoutException) {
-                return true;
-            }
-            if (cause instanceof java.io.IOException && cause.getMessage() != null
-                    && cause.getMessage().contains("Connection reset")) {
-                return true;
+            Throwable current = cause;
+            while (current != null) {
+                if ("io.vertx.core.http.HttpClosedException".equals(current.getClass().getName())) {
+                    return true;
+                }
+                if (current instanceof java.net.ConnectException) {
+                    return true;
+                }
+                if (current instanceof java.net.SocketTimeoutException) {
+                    return true;
+                }
+                if (current instanceof java.io.IOException && current.getMessage() != null
+                        && current.getMessage().contains("Connection reset")) {
+                    return true;
+                }
+                current = current.getCause();
             }
             return false;
         }

@@ -7,7 +7,7 @@ import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETU
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
 /**
- * Shared utility for resolving and validating group and artifact IDs across CLI commands.
+ * Shared utility for resolving and validating group and artifact IDs, and validating version existence across CLI commands.
  */
 public final class IdUtil {
 
@@ -57,5 +57,12 @@ public final class IdUtil {
     // Validates the artifact exists within the given group.
     public static void validateArtifact(final RegistryClient client, final String groupId, final String artifactId) {
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+    }
+
+    // Validates the version exists for the given artifact.
+    public static void validateVersion(final RegistryClient client, final String groupId,
+                                       final String artifactId, final String versionExpression) {
+        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression(versionExpression).get();
     }
 }

@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
@@ -150,6 +151,15 @@ public final class Conversions {
                         .map(Conversions::convert)
                         .collect(Collectors.toList()))
                 .count(searchResults.getCount())
+                .build();
+    }
+
+    public static Comment convert(io.apicurio.registry.rest.client.models.Comment comment) {
+        return Comment.builder()
+                .commentId(comment.getCommentId())
+                .value(comment.getValue())
+                .owner(comment.getOwner())
+                .createdOn(ofNullable(comment.getCreatedOn()).map(Conversions::convert).orElse(null))
                 .build();
     }
 

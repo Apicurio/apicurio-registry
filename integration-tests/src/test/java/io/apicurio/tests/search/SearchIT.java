@@ -166,7 +166,7 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         retry(() -> {
             VersionSearchResults results = registryClient.search().versions().get(config -> {
                 config.queryParameters.groupId = GROUP;
-                config.queryParameters.labels = new String[] { labelKey + "=search-smoke-test" };
+                config.queryParameters.labels = new String[] { labelKey + ":search-smoke-test" };
             });
             Assertions.assertEquals(1, results.getCount(),
                     "Expected 1 result when searching by label key:value");

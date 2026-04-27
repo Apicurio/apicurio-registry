@@ -1,20 +1,21 @@
 package io.apicurio.registry.auth.opawasm;
 
+import java.util.List;
 import java.util.Set;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.styra.opa.wasm.OpaPolicy;
-import com.styra.opa.wasm.OpaPolicyPool;
-
+import io.apicurio.authz.GrantsData;
+import io.apicurio.authz.OpaWasmAuthorizer;
+import io.apicurio.authz.RolePrincipal;
 import io.apicurio.registry.auth.AbstractAccessController;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.model.GroupId;
+import io.kroxylicious.authorizer.service.Action;
+import io.kroxylicious.authorizer.service.AuthorizeResult;
+import io.kroxylicious.authorizer.service.Decision;
+import io.kroxylicious.proxy.authentication.Subject;
+import io.kroxylicious.proxy.authentication.User;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -25,35 +26,28 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class OpaWasmAccessController extends AbstractAccessController {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Logger LOG = LoggerFactory.getLogger(OpaWasmAccessController.class);
 
     @Inject
     SecurityIdentity securityIdentity;
 
-    private volatile OpaPolicyPool policyPool;
-    private volatile GrantsData grantsData;
+    private volatile OpaWasmAuthorizer authorizer;
 
-    void initialize(OpaPolicyPool policyPool, String permissionsData) {
-        this.grantsData = GrantsData.parse(permissionsData);
-        this.policyPool = policyPool;
+    void setAuthorizer(OpaWasmAuthorizer authorizer) {
+        this.authorizer = authorizer;
     }
 
-    void reloadData(String permissionsData) {
-        this.grantsData = GrantsData.parse(permissionsData);
-    }
-
-    OpaPolicyPool getPolicyPool() {
-        return policyPool;
+    OpaWasmAuthorizer getAuthorizer() {
+        return authorizer;
     }
 
     GrantsData getGrantsData() {
-        return grantsData;
+        return authorizer != null ? authorizer.getGrantsData() : null;
     }
 
     @Override
     public boolean isAuthorized(InvocationContext context) {
-        if (policyPool == null) {
+        if (authorizer == null) {
             LOG.error("OPA WASM access controller not initialized, denying access.");
             return false;
         }
@@ -75,50 +69,41 @@ public class OpaWasmAccessController extends AbstractAccessController {
             return true;
         }
 
-        String user = securityIdentity != null && !securityIdentity.isAnonymous()
-                ? securityIdentity.getPrincipal().getName()
-                : "anonymous";
+        io.kroxylicious.authorizer.service.ResourceType<?> operation;
+        if (style == AuthorizedStyle.GroupOnly) {
+            operation = toGroupOp(level);
+        } else {
+            operation = toArtifactOp(level);
+        }
+        Subject subject = buildSubject();
 
-        Set<String> roles = securityIdentity != null ? securityIdentity.getRoles() : Set.of();
-        String resourceType = (style == AuthorizedStyle.GroupOnly) ? "group" : "artifact";
-        String operation = toOperationString(level);
-
-        return evaluate(user, roles, operation, resourceType, resourceName);
+        AuthorizeResult result = authorizer.authorize(subject, List.of(new Action(operation, resourceName)))
+                .toCompletableFuture().join();
+        return result.decision(operation, resourceName) == Decision.ALLOW;
     }
 
-    public boolean evaluate(String user, Set<String> roles, String operation, String resourceType, String resourceName) {
-        GrantsData data = this.grantsData;
-        if (data == null) {
-            LOG.error("Grants data not loaded, denying access.");
+    public boolean canReadArtifact(String groupId, String artifactId) {
+        if (authorizer == null) {
             return false;
         }
+        String resourceName = buildResourceName(groupId, artifactId);
+        Subject subject = buildSubject();
+        AuthorizeResult result = authorizer.authorize(subject,
+                List.of(new Action(RegistryResourceType.Artifact.Read, resourceName)))
+                .toCompletableFuture().join();
+        return result.decision(RegistryResourceType.Artifact.Read, resourceName) == Decision.ALLOW;
+    }
 
-        ObjectNode input = MAPPER.createObjectNode();
-        input.put("user", user);
-        ArrayNode rolesArray = input.putArray("roles");
-        roles.forEach(rolesArray::add);
-        input.put("operation", operation);
-        input.put("resource_type", resourceType);
-        input.put("resource_name", resourceName);
-
-        try (OpaPolicyPool.Loan loan = policyPool.borrow()) {
-            OpaPolicy policy = loan.policy();
-            policy.data(data.getDataJsonForUser(user, roles));
-            policy.entrypoint("registry/authz/allow");
-            String result = policy.evaluate(input);
-            JsonNode resultNode = MAPPER.readTree(result);
-            boolean allowed = extractResult(resultNode);
-            LOG.debug("OPA WASM authorization: user={}, op={}, type={}, name={}, allowed={}",
-                    user, operation, resourceType, resourceName, allowed);
-            return allowed;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            LOG.error("Interrupted while borrowing OPA policy from pool", e);
-            return false;
-        } catch (JsonProcessingException e) {
-            LOG.error("Failed to parse OPA evaluation result", e);
-            return false;
+    private Subject buildSubject() {
+        if (securityIdentity == null || securityIdentity.isAnonymous()) {
+            return Subject.anonymous();
         }
+        var principals = new java.util.HashSet<io.kroxylicious.proxy.authentication.Principal>();
+        principals.add(new User(securityIdentity.getPrincipal().getName()));
+        for (String role : securityIdentity.getRoles()) {
+            principals.add(new RolePrincipal(role));
+        }
+        return new Subject(principals);
     }
 
     public static String buildResourceName(String groupId, String artifactId) {
@@ -139,25 +124,21 @@ public class OpaWasmAccessController extends AbstractAccessController {
         };
     }
 
-    private static String toOperationString(AuthorizedLevel level) {
+    private static RegistryResourceType.Artifact toArtifactOp(AuthorizedLevel level) {
         return switch (level) {
-            case Read -> "read";
-            case Write -> "write";
-            case Admin, AdminOrOwner -> "admin";
-            case None -> "read";
+            case Read -> RegistryResourceType.Artifact.Read;
+            case Write -> RegistryResourceType.Artifact.Write;
+            case Admin, AdminOrOwner -> RegistryResourceType.Artifact.Admin;
+            case None -> RegistryResourceType.Artifact.Read;
         };
     }
 
-    private static boolean extractResult(JsonNode resultNode) {
-        if (resultNode.isArray() && !resultNode.isEmpty()) {
-            JsonNode first = resultNode.get(0);
-            if (first.has("result")) {
-                return first.get("result").asBoolean(false);
-            }
-        }
-        if (resultNode.isBoolean()) {
-            return resultNode.asBoolean();
-        }
-        return false;
+    private static RegistryResourceType.Group toGroupOp(AuthorizedLevel level) {
+        return switch (level) {
+            case Read -> RegistryResourceType.Group.Read;
+            case Write -> RegistryResourceType.Group.Write;
+            case Admin, AdminOrOwner -> RegistryResourceType.Group.Admin;
+            case None -> RegistryResourceType.Group.Read;
+        };
     }
 }

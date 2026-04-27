@@ -63,11 +63,7 @@ public class SearchAuthorizerProducer {
 
                 @Override
                 public boolean canReadArtifact(String groupId, String artifactId) {
-                    String user = securityIdentity != null && !securityIdentity.isAnonymous()
-                            ? securityIdentity.getPrincipal().getName() : "anonymous";
-                    Set<String> roles = securityIdentity != null ? securityIdentity.getRoles() : Set.of();
-                    String resourceName = OpaWasmAccessController.buildResourceName(groupId, artifactId);
-                    return opaAc.evaluate(user, roles, "read", "artifact", resourceName);
+                    return opaAc.canReadArtifact(groupId, artifactId);
                 }
             };
         }

@@ -154,11 +154,11 @@
       <artifactId>quarkus-jdbc-mssql</artifactId>
     </dependency>
 
-    <!-- OPA WASM in-process policy evaluation -->
+    <!-- Shared authorization (Kroxylicious Authorizer API + OPA WASM) -->
     <dependency>
-      <groupId>com.styra.opa</groupId>
-      <artifactId>opa-java-wasm</artifactId>
-      <version>1.0.3</version>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-authz-core</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <!-- Third Party Libraries -->

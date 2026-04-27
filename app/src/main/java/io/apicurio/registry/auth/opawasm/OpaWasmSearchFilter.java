@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import io.apicurio.authz.GrantsData;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -64,7 +65,7 @@ public class OpaWasmSearchFilter {
     }
 
     private Set<SearchFilter> addAuthorizationFilters(Set<SearchFilter> filters, String resourceType) {
-        if (!config.isEnabled() || opaWasmAc.getPolicyPool() == null) {
+        if (!config.isEnabled() || opaWasmAc.getAuthorizer() == null) {
             return filters;
         }
 
@@ -81,7 +82,8 @@ public class OpaWasmSearchFilter {
             return filters;
         }
 
-        Set<String> allowedGroups = data.getAllowedGroups(user, roles, resourceType);
+        String separator = "artifact".equals(resourceType) ? "/" : null;
+        Set<String> allowedGroups = data.getAllowedValues(user, roles, resourceType, separator);
         if (allowedGroups == null) {
             return filters;
         }

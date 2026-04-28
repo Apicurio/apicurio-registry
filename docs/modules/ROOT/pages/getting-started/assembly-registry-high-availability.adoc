@@ -74,7 +74,7 @@ spec:
 ----
 
 IMPORTANT: Running multiple replicas requires a production-ready storage backend (PostgreSQL, MySQL, or KafkaSQL
-with persistent Kafka). Do not use in-memory storage with multiple replicas.
+with persistent Kafka). Do not use the default embedded H2 configuration with multiple replicas.
 
 === Distributing pods across nodes
 
@@ -351,7 +351,7 @@ When running multiple {registry} replicas with KafkaSQL storage:
 * Each replica uses a unique consumer group ID (automatically generated using UUID)
 * Each replica independently consumes all messages from the journal topic
 * There is no consumer group rebalancing between replicas
-* All replicas build the same in-memory state from the Kafka topic
+* All replicas build the same local state from the Kafka topic (replayed into an embedded H2 database)
 
 This design ensures that:
 
@@ -360,7 +360,7 @@ This design ensures that:
 * Each replica maintains a consistent view of the data
 
 WARNING: Do not configure a fixed Kafka consumer group ID (for example, by setting
-`APICURIO_KAFKASQL_CONSUMER_GROUP_ID`). KafkaSQL uses an in-memory database that is empty on every
+`APICURIO_KAFKASQL_CONSUMER_GROUP_ID`). KafkaSQL uses an embedded H2 database that is empty on every
 restart, so the full journal topic must be replayed from the beginning each time. A fixed consumer
 group ID causes Kafka to resume from previously committed offsets, skipping the journal replay and
 resulting in the registry appearing empty after a restart. If you need a recognizable consumer group

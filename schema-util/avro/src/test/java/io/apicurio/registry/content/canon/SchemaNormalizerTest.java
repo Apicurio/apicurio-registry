@@ -349,6 +349,302 @@ class SchemaNormalizerTest {
         assertNotNull(parsed);
     }
 
+    /**
+     * Reproducer: schemas differing only in connect.parameters values must produce different
+     * canonical forms. Debezium uses connect.parameters to track allowed enum values
+     * (e.g. io.debezium.data.Enum with "allowed" parameter).
+     */
+    @Test
+    void parseSchema_SchemasWithDifferentConnectParameters_NotEqual() {
+        String schemaV1 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example.dbserver1.public.shipments\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"status\",\n"
+                + "      \"type\": {\n"
+                + "        \"type\": \"string\",\n"
+                + "        \"connect.parameters\": {\n"
+                + "          \"allowed\": \"station,post_office\"\n"
+                + "        },\n"
+                + "        \"connect.name\": \"io.debezium.data.Enum\"\n"
+                + "      }\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        String schemaV2 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example.dbserver1.public.shipments\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"status\",\n"
+                + "      \"type\": {\n"
+                + "        \"type\": \"string\",\n"
+                + "        \"connect.parameters\": {\n"
+                + "          \"allowed\": \"station,post_office,plane\"\n"
+                + "        },\n"
+                + "        \"connect.name\": \"io.debezium.data.Enum\"\n"
+                + "      }\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
+        TypedContent canonicalV2 = canonicalizer.canonicalize(toTypedContent(schemaV2), new HashMap<>());
+
+        assertNotEquals(canonicalV1.getContent().content(), canonicalV2.getContent().content(),
+                "Schemas with different connect.parameters values must have different canonical forms");
+    }
+
+    /**
+     * Reproducer: schemas differing only in field-level custom properties must produce
+     * different canonical forms.
+     */
+    @Test
+    void parseSchema_SchemasWithDifferentFieldLevelCustomProperties_NotEqual() {
+        String schemaV1 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"status\",\n"
+                + "      \"type\": \"string\",\n"
+                + "      \"custom.property\": \"value1\"\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        String schemaV2 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"status\",\n"
+                + "      \"type\": \"string\",\n"
+                + "      \"custom.property\": \"value2\"\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
+        TypedContent canonicalV2 = canonicalizer.canonicalize(toTypedContent(schemaV2), new HashMap<>());
+
+        assertNotEquals(canonicalV1.getContent().content(), canonicalV2.getContent().content(),
+                "Schemas with different field-level custom properties must have different canonical forms");
+    }
+
+    /**
+     * Reproducer: schemas differing only in a field's default value must produce different
+     * canonical forms.
+     */
+    @Test
+    void parseSchema_SchemasWithDifferentDefaultValues_NotEqual() {
+        String schemaV1 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"shard\",\n"
+                + "      \"type\": \"int\",\n"
+                + "      \"default\": 0\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        String schemaV2 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"shard\",\n"
+                + "      \"type\": \"int\",\n"
+                + "      \"default\": 1\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
+        TypedContent canonicalV2 = canonicalizer.canonicalize(toTypedContent(schemaV2), new HashMap<>());
+
+        assertNotEquals(canonicalV1.getContent().content(), canonicalV2.getContent().content(),
+                "Schemas with different default values must have different canonical forms");
+    }
+
+    /**
+     * Reproducer: schemas differing only in a string field's default value must produce
+     * different canonical forms.
+     */
+    @Test
+    void parseSchema_SchemasWithDifferentStringDefaultValues_NotEqual() {
+        String schemaV1 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"region\",\n"
+                + "      \"type\": \"string\",\n"
+                + "      \"default\": \"us-east-1\"\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        String schemaV2 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"region\",\n"
+                + "      \"type\": \"string\",\n"
+                + "      \"default\": \"eu-west-1\"\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
+        TypedContent canonicalV2 = canonicalizer.canonicalize(toTypedContent(schemaV2), new HashMap<>());
+
+        assertNotEquals(canonicalV1.getContent().content(), canonicalV2.getContent().content(),
+                "Schemas with different string default values must have different canonical forms");
+    }
+
+    /**
+     * Reproducer: Debezium-style nullable field with connect.parameters in a union.
+     * This is the exact pattern Debezium uses for nullable enum columns.
+     */
+    @Test
+    void parseSchema_DebeziumNullableEnumWithDifferentAllowedValues_NotEqual() {
+        String schemaV1 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example.dbserver1.public.shipments\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"id\",\n"
+                + "      \"type\": \"int\"\n"
+                + "    },\n"
+                + "    {\n"
+                + "      \"name\": \"status\",\n"
+                + "      \"type\": [\n"
+                + "        \"null\",\n"
+                + "        {\n"
+                + "          \"type\": \"string\",\n"
+                + "          \"connect.parameters\": {\n"
+                + "            \"allowed\": \"station,post_office\"\n"
+                + "          },\n"
+                + "          \"connect.name\": \"io.debezium.data.Enum\",\n"
+                + "          \"connect.version\": 1\n"
+                + "        }\n"
+                + "      ],\n"
+                + "      \"default\": null\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        String schemaV2 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example.dbserver1.public.shipments\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"id\",\n"
+                + "      \"type\": \"int\"\n"
+                + "    },\n"
+                + "    {\n"
+                + "      \"name\": \"status\",\n"
+                + "      \"type\": [\n"
+                + "        \"null\",\n"
+                + "        {\n"
+                + "          \"type\": \"string\",\n"
+                + "          \"connect.parameters\": {\n"
+                + "            \"allowed\": \"station,post_office,plane\"\n"
+                + "          },\n"
+                + "          \"connect.name\": \"io.debezium.data.Enum\",\n"
+                + "          \"connect.version\": 1\n"
+                + "        }\n"
+                + "      ],\n"
+                + "      \"default\": null\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
+        TypedContent canonicalV2 = canonicalizer.canonicalize(toTypedContent(schemaV2), new HashMap<>());
+
+        assertNotEquals(canonicalV1.getContent().content(), canonicalV2.getContent().content(),
+                "Debezium nullable enum schemas with different 'allowed' values must have different canonical forms");
+    }
+
+    /**
+     * Reproducer: connect.parameters with multiple keys where only one value changes.
+     */
+    @Test
+    void parseSchema_SchemasWithDifferentConnectParameterSubset_NotEqual() {
+        String schemaV1 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"amount\",\n"
+                + "      \"type\": {\n"
+                + "        \"type\": \"bytes\",\n"
+                + "        \"connect.parameters\": {\n"
+                + "          \"scale\": \"2\",\n"
+                + "          \"connect.decimal.precision\": \"10\"\n"
+                + "        },\n"
+                + "        \"connect.name\": \"org.apache.kafka.connect.data.Decimal\",\n"
+                + "        \"logicalType\": \"decimal\",\n"
+                + "        \"precision\": 10,\n"
+                + "        \"scale\": 2\n"
+                + "      }\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        String schemaV2 = "{\n"
+                + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Value\",\n"
+                + "  \"namespace\": \"com.example\",\n"
+                + "  \"fields\": [\n"
+                + "    {\n"
+                + "      \"name\": \"amount\",\n"
+                + "      \"type\": {\n"
+                + "        \"type\": \"bytes\",\n"
+                + "        \"connect.parameters\": {\n"
+                + "          \"scale\": \"4\",\n"
+                + "          \"connect.decimal.precision\": \"10\"\n"
+                + "        },\n"
+                + "        \"connect.name\": \"org.apache.kafka.connect.data.Decimal\",\n"
+                + "        \"logicalType\": \"decimal\",\n"
+                + "        \"precision\": 10,\n"
+                + "        \"scale\": 4\n"
+                + "      }\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
+        TypedContent canonicalV2 = canonicalizer.canonicalize(toTypedContent(schemaV2), new HashMap<>());
+
+        assertNotEquals(canonicalV1.getContent().content(), canonicalV2.getContent().content(),
+                "Schemas with different connect.parameters scale values must have different canonical forms");
+    }
+
     private String getSchemaFromResource(String resourcePath) throws IOException {
         ClassLoader classLoader = getClass().getClassLoader();
         URL resourceURL = classLoader.getResource(resourcePath);

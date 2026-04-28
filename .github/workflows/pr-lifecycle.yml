@@ -1,0 +1,216 @@
+name: PR Lifecycle
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+    branches: [main]
+  issue_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  workflow_run:
+    workflows: ["Verify"]
+    types: [completed]
+  schedule:
+    - cron: '17 8 * * *'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: pr-lifecycle-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================================================
+  # PR Opened / Reopened
+  # ==========================================================================
+  pr-opened:
+    name: PR Opened
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request_target' &&
+      (github.event.action == 'opened' || github.event.action == 'reopened') &&
+      contains(github.event.pull_request.labels.*.name, 'orchestrator/enabled')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle PR opened
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handlePrOpened({ github, context, core });
+
+  # ==========================================================================
+  # PR Synchronize (new push)
+  # ==========================================================================
+  pr-synchronize:
+    name: PR Push
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'synchronize' &&
+      contains(github.event.pull_request.labels.*.name, 'orchestrator/enabled')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle push
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handlePrSynchronize({ github, context, core });
+
+  # ==========================================================================
+  # Draft -> Ready
+  # ==========================================================================
+  pr-ready-for-review:
+    name: Draft to Ready
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'ready_for_review' &&
+      contains(github.event.pull_request.labels.*.name, 'orchestrator/enabled')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle ready for review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handlePrReadyForReview({ github, context, core });
+
+  # ==========================================================================
+  # Comment Commands
+  # ==========================================================================
+  command:
+    name: Command
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'issue_comment' &&
+      github.event.action == 'created' &&
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/') &&
+      contains(github.event.issue.labels.*.name, 'orchestrator/enabled')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle command
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handleComment({ github, context, core });
+
+  # ==========================================================================
+  # Review Submitted
+  # ==========================================================================
+  review:
+    name: Review
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request_review' &&
+      github.event.action == 'submitted' &&
+      contains(github.event.pull_request.labels.*.name, 'orchestrator/enabled')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handleReview({ github, context, core });
+
+  # ==========================================================================
+  # Label Protection
+  # ==========================================================================
+  label-guard:
+    name: Label Guard
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request_target' &&
+      (github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
+      github.event.sender.login != 'github-actions[bot]' &&
+      (startsWith(github.event.label.name, 'lifecycle/') || startsWith(github.event.label.name, 'orchestrator/'))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle label change
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handleLabelChange({ github, context, core });
+
+  # ==========================================================================
+  # Test Results (Verify workflow completed)
+  # ==========================================================================
+  test-result:
+    name: Test Result
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion != 'cancelled'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle test result
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handleTestResult({ github, context, core });
+
+  # ==========================================================================
+  # Stale Detection (daily cron)
+  # ==========================================================================
+  stale:
+    name: Stale Detection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Check for stale PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handleStale({ github, context, core });

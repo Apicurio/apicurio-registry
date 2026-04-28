@@ -54,14 +54,15 @@ jobs:
           fi
 
           LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          has_label() { echo "$LABELS" | jq -e "index(\"$1\")" > /dev/null 2>&1; }
 
-          if echo "$LABELS" | grep -q '"orchestrator/enabled"'; then
+          if has_label "orchestrator/enabled"; then
             # Orchestrated PR: scope based on lifecycle state
-            if echo "$LABELS" | grep -q '"lifecycle/ready-for-review"' || echo "$LABELS" | grep -q '"lifecycle/ready-to-merge"'; then
+            if has_label "lifecycle/ready-for-review" || has_label "lifecycle/ready-to-merge"; then
               echo "run_smoke=true" >> $GITHUB_OUTPUT
               echo "run_full=true" >> $GITHUB_OUTPUT
-            elif echo "$LABELS" | grep -q '"lifecycle/wip"'; then
-              if echo "$LABELS" | grep -q '"orchestrator/tests-disabled"'; then
+            elif has_label "lifecycle/wip"; then
+              if has_label "orchestrator/tests-disabled"; then
                 echo "run_smoke=false" >> $GITHUB_OUTPUT
                 echo "run_full=false" >> $GITHUB_OUTPUT
               else
@@ -75,7 +76,7 @@ jobs:
             fi
           else
             # Non-orchestrated PR: existing behavior (DO NOT MERGE backward compat)
-            if echo "$LABELS" | grep -q '"DO NOT MERGE"'; then
+            if has_label "DO NOT MERGE"; then
               echo "run_smoke=false" >> $GITHUB_OUTPUT
               echo "run_full=false" >> $GITHUB_OUTPUT
             else

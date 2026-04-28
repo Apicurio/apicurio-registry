@@ -120,7 +120,6 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
 - **stale.days_until_stale** — days of inactivity before marking as stale (default: 7)
 - **stale.days_until_close** — total days of inactivity before closing (default: 14)
 - **welcome_message** — message posted when a PR is opened
-- **smoke_tests.enabled_by_default** — whether smoke tests run by default in WIP state
 
 ## Test Gating
 

@@ -10,16 +10,19 @@ The authorization engine lives in the `authz/` module (`apicurio-authz-core`), s
 
 ```
 authz/ (apicurio-authz-core)
-  ├── OpaWasmAuthorizer  — implements Kroxylicious Authorizer interface
-  ├── GrantsData         — parsed grants with per-user filtering + caching
-  ├── Grant              — single grant record with matching logic
-  └── RolePrincipal      — role-based Principal for Subject construction
+  ├── OpaWasmAuthorizer      — implements Kroxylicious Authorizer, OPA WASM pool, file hot-reload
+  ├── GrantsData             — parsed grants with per-user filtering, validation, caching
+  ├── Grant                  — single grant record with matching logic
+  └── RolePrincipal          — role-based Principal for Subject construction
 
 app/ (Registry-specific integration)
-  ├── OpaWasmAccessController  — bridges Authorizer with Registry's IAccessController
-  ├── OpaWasmSearchFilter      — translates grants to SQL/ES filters for search
-  ├── RegistryResourceType     — Artifact and Group enums (ResourceType impl)
-  └── ISearchAuthorizer        — engine-agnostic search filtering interface
+  ├── OpaWasmAccessController           — bridges Authorizer with Registry's IAccessController
+  ├── OpaWasmAccessControllerConfig     — config properties (enabled, paths, pool size, entrypoint)
+  ├── OpaWasmAccessControllerInitializer — startup, hot-reload scheduler
+  ├── OpaWasmSearchFilter               — translates grants to SQL/ES filters for search
+  ├── RegistryResourceType              — Artifact and Group enums (ResourceType impl)
+  ├── ISearchAuthorizer                 — engine-agnostic search filtering interface
+  └── SearchAuthorizerProducer          — CDI producer selecting the right ISearchAuthorizer
 ```
 
 ### How authentication and authorization fit together
@@ -38,13 +41,15 @@ SecurityIdentity → Kroxylicious Subject
     → Pre-filters grants for current user (~5-20 entries, ~3KB)
     → OPA WASM evaluation in-process
     → AuthorizeResult → Decision.ALLOW / DENY
+    → OTel metric recorded (apicurio.authz.decisions)
+    → Denied decisions audit-logged
 ```
 
 **Search/list filtering** (which artifacts does this user see?):
 ```
 GrantsData.getAllowedValues(user, roles, "artifact", "/")
   → Set of allowed group IDs
-  → SQL WHERE groupId IN ('team-a', 'shared')
+  → SQL WHERE groupId IN ('team-a', 'shared') / ES terms query
   → Database handles filtering + pagination correctly
 ```
 
@@ -77,21 +82,45 @@ Search filtering requires the authorization layer to participate in the database
 ## Configuration
 
 ```properties
+# Required: enable experimental features gate
+apicurio.features.experimental.enabled=true
+
+# Enable OPA WASM authorization
 apicurio.auth.opa-wasm.enabled=true
+
+# Path to compiled WASM policy (mountable via volume/ConfigMap)
 apicurio.auth.opa-wasm.policy.path=/opt/apicurio/opa/registry-authz.wasm
+
+# Path to JSON grants data file (hot-reloaded every 5s on change)
 apicurio.auth.opa-wasm.data.path=/opt/apicurio/opa/grants.json
+
+# OPA WASM pool size (default: 4)
 apicurio.auth.opa-wasm.pool-size=4
+
+# OPA policy entrypoint (default: registry/authz/allow)
+apicurio.auth.opa-wasm.entrypoint=registry/authz/allow
 ```
 
 ## Grants management
 
 **File-based with hot-reload:** Grants live in a JSON file, hot-reloaded every 5 seconds on change. Admins manage through GitOps or kubectl. No restart needed for permission changes.
 
-**Custom policies at deploy-time:** The `.wasm` path is a config property. Customers can compile their own Rego policy and mount it — same Registry image, different policy.
+**Grants validation:** On load/reload, grants with missing required fields are skipped with a warning. Unrecognized operation or pattern type values are logged. A summary is logged on every load (grant count, admin roles).
+
+**Custom policies at deploy-time:** The `.wasm` path and entrypoint are config properties. Customers can compile their own Rego policy and mount it — same Registry image, different policy.
 
 ## Scaling
 
-Per-request OPA payload is ~3KB (current user's grants only), regardless of total grant count. Search filtering uses cached Java objects translated to SQL — no OPA involved.
+Per-request OPA payload is ~3KB (current user's grants only), regardless of total grant count. Per-user JSON is cached so serialization happens once per user per reload. Search filtering uses cached Java objects translated to SQL — no OPA involved.
+
+## Monitoring
+
+**OTel metrics:**
+- `apicurio.authz.decisions` — counter with attributes: `decision` (allow/deny), `resource_type` (artifact/group), `operation` (read/write/admin)
+
+**Audit logging:**
+- Denied decisions logged to `io.apicurio.registry.audit.authz` at INFO level
+- Format: `authz.denied user="alice" operation="write" resource_type="artifact" resource="team-b/secret"`
 
 ## Running the tests
 
@@ -115,3 +144,4 @@ See `distro/docker-compose/in-memory-with-opa-wasm/` for a working example with 
 
 - Search filtering (Java/SQL) and point-access (OPA WASM) both use the same grants data but different evaluation paths. Custom Rego policies beyond grant matching would apply to point-access only.
 - WASM policy changes require restart. Grants hot-reload every 5 seconds.
+- `getGroupById` uses `@Authorized(style=GroupAndArtifact)` with a single parameter — handled gracefully by falling back to group-only check (#7866).

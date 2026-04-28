@@ -27,6 +27,10 @@ public class OpaWasmAccessControllerConfig {
     @Info(category = CATEGORY_AUTH, description = "Number of OPA WASM policy instances in the evaluation pool", availableSince = "3.0.0", experimental = true)
     int poolSize;
 
+    @ConfigProperty(name = "apicurio.auth.opa-wasm.entrypoint", defaultValue = "registry/authz/allow")
+    @Info(category = CATEGORY_AUTH, description = "OPA policy entrypoint name for authorization evaluation", availableSince = "3.0.0", experimental = true)
+    String entrypoint;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -41,5 +45,9 @@ public class OpaWasmAccessControllerConfig {
 
     public int getPoolSize() {
         return poolSize;
+    }
+
+    public String getEntrypoint() {
+        return entrypoint;
     }
 }

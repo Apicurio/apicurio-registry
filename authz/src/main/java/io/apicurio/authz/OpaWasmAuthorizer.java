@@ -36,30 +36,40 @@ public class OpaWasmAuthorizer implements Authorizer, AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(OpaWasmAuthorizer.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String DEFAULT_ENTRYPOINT = "registry/authz/allow";
 
     private final OpaPolicyPool policyPool;
     private volatile GrantsData grantsData;
     private final Map<Class<? extends ResourceType<?>>, String> resourceTypeNames;
+    private final String entrypoint;
 
     private final Path dataFilePath;
     private volatile FileTime lastModified;
 
     private OpaWasmAuthorizer(OpaPolicyPool policyPool, GrantsData grantsData, Path dataFilePath,
-            FileTime lastModified, Map<Class<? extends ResourceType<?>>, String> resourceTypeNames) {
+            FileTime lastModified, Map<Class<? extends ResourceType<?>>, String> resourceTypeNames,
+            String entrypoint) {
         this.policyPool = policyPool;
         this.grantsData = grantsData;
         this.dataFilePath = dataFilePath;
         this.lastModified = lastModified;
         this.resourceTypeNames = resourceTypeNames;
+        this.entrypoint = entrypoint;
     }
 
     public static OpaWasmAuthorizer create(Path wasmPolicyPath, Path grantsFilePath, int poolSize)
             throws IOException {
-        return create(wasmPolicyPath, grantsFilePath, poolSize, Map.of());
+        return create(wasmPolicyPath, grantsFilePath, poolSize, Map.of(), DEFAULT_ENTRYPOINT);
     }
 
     public static OpaWasmAuthorizer create(Path wasmPolicyPath, Path grantsFilePath, int poolSize,
             Map<Class<? extends ResourceType<?>>, String> resourceTypeNames) throws IOException {
+        return create(wasmPolicyPath, grantsFilePath, poolSize, resourceTypeNames, DEFAULT_ENTRYPOINT);
+    }
+
+    public static OpaWasmAuthorizer create(Path wasmPolicyPath, Path grantsFilePath, int poolSize,
+            Map<Class<? extends ResourceType<?>>, String> resourceTypeNames, String entrypoint)
+            throws IOException {
         String grantsJson = "{}";
         FileTime lastMod = null;
         if (grantsFilePath != null && Files.exists(grantsFilePath)) {
@@ -71,7 +81,7 @@ public class OpaWasmAuthorizer implements Authorizer, AutoCloseable {
                 () -> OpaPolicy.builder().withPolicy(wasmPolicyPath).build(), poolSize);
 
         return new OpaWasmAuthorizer(pool, GrantsData.parse(grantsJson), grantsFilePath, lastMod,
-                new HashMap<>(resourceTypeNames));
+                new HashMap<>(resourceTypeNames), entrypoint);
     }
 
     public GrantsData getGrantsData() {
@@ -162,7 +172,7 @@ public class OpaWasmAuthorizer implements Authorizer, AutoCloseable {
         try (OpaPolicyPool.Loan loan = policyPool.borrow()) {
             OpaPolicy policy = loan.policy();
             policy.data(userDataJson);
-            policy.entrypoint("registry/authz/allow");
+            policy.entrypoint(entrypoint);
             String result = policy.evaluate(input);
             JsonNode resultNode = MAPPER.readTree(result);
             boolean allowed = extractResult(resultNode);

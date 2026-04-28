@@ -21,6 +21,8 @@ public class GrantsData {
 
     private static final Logger LOG = LoggerFactory.getLogger(GrantsData.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Set<String> VALID_OPERATIONS = Set.of("read", "write", "admin");
+    private static final Set<String> VALID_PATTERN_TYPES = Set.of("prefix", "exact");
 
     private final String rawJson;
     private final Set<String> adminRoles;
@@ -51,17 +53,46 @@ public class GrantsData {
             List<Grant> grants = new ArrayList<>();
             JsonNode grantsNode = root.path("grants");
             if (grantsNode.isArray()) {
-                for (JsonNode g : grantsNode) {
-                    grants.add(new Grant(
-                            g.path("principal").asText(""),
-                            g.path("principal_role").asText(""),
-                            g.path("operation").asText(""),
-                            g.path("resource_type").asText(""),
-                            g.path("resource_pattern_type").asText(""),
-                            g.path("resource_pattern").asText("")));
+                for (int i = 0; i < grantsNode.size(); i++) {
+                    JsonNode g = grantsNode.get(i);
+                    String principal = g.path("principal").asText("");
+                    String principalRole = g.path("principal_role").asText("");
+                    String operation = g.path("operation").asText("");
+                    String resourceType = g.path("resource_type").asText("");
+                    String resourcePatternType = g.path("resource_pattern_type").asText("");
+                    String resourcePattern = g.path("resource_pattern").asText("");
+
+                    if (principal.isEmpty() && principalRole.isEmpty()) {
+                        LOG.warn("Grant at index {} has no principal or principal_role, skipping.", i);
+                        continue;
+                    }
+                    if (operation.isEmpty()) {
+                        LOG.warn("Grant at index {} has no operation, skipping.", i);
+                        continue;
+                    }
+                    if (resourceType.isEmpty()) {
+                        LOG.warn("Grant at index {} has no resource_type, skipping.", i);
+                        continue;
+                    }
+                    if (resourcePattern.isEmpty()) {
+                        LOG.warn("Grant at index {} has no resource_pattern, skipping.", i);
+                        continue;
+                    }
+                    if (!VALID_OPERATIONS.contains(operation)) {
+                        LOG.warn("Grant at index {} has unrecognized operation '{}'. "
+                                + "Valid values: read, write, admin.", i, operation);
+                    }
+                    if (!resourcePatternType.isEmpty() && !VALID_PATTERN_TYPES.contains(resourcePatternType)) {
+                        LOG.warn("Grant at index {} has unrecognized resource_pattern_type '{}'. "
+                                + "Valid values: prefix, exact.", i, resourcePatternType);
+                    }
+
+                    grants.add(new Grant(principal, principalRole, operation, resourceType,
+                            resourcePatternType, resourcePattern));
                 }
             }
 
+            LOG.info("Loaded {} grants ({} admin roles: {}).", grants.size(), adminRoles.size(), adminRoles);
             return new GrantsData(json, Collections.unmodifiableSet(adminRoles),
                     Collections.unmodifiableList(grants));
         } catch (Exception e) {

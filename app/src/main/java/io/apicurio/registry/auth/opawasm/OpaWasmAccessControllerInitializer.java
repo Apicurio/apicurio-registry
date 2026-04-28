@@ -53,7 +53,8 @@ public class OpaWasmAccessControllerInitializer {
                     Path.of(policyPath),
                     dataPath != null && !dataPath.isBlank() ? Path.of(dataPath) : null,
                     config.getPoolSize(),
-                    resourceTypeNames);
+                    resourceTypeNames,
+                    config.getEntrypoint());
 
             controller.setAuthorizer(authorizer);
             log.info("OPA WASM authorization initialized with pool size {}.", config.getPoolSize());

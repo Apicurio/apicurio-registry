@@ -18,6 +18,20 @@
       "resource_pattern": "shared/"
     },
     {
+      "principal": "developer",
+      "operation": "write",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-a"
+    },
+    {
+      "principal": "developer",
+      "operation": "read",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "shared"
+    },
+    {
       "principal": "developer2",
       "operation": "write",
       "resource_type": "artifact",
@@ -32,6 +46,20 @@
       "resource_pattern": "shared/"
     },
     {
+      "principal": "developer2",
+      "operation": "write",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-b"
+    },
+    {
+      "principal": "developer2",
+      "operation": "read",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "shared"
+    },
+    {
       "principal": "user",
       "operation": "read",
       "resource_type": "artifact",
@@ -39,18 +67,11 @@
       "resource_pattern": "shared/"
     },
     {
-      "principal": "developer",
-      "operation": "write",
+      "principal": "user",
+      "operation": "read",
       "resource_type": "group",
       "resource_pattern_type": "exact",
-      "resource_pattern": "team-a"
-    },
-    {
-      "principal": "developer2",
-      "operation": "write",
-      "resource_type": "group",
-      "resource_pattern_type": "exact",
-      "resource_pattern": "team-b"
+      "resource_pattern": "shared"
     }
   ]
 }

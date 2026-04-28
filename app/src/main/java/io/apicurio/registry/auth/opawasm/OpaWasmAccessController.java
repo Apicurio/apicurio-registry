@@ -91,7 +91,11 @@ public class OpaWasmAccessController extends AbstractAccessController {
 
         io.kroxylicious.authorizer.service.ResourceType<?> operation;
         String resourceType;
-        if (style == AuthorizedStyle.GroupOnly) {
+        boolean isGroupOnly = style == AuthorizedStyle.GroupOnly
+                || (style == AuthorizedStyle.GroupAndArtifact
+                    && (context.getParameters().length < 2
+                        || !(context.getParameters()[1] instanceof String)));
+        if (isGroupOnly) {
             operation = toGroupOp(level);
             resourceType = "group";
         } else {
@@ -161,8 +165,14 @@ public class OpaWasmAccessController extends AbstractAccessController {
     }
 
     private String extractResourceName(InvocationContext context, AuthorizedStyle style) {
+        Object[] params = context.getParameters();
         return switch (style) {
-            case GroupAndArtifact -> buildResourceName(getStringParam(context, 0), getStringParam(context, 1));
+            case GroupAndArtifact -> {
+                if (params.length < 2 || !(params[1] instanceof String)) {
+                    yield getStringParam(context, 0);
+                }
+                yield buildResourceName(getStringParam(context, 0), getStringParam(context, 1));
+            }
             case GroupOnly -> getStringParam(context, 0);
             case ArtifactOnly -> getStringParam(context, 0);
             case GlobalId -> String.valueOf(getLongParam(context, 0));

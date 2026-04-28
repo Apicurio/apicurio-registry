@@ -1,7 +1,6 @@
 package io.apicurio.registry.auth.opawasm;
 
 import java.util.List;
-import java.util.Set;
 
 import io.apicurio.authz.GrantsData;
 import io.apicurio.authz.OpaWasmAuthorizer;
@@ -16,7 +15,13 @@ import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Decision;
 import io.kroxylicious.proxy.authentication.Subject;
 import io.kroxylicious.proxy.authentication.User;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.Meter;
 import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.interceptor.InvocationContext;
@@ -27,11 +32,26 @@ import org.slf4j.LoggerFactory;
 public class OpaWasmAccessController extends AbstractAccessController {
 
     private static final Logger LOG = LoggerFactory.getLogger(OpaWasmAccessController.class);
+    private static final Logger AUDIT = LoggerFactory.getLogger("io.apicurio.registry.audit.authz");
+
+    private static final AttributeKey<String> DECISION_KEY = AttributeKey.stringKey("decision");
+    private static final AttributeKey<String> RESOURCE_TYPE_KEY = AttributeKey.stringKey("resource_type");
+    private static final AttributeKey<String> OPERATION_KEY = AttributeKey.stringKey("operation");
 
     @Inject
     SecurityIdentity securityIdentity;
 
     private volatile OpaWasmAuthorizer authorizer;
+    private LongCounter authzDecisionsCounter;
+
+    @PostConstruct
+    void initMetrics() {
+        Meter meter = GlobalOpenTelemetry.getMeter("io.apicurio.registry");
+        authzDecisionsCounter = meter.counterBuilder("apicurio.authz.decisions")
+                .setDescription("Authorization decisions for per-resource access control")
+                .setUnit("1")
+                .build();
+    }
 
     void setAuthorizer(OpaWasmAuthorizer authorizer) {
         this.authorizer = authorizer;
@@ -70,16 +90,35 @@ public class OpaWasmAccessController extends AbstractAccessController {
         }
 
         io.kroxylicious.authorizer.service.ResourceType<?> operation;
+        String resourceType;
         if (style == AuthorizedStyle.GroupOnly) {
             operation = toGroupOp(level);
+            resourceType = "group";
         } else {
             operation = toArtifactOp(level);
+            resourceType = "artifact";
         }
+
+        String operationName = level.name().toLowerCase(java.util.Locale.ROOT);
         Subject subject = buildSubject();
 
         AuthorizeResult result = authorizer.authorize(subject, List.of(new Action(operation, resourceName)))
                 .toCompletableFuture().join();
-        return result.decision(operation, resourceName) == Decision.ALLOW;
+        boolean allowed = result.decision(operation, resourceName) == Decision.ALLOW;
+
+        String decisionStr = allowed ? "allow" : "deny";
+        authzDecisionsCounter.add(1, Attributes.of(
+                DECISION_KEY, decisionStr,
+                RESOURCE_TYPE_KEY, resourceType,
+                OPERATION_KEY, operationName));
+
+        if (!allowed) {
+            String user = getUsername();
+            AUDIT.info("authz.denied user=\"{}\" operation=\"{}\" resource_type=\"{}\" resource=\"{}\"",
+                    user, operationName, resourceType, resourceName);
+        }
+
+        return allowed;
     }
 
     public boolean canReadArtifact(String groupId, String artifactId) {
@@ -92,6 +131,13 @@ public class OpaWasmAccessController extends AbstractAccessController {
                 List.of(new Action(RegistryResourceType.Artifact.Read, resourceName)))
                 .toCompletableFuture().join();
         return result.decision(RegistryResourceType.Artifact.Read, resourceName) == Decision.ALLOW;
+    }
+
+    private String getUsername() {
+        if (securityIdentity != null && !securityIdentity.isAnonymous()) {
+            return securityIdentity.getPrincipal().getName();
+        }
+        return "anonymous";
     }
 
     private Subject buildSubject() {

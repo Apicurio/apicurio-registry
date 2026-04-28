@@ -38,6 +38,3 @@ welcome_message: |
   | `/disable-tests` | Disable smoke tests during development |
   | `/enable-tests` | Re-enable smoke tests |
   | `/unstale` | Remove the stale label |
-
-smoke_tests:
-  enabled_by_default: true

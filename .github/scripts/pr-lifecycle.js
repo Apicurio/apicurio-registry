@@ -111,7 +111,7 @@ function createApi(github, owner, repo) {
     if (!def) return;
     try {
       const { data: existing } = await github.rest.issues.getLabel({ owner, repo, name });
-      if (existing.color !== def.color) {
+      if (existing.color !== def.color || existing.description !== def.description) {
         await github.rest.issues.updateLabel({ owner, repo, name, color: def.color, description: def.description });
       }
     } catch (e) {
@@ -144,18 +144,18 @@ function createApi(github, owner, repo) {
 
     setLifecycleState: async (pr, newState) => {
       const labels = getLabelNames(pr);
-      for (const state of PRIMARY_STATES) {
-        if (labels.includes(state)) {
-          await github.rest.issues.removeLabel({
-            owner, repo, issue_number: pr.number, name: state,
-          }).catch(e => { if (e.status !== 404) throw e; });
-        }
-      }
       if (newState) {
         await ensureLabel(newState);
         await github.rest.issues.addLabels({
           owner, repo, issue_number: pr.number, labels: [newState],
         });
+      }
+      for (const state of PRIMARY_STATES) {
+        if (state !== newState && labels.includes(state)) {
+          await github.rest.issues.removeLabel({
+            owner, repo, issue_number: pr.number, name: state,
+          }).catch(e => { if (e.status !== 404) throw e; });
+        }
       }
     },
 
@@ -179,10 +179,9 @@ function createApi(github, owner, repo) {
     },
 
     getReviews: async (prNumber) => {
-      const { data } = await github.rest.pulls.listReviews({
-        owner, repo, pull_number: prNumber,
+      return github.paginate(github.rest.pulls.listReviews, {
+        owner, repo, pull_number: prNumber, per_page: 100,
       });
-      return data;
     },
 
     closePr: async (prNumber) => {
@@ -225,6 +224,32 @@ function isApproved(reviews) {
   const hasApproval = latest.some(r => r.state === 'APPROVED');
   const hasChangesRequested = latest.some(r => r.state === 'CHANGES_REQUESTED');
   return hasApproval && !hasChangesRequested;
+}
+
+async function performMerge(api, config, pr, core) {
+  const freshPr = await api.getPr(pr.number);
+  if (!hasLabel(freshPr, LABELS.TESTED) || !hasLabel(freshPr, LABELS.READY_TO_MERGE)) {
+    core.warning(`PR #${pr.number} merge aborted: state changed since merge was initiated`);
+    return false;
+  }
+  const strategy = config.merge?.strategy || 'rebase';
+  try {
+    await api.mergePr(pr.number, strategy, freshPr.title);
+    if (config.merge?.delete_branch) {
+      await api.deleteBranch(freshPr.head.ref);
+    }
+    core.info(`PR #${pr.number} merged using ${strategy}`);
+    return true;
+  } catch (e) {
+    await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
+    await api.removeLabel(pr.number, LABELS.TESTED);
+    await api.postComment(pr.number,
+      `Merge failed: ${e.message}\n\n` +
+      `Reverted to \`lifecycle/ready-for-review\`. The branch may need to be rebased.`
+    );
+    core.error(`PR #${pr.number} merge failed: ${e.message}`);
+    return false;
+  }
 }
 
 async function checkAndTransitionToReady(api, pr, core) {
@@ -359,7 +384,7 @@ async function handleComment({ github, context, core }) {
     'auto-merge': () => cmdAutoMerge(api, config, core, pr, actor, maintainer, comment.id),
     'disable-tests': () => cmdDisableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
     'enable-tests': () => cmdEnableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
-    'unstale': () => cmdUnstale(api, core, pr, actor, comment.id),
+    'unstale': () => cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, comment.id),
   };
 
   const handler = handlers[parsed.command];
@@ -481,22 +506,8 @@ async function cmdMerge(api, config, core, pr, actor, maintainer, commentId) {
     return;
   }
 
-  const strategy = config.merge?.strategy || 'rebase';
-  try {
-    await api.mergePr(pr.number, strategy, pr.title);
-    await api.addReaction(commentId, '+1');
-    if (config.merge?.delete_branch) {
-      await api.deleteBranch(pr.head.ref);
-    }
-    core.info(`PR #${pr.number} merged by ${actor} using ${strategy}`);
-  } catch (e) {
-    await api.addReaction(commentId, '-1');
-    await api.postComment(pr.number,
-      `@${actor} Merge failed: ${e.message}\n\n` +
-      `The branch may need to be rebased. Try rebasing locally and force-pushing.`
-    );
-    core.error(`PR #${pr.number} merge failed: ${e.message}`);
-  }
+  const merged = await performMerge(api, config, pr, core);
+  await api.addReaction(commentId, merged ? '+1' : '-1');
 }
 
 async function cmdAutoMerge(api, config, core, pr, actor, maintainer, commentId) {
@@ -531,19 +542,7 @@ async function cmdAutoMerge(api, config, core, pr, actor, maintainer, commentId)
   );
 
   if (state === LABELS.READY_TO_MERGE) {
-    const strategy = config.merge?.strategy || 'rebase';
-    try {
-      await api.mergePr(pr.number, strategy, pr.title);
-      if (config.merge?.delete_branch) {
-        await api.deleteBranch(pr.head.ref);
-      }
-      core.info(`PR #${pr.number} auto-merged by ${actor} using ${strategy}`);
-    } catch (e) {
-      await api.postComment(pr.number,
-        `Auto-merge failed: ${e.message}\n\nThe branch may need to be rebased.`
-      );
-      core.error(`PR #${pr.number} auto-merge failed: ${e.message}`);
-    }
+    await performMerge(api, config, pr, core);
   }
 
   core.info(`PR #${pr.number} auto-merge enabled by ${actor}`);
@@ -582,7 +581,14 @@ async function cmdEnableTests(api, core, pr, actor, isAuthor, maintainer, commen
   core.info(`PR #${pr.number} smoke tests re-enabled by ${actor}`);
 }
 
-async function cmdUnstale(api, core, pr, actor, commentId) {
+async function cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, commentId) {
+  if (!isAuthor && !maintainer) {
+    await api.addReaction(commentId, '-1');
+    await api.postComment(pr.number,
+      `@${actor} Only the PR author or a maintainer can remove the stale label.`
+    );
+    return;
+  }
   if (!hasLabel(pr, LABELS.STALE)) {
     await api.addReaction(commentId, 'confused');
     return;
@@ -621,18 +627,7 @@ async function handleReview({ github, context, core }) {
     const result = await checkAndTransitionToReady(api, freshPr, core);
     if (result === 'auto-merge') {
       const config = loadConfig();
-      const strategy = config.merge?.strategy || 'rebase';
-      try {
-        await api.mergePr(pr.number, strategy, pr.title);
-        if (config.merge?.delete_branch) {
-          await api.deleteBranch(pr.head.ref);
-        }
-        core.info(`PR #${pr.number} auto-merged after approval`);
-      } catch (e) {
-        await api.postComment(pr.number,
-          `Auto-merge failed: ${e.message}\n\nThe branch may need to be rebased.`
-        );
-      }
+      await performMerge(api, config, freshPr, core);
     }
   }
 }
@@ -651,24 +646,33 @@ async function handleLabelChange({ github, context, core }) {
 
   if (actor === BOT_LOGIN) return;
 
-  if (label.name === LABELS.OPT_IN && action === 'labeled') {
-    const state = getLifecycleState(pr);
-    if (!state) {
-      core.info(`PR #${pr.number} opted in, initializing lifecycle`);
+  if (label.name === LABELS.OPT_IN) {
+    if (action === 'unlabeled') {
       const config = loadConfig();
-      if (isAutoAccepted(config, pr.user.login)) {
-        await api.addLabel(pr.number, LABELS.WIP);
-        await api.postComment(pr.number,
-          `PR auto-accepted (trusted author). Smoke tests will run on each push.\n\n` +
-          `When ready, use \`/ready\` to request a full review.`
-        );
-      } else {
-        await api.addLabel(pr.number, LABELS.NEW);
-        const message = config.welcome_message.replace(/\{author\}/g, pr.user.login);
-        await api.postComment(pr.number, message);
+      if (isMaintainer(config, actor)) {
+        core.info(`PR #${pr.number} opted out by maintainer ${actor}`);
+        return;
       }
+      // Non-maintainer removal: fall through to label protection below
+    } else if (action === 'labeled') {
+      const state = getLifecycleState(pr);
+      if (!state) {
+        core.info(`PR #${pr.number} opted in, initializing lifecycle`);
+        const config = loadConfig();
+        if (isAutoAccepted(config, pr.user.login)) {
+          await api.addLabel(pr.number, LABELS.WIP);
+          await api.postComment(pr.number,
+            `PR auto-accepted (trusted author). Smoke tests will run on each push.\n\n` +
+            `When ready, use \`/ready\` to request a full review.`
+          );
+        } else {
+          await api.addLabel(pr.number, LABELS.NEW);
+          const message = config.welcome_message.replace(/\{author\}/g, pr.user.login);
+          await api.postComment(pr.number, message);
+        }
+      }
+      return;
     }
-    return;
   }
 
   if (!CONTROL_LABELS.includes(label.name)) return;
@@ -725,21 +729,11 @@ async function handleTestResult({ github, context, core }) {
       await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
       core.info(`PR #${pr.number} tests passed, added lifecycle/tested`);
 
-      const result = await checkAndTransitionToReady(api, pr, core);
+      const freshPr = await api.getPr(pr.number);
+      const result = await checkAndTransitionToReady(api, freshPr, core);
       if (result === 'auto-merge') {
         const config = loadConfig();
-        const strategy = config.merge?.strategy || 'rebase';
-        try {
-          await api.mergePr(pr.number, strategy, pr.title);
-          if (config.merge?.delete_branch) {
-            await api.deleteBranch(pr.head.ref);
-          }
-          core.info(`PR #${pr.number} auto-merged after tests passed`);
-        } catch (e) {
-          await api.postComment(pr.number,
-            `Auto-merge failed: ${e.message}\n\nThe branch may need to be rebased.`
-          );
-        }
+        await performMerge(api, config, freshPr, core);
       }
     } else if (workflowRun.conclusion === 'failure') {
       await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
@@ -766,7 +760,7 @@ async function handleStale({ github, context, core }) {
   const daysUntilClose = config.stale?.days_until_close || 14;
   const now = new Date();
 
-  const { data: prs } = await github.rest.pulls.list({
+  const prs = await github.paginate(github.rest.pulls.list, {
     owner, repo, state: 'open', per_page: 100,
   });
 

@@ -46,22 +46,19 @@ and pod specifications.
 
 {registry} supports the following storage options:
 
-* *In-memory* (default) - Stores data in memory. Suitable for development and testing only. Data is lost when
-the pod restarts.
+* *Embedded H2 database* (default) - When no storage type is specified, {registry} uses SQL storage with an embedded H2 database. Suitable for development and testing only. All data is stored in memory and lost when the pod restarts.
 * *PostgreSQL* - Stores data in a PostgreSQL database. Suitable for production deployments.
 * *MySQL* - Stores data in a MySQL database. Suitable for production deployments.
-* *KafkaSQL* - Stores data in Apache Kafka topics with an in-memory cache. Suitable for production deployments
-when configured with persistent Kafka storage.
+* *KafkaSQL* - Stores data in Apache Kafka topics, with an embedded H2 database as a local SQL store that is rebuilt from the Kafka journal on each startup. Suitable for production deployments when configured with persistent Kafka storage.
 * *KubernetesOps* - Read-only storage that loads registry data from Kubernetes ConfigMaps. Suitable for
 Kubernetes-native and GitOps workflows. This is an experimental feature.
 
-IMPORTANT: The default in-memory storage is not suitable for production environments.
+IMPORTANT: The default embedded H2 configuration is not suitable for production environments. Configure a storage type (`postgresql`, `mysql`, `kafkasql`, or `kubernetesops`) for production use.
 
 [id="deploying-registry-inmemory_{context}"]
-== Deploying {registry} with in-memory storage
+== Deploying {registry} with default configuration (embedded H2 database)
 
-This section shows how to deploy a basic {registry} instance using in-memory storage. This configuration is
-suitable for development and testing environments only.
+This section shows how to deploy a basic {registry} instance using the default storage configuration (SQL with an embedded H2 database). No storage type needs to be specified in the CR -- when omitted, {registry} defaults to an embedded H2 database. This configuration is suitable for development and testing environments only.
 
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.
@@ -247,7 +244,7 @@ the database.
 == Deploying {registry} with KafkaSQL storage
 
 This section explains how to deploy {registry} with KafkaSQL storage. KafkaSQL uses Apache Kafka as the primary
-data store with an in-memory H2 database for caching. This configuration is suitable for production environments
+data store, with an embedded H2 database as a local SQL store that is rebuilt from the Kafka journal on each startup. This configuration is suitable for production environments
 when using persistent Kafka storage.
 
 .Prerequisites

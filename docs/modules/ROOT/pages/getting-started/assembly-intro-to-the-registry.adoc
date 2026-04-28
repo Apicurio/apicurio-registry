@@ -336,8 +336,8 @@ endif::[]
 |Description
 
 ifdef::apicurio-registry[]
-|In-memory
-|The in-memory storage option is suitable for a development environment only. All data is lost when restarting {registry} with this storage. The PostgreSQL or Kafka storage option is recommended for a production environment.
+|Embedded H2 database (default)
+|When no storage is explicitly configured, {registry} uses SQL storage with an embedded H2 database. This default configuration is suitable for development and testing only. All data is stored in memory and lost when {registry} is restarted. PostgreSQL or Kafka storage is recommended for production environments.
 endif::[]
 
 |PostgreSQL database

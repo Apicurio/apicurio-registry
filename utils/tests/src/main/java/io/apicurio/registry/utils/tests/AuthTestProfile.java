@@ -15,6 +15,11 @@ public class AuthTestProfile implements QuarkusTestProfile {
         props.put("apicurio.rest.deletion.group.enabled", "true");
         props.put("apicurio.rest.deletion.artifact.enabled", "true");
         props.put("apicurio.rest.deletion.artifact-version.enabled", "true");
+        // Enable proxy-header auth alongside OIDC so dual-mode tests can run under this
+        // same profile (avoiding an extra Quarkus augmentation). The proxy-header mechanism
+        // returns null when no proxy headers are present, so OIDC-only tests are unaffected.
+        props.put("apicurio.authn.proxy-header.enabled", "true");
+        props.put("apicurio.authn.mechanism.priority", "proxy-header,oidc");
         return props;
     }
 

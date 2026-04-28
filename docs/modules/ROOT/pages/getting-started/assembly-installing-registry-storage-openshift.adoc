@@ -70,7 +70,7 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 == Configuring {registry} with Kafka storage on OpenShift
 
 [role="_abstract"]
-This section explains how to configure Kafka-based storage for {registry} using {kafka-streams} on OpenShift. The `kafkasql` storage option uses Kafka storage with an in-memory H2 database for caching. This storage option is suitable for production environments when `persistent` storage is configured for the Kafka cluster on OpenShift.
+This section explains how to configure Kafka-based storage for {registry} using {kafka-streams} on OpenShift. The `kafkasql` storage option uses Kafka as the primary data store, with an embedded H2 database as a local SQL store that is rebuilt from the Kafka journal on each startup. This storage option is suitable for production environments when `persistent` storage is configured for the Kafka cluster on OpenShift.
 
 You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
 

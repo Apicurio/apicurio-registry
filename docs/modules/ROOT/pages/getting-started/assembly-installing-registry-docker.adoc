@@ -29,9 +29,9 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 == Installing {registry} with default configuration (embedded H2 database)
 
 [role="_abstract"]
-This section explains how to install and run {registry} with the default storage configuration from a container image. When no storage is explicitly configured, {registry} uses SQL storage with an embedded H2 database.
+You can install and run {registry} with the default storage configuration from a container image. When you do not configure storage explicitly, {registry} uses SQL storage with an embedded H2 database.
 
-NOTE: The default embedded H2 configuration is suitable for development and testing only. All data is stored in memory and lost when the container is restarted. For production, configure PostgreSQL or Kafka storage.
+NOTE: The default embedded H2 configuration is suitable for development and testing only. {registry} stores all data in memory and loses it when you restart the container. For production, configure PostgreSQL or Kafka storage.
 
 .Prerequisites
 
@@ -320,7 +320,7 @@ mypassword
 
 
 [role="_abstract"]
-This topic explains how to install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses Kafka as the primary data store, with an embedded H2 database as a local SQL store that is rebuilt from the Kafka journal on each startup. This storage option is suitable for production environments.
+You can install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses Kafka as the primary data store, with an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup. This storage option is suitable for production environments.
 
 .Prerequisites
 

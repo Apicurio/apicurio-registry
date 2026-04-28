@@ -351,7 +351,7 @@ When running multiple {registry} replicas with KafkaSQL storage:
 * Each replica uses a unique consumer group ID (automatically generated using UUID)
 * Each replica independently consumes all messages from the journal topic
 * There is no consumer group rebalancing between replicas
-* All replicas build the same local state from the Kafka topic (replayed into an embedded H2 database)
+* All replicas build the same local state from the Kafka topic ({registry} replays data into an embedded H2 database)
 
 This design ensures that:
 

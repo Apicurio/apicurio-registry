@@ -337,7 +337,7 @@ endif::[]
 
 ifdef::apicurio-registry[]
 |Embedded H2 database (default)
-|When no storage is explicitly configured, {registry} uses SQL storage with an embedded H2 database. This default configuration is suitable for development and testing only. All data is stored in memory and lost when {registry} is restarted. PostgreSQL or Kafka storage is recommended for production environments.
+|When you do not configure storage explicitly, {registry} uses SQL storage with an embedded H2 database. This default configuration is suitable for development and testing only. {registry} stores all data in memory and loses it on restart. For production environments, use PostgreSQL or Kafka storage to ensure data persistence.
 endif::[]
 
 |PostgreSQL database

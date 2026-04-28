@@ -146,6 +146,16 @@ rules:
     verbs:
       [ create, get, list ]
 
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - create
+      - update
+      - delete
+
 # NOTES:
 # [1] We can't easily limit the permissions only to resources that are used to deploy the operator.
 #     OLM v1 adds hash-like suffixes to the resource names, but Kubernetes [does not support wildcards yet](https://github.com/kubernetes/kubernetes/issues/56582).

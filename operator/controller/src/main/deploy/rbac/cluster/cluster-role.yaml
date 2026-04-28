@@ -77,3 +77,13 @@ rules:
       - secrets
     verbs:
       [ create, get, list ]
+
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - create
+      - update
+      - delete

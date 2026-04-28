@@ -4,6 +4,7 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.config.ConfigurationServiceOverrider;
+import io.javaoperatorsdk.operator.api.config.LeaderElectionConfigurationBuilder;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.quarkus.runtime.Shutdown;
 import io.quarkus.runtime.Startup;
@@ -49,6 +50,20 @@ public class App {
         start(configOverride -> {
             configOverride.withKubernetesClient(client);
             configOverride.withUseSSAToPatchPrimaryResource(false);
+            if (Configuration.isLeaderElectionEnabled()) {
+                var leaseName = Configuration.getLeaderElectionLeaseName();
+                var leaseNamespace = Configuration.getLeaderElectionLeaseNamespace();
+                var leaseBuilder = LeaderElectionConfigurationBuilder.aLeaderElectionConfiguration(leaseName);
+                if (isBlank(leaseNamespace)) {
+                     log.info("Leader election enabled with lease name '{}'", leaseName);
+                 } else {
+                     log.info("Leader election enabled with lease name '{}' in namespace '{}'", leaseName, leaseNamespace);
+                     leaseBuilder.withLeaseNamespace(leaseNamespace);
+                 }
+                 configOverride.withLeaderElectionConfiguration(leaseBuilder.build());
+            } else {
+                log.warn("Leader election is disabled.");
+            }
         });
     }
 

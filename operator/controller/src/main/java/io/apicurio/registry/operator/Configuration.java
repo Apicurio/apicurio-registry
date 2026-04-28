@@ -32,4 +32,32 @@ public class Configuration {
                 .map(v -> "." + v)
                 .orElse("");
     }
+
+    public static boolean isLeaderElectionEnabled() {
+        // we are not running in k8s if the POD_NAMESPACE is not set, so leader election is not possible in that case
+        if (!isDefaultNamespaceAvailable()) {
+            return false;
+        }
+        return config.getOptionalValue("apicurio.operator.leader-election.enabled", Boolean.class)
+                .orElse(true);
+    }
+
+    public static String getLeaderElectionLeaseName() {
+        return config.getOptionalValue("apicurio.operator.leader-election.lease-name", String.class)
+                .orElse("apicurio-registry-operator-lease");
+    }
+
+    public static String getLeaderElectionLeaseNamespace() {
+        return config.getOptionalValue("apicurio.operator.leader-election.lease-namespace", String.class)
+                .filter(namespace -> !namespace.isBlank())
+                 .or(() -> java.util.Optional.ofNullable(System.getenv("POD_NAMESPACE"))
+                         .filter(namespace -> !namespace.isBlank()))
+                 .orElse("");
+    }
+
+    public static boolean isDefaultNamespaceAvailable() {
+        return java.util.Optional.ofNullable(System.getenv("POD_NAMESPACE"))
+                .filter(namespace -> !namespace.isBlank())
+                .isPresent();
+    }
 }

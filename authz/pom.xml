@@ -16,6 +16,7 @@
     <description>Shared OPA WASM grants evaluation library using Kroxylicious Authorizer API</description>
 
     <properties>
+        <projectRoot>${project.basedir}/..</projectRoot>
         <maven.compiler.release>17</maven.compiler.release>
     </properties>
 

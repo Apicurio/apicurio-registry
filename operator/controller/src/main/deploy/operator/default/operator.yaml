@@ -26,6 +26,8 @@ spec:
                   fieldPath: metadata.annotations['olm.targetNamespaces']
             - name: QUARKUS_PROFILE
               value: prod
+            - name: APICURIO_OPERATOR_LEADER_ELECTION_ENABLED
+              value: "false"
           ports:
             - name: http
               containerPort: 8080

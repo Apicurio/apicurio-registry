@@ -32,4 +32,19 @@ public class Configuration {
                 .map(v -> "." + v)
                 .orElse("");
     }
+
+    public static boolean isLeaderElectionEnabled() {
+        return config.getOptionalValue("apicurio.operator.leader-election.enabled", Boolean.class)
+                .orElse(false);
+    }
+
+    public static String getLeaderElectionLeaseName() {
+        return config.getOptionalValue("apicurio.operator.leader-election.lease-name", String.class)
+                .orElse("apicurio-registry-operator-lease");
+    }
+
+    public static String getLeaderElectionLeaseNamespace() {
+        return config.getOptionalValue("apicurio.operator.leader-election.lease-namespace", String.class)
+                .orElse(System.getenv("POD_NAMESPACE"));
+    }
 }

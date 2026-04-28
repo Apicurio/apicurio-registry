@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.3
+    app.kubernetes.io/version: 3.2.4-SNAPSHOT
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -6838,7 +6838,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.3
+    app.kubernetes.io/version: 3.2.4-SNAPSHOT
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -6850,7 +6850,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.3
+    app.kubernetes.io/version: 3.2.4-SNAPSHOT
   name: apicurio-registry-operator-clusterrole
 rules:
 - apiGroups:
@@ -6919,7 +6919,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.3
+    app.kubernetes.io/version: 3.2.4-SNAPSHOT
   name: apicurio-registry-operator-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -6939,8 +6939,8 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.2.3
-  name: apicurio-registry-operator-v3.2.3
+    app.kubernetes.io/version: 3.2.4-SNAPSHOT
+  name: apicurio-registry-operator-v3.2.4-snapshot
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -6951,7 +6951,7 @@ spec:
       app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.2.3
+      app.kubernetes.io/version: 3.2.4-SNAPSHOT
   template:
     metadata:
       labels:
@@ -6960,7 +6960,7 @@ spec:
         app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.2.3
+        app.kubernetes.io/version: 3.2.4-SNAPSHOT
     spec:
       containers:
       - env:
@@ -6979,10 +6979,10 @@ spec:
         - name: QUARKUS_PROFILE
           value: prod
         - name: REGISTRY_APP_IMAGE
-          value: quay.io/apicurio/apicurio-registry:3.2.3
+          value: quay.io/apicurio/apicurio-registry:latest-snapshot
         - name: REGISTRY_UI_IMAGE
-          value: quay.io/apicurio/apicurio-registry-ui:3.2.3
-        image: quay.io/apicurio/apicurio-registry-3-operator:3.2.3
+          value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+        image: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

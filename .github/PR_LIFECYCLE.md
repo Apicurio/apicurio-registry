@@ -130,9 +130,10 @@ The orchestrator controls which tests run at each lifecycle stage:
 | `lifecycle/new` | None |
 | `lifecycle/wip` | Smoke: lint, build, unit tests |
 | `lifecycle/ready-for-review` | Full suite: lint, build, unit tests, integration tests, SDK tests, extras |
-| No orchestrator label | Full suite (backward compatible with non-orchestrated PRs) |
+| `orchestrator/disabled` | Full suite (legacy behavior, DO NOT MERGE still works) |
 
-## Opt-in Mode
+## Disabling the Orchestrator
 
-During rollout, the orchestrator only manages PRs with the `orchestrator/enabled` label.
-PRs without this label use the existing workflow (full test suite on every push).
+The orchestrator is enabled by default on all PRs. To exclude a specific PR, a maintainer
+can add the `orchestrator/disabled` label. This reverts the PR to legacy behavior (full
+test suite on every push, `DO NOT MERGE` label support).

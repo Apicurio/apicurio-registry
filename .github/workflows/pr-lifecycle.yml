@@ -33,7 +33,7 @@ jobs:
     if: |
       github.event_name == 'pull_request_target' &&
       (github.event.action == 'opened' || github.event.action == 'reopened') &&
-      contains(github.event.pull_request.labels.*.name, 'orchestrator/enabled')
+      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,7 +57,7 @@ jobs:
     if: |
       github.event_name == 'pull_request_target' &&
       github.event.action == 'synchronize' &&
-      contains(github.event.pull_request.labels.*.name, 'orchestrator/enabled')
+      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,7 +81,7 @@ jobs:
     if: |
       github.event_name == 'pull_request_target' &&
       github.event.action == 'ready_for_review' &&
-      contains(github.event.pull_request.labels.*.name, 'orchestrator/enabled')
+      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -107,7 +107,7 @@ jobs:
       github.event.action == 'created' &&
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/') &&
-      contains(github.event.issue.labels.*.name, 'orchestrator/enabled')
+      !contains(github.event.issue.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -131,7 +131,7 @@ jobs:
     if: |
       github.event_name == 'pull_request_review' &&
       github.event.action == 'submitted' &&
-      contains(github.event.pull_request.labels.*.name, 'orchestrator/enabled')
+      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
         uses: actions/checkout@v4

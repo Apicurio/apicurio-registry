@@ -19,7 +19,7 @@ const LABELS = {
   WAITING_ON_AUTHOR: 'lifecycle/waiting-on-author',
   WAITING_ON_MAINTAINER: 'lifecycle/waiting-on-maintainer',
   STALE: 'lifecycle/stale',
-  OPT_IN: 'orchestrator/enabled',
+  DISABLED: 'orchestrator/disabled',
   AUTO_MERGE: 'orchestrator/auto-merge',
   TESTS_DISABLED: 'orchestrator/tests-disabled',
 };
@@ -50,7 +50,7 @@ const LABEL_DEFS = {
   [LABELS.WAITING_ON_AUTHOR]:    { color: COLORS.ATTENTION, description: 'Blocked on contributor action' },
   [LABELS.WAITING_ON_MAINTAINER]:{ color: COLORS.ATTENTION, description: 'Blocked on maintainer action' },
   [LABELS.STALE]:                { color: COLORS.INACTIVE, description: 'No activity for 7+ days' },
-  [LABELS.OPT_IN]:               { color: COLORS.INFO, description: 'PR managed by lifecycle orchestrator' },
+  [LABELS.DISABLED]:              { color: COLORS.INACTIVE, description: 'PR excluded from lifecycle orchestrator' },
   [LABELS.AUTO_MERGE]:           { color: COLORS.INFO, description: 'Auto-merge enabled' },
   [LABELS.TESTS_DISABLED]:       { color: COLORS.INFO, description: 'Smoke tests disabled for this PR' },
 };
@@ -646,33 +646,13 @@ async function handleLabelChange({ github, context, core }) {
 
   if (actor === BOT_LOGIN) return;
 
-  if (label.name === LABELS.OPT_IN) {
-    if (action === 'unlabeled') {
-      const config = loadConfig();
-      if (isMaintainer(config, actor)) {
-        core.info(`PR #${pr.number} opted out by maintainer ${actor}`);
-        return;
-      }
-      // Non-maintainer removal: fall through to label protection below
-    } else if (action === 'labeled') {
-      const state = getLifecycleState(pr);
-      if (!state) {
-        core.info(`PR #${pr.number} opted in, initializing lifecycle`);
-        const config = loadConfig();
-        if (isAutoAccepted(config, pr.user.login)) {
-          await api.addLabel(pr.number, LABELS.WIP);
-          await api.postComment(pr.number,
-            `PR auto-accepted (trusted author). Smoke tests will run on each push.\n\n` +
-            `When ready, use \`/ready\` to request a full review.`
-          );
-        } else {
-          await api.addLabel(pr.number, LABELS.NEW);
-          const message = config.welcome_message.replace(/\{author\}/g, pr.user.login);
-          await api.postComment(pr.number, message);
-        }
-      }
+  if (label.name === LABELS.DISABLED) {
+    const config = loadConfig();
+    if (isMaintainer(config, actor)) {
+      core.info(`PR #${pr.number} orchestrator ${action === 'labeled' ? 'disabled' : 'enabled'} by maintainer ${actor}`);
       return;
     }
+    // Non-maintainer: fall through to label protection below
   }
 
   if (!CONTROL_LABELS.includes(label.name)) return;
@@ -711,7 +691,7 @@ async function handleTestResult({ github, context, core }) {
   for (const prRef of workflowRun.pull_requests) {
     const pr = await api.getPr(prRef.number);
 
-    if (!hasLabel(pr, LABELS.OPT_IN)) continue;
+    if (hasLabel(pr, LABELS.DISABLED)) continue;
 
     const state = getLifecycleState(pr);
     if (state !== LABELS.READY_FOR_REVIEW) {
@@ -765,7 +745,7 @@ async function handleStale({ github, context, core }) {
   });
 
   for (const pr of prs) {
-    if (!hasLabel(pr, LABELS.OPT_IN)) continue;
+    if (hasLabel(pr, LABELS.DISABLED)) continue;
 
     const state = getLifecycleState(pr);
     if (!state) continue;

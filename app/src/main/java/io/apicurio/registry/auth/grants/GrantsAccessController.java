@@ -1,4 +1,4 @@
-package io.apicurio.registry.auth.opawasm;
+package io.apicurio.registry.auth.grants;
 
 import java.util.List;
 
@@ -29,9 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
-public class OpaWasmAccessController extends AbstractAccessController {
+public class GrantsAccessController extends AbstractAccessController {
 
-    private static final Logger LOG = LoggerFactory.getLogger(OpaWasmAccessController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GrantsAccessController.class);
     private static final Logger AUDIT = LoggerFactory.getLogger("io.apicurio.registry.audit.authz");
 
     private static final AttributeKey<String> DECISION_KEY = AttributeKey.stringKey("decision");
@@ -68,7 +68,7 @@ public class OpaWasmAccessController extends AbstractAccessController {
     @Override
     public boolean isAuthorized(InvocationContext context) {
         if (authorizer == null) {
-            LOG.error("OPA WASM access controller not initialized, denying access.");
+            LOG.error("Grants access controller not initialized, denying access.");
             return false;
         }
 

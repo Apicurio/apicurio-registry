@@ -1,7 +1,7 @@
 package io.apicurio.registry.auth;
 
-import io.apicurio.registry.auth.opawasm.OpaWasmAccessController;
-import io.apicurio.registry.auth.opawasm.OpaWasmAccessControllerConfig;
+import io.apicurio.registry.auth.grants.GrantsAccessController;
+import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
 import io.apicurio.registry.util.Priorities;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
@@ -48,10 +48,10 @@ public class AuthorizedInterceptor {
     OwnerBasedAccessController obac;
 
     @Inject
-    OpaWasmAccessController opaWasmAc;
+    GrantsAccessController grantsAc;
 
     @Inject
-    OpaWasmAccessControllerConfig opaWasmAcConfig;
+    GrantsAccessControllerConfig grantsAcConfig;
 
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
@@ -159,7 +159,7 @@ public class AuthorizedInterceptor {
         }
 
         // If OPA WASM authorization is enabled, apply per-resource policy checks
-        if (opaWasmAcConfig.isEnabled() && !opaWasmAc.isAuthorized(context)) {
+        if (grantsAcConfig.isEnabled() && !grantsAc.isAuthorized(context)) {
             log.warn("OPA WASM authorization denied access.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
                     + " is not authorized to access the requested resource.");

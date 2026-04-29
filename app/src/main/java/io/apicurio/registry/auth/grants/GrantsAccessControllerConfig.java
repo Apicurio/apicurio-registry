@@ -1,4 +1,4 @@
-package io.apicurio.registry.auth.opawasm;
+package io.apicurio.registry.auth.grants;
 
 import java.util.Optional;
 
@@ -9,7 +9,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUTH;
 
 @Singleton
-public class OpaWasmAccessControllerConfig {
+public class GrantsAccessControllerConfig {
 
     @ConfigProperty(name = "apicurio.auth.resource-based-authorization.enabled", defaultValue = "false")
     @Info(category = CATEGORY_AUTH, description = "Enable per-resource authorization using grants file", availableSince = "3.0.0", experimental = true)

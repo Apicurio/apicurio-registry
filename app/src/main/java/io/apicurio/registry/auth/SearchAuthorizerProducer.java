@@ -5,13 +5,13 @@ import java.util.List;
 import java.util.Set;
 
 import io.apicurio.authz.GrantsAuthorizer;
-import io.apicurio.registry.auth.opawasm.OpaWasmAccessController;
-import io.apicurio.registry.auth.opawasm.RegistryResourceType;
+import io.apicurio.registry.auth.grants.GrantsAccessController;
+import io.apicurio.registry.auth.grants.RegistryResourceType;
 import io.apicurio.authz.Action;
 import io.apicurio.authz.AuthorizeResult;
 import io.apicurio.authz.Decision;
-import io.apicurio.registry.auth.opawasm.OpaWasmAccessControllerConfig;
-import io.apicurio.registry.auth.opawasm.OpaWasmSearchFilter;
+import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
+import io.apicurio.registry.auth.grants.GrantsSearchFilter;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -30,13 +30,13 @@ import jakarta.inject.Singleton;
 public class SearchAuthorizerProducer {
 
     @Inject
-    OpaWasmAccessControllerConfig opaConfig;
+    GrantsAccessControllerConfig grantsConfig;
 
     @Inject
-    OpaWasmSearchFilter opaFilter;
+    GrantsSearchFilter grantsFilter;
 
     @Inject
-    OpaWasmAccessController opaAc;
+    GrantsAccessController grantsAc;
 
     @Inject
     @Current
@@ -48,38 +48,38 @@ public class SearchAuthorizerProducer {
     @Produces
     @ApplicationScoped
     public ISearchAuthorizer searchAuthorizer() {
-        if (opaConfig.isEnabled()) {
+        if (grantsConfig.isEnabled()) {
             return new ISearchAuthorizer() {
                 @Override
                 public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
                         OrderDirection orderDir, int offset, int limit) {
-                    return opaFilter.searchArtifacts(filters, orderBy, orderDir, offset, limit);
+                    return grantsFilter.searchArtifacts(filters, orderBy, orderDir, offset, limit);
                 }
 
                 @Override
                 public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
                         OrderDirection orderDir, int offset, int limit) {
-                    return opaFilter.searchGroups(filters, orderBy, orderDir, offset, limit);
+                    return grantsFilter.searchGroups(filters, orderBy, orderDir, offset, limit);
                 }
 
                 @Override
                 public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
                         OrderDirection orderDir, int offset, int limit) {
-                    return opaFilter.searchVersions(filters, orderBy, orderDir, offset, limit);
+                    return grantsFilter.searchVersions(filters, orderBy, orderDir, offset, limit);
                 }
 
                 @Override
                 public boolean canReadArtifact(String groupId, String artifactId) {
-                    return opaAc.canReadArtifact(groupId, artifactId);
+                    return grantsAc.canReadArtifact(groupId, artifactId);
                 }
 
                 @Override
                 public List<String> getArtifactPermissions(String groupId, String artifactId) {
-                    GrantsAuthorizer auth = opaAc.getAuthorizer();
+                    GrantsAuthorizer auth = grantsAc.getAuthorizer();
                     if (auth == null) {
                         return List.of();
                     }
-                    String resourceName = OpaWasmAccessController.buildResourceName(groupId, artifactId);
+                    String resourceName = GrantsAccessController.buildResourceName(groupId, artifactId);
                     io.apicurio.authz.Subject subject = buildSubject();
                     AuthorizeResult result = auth.authorize(subject, List.of(
                             new Action(RegistryResourceType.Artifact.Read, resourceName),
@@ -101,7 +101,7 @@ public class SearchAuthorizerProducer {
 
                 @Override
                 public List<String> getGroupPermissions(String groupId) {
-                    GrantsAuthorizer auth = opaAc.getAuthorizer();
+                    GrantsAuthorizer auth = grantsAc.getAuthorizer();
                     if (auth == null) {
                         return List.of();
                     }

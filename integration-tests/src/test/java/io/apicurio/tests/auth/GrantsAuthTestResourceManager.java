@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
-public class OpaWasmTestResourceManager extends KeycloakTestContainerManager {
+public class GrantsAuthTestResourceManager extends KeycloakTestContainerManager {
 
     private Path tempDir;
 

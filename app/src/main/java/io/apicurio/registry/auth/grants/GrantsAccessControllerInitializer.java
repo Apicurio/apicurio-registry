@@ -1,4 +1,4 @@
-package io.apicurio.registry.auth.opawasm;
+package io.apicurio.registry.auth.grants;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -15,16 +15,16 @@ import org.slf4j.Logger;
 
 @Singleton
 @Startup
-public class OpaWasmAccessControllerInitializer {
+public class GrantsAccessControllerInitializer {
 
     @Inject
     Logger log;
 
     @Inject
-    OpaWasmAccessControllerConfig config;
+    GrantsAccessControllerConfig config;
 
     @Inject
-    OpaWasmAccessController controller;
+    GrantsAccessController controller;
 
     @PostConstruct
     void init() {

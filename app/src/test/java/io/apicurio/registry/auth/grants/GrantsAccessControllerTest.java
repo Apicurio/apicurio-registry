@@ -1,4 +1,4 @@
-package io.apicurio.registry.auth.opawasm;
+package io.apicurio.registry.auth.grants;
 
 import io.apicurio.authz.GrantsData;
 import org.junit.jupiter.api.Test;
@@ -11,27 +11,27 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class OpaWasmAccessControllerTest {
+public class GrantsAccessControllerTest {
 
     @Test
     void buildResourceNameWithGroup() {
-        assertEquals("my-group/art1", OpaWasmAccessController.buildResourceName("my-group", "art1"));
+        assertEquals("my-group/art1", GrantsAccessController.buildResourceName("my-group", "art1"));
     }
 
     @Test
     void buildResourceNameNullGroupDefaultsToDefault() {
-        assertEquals("default/art1", OpaWasmAccessController.buildResourceName(null, "art1"));
+        assertEquals("default/art1", GrantsAccessController.buildResourceName(null, "art1"));
     }
 
     @Test
     void uninitializedControllerDenies() {
-        OpaWasmAccessController uninit = new OpaWasmAccessController();
+        GrantsAccessController uninit = new GrantsAccessController();
         assertFalse(uninit.canReadArtifact("team-a", "x"));
     }
 
     @Test
     void uninitializedControllerGrantsDataNull() {
-        OpaWasmAccessController uninit = new OpaWasmAccessController();
+        GrantsAccessController uninit = new GrantsAccessController();
         assertNull(uninit.getGrantsData());
     }
 

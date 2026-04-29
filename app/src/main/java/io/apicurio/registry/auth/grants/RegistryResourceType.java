@@ -1,4 +1,4 @@
-package io.apicurio.registry.auth.opawasm;
+package io.apicurio.registry.auth.grants;
 
 import java.util.Set;
 

@@ -1,4 +1,4 @@
-package io.apicurio.registry.auth.opawasm;
+package io.apicurio.registry.auth.grants;
 
 import java.util.HashSet;
 import java.util.List;
@@ -20,9 +20,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
-public class OpaWasmSearchFilter {
+public class GrantsSearchFilter {
 
-    private static final Logger LOG = LoggerFactory.getLogger(OpaWasmSearchFilter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GrantsSearchFilter.class);
 
     @Inject
     @Current
@@ -32,10 +32,10 @@ public class OpaWasmSearchFilter {
     SecurityIdentity securityIdentity;
 
     @Inject
-    OpaWasmAccessController opaWasmAc;
+    GrantsAccessController grantsAc;
 
     @Inject
-    OpaWasmAccessControllerConfig config;
+    GrantsAccessControllerConfig config;
 
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit) {
@@ -65,11 +65,11 @@ public class OpaWasmSearchFilter {
     }
 
     private Set<SearchFilter> addAuthorizationFilters(Set<SearchFilter> filters, String resourceType) {
-        if (!config.isEnabled() || opaWasmAc.getAuthorizer() == null) {
+        if (!config.isEnabled() || grantsAc.getAuthorizer() == null) {
             return filters;
         }
 
-        GrantsData data = opaWasmAc.getGrantsData();
+        GrantsData data = grantsAc.getGrantsData();
         if (data == null) {
             LOG.error("Grants data not loaded, denying search access.");
             return null;

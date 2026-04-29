@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(AUTH)
 @QuarkusIntegrationTest
-@QuarkusTestResource(OpaWasmTestResourceManager.class)
-public class OpaWasmAuthIT extends ApicurioRegistryBaseIT {
+@QuarkusTestResource(GrantsAuthTestResourceManager.class)
+public class GrantsAuthIT extends ApicurioRegistryBaseIT {
 
     private RegistryClient adminClient;
     private RegistryClient devClient;

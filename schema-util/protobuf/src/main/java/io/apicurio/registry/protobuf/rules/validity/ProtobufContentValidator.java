@@ -37,11 +37,10 @@ public class ProtobufContentValidator extends AbstractContentValidator {
     public void validate(ValidityLevel level, TypedContent content,
                          Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
-            // FQN / identifier hardening runs first, intentionally outside the wrapper
-            // try/catch below. The detector raises RuleViolationException directly, and
-            // the wrapper exists only to convert unexpected parser failures into syntax
-            // violations — re-wrapping the detector's own exceptions would lose the
-            // original message.
+            // Run FQN / identifier hardening first. The detector contract guarantees
+            // RuleViolationException is the only type that can escape this call — it
+            // catches and wraps any parser / base64 / descriptor failures from its own
+            // inputs internally — so no outer try/catch is needed here.
             Map<String, String> referenceTextSchemas = ProtobufFqnConflictDetector
                     .assertNoConflicts(level, content, resolvedReferences);
             try {

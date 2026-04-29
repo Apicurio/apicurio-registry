@@ -8,13 +8,14 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
+import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
 import java.util.Base64;
 import java.util.Collections;
@@ -57,6 +58,20 @@ import java.util.Optional;
 final class ProtobufFqnConflictDetector {
 
     static final String MAIN_SOURCE_NAME = "<main>";
+    /**
+     * Substring markers pulled from {@code com.google.protobuf.Descriptors.DescriptorValidationException}
+     * messages. protobuf-java does not expose error codes or typed sub-exceptions for these
+     * two specific failures, so string matching is the only way to discriminate an
+     * identifier-grammar rejection from other descriptor-build failures (duplicate symbols,
+     * unresolved types, and so on) that should fall through to the normal validation flow.
+     *
+     * <p>These constants are therefore coupled to protobuf-java's internal message wording.
+     * A dependency bump must re-verify them. Two regression tests —
+     * {@code ProtobufContentValidatorTest#testRejectsUnsafeIdentifierInBinaryDescriptor} and
+     * {@code ProtobufContentValidatorTest#testRejectsMissingNameInBinaryDescriptor} — assert
+     * that the corresponding descriptors are rejected end-to-end, so if the message wording
+     * changes and these markers stop matching, both tests will fail loudly in CI.
+     */
     private static final String INVALID_IDENTIFIER_MARKER = "is not a valid identifier";
     private static final String MISSING_NAME_MARKER = "Missing name";
 
@@ -80,31 +95,57 @@ final class ProtobufFqnConflictDetector {
      *         text conversion over every reference.
      * @throws RuleViolationException if a binary descriptor is rejected by
      *                                {@code FileDescriptor.buildFrom} with an identifier or
-     *                                missing-name error, or if two sources define the same
-     *                                fully qualified name with semantically different shapes
+     *                                missing-name error, if a reference cannot be parsed
+     *                                at all, or if two sources define the same fully
+     *                                qualified name with semantically different shapes.
+     *                                This detector wraps every other failure that could
+     *                                arise from its inputs (malformed base64, unreadable
+     *                                descriptors, parser errors) into a
+     *                                {@code RuleViolationException}, so callers do not
+     *                                need to catch raw {@code RuntimeException}s from it.
      */
     static Map<String, String> assertNoConflicts(ValidityLevel level, TypedContent mainContent,
                                                  Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
-        validateIdentifiersIfBinary(level, MAIN_SOURCE_NAME, mainContent);
+        // One-shot per-source binary parse: if a source is a base64-encoded
+        // FileDescriptorProto, decode and parse it here exactly once. Both the identifier
+        // grammar check below and the FQN walk later on reuse the cached descriptor
+        // instead of re-decoding the same bytes.
+        Map<String, FileDescriptorProto> binaryDescriptors = new HashMap<>();
+        FileDescriptorProto mainBinary = tryParseAsBinaryDescriptor(mainContent);
+        if (mainBinary != null) {
+            binaryDescriptors.put(MAIN_SOURCE_NAME, mainBinary);
+        }
         if (resolvedReferences != null) {
             for (Map.Entry<String, TypedContent> ref : resolvedReferences.entrySet()) {
-                validateIdentifiersIfBinary(level, ref.getKey(), ref.getValue());
+                FileDescriptorProto refBinary = tryParseAsBinaryDescriptor(ref.getValue());
+                if (refBinary != null) {
+                    binaryDescriptors.put(ref.getKey(), refBinary);
+                }
             }
         }
 
-        Map<String, String> depsText = buildDepsTextMap(resolvedReferences);
+        validateIdentifiersIfBinary(level, MAIN_SOURCE_NAME, binaryDescriptors.get(MAIN_SOURCE_NAME));
+        if (resolvedReferences != null) {
+            for (Map.Entry<String, TypedContent> ref : resolvedReferences.entrySet()) {
+                validateIdentifiersIfBinary(level, ref.getKey(), binaryDescriptors.get(ref.getKey()));
+            }
+        }
+
+        Map<String, String> depsText = buildDepsTextMap(level, resolvedReferences, binaryDescriptors);
         Map<String, Definition> known = new HashMap<>();
         if (resolvedReferences != null) {
             for (Map.Entry<String, TypedContent> ref : resolvedReferences.entrySet()) {
-                walkSource(ref.getKey(), ref.getValue(), depsText, known, level);
+                walkSource(ref.getKey(), ref.getValue(), binaryDescriptors.get(ref.getKey()),
+                        depsText, known, level);
             }
         }
-        walkSource(MAIN_SOURCE_NAME, mainContent, depsText, known, level);
+        walkSource(MAIN_SOURCE_NAME, mainContent, binaryDescriptors.get(MAIN_SOURCE_NAME),
+                depsText, known, level);
         return depsText;
     }
 
     /**
-     * Detects binary {@code FileDescriptorProto} uploads and validates them via
+     * Validates identifier grammar on a pre-parsed binary {@code FileDescriptorProto} via
      * {@link Descriptors.FileDescriptor#buildFrom}. This is the only path where identifier
      * grammar is enforced, because the Wire text parser used for text uploads already
      * rejects invalid identifiers at parse time while Wire's binary-to-text round trip
@@ -112,14 +153,14 @@ final class ProtobufFqnConflictDetector {
      *
      * @param level the current validity level, used for error reporting
      * @param sourceName the logical name of the content being checked (for error messages)
-     * @param content the content to inspect; may be text or binary
+     * @param fileProto the pre-parsed binary descriptor, or {@code null} if the source is
+     *                  not a binary upload (in which case this method is a no-op)
      * @throws RuleViolationException if the descriptor contains an invalid or missing
      *                                identifier; other descriptor-level validation errors
      *                                fall through to the normal validation flow
      */
     private static void validateIdentifiersIfBinary(ValidityLevel level, String sourceName,
-                                                    TypedContent content) throws RuleViolationException {
-        FileDescriptorProto fileProto = tryParseAsBinaryDescriptor(content);
+                                                    FileDescriptorProto fileProto) throws RuleViolationException {
         if (fileProto == null) {
             return;
         }
@@ -173,31 +214,85 @@ final class ProtobufFqnConflictDetector {
 
     /**
      * Materializes the text schemas for every resolved reference in a single map suitable
-     * for {@link FileDescriptorUtils#toFileDescriptorProto}. Binary references are converted
-     * to their canonical text form so that the loader, which expects text, can resolve them
-     * when another file imports them.
+     * for {@link FileDescriptorUtils#toFileDescriptorProto}. References that were already
+     * parsed as binary descriptors upstream (see {@link #assertNoConflicts}) are converted
+     * to their canonical text form without re-parsing; other references are put through
+     * the Wire text-form parser.
      *
-     * <p>Binary (base64) references are handled transparently:
-     * {@link ProtobufFile#toProtoFileElement(String)} first attempts to parse the input as
-     * text and, on failure, falls back to {@code Base64.getDecoder().decode(...)} followed by
-     * {@code FileDescriptorProto.parseFrom(...)} and a binary-to-text round trip via
-     * {@code FileDescriptorUtils.fileDescriptorToProtoFile}. No discrimination is needed
-     * here.</p>
+     * <p>This method does not catch {@link RuntimeException} in aggregate. Each downstream
+     * call has a narrow, typed catch on the specific declared failure mode
+     * ({@link IllegalArgumentException} from {@code Base64.getDecoder().decode(...)} via
+     * {@link #tryParseAsText}, or the text-parse fallback returning {@code null}). A
+     * reference that cannot be interpreted as either text or binary protobuf content is
+     * converted here into a {@link RuleViolationException} that names the offending
+     * reference — preserving the {@link #assertNoConflicts} contract that only
+     * {@code RuleViolationException} escapes this detector while still surfacing an
+     * actionable, domain-level error rather than leaking a library exception class.</p>
      *
+     * @param level the current validity level, used when constructing a
+     *              {@link RuleViolationException} for an unreadable reference
      * @param resolvedReferences the reference map passed to the validator, possibly null
+     * @param binaryDescriptors the per-source cache of already-decoded binary descriptors
+     *                          populated by {@code assertNoConflicts}
      * @return a mutable, insertion-ordered map of reference name to text schema; empty if
      *         no references were supplied
+     * @throws RuleViolationException if any reference is neither valid text proto nor a
+     *                                valid base64-encoded {@code FileDescriptorProto}
      */
-    private static Map<String, String> buildDepsTextMap(Map<String, TypedContent> resolvedReferences) {
+    private static Map<String, String> buildDepsTextMap(ValidityLevel level,
+                                                        Map<String, TypedContent> resolvedReferences,
+                                                        Map<String, FileDescriptorProto> binaryDescriptors)
+            throws RuleViolationException {
         Map<String, String> deps = new LinkedHashMap<>();
         if (resolvedReferences == null) {
             return deps;
         }
         for (Map.Entry<String, TypedContent> entry : resolvedReferences.entrySet()) {
-            String text = ProtobufFile.toProtoFileElement(entry.getValue().getContent().content()).toSchema();
-            deps.put(entry.getKey(), text);
+            String refName = entry.getKey();
+            FileDescriptorProto cachedBinary = binaryDescriptors.get(refName);
+            if (cachedBinary != null) {
+                // We already parsed this reference as a binary descriptor once. Convert it
+                // to text form without another parse round trip.
+                deps.put(refName, FileDescriptorUtils.fileDescriptorToProtoFile(cachedBinary).toSchema());
+                continue;
+            }
+            ProtoFileElement textElement = tryParseAsText(entry.getValue());
+            if (textElement == null) {
+                throw new RuleViolationException(
+                        "Failed to parse Protobuf reference '" + refName
+                                + "': content is neither a valid text-form proto schema nor a valid "
+                                + "base64-encoded FileDescriptorProto.",
+                        RuleType.VALIDITY, level.name(), Collections.emptySet());
+            }
+            deps.put(refName, textElement.toSchema());
         }
         return deps;
+    }
+
+    /**
+     * Attempts to parse the raw content as a Wire text-form {@link ProtoFileElement}.
+     * Mirror of {@link #tryParseAsBinaryDescriptor}: the single scoped {@code RuntimeException}
+     * catch is a "try next strategy" signal, not an error-hiding wrapper — it is bounded
+     * to exactly the {@code ProtoParser.readProtoFile()} invocation and only converts
+     * failure into a {@code null} return. The caller decides whether to try another
+     * representation or to raise a domain-level violation.
+     *
+     * @param content the candidate content; may be {@code null}
+     * @return the parsed element, or {@code null} if the content is not valid text proto
+     */
+    private static ProtoFileElement tryParseAsText(TypedContent content) {
+        if (content == null || content.getContent() == null) {
+            return null;
+        }
+        String raw = content.getContent().content();
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return new ProtoParser(Location.get(""), raw.toCharArray()).readProtoFile();
+        } catch (RuntimeException notText) {
+            return null;
+        }
     }
 
     /**
@@ -209,6 +304,9 @@ final class ProtobufFqnConflictDetector {
      * @param sourceName the logical name of the source (used in error messages and to scope
      *                   duplicate detection within the same file to the existing validator)
      * @param content the source content, text or binary
+     * @param preParsedBinary the already-decoded binary descriptor for this source if the
+     *                        caller determined it was a binary upload; {@code null} forces
+     *                        the text-parse path
      * @param depsText text schemas of every reference, for import resolution
      * @param known the FQN map populated across all sources; earlier entries are compared
      *              against later redefinitions
@@ -217,10 +315,11 @@ final class ProtobufFqnConflictDetector {
      *                                earlier definition in a different source
      */
     private static void walkSource(String sourceName, TypedContent content,
+                                   FileDescriptorProto preParsedBinary,
                                    Map<String, String> depsText,
                                    Map<String, Definition> known, ValidityLevel level)
             throws RuleViolationException {
-        FileDescriptorProto fdp = buildFileDescriptorProto(sourceName, content, depsText);
+        FileDescriptorProto fdp = buildFileDescriptorProto(sourceName, content, preParsedBinary, depsText);
         if (fdp == null) {
             // Could not compile the source into a FileDescriptorProto. The surrounding
             // validator flow will surface a concrete syntax / semantic error for it.
@@ -239,10 +338,11 @@ final class ProtobufFqnConflictDetector {
     }
 
     /**
-     * Produces a {@link FileDescriptorProto} for the given source, using the binary form
-     * directly when present or running the source text through the shared
-     * {@link FileDescriptorUtils} converter otherwise. Conversion failure returns
-     * {@code null} so the surrounding validator can surface the real error.
+     * Produces a {@link FileDescriptorProto} for the given source, returning the pre-parsed
+     * binary descriptor directly when one was supplied or running the source text through
+     * the shared {@link FileDescriptorUtils} converter otherwise. Returns {@code null}
+     * when neither path can produce a descriptor, so the caller ({@link #walkSource})
+     * skips this source and the surrounding validator surfaces the real error.
      *
      * <p>Only the imports declared by the source are passed to the converter, even though
      * the full dependency map is available. Passing unreferenced deps would cause
@@ -250,18 +350,30 @@ final class ProtobufFqnConflictDetector {
      * that share the source's package into the resulting descriptor, which would wrongly
      * attribute a conflicting reference's types to whichever file is currently being
      * walked.</p>
+     *
+     * <p>The one {@code RuntimeException} catch in this method is a narrow, deliberate
+     * accommodation of {@link FileDescriptorUtils#toFileDescriptorProto}'s contract:
+     * that method has no declared throws and its chosen failure signal is
+     * {@code throw new RuntimeException(e)} wrapping every underlying cause. We cannot
+     * catch narrower types than {@code RuntimeException} here because the library does
+     * not expose them. The catch is scoped to that single call; the text parse happens
+     * through {@link #tryParseAsText}, which returns {@code null} on failure instead of
+     * relying on an exception.</p>
      */
     private static FileDescriptorProto buildFileDescriptorProto(String sourceName, TypedContent content,
+                                                                FileDescriptorProto preParsedBinary,
                                                                 Map<String, String> allDepsText) {
-        FileDescriptorProto binary = tryParseAsBinaryDescriptor(content);
-        if (binary != null) {
-            return binary;
+        if (preParsedBinary != null) {
+            return preParsedBinary;
+        }
+        ProtoFileElement pfe = tryParseAsText(content);
+        if (pfe == null) {
+            return null;
         }
         try {
-            ProtoFileElement pfe = ProtobufFile.toProtoFileElement(content.getContent().content());
             return FileDescriptorUtils.toFileDescriptorProto(pfe.toSchema(), sourceName,
                     Optional.ofNullable(pfe.getPackageName()), filterToImports(allDepsText, pfe));
-        } catch (RuntimeException conversionFailed) {
+        } catch (RuntimeException toFileDescriptorProtoFailed) {
             return null;
         }
     }

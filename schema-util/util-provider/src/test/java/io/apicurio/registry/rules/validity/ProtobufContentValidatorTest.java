@@ -586,6 +586,40 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
     }
 
     @Test
+    public void testWrapsMalformedReferenceAsRuleViolation() {
+        // Regression for PR 7784 review feedback: when a reference is neither a valid
+        // text-form proto nor a valid base64-encoded FileDescriptorProto, the detector's
+        // internal text-conversion step (ProtobufFile.toProtoFileElement) throws a raw
+        // RuntimeException (typically IllegalArgumentException from strict base64
+        // decoding). The detector's public contract is that only RuleViolationException
+        // escapes it, so this path must be caught and wrapped with a message that names
+        // the offending reference.
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                message Client { string id = 1; }
+                """;
+        // Contains characters outside the base64 alphabet (spaces, !@#$%) and is not
+        // parseable as a text-form proto, so both conversion paths inside
+        // ProtobufFile.toProtoFileElement fail.
+        String junkReference = "this is clearly not a proto !@#$%";
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(junkReference),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs));
+        Assertions.assertTrue(ex.getMessage().contains("refA.proto"),
+                "Expected the offending reference name in the error message, got: "
+                        + ex.getMessage());
+    }
+
+    @Test
     public void testRejectsConflictMixedBinaryAndTextReferences() {
         // One reference is text, the other is a base64 FileDescriptorProto defining the
         // same FQN with a different field. Both code paths must cooperate and the conflict

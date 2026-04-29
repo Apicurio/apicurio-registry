@@ -1,7 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="registry-config-reference_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = {registry} configuration reference
 
 [role="_abstract"]
@@ -20,7 +20,6 @@ You can use the following reference information to configure {registry}.
 include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]
 
 // ref-migration-table
-:_mod-docs-content-type: REFERENCE
 [id="migration-table_{context}"]
 == {registry} version 2 to version 3 configuration changes
 

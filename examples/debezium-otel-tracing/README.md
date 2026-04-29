@@ -80,7 +80,7 @@ All services (Order Service, Debezium Server, Apicurio Registry, CDC Consumer) a
 ## Prerequisites
 
 - Docker 20.10+ and Docker Compose v2.0+
-- Java 17+ and Maven 3.8+
+- Java 21+ and Maven 3.8+
 - ~4GB available RAM for all containers
 
 ## Quick Start

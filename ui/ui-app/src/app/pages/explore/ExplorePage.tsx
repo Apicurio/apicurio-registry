@@ -228,6 +228,8 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         groups.deleteGroup(groupToDelete?.groupId as string).then( () => {
             pleaseWait(false);
             search(criteria, paging);
+        }).catch(error => {
+            setPageError(toPageError(error, "Error deleting group."));
         });
     };
 

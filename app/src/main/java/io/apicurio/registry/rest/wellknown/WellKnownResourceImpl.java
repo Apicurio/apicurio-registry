@@ -1,7 +1,8 @@
 package io.apicurio.registry.rest.wellknown;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.a2a.A2AConfig;
-import io.apicurio.registry.a2a.AgentCardLabelExtractor;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
@@ -10,6 +11,9 @@ import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.mcptools.McpToolsConfig;
+import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResult;
+import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -45,13 +49,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
- * Implementation of the A2A well-known endpoint resource.
+ * Implementation of the well-known endpoint resource for A2A agents and MCP tools.
  *
  * @see <a href="https://a2a-protocol.org/">A2A Protocol</a>
+ * @see <a href="https://spec.modelcontextprotocol.io/specification/server/tools/">MCP Tools</a>
  */
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
@@ -60,6 +64,9 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Inject
     A2AConfig a2aConfig;
+
+    @Inject
+    McpToolsConfig mcpToolsConfig;
 
     @Inject
     RegistryAgentCardBuilder agentCardBuilder;
@@ -136,36 +143,39 @@ public class WellKnownResourceImpl implements WellKnownResource {
             filters.add(SearchFilter.ofName(name));
         }
 
-        // Filter by skills (stored as labels: a2a.skill.<id>=<name>)
+        // Filter by skills (indexed as structured content: agent_card:skill:<id>)
         if (skills != null && !skills.isEmpty()) {
             for (String skill : skills) {
-                filters.add(SearchFilter.ofLabel(AgentCardLabelExtractor.LABEL_SKILL_PREFIX + skill));
+                filters.add(SearchFilter.ofStructure("agent_card:skill:" + skill));
             }
         }
 
-        // Filter by capabilities (stored as labels: a2a.capability.<name>=<value>)
+        // Filter by capabilities (indexed as structured content: agent_card:capability:<name>)
         if (capabilities != null && !capabilities.isEmpty()) {
             for (String capability : capabilities) {
                 // Parse capability:value format (e.g., "streaming:true")
                 String[] parts = capability.split(":", 2);
                 String capKey = parts[0];
                 String capValue = parts.length > 1 ? parts[1] : "true";
-                filters.add(SearchFilter.ofLabel(
-                        AgentCardLabelExtractor.LABEL_CAPABILITY_PREFIX + capKey, capValue));
+                SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + capKey);
+                if ("false".equals(capValue)) {
+                    filter = filter.negated();
+                }
+                filters.add(filter);
             }
         }
 
-        // Filter by input modes
+        // Filter by input modes (indexed as structured content: agent_card:inputmode:<mode>)
         if (inputModes != null && !inputModes.isEmpty()) {
             for (String mode : inputModes) {
-                filters.add(SearchFilter.ofLabel(AgentCardLabelExtractor.LABEL_INPUT_MODE_PREFIX + mode, "true"));
+                filters.add(SearchFilter.ofStructure("agent_card:inputmode:" + mode));
             }
         }
 
-        // Filter by output modes
+        // Filter by output modes (indexed as structured content: agent_card:outputmode:<mode>)
         if (outputModes != null && !outputModes.isEmpty()) {
             for (String mode : outputModes) {
-                filters.add(SearchFilter.ofLabel(AgentCardLabelExtractor.LABEL_OUTPUT_MODE_PREFIX + mode, "true"));
+                filters.add(SearchFilter.ofStructure("agent_card:outputmode:" + mode));
             }
         }
 
@@ -185,24 +195,46 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .build();
     }
 
+    /**
+     * Converts a searched artifact DTO into an agent search result by fetching and parsing the latest
+     * version content to extract skills and capabilities.
+     */
     private AgentSearchResult convertToAgentSearchResult(SearchedArtifactDto artifact) {
-        Map<String, String> labels = artifact.getLabels();
-
-        // Extract skills from labels
         List<String> skills = new ArrayList<>();
-        if (labels != null) {
-            for (Map.Entry<String, String> entry : labels.entrySet()) {
-                if (entry.getKey().startsWith(AgentCardLabelExtractor.LABEL_SKILL_PREFIX)) {
-                    skills.add(entry.getKey().substring(AgentCardLabelExtractor.LABEL_SKILL_PREFIX.length()));
+        boolean streaming = false;
+        boolean pushNotifications = false;
+
+        // Fetch and parse the latest version content to extract skills and capabilities
+        try {
+            GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
+            GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
+                    (g, branchId) -> storage.getBranchTip(g, branchId,
+                            RetrievalBehavior.SKIP_DISABLED_LATEST));
+            StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(stored.getContent().content());
+
+            // Extract skills
+            JsonNode skillsNode = root.path("skills");
+            if (skillsNode.isArray()) {
+                for (JsonNode skill : skillsNode) {
+                    if (skill.has("id") && skill.get("id").isTextual()) {
+                        skills.add(skill.get("id").asText());
+                    }
                 }
             }
-        }
 
-        // Extract capabilities from labels
-        boolean streaming = "true".equals(
-                labels != null ? labels.get(AgentCardLabelExtractor.LABEL_CAPABILITY_PREFIX + "streaming") : null);
-        boolean pushNotifications = "true".equals(
-                labels != null ? labels.get(AgentCardLabelExtractor.LABEL_CAPABILITY_PREFIX + "pushNotifications") : null);
+            // Extract capabilities
+            JsonNode capabilitiesNode = root.path("capabilities");
+            if (capabilitiesNode.isObject()) {
+                streaming = capabilitiesNode.path("streaming").asBoolean(false);
+                pushNotifications = capabilitiesNode.path("pushNotifications").asBoolean(false);
+            }
+        } catch (Exception e) {
+            // If content parsing fails, return result with empty skills/capabilities
+        }
 
         return AgentSearchResult.builder()
                 .groupId(artifact.getGroupId())
@@ -220,9 +252,125 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public Response getRegisteredMcpTool(String groupId, String artifactId, String version) {
+        if (!mcpToolsConfig.isEnabled()) {
+            throw new NotFoundException("MCP tools support is disabled");
+        }
+
+        GroupId gid = new GroupId(groupId);
+        String rawGroupId = gid.getRawGroupIdWithNull();
+        GA ga = new GA(rawGroupId, artifactId);
+
+        try {
+            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
+            GAV gav = VersionExpressionParser.parse(ga, versionExpression,
+                    (g, branchId) -> storage.getBranchTip(g, branchId,
+                            RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+            StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            if (!ArtifactType.MCP_TOOL.equals(metadata.getArtifactType())) {
+                throw new NotFoundException("Artifact is not an MCP tool definition");
+            }
+
+            return Response.ok(artifact.getContent().content(), "application/json").build();
+
+        } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+            throw new NotFoundException(
+                    "MCP tool not found: " + groupId + "/" + artifactId);
+        }
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public McpToolSearchResults searchMcpTools(String name, List<String> parameters,
+            Integer offset, Integer limit) {
+        if (!mcpToolsConfig.isEnabled()) {
+            throw new NotFoundException("MCP tools support is disabled");
+        }
+
+        Set<SearchFilter> filters = new HashSet<>();
+
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
+
+        if (!StringUtil.isEmpty(name)) {
+            filters.add(SearchFilter.ofName(name));
+        }
+
+        if (parameters != null && !parameters.isEmpty()) {
+            for (String parameter : parameters) {
+                filters.add(SearchFilter.ofStructure("mcp_tool:parameter:" + parameter));
+            }
+        }
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
+                OrderDirection.desc, offset, limit);
+
+        List<McpToolSearchResult> tools = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            tools.add(convertToMcpToolSearchResult(artifact));
+        }
+
+        return McpToolSearchResults.builder().count(results.getCount()).tools(tools).build();
+    }
+
+    /**
+     * Converts a searched artifact DTO into an MCP tool search result by fetching and parsing
+     * the latest version content to extract title and parameters.
+     */
+    private McpToolSearchResult convertToMcpToolSearchResult(SearchedArtifactDto artifact) {
+        String title = null;
+        List<String> parameters = new ArrayList<>();
+
+        try {
+            GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
+            GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
+                    (g, branchId) -> storage.getBranchTip(g, branchId,
+                            RetrievalBehavior.SKIP_DISABLED_LATEST));
+            StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(stored.getContent().content());
+
+            // Extract title
+            if (root.has("title") && root.get("title").isTextual()) {
+                title = root.get("title").asText();
+            }
+
+            // Extract parameter names from inputSchema
+            JsonNode inputSchema = root.path("inputSchema");
+            if (inputSchema.isObject()) {
+                JsonNode properties = inputSchema.path("properties");
+                if (properties.isObject()) {
+                    properties.fieldNames().forEachRemaining(parameters::add);
+                }
+            }
+        } catch (Exception e) {
+            // If content parsing fails, return result with empty metadata
+        }
+
+        return McpToolSearchResult.builder()
+                .groupId(artifact.getGroupId())
+                .artifactId(artifact.getArtifactId())
+                .name(artifact.getName())
+                .title(title)
+                .description(artifact.getDescription())
+                .owner(artifact.getOwner())
+                .createdOn(artifact.getCreatedOn().getTime())
+                .parameters(parameters)
+                .build();
+    }
+
+    @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public Response getSchema(String type, String version) {
-        if (!a2aConfig.isEnabled()) {
+        if (!a2aConfig.isEnabled() && !mcpToolsConfig.isEnabled()) {
             throw new NotFoundException("Schema not found: " + type + "/" + version);
         }
 
@@ -249,6 +397,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
             return "schemas/prompt-template-v1.json";
         } else if ("model-schema".equals(type) && "v1".equals(version)) {
             return "schemas/model-schema-v1.json";
+        } else if ("mcp-tool".equals(type) && "v1".equals(version)) {
+            return "schemas/mcp-tool-v1.json";
         }
         return null;
     }

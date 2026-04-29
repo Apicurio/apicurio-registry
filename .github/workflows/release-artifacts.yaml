@@ -10,7 +10,7 @@ on:
         required: true
         default: 'all'
   release:
-    types: [released, prereleased]
+    types: [released]
 
 permissions:
   id-token: write
@@ -94,10 +94,10 @@ jobs:
             exit 1
           fi
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Set up settings.xml
@@ -112,9 +112,21 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      - name: Download macOS CLI ZIP from GitHub Release
+        working-directory: registry
+        env:
+          GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        run: |
+          RELEASE_VERSION=${{ needs.prepare.outputs.release-version }}
+          gh release download "${RELEASE_VERSION}" \
+            --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch_64.zip" \
+            --dir cli/target/
+
       - name: Maven Deploy
         working-directory: registry
-        run: mvn -B --settings /home/runner/.m2/settings.xml deploy -Pprod -Prelease -DskipTests
+        run: |
+          mvn -B --settings /home/runner/.m2/settings.xml deploy \
+            -Pprod -Prelease -Dfull -DskipTests -DcliAttachArtifacts
 
   # SBOMs Generation
   release-sboms:
@@ -136,10 +148,10 @@ jobs:
           cd sboms
           echo "SBOM_OUTPUT_DIR=$(pwd)/apicurio-registry/${{ needs.prepare.outputs.release-version }}" >> $GITHUB_ENV
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Node
@@ -150,7 +162,7 @@ jobs:
       - name: Maven Install
         run: |
           cd registry
-          mvn install -Pprod -DskipTests
+          mvn install -pl app -am -Pprod -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
 
       - name: Generate Maven SBOMs
         run: |
@@ -198,18 +210,18 @@ jobs:
             exit 1
           fi
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Generate Maven Site
         run: |
           cd registry
-          mvn clean install -DskipTests
+          mvn clean install -pl utils/maven-plugin -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
           cd utils/maven-plugin
-          mvn site
+          mvn site --no-transfer-progress
 
       - name: Apicurio Website Checkout
         run: |
@@ -260,10 +272,10 @@ jobs:
             exit 1
           fi
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Build with Maven

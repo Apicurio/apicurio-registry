@@ -8,9 +8,9 @@ You can configure the {kafka-streams} Operator and {operator} to use a default c
 * You have installed the {operator} using the OperatorHub or command line.
 * You have installed the {kafka-streams} Operator or have Kafka accessible from your OpenShift cluster.
 
-.Procedure 
+.Procedure
 
-. In the OpenShift web console, click *Installed Operators*, select the *{kafka-streams}* Operator details, and then the *Kafka* tab. 
+. In the OpenShift web console, click *Installed Operators*, select the *{kafka-streams}* Operator details, and then the *Kafka* tab.
 
 . Click *Create Kafka* to provision a new Kafka cluster for {registry} storage. You can use the default value, for example:
 +
@@ -28,9 +28,7 @@ spec:
       offsets.topic.replication.factor: 3
       transaction.state.log.replication.factor: 3
       transaction.state.log.min.isr: 2
-      log.message.format.version: '2.7'
-      inter.broker.protocol.version: '2.7'
-    version: 2.7.0
+    version: 3.7.0
     storage:
       type: ephemeral
     replicas: 3
@@ -82,7 +80,7 @@ If you decide not to create the Kafka topic manually, skip the next step.
 +
 [source,yaml]
 ----
-apiVersion: kafka.strimzi.io/v1beta1
+apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: kafkasql-journal
@@ -93,10 +91,12 @@ spec:
   partitions: 2
   replicas: 1
   config:
-    cleanup.policy: compact
+    cleanup.policy: delete
+    retention.ms: -1
+    retention.bytes: -1
 ----
 
-. Select the *{operator}*, and in the *ApicurioRegistry* tab, click *Create ApicurioRegistry*, using the following example, but replace your value in the `bootstrapServers` field.
+. Select the *{operator}*, and in the *ApicurioRegistry3* tab, click *Create ApicurioRegistry3*, using the following example, but replace your value in the `bootstrapServers` field.
 +
 [source,yaml]
 ----

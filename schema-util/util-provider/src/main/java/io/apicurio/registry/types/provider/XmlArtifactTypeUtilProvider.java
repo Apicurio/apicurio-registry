@@ -8,6 +8,8 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.dereference.NoopContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.NoopContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
+import io.apicurio.registry.xml.content.extract.XmlStructuredContentExtractor;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.NoOpReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
@@ -76,6 +78,11 @@ public class XmlArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvide
     @Override
     protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
         return new DefaultReferenceArtifactIdentifierExtractor();
+    }
+
+    @Override
+    protected StructuredContentExtractor createStructuredContentExtractor() {
+        return new XmlStructuredContentExtractor();
     }
 
 }

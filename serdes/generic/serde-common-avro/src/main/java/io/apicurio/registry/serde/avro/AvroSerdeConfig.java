@@ -22,6 +22,14 @@ public class AvroSerdeConfig extends SerdeConfig {
     public static final String USE_SPECIFIC_AVRO_READER = "apicurio.registry.use-specific-avro-reader";
     public static final boolean USE_SPECIFIC_AVRO_READER_DEFAULT = false;
 
+    /**
+     * Configures the maximum number of entries in the Avro schema parser cache. The cache stores
+     * parsed schema results to avoid redundant parsing on repeated calls. Valid values are positive
+     * integers.
+     */
+    public static final String AVRO_SCHEMA_CACHE_SIZE = "apicurio.registry.avro.schema-cache-size";
+    public static final long AVRO_SCHEMA_CACHE_SIZE_DEFAULT = 256;
+
     public AvroSerdeConfig(Map<String, ?> originals) {
         Map<String, Object> joint = new HashMap<>(getDefaults());
         joint.putAll(originals);
@@ -40,6 +48,15 @@ public class AvroSerdeConfig extends SerdeConfig {
         return this.getBoolean(USE_SPECIFIC_AVRO_READER);
     }
 
+    /**
+     * Returns the maximum number of entries in the Avro schema parser cache.
+     *
+     * @return the schema cache size
+     */
+    public int getSchemaCacheSize() {
+        return (int) getLongNonNegative(AVRO_SCHEMA_CACHE_SIZE);
+    }
+
     @Override
     protected Map<String, ?> getDefaults() {
         Map<String, Object> joint = new HashMap<>(super.getDefaults());
@@ -49,5 +66,5 @@ public class AvroSerdeConfig extends SerdeConfig {
 
     private static final Map<String, ?> DEFAULTS = Map.of(AVRO_ENCODING, AvroEncoding.BINARY.name(),
             AVRO_DATUM_PROVIDER, AVRO_DATUM_PROVIDER_DEFAULT, USE_SPECIFIC_AVRO_READER,
-            USE_SPECIFIC_AVRO_READER_DEFAULT);
+            USE_SPECIFIC_AVRO_READER_DEFAULT, AVRO_SCHEMA_CACHE_SIZE, AVRO_SCHEMA_CACHE_SIZE_DEFAULT);
 }

@@ -26,10 +26,10 @@ jobs:
           git branch --set-upstream-to=origin/main
           git pull
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Maven
@@ -37,19 +37,21 @@ jobs:
         with:
           maven-version: '3.6.3'
 
-      - name: Copy openapi.json
+      - name: Copy openapi-v2.json
         run: |
           cd registry
-          cp ./common/src/main/resources/META-INF/openapi.json ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
           cp ./common/src/main/resources/META-INF/openapi-v2.json ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
 
       - name: Commit Release Version Change
         run: |
           cd registry
-          git add ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v3/openapi.json
           git add ./app/src/main/resources-unfiltered/META-INF/resources/api-specifications/registry/v2/openapi.json
-          git commit -m "Automatically updated the core API OpenAPI definition."
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Automatically updated the core v2 API OpenAPI definition."
+            git push
+          fi
 
   validate:
     needs: update-openapi

@@ -1,10 +1,10 @@
 package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.cli.common.CliException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.jboss.logging.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -16,7 +16,7 @@ import static java.util.Comparator.reverseOrder;
 
 public final class FileUtils {
 
-    private static final Logger log = LogManager.getRootLogger();
+    private static final Logger log = Logger.getLogger(FileUtils.class);
 
     private FileUtils() {
     }
@@ -26,9 +26,9 @@ public final class FileUtils {
             String content = Files.readString(filePath);
             String updatedContent = content.replace(search, replacement);
             Files.writeString(filePath, updatedContent);
-            log.debug("Replaced '{}' with '{}' in file: {}", search, replacement, filePath);
+            log.debugf("Replaced '%s' with '%s' in file: %s", search, replacement, filePath);
         } catch (IOException e) {
-            log.error("Failed to replace '{}' in file: {}", search, filePath, e);
+            log.errorf(e, "Failed to replace '%s' in file: %s", search, filePath);
             throw new CliException("Failed to replace in file: " + filePath, APPLICATION_ERROR_RETURN_CODE);
         }
     }
@@ -38,7 +38,7 @@ public final class FileUtils {
             String content = Files.readString(filePath);
             return content.contains(search);
         } catch (IOException e) {
-            log.error("Failed to read file: {}", filePath, e);
+            log.errorf(e, "Failed to read file: %s", filePath);
             throw new CliException("Failed to read file: " + filePath, APPLICATION_ERROR_RETURN_CODE);
         }
     }
@@ -49,10 +49,10 @@ public final class FileUtils {
                 if (Files.isSymbolicLink(linkPath)) {
                     Path existingTarget = Files.readSymbolicLink(linkPath);
                     if (existingTarget.equals(targetPath)) {
-                        log.debug("Symbolic link already exists: {} -> {}", linkPath, targetPath);
+                        log.debugf("Symbolic link already exists: %s -> %s", linkPath, targetPath);
                     } else {
                         Files.delete(linkPath);
-                        log.debug("Deleted existing symbolic link: {}", linkPath);
+                        log.debugf("Deleted existing symbolic link: %s", linkPath);
                     }
                 } else {
                     throw new CliException("File exists and is not a symbolic link: " + linkPath,
@@ -60,7 +60,7 @@ public final class FileUtils {
                 }
             } else {
                 Files.createSymbolicLink(linkPath, targetPath);
-                log.debug("Created symbolic link: {} -> {}", linkPath, targetPath);
+                log.debugf("Created symbolic link: %s -> %s", linkPath, targetPath);
             }
         } catch (IOException ex) {
             throw new CliException("Failed to create symbolic link: " + linkPath, ex,
@@ -90,9 +90,22 @@ public final class FileUtils {
         }
     }
 
+    // Reads content from a file path or stdin (when path is "-").
+    public static String readContent(final String file) {
+        try {
+            if ("-".equals(file)) {
+                return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
+            } else {
+                return Files.readString(Path.of(file));
+            }
+        } catch (IOException ex) {
+            throw new CliException("Could not read content from: " + file, ex, APPLICATION_ERROR_RETURN_CODE);
+        }
+    }
+
     public static void deleteDirectory(Path dirPath) {
         if (!Files.exists(dirPath)) {
-            log.debug("Directory does not exist, nothing to delete: {}", dirPath);
+            log.debugf("Directory does not exist, nothing to delete: %s", dirPath);
             return;
         }
         try (var paths = Files.walk(dirPath)) {
@@ -100,15 +113,15 @@ public final class FileUtils {
                     .forEach(path -> {
                         try {
                             Files.delete(path);
-                            log.debug("Deleted: {}", path);
+                            log.debugf("Deleted: %s", path);
                         } catch (IOException e) {
-                            log.error("Failed to delete: {}", path, e);
+                            log.errorf(e, "Failed to delete: %s", path);
                             throw new CliException("Failed to delete: " + path, APPLICATION_ERROR_RETURN_CODE);
                         }
                     });
-            log.debug("Deleted directory: {}", dirPath);
+            log.debugf("Deleted directory: %s", dirPath);
         } catch (IOException e) {
-            log.error("Failed to walk directory: {}", dirPath, e);
+            log.errorf(e, "Failed to walk directory: %s", dirPath);
             throw new CliException("Failed to delete directory: " + dirPath, APPLICATION_ERROR_RETURN_CODE);
         }
     }

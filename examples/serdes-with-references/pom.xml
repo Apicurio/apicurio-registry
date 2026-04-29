@@ -4,16 +4,16 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-examples</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-examples-references</artifactId>
+  <name>Registry :: Examples :: SerDes With References</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
     <protobuf.version>4.30.2</protobuf.version>
-    <proto-plugin.version>0.6.1</proto-plugin.version>
     <protobuf.googleapi.types.version>2.62.0</protobuf.googleapi.types.version>
   </properties>
 
@@ -46,7 +46,7 @@
     <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
-      <version>0.15.0</version>
+      <version>0.17.1</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -72,33 +72,21 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>kr.motd.maven</groupId>
-        <artifactId>os-maven-plugin</artifactId>
-        <version>1.7.1</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>detect</goal>
-            </goals>
-            <phase>initialize</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.xolstice.maven.plugins</groupId>
+        <groupId>io.github.ascopes</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
         <version>${proto-plugin.version}</version>
-        <extensions>true</extensions>
         <executions>
           <execution>
             <id>gencode</id>
             <goals>
-              <goal>compile</goal>
+              <goal>generate</goal>
             </goals>
             <phase>generate-sources</phase>
             <configuration>
-              <protoSourceRoot>./src/main/resources/schema</protoSourceRoot>
-              <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+              <sourceDirectories>
+                <sourceDirectory>./src/main/resources/schema</sourceDirectory>
+              </sourceDirectories>
+              <protoc>${protobuf.version}</protoc>
             </configuration>
           </execution>
         </executions>

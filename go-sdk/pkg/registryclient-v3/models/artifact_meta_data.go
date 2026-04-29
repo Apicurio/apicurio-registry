@@ -12,6 +12,8 @@ type ArtifactMetaData struct {
 	artifactId *string
 	// The artifactType property
 	artifactType *string
+	// Contract metadata for an artifact.
+	contractMetadata ContractMetadataable
 	// The createdOn property
 	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The description property
@@ -61,6 +63,12 @@ func (m *ArtifactMetaData) GetArtifactType() *string {
 	return m.artifactType
 }
 
+// GetContractMetadata gets the contractMetadata property value. Contract metadata for an artifact.
+// returns a ContractMetadataable when successful
+func (m *ArtifactMetaData) GetContractMetadata() ContractMetadataable {
+	return m.contractMetadata
+}
+
 // GetCreatedOn gets the createdOn property value. The createdOn property
 // returns a *Time when successful
 func (m *ArtifactMetaData) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
@@ -94,6 +102,16 @@ func (m *ArtifactMetaData) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		if val != nil {
 			m.SetArtifactType(val)
+		}
+		return nil
+	}
+	res["contractMetadata"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateContractMetadataFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetContractMetadata(val.(ContractMetadataable))
 		}
 		return nil
 	}
@@ -231,6 +249,12 @@ func (m *ArtifactMetaData) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 		}
 	}
 	{
+		err := writer.WriteObjectValue("contractMetadata", m.GetContractMetadata())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteTimeValue("createdOn", m.GetCreatedOn())
 		if err != nil {
 			return err
@@ -302,6 +326,11 @@ func (m *ArtifactMetaData) SetArtifactType(value *string) {
 	m.artifactType = value
 }
 
+// SetContractMetadata sets the contractMetadata property value. Contract metadata for an artifact.
+func (m *ArtifactMetaData) SetContractMetadata(value ContractMetadataable) {
+	m.contractMetadata = value
+}
+
 // SetCreatedOn sets the createdOn property value. The createdOn property
 func (m *ArtifactMetaData) SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
 	m.createdOn = value
@@ -347,6 +376,7 @@ type ArtifactMetaDataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetArtifactId() *string
 	GetArtifactType() *string
+	GetContractMetadata() ContractMetadataable
 	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetDescription() *string
 	GetGroupId() *string
@@ -357,6 +387,7 @@ type ArtifactMetaDataable interface {
 	GetOwner() *string
 	SetArtifactId(value *string)
 	SetArtifactType(value *string)
+	SetContractMetadata(value ContractMetadataable)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGroupId(value *string)

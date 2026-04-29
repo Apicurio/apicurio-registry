@@ -42,7 +42,7 @@ import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
@@ -626,6 +626,77 @@ public class AdminResourceTest extends AbstractResourceTestBase {
                 .pathParam("propertyName", "apicurio.download.href.ttl.seconds")
                 .put("/registry/v3/admin/config/properties/{propertyName}").then().statusCode(400);
 
+    }
+
+    @Test
+    void testExportByGroup() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String groupA = TestUtils.generateGroupId();
+        String groupB = TestUtils.generateGroupId();
+
+        // Create 3 artifacts in groupA
+        for (int idx = 0; idx < 3; idx++) {
+            String title = "GroupA API " + idx;
+            String artifactId = "GroupA-" + idx;
+            this.createArtifact(groupA, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
+        }
+
+        // Create 2 artifacts in groupB
+        for (int idx = 0; idx < 2; idx++) {
+            String title = "GroupB API " + idx;
+            String artifactId = "GroupB-" + idx;
+            this.createArtifact(groupB, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
+        }
+
+        // Export only groupA
+        ValidatableResponse response = given().when().queryParam("groupId", groupA)
+                .get("/registry/v3/admin/export").then().statusCode(200);
+        InputStream body = response.extract().asInputStream();
+        ZipInputStream zip = new ZipInputStream(body);
+
+        AtomicInteger contentCounter = new AtomicInteger(0);
+        AtomicInteger versionCounter = new AtomicInteger(0);
+        AtomicInteger artifactCounter = new AtomicInteger(0);
+        AtomicInteger globalRuleCounter = new AtomicInteger(0);
+        AtomicInteger groupCounter = new AtomicInteger(0);
+
+        ZipEntry entry = zip.getNextEntry();
+        while (entry != null) {
+            String name = entry.getName();
+
+            if (name.endsWith(".Content.json")) {
+                contentCounter.incrementAndGet();
+            } else if (name.endsWith(".ArtifactVersion.json")) {
+                versionCounter.incrementAndGet();
+            } else if (name.endsWith(".Artifact.json")) {
+                artifactCounter.incrementAndGet();
+            } else if (name.endsWith(".GlobalRule.json")) {
+                globalRuleCounter.incrementAndGet();
+            } else if (name.endsWith(".Group.json")) {
+                groupCounter.incrementAndGet();
+            }
+
+            // Next entry.
+            entry = zip.getNextEntry();
+        }
+
+        // Should contain exactly 3 artifacts/versions/content from groupA
+        assertEquals(3, artifactCounter.get());
+        assertEquals(3, versionCounter.get());
+        assertEquals(3, contentCounter.get());
+        // Should contain exactly 1 group (groupA)
+        assertEquals(1, groupCounter.get());
+        // Should NOT contain any global rules
+        assertEquals(0, globalRuleCounter.get());
+    }
+
+    @Test
+    void testExportByGroupNotFound() throws Exception {
+        // Export with a non-existent groupId should return 404
+        given().when().queryParam("groupId", "nonExistentGroup-" + UUID.randomUUID())
+                .get("/registry/v3/admin/export").then().statusCode(404);
     }
 
     private List<ArtifactReference> getSingletonRefList(String groupId, String artifactId, String version,

@@ -27,12 +27,16 @@ import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
+import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -51,6 +55,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -60,6 +65,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -192,6 +198,31 @@ public interface RegistryStorage extends DynamicConfigStorage {
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws ArtifactNotFoundException, VersionAlreadyExistsException, RegistryStorageException;
+
+    /**
+     * Creates a new artifact version only if the current latest versionOrder matches the expected base
+     * version order. Used for atomic commit operations where concurrent writes must be detected and rejected.
+     *
+     * <p>When {@code artifactMetaData} is non-null, the artifact-level metadata (labels, etc.) is updated
+     * atomically within the same transaction as the version creation. This avoids a separate update call
+     * that could fail independently, leaving the artifact in an inconsistent state.
+     *
+     * <p><b>KafkaSQL note:</b> In KafkaSQL deployments, this operation is serialized through a Kafka
+     * journal topic. If the SQL-level check fails (e.g., due to a concurrent commit), the Kafka message
+     * remains in the journal but is effectively a no-op: during replay, it will fail again with the same
+     * {@code CommitFailedException} and be silently discarded (no waiting HTTP thread). This is safe and
+     * by design.
+     *
+     * @param artifactMetaData optional artifact-level metadata to update atomically with the version
+     *                         creation; may be {@code null} if no artifact metadata update is needed
+     * @throws CommitFailedException if the current versionOrder does not match expectedBaseVersionOrder
+     */
+    ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData)
+            throws ArtifactNotFoundException, VersionAlreadyExistsException, CommitFailedException,
+            RegistryStorageException;
 
     /**
      * Get all artifact ids. --- Note: This should only be used in older APIs such as the registry V1 REST API
@@ -398,6 +429,83 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
             throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the contract ruleset for an artifact (artifact-level rules that apply to all versions).
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws RegistryStorageException
+     */
+    ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException;
+
+    /**
+     * Creates or replaces the contract ruleset for an artifact (artifact-level).
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param ruleset
+     * @throws RegistryStorageException
+     */
+    void setArtifactContractRuleset(String groupId, String artifactId, ContractRuleSetDto ruleset)
+            throws RegistryStorageException;
+
+    /**
+     * Deletes the contract ruleset for an artifact (artifact-level).
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws RegistryStorageException
+     */
+    void deleteArtifactContractRuleset(String groupId, String artifactId) throws RegistryStorageException;
+
+    /**
+     * Gets the contract ruleset for a specific artifact version.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Creates or replaces the contract ruleset for a specific artifact version.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @param ruleset
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Deletes the contract ruleset for a specific artifact version.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets all contract rules across all artifacts that contain the specified tag.
+     *
+     * @param tag the tag to search for
+     * @return list of matching contract rules with their artifact coordinates
+     * @throws RegistryStorageException
+     */
+    List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
+            throws RegistryStorageException;
 
     /**
      * Gets a sorted set of all artifact versions that exist for a given artifact.
@@ -631,10 +739,11 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * should be used to stream the data from the storage to some output source (e.g. a HTTP response). It is
      * important that the full dataset is *not* kept in memory.
      *
+     * @param groupId if non-null, only data belonging to this group will be exported (global rules excluded)
      * @param handler
      * @throws RegistryStorageException
      */
-    void exportData(Function<Entity, Void> handler) throws RegistryStorageException;
+    void exportData(String groupId, Function<Entity, Void> handler) throws RegistryStorageException;
 
     /**
      * Called to import previously exported data into the registry.
@@ -972,6 +1081,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
 
     void importArtifactRule(ArtifactRuleEntity entity);
 
+    void importContractRule(ContractRuleEntity entity);
+
     void importBranch(BranchEntity entity);
 
     boolean isContentExists(String contentHash) throws RegistryStorageException;
@@ -1033,6 +1144,58 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     boolean supportsDatabaseEvents();
+
+    /**
+     * Get all versions modified (created or updated) since the given timestamp. Used by
+     * search index implementations.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return List of version metadata for changed versions
+     */
+    List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp);
+
+    /**
+     * Count versions modified (created or updated) since the given timestamp. Used to cheaply
+     * determine whether to do an incremental update or a full rebuild of the search index.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return count of modified versions
+     */
+    long countVersionsModifiedSince(long sinceTimestamp);
+
+    /**
+     * Get the timestamp of the most recently modified version. Used by search index
+     * implementations.
+     *
+     * @return Timestamp in milliseconds, or 0 if no versions exist
+     */
+    long getLatestVersionTimestamp();
+
+    /**
+     * Get all version globalIds. Used by search index implementations for reconciliation to
+     * detect deleted versions.
+     *
+     * @return List of all globalIds
+     */
+    List<Long> getAllVersionGlobalIds();
+
+    /**
+     * Streams all versions with their content. Used by the startup reindexer to populate the
+     * search index from scratch. The consumer is called once per version, with e.g. the
+     * JDBC cursor kept open for the duration.
+     *
+     * @param consumer receives each version's metadata and content
+     */
+    void forEachVersion(Consumer<VersionContentDto> consumer);
+
+    /**
+     * Streams versions modified since the given timestamp, with their content. Used for
+     * incremental search index updates to avoid N+1 content fetches.
+     *
+     * @param sinceTimestamp only include versions with modifiedOn >= this value (millis since epoch)
+     * @param consumer receives each version's metadata and content
+     */
+    void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer);
 
     /**
      * Legacy code: we used to have an enum that drove how to retrieve versions. This has since been converted

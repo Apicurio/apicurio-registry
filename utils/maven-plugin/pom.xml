@@ -4,13 +4,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-maven-plugin</artifactId>
   <packaging>maven-plugin</packaging>
-  <name>Apicurio Registry Maven Plugin</name>
+  <name>Registry :: Utils :: Maven Plugin</name>
   <description>
     This plugin facilitates fast and easy integration with the Apicurio Registry and a Maven based
     build procedure.  It can be used, for example, to register schemas or API designs at build time.
@@ -57,6 +57,10 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.avro</groupId>

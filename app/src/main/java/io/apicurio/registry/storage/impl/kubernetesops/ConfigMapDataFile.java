@@ -1,55 +1,24 @@
 package io.apicurio.registry.storage.impl.kubernetesops;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.storage.impl.gitops.model.Any;
-import io.apicurio.registry.storage.impl.polling.DataFile;
-import io.apicurio.registry.storage.impl.polling.DataFileProcessingState;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import io.apicurio.registry.storage.impl.polling.AbstractPollingDataFile;
+import io.apicurio.registry.storage.impl.polling.ProcessingState;
+import io.apicurio.registry.storage.impl.polling.model.Any;
 import lombok.ToString;
-import org.apache.commons.io.FilenameUtils;
-
-import java.util.Optional;
-
-import static lombok.AccessLevel.PRIVATE;
+import java.nio.file.Path;
 
 /**
- * Implementation of DataFile for Kubernetes ConfigMap-based data.
+ * Implementation of PollingDataFile for Kubernetes ConfigMap-based data.
  * Each ConfigMapDataFile represents a single data entry from a ConfigMap.
  */
-@Builder
-@AllArgsConstructor(access = PRIVATE)
-@Getter
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString
-public class ConfigMapDataFile implements DataFile {
+@ToString(callSuper = true)
+public class ConfigMapDataFile extends AbstractPollingDataFile {
 
-    /**
-     * The path uniquely identifies this file within the registry configuration.
-     * The path is the ConfigMap data key, which should be a relative path
-     * (e.g., "test/artifact-petstore.yaml") to support relative path resolution.
-     */
-    @EqualsAndHashCode.Include
-    private String path;
+    private static final String SOURCE_ID = "kubernetes";
 
-    /**
-     * The content of this data file.
-     */
-    private ContentHandle data;
-
-    /**
-     * The parsed entity if the content is a valid entity definition.
-     */
-    private Optional<Any> any;
-
-    /**
-     * Whether this file has been processed.
-     */
-    @Setter
-    private boolean processed;
+    private ConfigMapDataFile(String path, ContentHandle data, ProcessingState state) {
+        super(SOURCE_ID, path, data, Any.from(state, path, data));
+    }
 
     /**
      * Creates a ConfigMapDataFile from a ConfigMap data entry.
@@ -62,17 +31,7 @@ public class ConfigMapDataFile implements DataFile {
      * @param content the content of the data entry
      * @return a new ConfigMapDataFile instance
      */
-    public static ConfigMapDataFile create(DataFileProcessingState state, String dataKey, String content) {
-
-        String path = FilenameUtils.normalize(dataKey);
-        ContentHandle data = ContentHandle.create(content);
-
-        return ConfigMapDataFile.builder()
-                .path(path)
-                .data(data)
-                .any(Any.from(state, path, data))
-                .processed(false)
-                .build();
+    public static ConfigMapDataFile create(ProcessingState state, String dataKey, String content) {
+        return new ConfigMapDataFile(Path.of(dataKey).normalize().toString(), ContentHandle.create(content), state);
     }
-
 }

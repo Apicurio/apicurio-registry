@@ -199,6 +199,19 @@ public class ERCache<V> {
         return value != null && !value.isExpired();
     }
 
+    public boolean containsByArtifactCoordinatesMatchingContent(ArtifactCoordinates key,
+                                                                ContentWithReferences expectedContent) {
+        WrappedValue<V> value = this.gavIndex.get(key);
+        if (value == null || value.isExpired()) {
+            return false;
+        }
+        if (expectedContent == null) {
+            return true;
+        }
+        ContentWithReferences cachedContent = contentExtractor.apply(value.value);
+        return expectedContent.equals(cachedContent);
+    }
+
     public boolean containsByContentHash(String key) {
         WrappedValue<V> value = this.contentHashIndex.get(key);
         return value != null && !value.isExpired();

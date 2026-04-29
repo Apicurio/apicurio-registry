@@ -1,0 +1,86 @@
+# GitOps Push Mode Example - Docker Compose
+#
+# The sidecar accepts git push over SSH. Schemas are pushed directly
+# to the registry's backing repository from the host.
+#
+# Uses dev security mode — auto-generates SSH host keys and
+# initializes an empty repository ready to receive pushes.
+#
+# Steps:
+#
+#   1. Generate an authorized (client) SSH key pair (if you haven't already):
+#      ssh-keygen -t ed25519 -f secrets/id_ed25519 -N "" -C "apicurio-registry-gitops-sync"
+#
+#   2. Run:
+#      docker compose up
+#
+#   3. Either:
+#       a. Configure git directly:
+#          export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i $(pwd)/secrets/id_ed25519"
+#          Remember to unset GIT_SSH_COMMAND after testing to avoid affecting other git operations.
+#       b. Copy the SSH private key to `~/.ssh` and configure SSH to use it for localhost in `~/.ssh/config`.
+#          Recommended when using APICURIO_GITOPS_SECURITY="strict" and the host key is stable.
+#
+#   4. Add the sidecar as a git remote and push schemas:
+#      git clone git@github.com:Apicurio/apicurio-registry-gitops-example.git default
+#      cd default
+#      git remote add registry ssh://git@localhost:2222/repos/default
+#      git push registry main
+#
+# Endpoints:
+#   - Registry API: http://localhost:8080/apis/registry/v3
+#   - Registry UI:  http://localhost:8888
+#   - SSH push:     ssh://git@localhost:2222/repos/default
+
+services:
+
+  gitops-sync:
+    container_name: gitops-sync
+    image: ${SIDECAR_IMAGE:-quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot}
+    environment:
+      APICURIO_GITOPS_MODE: "push"
+      APICURIO_GITOPS_SECURITY: "dev"
+      APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS: "/secrets/id_ed25519.pub"
+    volumes:
+      - git-repo:/repos
+      - ./secrets:/secrets:ro
+    ports:
+      - "2222:2222"
+
+  registry:
+    container_name: registry
+    image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
+    environment:
+      QUARKUS_PROFILE: "prod"
+      APICURIO_STORAGE_KIND: "gitops"
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_POLLING_STORAGE_ID: "${APICURIO_POLLING_STORAGE_ID:-prod}"
+      APICURIO_LOG_LEVEL: "debug"
+      QUARKUS_HTTP_CORS: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    volumes:
+      - git-repo:/repos:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - gitops-sync
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  registry-ui:
+    container_name: registry-ui
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    environment:
+      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+    ports:
+      - "8888:8080"
+    depends_on:
+      registry:
+        condition: service_healthy
+
+volumes:
+  git-repo:

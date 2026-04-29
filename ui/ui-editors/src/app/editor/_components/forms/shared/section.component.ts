@@ -30,7 +30,7 @@ import {AbstractBaseComponent} from "../../common/base-component";
 import {DocumentService} from "../../../_services/document.service";
 import {CommandService} from "../../../_services/command.service";
 import {SelectionService} from "../../../_services/selection.service";
-import {TopicSubscription} from "apicurio-ts-core";
+import {TopicSubscription} from "../../../_messaging/topic";
 import {KeypressUtils} from "../../../_util/keypress.util";
 
 

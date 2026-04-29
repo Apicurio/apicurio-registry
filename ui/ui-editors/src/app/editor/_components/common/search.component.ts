@@ -19,7 +19,7 @@ import {ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Inp
 import {AbstractBaseComponent} from "./base-component";
 import {DocumentService} from "../../_services/document.service";
 import {SelectionService} from "../../_services/selection.service";
-import {Debouncer} from "apicurio-ts-core";
+import {Debouncer} from "../../_messaging/debouncer";
 
 @Component({
     selector: "search",

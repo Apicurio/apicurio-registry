@@ -37,6 +37,7 @@ test("Reference Graph - view mode toggle and graph view", async ({ page }) => {
     await page.locator("#artifact-content").fill(OPENAPI_DATA_STR);
     await page.locator("#next-wizard-page").click();
     await page.locator("#next-wizard-page").click();
+    await page.locator("#next-wizard-page").click();
 
     await expect(page).toHaveURL(new RegExp(`.+/explore/${TEST_GROUP}/${TEST_ARTIFACT}`));
 

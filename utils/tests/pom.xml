@@ -4,13 +4,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-utils-tests</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-utils-tests</name>
+  <name>Registry :: Utils :: Tests</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
@@ -75,12 +75,17 @@
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>mssqlserver</artifactId>
+      <artifactId>testcontainers-mssqlserver</artifactId>
     </dependency>
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>mysql</artifactId>
+      <artifactId>testcontainers-mysql</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-kafka</artifactId>
     </dependency>
 
     <dependency>
@@ -90,7 +95,7 @@
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>pulsar</artifactId>
+      <artifactId>testcontainers-pulsar</artifactId>
     </dependency>
 
     <dependency>
@@ -100,7 +105,7 @@
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>postgresql</artifactId>
+      <artifactId>testcontainers-postgresql</artifactId>
     </dependency>
 
     <dependency>
@@ -127,11 +132,6 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-v2-java-sdk</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-common</artifactId>
     </dependency>
 
   </dependencies>

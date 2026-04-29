@@ -181,6 +181,18 @@ public class KafkaAdminUtil {
         }
     }
 
+    /**
+     * Scans recent messages in the KafkaSQL journal topic to detect incompatible content
+     * (e.g. Apicurio Registry v2 records mixed with v3 records). A temporary consumer seeks
+     * to the last {@code MAX_MESSAGE_COUNT} messages, inspects their headers and keys, and
+     * reports or fails fast depending on what it finds.
+     *
+     * <p>The scan is bounded by the end offsets captured before polling begins, so messages
+     * produced by other pods while this method runs are ignored.
+     *
+     * @throws RuntimeAssertionFailedException if the topic contains only v2 records, indicating
+     *         the topic was not properly migrated
+     */
     public void verifyJournalTopicContents() {
 
         var verificationConsumerResource = verificationConsumer.get();
@@ -217,7 +229,7 @@ public class KafkaAdminUtil {
                 boolean foundV3WithHeaders = false;
                 boolean foundUnknownWithHeaders = false;
 
-                while (true) { // We process a limited number of messages, so this will terminate.
+                while (true) {
                     var records = consumer.poll(configuration.get().getPollTimeout());
                     if (records.isEmpty()) {
                         break;
@@ -272,6 +284,18 @@ public class KafkaAdminUtil {
                         } catch (Exception e) {
                             // Ignore
                         }
+                    }
+                    // Stop once we've consumed past the original end offsets — don't chase
+                    // new messages produced by other pods while we're verifying.
+                    boolean allCaughtUp = true;
+                    for (var entry : endOffsets.entrySet()) {
+                        if (consumer.position(entry.getKey()) < entry.getValue()) {
+                            allCaughtUp = false;
+                            break;
+                        }
+                    }
+                    if (allCaughtUp) {
+                        break;
                     }
                 }
 

@@ -33,7 +33,7 @@ public class IntegrityRuleExecutor implements RuleExecutor {
 
     @Inject
     @Current
-    RegistryStorage storage;
+    RegistryStorage defaultStorage;
 
     /**
      * @see io.apicurio.registry.rules.RuleExecutor#execute(io.apicurio.registry.rules.RuleContext)
@@ -64,6 +64,10 @@ public class IntegrityRuleExecutor implements RuleExecutor {
                 || levels.contains(IntegrityLevel.NO_CIRCULAR_REFERENCES)) {
             checkForCircularReferences(context);
         }
+    }
+
+    private RegistryStorage resolveStorage(RuleContext context) {
+        return context.getStorage() != null ? context.getStorage() : defaultStorage;
     }
 
     private void verifyAllReferencesHaveMappings(RuleContext context) throws RuleViolationException {
@@ -133,6 +137,7 @@ public class IntegrityRuleExecutor implements RuleExecutor {
             return;
         }
 
+        RegistryStorage storageToUse = resolveStorage(context);
         Set<RuleViolation> causes = new HashSet<>();
 
         for (ArtifactReference ref : references) {
@@ -140,8 +145,8 @@ public class IntegrityRuleExecutor implements RuleExecutor {
             Set<String> visited = new HashSet<>();
 
             // Check if following this reference leads to a cycle in the existing reference graph
-            List<String> cyclePath = findCycleInReferenceGraph(ref.getGroupId(), ref.getArtifactId(),
-                    ref.getVersion(), visited);
+            List<String> cyclePath = findCycleInReferenceGraph(storageToUse, ref.getGroupId(),
+                    ref.getArtifactId(), ref.getVersion(), visited);
 
             if (cyclePath != null) {
                 RuleViolation violation = new RuleViolation();
@@ -164,8 +169,8 @@ public class IntegrityRuleExecutor implements RuleExecutor {
      *
      * @return the cycle path if a cycle is found, null otherwise
      */
-    private List<String> findCycleInReferenceGraph(String groupId, String artifactId, String version,
-            Set<String> visited) {
+    private List<String> findCycleInReferenceGraph(RegistryStorage storageToUse, String groupId,
+            String artifactId, String version, Set<String> visited) {
         String currentVersionKey = createVersionKey(groupId, artifactId, version);
 
         // If we've already visited this version, we've found a cycle
@@ -178,14 +183,14 @@ public class IntegrityRuleExecutor implements RuleExecutor {
         visited.add(currentVersionKey);
 
         try {
-            StoredArtifactVersionDto content = storage.getArtifactVersionContent(groupId, artifactId,
+            StoredArtifactVersionDto content = storageToUse.getArtifactVersionContent(groupId, artifactId,
                     version);
             List<ArtifactReferenceDto> refs = content.getReferences();
 
             if (refs != null) {
                 for (ArtifactReferenceDto ref : refs) {
-                    List<String> cyclePath = findCycleInReferenceGraph(ref.getGroupId(), ref.getArtifactId(),
-                            ref.getVersion(), visited);
+                    List<String> cyclePath = findCycleInReferenceGraph(storageToUse, ref.getGroupId(),
+                            ref.getArtifactId(), ref.getVersion(), visited);
                     if (cyclePath != null) {
                         cyclePath.add(0, formatArtifactRef(groupId, artifactId, version));
                         return cyclePath;

@@ -6,6 +6,7 @@ import io.apicurio.registry.a2a.A2AConfig;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
+import io.apicurio.registry.a2a.rest.beans.AgentInterface;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResult;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
 import io.apicurio.registry.auth.Authorized;
@@ -87,6 +88,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         String baseUrl = getBaseUrl();
         return agentCardBuilder.build(baseUrl);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
+    public AgentCard getAgentCardV1() {
+        return getAgentCard();
     }
 
     @Override
@@ -201,6 +208,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
      */
     private AgentSearchResult convertToAgentSearchResult(SearchedArtifactDto artifact) {
         List<String> skills = new ArrayList<>();
+        List<AgentInterface> supportedInterfaces = new ArrayList<>();
         boolean streaming = false;
         boolean pushNotifications = false;
 
@@ -226,6 +234,19 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 }
             }
 
+            // Extract supportedInterfaces
+            JsonNode interfacesNode = root.path("supportedInterfaces");
+            if (interfacesNode.isArray()) {
+                for (JsonNode iface : interfacesNode) {
+                    AgentInterface agentInterface = AgentInterface.builder()
+                            .url(iface.has("url") ? iface.get("url").asText() : null)
+                            .protocolBinding(iface.has("protocolBinding") ? iface.get("protocolBinding").asText() : null)
+                            .protocolVersion(iface.has("protocolVersion") ? iface.get("protocolVersion").asText() : null)
+                            .build();
+                    supportedInterfaces.add(agentInterface);
+                }
+            }
+
             // Extract capabilities
             JsonNode capabilitiesNode = root.path("capabilities");
             if (capabilitiesNode.isObject()) {
@@ -243,6 +264,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .description(artifact.getDescription())
                 .owner(artifact.getOwner())
                 .createdOn(artifact.getCreatedOn().getTime())
+                .supportedInterfaces(supportedInterfaces)
                 .skills(skills)
                 .capabilities(AgentCapabilities.builder()
                         .streaming(streaming)

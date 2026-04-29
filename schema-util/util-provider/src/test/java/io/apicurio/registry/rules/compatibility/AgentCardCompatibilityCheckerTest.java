@@ -13,7 +13,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for AgentCardCompatibilityChecker.
+ * Tests for AgentCardCompatibilityChecker (v1.0 format).
  */
 class AgentCardCompatibilityCheckerTest {
 
@@ -28,19 +28,30 @@ class AgentCardCompatibilityCheckerTest {
         return TypedContent.create(ContentHandle.create(json), ContentTypes.APPLICATION_JSON);
     }
 
+    // A minimal v1.0 agent card template for embedding in tests
+    private static final String MINIMAL_CARD = """
+            {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+            """;
+
     @Test
     void testCompatibleWhenNoExistingArtifacts() {
-        String proposed = """
-                {
-                    "name": "TestAgent",
-                    "url": "https://example.com/agent"
-                }
-                """;
-
         CompatibilityExecutionResult result = checker.testCompatibility(
                 CompatibilityLevel.BACKWARD,
                 Collections.emptyList(),
-                createAgentCard(proposed),
+                createAgentCard(MINIMAL_CARD),
                 Map.of());
 
         assertTrue(result.isCompatible(), "Should be compatible when no existing artifacts");
@@ -51,19 +62,35 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
                     "skills": [
-                        {"id": "skill1", "name": "Skill 1"}
-                    ]
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
                     "skills": [
-                        {"id": "skill1", "name": "Skill 1"},
-                        {"id": "skill2", "name": "Skill 2"}
-                    ]
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] },
+                        { "id": "skill2", "name": "Skill 2", "description": "Another skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -81,19 +108,35 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
                     "skills": [
-                        {"id": "skill1", "name": "Skill 1"},
-                        {"id": "skill2", "name": "Skill 2"}
-                    ]
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] },
+                        { "id": "skill2", "name": "Skill 2", "description": "Another skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
                     "skills": [
-                        {"id": "skill1", "name": "Skill 1"}
-                    ]
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -109,18 +152,39 @@ class AgentCardCompatibilityCheckerTest {
     }
 
     @Test
-    void testBackwardIncompatibleUrlChange() {
+    void testBackwardIncompatibleInterfaceRemoval() {
         String existing = """
                 {
                     "name": "TestAgent",
-                    "url": "https://old-url.com/agent"
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" },
+                        { "url": "https://example.com/agent", "protocolBinding": "jsonrpc", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "TestAgent",
-                    "url": "https://new-url.com/agent"
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -130,9 +194,10 @@ class AgentCardCompatibilityCheckerTest {
                 createAgentCard(proposed),
                 Map.of());
 
-        assertFalse(result.isCompatible(), "Changing URL should be backward incompatible");
+        assertFalse(result.isCompatible(), "Removing an interface should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("URL changed")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("Interface")
+                        && d.asRuleViolation().getDescription().contains("removed")));
     }
 
     @Test
@@ -140,19 +205,39 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
                     "capabilities": {
                         "streaming": false
-                    }
+                    },
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
                     "capabilities": {
                         "streaming": true,
                         "pushNotifications": true
-                    }
+                    },
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -170,20 +255,40 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
                     "capabilities": {
                         "streaming": true,
                         "pushNotifications": true
-                    }
+                    },
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
                     "capabilities": {
                         "streaming": true,
                         "pushNotifications": false
-                    }
+                    },
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -199,12 +304,24 @@ class AgentCardCompatibilityCheckerTest {
     }
 
     @Test
-    void testBackwardIncompatibleRemovingAuthScheme() {
+    void testBackwardIncompatibleRemovingSecurityScheme() {
         String existing = """
                 {
                     "name": "TestAgent",
-                    "authentication": {
-                        "schemes": ["bearer", "api-key"]
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"],
+                    "securitySchemes": {
+                        "bearer": { "type": "httpAuth", "scheme": "Bearer" },
+                        "apikey": { "type": "apiKey", "name": "X-API-Key", "location": "header" }
                     }
                 }
                 """;
@@ -212,8 +329,19 @@ class AgentCardCompatibilityCheckerTest {
         String proposed = """
                 {
                     "name": "TestAgent",
-                    "authentication": {
-                        "schemes": ["bearer"]
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"],
+                    "securitySchemes": {
+                        "bearer": { "type": "httpAuth", "scheme": "Bearer" }
                     }
                 }
                 """;
@@ -224,9 +352,9 @@ class AgentCardCompatibilityCheckerTest {
                 createAgentCard(proposed),
                 Map.of());
 
-        assertFalse(result.isCompatible(), "Removing auth scheme should be backward incompatible");
+        assertFalse(result.isCompatible(), "Removing security scheme should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("api-key")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("apikey")));
     }
 
     @Test
@@ -234,14 +362,34 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "TestAgent",
-                    "defaultInputModes": ["text"]
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "TestAgent",
-                    "defaultInputModes": ["text", "image"]
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text", "image"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -259,14 +407,34 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "TestAgent",
-                    "defaultInputModes": ["text", "image"]
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text", "image"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "TestAgent",
-                    "defaultInputModes": ["text"]
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -286,6 +454,16 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
                     "defaultOutputModes": ["text", "json"]
                 }
                 """;
@@ -293,6 +471,16 @@ class AgentCardCompatibilityCheckerTest {
         String proposed = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
                     "defaultOutputModes": ["text"]
                 }
                 """;
@@ -313,19 +501,35 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
                     "skills": [
-                        {"id": "skill1", "name": "Skill 1"},
-                        {"id": "skill2", "name": "Skill 2"}
-                    ]
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] },
+                        { "id": "skill2", "name": "Skill 2", "description": "Another skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
                     "skills": [
-                        {"id": "skill1", "name": "Skill 1"}
-                    ]
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -343,14 +547,34 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "OldName",
-                    "url": "https://example.com/agent"
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "NewName",
-                    "url": "https://example.com/agent"
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -368,27 +592,40 @@ class AgentCardCompatibilityCheckerTest {
         String existing = """
                 {
                     "name": "TestAgent",
-                    "url": "https://old-url.com",
-                    "skills": [
-                        {"id": "skill1", "name": "Skill 1"},
-                        {"id": "skill2", "name": "Skill 2"}
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" },
+                        { "url": "https://example.com/agent", "protocolBinding": "jsonrpc", "protocolVersion": "1.0" }
                     ],
                     "capabilities": {
                         "streaming": true
-                    }
+                    },
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] },
+                        { "id": "skill2", "name": "Skill 2", "description": "Another skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
         String proposed = """
                 {
                     "name": "TestAgent",
-                    "url": "https://new-url.com",
-                    "skills": [
-                        {"id": "skill1", "name": "Skill 1"}
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
                     ],
                     "capabilities": {
                         "streaming": false
-                    }
+                    },
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -400,6 +637,53 @@ class AgentCardCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible());
         assertEquals(3, result.getIncompatibleDifferences().size(),
-                "Should report URL change, skill removal, and capability removal");
+                "Should report interface removal, skill removal, and capability removal");
+    }
+
+    @Test
+    void testBackwardIncompatibleProtocolVersionChange() {
+        String existing = """
+                {
+                    "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "TestAgent",
+                    "description": "Test agent",
+                    "version": "1.1.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "2.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": [
+                        { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(), "Changing protocol version should be backward incompatible");
+        assertTrue(result.getIncompatibleDifferences().stream()
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("Protocol version changed")));
     }
 }

@@ -1,8 +1,8 @@
-# In-Memory Registry with Keycloak + OPA WASM Per-Resource Authorization
+# In-Memory Registry with Keycloak + Per-Resource Authorization
 
 Demonstrates two-layer authorization:
 - **Keycloak**: authentication + coarse-grained RBAC (who is this user, what role do they have)
-- **OPA WASM**: fine-grained per-resource authorization (can this user access this specific artifact)
+- **Grants evaluator**: fine-grained per-resource authorization (can this user access this specific artifact)
 
 ## Services
 
@@ -21,22 +21,22 @@ Demonstrates two-layer authorization:
 | `developer2` | `developer` | sr-developer | Read+Write `team-b/*` artifacts, Read `shared/*` |
 | `user` | `user` | sr-readonly | Read `shared/*` only |
 
-Both `developer` and `developer2` have the same RBAC role (`sr-developer`) but different per-resource access. This is the key difference from plain RBAC — same role, different permissions based on the resource.
+Both `developer` and `developer2` have the same RBAC role (`sr-developer`) but different per-resource access. This is the key difference from plain RBAC -- same role, different permissions based on the resource.
 
 ## How it works
 
-1. User authenticates via Keycloak (OIDC) — gets a JWT with roles
+1. User authenticates via Keycloak (OIDC) -- gets a JWT with roles
 2. Registry checks RBAC first (Keycloak roles: sr-admin, sr-developer, sr-readonly)
-3. If RBAC passes, Registry checks per-resource authorization via OPA WASM
-4. OPA evaluates the compiled Rego policy against the grants data
+3. If RBAC passes, Registry checks per-resource authorization via the grants evaluator
+4. The grants evaluator matches the user's identity and roles against the grants file
 5. Allow or deny
 
 ```
-User → Keycloak (authn + JWT with roles)
-     → Registry API
-       → RBAC check (sr-admin? sr-developer? sr-readonly?)
-       → OPA WASM check (does this user have a grant for this resource?)
-       → Allow / Deny
+User -> Keycloak (authn + JWT with roles)
+     -> Registry API
+       -> RBAC check (sr-admin? sr-developer? sr-readonly?)
+       -> Grants evaluator check (does this user have a grant for this resource?)
+       -> Allow / Deny
 ```
 
 ## Quick start
@@ -126,19 +126,19 @@ Test per-resource access:
 curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $DEV_TOKEN" \
   "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/schema-1"
-# → 200
+# -> 200
 
 # developer CANNOT read team-b artifact
 curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $DEV_TOKEN" \
   "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/schema-2"
-# → 403
+# -> 403
 
 # developer2 CAN read team-b artifact
 curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $DEV2_TOKEN" \
   "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/schema-2"
-# → 200
+# -> 200
 
 # developer2 CANNOT write to team-a
 curl -s -o /dev/null -w "%{http_code}" -X PUT \
@@ -146,33 +146,33 @@ curl -s -o /dev/null -w "%{http_code}" -X PUT \
   -H "Content-Type: application/json" \
   -d '{"name": "hacked"}' \
   "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/schema-1"
-# → 403
+# -> 403
 
 # read-only user CAN read shared artifact
 curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $USER_TOKEN" \
   "http://localhost:8081/apis/registry/v3/groups/shared/artifacts/common-schema"
-# → 200
+# -> 200
 
 # read-only user CANNOT read team-a artifact
 curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $USER_TOKEN" \
   "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/schema-1"
-# → 403
+# -> 403
 
 # admin CAN do everything
 curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/schema-2"
-# → 200
+# -> 200
 ```
 
 ## Grants file
 
-Edit `grants.json` to change per-resource permissions. The file is mounted into the Registry container and hot-reloaded every 5 seconds — no restart needed:
+Edit `grants.json` to change per-resource permissions. The file is mounted into the Registry container and hot-reloaded every 5 seconds -- no restart needed:
 
 ```bash
-# Edit grants.json — changes take effect within 5 seconds
+# Edit grants.json -- changes take effect within 5 seconds
 ```
 
 See `app/src/main/java/io/apicurio/registry/auth/opawasm/README.md` for the full design documentation, scaling characteristics, and known limitations.
@@ -183,5 +183,3 @@ See `app/src/main/java/io/apicurio/registry/auth/opawasm/README.md` for the full
 |------|---------|
 | `docker-compose.yml` | Service definitions |
 | `grants.json` | Per-resource permission grants (who can access what, hot-reloaded) |
-| `registry-authz.rego` | Rego policy source (generic authorization logic) |
-| `registry-authz.wasm` | Compiled WASM policy (loaded by Registry at startup) |

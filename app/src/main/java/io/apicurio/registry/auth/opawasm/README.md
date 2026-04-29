@@ -1,25 +1,25 @@
-# Per-Resource Authorization with Kroxylicious Authorizer API + OPA WASM
+# Per-Resource Authorization with Kroxylicious Authorizer API + Java Grants Evaluator
 
-Fine-grained per-resource authorization for Apicurio Registry, using the [Kroxylicious Authorizer](https://github.com/kroxylicious/kroxylicious/tree/main/kroxylicious-authorizer-api) interface backed by OPA policies evaluated in-process via WebAssembly.
+Fine-grained per-resource authorization for Apicurio Registry, using the [Kroxylicious Authorizer](https://github.com/kroxylicious/kroxylicious/tree/main/kroxylicious-authorizer-api) interface backed by a pure Java grants evaluator.
 
 ## Architecture
 
 ### Shared `authz` module
 
-The authorization engine lives in the `authz/` module (`apicurio-authz-core`), separate from Registry-specific code. It implements the Kroxylicious `Authorizer` interface with OPA WASM and is designed to be shared across systems:
+The authorization engine lives in the `authz/` module (`apicurio-authz-core`), separate from Registry-specific code. It implements the Kroxylicious `Authorizer` interface with a pure Java grants evaluator and is designed to be shared across systems:
 
 ```
 authz/ (apicurio-authz-core)
-  ├── OpaWasmAuthorizer      — implements Kroxylicious Authorizer, OPA WASM pool, file hot-reload
-  ├── GrantsData             — parsed grants with per-user filtering, validation, caching
-  ├── Grant                  — single grant record with matching logic
-  └── RolePrincipal          — role-based Principal for Subject construction
+  ├── GrantsAuthorizer        — implements Kroxylicious Authorizer, grants evaluation, file hot-reload
+  ├── GrantsData              — parsed grants with per-user filtering, validation, caching
+  ├── Grant                   — single grant record with matching logic
+  └── RolePrincipal           — role-based Principal for Subject construction
 
 app/ (Registry-specific integration)
-  ├── OpaWasmAccessController           — bridges Authorizer with Registry's IAccessController
-  ├── OpaWasmAccessControllerConfig     — config properties (enabled, paths, pool size, entrypoint)
-  ├── OpaWasmAccessControllerInitializer — startup, hot-reload scheduler
-  ├── OpaWasmSearchFilter               — translates grants to SQL/ES filters for search
+  ├── GrantsAccessController            — bridges Authorizer with Registry's IAccessController
+  ├── GrantsAccessControllerConfig      — config properties (enabled, grants path)
+  ├── GrantsAccessControllerInitializer — startup, hot-reload scheduler
+  ├── GrantsSearchFilter                — translates grants to SQL/ES filters for search
   ├── RegistryResourceType              — Artifact and Group enums (ResourceType impl)
   ├── ISearchAuthorizer                 — engine-agnostic search filtering interface
   └── SearchAuthorizerProducer          — CDI producer selecting the right ISearchAuthorizer
@@ -37,9 +37,9 @@ The IdP doesn't know about Registry resources. No resource synchronization, no U
 **Point-access** (can this user read this artifact?):
 ```
 SecurityIdentity → Kroxylicious Subject
-  → OpaWasmAuthorizer.authorize(subject, actions)
+  → GrantsAuthorizer.authorize(subject, actions)
     → Pre-filters grants for current user (~5-20 entries, ~3KB)
-    → OPA WASM evaluation in-process
+    → Java grants evaluation in-process
     → AuthorizeResult → Decision.ALLOW / DENY
     → OTel metric recorded (apicurio.authz.decisions)
     → Denied decisions audit-logged
@@ -77,7 +77,11 @@ Each system defines its own `ResourceType` enums and depends on `apicurio-authz-
 
 ### Why in-process instead of a sidecar?
 
-Search filtering requires the authorization layer to participate in the database query. A sidecar can't add `WHERE groupId IN (...)` to SQL. In-process WASM evaluation also eliminates network latency for point-access (~10-50us vs ~1-2ms per call).
+Search filtering requires the authorization layer to participate in the database query. A sidecar can't add `WHERE groupId IN (...)` to SQL. In-process evaluation also eliminates network latency for point-access (~10-50us vs ~1-2ms per call).
+
+### Pluggable authorization engines
+
+The `authz` module uses the Kroxylicious `Authorizer` interface as its contract. The default implementation is `GrantsAuthorizer`, a pure Java grants evaluator with no external dependencies beyond `jackson-databind`. Alternative implementations (for example, an OPA-based evaluator or a custom policy engine) can be plugged in by implementing the same interface.
 
 ## Configuration
 
@@ -85,20 +89,11 @@ Search filtering requires the authorization layer to participate in the database
 # Required: enable experimental features gate
 apicurio.features.experimental.enabled=true
 
-# Enable OPA WASM authorization
-apicurio.auth.opa-wasm.enabled=true
-
-# Path to compiled WASM policy (mountable via volume/ConfigMap)
-apicurio.auth.opa-wasm.policy.path=/opt/apicurio/opa/registry-authz.wasm
+# Enable per-resource authorization
+apicurio.auth.resource-based-authorization.enabled=true
 
 # Path to JSON grants data file (hot-reloaded every 5s on change)
-apicurio.auth.opa-wasm.data.path=/opt/apicurio/opa/grants.json
-
-# OPA WASM pool size (default: 4)
-apicurio.auth.opa-wasm.pool-size=4
-
-# OPA policy entrypoint (default: registry/authz/allow)
-apicurio.auth.opa-wasm.entrypoint=registry/authz/allow
+apicurio.auth.resource-based-authorization.grants.path=/opt/apicurio/authz/grants.json
 ```
 
 ## Grants management
@@ -107,16 +102,14 @@ apicurio.auth.opa-wasm.entrypoint=registry/authz/allow
 
 **Grants validation:** On load/reload, grants with missing required fields are skipped with a warning. Unrecognized operation or pattern type values are logged. A summary is logged on every load (grant count, admin roles).
 
-**Custom policies at deploy-time:** The `.wasm` path and entrypoint are config properties. Customers can compile their own Rego policy and mount it — same Registry image, different policy.
-
 ## Scaling
 
-Per-request OPA payload is ~3KB (current user's grants only), regardless of total grant count. Per-user JSON is cached so serialization happens once per user per reload. Search filtering uses cached Java objects translated to SQL — no OPA involved.
+Per-request evaluation payload is ~3KB (current user's grants only), regardless of total grant count. Per-user data is cached so filtering happens once per user per reload. Search filtering uses cached Java objects translated to SQL -- no external engine involved.
 
 ## Monitoring
 
 **OTel metrics:**
-- `apicurio.authz.decisions` — counter with attributes: `decision` (allow/deny), `resource_type` (artifact/group), `operation` (read/write/admin)
+- `apicurio.authz.decisions` -- counter with attributes: `decision` (allow/deny), `resource_type` (artifact/group), `operation` (read/write/admin)
 
 **Audit logging:**
 - Denied decisions logged to `io.apicurio.registry.audit.authz` at INFO level
@@ -129,19 +122,17 @@ Per-request OPA payload is ~3KB (current user's grants only), regardless of tota
 mvn test -pl authz -Dcheckstyle.skip=true
 
 # Registry unit tests (8 tests)
-mvn test -pl app -Dtest=OpaWasmAccessControllerTest -Dcheckstyle.skip=true
+mvn test -pl app -Dtest=GrantsAccessControllerTest -Dcheckstyle.skip=true
 
 # Integration tests with Keycloak (34 tests)
 cd integration-tests
-mvn verify -Dit.test=OpaWasmAuthIT -Dcheckstyle.skip=true -Dgroups=auth
+mvn verify -Dit.test=GrantsAuthIT -Dcheckstyle.skip=true -Dgroups=auth
 ```
 
 ## Docker-compose example
 
-See `distro/docker-compose/in-memory-with-opa-wasm/` for a working example with Keycloak + OPA WASM.
+See `distro/docker-compose/in-memory-with-opa-wasm/` for a working example with Keycloak + per-resource authorization.
 
 ## Known limitations
 
-- Search filtering (Java/SQL) and point-access (OPA WASM) both use the same grants data but different evaluation paths. Custom Rego policies beyond grant matching would apply to point-access only.
-- WASM policy changes require restart. Grants hot-reload every 5 seconds.
-- `getGroupById` uses `@Authorized(style=GroupAndArtifact)` with a single parameter — handled gracefully by falling back to group-only check (#7866).
+- `getGroupById` uses `@Authorized(style=GroupAndArtifact)` with a single parameter -- handled gracefully by falling back to group-only check (#7866).

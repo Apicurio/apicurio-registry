@@ -3,6 +3,8 @@ package io.apicurio.registry.a2a.rest.beans;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
+
 /**
  * Represents the capabilities of an A2A agent.
  */
@@ -14,6 +16,12 @@ public class AgentCapabilities {
 
     @JsonProperty("pushNotifications")
     private Boolean pushNotifications;
+
+    @JsonProperty("extendedAgentCard")
+    private Boolean extendedAgentCard;
+
+    @JsonProperty("extensions")
+    private List<AgentExtension> extensions;
 
     public AgentCapabilities() {
     }
@@ -39,6 +47,22 @@ public class AgentCapabilities {
         this.pushNotifications = pushNotifications;
     }
 
+    public Boolean getExtendedAgentCard() {
+        return extendedAgentCard;
+    }
+
+    public void setExtendedAgentCard(Boolean extendedAgentCard) {
+        this.extendedAgentCard = extendedAgentCard;
+    }
+
+    public List<AgentExtension> getExtensions() {
+        return extensions;
+    }
+
+    public void setExtensions(List<AgentExtension> extensions) {
+        this.extensions = extensions;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -53,6 +77,16 @@ public class AgentCapabilities {
 
         public Builder pushNotifications(Boolean pushNotifications) {
             capabilities.setPushNotifications(pushNotifications);
+            return this;
+        }
+
+        public Builder extendedAgentCard(Boolean extendedAgentCard) {
+            capabilities.setExtendedAgentCard(extendedAgentCard);
+            return this;
+        }
+
+        public Builder extensions(List<AgentExtension> extensions) {
+            capabilities.setExtensions(extensions);
             return this;
         }
 

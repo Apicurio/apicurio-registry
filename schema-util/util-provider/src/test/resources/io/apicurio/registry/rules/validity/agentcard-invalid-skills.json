@@ -1,6 +1,10 @@
 {
-  "name": "InvalidSkillsAgent",
-  "description": "An agent card with invalid skills type",
+  "name": "TestAgent",
+  "description": "Test agent",
   "version": "1.0.0",
-  "skills": "this should be an array not a string"
+  "supportedInterfaces": [{ "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }],
+  "capabilities": {},
+  "skills": "this should be an array",
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"]
 }

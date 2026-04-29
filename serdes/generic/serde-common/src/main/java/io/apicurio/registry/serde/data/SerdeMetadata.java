@@ -10,10 +10,16 @@ public class SerdeMetadata implements Metadata {
 
     private final String topic;
     private final boolean isKey;
+    private final String operation;
 
     public SerdeMetadata(String topic, boolean isKey) {
+        this(topic, isKey, null);
+    }
+
+    public SerdeMetadata(String topic, boolean isKey, String operation) {
         this.topic = topic;
         this.isKey = isKey;
+        this.operation = operation;
     }
 
     /**
@@ -36,6 +42,11 @@ public class SerdeMetadata implements Metadata {
      */
     public boolean isKey() {
         return isKey;
+    }
+
+    @Override
+    public String operation() {
+        return operation;
     }
 
 }

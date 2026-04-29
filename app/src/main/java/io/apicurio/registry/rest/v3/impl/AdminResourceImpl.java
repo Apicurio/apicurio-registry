@@ -19,7 +19,16 @@ import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.v3.AdminResource;
+import io.apicurio.registry.rest.v3.beans.ActiveConsumer;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
+import io.apicurio.registry.rest.v3.beans.ArtifactUsageMetrics;
+import io.apicurio.registry.rest.v3.beans.ConsumerVersionEntry;
+import io.apicurio.registry.rest.v3.beans.ConsumerVersionHeatmap;
+import io.apicurio.registry.rest.v3.beans.DeprecationReadiness;
+import io.apicurio.registry.rest.v3.beans.Versions;
+import io.apicurio.registry.rest.v3.beans.UsageClassification;
+import io.apicurio.registry.rest.v3.beans.UsageSummary;
+import io.apicurio.registry.rest.v3.beans.VersionUsageMetrics;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.DownloadRef;
@@ -27,6 +36,7 @@ import io.apicurio.registry.rest.v3.beans.GitOpsStatus;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.Rule;
+import io.apicurio.registry.rest.v3.beans.SchemaUsageEventList;
 import io.apicurio.registry.rest.v3.beans.SnapshotMetaData;
 import io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.UpdateRole;
@@ -39,6 +49,11 @@ import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
+import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
+import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
@@ -75,6 +90,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +101,7 @@ import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_DOWNLOAD;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_USAGE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_FOR_BROWSER;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_NAME;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PRINCIPAL_ID;
@@ -139,6 +156,26 @@ public class AdminResourceImpl implements AdminResource {
     @ConfigProperty(name = "apicurio.download.href.ttl.seconds", defaultValue = "30")
     @Info(category = CATEGORY_DOWNLOAD, description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
+
+    @ConfigProperty(name = "apicurio.usage.telemetry.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_USAGE, description = "Enable usage telemetry collection from SerDes clients", availableSince = "3.1.0")
+    boolean usageTelemetryEnabled;
+
+    @ConfigProperty(name = "apicurio.usage.active-threshold-days", defaultValue = "7")
+    @Info(category = CATEGORY_USAGE, description = "Number of days within which a schema is classified as ACTIVE", availableSince = "3.1.0")
+    int activeThresholdDays;
+
+    @ConfigProperty(name = "apicurio.usage.stale-threshold-days", defaultValue = "30")
+    @Info(category = CATEGORY_USAGE, description = "Number of days after which a schema is classified as STALE", availableSince = "3.1.0")
+    int staleThresholdDays;
+
+    @ConfigProperty(name = "apicurio.usage.dead-threshold-days", defaultValue = "90")
+    @Info(category = CATEGORY_USAGE, description = "Number of days after which a schema is classified as DEAD", availableSince = "3.1.0")
+    int deadThresholdDays;
+
+    @ConfigProperty(name = "apicurio.usage.drift-alert-threshold", defaultValue = "2")
+    @Info(category = CATEGORY_USAGE, description = "Number of versions behind latest before triggering a drift alert", availableSince = "3.1.0")
+    int driftAlertThreshold;
 
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
@@ -653,6 +690,171 @@ public class AdminResourceImpl implements AdminResource {
         var sources = new io.apicurio.registry.rest.v3.beans.Sources();
         status.getSources().forEach(sources::setAdditionalProperty);
         result.setSources(sources);
+        return result;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
+    public void reportUsageEvents(SchemaUsageEventList data) {
+        if (!usageTelemetryEnabled) {
+            throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
+        }
+        ParameterValidationUtils.requireParameter("events", data.getEvents());
+        List<SchemaUsageEventDto> dtos = data.getEvents().stream()
+                .map(event -> SchemaUsageEventDto.builder()
+                        .globalId(event.getGlobalId())
+                        .clientId(event.getClientId())
+                        .operation(event.getOperation().value())
+                        .eventTimestamp(event.getTimestamp())
+                        .build())
+                .toList();
+        storage.recordUsageEvents(dtos);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public ArtifactUsageMetrics getArtifactUsageMetrics(String groupId, String artifactId) {
+        if (!usageTelemetryEnabled) {
+            throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
+        }
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        List<SchemaUsageSummaryDto> dtos = storage.getArtifactUsageMetrics(groupId, artifactId);
+
+        long now = System.currentTimeMillis();
+        long activeMs = activeThresholdDays * 86_400_000L;
+        long staleMs = staleThresholdDays * 86_400_000L;
+        long deadMs = deadThresholdDays * 86_400_000L;
+
+        ArtifactUsageMetrics result = new ArtifactUsageMetrics();
+        result.setGroupId(groupId);
+        result.setArtifactId(artifactId);
+        result.setVersions(dtos.stream().map(dto -> {
+            VersionUsageMetrics vm = new VersionUsageMetrics();
+            vm.setVersion(dto.getVersion());
+            vm.setGlobalId(dto.getGlobalId());
+            vm.setTotalFetches(dto.getTotalFetches());
+            vm.setUniqueClients(dto.getUniqueClients());
+            vm.setFirstFetchedOn(dto.getFirstFetchedOn());
+            vm.setLastFetchedOn(dto.getLastFetchedOn());
+            if (dto.getClientList() != null && !dto.getClientList().isEmpty()) {
+                vm.setClients(List.of(dto.getClientList().split(",")));
+            } else {
+                vm.setClients(List.of());
+            }
+            long age = now - dto.getLastFetchedOn();
+            if (age <= activeMs) {
+                vm.setClassification(UsageClassification.ACTIVE);
+            } else if (age <= staleMs) {
+                vm.setClassification(UsageClassification.STALE);
+            } else {
+                vm.setClassification(UsageClassification.DEAD);
+            }
+            return vm;
+        }).toList());
+        return result;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public UsageSummary getUsageSummary() {
+        if (!usageTelemetryEnabled) {
+            throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
+        }
+        long nowMs = System.currentTimeMillis();
+        long activeMs = activeThresholdDays * 86_400_000L;
+        long staleMs = staleThresholdDays * 86_400_000L;
+        UsageSummaryCountsDto counts = storage.getUsageSummaryCounts(nowMs, activeMs, staleMs, staleMs);
+
+        UsageSummary summary = new UsageSummary();
+        summary.setActive(counts.getActive());
+        summary.setStale(counts.getStale());
+        summary.setDead(counts.getDead());
+        return summary;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public ConsumerVersionHeatmap getConsumerVersionHeatmap(String groupId, String artifactId) {
+        if (!usageTelemetryEnabled) {
+            throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
+        }
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        List<ConsumerVersionEntryDto> entries = storage.getConsumerVersionHeatmap(groupId, artifactId);
+
+        int maxVersionOrder = entries.stream()
+                .mapToInt(ConsumerVersionEntryDto::getVersionOrder)
+                .max().orElse(0);
+
+        List<String> allVersions = entries.stream()
+                .map(ConsumerVersionEntryDto::getVersion)
+                .distinct()
+                .toList();
+
+        Map<String, ConsumerVersionEntry> consumerMap = new HashMap<>();
+        for (ConsumerVersionEntryDto dto : entries) {
+            ConsumerVersionEntry entry = consumerMap.computeIfAbsent(dto.getClientId(), k -> {
+                ConsumerVersionEntry e = new ConsumerVersionEntry();
+                e.setClientId(k);
+                e.setVersions(new Versions());
+                return e;
+            });
+            entry.getVersions().setAdditionalProperty(dto.getVersion(), dto.getFetchCount());
+        }
+
+        for (ConsumerVersionEntry entry : consumerMap.values()) {
+            int clientMaxOrder = entries.stream()
+                    .filter(e -> e.getClientId().equals(entry.getClientId()))
+                    .mapToInt(ConsumerVersionEntryDto::getVersionOrder)
+                    .max().orElse(0);
+            int behind = maxVersionOrder - clientMaxOrder;
+            entry.setVersionsBehind(behind);
+            entry.setDriftAlert(behind >= driftAlertThreshold);
+        }
+
+        ConsumerVersionHeatmap heatmap = new ConsumerVersionHeatmap();
+        heatmap.setGroupId(groupId);
+        heatmap.setArtifactId(artifactId);
+        heatmap.setVersions(allVersions);
+        heatmap.setConsumers(new ArrayList<>(consumerMap.values()));
+        return heatmap;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public DeprecationReadiness getDeprecationReadiness(String groupId, String artifactId, String version) {
+        if (!usageTelemetryEnabled) {
+            throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
+        }
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("version", version);
+
+        List<DeprecationReadinessDto> consumers = storage.getDeprecationReadiness(groupId, artifactId,
+                version);
+
+        long activeMs = activeThresholdDays * 86_400_000L;
+        long nowMs = System.currentTimeMillis();
+
+        List<ActiveConsumer> activeConsumers = consumers.stream()
+                .filter(c -> (nowMs - c.getLastFetched()) <= activeMs)
+                .map(c -> {
+                    ActiveConsumer ac = new ActiveConsumer();
+                    ac.setClientId(c.getClientId());
+                    ac.setLastFetched(c.getLastFetched());
+                    ac.setFetchCount(c.getFetchCount());
+                    return ac;
+                }).toList();
+
+        DeprecationReadiness result = new DeprecationReadiness();
+        result.setGroupId(groupId);
+        result.setArtifactId(artifactId);
+        result.setVersion(version);
+        result.setActiveConsumers(activeConsumers);
+        result.setSafeToDeprecate(activeConsumers.isEmpty());
         return result;
     }
 

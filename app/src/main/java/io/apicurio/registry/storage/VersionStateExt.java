@@ -20,7 +20,8 @@ import java.util.function.Consumer;
  * <ul>
  * <li>ENABLED -> DISABLED, DEPRECATED</li>
  * <li>DISABLED -> ENABLED, DEPRECATED</li>
- * <li>DEPRECATED -> ENABLED, DISABLED</li>
+ * <li>DEPRECATED -> ENABLED, DISABLED, SUNSET</li>
+ * <li>SUNSET -> DEPRECATED, ENABLED</li>
  * </ul>
  */
 @ApplicationScoped
@@ -32,11 +33,12 @@ public class VersionStateExt {
         transitions = new HashMap<>();
         transitions.put(VersionState.ENABLED, EnumSet.of(VersionState.DISABLED, VersionState.DEPRECATED));
         transitions.put(VersionState.DISABLED, EnumSet.of(VersionState.ENABLED, VersionState.DEPRECATED));
-        transitions.put(VersionState.DEPRECATED, EnumSet.of(VersionState.ENABLED, VersionState.DISABLED));
+        transitions.put(VersionState.DEPRECATED, EnumSet.of(VersionState.ENABLED, VersionState.DISABLED, VersionState.SUNSET));
+        transitions.put(VersionState.SUNSET, EnumSet.of(VersionState.DEPRECATED, VersionState.ENABLED));
     }
 
     public static final EnumSet<VersionState> ACTIVE_STATES = EnumSet.of(VersionState.ENABLED,
-            VersionState.DEPRECATED, VersionState.DISABLED);
+            VersionState.DEPRECATED, VersionState.DISABLED, VersionState.SUNSET);
 
     @Inject
     Logger log;

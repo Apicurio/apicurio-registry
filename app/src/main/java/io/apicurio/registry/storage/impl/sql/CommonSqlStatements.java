@@ -1341,6 +1341,56 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String insertSchemaUsage() {
+        return "INSERT INTO schema_usage (globalId, clientId, operation, eventTimestamp) VALUES (?, ?, ?, ?)";
+    }
+
+    @Override
+    public String deleteSchemaUsageSummary() {
+        return "DELETE FROM schema_usage_summary";
+    }
+
+    @Override
+    public String insertSchemaUsageSummary() {
+        return "INSERT INTO schema_usage_summary (globalId, totalFetches, uniqueClients, firstFetchedOn, lastFetchedOn, clientList) "
+                + "SELECT globalId, COUNT(*), COUNT(DISTINCT clientId), MIN(eventTimestamp), MAX(eventTimestamp), "
+                + "STRING_AGG(DISTINCT clientId, ',') FROM schema_usage GROUP BY globalId";
+    }
+
+    @Override
+    public String selectArtifactUsageMetrics() {
+        return "SELECT v.version, s.globalId, s.totalFetches, s.uniqueClients, s.firstFetchedOn, s.lastFetchedOn, s.clientList "
+                + "FROM schema_usage_summary s JOIN versions v ON s.globalId = v.globalId "
+                + "WHERE v.groupId = ? AND v.artifactId = ? ORDER BY v.versionOrder";
+    }
+
+    @Override
+    public String selectUsageSummaryCounts() {
+        return "SELECT "
+                + "SUM(CASE WHEN (? - lastFetchedOn) <= ? THEN 1 ELSE 0 END) AS active, "
+                + "SUM(CASE WHEN (? - lastFetchedOn) > ? AND (? - lastFetchedOn) <= ? THEN 1 ELSE 0 END) AS stale, "
+                + "SUM(CASE WHEN (? - lastFetchedOn) > ? THEN 1 ELSE 0 END) AS dead "
+                + "FROM schema_usage_summary";
+    }
+
+    @Override
+    public String selectConsumerVersionHeatmap() {
+        return "SELECT su.clientId, su.globalId, v.version, v.versionOrder, COUNT(*) AS fetchCount "
+                + "FROM schema_usage su JOIN versions v ON su.globalId = v.globalId "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "GROUP BY su.clientId, su.globalId, v.version, v.versionOrder "
+                + "ORDER BY su.clientId, v.versionOrder";
+    }
+
+    @Override
+    public String selectDeprecationReadiness() {
+        return "SELECT su.clientId, MAX(su.eventTimestamp) AS lastFetched, COUNT(*) AS fetchCount "
+                + "FROM schema_usage su JOIN versions v ON su.globalId = v.globalId "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? "
+                + "GROUP BY su.clientId ORDER BY su.clientId";
+    }
+
+    @Override
     public String selectCountTableTemplate(String countBy, String tableName, String alias,
             String whereClause) {
         return "SELECT COUNT(%s) FROM %s %s %s".formatted(countBy, tableName, alias, whereClause);

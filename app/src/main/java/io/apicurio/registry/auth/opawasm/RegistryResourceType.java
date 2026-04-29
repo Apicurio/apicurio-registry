@@ -2,7 +2,7 @@ package io.apicurio.registry.auth.opawasm;
 
 import java.util.Set;
 
-import io.kroxylicious.authorizer.service.ResourceType;
+import io.apicurio.authz.ResourceType;
 
 public class RegistryResourceType {
 

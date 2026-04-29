@@ -6,13 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kroxylicious.authorizer.service.Action;
-import io.kroxylicious.authorizer.service.AuthorizeResult;
-import io.kroxylicious.authorizer.service.Decision;
-import io.kroxylicious.authorizer.service.ResourceType;
-import io.kroxylicious.proxy.authentication.Subject;
-import io.kroxylicious.proxy.authentication.User;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -66,7 +59,7 @@ class GrantsAuthorizerTest {
         if (roles.length == 0) {
             return new Subject(new User(name));
         }
-        var principals = new java.util.HashSet<io.kroxylicious.proxy.authentication.Principal>();
+        var principals = new java.util.HashSet<io.apicurio.authz.Principal>();
         principals.add(new User(name));
         for (String role : roles) {
             principals.add(new RolePrincipal(role));

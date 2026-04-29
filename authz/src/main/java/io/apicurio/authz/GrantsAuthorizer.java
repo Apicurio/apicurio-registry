@@ -9,17 +9,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-
-import io.kroxylicious.authorizer.service.Action;
-import io.kroxylicious.authorizer.service.AuthorizeResult;
-import io.kroxylicious.authorizer.service.Authorizer;
-import io.kroxylicious.authorizer.service.ResourceType;
-import io.kroxylicious.proxy.authentication.Subject;
-import io.kroxylicious.proxy.authentication.User;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,11 +87,6 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
         return CompletableFuture.completedStage(new AuthorizeResult(subject, allowed, denied));
     }
 
-    @Override
-    public Optional<Set<Class<? extends ResourceType<?>>>> supportedResourceTypes() {
-        return Optional.empty();
-    }
-
     public boolean checkForDataFileChanges() {
         if (dataFilePath == null) {
             return false;
@@ -163,14 +150,14 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
     }
 
     private static String extractUsername(Subject subject) {
-        return subject.uniquePrincipalOfType(User.class)
+        return subject.principalOfType(User.class)
                 .map(User::name)
                 .orElse("anonymous");
     }
 
     private static Set<String> extractRoles(Subject subject) {
         Set<String> roles = new HashSet<>();
-        for (io.kroxylicious.proxy.authentication.Principal p : subject.principals()) {
+        for (io.apicurio.authz.Principal p : subject.principals()) {
             if (!(p instanceof User)) {
                 roles.add(p.name());
             }

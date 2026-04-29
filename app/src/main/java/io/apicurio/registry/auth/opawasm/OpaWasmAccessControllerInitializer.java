@@ -5,7 +5,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import io.apicurio.authz.GrantsAuthorizer;
-import io.kroxylicious.authorizer.service.ResourceType;
+import io.apicurio.authz.ResourceType;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PostConstruct;

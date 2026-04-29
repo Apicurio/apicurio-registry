@@ -7,9 +7,9 @@ import java.util.Set;
 import io.apicurio.authz.GrantsAuthorizer;
 import io.apicurio.registry.auth.opawasm.OpaWasmAccessController;
 import io.apicurio.registry.auth.opawasm.RegistryResourceType;
-import io.kroxylicious.authorizer.service.Action;
-import io.kroxylicious.authorizer.service.AuthorizeResult;
-import io.kroxylicious.authorizer.service.Decision;
+import io.apicurio.authz.Action;
+import io.apicurio.authz.AuthorizeResult;
+import io.apicurio.authz.Decision;
 import io.apicurio.registry.auth.opawasm.OpaWasmAccessControllerConfig;
 import io.apicurio.registry.auth.opawasm.OpaWasmSearchFilter;
 import io.apicurio.registry.cdi.Current;
@@ -80,7 +80,7 @@ public class SearchAuthorizerProducer {
                         return List.of();
                     }
                     String resourceName = OpaWasmAccessController.buildResourceName(groupId, artifactId);
-                    io.kroxylicious.proxy.authentication.Subject subject = buildSubject();
+                    io.apicurio.authz.Subject subject = buildSubject();
                     AuthorizeResult result = auth.authorize(subject, List.of(
                             new Action(RegistryResourceType.Artifact.Read, resourceName),
                             new Action(RegistryResourceType.Artifact.Write, resourceName),
@@ -105,7 +105,7 @@ public class SearchAuthorizerProducer {
                     if (auth == null) {
                         return List.of();
                     }
-                    io.kroxylicious.proxy.authentication.Subject subject = buildSubject();
+                    io.apicurio.authz.Subject subject = buildSubject();
                     AuthorizeResult result = auth.authorize(subject, List.of(
                             new Action(RegistryResourceType.Group.Read, groupId),
                             new Action(RegistryResourceType.Group.Write, groupId),
@@ -124,17 +124,17 @@ public class SearchAuthorizerProducer {
                     return perms;
                 }
 
-                private io.kroxylicious.proxy.authentication.Subject buildSubject() {
+                private io.apicurio.authz.Subject buildSubject() {
                     if (securityIdentity == null || securityIdentity.isAnonymous()) {
-                        return io.kroxylicious.proxy.authentication.Subject.anonymous();
+                        return io.apicurio.authz.Subject.anonymous();
                     }
-                    var principals = new java.util.HashSet<io.kroxylicious.proxy.authentication.Principal>();
-                    principals.add(new io.kroxylicious.proxy.authentication.User(
+                    var principals = new java.util.HashSet<io.apicurio.authz.Principal>();
+                    principals.add(new io.apicurio.authz.User(
                             securityIdentity.getPrincipal().getName()));
                     for (String role : securityIdentity.getRoles()) {
                         principals.add(new io.apicurio.authz.RolePrincipal(role));
                     }
-                    return new io.kroxylicious.proxy.authentication.Subject(principals);
+                    return new io.apicurio.authz.Subject(principals);
                 }
             };
         }

@@ -13,7 +13,7 @@
     <artifactId>apicurio-authz-core</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-authz-core</name>
-    <description>Shared grants-based authorization library using Kroxylicious Authorizer API</description>
+    <description>Shared grants-based authorization library</description>
 
     <properties>
         <projectRoot>${project.basedir}/..</projectRoot>
@@ -21,19 +21,6 @@
     </properties>
 
     <dependencies>
-        <!-- Kroxylicious Authorizer API -->
-        <dependency>
-            <groupId>io.kroxylicious</groupId>
-            <artifactId>kroxylicious-authorizer-api</artifactId>
-            <version>0.20.0-SNAPSHOT</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.kafka</groupId>
-                    <artifactId>kafka-clients</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
         <!-- JSON parsing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

@@ -10,11 +10,11 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.model.GroupId;
-import io.kroxylicious.authorizer.service.Action;
-import io.kroxylicious.authorizer.service.AuthorizeResult;
-import io.kroxylicious.authorizer.service.Decision;
-import io.kroxylicious.proxy.authentication.Subject;
-import io.kroxylicious.proxy.authentication.User;
+import io.apicurio.authz.Action;
+import io.apicurio.authz.AuthorizeResult;
+import io.apicurio.authz.Decision;
+import io.apicurio.authz.Subject;
+import io.apicurio.authz.User;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
@@ -89,7 +89,7 @@ public class OpaWasmAccessController extends AbstractAccessController {
             return true;
         }
 
-        io.kroxylicious.authorizer.service.ResourceType<?> operation;
+        io.apicurio.authz.ResourceType<?> operation;
         String resourceType;
         boolean isGroupOnly = style == AuthorizedStyle.GroupOnly
                 || (style == AuthorizedStyle.GroupAndArtifact
@@ -148,7 +148,7 @@ public class OpaWasmAccessController extends AbstractAccessController {
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
             return Subject.anonymous();
         }
-        var principals = new java.util.HashSet<io.kroxylicious.proxy.authentication.Principal>();
+        var principals = new java.util.HashSet<io.apicurio.authz.Principal>();
         principals.add(new User(securityIdentity.getPrincipal().getName()));
         for (String role : securityIdentity.getRoles()) {
             principals.add(new RolePrincipal(role));

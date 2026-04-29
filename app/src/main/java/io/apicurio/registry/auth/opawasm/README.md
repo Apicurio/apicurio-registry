@@ -1,16 +1,16 @@
-# Per-Resource Authorization with Kroxylicious Authorizer API + Java Grants Evaluator
+# Per-Resource Authorization with Java Grants Evaluator
 
-Fine-grained per-resource authorization for Apicurio Registry, using the [Kroxylicious Authorizer](https://github.com/kroxylicious/kroxylicious/tree/main/kroxylicious-authorizer-api) interface backed by a pure Java grants evaluator.
+Fine-grained per-resource authorization for Apicurio Registry, using a shared Authorizer interface backed by a pure Java grants evaluator.
 
 ## Architecture
 
 ### Shared `authz` module
 
-The authorization engine lives in the `authz/` module (`apicurio-authz-core`), separate from Registry-specific code. It implements the Kroxylicious `Authorizer` interface with a pure Java grants evaluator and is designed to be shared across systems:
+The authorization engine lives in the `authz/` module (`apicurio-authz-core`), separate from Registry-specific code. It implements the `Authorizer` interface with a pure Java grants evaluator and is designed to be shared across systems:
 
 ```
 authz/ (apicurio-authz-core)
-  ├── GrantsAuthorizer        — implements Kroxylicious Authorizer, grants evaluation, file hot-reload
+  ├── GrantsAuthorizer        — implements Authorizer, grants evaluation, file hot-reload
   ├── GrantsData              — parsed grants with per-user filtering, validation, caching
   ├── Grant                   — single grant record with matching logic
   └── RolePrincipal           — role-based Principal for Subject construction
@@ -36,7 +36,7 @@ The IdP doesn't know about Registry resources. No resource synchronization, no U
 
 **Point-access** (can this user read this artifact?):
 ```
-SecurityIdentity → Kroxylicious Subject
+SecurityIdentity → Subject
   → GrantsAuthorizer.authorize(subject, actions)
     → Pre-filters grants for current user (~5-20 entries, ~3KB)
     → Java grants evaluation in-process
@@ -72,7 +72,7 @@ The grants file supports multiple resource types. One file, one ConfigMap, one s
 
 Each system defines its own `ResourceType` enums and depends on `apicurio-authz-core`:
 - **Registry:** `RegistryResourceType.Artifact`, `RegistryResourceType.Group`
-- **Kafka / Kroxylicious:** `Topic`, `ConsumerGroup`
+- **Kafka:** `Topic`, `ConsumerGroup`
 - **StreamsHub Console:** `Dashboard`, `Cluster`
 
 ### Why in-process instead of a sidecar?
@@ -81,7 +81,7 @@ Search filtering requires the authorization layer to participate in the database
 
 ### Pluggable authorization engines
 
-The `authz` module uses the Kroxylicious `Authorizer` interface as its contract. The default implementation is `GrantsAuthorizer`, a pure Java grants evaluator with no external dependencies beyond `jackson-databind`. Alternative implementations (for example, an OPA-based evaluator or a custom policy engine) can be plugged in by implementing the same interface.
+The `authz` module defines its own `Authorizer` interface as its contract. The default implementation is `GrantsAuthorizer`, a pure Java grants evaluator with no external dependencies beyond `jackson-databind`. Alternative implementations (for example, an OPA-based evaluator or a custom policy engine) can be plugged in by implementing the same interface.
 
 ## Configuration
 

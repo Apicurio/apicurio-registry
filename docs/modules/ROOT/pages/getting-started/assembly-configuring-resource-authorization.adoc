@@ -4,7 +4,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Configuring per-resource authorization
 
 [role="_abstract"]
-This chapter explains how to configure fine-grained, per-resource authorization in {registry} using a pure Java grants evaluator backed by the Kroxylicious Authorizer API. This feature enables policies like "Alice can read artifacts in group team-a but not team-b," independent of her global RBAC role.
+This chapter explains how to configure fine-grained, per-resource authorization in {registry} using a pure Java grants evaluator. This feature enables policies like "Alice can read artifacts in group team-a but not team-b," independent of her global RBAC role.
 
 * xref:resource-authorization-overview_{context}[]
 * xref:resource-authorization-configuration_{context}[]

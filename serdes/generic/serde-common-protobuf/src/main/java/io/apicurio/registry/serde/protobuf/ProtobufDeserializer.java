@@ -2,9 +2,17 @@ package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
+// The Kiota ApiException coupling is deliberate: this module already depends on Kiota
+// transitively through RegistryClientFacade / SchemaResolver / AbstractDeserializer, which
+// perform the HTTP schema lookup that produces this exception. Catching it explicitly here
+// is therefore no new dependency, just an honest statement of what schema resolution can
+// surface. If the SDK ever swaps HTTP clients this catch (and others on the resolver path)
+// will need updating - that's the cost of keeping the type-safe catch over a heuristic.
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
@@ -16,7 +24,10 @@ import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -32,9 +43,12 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     private final ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
+    private static final Logger log = LoggerFactory.getLogger(ProtobufDeserializer.class);
+
     private Class<?> specificReturnClass;
     private Method specificReturnClassParseMethod;
     private boolean deriveClass;
+    private boolean fallbackOnSchemaError;
     private String messageTypeName;
     private boolean readTypeRef = true;
     private boolean readIndexes = false;
@@ -94,6 +108,92 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         deriveClass = config.deriveClass();
         readTypeRef = config.readTypeRef();
         readIndexes = config.readIndexes();
+        fallbackOnSchemaError = config.fallbackOnSchemaError();
+    }
+
+    /**
+     * Overrides the default deserialization to add a fallback path when schema resolution fails
+     * for a recoverable reason and both {@code specificReturnClass} and
+     * {@code fallbackOnSchemaError} are configured.
+     * <p>
+     * The fallback strips the Apicurio wire-format prefix and parses the raw protobuf bytes
+     * directly using the configured return class. It is only triggered for the specific
+     * unchecked exception types that represent transient or recoverable failures of the
+     * schema lookup, caught by type rather than by inspecting causes:
+     * </p>
+     * <ul>
+     *   <li>{@link com.microsoft.kiota.ApiException} - registry returned an HTTP error
+     *       (404 schema not yet propagated, 5xx registry outage, etc.)</li>
+     *   <li>{@link UncheckedIOException} - network or I/O failure reading from the registry
+     *       (connection refused, timeout, broken stream); the JDK and {@code IoUtil} wrap
+     *       any underlying {@link java.io.IOException} in this type</li>
+     *   <li>{@link IllegalStateException} <em>only</em> when its direct cause is a
+     *       {@link DescriptorValidationException}; this is how {@link ProtobufSchemaParser}
+     *       surfaces a registry-supplied descriptor with missing transitive imports.
+     *       {@code IllegalStateException} from any other source (configuration errors,
+     *       invalid state in the resolver, etc.) is rethrown unchanged</li>
+     * </ul>
+     * <p>
+     * Programming errors and configuration mistakes ({@link NullPointerException},
+     * {@link IllegalArgumentException}, {@link ClassCastException}, generic
+     * {@link RuntimeException}, etc.) are <strong>not</strong> caught and propagate to the
+     * caller so real bugs are not silently masked.
+     * </p>
+     * <p>
+     * Typical scenarios where the fallback rescues a deserialization:
+     * </p>
+     * <ul>
+     *   <li>Registry downtime or transient network failures</li>
+     *   <li>Missing transitive proto imports in the registry</li>
+     *   <li>Race conditions during rolling deployments (consumer starts before producer
+     *       registers schema)</li>
+     * </ul>
+     */
+    @Override
+    public U deserializeData(String topic, byte[] data) {
+        try {
+            return super.deserializeData(topic, data);
+        } catch (ApiException | UncheckedIOException e) {
+            return tryFallback(topic, data, e);
+        } catch (IllegalStateException e) {
+            if (e.getCause() instanceof DescriptorValidationException) {
+                return tryFallback(topic, data, e);
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Invokes the direct-parse fallback when it is enabled and a {@code specificReturnClass}
+     * is configured; otherwise rethrows the original error so the caller observes the
+     * unmodified failure.
+     *
+     * @param topic         the topic the message belongs to (for logging only)
+     * @param data          the raw wire-format bytes to fall back on
+     * @param originalError the recoverable schema-resolution failure that triggered fallback
+     * @return the parsed message produced by the fallback
+     */
+    private U tryFallback(String topic, byte[] data, RuntimeException originalError) {
+        if (!fallbackEnabled()) {
+            throw originalError;
+        }
+        if (log.isWarnEnabled()) {
+            log.warn("Schema resolution failed for topic '{}' ({}). "
+                    + "Falling back to direct protobuf parsing with {}.",
+                    topic, rootCauseMessage(originalError), specificReturnClass.getName());
+        }
+        try {
+            return parseFallback(data);
+        } catch (RuntimeException fallbackEx) {
+            fallbackEx.addSuppressed(originalError);
+            throw fallbackEx;
+        }
+    }
+
+    private boolean fallbackEnabled() {
+        return fallbackOnSchemaError
+                && specificReturnClassParseMethod != null
+                && !specificReturnClass.equals(DynamicMessage.class);
     }
 
     @Override
@@ -293,4 +393,79 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         }
     }
 
+    /**
+     * Parses protobuf data directly using {@link #specificReturnClassParseMethod}, skipping
+     * the Apicurio wire-format prefix. Used as a fallback when schema resolution fails.
+     * <p>
+     * The wire format depends on the configured {@link io.apicurio.registry.serde.IdHandler}:
+     * <pre>
+     * Non-headers mode: [0x00 magic][ID bytes (size from IdHandler)][indexes?][Ref?][protobuf payload]
+     * Headers mode:     [indexes?][Ref?][protobuf payload]
+     * </pre>
+     * The method respects the {@code readIndexes} and {@code readTypeRef} configuration flags
+     * to correctly skip any prefix data before the actual protobuf payload.
+     * </p>
+     * <p>
+     * <strong>Assumption:</strong> the {@code data[0] == 0x00} magic-byte check below detects
+     * the non-headers wire format. Headers-mode deserialization (ID in Kafka headers, no magic
+     * byte prefix) goes through a different code path in {@code KafkaDeserializer} and does not
+     * reach this method. If that dispatch ever changes, this check must be revisited or the
+     * fallback could silently produce corrupt results by misinterpreting the first payload byte.
+     * </p>
+     *
+     * @param data the raw Kafka message value bytes including wire-format prefix
+     * @return the deserialized protobuf message, or {@code null} if data is null
+     * @throws IllegalStateException if the fallback parsing fails
+     */
+    @SuppressWarnings("unchecked")
+    private U parseFallback(byte[] data) {
+        if (data == null) {
+            return null;
+        }
+        try {
+            ByteArrayInputStream bais = new ByteArrayInputStream(data);
+
+            // Skip the Apicurio wire-format prefix (magic byte + ID) if present.
+            // The ID size is determined by the configured IdHandler (typically 4 bytes).
+            if (data.length > 0 && data[0] == 0x00) {
+                int idSize = getSerdeConfigurer().getIdHandler().idSize();
+                int prefix = 1 + idSize;
+                if (bais.skip(prefix) != prefix) {
+                    throw new IllegalStateException(
+                            "Wire-format prefix truncated: expected " + prefix + " bytes");
+                }
+            }
+
+            // Skip message indexes if the producer wrote them (Confluent interop)
+            if (readIndexes) {
+                MessageIndexesUtil.readFrom(bais);
+            }
+
+            // Skip the Ref length-delimited message if the producer wrote a type reference
+            if (readTypeRef) {
+                skipDelimitedMessage(bais);
+            }
+
+            return (U) specificReturnClassParseMethod.invoke(null, bais);
+        } catch (IllegalAccessException | InvocationTargetException | IOException e) {
+            throw new IllegalStateException("Fallback protobuf parsing failed for "
+                    + specificReturnClass.getName(), e);
+        }
+    }
+
+    /**
+     * Returns the message from the deepest cause in the exception chain.
+     * Falls back to the exception class name if the message is {@code null}.
+     *
+     * @param e the throwable to inspect
+     * @return a human-readable description of the root cause
+     */
+    private static String rootCauseMessage(Throwable e) {
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        String msg = cause.getMessage();
+        return msg != null ? msg : cause.getClass().getName();
+    }
 }

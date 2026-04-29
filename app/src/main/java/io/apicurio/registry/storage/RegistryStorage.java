@@ -30,6 +30,8 @@ import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
+import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -1167,6 +1169,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * Returns global Active/Stale/Dead counts across all tracked schema versions.
      */
     UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs, long deadMs);
+
+    /**
+     * Returns per-consumer, per-version usage data for building a heatmap.
+     */
+    List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId);
+
+    /**
+     * Returns list of consumers actively using a specific version, for deprecation readiness.
+     */
+    List<DeprecationReadinessDto> getDeprecationReadiness(String groupId, String artifactId, String version);
 
     /**
      * Get all versions modified (created or updated) since the given timestamp. Used by

@@ -21,6 +21,8 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
+import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
+import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
 import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.types.RuleType;
@@ -444,5 +446,16 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     @Override
     public UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs, long deadMs) {
         return UsageSummaryCountsDto.builder().active(0).stale(0).dead(0).build();
+    }
+
+    @Override
+    public List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId) {
+        return List.of();
+    }
+
+    @Override
+    public List<DeprecationReadinessDto> getDeprecationReadiness(String groupId, String artifactId,
+                                                                  String version) {
+        return List.of();
     }
 }

@@ -1631,6 +1631,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return usageRepository.getUsageSummaryCounts(nowMs, activeMs, staleMs, deadMs);
     }
 
+    @Override
+    public List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId) {
+        return usageRepository.getConsumerVersionHeatmap(groupId, artifactId);
+    }
+
+    @Override
+    public List<DeprecationReadinessDto> getDeprecationReadiness(String groupId, String artifactId,
+                                                                  String version) {
+        return usageRepository.getDeprecationReadiness(groupId, artifactId, version);
+    }
+
     private boolean isH2() {
         return sqlStatements.dbType().equals("h2");
     }

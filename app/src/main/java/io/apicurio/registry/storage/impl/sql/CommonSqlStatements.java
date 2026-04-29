@@ -1374,6 +1374,23 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String selectConsumerVersionHeatmap() {
+        return "SELECT su.clientId, su.globalId, v.version, v.versionOrder, COUNT(*) AS fetchCount "
+                + "FROM schema_usage su JOIN versions v ON su.globalId = v.globalId "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "GROUP BY su.clientId, su.globalId, v.version, v.versionOrder "
+                + "ORDER BY su.clientId, v.versionOrder";
+    }
+
+    @Override
+    public String selectDeprecationReadiness() {
+        return "SELECT su.clientId, MAX(su.eventTimestamp) AS lastFetched, COUNT(*) AS fetchCount "
+                + "FROM schema_usage su JOIN versions v ON su.globalId = v.globalId "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? "
+                + "GROUP BY su.clientId ORDER BY su.clientId";
+    }
+
+    @Override
     public String selectCountTableTemplate(String countBy, String tableName, String alias,
             String whereClause) {
         return "SELECT COUNT(%s) FROM %s %s %s".formatted(countBy, tableName, alias, whereClause);

@@ -1,5 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
+import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
+import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
@@ -74,6 +76,38 @@ public class SqlUsageRepository {
                             .dead(rs.getInt("dead"))
                             .build())
                     .one();
+        });
+    }
+
+    public List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements.selectConsumerVersionHeatmap())
+                    .bind(0, groupId)
+                    .bind(1, artifactId)
+                    .map(rs -> ConsumerVersionEntryDto.builder()
+                            .clientId(rs.getString("clientId"))
+                            .globalId(rs.getLong("globalId"))
+                            .version(rs.getString("version"))
+                            .versionOrder(rs.getInt("versionOrder"))
+                            .fetchCount(rs.getLong("fetchCount"))
+                            .build())
+                    .list();
+        });
+    }
+
+    public List<DeprecationReadinessDto> getDeprecationReadiness(String groupId, String artifactId,
+                                                                  String version) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements.selectDeprecationReadiness())
+                    .bind(0, groupId)
+                    .bind(1, artifactId)
+                    .bind(2, version)
+                    .map(rs -> DeprecationReadinessDto.builder()
+                            .clientId(rs.getString("clientId"))
+                            .lastFetched(rs.getLong("lastFetched"))
+                            .fetchCount(rs.getLong("fetchCount"))
+                            .build())
+                    .list();
         });
     }
 }

@@ -4869,6 +4869,108 @@
           }
         }
       }
+    },
+    "/admin/usage/artifacts/{groupId}/{artifactId}/heatmap": {
+      "summary": "Get consumer version heatmap for an artifact.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "getConsumerVersionHeatmap",
+        "summary": "Get consumer version heatmap",
+        "description": "Returns a consumer version adoption heatmap showing which clients use which versions of the specified artifact, with version drift detection.\n\nThis operation can fail for the following reasons:\n\n* Usage telemetry is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsumerVersionHeatmap"
+                }
+              }
+            },
+            "description": "The consumer version heatmap."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/admin/usage/artifacts/{groupId}/{artifactId}/versions/{version}/deprecation-readiness": {
+      "summary": "Get deprecation readiness for a version.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "getDeprecationReadiness",
+        "summary": "Get deprecation readiness report",
+        "description": "Returns a deprecation readiness report showing which consumers are still actively using this version and whether it is safe to deprecate.\n\nThis operation can fail for the following reasons:\n\n* Usage telemetry is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeprecationReadiness"
+                }
+              }
+            },
+            "description": "The deprecation readiness report."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6354,12 +6456,13 @@
         }
       },
       "VersionState": {
-        "description": "Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n",
+        "description": "Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n* DRAFT\n* SUNSET\n",
         "enum": [
           "ENABLED",
           "DISABLED",
           "DEPRECATED",
-          "DRAFT"
+          "DRAFT",
+          "SUNSET"
         ],
         "type": "string",
         "x-codegen-package": "io.apicurio.registry.types"
@@ -7447,6 +7550,122 @@
             "description": "Number of schema versions classified as DEAD (not fetched in a long time or never).",
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "ConsumerVersionEntry": {
+        "title": "ConsumerVersionEntry",
+        "description": "A consumer's usage of artifact versions.",
+        "required": [
+          "clientId"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "description": "The client application identifier.",
+            "type": "string"
+          },
+          "versions": {
+            "description": "Map of version string to fetch count.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "versionsBehind": {
+            "description": "How many versions behind the latest this consumer is.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "driftAlert": {
+            "description": "True if this consumer exceeds the drift alert threshold.",
+            "type": "boolean"
+          }
+        }
+      },
+      "ConsumerVersionHeatmap": {
+        "title": "ConsumerVersionHeatmap",
+        "description": "Consumer version adoption heatmap for an artifact.",
+        "required": [
+          "groupId",
+          "artifactId",
+          "versions",
+          "consumers"
+        ],
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "versions": {
+            "description": "Ordered list of version strings.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "consumers": {
+            "description": "Per-consumer version usage entries.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsumerVersionEntry"
+            }
+          }
+        }
+      },
+      "DeprecationReadiness": {
+        "title": "DeprecationReadiness",
+        "description": "Deprecation readiness report for a specific version.",
+        "required": [
+          "groupId",
+          "artifactId",
+          "version",
+          "globalId",
+          "activeConsumers",
+          "safeToDeprecate"
+        ],
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "globalId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "activeConsumers": {
+            "description": "List of consumers still actively using this version.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "clientId": {
+                  "type": "string"
+                },
+                "lastFetched": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "fetchCount": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "safeToDeprecate": {
+            "description": "True if no active consumers are using this version.",
+            "type": "boolean"
           }
         }
       }

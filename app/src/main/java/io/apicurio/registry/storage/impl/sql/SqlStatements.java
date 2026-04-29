@@ -727,6 +727,10 @@ public interface SqlStatements {
 
     public String selectUsageSummaryCounts();
 
+    public String selectConsumerVersionHeatmap();
+
+    public String selectDeprecationReadiness();
+
     String selectCountTableTemplate(String countBy, String tableName, String alias, String whereClause);
 
     String selectTableTemplate(String columns, String tableName, String alias, String whereClause,

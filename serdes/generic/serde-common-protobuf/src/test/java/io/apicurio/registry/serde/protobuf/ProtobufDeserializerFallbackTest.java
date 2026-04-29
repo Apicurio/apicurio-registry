@@ -2,6 +2,7 @@ package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import org.junit.jupiter.api.Test;
@@ -304,6 +305,35 @@ class ProtobufDeserializerFallbackTest {
                         + "failures, not configuration errors");
 
         assertSame(bug, thrown, "The original IllegalArgumentException must be re-thrown unchanged");
+    }
+
+    /**
+     * Verifies the {@code DynamicMessage} guard in {@link ProtobufDeserializer#fallbackEnabled()}.
+     * When {@code specificReturnClass} is {@link DynamicMessage} the fallback cannot run - direct
+     * parsing requires a concrete generated class with a static {@code parseFrom(InputStream)},
+     * whereas {@code DynamicMessage.parseFrom} needs a {@link Descriptors.Descriptor} that the
+     * fallback does not have. Even with {@code fallbackOnSchemaError=true}, the original
+     * resolver failure must propagate so the caller sees the real error instead of a misleading
+     * "Fallback protobuf parsing failed" wrapping.
+     */
+    @Test
+    void testFallbackDoesNotActivateForDynamicMessage() throws Exception {
+        DescriptorProtos.FileDescriptorProto testMessage = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("test.proto")
+                .build();
+        byte[] wireFormatBytes = buildApicurioWireFormat(testMessage.toByteArray(), 1, "Test");
+
+        ApiException simulated = new ApiException("registry returned 404 Not Found");
+        ProtobufDeserializer<DynamicMessage> deserializer = createFallbackDeserializer(
+                DynamicMessage.class, simulated);
+
+        ApiException thrown = assertThrows(ApiException.class,
+                () -> deserializer.deserializeData("test-topic", wireFormatBytes),
+                "DynamicMessage return class must disable the fallback even when "
+                        + "fallbackOnSchemaError=true - the original schema-resolution error must propagate");
+
+        assertSame(simulated, thrown,
+                "The original ApiException must be re-thrown unchanged; fallback must not run");
     }
 
     // =========================================================================

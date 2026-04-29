@@ -6,6 +6,12 @@ import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
+// The Kiota ApiException coupling is deliberate: this module already depends on Kiota
+// transitively through RegistryClientFacade / SchemaResolver / AbstractDeserializer, which
+// perform the HTTP schema lookup that produces this exception. Catching it explicitly here
+// is therefore no new dependency, just an honest statement of what schema resolution can
+// surface. If the SDK ever swaps HTTP clients this catch (and others on the resolver path)
+// will need updating - that's the cost of keeping the type-safe catch over a heuristic.
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
@@ -18,6 +24,8 @@ import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
 import io.apicurio.registry.serde.utils.ByteBufferInputStream;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -35,7 +43,7 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
 
     private final ProtobufSchemaParser<U> parser = new ProtobufSchemaParser<>();
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProtobufDeserializer.class);
+    private static final Logger log = LoggerFactory.getLogger(ProtobufDeserializer.class);
 
     private Class<?> specificReturnClass;
     private Method specificReturnClassParseMethod;
@@ -396,6 +404,13 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
      * </pre>
      * The method respects the {@code readIndexes} and {@code readTypeRef} configuration flags
      * to correctly skip any prefix data before the actual protobuf payload.
+     * </p>
+     * <p>
+     * <strong>Assumption:</strong> the {@code data[0] == 0x00} magic-byte check below detects
+     * the non-headers wire format. Headers-mode deserialization (ID in Kafka headers, no magic
+     * byte prefix) goes through a different code path in {@code KafkaDeserializer} and does not
+     * reach this method. If that dispatch ever changes, this check must be revisited or the
+     * fallback could silently produce corrupt results by misinterpreting the first payload byte.
      * </p>
      *
      * @param data the raw Kafka message value bytes including wire-format prefix

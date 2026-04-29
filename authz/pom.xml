@@ -13,7 +13,7 @@
     <artifactId>apicurio-authz-core</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-authz-core</name>
-    <description>Shared OPA WASM grants evaluation library using Kroxylicious Authorizer API</description>
+    <description>Shared grants-based authorization library using Kroxylicious Authorizer API</description>
 
     <properties>
         <projectRoot>${project.basedir}/..</projectRoot>
@@ -34,11 +34,10 @@
             </exclusions>
         </dependency>
 
-        <!-- OPA WASM in-process evaluation -->
+        <!-- JSON parsing -->
         <dependency>
-            <groupId>com.styra.opa</groupId>
-            <artifactId>opa-java-wasm</artifactId>
-            <version>1.0.3</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
 
         <!-- Logging -->

@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 
-import io.apicurio.authz.OpaWasmAuthorizer;
+import io.apicurio.authz.GrantsAuthorizer;
 import io.kroxylicious.authorizer.service.ResourceType;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
@@ -29,38 +29,33 @@ public class OpaWasmAccessControllerInitializer {
     @PostConstruct
     void init() {
         if (!config.isEnabled()) {
-            log.debug("OPA WASM authorization is disabled.");
-            return;
-        }
-
-        String policyPath = config.getPolicyPath();
-
-        if (policyPath == null || policyPath.isBlank()) {
-            log.warn("OPA WASM authorization is enabled but no policy path configured. "
-                    + "Set apicurio.auth.opa-wasm.policy.path to a compiled .wasm file.");
+            log.debug("Per-resource authorization is disabled.");
             return;
         }
 
         String dataPath = config.getDataPath();
-        log.info("Initializing OPA WASM authorization from policy: {}, data: {}", policyPath, dataPath);
+
+        if (dataPath == null || dataPath.isBlank()) {
+            log.warn("Per-resource authorization is enabled but no grants data path configured. "
+                    + "Set apicurio.auth.opa-wasm.data.path to a JSON grants file.");
+            return;
+        }
+
+        log.info("Initializing per-resource authorization from grants file: {}", dataPath);
 
         try {
             Map<Class<? extends ResourceType<?>>, String> resourceTypeNames = Map.of(
                     RegistryResourceType.Artifact.class, "artifact",
                     RegistryResourceType.Group.class, "group");
 
-            OpaWasmAuthorizer authorizer = OpaWasmAuthorizer.create(
-                    Path.of(policyPath),
-                    dataPath != null && !dataPath.isBlank() ? Path.of(dataPath) : null,
-                    config.getPoolSize(),
-                    resourceTypeNames,
-                    config.getEntrypoint());
+            GrantsAuthorizer authorizer = GrantsAuthorizer.create(
+                    Path.of(dataPath), resourceTypeNames);
 
             controller.setAuthorizer(authorizer);
-            log.info("OPA WASM authorization initialized with pool size {}.", config.getPoolSize());
+            log.info("Per-resource authorization initialized.");
         } catch (IOException e) {
-            log.error("Failed to initialize OPA WASM authorization", e);
-            throw new RuntimeException("Failed to load OPA WASM policy or data", e);
+            log.error("Failed to initialize per-resource authorization", e);
+            throw new RuntimeException("Failed to load grants data", e);
         }
     }
 

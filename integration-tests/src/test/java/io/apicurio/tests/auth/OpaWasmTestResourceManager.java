@@ -18,30 +18,25 @@ public class OpaWasmTestResourceManager extends KeycloakTestContainerManager {
         Map<String, String> props = new java.util.HashMap<>(super.start());
 
         try {
-            tempDir = Files.createTempDirectory("opa-wasm-test");
+            tempDir = Files.createTempDirectory("authz-test");
 
-            Path wasmFile = tempDir.resolve("registry-authz.wasm");
-            Path grantsFile = tempDir.resolve("opa-integration-test-grants.json");
+            Path grantsFile = tempDir.resolve("grants.json");
 
-            try (InputStream wasm = getClass().getClassLoader().getResourceAsStream("registry-authz.wasm")) {
-                Files.copy(wasm, wasmFile, StandardCopyOption.REPLACE_EXISTING);
-            }
             try (InputStream grants = getClass().getClassLoader()
                     .getResourceAsStream("opa-integration-test-grants.json")) {
                 Files.copy(grants, grantsFile, StandardCopyOption.REPLACE_EXISTING);
             }
 
             props.put("apicurio.features.experimental.enabled", "true");
-            props.put("apicurio.auth.opa-wasm.enabled", "true");
-            props.put("apicurio.auth.opa-wasm.policy.path", wasmFile.toAbsolutePath().toString());
-            props.put("apicurio.auth.opa-wasm.data.path", grantsFile.toAbsolutePath().toString());
-            props.put("apicurio.auth.opa-wasm.pool-size", "2");
+            props.put("apicurio.auth.resource-based-authorization.enabled", "true");
+            props.put("apicurio.auth.resource-based-authorization.grants.path",
+                    grantsFile.toAbsolutePath().toString());
 
             props.put("apicurio.rest.deletion.group.enabled", "true");
             props.put("apicurio.rest.deletion.artifact.enabled", "true");
             props.put("apicurio.rest.deletion.artifact-version.enabled", "true");
         } catch (IOException e) {
-            throw new RuntimeException("Failed to set up OPA WASM test resources", e);
+            throw new RuntimeException("Failed to set up authorization test resources", e);
         }
 
         return props;

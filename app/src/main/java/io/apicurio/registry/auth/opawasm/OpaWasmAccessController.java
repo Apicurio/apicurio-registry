@@ -3,7 +3,7 @@ package io.apicurio.registry.auth.opawasm;
 import java.util.List;
 
 import io.apicurio.authz.GrantsData;
-import io.apicurio.authz.OpaWasmAuthorizer;
+import io.apicurio.authz.GrantsAuthorizer;
 import io.apicurio.authz.RolePrincipal;
 import io.apicurio.registry.auth.AbstractAccessController;
 import io.apicurio.registry.auth.Authorized;
@@ -41,7 +41,7 @@ public class OpaWasmAccessController extends AbstractAccessController {
     @Inject
     SecurityIdentity securityIdentity;
 
-    private volatile OpaWasmAuthorizer authorizer;
+    private volatile GrantsAuthorizer authorizer;
     private LongCounter authzDecisionsCounter;
 
     @PostConstruct
@@ -53,11 +53,11 @@ public class OpaWasmAccessController extends AbstractAccessController {
                 .build();
     }
 
-    void setAuthorizer(OpaWasmAuthorizer authorizer) {
+    void setAuthorizer(GrantsAuthorizer authorizer) {
         this.authorizer = authorizer;
     }
 
-    OpaWasmAuthorizer getAuthorizer() {
+    public GrantsAuthorizer getAuthorizer() {
         return authorizer;
     }
 

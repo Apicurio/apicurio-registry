@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import java.util.List;
 import java.util.Set;
 
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -22,5 +23,13 @@ public interface ISearchAuthorizer {
 
     default boolean canReadArtifact(String groupId, String artifactId) {
         return true;
+    }
+
+    default List<String> getArtifactPermissions(String groupId, String artifactId) {
+        return List.of("read", "write", "admin");
+    }
+
+    default List<String> getGroupPermissions(String groupId) {
+        return List.of("read", "write", "admin");
     }
 }

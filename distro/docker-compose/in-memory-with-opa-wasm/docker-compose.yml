@@ -34,13 +34,11 @@ services:
       QUARKUS_OIDC_TOKEN_ISSUER: "any"
       # Coarse-grained RBAC (from Keycloak roles)
       apicurio.auth.role-based-authorization: "true"
-      # Experimental features gate (required for OPA WASM)
+      # Experimental features gate
       apicurio.features.experimental.enabled: "true"
-      # Fine-grained per-resource authorization (OPA WASM)
-      apicurio.auth.opa-wasm.enabled: "true"
-      apicurio.auth.opa-wasm.policy.path: "/opt/apicurio/opa/registry-authz.wasm"
-      apicurio.auth.opa-wasm.data.path: "/opt/apicurio/opa/grants.json"
-      apicurio.auth.opa-wasm.pool-size: "4"
+      # Fine-grained per-resource authorization
+      apicurio.auth.resource-based-authorization.enabled: "true"
+      apicurio.auth.resource-based-authorization.grants.path: "/opt/apicurio/authz/grants.json"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
       QUARKUS_PROFILE: "prod"
     ports:
@@ -48,8 +46,7 @@ services:
     depends_on:
       - keycloak
     volumes:
-      - ./registry-authz.wasm:/opt/apicurio/opa/registry-authz.wasm:ro
-      - ./grants.json:/opt/apicurio/opa/grants.json:ro
+      - ./grants.json:/opt/apicurio/authz/grants.json:ro
 
   apicurio-registry-ui:
     image: apicurio/apicurio-registry-ui:latest-snapshot

@@ -22,12 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class OpaWasmAuthorizerTest {
+class GrantsAuthorizerTest {
 
-    enum RegistryArtifact implements ResourceType<RegistryArtifact> {
+    enum Artifact implements ResourceType<Artifact> {
         Read, Write, Admin;
         @Override
-        public Set<RegistryArtifact> implies() {
+        public Set<Artifact> implies() {
             return switch (this) {
                 case Admin -> Set.of(Write, Read);
                 case Write -> Set.of(Read);
@@ -36,30 +36,20 @@ class OpaWasmAuthorizerTest {
         }
     }
 
-    enum RegistryGroup implements ResourceType<RegistryGroup> {
-        Read, Write, Admin
-    }
+    enum Group implements ResourceType<Group> { Read, Write, Admin }
+    enum Topic implements ResourceType<Topic> { Read, Write, Create, Delete }
+    enum Dashboard implements ResourceType<Dashboard> { Read, Write }
 
-    enum Topic implements ResourceType<Topic> {
-        Read, Write, Create, Delete
-    }
-
-    enum Dashboard implements ResourceType<Dashboard> {
-        Read, Write
-    }
-
-    private static OpaWasmAuthorizer authorizer;
+    private static GrantsAuthorizer authorizer;
 
     @BeforeAll
     static void setUp() throws Exception {
-        URL wasmUrl = OpaWasmAuthorizerTest.class.getClassLoader().getResource("default-authz.wasm");
-        URL grantsUrl = OpaWasmAuthorizerTest.class.getClassLoader().getResource("test-grants.json");
-        assertNotNull(wasmUrl);
+        URL grantsUrl = GrantsAuthorizerTest.class.getClassLoader().getResource("test-grants.json");
         assertNotNull(grantsUrl);
-        authorizer = OpaWasmAuthorizer.create(Path.of(wasmUrl.toURI()), Path.of(grantsUrl.toURI()), 2,
+        authorizer = GrantsAuthorizer.create(Path.of(grantsUrl.toURI()),
                 Map.of(
-                        RegistryArtifact.class, "artifact",
-                        RegistryGroup.class, "group",
+                        Artifact.class, "artifact",
+                        Group.class, "group",
                         Topic.class, "topic",
                         Dashboard.class, "dashboard"
                 ));
@@ -94,27 +84,27 @@ class OpaWasmAuthorizerTest {
 
     @Test
     void developerCanReadOwnArtifact() {
-        assertEquals(Decision.ALLOW, decide(user("developer-client"), RegistryArtifact.Read, "team-a/schema-1"));
+        assertEquals(Decision.ALLOW, decide(user("developer-client"), Artifact.Read, "team-a/schema-1"));
     }
 
     @Test
     void developerCanWriteOwnArtifact() {
-        assertEquals(Decision.ALLOW, decide(user("developer-client"), RegistryArtifact.Write, "team-a/schema-1"));
+        assertEquals(Decision.ALLOW, decide(user("developer-client"), Artifact.Write, "team-a/schema-1"));
     }
 
     @Test
     void developerCanReadShared() {
-        assertEquals(Decision.ALLOW, decide(user("developer-client"), RegistryArtifact.Read, "shared/common"));
+        assertEquals(Decision.ALLOW, decide(user("developer-client"), Artifact.Read, "shared/common"));
     }
 
     @Test
     void developerCannotWriteShared() {
-        assertEquals(Decision.DENY, decide(user("developer-client"), RegistryArtifact.Write, "shared/common"));
+        assertEquals(Decision.DENY, decide(user("developer-client"), Artifact.Write, "shared/common"));
     }
 
     @Test
     void developerCannotReadTeamB() {
-        assertEquals(Decision.DENY, decide(user("developer-client"), RegistryArtifact.Read, "team-b/secret"));
+        assertEquals(Decision.DENY, decide(user("developer-client"), Artifact.Read, "team-b/secret"));
     }
 
     // ==================== Admin bypass ====================
@@ -122,7 +112,7 @@ class OpaWasmAuthorizerTest {
     @Test
     void adminCanDoAnything() {
         Subject admin = user("superuser", "sr-admin");
-        assertEquals(Decision.ALLOW, decide(admin, RegistryArtifact.Admin, "any-group/any-artifact"));
+        assertEquals(Decision.ALLOW, decide(admin, Artifact.Admin, "any-group/any-artifact"));
         assertEquals(Decision.ALLOW, decide(admin, Topic.Write, "any-topic"));
         assertEquals(Decision.ALLOW, decide(admin, Dashboard.Write, "any-dashboard"));
     }
@@ -132,19 +122,19 @@ class OpaWasmAuthorizerTest {
     @Test
     void readonlyRoleCanReadShared() {
         Subject readonly = user("readonly-client", "sr-readonly");
-        assertEquals(Decision.ALLOW, decide(readonly, RegistryArtifact.Read, "shared/common"));
+        assertEquals(Decision.ALLOW, decide(readonly, Artifact.Read, "shared/common"));
     }
 
     @Test
     void readonlyRoleCannotReadTeamA() {
         Subject readonly = user("readonly-client", "sr-readonly");
-        assertEquals(Decision.DENY, decide(readonly, RegistryArtifact.Read, "team-a/schema"));
+        assertEquals(Decision.DENY, decide(readonly, Artifact.Read, "team-a/schema"));
     }
 
     @Test
     void developerRoleCanReadPublic() {
         Subject dev = user("anyone", "sr-developer");
-        assertEquals(Decision.ALLOW, decide(dev, RegistryArtifact.Read, "public/common-schema"));
+        assertEquals(Decision.ALLOW, decide(dev, Artifact.Read, "public/common-schema"));
     }
 
     // ==================== Batched authorization ====================
@@ -153,10 +143,10 @@ class OpaWasmAuthorizerTest {
     void batchedAuthorizationWorks() {
         Subject dev = user("developer-client");
         List<Action> actions = List.of(
-                new Action(RegistryArtifact.Read, "team-a/schema-1"),
-                new Action(RegistryArtifact.Read, "team-a/schema-2"),
-                new Action(RegistryArtifact.Read, "team-b/secret"),
-                new Action(RegistryArtifact.Read, "shared/common")
+                new Action(Artifact.Read, "team-a/schema-1"),
+                new Action(Artifact.Read, "team-a/schema-2"),
+                new Action(Artifact.Read, "team-b/secret"),
+                new Action(Artifact.Read, "shared/common")
         );
 
         AuthorizeResult result = authorizer.authorize(dev, actions).toCompletableFuture().join();
@@ -175,12 +165,12 @@ class OpaWasmAuthorizerTest {
         );
 
         List<Action> actions = searchResults.stream()
-                .map(name -> new Action(RegistryArtifact.Read, name))
+                .map(name -> new Action(Artifact.Read, name))
                 .toList();
 
         AuthorizeResult result = authorizer.authorize(dev, actions).toCompletableFuture().join();
         Map<Decision, List<String>> partitioned = result.partition(
-                searchResults, RegistryArtifact.Read, name -> name);
+                searchResults, Artifact.Read, name -> name);
 
         assertEquals(3, partitioned.get(Decision.ALLOW).size());
         assertEquals(1, partitioned.get(Decision.DENY).size());
@@ -188,28 +178,28 @@ class OpaWasmAuthorizerTest {
         assertTrue(partitioned.get(Decision.DENY).contains("team-b/secret"));
     }
 
-    // ==================== Cross-system resource types ====================
+    // ==================== Cross-system ====================
 
     @Test
     void sameFileMultipleResourceTypes() {
         Subject dev = user("developer-client");
-        assertEquals(Decision.ALLOW, decide(dev, RegistryArtifact.Write, "team-a/schema"));
+        assertEquals(Decision.ALLOW, decide(dev, Artifact.Write, "team-a/schema"));
         assertEquals(Decision.DENY, decide(dev, Topic.Write, "team-a.events"));
     }
 
-    // ==================== Unknown user ====================
+    // ==================== Unknown/anonymous ====================
 
     @Test
     void unknownUserDenied() {
-        assertEquals(Decision.DENY, decide(user("unknown"), RegistryArtifact.Read, "team-a/x"));
+        assertEquals(Decision.DENY, decide(user("unknown"), Artifact.Read, "team-a/x"));
     }
 
     @Test
     void anonymousDenied() {
         AuthorizeResult result = authorizer.authorize(Subject.anonymous(),
-                List.of(new Action(RegistryArtifact.Read, "team-a/x")))
+                List.of(new Action(Artifact.Read, "team-a/x")))
                 .toCompletableFuture().join();
-        assertEquals(Decision.DENY, result.decision(RegistryArtifact.Read, "team-a/x"));
+        assertEquals(Decision.DENY, result.decision(Artifact.Read, "team-a/x"));
     }
 
     // ==================== GrantsData ====================
@@ -231,10 +221,27 @@ class OpaWasmAuthorizerTest {
     }
 
     @Test
-    void perUserJsonCached() {
+    void perUserCaching() {
         GrantsData data = authorizer.getGrantsData();
         String json1 = data.getDataJsonForUser("developer-client", Set.of());
         String json2 = data.getDataJsonForUser("developer-client", Set.of());
         assertTrue(json1 == json2);
+    }
+
+    // ==================== Permissions query ====================
+
+    @Test
+    void batchedPermissionsForUi() {
+        Subject dev = user("developer-client");
+        String resource = "team-a/schema-1";
+        AuthorizeResult result = authorizer.authorize(dev, List.of(
+                new Action(Artifact.Read, resource),
+                new Action(Artifact.Write, resource),
+                new Action(Artifact.Admin, resource)
+        )).toCompletableFuture().join();
+
+        assertEquals(Decision.ALLOW, result.decision(Artifact.Read, resource));
+        assertEquals(Decision.ALLOW, result.decision(Artifact.Write, resource));
+        assertEquals(Decision.DENY, result.decision(Artifact.Admin, resource));
     }
 }

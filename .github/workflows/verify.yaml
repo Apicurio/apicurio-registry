@@ -7,6 +7,7 @@ on:
       - 'README*'
     branches: [main]
   pull_request:
+    types: [opened, reopened, synchronize, labeled]
     paths-ignore:
       - '.gitignore'
       - 'LICENSE'
@@ -19,12 +20,79 @@ concurrency:
 
 jobs:
   # ============================================================================
+  # SCOPE: Determine which test phases to run based on lifecycle labels
+  # ============================================================================
+  determine-scope:
+    name: Determine Test Scope
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    outputs:
+      run_smoke: ${{ steps.scope.outputs.run_smoke }}
+      run_full: ${{ steps.scope.outputs.run_full }}
+    steps:
+      - name: Evaluate scope
+        id: scope
+        run: |
+          EVENT="${{ github.event_name }}"
+          ACTION="${{ github.event.action }}"
+
+          # Push events: always run full
+          if [ "$EVENT" = "push" ]; then
+            echo "run_smoke=true" >> $GITHUB_OUTPUT
+            echo "run_full=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Labeled events: only react to lifecycle label changes
+          if [ "$ACTION" = "labeled" ]; then
+            LABEL='${{ github.event.label.name }}'
+            if [[ "$LABEL" != lifecycle/* ]]; then
+              echo "run_smoke=false" >> $GITHUB_OUTPUT
+              echo "run_full=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          has_label() { echo "$LABELS" | jq -e "index(\"$1\")" > /dev/null 2>&1; }
+
+          if has_label "orchestrator/disabled"; then
+            # Orchestrator disabled: full tests, DO NOT MERGE backward compat
+            if has_label "DO NOT MERGE"; then
+              echo "run_smoke=false" >> $GITHUB_OUTPUT
+              echo "run_full=false" >> $GITHUB_OUTPUT
+            else
+              echo "run_smoke=true" >> $GITHUB_OUTPUT
+              echo "run_full=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Orchestrated PR: scope based on lifecycle state
+            if has_label "lifecycle/ready-for-review" || has_label "lifecycle/ready-to-merge"; then
+              echo "run_smoke=true" >> $GITHUB_OUTPUT
+              echo "run_full=true" >> $GITHUB_OUTPUT
+            elif has_label "lifecycle/wip"; then
+              if has_label "orchestrator/tests-disabled"; then
+                echo "run_smoke=false" >> $GITHUB_OUTPUT
+                echo "run_full=false" >> $GITHUB_OUTPUT
+              else
+                echo "run_smoke=true" >> $GITHUB_OUTPUT
+                echo "run_full=false" >> $GITHUB_OUTPUT
+              fi
+            else
+              # lifecycle/new or no lifecycle label: skip tests
+              echo "run_smoke=false" >> $GITHUB_OUTPUT
+              echo "run_full=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  # ============================================================================
   # PHASE 1: Fast Checks (fail early)
   # ============================================================================
   lint-and-validate:
     name: Lint and Validate
     runs-on: ubuntu-22.04
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: determine-scope
+    if: needs.determine-scope.outputs.run_smoke == 'true'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -45,8 +113,8 @@ jobs:
   # ============================================================================
   build:
     name: Build
-    needs: lint-and-validate
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [determine-scope, lint-and-validate]
+    if: needs.determine-scope.outputs.run_smoke == 'true'
     uses: ./.github/workflows/verify-build.yaml
 
   # ============================================================================
@@ -54,8 +122,8 @@ jobs:
   # ============================================================================
   unit-tests:
     name: Unit Tests
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [determine-scope, build]
+    if: needs.determine-scope.outputs.run_smoke == 'true'
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
@@ -63,7 +131,8 @@ jobs:
   # Path filter for conditional CLI verification (native build + tests)
   detect-cli-changes:
     name: Detect CLI Changes
-    needs: build
+    needs: [determine-scope, build]
+    if: needs.determine-scope.outputs.run_full == 'true'
     runs-on: ubuntu-latest
     outputs:
       cli: ${{ steps.filter.outputs.cli }}
@@ -94,8 +163,8 @@ jobs:
   # ============================================================================
   integration-tests:
     name: Integration Tests
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [determine-scope, build]
+    if: needs.determine-scope.outputs.run_full == 'true'
     uses: ./.github/workflows/verify-integration-tests.yaml
     with:
       image-tag: ${{ github.sha }}
@@ -105,8 +174,8 @@ jobs:
   # ============================================================================
   extras:
     name: Extra Tests
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [determine-scope, build]
+    if: needs.determine-scope.outputs.run_full == 'true'
     uses: ./.github/workflows/verify-extras.yaml
     with:
       image-tag: ${{ github.sha }}
@@ -116,8 +185,8 @@ jobs:
   # ============================================================================
   sdk:
     name: SDK Verification
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [determine-scope, build]
+    if: needs.determine-scope.outputs.run_full == 'true'
     uses: ./.github/workflows/verify-sdk.yaml
     with:
       image-tag: ${{ github.sha }}

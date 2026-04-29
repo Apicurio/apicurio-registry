@@ -4840,6 +4840,35 @@
           }
         }
       }
+    },
+    "/admin/usage/summary": {
+      "summary": "Get global usage summary counts.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "getUsageSummary",
+        "summary": "Get usage summary",
+        "description": "Returns global Active/Stale/Dead counts across all tracked schema versions. This endpoint is only available when usage telemetry is enabled.\n\nThis operation can fail for the following reasons:\n\n* Usage telemetry is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSummary"
+                }
+              }
+            },
+            "description": "The global usage summary."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7391,6 +7420,33 @@
             "items": {
               "$ref": "#/components/schemas/VersionUsageMetrics"
             }
+          }
+        }
+      },
+      "UsageSummary": {
+        "title": "UsageSummary",
+        "description": "Global usage summary counts across all artifacts.",
+        "required": [
+          "active",
+          "stale",
+          "dead"
+        ],
+        "type": "object",
+        "properties": {
+          "active": {
+            "description": "Number of schema versions classified as ACTIVE (recently fetched).",
+            "type": "integer",
+            "format": "int32"
+          },
+          "stale": {
+            "description": "Number of schema versions classified as STALE (not recently fetched).",
+            "type": "integer",
+            "format": "int32"
+          },
+          "dead": {
+            "description": "Number of schema versions classified as DEAD (not fetched in a long time or never).",
+            "type": "integer",
+            "format": "int32"
           }
         }
       }

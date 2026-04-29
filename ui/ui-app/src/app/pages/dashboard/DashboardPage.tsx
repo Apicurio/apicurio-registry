@@ -25,8 +25,10 @@ import {
     SortOrderObject,
     VersionSortByObject
 } from "@sdk/lib/generated-client/models";
-import { StatsCard, QuickActions, RecentArtifacts } from "./components";
+import { StatsCard, QuickActions, RecentArtifacts, UsageSummaryCard } from "./components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { UsageService, useUsageService } from "@services/useUsageService.ts";
+import { UsageSummary } from "@sdk/lib/generated-client/models";
 
 interface RegistryStats {
     groupCount: number;
@@ -48,10 +50,12 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
     const [recentArtifacts, setRecentArtifacts] = useState<SearchedArtifact[]>([]);
     const [recentArtifactsError, setRecentArtifactsError] = useState<string | null>(null);
     const [isCreateArtifactModalOpen, setIsCreateArtifactModalOpen] = useState<boolean>(false);
+    const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const search: SearchService = useSearchService();
     const groups: GroupsService = useGroupsService();
+    const usage: UsageService = useUsageService();
 
     const loadStats = async (): Promise<void> => {
         setIsLoading(true);
@@ -91,9 +95,15 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
         }
     };
 
+    const loadUsageSummary = async (): Promise<void> => {
+        const summary = await usage.getUsageSummary();
+        setUsageSummary(summary);
+    };
+
     useEffect(() => {
         loadStats();
         loadRecentArtifacts();
+        loadUsageSummary();
     }, []);
 
     const handleCreateArtifact = (): void => {
@@ -177,6 +187,14 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                                     onClick={() => handleStatsClick("/search?for=versions")}
                                 />
                             </FlexItem>
+                            {usageSummary && (
+                                <FlexItem>
+                                    <UsageSummaryCard
+                                        data={usageSummary}
+                                        isLoading={isLoading}
+                                    />
+                                </FlexItem>
+                            )}
                         </Flex>
                     </GridItem>
                     <GridItem span={8}>

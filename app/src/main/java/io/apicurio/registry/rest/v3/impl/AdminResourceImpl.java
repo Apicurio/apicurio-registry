@@ -22,6 +22,7 @@ import io.apicurio.registry.rest.v3.AdminResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v3.beans.ArtifactUsageMetrics;
 import io.apicurio.registry.rest.v3.beans.UsageClassification;
+import io.apicurio.registry.rest.v3.beans.UsageSummary;
 import io.apicurio.registry.rest.v3.beans.VersionUsageMetrics;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
@@ -45,6 +46,7 @@ import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
+import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
@@ -733,6 +735,24 @@ public class AdminResourceImpl implements AdminResource {
             return vm;
         }).toList());
         return result;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public UsageSummary getUsageSummary() {
+        if (!usageTelemetryEnabled) {
+            throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
+        }
+        long nowMs = System.currentTimeMillis();
+        long activeMs = activeThresholdDays * 86_400_000L;
+        long staleMs = staleThresholdDays * 86_400_000L;
+        UsageSummaryCountsDto counts = storage.getUsageSummaryCounts(nowMs, activeMs, staleMs, staleMs);
+
+        UsageSummary summary = new UsageSummary();
+        summary.setActive(counts.getActive());
+        summary.setStale(counts.getStale());
+        summary.setDead(counts.getDead());
+        return summary;
     }
 
 }

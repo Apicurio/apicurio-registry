@@ -1626,6 +1626,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return usageRepository.getArtifactUsageMetrics(groupId, artifactId);
     }
 
+    @Override
+    public UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs, long deadMs) {
+        return usageRepository.getUsageSummaryCounts(nowMs, activeMs, staleMs, deadMs);
+    }
+
     private boolean isH2() {
         return sqlStatements.dbType().equals("h2");
     }

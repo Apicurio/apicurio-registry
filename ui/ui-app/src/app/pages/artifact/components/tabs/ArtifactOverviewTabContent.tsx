@@ -43,6 +43,7 @@ import { Paging } from "@models/Paging.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { ArtifactVersionsToolbar, VersionsTable } from "@app/pages";
 import { FilterBy, SearchFilter, SearchService, useSearchService } from "@services/useSearchService.ts";
+import { UsageService, useUsageService } from "@services/useUsageService.ts";
 
 /**
  * Properties
@@ -79,11 +80,13 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
     const [isExpanded] = useState(true);
     const [selectedVersions, setSelectedVersions] = useState<SearchedVersion[]>([]);
     const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
+    const [usageClassifications, setUsageClassifications] = useState<Map<number, string>>(new Map());
 
     const drawerRef: any = React.useRef<HTMLDivElement>(null);
 
     const search: SearchService = useSearchService();
     const logger: LoggerService = useLoggerService();
+    const usageSvc: UsageService = useUsageService();
 
     const handleSelectVersion = (version: SearchedVersion, isSelected: boolean): void => {
         if (isSelected) {
@@ -154,6 +157,20 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
 
     useEffect(() => {
         refresh();
+        usageSvc.getArtifactUsageMetrics(
+            props.artifact.groupId || "default",
+            props.artifact.artifactId!
+        ).then(metrics => {
+            if (metrics?.versions) {
+                const map = new Map<number, string>();
+                metrics.versions.forEach(v => {
+                    if (v.globalId && v.classification) {
+                        map.set(v.globalId, v.classification);
+                    }
+                });
+                setUsageClassifications(map);
+            }
+        });
     }, [props.artifact, paging, sortBy, sortOrder, filterValue]);
 
     const toolbar = (
@@ -308,6 +325,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
                         artifact={props.artifact}
                         versions={results.versions!}
                         selectedVersions={selectedVersions}
+                        usageClassifications={usageClassifications}
                         onSort={onSort}
                         sortBy={sortBy}
                         sortOrder={sortOrder}

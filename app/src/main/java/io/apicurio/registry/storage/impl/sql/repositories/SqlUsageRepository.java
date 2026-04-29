@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.sql.repositories;
 
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
+import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import org.slf4j.Logger;
@@ -58,6 +59,21 @@ public class SqlUsageRepository {
                             .clientList(rs.getString("clientList"))
                             .build())
                     .list();
+        });
+    }
+
+    public UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs, long deadMs) {
+        return handles.withHandleNoException(handle -> {
+            return handle.createQuery(sqlStatements.selectUsageSummaryCounts())
+                    .bind(0, nowMs).bind(1, activeMs)
+                    .bind(2, nowMs).bind(3, activeMs).bind(4, nowMs).bind(5, staleMs)
+                    .bind(6, nowMs).bind(7, staleMs)
+                    .map(rs -> UsageSummaryCountsDto.builder()
+                            .active(rs.getInt("active"))
+                            .stale(rs.getInt("stale"))
+                            .dead(rs.getInt("dead"))
+                            .build())
+                    .one();
         });
     }
 }

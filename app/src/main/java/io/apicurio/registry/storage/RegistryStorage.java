@@ -33,6 +33,7 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
@@ -1161,6 +1162,11 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * Returns per-version usage metrics for the given artifact.
      */
     List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId);
+
+    /**
+     * Returns global Active/Stale/Dead counts across all tracked schema versions.
+     */
+    UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs, long deadMs);
 
     /**
      * Get all versions modified (created or updated) since the given timestamp. Used by

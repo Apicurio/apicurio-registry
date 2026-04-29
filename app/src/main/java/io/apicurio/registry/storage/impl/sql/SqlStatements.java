@@ -725,6 +725,8 @@ public interface SqlStatements {
 
     public String selectArtifactUsageMetrics();
 
+    public String selectUsageSummaryCounts();
+
     String selectCountTableTemplate(String countBy, String tableName, String alias, String whereClause);
 
     String selectTableTemplate(String columns, String tableName, String alias, String whereClause,

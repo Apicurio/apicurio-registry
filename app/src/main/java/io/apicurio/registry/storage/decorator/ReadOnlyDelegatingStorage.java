@@ -26,6 +26,7 @@ import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
@@ -466,5 +467,10 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     @Override
     public List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId) {
         return delegate.getArtifactUsageMetrics(groupId, artifactId);
+    }
+
+    @Override
+    public UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs, long deadMs) {
+        return delegate.getUsageSummaryCounts(nowMs, activeMs, staleMs, deadMs);
     }
 }

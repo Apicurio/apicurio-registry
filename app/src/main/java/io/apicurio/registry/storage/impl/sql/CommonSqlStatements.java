@@ -1365,6 +1365,15 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String selectUsageSummaryCounts() {
+        return "SELECT "
+                + "SUM(CASE WHEN (? - lastFetchedOn) <= ? THEN 1 ELSE 0 END) AS active, "
+                + "SUM(CASE WHEN (? - lastFetchedOn) > ? AND (? - lastFetchedOn) <= ? THEN 1 ELSE 0 END) AS stale, "
+                + "SUM(CASE WHEN (? - lastFetchedOn) > ? THEN 1 ELSE 0 END) AS dead "
+                + "FROM schema_usage_summary";
+    }
+
+    @Override
     public String selectCountTableTemplate(String countBy, String tableName, String alias,
             String whereClause) {
         return "SELECT COUNT(%s) FROM %s %s %s".formatted(countBy, tableName, alias, whereClause);

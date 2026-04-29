@@ -12,8 +12,8 @@ You can use the following reference information to configure {registry}.
 [role="_additional-resources"]
 .Additional resources
 * xref:migration-table_{context}[{registry} version 2 to version 3 configuration changes]
-* {registry-rest-api}[Core Registry API configuration endpoints]
-* {registry-client-serdes-config}[Kafka serializer and deserializer configuration]
+* {registry-rest-api}
+* {registry-client-serdes-config}
 
 //INCLUDES
 
@@ -21,6 +21,7 @@ include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1]
 
 // ref-migration-table
 [id="migration-table_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} version 2 to version 3 configuration changes
 
 [role="_abstract"]

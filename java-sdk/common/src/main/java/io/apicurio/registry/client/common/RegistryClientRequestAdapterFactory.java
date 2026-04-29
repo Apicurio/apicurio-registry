@@ -180,8 +180,9 @@ public class RegistryClientRequestAdapterFactory {
             while (true) {
                 try {
                     return method.invoke(delegate, args);
-                } catch (InvocationTargetException e) {
-                    Throwable cause = e.getCause();
+                } catch (InvocationTargetException | RuntimeException e) {
+                    Throwable cause = (e instanceof InvocationTargetException && e.getCause() != null)
+                            ? e.getCause() : e;
                     if (originalCause == null) {
                         originalCause = cause;
                     }

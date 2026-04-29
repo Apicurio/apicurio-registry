@@ -32,6 +32,7 @@ import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
@@ -882,6 +883,15 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public void recordUsageEvents(List<SchemaUsageEventDto> events) {
+    }
+
+    @Override
+    public void aggregateUsageData() {
+    }
+
+    @Override
+    public List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId) {
+        return List.of();
     }
 
     @Override

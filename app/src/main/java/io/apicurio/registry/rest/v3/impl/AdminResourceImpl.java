@@ -20,6 +20,9 @@ import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.v3.AdminResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
+import io.apicurio.registry.rest.v3.beans.ArtifactUsageMetrics;
+import io.apicurio.registry.rest.v3.beans.UsageClassification;
+import io.apicurio.registry.rest.v3.beans.VersionUsageMetrics;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.DownloadRef;
@@ -41,6 +44,7 @@ import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
@@ -146,6 +150,18 @@ public class AdminResourceImpl implements AdminResource {
     @ConfigProperty(name = "apicurio.usage.telemetry.enabled", defaultValue = "false")
     @Info(category = CATEGORY_USAGE, description = "Enable usage telemetry collection from SerDes clients", availableSince = "3.1.0")
     boolean usageTelemetryEnabled;
+
+    @ConfigProperty(name = "apicurio.usage.active-threshold-days", defaultValue = "7")
+    @Info(category = CATEGORY_USAGE, description = "Number of days within which a schema is classified as ACTIVE", availableSince = "3.1.0")
+    int activeThresholdDays;
+
+    @ConfigProperty(name = "apicurio.usage.stale-threshold-days", defaultValue = "30")
+    @Info(category = CATEGORY_USAGE, description = "Number of days after which a schema is classified as STALE", availableSince = "3.1.0")
+    int staleThresholdDays;
+
+    @ConfigProperty(name = "apicurio.usage.dead-threshold-days", defaultValue = "90")
+    @Info(category = CATEGORY_USAGE, description = "Number of days after which a schema is classified as DEAD", availableSince = "3.1.0")
+    int deadThresholdDays;
 
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
@@ -672,6 +688,51 @@ public class AdminResourceImpl implements AdminResource {
                         .build())
                 .toList();
         storage.recordUsageEvents(dtos);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public ArtifactUsageMetrics getArtifactUsageMetrics(String groupId, String artifactId) {
+        if (!usageTelemetryEnabled) {
+            throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
+        }
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        List<SchemaUsageSummaryDto> dtos = storage.getArtifactUsageMetrics(groupId, artifactId);
+
+        long now = System.currentTimeMillis();
+        long activeMs = activeThresholdDays * 86_400_000L;
+        long staleMs = staleThresholdDays * 86_400_000L;
+        long deadMs = deadThresholdDays * 86_400_000L;
+
+        ArtifactUsageMetrics result = new ArtifactUsageMetrics();
+        result.setGroupId(groupId);
+        result.setArtifactId(artifactId);
+        result.setVersions(dtos.stream().map(dto -> {
+            VersionUsageMetrics vm = new VersionUsageMetrics();
+            vm.setVersion(dto.getVersion());
+            vm.setGlobalId(dto.getGlobalId());
+            vm.setTotalFetches(dto.getTotalFetches());
+            vm.setUniqueClients(dto.getUniqueClients());
+            vm.setFirstFetchedOn(dto.getFirstFetchedOn());
+            vm.setLastFetchedOn(dto.getLastFetchedOn());
+            if (dto.getClientList() != null && !dto.getClientList().isEmpty()) {
+                vm.setClients(List.of(dto.getClientList().split(",")));
+            } else {
+                vm.setClients(List.of());
+            }
+            long age = now - dto.getLastFetchedOn();
+            if (age <= activeMs) {
+                vm.setClassification(UsageClassification.ACTIVE);
+            } else if (age <= staleMs) {
+                vm.setClassification(UsageClassification.STALE);
+            } else {
+                vm.setClassification(UsageClassification.DEAD);
+            }
+            return vm;
+        }).toList());
+        return result;
     }
 
 }

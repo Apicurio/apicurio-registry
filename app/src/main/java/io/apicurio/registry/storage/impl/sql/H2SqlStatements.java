@@ -86,6 +86,13 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "RUNSCRIPT FROM ?";
     }
 
+    @Override
+    public String insertSchemaUsageSummary() {
+        return "INSERT INTO schema_usage_summary (globalId, totalFetches, uniqueClients, firstFetchedOn, lastFetchedOn, clientList) "
+                + "SELECT globalId, COUNT(*), COUNT(DISTINCT clientId), MIN(eventTimestamp), MAX(eventTimestamp), "
+                + "LISTAGG(DISTINCT clientId, ',') FROM schema_usage GROUP BY globalId";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
      */

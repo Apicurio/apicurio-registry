@@ -20,6 +20,7 @@ import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
@@ -427,5 +428,15 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     @Override
     public void recordUsageEvents(List<SchemaUsageEventDto> events) {
         readOnlyViolation();
+    }
+
+    @Override
+    public void aggregateUsageData() {
+        readOnlyViolation();
+    }
+
+    @Override
+    public List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId) {
+        return List.of();
     }
 }

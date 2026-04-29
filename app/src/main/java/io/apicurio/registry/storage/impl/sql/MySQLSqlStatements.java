@@ -88,6 +88,13 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         throw new IllegalStateException("Restoring from snapshot is not supported for MySQL storage");
     }
 
+    @Override
+    public String insertSchemaUsageSummary() {
+        return "INSERT INTO schema_usage_summary (globalId, totalFetches, uniqueClients, firstFetchedOn, lastFetchedOn, clientList) "
+                + "SELECT globalId, COUNT(*), COUNT(DISTINCT clientId), MIN(eventTimestamp), MAX(eventTimestamp), "
+                + "GROUP_CONCAT(DISTINCT clientId SEPARATOR ',') FROM schema_usage GROUP BY globalId";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
      */

@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import org.slf4j.Logger;
@@ -30,6 +31,33 @@ public class SqlUsageRepository {
                         .execute();
             }
             return null;
+        });
+    }
+
+    public void aggregateUsageData() {
+        handles.withHandle(handle -> {
+            handle.createUpdate(sqlStatements.deleteSchemaUsageSummary()).execute();
+            handle.createUpdate(sqlStatements.insertSchemaUsageSummary()).execute();
+            return null;
+        });
+    }
+
+    public List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId) {
+        return handles.withHandleNoException(handle -> {
+            return handle
+                    .createQuery(sqlStatements.selectArtifactUsageMetrics())
+                    .bind(0, groupId)
+                    .bind(1, artifactId)
+                    .map(rs -> SchemaUsageSummaryDto.builder()
+                            .version(rs.getString("version"))
+                            .globalId(rs.getLong("globalId"))
+                            .totalFetches(rs.getLong("totalFetches"))
+                            .uniqueClients(rs.getInt("uniqueClients"))
+                            .firstFetchedOn(rs.getLong("firstFetchedOn"))
+                            .lastFetchedOn(rs.getLong("lastFetchedOn"))
+                            .clientList(rs.getString("clientList"))
+                            .build())
+                    .list();
         });
     }
 }

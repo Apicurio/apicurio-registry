@@ -4788,6 +4788,58 @@
           }
         }
       }
+    },
+    "/admin/usage/artifacts/{groupId}/{artifactId}": {
+      "summary": "Get usage metrics for an artifact.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "getArtifactUsageMetrics",
+        "summary": "Get artifact usage metrics",
+        "description": "Returns aggregated usage metrics for all versions of the specified artifact, including fetch counts, client lists, and Active/Stale/Dead classification. This endpoint is only available when usage telemetry is enabled on the server.\n\nThis operation can fail for the following reasons:\n\n* Usage telemetry is not enabled (HTTP error `409`)\n* No artifact with this name exists (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The artifact group ID."
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The artifact ID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactUsageMetrics"
+                }
+              }
+            },
+            "description": "The artifact usage metrics."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7247,6 +7299,97 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SchemaUsageEvent"
+            }
+          }
+        }
+      },
+      "UsageClassification": {
+        "description": "Classification of schema usage based on last fetch time.",
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "STALE",
+          "DEAD"
+        ]
+      },
+      "VersionUsageMetrics": {
+        "title": "VersionUsageMetrics",
+        "description": "Usage metrics for a specific artifact version.",
+        "required": [
+          "version",
+          "globalId",
+          "totalFetches",
+          "uniqueClients",
+          "firstFetchedOn",
+          "lastFetchedOn",
+          "classification"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "description": "The version string.",
+            "type": "string"
+          },
+          "globalId": {
+            "description": "The global ID of the artifact version.",
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalFetches": {
+            "description": "Total number of schema resolution events for this version.",
+            "type": "integer",
+            "format": "int64"
+          },
+          "uniqueClients": {
+            "description": "Number of distinct clients that fetched this version.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstFetchedOn": {
+            "description": "Epoch milliseconds of the first recorded fetch.",
+            "type": "integer",
+            "format": "int64"
+          },
+          "lastFetchedOn": {
+            "description": "Epoch milliseconds of the most recent fetch.",
+            "type": "integer",
+            "format": "int64"
+          },
+          "clients": {
+            "description": "List of client IDs that fetched this version.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "classification": {
+            "$ref": "#/components/schemas/UsageClassification"
+          }
+        }
+      },
+      "ArtifactUsageMetrics": {
+        "title": "ArtifactUsageMetrics",
+        "description": "Aggregated usage metrics for all versions of an artifact.",
+        "required": [
+          "groupId",
+          "artifactId",
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "description": "The group ID of the artifact.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID.",
+            "type": "string"
+          },
+          "versions": {
+            "description": "Per-version usage metrics.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionUsageMetrics"
             }
           }
         }

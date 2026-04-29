@@ -1346,6 +1346,25 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String deleteSchemaUsageSummary() {
+        return "DELETE FROM schema_usage_summary";
+    }
+
+    @Override
+    public String insertSchemaUsageSummary() {
+        return "INSERT INTO schema_usage_summary (globalId, totalFetches, uniqueClients, firstFetchedOn, lastFetchedOn, clientList) "
+                + "SELECT globalId, COUNT(*), COUNT(DISTINCT clientId), MIN(eventTimestamp), MAX(eventTimestamp), "
+                + "STRING_AGG(DISTINCT clientId, ',') FROM schema_usage GROUP BY globalId";
+    }
+
+    @Override
+    public String selectArtifactUsageMetrics() {
+        return "SELECT v.version, s.globalId, s.totalFetches, s.uniqueClients, s.firstFetchedOn, s.lastFetchedOn, s.clientList "
+                + "FROM schema_usage_summary s JOIN versions v ON s.globalId = v.globalId "
+                + "WHERE v.groupId = ? AND v.artifactId = ? ORDER BY v.versionOrder";
+    }
+
+    @Override
     public String selectCountTableTemplate(String countBy, String tableName, String alias,
             String whereClause) {
         return "SELECT COUNT(%s) FROM %s %s %s".formatted(countBy, tableName, alias, whereClause);

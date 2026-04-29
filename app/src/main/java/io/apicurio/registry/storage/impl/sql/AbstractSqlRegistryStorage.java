@@ -1616,6 +1616,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         usageRepository.recordUsageEvents(events);
     }
 
+    @Override
+    public void aggregateUsageData() {
+        usageRepository.aggregateUsageData();
+    }
+
+    @Override
+    public List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId) {
+        return usageRepository.getArtifactUsageMetrics(groupId, artifactId);
+    }
+
     private boolean isH2() {
         return sqlStatements.dbType().equals("h2");
     }

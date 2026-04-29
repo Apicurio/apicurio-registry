@@ -31,6 +31,7 @@ import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
@@ -1150,6 +1151,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * Records a batch of schema usage events reported by SerDes clients.
      */
     void recordUsageEvents(List<SchemaUsageEventDto> events);
+
+    /**
+     * Aggregates raw schema usage events into the summary table.
+     */
+    void aggregateUsageData();
+
+    /**
+     * Returns per-version usage metrics for the given artifact.
+     */
+    List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId);
 
     /**
      * Get all versions modified (created or updated) since the given timestamp. Used by

@@ -719,6 +719,12 @@ public interface SqlStatements {
 
     public String insertSchemaUsage();
 
+    public String deleteSchemaUsageSummary();
+
+    public String insertSchemaUsageSummary();
+
+    public String selectArtifactUsageMetrics();
+
     String selectCountTableTemplate(String countBy, String tableName, String alias, String whereClause);
 
     String selectTableTemplate(String columns, String tableName, String alias, String whereClause,

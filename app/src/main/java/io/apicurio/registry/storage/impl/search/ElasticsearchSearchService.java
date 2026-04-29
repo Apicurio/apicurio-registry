@@ -199,6 +199,16 @@ public class ElasticsearchSearchService {
                     : filter.getStringValue();
             return Query.of(q -> q.term(t -> t.field("groupId").value(groupValue)));
 
+        case groupIdIn:
+            Set<String> groupIds = filter.getSetValue();
+            List<co.elastic.clients.elasticsearch._types.FieldValue> fieldValues = groupIds.stream()
+                    .map(g -> g == null ? "default" : g)
+                    .map(co.elastic.clients.elasticsearch._types.FieldValue::of)
+                    .toList();
+            return Query.of(q -> q.terms(t -> t
+                    .field("groupId")
+                    .terms(tv -> tv.value(fieldValues))));
+
         case artifactId:
             return Query.of(q -> q.term(t -> t
                     .field("artifactId").value(filter.getStringValue())));

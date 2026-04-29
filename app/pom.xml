@@ -154,6 +154,13 @@
       <artifactId>quarkus-jdbc-mssql</artifactId>
     </dependency>
 
+    <!-- Shared authorization (Kroxylicious Authorizer API + OPA WASM) -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-authz-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <!-- Third Party Libraries -->
     <dependency>
       <groupId>io.roastedroot</groupId>

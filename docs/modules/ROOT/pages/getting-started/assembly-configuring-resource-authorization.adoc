@@ -1,0 +1,194 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="configuring-resource-authorization_{context}"]
+= Configuring per-resource authorization
+
+[role="_abstract"]
+This chapter explains how to configure fine-grained, per-resource authorization in {registry} using a pure Java grants evaluator. This feature enables policies like "Alice can read artifacts in group team-a but not team-b," independent of her global RBAC role.
+
+* xref:resource-authorization-overview_{context}[]
+* xref:resource-authorization-configuration_{context}[]
+* xref:resource-authorization-grants_{context}[]
+* xref:resource-authorization-monitoring_{context}[]
+
+[id="resource-authorization-overview_{context}"]
+== Overview
+
+{registry} supports two layers of authorization:
+
+* **RBAC (role-based access control):** Coarse-grained global roles (`sr-readonly`, `sr-developer`, `sr-admin`) applied via an IdP such as {keycloak}. This is the existing authorization model.
+* **Per-resource authorization:** Fine-grained access control at the artifact and group level using a pure Java grants evaluator. This is an additional layer applied after RBAC.
+
+Both layers work together. A request must pass both RBAC and per-resource authorization to be allowed. The IdP handles authentication and role assignment. {registry} handles per-resource grants.
+
+=== How it works
+
+Per-resource authorization uses a grants file that defines who can access which resources. The grants file is a JSON file containing a list of allow rules:
+
+* **Point-access checks** (reading, writing, deleting a specific artifact): The grants evaluator matches the user's identity and roles against the grants for the requested resource in-process. Only the current user's matching grants are evaluated, keeping per-request overhead constant regardless of total grant count.
+* **Search and list filtering** (what artifacts a user sees in search results): The user's allowed group patterns are translated into SQL query filters. The database handles filtering and pagination natively.
+
+Both paths use the same grants data.
+
+[id="resource-authorization-configuration_{context}"]
+== Configuration
+
+To enable per-resource authorization, set the following environment variables or configuration properties:
+
+[cols="2,1,3"]
+|===
+|Property |Default |Description
+
+|`apicurio.auth.resource-based-authorization.enabled`
+|`false`
+|Enable per-resource authorization using the grants evaluator.
+
+|`apicurio.auth.resource-based-authorization.grants.path`
+|_(none)_
+|Path to the JSON grants data file. Hot-reloaded every 5 seconds when the file changes. Can be mounted as a volume or ConfigMap.
+
+|`apicurio.features.experimental.enabled`
+|`false`
+|Must be set to `true` to enable experimental features including per-resource authorization.
+|===
+
+=== Example configuration
+
+[source,yaml]
+----
+environment:
+  apicurio.features.experimental.enabled: "true"
+  apicurio.auth.resource-based-authorization.enabled: "true"
+  apicurio.auth.resource-based-authorization.grants.path: "/opt/apicurio/authz/grants.json"
+----
+
+In Kubernetes, mount the grants file as a ConfigMap.
+
+[id="resource-authorization-grants_{context}"]
+== Grants file format
+
+The grants file is a JSON file defining who can access what. It supports per-user and per-role grants with prefix, exact, and wildcard resource patterns.
+
+=== Structure
+
+[source,json]
+----
+{
+  "config": {
+    "admin_roles": ["sr-admin"]
+  },
+  "grants": [
+    {
+      "principal": "alice",
+      "operation": "write",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "team-a/"
+    },
+    {
+      "principal_role": "sr-developer",
+      "operation": "read",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "public/"
+    }
+  ]
+}
+----
+
+=== Grant fields
+
+[cols="2,1,3"]
+|===
+|Field |Required |Description
+
+|`principal`
+|One of `principal` or `principal_role`
+|Username to match (from the authenticated identity).
+
+|`principal_role`
+|One of `principal` or `principal_role`
+|IdP role to match. Any user with this role gets the grant.
+
+|`operation`
+|Yes
+|Permission level: `read`, `write`, or `admin`.
+
+|`resource_type`
+|Yes
+|The type of resource: `artifact` or `group`.
+
+|`resource_pattern_type`
+|No
+|How to match the resource name: `prefix` (starts with), `exact` (equals). Omit for wildcard.
+
+|`resource_pattern`
+|Yes
+|The pattern to match. Use `*` for wildcard (all resources). For artifacts, the format is `{groupId}/{artifactId}`.
+|===
+
+=== Operation hierarchy
+
+The `admin` operation implies `write`, which implies `read`. A user granted `write` on a resource can also `read` it.
+
+=== Admin bypass
+
+Users whose IdP roles include any role listed in `config.admin_roles` bypass all per-resource checks.
+
+=== Hot-reload
+
+The grants file is checked for changes every 5 seconds. When the file is modified (for example, when a Kubernetes ConfigMap is updated), {registry} reloads the grants data automatically without restart.
+
+=== Examples
+
+Grant a user write access to all artifacts in a group:
+[source,json]
+----
+{"principal": "alice", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"}
+----
+
+Grant all users with a specific IdP role read access to a group:
+[source,json]
+----
+{"principal_role": "sr-developer", "operation": "read", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "public"}
+----
+
+Grant a user read access to all artifacts (wildcard):
+[source,json]
+----
+{"principal": "bob", "operation": "read", "resource_type": "artifact", "resource_pattern": "*"}
+----
+
+[id="resource-authorization-monitoring_{context}"]
+== Monitoring and audit logging
+
+=== Metrics
+
+When per-resource authorization is enabled, the following OpenTelemetry metric is exported:
+
+[cols="2,3"]
+|===
+|Metric |Description
+
+|`apicurio.authz.decisions`
+|Counter of authorization decisions, with attributes `decision` (`allow` or `deny`), `resource_type` (`artifact` or `group`), and `operation` (`read`, `write`, or `admin`).
+|===
+
+This metric is available via the Prometheus endpoint at `/q/metrics` when OpenTelemetry is enabled.
+
+=== Audit logging
+
+Authorization denials are logged at INFO level to the `io.apicurio.registry.audit.authz` logger with structured fields:
+
+[source]
+----
+authz.denied user="alice" operation="write" resource_type="artifact" resource="team-b/secret-schema"
+----
+
+Configure the logger in `application.properties` or via environment variable:
+[source,properties]
+----
+quarkus.log.category."io.apicurio.registry.audit.authz".level=INFO
+----
+
+Set to `DEBUG` to also log allowed decisions, or `OFF` to disable authorization audit logging.

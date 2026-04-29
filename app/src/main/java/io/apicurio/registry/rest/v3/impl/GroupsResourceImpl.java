@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.v3.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
@@ -127,6 +128,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     io.apicurio.registry.contracts.ContractMetadataValidator contractMetadataValidator;
+
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
 
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
@@ -594,8 +598,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         Set<SearchFilter> filters = Collections.emptySet();
 
-        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        GroupSearchResultsDto resultsDto = searchAuthorizer.searchGroups(filters, oBy, oDir,
+                offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1191,8 +1195,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
 
-        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        ArtifactSearchResultsDto resultsDto = searchAuthorizer.searchArtifacts(filters, oBy, oDir,
+                offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1416,8 +1420,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Set<SearchFilter> filters = Set.of(
                 SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()),
                 SearchFilter.ofArtifactId(artifactId));
-        VersionSearchResultsDto resultsDto = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        VersionSearchResultsDto resultsDto = searchAuthorizer.searchVersions(filters, oBy, oDir,
+                offset.intValue(), limit.intValue());
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 

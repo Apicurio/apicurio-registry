@@ -1,5 +1,7 @@
 package io.apicurio.registry.storage.dto;
 
+import java.util.Set;
+
 import io.apicurio.registry.types.VersionState;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -56,6 +58,18 @@ public class SearchFilter {
 
     public static SearchFilter ofGroupId(String value) {
         return new SearchFilter(SearchFilterType.groupId, value);
+    }
+
+    public static SearchFilter ofGroupIdIn(Set<String> values) {
+        return new SearchFilter(SearchFilterType.groupIdIn, values);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Set<String> getSetValue() {
+        if (value instanceof Set) {
+            return (Set<String>) value;
+        }
+        throw new IllegalStateException("value is not of type Set");
     }
 
     public static SearchFilter ofArtifactId(String value) {

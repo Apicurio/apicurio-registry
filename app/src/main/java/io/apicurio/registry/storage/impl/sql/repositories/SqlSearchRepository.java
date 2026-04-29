@@ -139,6 +139,17 @@ public class SqlSearchRepository {
                             query.bind(idx, normalizeGroupId(filter.getStringValue()));
                         });
                         break;
+                    case groupIdIn:
+                        var groupIds = filter.getSetValue();
+                        var placeholders = String.join(", ", groupIds.stream().map(g -> "?").toList());
+                        op = filter.isNot() ? "NOT IN" : "IN";
+                        where.append("a.groupId " + op + " (" + placeholders + ")");
+                        for (String gid : groupIds) {
+                            binders.add((query, idx) -> {
+                                query.bind(idx, normalizeGroupId(gid));
+                            });
+                        }
+                        break;
                     case artifactId:
                         op = filter.isNot() ? "!=" : "=";
                         where.append("a.artifactId " + op + " ?");
@@ -319,6 +330,17 @@ public class SqlSearchRepository {
                         binders.add((query, idx) -> {
                             query.bind(idx, normalizeGroupId(filter.getStringValue()));
                         });
+                        break;
+                    case groupIdIn:
+                        var vGroupIds = filter.getSetValue();
+                        var vPlaceholders = String.join(", ", vGroupIds.stream().map(g -> "?").toList());
+                        op = filter.isNot() ? "NOT IN" : "IN";
+                        where.append("a.groupId " + op + " (" + vPlaceholders + ")");
+                        for (String gid : vGroupIds) {
+                            binders.add((query, idx) -> {
+                                query.bind(idx, normalizeGroupId(gid));
+                            });
+                        }
                         break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";

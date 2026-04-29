@@ -1,0 +1,62 @@
+services:
+  keycloak:
+    container_name: keycloak-resource-authz
+    image: quay.io/keycloak/keycloak:26.2
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command:
+      - start-dev
+      - --import-realm
+      - --hostname-strict=false
+    ports:
+      - 8090:8080
+    volumes:
+      - ../config/realm.json:/opt/keycloak/data/import/realm.json
+
+  apicurio-registry:
+    build:
+      context: ../../docker/target/docker
+      dockerfile: Dockerfile.jvm
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry-api-resource-authz
+    environment:
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      # Authentication: Keycloak OIDC
+      QUARKUS_OIDC_TENANT_ENABLED: "true"
+      QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak:8080/realms/registry"
+      QUARKUS_OIDC_CLIENT_ID: "registry-api"
+      APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
+      apicurio.ui.auth.oidc.redirect-uri: "http://localhost:8888/"
+      QUARKUS_OIDC_TLS_VERIFICATION: "none"
+      QUARKUS_OIDC_TOKEN_ISSUER: "any"
+      # Coarse-grained RBAC (from Keycloak roles)
+      apicurio.auth.role-based-authorization: "true"
+      # Experimental features gate
+      apicurio.features.experimental.enabled: "true"
+      # Fine-grained per-resource authorization
+      apicurio.auth.resource-based-authorization.enabled: "true"
+      apicurio.auth.resource-based-authorization.grants.path: "/opt/apicurio/authz/grants.json"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+      QUARKUS_PROFILE: "prod"
+    ports:
+      - "8081:8080"
+    depends_on:
+      - keycloak
+    volumes:
+      - ./grants.json:/opt/apicurio/authz/grants.json:ro
+
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-ui-resource-authz
+    environment:
+      REGISTRY_API_URL: "http://localhost:8081/apis/registry/v3"
+      REGISTRY_AUTH_TYPE: "oidc"
+      REGISTRY_AUTH_URL: "http://localhost:8090/realms/registry"
+    ports:
+      - "8888:8080"
+    depends_on:
+      - apicurio-registry
+      - keycloak

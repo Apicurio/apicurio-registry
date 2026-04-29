@@ -445,3 +445,28 @@ Available options:
 ### Watched Namespaces
 
 Namespace that are watched by the operator are configured using `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable. Its value is configured to reflect the OLM annotation `olm.targetNamespaces` by default. This means that if the operator is not installed by OLM (e.g. using the install file), the annotation is empty, which means the operator will watch **all namespaces**. Because of this, cluster-level RBAC resources are used by default. In the future, we may release additional install file with reduced permissions, intended to be used when the operator only manages its own namespace.
+
+### Leader Election
+
+The operator supports Kubernetes leader election to enable high availability (HA) deployments.
+When leader election is enabled, multiple operator replicas can run simultaneously, with only one active leader performing reconciliation. If the leader pod fails, another replica automatically takes over.
+
+Leader election uses the `coordination.k8s.io/v1` Lease API, which is the standard Kubernetes mechanism for leader election ([Kubernetes Lease documentation](https://kubernetes.io/docs/concepts/architecture/leases/#leader-election)).
+
+The following environment variables control leader election:
+
+| Environment Variable                                 | Description                                              | Default Value                          |
+|------------------------------------------------------|----------------------------------------------------------|----------------------------------------|
+| `APICURIO_OPERATOR_LEADER_ELECTION_ENABLED`          | Enable or disable leader election.                       | `false`                                |
+| `APICURIO_OPERATOR_LEADER_ELECTION_LEASE_NAME`       | Name of the Lease resource used for leader election.     | `apicurio-registry-operator-lease`     |
+| `APICURIO_OPERATOR_LEADER_ELECTION_LEASE_NAMESPACE`  | Namespace of the Lease resource. Falls back to `POD_NAMESPACE`. | *(value of `POD_NAMESPACE`)*    |
+
+To enable leader election, set the `APICURIO_OPERATOR_LEADER_ELECTION_ENABLED` environment variable to `true` on the operator Deployment:
+
+```yaml
+env:
+  - name: APICURIO_OPERATOR_LEADER_ELECTION_ENABLED
+    value: "true"
+```
+
+**RBAC**: The operator's ClusterRole already includes the required permissions for `coordination.k8s.io` leases (`get`, `create`, `update`). No additional RBAC configuration is needed.

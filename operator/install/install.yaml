@@ -7171,6 +7171,14 @@ rules:
   - create
   - get
   - list
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - create
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -7240,6 +7248,8 @@ spec:
               fieldPath: metadata.annotations['olm.targetNamespaces']
         - name: QUARKUS_PROFILE
           value: prod
+        - name: APICURIO_OPERATOR_LEADER_ELECTION_ENABLED
+          value: "false"
         - name: REGISTRY_APP_IMAGE
           value: quay.io/apicurio/apicurio-registry:latest-snapshot
         - name: REGISTRY_UI_IMAGE

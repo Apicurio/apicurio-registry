@@ -1,7 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="registry-artifact-reference_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = {registry} artifact reference
 
 [role="_abstract"]
@@ -25,8 +25,8 @@ This chapter provides reference information on the supported artifact types, sta
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 // ref-registry-artifact-types
-:_mod-docs-content-type: REFERENCE
 [id="registry-artifact-types_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} artifact types
 
 [role="_abstract"]
@@ -77,8 +77,8 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |===
 
 // ref-registry-ai-ml-artifact-types
-:_mod-docs-content-type: REFERENCE
 [id="registry-ai-ml-artifact-types_{context}"]
+:_mod-docs-content-type: REFERENCE
 == AI/ML artifact types
 
 [role="_abstract"]
@@ -140,8 +140,8 @@ The valid artifact version states in {registry} are `ENABLED`, `DISABLED`, and `
 // Metadata created by nebel
 
 // ref-registry-group-metadata
-:_mod-docs-content-type: REFERENCE
 [id="registry-group-metadata_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} group metadata
 
 [role="_abstract"]
@@ -207,8 +207,8 @@ For more details, see the `/groups/\{groupId\}` endpoint in the {registry-rest-a
 // Metadata created by nebel
 
 // ref-registry-artifact-metadata
-:_mod-docs-content-type: REFERENCE
 [id="registry-artifact-metadata_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} artifact metadata
 
 [role="_abstract"]
@@ -285,8 +285,8 @@ For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoin
 // Metadata created by nebel
 
 // ref-registry-artifact-version-metadata
-:_mod-docs-content-type: REFERENCE
 [id="registry-artifact-version-metadata_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} artifact version metadata
 
 [role="_abstract"]

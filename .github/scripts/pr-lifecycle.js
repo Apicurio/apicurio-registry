@@ -207,7 +207,52 @@ function createApi(github, owner, repo) {
         if (e.status !== 422) throw e;
       }
     },
+
+    findLatestVerifyRun: async (headSha) => {
+      const { data } = await github.rest.actions.listWorkflowRuns({
+        owner, repo, workflow_id: 'verify.yaml',
+        head_sha: headSha, per_page: 5,
+      });
+      return data.workflow_runs[0] || null;
+    },
+
+    cancelWorkflowRun: async (runId) => {
+      try {
+        await github.rest.actions.cancelWorkflowRun({ owner, repo, run_id: runId });
+      } catch (e) {
+        if (e.status !== 409) throw e;
+      }
+    },
+
+    reRunWorkflow: async (runId) => {
+      await github.rest.actions.reRunWorkflow({ owner, repo, run_id: runId });
+    },
   };
+}
+
+async function retriggerVerify(api, pr, core, { delayMs = 0 } = {}) {
+  if (delayMs > 0) {
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+
+  const run = await api.findLatestVerifyRun(pr.head.sha);
+  if (!run) {
+    core.warning(`PR #${pr.number} no Verify run found for ${pr.head.sha}, skipping re-trigger`);
+    return;
+  }
+
+  if (run.status === 'in_progress' || run.status === 'queued') {
+    core.info(`PR #${pr.number} cancelling in-progress Verify run ${run.id}`);
+    await api.cancelWorkflowRun(run.id);
+    await new Promise(r => setTimeout(r, 3000));
+  }
+
+  try {
+    await api.reRunWorkflow(run.id);
+    core.info(`PR #${pr.number} re-triggered Verify run ${run.id}`);
+  } catch (e) {
+    core.warning(`PR #${pr.number} failed to re-trigger Verify run ${run.id}: ${e.message}`);
+  }
 }
 
 function isApproved(reviews) {
@@ -294,6 +339,7 @@ async function handlePrOpened({ github, context, core }) {
       `When ready, use \`/ready\` to request a full review.`
     );
     core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}`);
+    await retriggerVerify(api, pr, core, { delayMs: 5000 });
     return;
   }
 
@@ -353,10 +399,10 @@ async function handlePrReadyForReview({ github, context, core }) {
   await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
   await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.postComment(pr.number,
-    `PR is now ready for review. The full test suite will run on the next push ` +
-    `or label update.`
+    `PR is now ready for review. The full test suite will run.`
   );
   core.info(`PR #${pr.number} transitioned to ready-for-review (draft->ready)`);
+  await retriggerVerify(api, pr, core);
 }
 
 async function handleComment({ github, context, core }) {
@@ -420,6 +466,7 @@ async function cmdAccept(api, config, core, pr, actor, maintainer, commentId) {
     `Smoke tests will run on each push. When ready, use \`/ready\` to request a full review.`
   );
   core.info(`PR #${pr.number} accepted by ${actor}`);
+  await retriggerVerify(api, pr, core);
 }
 
 async function cmdReject(api, config, core, pr, actor, maintainer, reason, commentId) {
@@ -483,10 +530,10 @@ async function cmdReady(api, config, core, pr, actor, isAuthor, maintainer, comm
   await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.addReaction(commentId, '+1');
   await api.postComment(pr.number,
-    `PR marked as ready for review. The full test suite will run on the next label-triggered ` +
-    `build cycle.`
+    `PR marked as ready for review. The full test suite will run.`
   );
   core.info(`PR #${pr.number} marked ready by ${actor}`);
+  await retriggerVerify(api, pr, core);
 }
 
 async function cmdMerge(api, config, core, pr, actor, maintainer, commentId) {
@@ -579,6 +626,7 @@ async function cmdEnableTests(api, core, pr, actor, isAuthor, maintainer, commen
   await api.removeLabel(pr.number, LABELS.TESTS_DISABLED);
   await api.addReaction(commentId, '+1');
   core.info(`PR #${pr.number} smoke tests re-enabled by ${actor}`);
+  await retriggerVerify(api, pr, core);
 }
 
 async function cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, commentId) {

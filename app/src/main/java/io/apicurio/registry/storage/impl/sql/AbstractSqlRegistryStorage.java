@@ -167,6 +167,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     SqlEventRepository eventRepository;
     SqlCleanupRepository cleanupRepository;
     SqlContractRuleRepository contractRuleRepository;
+    SqlUsageRepository usageRepository;
 
     private volatile boolean isReady = false;
     private volatile Instant isAliveLastCheck = Instant.MIN;
@@ -267,6 +268,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         roleMappingRepository = new SqlRoleMappingRepository(handleFactory, sqlStatements, log);
         downloadRepository = new SqlDownloadRepository(handleFactory, sqlStatements, log);
         eventRepository = new SqlEventRepository(handleFactory, sqlStatements, log, eventsTopic);
+        usageRepository = new SqlUsageRepository(handleFactory, sqlStatements, log);
         exportRepository = new SqlExportRepository(handleFactory, sqlStatements, log, eventsTopic);
         searchRepository = new SqlSearchRepository(handleFactory, sqlStatements, log, restConfig);
 
@@ -1607,6 +1609,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public boolean supportsDatabaseEvents() {
 
         return eventRepository.supportsDatabaseEvents();
+    }
+
+    @Override
+    public void recordUsageEvents(List<SchemaUsageEventDto> events) {
+        usageRepository.recordUsageEvents(events);
     }
 
     private boolean isH2() {

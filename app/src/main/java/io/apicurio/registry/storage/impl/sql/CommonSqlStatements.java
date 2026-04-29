@@ -1341,6 +1341,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String insertSchemaUsage() {
+        return "INSERT INTO schema_usage (globalId, clientId, operation, eventTimestamp) VALUES (?, ?, ?, ?)";
+    }
+
+    @Override
     public String selectCountTableTemplate(String countBy, String tableName, String alias,
             String whereClause) {
         return "SELECT COUNT(%s) FROM %s %s %s".formatted(countBy, tableName, alias, whereClause);

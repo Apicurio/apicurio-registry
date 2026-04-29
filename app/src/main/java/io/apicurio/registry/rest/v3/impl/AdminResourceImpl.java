@@ -27,6 +27,7 @@ import io.apicurio.registry.rest.v3.beans.GitOpsStatus;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.Rule;
+import io.apicurio.registry.rest.v3.beans.SchemaUsageEventList;
 import io.apicurio.registry.rest.v3.beans.SnapshotMetaData;
 import io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.UpdateRole;
@@ -39,6 +40,7 @@ import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
@@ -85,6 +87,7 @@ import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_DOWNLOAD;
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_USAGE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_FOR_BROWSER;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_NAME;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PRINCIPAL_ID;
@@ -139,6 +142,10 @@ public class AdminResourceImpl implements AdminResource {
     @ConfigProperty(name = "apicurio.download.href.ttl.seconds", defaultValue = "30")
     @Info(category = CATEGORY_DOWNLOAD, description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
+
+    @ConfigProperty(name = "apicurio.usage.telemetry.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_USAGE, description = "Enable usage telemetry collection from SerDes clients", availableSince = "3.1.0")
+    boolean usageTelemetryEnabled;
 
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
@@ -647,6 +654,24 @@ public class AdminResourceImpl implements AdminResource {
             result.setSources(sources);
         }
         return result;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
+    public void reportUsageEvents(SchemaUsageEventList data) {
+        if (!usageTelemetryEnabled) {
+            throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
+        }
+        ParameterValidationUtils.requireParameter("events", data.getEvents());
+        List<SchemaUsageEventDto> dtos = data.getEvents().stream()
+                .map(event -> SchemaUsageEventDto.builder()
+                        .globalId(event.getGlobalId())
+                        .clientId(event.getClientId())
+                        .operation(event.getOperation().value())
+                        .eventTimestamp(event.getTimestamp())
+                        .build())
+                .toList();
+        storage.recordUsageEvents(dtos);
     }
 
 }

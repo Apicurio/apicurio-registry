@@ -11,6 +11,7 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.telemetry.UsageTelemetryReporter;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -43,6 +44,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected String explicitArtifactVersion;
 
     protected boolean resolveDereferenced;
+    protected UsageTelemetryReporter usageTelemetryReporter;
+    protected String usageTelemetryClientId;
 
     @Override
     public void configure(Map<String, ?> configs, SchemaParser<S, T> schemaParser) {
@@ -95,6 +98,19 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         }
 
         this.resolveDereferenced = config.resolveDereferenced();
+
+        if (config.isUsageTelemetryEnabled()) {
+            this.usageTelemetryClientId = config.getUsageTelemetryClientId();
+            if (this.usageTelemetryClientId == null || this.usageTelemetryClientId.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Usage telemetry is enabled but no client ID is configured. Set "
+                                + SchemaResolverConfig.USAGE_TELEMETRY_CLIENT_ID);
+            }
+            this.usageTelemetryReporter = new UsageTelemetryReporter(
+                    clientFacade,
+                    config.getUsageTelemetryBufferSize(),
+                    config.getUsageTelemetryFlushIntervalMs());
+        }
     }
 
     @Override
@@ -268,6 +284,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
      */
     @Override
     public void close() throws IOException {
+        if (usageTelemetryReporter != null) {
+            usageTelemetryReporter.close();
+        }
     }
 
     protected SchemaLookupResult<S> loadFromVersionCoordinates(RegistryVersionCoordinates version, ParsedSchema<S> parsedSchema) {

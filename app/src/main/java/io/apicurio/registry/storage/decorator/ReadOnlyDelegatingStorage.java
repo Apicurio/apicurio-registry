@@ -23,6 +23,7 @@ import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
@@ -449,5 +450,10 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     @Override
     public boolean supportsDatabaseEvents() {
         return delegate.supportsDatabaseEvents();
+    }
+
+    @Override
+    public void recordUsageEvents(List<SchemaUsageEventDto> events) {
+        delegate.recordUsageEvents(events);
     }
 }

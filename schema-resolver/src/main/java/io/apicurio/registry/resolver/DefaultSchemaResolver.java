@@ -8,6 +8,7 @@ import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.telemetry.UsageTelemetryEvent;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.nio.charset.StandardCharsets;
@@ -32,6 +33,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean canonicalize;
 
     private static final Logger logger = Logger.getLogger(DefaultSchemaResolver.class.getSimpleName());
+    public static final ThreadLocal<String> currentOperation = new ThreadLocal<>();
 
     public DefaultSchemaResolver() {
         super();
@@ -75,10 +77,21 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         requireNonNull(data);
         requireNonNull(data.payload());
 
+        Metadata metadata = data.metadata();
+        if (metadata != null && metadata.operation() != null) {
+            currentOperation.set(metadata.operation());
+        }
+
+        try {
+            return doResolveSchema(data, metadata);
+        } finally {
+            currentOperation.remove();
+        }
+    }
+
+    private SchemaLookupResult<S> doResolveSchema(Record<T> data, Metadata metadata) {
         ParsedSchema<S> parsedSchema;
 
-        // Check if an explicit schema is provided in the metadata (e.g., from headers)
-        Metadata metadata = data.metadata();
         String explicitSchemaContent = metadata != null ? metadata.explicitSchemaContent() : null;
         if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
             // Use the explicit schema from headers instead of inferring from data
@@ -253,7 +266,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
 
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-            return result.contentId(contentIdKey).parsedSchema(ps).build();
+            SchemaLookupResult<S> lookupResult = result.contentId(contentIdKey).parsedSchema(ps).build();
+            recordUsageTelemetry(lookupResult);
+            return lookupResult;
         });
     }
 
@@ -276,7 +291,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
             SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
 
-            return result.contentHash(contentHashKey).parsedSchema(ps).build();
+            SchemaLookupResult<S> lookupResult = result.contentHash(contentHashKey).parsedSchema(ps).build();
+            recordUsageTelemetry(lookupResult);
+            return lookupResult;
         });
     }
 
@@ -303,7 +320,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                                 rawSchemaString) + "&" + artifactReference);
             }
 
-            return loadFromVersionCoordinates(versions.get(0), parsedSchema);
+            SchemaLookupResult<S> result = loadFromVersionCoordinates(versions.get(0), parsedSchema);
+            recordUsageTelemetry(result);
+            return result;
         });
     }
 
@@ -336,7 +355,9 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
                     version, autoCreate, canonicalize, rawSchemaString, clientReferences);
 
-            return loadFromVersionCoordinates(versionCoordinates, parsedSchema, references);
+            SchemaLookupResult<S> result = loadFromVersionCoordinates(versionCoordinates, parsedSchema, references);
+            recordUsageTelemetry(result);
+            return result;
         });
     }
 
@@ -386,6 +407,25 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
         ParsedSchemaImpl<S> parsedSchema = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
-        return loadFromVersionCoordinates(versionCoordinates, parsedSchema);
+        SchemaLookupResult<S> result = loadFromVersionCoordinates(versionCoordinates, parsedSchema);
+        recordUsageTelemetry(result);
+        return result;
+    }
+
+    private void recordUsageTelemetry(SchemaLookupResult<S> result) {
+        if (usageTelemetryReporter != null && result.getGlobalId() != 0) {
+            String operation = currentOperation.get();
+            if (operation == null) {
+                operation = "UNKNOWN";
+            }
+            usageTelemetryReporter.recordEvent(new UsageTelemetryEvent(
+                    usageTelemetryClientId,
+                    result.getGroupId() != null ? result.getGroupId() : "default",
+                    result.getArtifactId(),
+                    result.getVersion(),
+                    result.getGlobalId(),
+                    operation,
+                    System.currentTimeMillis()));
+        }
     }
 }

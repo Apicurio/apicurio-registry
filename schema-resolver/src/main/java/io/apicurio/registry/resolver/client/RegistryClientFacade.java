@@ -1,6 +1,7 @@
 package io.apicurio.registry.resolver.client;
 
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.registry.resolver.telemetry.UsageTelemetryEvent;
 
 import java.util.List;
 import java.util.Set;
@@ -61,4 +62,11 @@ public interface RegistryClientFacade {
      * example, this might return an instance of {@link io.apicurio.registry.rest.client.RegistryClient}.
      */
     Object getClient();
+
+    /**
+     * Report a batch of schema usage telemetry events to the registry.
+     * Default implementation is a no-op for backward compatibility.
+     */
+    default void reportUsageEvents(List<UsageTelemetryEvent> events) {
+    }
 }

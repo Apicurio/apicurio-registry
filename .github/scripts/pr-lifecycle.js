@@ -211,7 +211,7 @@ function createApi(github, owner, repo) {
     findLatestVerifyRun: async (headSha) => {
       const { data } = await github.rest.actions.listWorkflowRuns({
         owner, repo, workflow_id: 'verify.yaml',
-        head_sha: headSha, per_page: 5,
+        head_sha: headSha, per_page: 1,
       });
       return data.workflow_runs[0] || null;
     },
@@ -225,17 +225,28 @@ function createApi(github, owner, repo) {
     },
 
     reRunWorkflow: async (runId) => {
-      await github.rest.actions.reRunWorkflow({ owner, repo, run_id: runId });
+      try {
+        await github.rest.actions.reRunWorkflow({ owner, repo, run_id: runId });
+      } catch (e) {
+        if (e.status !== 409) throw e;
+      }
     },
   };
 }
 
-async function retriggerVerify(api, pr, core, { delayMs = 0 } = {}) {
-  if (delayMs > 0) {
-    await new Promise(r => setTimeout(r, delayMs));
+async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
+  let run = null;
+
+  if (waitForRun) {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await new Promise(r => setTimeout(r, 3000));
+      run = await api.findLatestVerifyRun(pr.head.sha);
+      if (run) break;
+    }
+  } else {
+    run = await api.findLatestVerifyRun(pr.head.sha);
   }
 
-  const run = await api.findLatestVerifyRun(pr.head.sha);
   if (!run) {
     core.warning(`PR #${pr.number} no Verify run found for ${pr.head.sha}, skipping re-trigger`);
     return;
@@ -339,7 +350,7 @@ async function handlePrOpened({ github, context, core }) {
       `When ready, use \`/ready\` to request a full review.`
     );
     core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}`);
-    await retriggerVerify(api, pr, core, { delayMs: 5000 });
+    await retriggerVerify(api, pr, core, { waitForRun: true });
     return;
   }
 

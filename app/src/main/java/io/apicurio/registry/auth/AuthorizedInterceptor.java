@@ -158,9 +158,9 @@ public class AuthorizedInterceptor {
             }
         }
 
-        // If OPA WASM authorization is enabled, apply per-resource policy checks
+        // If per-resource authorization is enabled, apply grants-based access checks
         if (grantsAcConfig.isEnabled() && !grantsAc.isAuthorized(context)) {
-            log.warn("OPA WASM authorization denied access.");
+            log.warn("Per-resource authorization denied access.");
             throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
                     + " is not authorized to access the requested resource.");
         }

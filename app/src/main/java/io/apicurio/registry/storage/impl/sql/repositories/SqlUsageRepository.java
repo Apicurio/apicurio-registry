@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import org.slf4j.Logger;
 
@@ -24,10 +25,13 @@ public class SqlUsageRepository {
     }
 
     public void recordUsageEvents(List<SchemaUsageEventDto> events) {
+        log.info("Recording {} usage events", events.size());
         handles.withHandle(handle -> {
-            var batch = handle.createUpdate(sqlStatements.insertSchemaUsage());
             for (SchemaUsageEventDto event : events) {
-                batch.bind(0, event.getGlobalId())
+                log.debug("Inserting usage event: globalId={}, clientId={}", event.getGlobalId(),
+                        event.getClientId());
+                handle.createUpdate(sqlStatements.insertSchemaUsage())
+                        .bind(0, event.getGlobalId())
                         .bind(1, event.getClientId())
                         .bind(2, event.getOperation())
                         .bind(3, event.getEventTimestamp())
@@ -49,7 +53,7 @@ public class SqlUsageRepository {
         return handles.withHandleNoException(handle -> {
             return handle
                     .createQuery(sqlStatements.selectArtifactUsageMetrics())
-                    .bind(0, groupId)
+                    .bind(0, RegistryContentUtils.normalizeGroupId(groupId))
                     .bind(1, artifactId)
                     .map(rs -> SchemaUsageSummaryDto.builder()
                             .version(rs.getString("version"))
@@ -82,7 +86,7 @@ public class SqlUsageRepository {
     public List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId) {
         return handles.withHandleNoException(handle -> {
             return handle.createQuery(sqlStatements.selectConsumerVersionHeatmap())
-                    .bind(0, groupId)
+                    .bind(0, RegistryContentUtils.normalizeGroupId(groupId))
                     .bind(1, artifactId)
                     .map(rs -> ConsumerVersionEntryDto.builder()
                             .clientId(rs.getString("clientId"))
@@ -99,7 +103,7 @@ public class SqlUsageRepository {
                                                                   String version) {
         return handles.withHandleNoException(handle -> {
             return handle.createQuery(sqlStatements.selectDeprecationReadiness())
-                    .bind(0, groupId)
+                    .bind(0, RegistryContentUtils.normalizeGroupId(groupId))
                     .bind(1, artifactId)
                     .bind(2, version)
                     .map(rs -> DeprecationReadinessDto.builder()

@@ -158,11 +158,15 @@ public class AuthorizedInterceptor {
             }
         }
 
-        // If per-resource authorization is enabled, apply grants-based access checks
-        if (grantsAcConfig.isEnabled() && !grantsAc.isAuthorized(context)) {
-            log.warn("Per-resource authorization denied access.");
-            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
-                    + " is not authorized to access the requested resource.");
+        // If per-resource authorization is enabled, apply grants-based access checks.
+        // Artifact/group owners bypass the grants check — ownership implies access.
+        if (grantsAcConfig.isEnabled()) {
+            boolean isOwner = authConfig.ownerOnlyAuthorizationEnabled.get() && obac.checkOwnership(context);
+            if (!isOwner && !grantsAc.isAuthorized(context)) {
+                log.warn("Per-resource authorization denied access.");
+                throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
+                        + " is not authorized to access the requested resource.");
+            }
         }
 
         return context.proceed();

@@ -6,6 +6,7 @@ import java.util.Map;
 
 import io.apicurio.authz.GrantsAuthorizer;
 import io.apicurio.authz.ResourceType;
+import io.apicurio.registry.auth.AuthConfig;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.annotation.PostConstruct;
@@ -26,6 +27,9 @@ public class GrantsAccessControllerInitializer {
     @Inject
     GrantsAccessController controller;
 
+    @Inject
+    AuthConfig authConfig;
+
     @PostConstruct
     void init() {
         if (!config.isEnabled()) {
@@ -37,9 +41,11 @@ public class GrantsAccessControllerInitializer {
 
         if (dataPath == null || dataPath.isBlank()) {
             log.warn("Per-resource authorization is enabled but no grants data path configured. "
-                    + "Set apicurio.auth.opa-wasm.data.path to a JSON grants file.");
+                    + "Set apicurio.auth.resource-based-authorization.grants.path to a JSON grants file.");
             return;
         }
+
+        logConfigurationWarnings();
 
         log.info("Initializing per-resource authorization from grants file: {}", dataPath);
 
@@ -56,6 +62,17 @@ public class GrantsAccessControllerInitializer {
         } catch (IOException e) {
             log.error("Failed to initialize per-resource authorization", e);
             throw new RuntimeException("Failed to load grants data", e);
+        }
+    }
+
+    private void logConfigurationWarnings() {
+        if (authConfig.isAnonymousReadsEnabled()) {
+            log.warn("Per-resource authorization is enabled alongside anonymous-read-access. "
+                    + "Anonymous users will be able to read all resources regardless of grants.");
+        }
+        if (authConfig.isAuthenticatedReadsEnabled()) {
+            log.warn("Per-resource authorization is enabled alongside authenticated-read-access. "
+                    + "All authenticated users will be able to read all resources regardless of grants.");
         }
     }
 

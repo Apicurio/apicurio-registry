@@ -1,5 +1,14 @@
 {
   "name": "MinimalAgent",
-  "description": "A minimal agent card with just required fields",
-  "version": "0.1.0"
+  "description": "A minimal agent card with required fields only",
+  "version": "0.1.0",
+  "supportedInterfaces": [
+    { "url": "https://minimal.example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+  ],
+  "capabilities": {},
+  "skills": [
+    { "id": "default", "name": "Default Skill", "description": "The default skill", "tags": ["general"] }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"]
 }

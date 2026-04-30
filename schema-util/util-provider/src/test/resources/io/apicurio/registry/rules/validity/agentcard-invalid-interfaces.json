@@ -1,0 +1,10 @@
+{
+  "name": "TestAgent",
+  "description": "Test agent with invalid interfaces",
+  "version": "1.0.0",
+  "supportedInterfaces": [{ "url": "https://example.com" }],
+  "capabilities": {},
+  "skills": [{ "id": "s1", "name": "Skill", "description": "A skill", "tags": ["test"] }],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"]
+}

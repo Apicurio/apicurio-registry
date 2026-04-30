@@ -27,11 +27,26 @@ The following {registry} configuration options are available for each component 
 |`API and Schema Registry with A2A Agent support`
 |`3.0.0`
 |Description of the registry agent
+|`apicurio.a2a.agent.documentation-url`
+|`optional<string>`
+|
+|`3.0.0`
+|URL to the registry agent documentation
+|`apicurio.a2a.agent.icon-url`
+|`optional<string>`
+|
+|`3.0.0`
+|URL to the registry agent icon
 |`apicurio.a2a.agent.name`
 |`string`
 |`Apicurio Registry`
 |`3.0.0`
 |Name of the registry agent for A2A discovery
+|`apicurio.a2a.agent.protocol-version`
+|`string`
+|`1.0`
+|`3.0.0`
+|A2A protocol version supported by the registry agent
 |`apicurio.a2a.agent.provider.organization`
 |`string`
 |`Apicurio`

@@ -59,4 +59,10 @@ public class ArtifactType {
     /** OpenRPC specification for JSON-RPC APIs. */
     public static final String OPENRPC = "OPENRPC";
 
+    /** AI/ML model input/output schema definition. */
+    public static final String MODEL_SCHEMA = "MODEL_SCHEMA";
+
+    /** Version-controlled prompt template with variable schemas. */
+    public static final String PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
+
 }

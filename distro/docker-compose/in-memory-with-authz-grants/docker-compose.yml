@@ -10,7 +10,7 @@ services:
       - --import-realm
       - --hostname-strict=false
     ports:
-      - 8090:8080
+      - 8080:8080
     volumes:
       - ../config/realm.json:/opt/keycloak/data/import/realm.json
 
@@ -29,7 +29,6 @@ services:
       QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak:8080/realms/registry"
       QUARKUS_OIDC_CLIENT_ID: "registry-api"
       APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
-      apicurio.ui.auth.oidc.url: "http://localhost:8090/realms/registry"
       apicurio.ui.auth.oidc.redirect-uri: "http://localhost:8888/"
       QUARKUS_OIDC_TLS_VERIFICATION: "none"
       QUARKUS_OIDC_TOKEN_ISSUER: "any"
@@ -55,7 +54,7 @@ services:
     environment:
       REGISTRY_API_URL: "http://localhost:8081/apis/registry/v3"
       REGISTRY_AUTH_TYPE: "oidc"
-      REGISTRY_AUTH_URL: "http://localhost:8090/realms/registry"
+      REGISTRY_AUTH_URL: "http://localhost:8080/realms/registry"
     ports:
       - "8888:8080"
     depends_on:

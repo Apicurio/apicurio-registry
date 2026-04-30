@@ -8,7 +8,7 @@ Demonstrates two-layer authorization:
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| Keycloak | 8090 | Authentication + RBAC roles |
+| Keycloak | 8080 | Authentication + RBAC roles |
 | Apicurio Registry API | 8081 | Schema/API registry with per-resource auth |
 | Apicurio Registry UI | 8888 | Web console |
 
@@ -43,18 +43,16 @@ User → Keycloak (authn + JWT with roles)
 
 ## Quick start
 
-Build both the Registry API and UI images from source (from the repository root):
+Build the Registry API image from source (from the repository root):
 
 ```bash
 # Build the Registry API and docker context
 mvn install -pl distro/docker -am -DskipTests -Dcheckstyle.skip=true
 
 # Build the UI
-cd ui && npm install && npm run build && cp -r ui-app/dist . && cd ..
 
 # Build Docker images
 docker build -t apicurio/apicurio-registry:latest-snapshot -f distro/docker/target/docker/Dockerfile.jvm distro/docker/target/docker/
-docker build -t apicurio/apicurio-registry-ui:latest-snapshot ui/
 
 # Start all services
 cd distro/docker-compose/in-memory-with-authz-grants
@@ -64,7 +62,7 @@ docker compose up -d
 Wait for Keycloak to start (~15 seconds), then access:
 - UI: http://localhost:8888
 - API: http://localhost:8081
-- Keycloak: http://localhost:8090 (admin/admin)
+- Keycloak: http://localhost:8080 (admin/admin)
 
 ## Demo: Testing with curl
 
@@ -72,7 +70,7 @@ Wait for Keycloak to start (~15 seconds), then access:
 
 ```bash
 get_token() {
-  curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
+  curl -s -X POST "http://localhost:8080/realms/registry/protocol/openid-connect/token" \
     -d "grant_type=password&client_id=apicurio-registry&username=$1&password=$2" | jq -r '.access_token'
 }
 

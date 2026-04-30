@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "supportedInterfaces": [{ "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }],
   "capabilities": {},
-  "skills": [{ "id": "s1", "name": "Skill", "description": "A skill", "tags": ["test"] }],
+  "skills": [{ "id": "s1", "name": "Skill Without Description", "tags": ["test"] }],
   "defaultInputModes": ["text"],
-  "defaultOutputModes": ["text"],
-  "provider": "not an object"
+  "defaultOutputModes": ["text"]
 }

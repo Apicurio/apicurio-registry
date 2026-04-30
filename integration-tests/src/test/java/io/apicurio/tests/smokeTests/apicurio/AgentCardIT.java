@@ -35,7 +35,9 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                 "name": "TestAgent",
                 "description": "A test AI agent",
                 "version": "1.0.0",
-                "url": "https://example.com/agent",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
                 "capabilities": {
                     "streaming": true,
                     "pushNotifications": false
@@ -44,7 +46,8 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                     {
                         "id": "test-skill",
                         "name": "Test Skill",
-                        "description": "A test skill"
+                        "description": "A test skill",
+                        "tags": ["testing"]
                     }
                 ],
                 "defaultInputModes": ["text"],
@@ -57,7 +60,9 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                 "name": "StreamingAgent",
                 "description": "An agent with streaming capabilities",
                 "version": "2.0.0",
-                "url": "https://example.com/streaming-agent",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/streaming-agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
                 "capabilities": {
                     "streaming": true,
                     "pushNotifications": true
@@ -65,11 +70,15 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                 "skills": [
                     {
                         "id": "data-processing",
-                        "name": "Data Processing"
+                        "name": "Data Processing",
+                        "description": "Process data streams",
+                        "tags": ["data"]
                     },
                     {
                         "id": "real-time-analysis",
-                        "name": "Real-time Analysis"
+                        "name": "Real-time Analysis",
+                        "description": "Analyze data in real time",
+                        "tags": ["analysis"]
                     }
                 ],
                 "defaultInputModes": ["text", "image"],
@@ -79,7 +88,18 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
 
     private static final String MINIMAL_AGENT_CARD = """
             {
-                "name": "MinimalAgent"
+                "name": "MinimalAgent",
+                "description": "A minimal agent",
+                "version": "0.1.0",
+                "supportedInterfaces": [
+                    { "url": "https://minimal.example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "default", "name": "Default", "description": "Default skill", "tags": ["general"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
             }
             """;
 
@@ -126,7 +146,7 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
-        // Create agent card with minimal structure (only name)
+        // Create agent card with minimal v1.0 structure
         CreateArtifactResponse response = createArtifact(groupId, artifactId, ArtifactType.AGENT_CARD,
                 MINIMAL_AGENT_CARD, ContentTypes.APPLICATION_JSON, IfArtifactExists.FAIL, null);
 
@@ -182,7 +202,9 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                     "name": "TestAgent",
                     "description": "Agent with new skill",
                     "version": "2.0.0",
-                    "url": "https://example.com/agent",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
                     "capabilities": {
                         "streaming": true,
                         "pushNotifications": false
@@ -191,12 +213,14 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                         {
                             "id": "test-skill",
                             "name": "Test Skill",
-                            "description": "A test skill"
+                            "description": "A test skill",
+                            "tags": ["testing"]
                         },
                         {
                             "id": "new-skill",
                             "name": "New Skill",
-                            "description": "A newly added skill"
+                            "description": "A newly added skill",
+                            "tags": ["new"]
                         }
                     ],
                     "defaultInputModes": ["text"],
@@ -258,7 +282,15 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
         String invalidAgentCard = """
                 {
                     "name": "InvalidAgent",
-                    "skills": "not-an-array"
+                    "description": "Invalid agent",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {},
+                    "skills": "not-an-array",
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
                 }
                 """;
 

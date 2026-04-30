@@ -2,7 +2,10 @@
   "name": "TestAgent",
   "description": "A test AI agent for integration testing - updated",
   "version": "2.0.0",
-  "url": "https://example.com/agent",
+  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+  ],
   "provider": {
     "organization": "Test Organization",
     "url": "https://example.com"
@@ -15,17 +18,19 @@
     {
       "id": "test-skill",
       "name": "Test Skill",
-      "description": "A test skill for testing"
+      "description": "A test skill for testing",
+      "tags": ["testing"]
     },
     {
       "id": "new-skill",
       "name": "New Skill",
-      "description": "A new skill added in v2"
+      "description": "A new skill added in v2",
+      "tags": ["new", "testing"]
     }
   ],
   "defaultInputModes": ["text"],
   "defaultOutputModes": ["text"],
-  "authentication": {
-    "schemes": ["bearer"]
+  "securitySchemes": {
+    "bearer": { "type": "httpAuth", "scheme": "Bearer" }
   }
 }

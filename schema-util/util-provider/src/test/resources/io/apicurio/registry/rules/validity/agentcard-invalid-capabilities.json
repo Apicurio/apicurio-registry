@@ -1,7 +1,10 @@
 {
   "name": "TestAgent",
-  "capabilities": {
-    "streaming": "yes",
-    "pushNotifications": "no"
-  }
+  "description": "Test agent",
+  "version": "1.0.0",
+  "supportedInterfaces": [{ "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }],
+  "capabilities": { "streaming": "yes", "pushNotifications": "no" },
+  "skills": [{ "id": "s1", "name": "Skill", "description": "A skill", "tags": ["test"] }],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"]
 }

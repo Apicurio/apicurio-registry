@@ -32,9 +32,10 @@ public class AgentCardContentAccepter implements ContentAccepter {
             if (tree.isObject() && tree.has("name")) {
                 // Additional heuristics to identify an Agent Card vs regular JSON
                 // Look for A2A-specific fields
-                if (tree.has("capabilities") || tree.has("skills") || tree.has("url")
-                        || tree.has("authentication") || tree.has("defaultInputModes")
-                        || tree.has("defaultOutputModes") || tree.has("provider")) {
+                if (tree.has("capabilities") || tree.has("skills")
+                        || tree.has("supportedInterfaces") || tree.has("securitySchemes")
+                        || tree.has("defaultInputModes") || tree.has("defaultOutputModes")
+                        || tree.has("provider")) {
                     return true;
                 }
                 // If it has name and description, and looks like a service descriptor, accept it

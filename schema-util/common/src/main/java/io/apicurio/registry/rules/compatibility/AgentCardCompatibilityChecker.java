@@ -10,49 +10,42 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Compatibility checker for A2A Agent Card artifacts.
+ * Compatibility checker for A2A Agent Card artifacts (v1.0).
  *
- * Compatibility rules for Agent Cards:
+ * Compatibility rules:
  * - Adding new skills: Always compatible
  * - Removing skills: Backward incompatible
  * - Adding capabilities: Always compatible
  * - Removing/disabling capabilities: Backward incompatible
- * - Changing URL: Incompatible (both directions)
- * - Adding authentication schemes: Always compatible
- * - Removing authentication schemes: Backward incompatible
+ * - Removing interfaces (by url+protocolBinding): Backward incompatible
+ * - Changing protocolVersion on existing interface: Backward incompatible
+ * - Adding security schemes: Always compatible
+ * - Removing security schemes: Backward incompatible
  * - Adding input/output modes: Always compatible
  * - Removing input/output modes: Backward incompatible
  */
-public class AgentCardCompatibilityChecker extends AbstractCompatibilityChecker<AgentCardCompatibilityDifference> {
+public class AgentCardCompatibilityChecker
+        extends AbstractCompatibilityChecker<AgentCardCompatibilityDifference> {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    protected Set<AgentCardCompatibilityDifference> isBackwardsCompatibleWith(String existing, String proposed,
-            Map<String, TypedContent> resolvedReferences) {
+    protected Set<AgentCardCompatibilityDifference> isBackwardsCompatibleWith(String existing,
+            String proposed, Map<String, TypedContent> resolvedReferences) {
         Set<AgentCardCompatibilityDifference> differences = new HashSet<>();
 
         try {
             JsonNode existingNode = mapper.readTree(existing);
             JsonNode proposedNode = mapper.readTree(proposed);
 
-            // Check URL changes (breaking in both directions)
-            checkUrlCompatibility(existingNode, proposedNode, differences);
-
-            // Check removed skills
+            checkInterfaceCompatibility(existingNode, proposedNode, differences);
             checkSkillRemovals(existingNode, proposedNode, differences);
-
-            // Check removed or disabled capabilities
             checkCapabilityRemovals(existingNode, proposedNode, differences);
-
-            // Check removed authentication schemes
-            checkAuthenticationRemovals(existingNode, proposedNode, differences);
-
-            // Check removed input modes
-            checkModeRemovals(existingNode, proposedNode, "defaultInputModes", "input mode", differences);
-
-            // Check removed output modes
-            checkModeRemovals(existingNode, proposedNode, "defaultOutputModes", "output mode", differences);
+            checkSecuritySchemeRemovals(existingNode, proposedNode, differences);
+            checkModeRemovals(existingNode, proposedNode, "defaultInputModes", "input mode",
+                    differences);
+            checkModeRemovals(existingNode, proposedNode, "defaultOutputModes", "output mode",
+                    differences);
 
         } catch (Exception e) {
             differences.add(new AgentCardCompatibilityDifference(
@@ -63,15 +56,53 @@ public class AgentCardCompatibilityChecker extends AbstractCompatibilityChecker<
         return differences;
     }
 
-    private void checkUrlCompatibility(JsonNode existing, JsonNode proposed,
+    private void checkInterfaceCompatibility(JsonNode existing, JsonNode proposed,
             Set<AgentCardCompatibilityDifference> differences) {
-        String existingUrl = getTextValue(existing, "url");
-        String proposedUrl = getTextValue(proposed, "url");
+        Set<String> existingKeys = extractInterfaceKeys(existing);
+        Set<String> proposedKeys = extractInterfaceKeys(proposed);
 
-        if (existingUrl != null && proposedUrl != null && !existingUrl.equals(proposedUrl)) {
-            differences.add(new AgentCardCompatibilityDifference(
-                    AgentCardCompatibilityDifference.Type.URL_CHANGED,
-                    "Agent URL changed from '" + existingUrl + "' to '" + proposedUrl + "'"));
+        for (String key : existingKeys) {
+            if (!proposedKeys.contains(key)) {
+                differences.add(new AgentCardCompatibilityDifference(
+                        AgentCardCompatibilityDifference.Type.INTERFACE_REMOVED,
+                        "Interface '" + key + "' was removed"));
+            }
+        }
+
+        checkInterfaceProtocolVersionChanges(existing, proposed, differences);
+    }
+
+    private void checkInterfaceProtocolVersionChanges(JsonNode existing, JsonNode proposed,
+            Set<AgentCardCompatibilityDifference> differences) {
+        JsonNode existingInterfaces = existing.get("supportedInterfaces");
+        JsonNode proposedInterfaces = proposed.get("supportedInterfaces");
+
+        if (existingInterfaces == null || proposedInterfaces == null) {
+            return;
+        }
+
+        for (JsonNode existingIface : existingInterfaces) {
+            String url = getTextValue(existingIface, "url");
+            String binding = getTextValue(existingIface, "protocolBinding");
+            String existingVersion = getTextValue(existingIface, "protocolVersion");
+
+            if (url == null || binding == null || existingVersion == null) {
+                continue;
+            }
+
+            for (JsonNode proposedIface : proposedInterfaces) {
+                String pUrl = getTextValue(proposedIface, "url");
+                String pBinding = getTextValue(proposedIface, "protocolBinding");
+                String pVersion = getTextValue(proposedIface, "protocolVersion");
+
+                if (url.equals(pUrl) && binding.equals(pBinding)
+                        && pVersion != null && !existingVersion.equals(pVersion)) {
+                    differences.add(new AgentCardCompatibilityDifference(
+                            AgentCardCompatibilityDifference.Type.PROTOCOL_VERSION_CHANGED,
+                            "Protocol version changed from '" + existingVersion + "' to '"
+                                    + pVersion + "' for interface " + url + " (" + binding + ")"));
+                }
+            }
         }
     }
 
@@ -101,10 +132,12 @@ public class AgentCardCompatibilityChecker extends AbstractCompatibilityChecker<
         Iterator<String> fieldNames = existingCaps.fieldNames();
         while (fieldNames.hasNext()) {
             String capName = fieldNames.next();
+            if (!existingCaps.get(capName).isBoolean()) {
+                continue;
+            }
             boolean existingValue = existingCaps.get(capName).asBoolean(false);
 
             if (existingValue) {
-                // Check if capability was removed or disabled
                 boolean proposedValue = false;
                 if (proposedCaps != null && proposedCaps.has(capName)) {
                     proposedValue = proposedCaps.get(capName).asBoolean(false);
@@ -119,16 +152,16 @@ public class AgentCardCompatibilityChecker extends AbstractCompatibilityChecker<
         }
     }
 
-    private void checkAuthenticationRemovals(JsonNode existing, JsonNode proposed,
+    private void checkSecuritySchemeRemovals(JsonNode existing, JsonNode proposed,
             Set<AgentCardCompatibilityDifference> differences) {
-        Set<String> existingSchemes = extractAuthSchemes(existing);
-        Set<String> proposedSchemes = extractAuthSchemes(proposed);
+        Set<String> existingSchemes = extractSecuritySchemeNames(existing);
+        Set<String> proposedSchemes = extractSecuritySchemeNames(proposed);
 
         for (String scheme : existingSchemes) {
             if (!proposedSchemes.contains(scheme)) {
                 differences.add(new AgentCardCompatibilityDifference(
-                        AgentCardCompatibilityDifference.Type.AUTH_SCHEME_REMOVED,
-                        "Authentication scheme '" + scheme + "' was removed"));
+                        AgentCardCompatibilityDifference.Type.SECURITY_SCHEME_REMOVED,
+                        "Security scheme '" + scheme + "' was removed"));
             }
         }
     }
@@ -152,6 +185,21 @@ public class AgentCardCompatibilityChecker extends AbstractCompatibilityChecker<
         return (field != null && field.isTextual()) ? field.asText() : null;
     }
 
+    private Set<String> extractInterfaceKeys(JsonNode node) {
+        Set<String> keys = new HashSet<>();
+        JsonNode interfaces = node.get("supportedInterfaces");
+        if (interfaces != null && interfaces.isArray()) {
+            for (JsonNode iface : interfaces) {
+                String url = getTextValue(iface, "url");
+                String binding = getTextValue(iface, "protocolBinding");
+                if (url != null && binding != null) {
+                    keys.add(url + "|" + binding);
+                }
+            }
+        }
+        return keys;
+    }
+
     private Set<String> extractSkillIds(JsonNode node) {
         Set<String> skills = new HashSet<>();
         JsonNode skillsNode = node.get("skills");
@@ -166,18 +214,11 @@ public class AgentCardCompatibilityChecker extends AbstractCompatibilityChecker<
         return skills;
     }
 
-    private Set<String> extractAuthSchemes(JsonNode node) {
+    private Set<String> extractSecuritySchemeNames(JsonNode node) {
         Set<String> schemes = new HashSet<>();
-        JsonNode authNode = node.get("authentication");
-        if (authNode != null && authNode.isObject()) {
-            JsonNode schemesNode = authNode.get("schemes");
-            if (schemesNode != null && schemesNode.isArray()) {
-                for (JsonNode scheme : schemesNode) {
-                    if (scheme.isTextual()) {
-                        schemes.add(scheme.asText());
-                    }
-                }
-            }
+        JsonNode schemesNode = node.get("securitySchemes");
+        if (schemesNode != null && schemesNode.isObject()) {
+            schemesNode.fieldNames().forEachRemaining(schemes::add);
         }
         return schemes;
     }

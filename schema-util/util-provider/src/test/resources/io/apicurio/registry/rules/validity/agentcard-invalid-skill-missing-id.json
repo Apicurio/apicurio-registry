@@ -1,8 +1,10 @@
 {
   "name": "TestAgent",
-  "skills": [
-    {
-      "name": "Skill without ID"
-    }
-  ]
+  "description": "Test agent",
+  "version": "1.0.0",
+  "supportedInterfaces": [{ "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }],
+  "capabilities": {},
+  "skills": [{ "name": "Skill Without ID", "description": "No ID", "tags": ["test"] }],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"]
 }

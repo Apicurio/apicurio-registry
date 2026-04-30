@@ -106,59 +106,23 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
     }
 
     /**
-     * Overrides the default deserialization to add a fallback path when schema resolution fails
-     * for a recoverable reason and both {@code specificReturnClass} and
-     * {@code fallbackOnSchemaError} are configured.
-     * <p>
-     * The fallback strips the Apicurio wire-format prefix and parses the raw protobuf bytes
-     * directly using the configured return class. It is only triggered for the specific
-     * unchecked exception types that represent transient or recoverable failures of the
-     * schema lookup, caught by type rather than by inspecting causes:
-     * </p>
-     * <ul>
-     *   <li>{@link com.microsoft.kiota.ApiException} - registry returned an HTTP error
-     *       (404 schema not yet propagated, 5xx registry outage, etc.)</li>
-     *   <li>{@link UncheckedIOException} - network or I/O failure reading from the registry
-     *       (connection refused, timeout, broken stream); the JDK and {@code IoUtil} wrap
-     *       any underlying {@link java.io.IOException} in this type</li>
-     *   <li>{@link IllegalStateException} <em>only</em> when its direct cause is a
-     *       {@link DescriptorValidationException}; this is how {@link ProtobufSchemaParser}
-     *       surfaces a registry-supplied descriptor with missing transitive imports.
-     *       {@code IllegalStateException} from any other source (configuration errors,
-     *       invalid state in the resolver, etc.) is rethrown unchanged</li>
-     * </ul>
-     * <p>
-     * Programming errors and configuration mistakes ({@link NullPointerException},
-     * {@link IllegalArgumentException}, {@link ClassCastException}, generic
-     * {@link RuntimeException}, etc.) are <strong>not</strong> caught and propagate to the
-     * caller so real bugs are not silently masked.
-     * </p>
-     * <p>
-     * Typical scenarios where the fallback rescues a deserialization:
-     * </p>
-     * <ul>
-     *   <li>Registry downtime or transient network failures</li>
-     *   <li>Missing transitive proto imports in the registry</li>
-     *   <li>Race conditions during rolling deployments (consumer starts before producer
-     *       registers schema)</li>
-     * </ul>
-     * <p>
-     * <strong>Note on the {@link com.microsoft.kiota.ApiException} catch:</strong> this module
-     * already depends on Kiota transitively via {@code RegistryClientFacade} / {@code SchemaResolver}
-     * / {@code AbstractDeserializer}, which perform the HTTP schema lookup that produces this
-     * exception. Catching it explicitly here introduces no new dependency; it is an honest
-     * statement of what schema resolution can surface. If the SDK ever swaps HTTP clients this
-     * catch (and the others on the resolver path) will need updating - the cost of keeping a
-     * type-safe catch rather than a string-based heuristic.
-     * </p>
+     * Falls back to direct protobuf parsing when schema resolution fails for a recoverable
+     * reason. See {@link ProtobufDeserializerConfig#FALLBACK_ON_SCHEMA_ERROR}.
      */
     @Override
     public U deserializeData(String topic, byte[] data) {
         try {
             return super.deserializeData(topic, data);
         } catch (ApiException | UncheckedIOException e) {
+            // ApiException: registry HTTP error. UncheckedIOException: network/IO failure.
+            // Both are legitimate transient failures we can recover from.
+            // Kiota is already a transitive dependency via the resolver chain, so catching
+            // ApiException here is not new coupling.
             return tryFallback(topic, data, e);
         } catch (IllegalStateException e) {
+            // ProtobufSchemaParser wraps DescriptorValidationException (missing transitive
+            // import, invalid registry descriptor) as IllegalStateException. Only recover
+            // from that shape; config/state errors from DefaultSchemaResolver must propagate.
             if (e.getCause() instanceof DescriptorValidationException) {
                 return tryFallback(topic, data, e);
             }
@@ -397,28 +361,8 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
     }
 
     /**
-     * Parses protobuf data directly using {@link #specificReturnClassParseMethod}, skipping
-     * the Apicurio wire-format prefix. Used as a fallback when schema resolution fails.
-     * <p>
-     * The wire format depends on the configured {@link io.apicurio.registry.serde.IdHandler}:
-     * <pre>
-     * Non-headers mode: [0x00 magic][ID bytes (size from IdHandler)][indexes?][Ref?][protobuf payload]
-     * Headers mode:     [indexes?][Ref?][protobuf payload]
-     * </pre>
-     * The method respects the {@code readIndexes} and {@code readTypeRef} configuration flags
-     * to correctly skip any prefix data before the actual protobuf payload.
-     * </p>
-     * <p>
-     * <strong>Assumption:</strong> the {@code data[0] == 0x00} magic-byte check below detects
-     * the non-headers wire format. Headers-mode deserialization (ID in Kafka headers, no magic
-     * byte prefix) goes through a different code path in {@code KafkaDeserializer} and does not
-     * reach this method. If that dispatch ever changes, this check must be revisited or the
-     * fallback could silently produce corrupt results by misinterpreting the first payload byte.
-     * </p>
-     *
-     * @param data the raw Kafka message value bytes including wire-format prefix
-     * @return the deserialized protobuf message, or {@code null} if data is null
-     * @throws IllegalStateException if the fallback parsing fails
+     * Strips the Apicurio wire-format prefix and parses the raw protobuf payload directly using
+     * {@link #specificReturnClassParseMethod}. Returns {@code null} for {@code null} input.
      */
     @SuppressWarnings("unchecked")
     private U parseFallback(byte[] data) {
@@ -428,8 +372,11 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
         try {
             ByteArrayInputStream bais = new ByteArrayInputStream(data);
 
-            // Skip the Apicurio wire-format prefix (magic byte + ID) if present.
-            // The ID size is determined by the configured IdHandler (typically 4 bytes).
+            // Non-headers wire format: [0x00 magic][ID bytes][indexes?][Ref?][payload].
+            // Headers-mode dispatch (ID in Kafka headers, no 0x00 prefix) goes through a
+            // different path in KafkaDeserializer and does not reach this method. If that
+            // dispatch ever changes, revisit this check or the fallback may misinterpret
+            // the first payload byte.
             if (data.length > 0 && data[0] == 0x00) {
                 int idSize = getSerdeConfigurer().getIdHandler().idSize();
                 int prefix = 1 + idSize;

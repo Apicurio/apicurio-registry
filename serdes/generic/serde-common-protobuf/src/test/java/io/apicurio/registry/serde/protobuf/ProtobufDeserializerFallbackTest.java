@@ -5,6 +5,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.serde.protobuf.ref.RefOuterClass.Ref;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -12,7 +13,9 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.ConnectException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,6 +47,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * </p>
  */
 class ProtobufDeserializerFallbackTest {
+
+    private final List<ProtobufDeserializer<?>> openDeserializers = new ArrayList<>();
+
+    @AfterEach
+    void closeDeserializers() {
+        for (ProtobufDeserializer<?> d : openDeserializers) {
+            d.close();
+        }
+        openDeserializers.clear();
+    }
 
     // =========================================================================
     // Config tests
@@ -215,6 +228,7 @@ class ProtobufDeserializerFallbackTest {
         ApiException simulated = new ApiException("registry returned 503 Service Unavailable");
         ProtobufDeserializer<DescriptorProtos.FileDescriptorProto> deserializer =
                 new ProtobufDeserializer<>(new ThrowingSchemaResolver<>(simulated));
+        openDeserializers.add(deserializer);
 
         Map<String, Object> config = new HashMap<>();
         config.put("apicurio.registry.url", "http://localhost:99999/nonexistent");
@@ -356,6 +370,7 @@ class ProtobufDeserializerFallbackTest {
         config.put(ProtobufDeserializerConfig.FALLBACK_ON_SCHEMA_ERROR, "true");
 
         deserializer.configure(new io.apicurio.registry.serde.config.SerdeConfig(config), false);
+        openDeserializers.add(deserializer);
         return deserializer;
     }
 

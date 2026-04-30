@@ -18,26 +18,28 @@ Demonstrates two-layer authorization:
 |------|----------|-----------|---------------------|
 | `admin` | `admin` | sr-admin | Everything (admin role bypasses resource checks) |
 | `developer` | `developer` | sr-developer | Read+Write `team-a/*` artifacts, Read `shared/*` |
-| `developer2` | `developer` | sr-developer | Read+Write `team-b/*` artifacts, Read `shared/*` |
 | `user` | `user` | sr-readonly | Read `shared/*` only |
 
-Both `developer` and `developer2` have the same RBAC role (`sr-developer`) but different per-resource access. This is the key difference from plain RBAC -- same role, different permissions based on the resource.
+The `developer` and `user` have different RBAC roles AND different per-resource access. The key point: even if two users had the same RBAC role, grants can give them different per-resource permissions.
 
 ## How it works
 
-1. User authenticates via Keycloak (OIDC) -- gets a JWT with roles
-2. Registry checks RBAC first (Keycloak roles: sr-admin, sr-developer, sr-readonly)
-3. If RBAC passes, Registry checks per-resource authorization via the grants evaluator
-4. The grants evaluator matches the user's identity and roles against the grants file
-5. Allow or deny
+```
+User → Keycloak (authn + JWT with roles)
+     → Registry API
+       → Admin override (admins bypass everything)
+       → RBAC check (sr-admin? sr-developer? sr-readonly?)
+       → Owner check (artifact owners bypass grants)
+       → Grants evaluator (does this user have a grant for this resource?)
+       → Allow / Deny
+```
 
-```
-User -> Keycloak (authn + JWT with roles)
-     -> Registry API
-       -> RBAC check (sr-admin? sr-developer? sr-readonly?)
-       -> Grants evaluator check (does this user have a grant for this resource?)
-       -> Allow / Deny
-```
+1. User authenticates via Keycloak (OIDC) — gets a JWT with roles
+2. Admin override: admins bypass all checks
+3. RBAC: coarse-grained role check (must have sr-developer to write)
+4. Owner check: artifact owners always have access to their own artifacts
+5. Grants evaluator: matches the user's identity and roles against the grants file
+6. For search/list: grants are translated to SQL filters so unauthorized artifacts never appear in results
 
 ## Quick start
 
@@ -48,7 +50,7 @@ Build the Registry image from source (from the repository root):
 mvn install -pl distro/docker -am -DskipTests -Dcheckstyle.skip=true
 
 # Start all services (builds the Registry image automatically)
-cd distro/docker-compose/in-memory-with-opa-wasm
+cd distro/docker-compose/in-memory-with-authz-grants
 docker compose up -d --build
 ```
 
@@ -57,129 +59,171 @@ Wait for Keycloak to start (~15 seconds), then access:
 - API: http://localhost:8081
 - Keycloak: http://localhost:8090 (admin/admin)
 
-## Testing with curl
+## Demo: Testing with curl
 
-Get a token for each user:
+### 1. Get tokens
 
 ```bash
-# Admin token
-ADMIN_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=apicurio-registry&username=admin&password=admin" | jq -r '.access_token')
+get_token() {
+  curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
+    -d "grant_type=password&client_id=apicurio-registry&username=$1&password=$2" | jq -r '.access_token'
+}
 
-# Developer token (team-a access)
-DEV_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=apicurio-registry&username=developer&password=developer" | jq -r '.access_token')
-
-# Developer2 token (team-b access)
-DEV2_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=apicurio-registry&username=developer2&password=developer" | jq -r '.access_token')
-
-# Read-only user token
-USER_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=apicurio-registry&username=user&password=user" | jq -r '.access_token')
+ADMIN_TOKEN=$(get_token admin admin)
+DEV_TOKEN=$(get_token developer developer)
+USER_TOKEN=$(get_token user user)
 ```
 
-Create artifacts as admin:
+### 2. Seed data as admin
 
 ```bash
 # Create groups
-curl -X POST "http://localhost:8081/apis/registry/v3/groups" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"groupId": "team-a"}'
+for g in team-a team-b shared; do
+  curl -s -o /dev/null -w "Create group $g: %{http_code}\n" \
+    -X POST "http://localhost:8081/apis/registry/v3/groups" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"groupId\": \"$g\"}"
+done
 
-curl -X POST "http://localhost:8081/apis/registry/v3/groups" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"groupId": "team-b"}'
-
-curl -X POST "http://localhost:8081/apis/registry/v3/groups" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"groupId": "shared"}'
-
-# Create artifacts in each group
-curl -X POST "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"artifactId": "schema-1", "artifactType": "JSON", "firstVersion": {"content": {"content": "{\"type\":\"object\"}", "contentType": "application/json"}}}'
-
-curl -X POST "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"artifactId": "schema-2", "artifactType": "JSON", "firstVersion": {"content": {"content": "{\"type\":\"string\"}", "contentType": "application/json"}}}'
-
-curl -X POST "http://localhost:8081/apis/registry/v3/groups/shared/artifacts" \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"artifactId": "common-schema", "artifactType": "JSON", "firstVersion": {"content": {"content": "{\"type\":\"number\"}", "contentType": "application/json"}}}'
+# Create artifacts
+for pair in "team-a:user-events" "team-a:order-schema" "team-b:inventory-schema" "team-b:shipping-events" "shared:common-types" "shared:error-schema"; do
+  g="${pair%%:*}"; a="${pair##*:}"
+  curl -s -o /dev/null -w "Create $g/$a: %{http_code}\n" \
+    -X POST "http://localhost:8081/apis/registry/v3/groups/$g/artifacts" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"artifactId\": \"$a\", \"artifactType\": \"JSON\", \"firstVersion\": {\"content\": {\"content\": \"{\\\"type\\\":\\\"object\\\"}\", \"contentType\": \"application/json\"}}}"
+done
 ```
 
-Test per-resource access:
+### 3. Point-access checks
 
 ```bash
 # developer CAN read team-a artifact
-curl -s -o /dev/null -w "%{http_code}" \
+curl -s -o /dev/null -w "developer reads team-a/user-events: %{http_code}\n" \
   -H "Authorization: Bearer $DEV_TOKEN" \
-  "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/schema-1"
-# -> 200
+  "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/user-events"
+# → 200
 
 # developer CANNOT read team-b artifact
-curl -s -o /dev/null -w "%{http_code}" \
+curl -s -o /dev/null -w "developer reads team-b/inventory-schema: %{http_code}\n" \
   -H "Authorization: Bearer $DEV_TOKEN" \
-  "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/schema-2"
-# -> 403
+  "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/inventory-schema"
+# → 403
 
-# developer2 CAN read team-b artifact
-curl -s -o /dev/null -w "%{http_code}" \
-  -H "Authorization: Bearer $DEV2_TOKEN" \
-  "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/schema-2"
-# -> 200
+# developer CAN read shared artifact
+curl -s -o /dev/null -w "developer reads shared/common-types: %{http_code}\n" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/groups/shared/artifacts/common-types"
+# → 200
 
-# developer2 CANNOT write to team-a
-curl -s -o /dev/null -w "%{http_code}" -X PUT \
-  -H "Authorization: Bearer $DEV2_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "hacked"}' \
-  "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/schema-1"
-# -> 403
-
-# read-only user CAN read shared artifact
-curl -s -o /dev/null -w "%{http_code}" \
+# readonly user CAN read shared artifact
+curl -s -o /dev/null -w "user reads shared/common-types: %{http_code}\n" \
   -H "Authorization: Bearer $USER_TOKEN" \
-  "http://localhost:8081/apis/registry/v3/groups/shared/artifacts/common-schema"
-# -> 200
+  "http://localhost:8081/apis/registry/v3/groups/shared/artifacts/common-types"
+# → 200
 
-# read-only user CANNOT read team-a artifact
-curl -s -o /dev/null -w "%{http_code}" \
+# readonly user CANNOT read team-a artifact
+curl -s -o /dev/null -w "user reads team-a/user-events: %{http_code}\n" \
   -H "Authorization: Bearer $USER_TOKEN" \
-  "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/schema-1"
-# -> 403
+  "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/user-events"
+# → 403
 
-# admin CAN do everything
-curl -s -o /dev/null -w "%{http_code}" \
+# admin CAN read everything
+curl -s -o /dev/null -w "admin reads team-b/inventory-schema: %{http_code}\n" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/schema-2"
-# -> 200
+  "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/inventory-schema"
+# → 200
 ```
+
+### 4. Search filtering
+
+This is the key demo — unauthorized artifacts don't appear in search results at all.
+
+```bash
+# Admin sees ALL 6 artifacts
+echo "Admin search results:"
+curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/search/artifacts?limit=100" | jq '.count, [.artifacts[] | {group: .groupId, artifact: .artifactId}]'
+# → 6 artifacts across team-a, team-b, and shared
+
+# Developer sees only team-a + shared (4 artifacts, team-b is hidden)
+echo "Developer search results:"
+curl -s -H "Authorization: Bearer $DEV_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/search/artifacts?limit=100" | jq '.count, [.artifacts[] | {group: .groupId, artifact: .artifactId}]'
+# → 4 artifacts, no team-b
+
+# Readonly user sees only shared (2 artifacts)
+echo "User search results:"
+curl -s -H "Authorization: Bearer $USER_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/search/artifacts?limit=100" | jq '.count, [.artifacts[] | {group: .groupId, artifact: .artifactId}]'
+# → 2 artifacts, only shared
+```
+
+### 5. Hot-reload
+
+Edit `grants.json` to change permissions. Changes take effect within 5 seconds — no restart needed.
+
+```bash
+# Before: developer CANNOT read team-b
+curl -s -o /dev/null -w "Before: developer reads team-b/inventory-schema: %{http_code}\n" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/inventory-schema"
+# → 403
+
+# Add a grant for developer to read team-b (edit grants.json)
+# Add this to the grants array:
+#   {"principal": "developer", "operation": "read", "resource_type": "artifact",
+#    "resource_pattern_type": "prefix", "resource_pattern": "team-b/"}
+#
+# Also add the group grant:
+#   {"principal": "developer", "operation": "read", "resource_type": "group",
+#    "resource_pattern_type": "exact", "resource_pattern": "team-b"}
+
+# Wait 5 seconds for hot-reload
+sleep 6
+
+# After: developer CAN now read team-b
+curl -s -o /dev/null -w "After: developer reads team-b/inventory-schema: %{http_code}\n" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/inventory-schema"
+# → 200
+```
+
+### 6. UI walkthrough
+
+1. Open http://localhost:8888
+2. Log in as `developer` / `developer` — you see only `team-a` and `shared` groups, no `team-b`
+3. Click into `team-a` — you see `user-events` and `order-schema`
+4. Search for artifacts — only team-a and shared results appear
+5. Log out, log in as `user` / `user` — you see only `shared` group
+6. Log out, log in as `admin` / `admin` — you see all groups and all artifacts
 
 ## Grants file
 
-Edit `grants.json` to change per-resource permissions. The file is mounted into the Registry container and hot-reloaded every 5 seconds -- no restart needed:
+The `grants.json` file defines per-resource permissions. It's mounted into the Registry container and hot-reloaded every 5 seconds.
 
-```bash
-# Edit grants.json -- changes take effect within 5 seconds
+```json
+{
+  "config": {
+    "admin_roles": ["sr-admin"]
+  },
+  "grants": [
+    {"principal": "developer", "operation": "write", "resource_type": "artifact",
+     "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
+    {"principal": "developer", "operation": "read", "resource_type": "artifact",
+     "resource_pattern_type": "prefix", "resource_pattern": "shared/"},
+    ...
+  ]
+}
 ```
 
-See `app/src/main/java/io/apicurio/registry/auth/grants/README.md` for the full design documentation, scaling characteristics, and known limitations.
+See `app/src/main/java/io/apicurio/registry/auth/grants/README.md` for the full grants format, authorization flow, scaling, and design documentation.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `docker-compose.yml` | Service definitions |
-| `grants.json` | Per-resource permission grants (who can access what, hot-reloaded) |
+| `grants.json` | Per-resource permission grants (hot-reloaded every 5s) |

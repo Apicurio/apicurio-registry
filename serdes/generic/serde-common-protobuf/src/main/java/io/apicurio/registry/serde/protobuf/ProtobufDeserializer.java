@@ -6,12 +6,6 @@ import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
-// The Kiota ApiException coupling is deliberate: this module already depends on Kiota
-// transitively through RegistryClientFacade / SchemaResolver / AbstractDeserializer, which
-// perform the HTTP schema lookup that produces this exception. Catching it explicitly here
-// is therefore no new dependency, just an honest statement of what schema resolution can
-// surface. If the SDK ever swaps HTTP clients this catch (and others on the resolver path)
-// will need updating - that's the cost of keeping the type-safe catch over a heuristic.
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaParser;
@@ -148,6 +142,15 @@ public class ProtobufDeserializer<U extends Message> extends AbstractDeserialize
      *   <li>Race conditions during rolling deployments (consumer starts before producer
      *       registers schema)</li>
      * </ul>
+     * <p>
+     * <strong>Note on the {@link com.microsoft.kiota.ApiException} catch:</strong> this module
+     * already depends on Kiota transitively via {@code RegistryClientFacade} / {@code SchemaResolver}
+     * / {@code AbstractDeserializer}, which perform the HTTP schema lookup that produces this
+     * exception. Catching it explicitly here introduces no new dependency; it is an honest
+     * statement of what schema resolution can surface. If the SDK ever swaps HTTP clients this
+     * catch (and the others on the resolver path) will need updating - the cost of keeping a
+     * type-safe catch rather than a string-based heuristic.
+     * </p>
      */
     @Override
     public U deserializeData(String topic, byte[] data) {

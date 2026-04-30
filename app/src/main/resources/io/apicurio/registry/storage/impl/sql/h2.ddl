@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 103);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 105);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -112,3 +112,11 @@ ALTER TABLE contract_rules ADD PRIMARY KEY (ruleId);
 ALTER TABLE contract_rules ADD CONSTRAINT FK_contract_rules_1 FOREIGN KEY (globalId) REFERENCES versions(globalId) ON DELETE CASCADE;
 CREATE INDEX IDX_contract_rules_1 ON contract_rules(groupId, artifactId);
 CREATE INDEX IDX_contract_rules_2 ON contract_rules(globalId);
+
+CREATE TABLE schema_usage (globalId BIGINT NOT NULL, clientId VARCHAR(256) NOT NULL, operation VARCHAR(32) NOT NULL, eventTimestamp BIGINT NOT NULL, recordedOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
+CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
+CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);
+
+CREATE TABLE schema_usage_summary (globalId BIGINT NOT NULL, totalFetches BIGINT NOT NULL DEFAULT 0, uniqueClients INT NOT NULL DEFAULT 0, firstFetchedOn BIGINT NOT NULL, lastFetchedOn BIGINT NOT NULL, clientList TEXT, updatedOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
+ALTER TABLE schema_usage_summary ADD PRIMARY KEY (globalId);

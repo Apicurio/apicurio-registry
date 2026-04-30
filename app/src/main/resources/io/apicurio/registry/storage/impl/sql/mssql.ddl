@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 103);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 105);
 
 CREATE TABLE sequences (seqName NVARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -115,3 +115,11 @@ CREATE INDEX IDX_contract_rules_2 ON contract_rules(globalId);
 
 CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload TEXT NOT NULL);
 ALTER TABLE outbox ADD PRIMARY KEY (id);
+
+CREATE TABLE schema_usage (globalId BIGINT NOT NULL, clientId NVARCHAR(256) NOT NULL, operation NVARCHAR(32) NOT NULL, eventTimestamp BIGINT NOT NULL, recordedOn DATETIME2 NOT NULL DEFAULT GETDATE());
+CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
+CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
+CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);
+
+CREATE TABLE schema_usage_summary (globalId BIGINT NOT NULL, totalFetches BIGINT NOT NULL DEFAULT 0, uniqueClients INT NOT NULL DEFAULT 0, firstFetchedOn BIGINT NOT NULL, lastFetchedOn BIGINT NOT NULL, clientList TEXT, updatedOn DATETIME2 NOT NULL DEFAULT GETDATE());
+ALTER TABLE schema_usage_summary ADD PRIMARY KEY (globalId);

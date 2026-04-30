@@ -1,0 +1,321 @@
+// Usage Telemetry and API Lifecycle Governance Documentation
+[id="assembly-usage-telemetry"]
+= Usage Telemetry and API Lifecycle Governance
+
+Apicurio Registry provides usage telemetry capabilities that track which client applications fetch which schema versions. This enables API lifecycle governance features including dead schema detection, consumer version drift alerts, and deprecation readiness analysis.
+
+== Overview
+
+No competing schema registry tracks schema usage or consumer version visibility. Usage telemetry in Apicurio Registry answers questions that other registries cannot:
+
+* **Is anyone actually using this schema?** Active/Stale/Dead classification based on actual fetch patterns.
+* **Who uses which version?** Consumer version heatmap showing adoption across client applications.
+* **Is it safe to deprecate this version?** Deprecation readiness reports listing affected consumers.
+* **Are consumers falling behind?** Version drift alerts when clients use outdated versions.
+
+[source,text]
+----
+                        Usage Telemetry Architecture
+
+  ┌─────────────┐      POST /admin/usage/events       ┌─────────────────────┐
+  │  SerDes      │ ──────────────────────────────────▶  │  Apicurio Registry  │
+  │  Client      │   (on cache miss: schema_id,        │                     │
+  │  (Kafka,     │    client_id, operation, timestamp)  │  schema_usage table │
+  │   NATS, etc) │                                      │         │           │
+  └─────────────┘                                       │    Aggregation Job  │
+                                                        │         │           │
+  ┌─────────────┐      GET /admin/usage/summary         │         ▼           │
+  │  UI /        │ ◀──────────────────────────────────  │  schema_usage_      │
+  │  Dashboard   │   (Active: N, Stale: N, Dead: N)     │  summary table      │
+  └─────────────┘                                       └─────────────────────┘
+----
+
+The system has three layers:
+
+1. **SerDes Telemetry** — Opt-in client-side event emission on schema resolution cache miss.
+2. **Registry Aggregation** — Scheduled job that rolls up raw events into summary metrics.
+3. **Query API & UI** — REST endpoints and UI components for querying usage data.
+
+== Configuration
+
+Usage telemetry is disabled by default. All features are gated by a single server-side property.
+
+=== Server Configuration
+
+[cols="3,1,1,4"]
+|===
+|Property |Type |Default |Description
+
+|`apicurio.usage.telemetry.enabled`
+|boolean
+|`false`
+|Master switch for usage telemetry. Must be `true` for all usage features to work.
+
+|`apicurio.usage.aggregation.every`
+|duration
+|`1h`
+|How often the aggregation job runs to roll up raw events into summary metrics.
+
+|`apicurio.usage.active-threshold-days`
+|int
+|`7`
+|A schema version fetched within this many days is classified as **Active**.
+
+|`apicurio.usage.stale-threshold-days`
+|int
+|`30`
+|A schema version not fetched for this many days is classified as **Stale**.
+
+|`apicurio.usage.dead-threshold-days`
+|int
+|`90`
+|A schema version not fetched for this many days (or never fetched) is classified as **Dead**.
+
+|`apicurio.usage.drift-alert-threshold`
+|int
+|`2`
+|Number of versions behind latest before a consumer is flagged with a drift alert.
+|===
+
+=== SerDes Client Configuration
+
+These properties are set on the SerDes client (serializer/deserializer) side, not on the registry server.
+
+[cols="3,1,1,4"]
+|===
+|Property |Type |Default |Description
+
+|`apicurio.registry.usage-telemetry.enabled`
+|boolean
+|`false`
+|Enable usage telemetry reporting from this client.
+
+|`apicurio.registry.usage-telemetry.client-id`
+|string
+|_(required)_
+|Identifier for this client application (e.g., `payments-svc`). Required when telemetry is enabled.
+
+|`apicurio.registry.usage-telemetry.flush-interval-ms`
+|long
+|`60000`
+|Interval in milliseconds between automatic flushes of buffered events.
+
+|`apicurio.registry.usage-telemetry.buffer-size`
+|int
+|`50`
+|Maximum number of events to buffer before triggering an early flush.
+|===
+
+=== Example: Enabling Telemetry
+
+**Server (application.properties):**
+[source,properties]
+----
+apicurio.usage.telemetry.enabled=true
+apicurio.usage.aggregation.every=30m
+apicurio.usage.active-threshold-days=7
+apicurio.usage.stale-threshold-days=30
+apicurio.usage.dead-threshold-days=90
+----
+
+**Kafka SerDes Client:**
+[source,properties]
+----
+apicurio.registry.url=http://registry:8080/apis/registry/v3
+apicurio.registry.usage-telemetry.enabled=true
+apicurio.registry.usage-telemetry.client-id=payments-svc
+----
+
+== REST API Endpoints
+
+All usage endpoints are under `/admin/usage/` and require the `apicurio.usage.telemetry.enabled` server property to be `true`. Endpoints return HTTP 409 (Conflict) when telemetry is not enabled.
+
+=== Report Usage Events
+
+`POST /admin/usage/events`
+
+Accepts a batch of schema usage events from SerDes clients. Each event records a schema resolution (cache miss).
+
+[source,json]
+----
+{
+  "events": [
+    {
+      "clientId": "payments-svc",
+      "groupId": "default",
+      "artifactId": "UserEvent",
+      "version": "3.0.0",
+      "globalId": 42,
+      "operation": "SERIALIZE",
+      "timestamp": 1714400000000
+    }
+  ]
+}
+----
+
+=== Get Usage Summary
+
+`GET /admin/usage/summary`
+
+Returns global Active/Stale/Dead counts across all tracked schema versions.
+
+[source,json]
+----
+{
+  "active": 12,
+  "stale": 3,
+  "dead": 5
+}
+----
+
+=== Get Artifact Usage Metrics
+
+`GET /admin/usage/artifacts/{groupId}/{artifactId}`
+
+Returns per-version usage metrics for a specific artifact, including fetch counts, client lists, and classification.
+
+[source,json]
+----
+{
+  "groupId": "default",
+  "artifactId": "UserEvent",
+  "versions": [
+    {
+      "version": "3.0.0",
+      "globalId": 42,
+      "totalFetches": 1523,
+      "uniqueClients": 3,
+      "firstFetchedOn": 1710000000000,
+      "lastFetchedOn": 1714400000000,
+      "clients": ["payments-svc", "analytics", "fraud-detector"],
+      "classification": "ACTIVE"
+    }
+  ]
+}
+----
+
+=== Get Consumer Version Heatmap
+
+`GET /admin/usage/artifacts/{groupId}/{artifactId}/heatmap`
+
+Returns a consumer version adoption grid showing which clients use which versions, with version drift detection.
+
+[source,json]
+----
+{
+  "groupId": "default",
+  "artifactId": "UserEvent",
+  "versions": ["1.0.0", "2.0.0", "3.0.0"],
+  "consumers": [
+    {
+      "clientId": "payments-svc",
+      "versions": {"3.0.0": 523},
+      "versionsBehind": 0,
+      "driftAlert": false
+    },
+    {
+      "clientId": "analytics",
+      "versions": {"1.0.0": 102},
+      "versionsBehind": 2,
+      "driftAlert": true
+    }
+  ]
+}
+----
+
+=== Get Deprecation Readiness
+
+`GET /admin/usage/artifacts/{groupId}/{artifactId}/versions/{version}/deprecation-readiness`
+
+Returns which consumers are actively using a specific version and whether it is safe to deprecate.
+
+[source,json]
+----
+{
+  "groupId": "default",
+  "artifactId": "UserEvent",
+  "version": "1.0.0",
+  "activeConsumers": [
+    {
+      "clientId": "analytics",
+      "lastFetched": 1714400000000,
+      "fetchCount": 102
+    }
+  ],
+  "safeToDeprecate": false
+}
+----
+
+== Deprecation Workflow
+
+Apicurio Registry supports a version lifecycle state machine for controlled deprecation:
+
+[source,text]
+----
+  ENABLED ──────▶ DEPRECATED ──────▶ SUNSET ──────▶ (delete)
+     ▲                │                  │
+     │                ▼                  │
+     └──────── DISABLED                  │
+     ◀───────────────────────────────────┘
+----
+
+* **ENABLED** — Version is active and available for use.
+* **DEPRECATED** — Version still works but consumers should migrate. A warning is logged on access.
+* **SUNSET** — Migration deadline has passed. The version will be removed soon. This is a stronger signal than DEPRECATED.
+* **DISABLED** — Version is blocked from use.
+
+Transition a version to SUNSET via the API:
+
+[source,bash]
+----
+# First deprecate
+curl -X PUT http://localhost:8080/apis/registry/v3/groups/default/artifacts/UserEvent/versions/1.0.0/state \
+  -H "Content-Type: application/json" \
+  -d '{"state":"DEPRECATED"}'
+
+# Then sunset
+curl -X PUT http://localhost:8080/apis/registry/v3/groups/default/artifacts/UserEvent/versions/1.0.0/state \
+  -H "Content-Type: application/json" \
+  -d '{"state":"SUNSET"}'
+----
+
+Use the deprecation readiness endpoint before transitioning to ensure no active consumers are affected.
+
+== UI Features
+
+When usage telemetry is enabled, the registry UI displays:
+
+* **Dashboard widget** — Shows Active/Stale/Dead counts with colored labels (green/orange/red).
+* **Version badges** — Each version in the artifact versions table shows its usage classification badge.
+* **Usage tab** — The artifact detail page has a "Usage" tab with:
+  ** Consumer version heatmap table with color-coded fetch counts.
+  ** Version drift alerts for consumers using outdated versions.
+  ** Deprecation readiness panel (click a version column header to check).
+* **SUNSET badge** — Versions in the SUNSET state display a purple badge.
+
+== Privacy and Data Collection
+
+Usage telemetry is designed with privacy in mind:
+
+* **Opt-in only** — Disabled by default on both server and client.
+* **No message content** — Only schema coordinates (groupId, artifactId, version, globalId) and client identifier are recorded.
+* **No user identity** — The `clientId` is a configured application name, not a user or personal identifier.
+* **Client-controlled** — Each client application decides whether to enable telemetry and what `clientId` to use.
+* **Fire-and-forget** — Telemetry failures are logged but never thrown. Telemetry must not break serialization or deserialization.
+
+== Demo Script
+
+A demo script is provided to populate realistic usage data for testing:
+
+[source,bash]
+----
+# Start the registry with telemetry enabled
+./mvnw quarkus:dev -pl :apicurio-registry-app \
+  -Dapicurio.usage.telemetry.enabled=true \
+  -Dapicurio.usage.aggregation.every=10s
+
+# In another terminal, run the demo
+./examples/usage-telemetry-demo/populate-usage-data.sh
+----
+
+The script creates three artifacts (UserEvent, OrderEvent, PaymentEvent) with multiple versions and simulates usage from five different client applications with varying patterns (active, stale, dead, drifted).

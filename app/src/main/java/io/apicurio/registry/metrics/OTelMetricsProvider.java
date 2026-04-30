@@ -4,11 +4,10 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongUpDownCounter;
 import io.opentelemetry.api.metrics.Meter;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
-
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Provider for OpenTelemetry metrics in Apicurio Registry.
@@ -45,9 +44,12 @@ public class OTelMetricsProvider {
 
     // Usage telemetry
     private LongCounter usageEventsReceivedCounter;
-    private final AtomicLong activeSchemasGauge = new AtomicLong(0);
-    private final AtomicLong staleSchemasGauge = new AtomicLong(0);
-    private final AtomicLong deadSchemasGauge = new AtomicLong(0);
+    private LongUpDownCounter activeSchemasGauge;
+    private LongUpDownCounter staleSchemasGauge;
+    private LongUpDownCounter deadSchemasGauge;
+    private long lastActive;
+    private long lastStale;
+    private long lastDead;
 
     // Iceberg counters
     private LongCounter icebergNamespaceOpsCounter;
@@ -96,23 +98,20 @@ public class OTelMetricsProvider {
                 .setUnit("1")
                 .build();
 
-        meter.gaugeBuilder(USAGE_PREFIX + "schemas.active")
+        activeSchemasGauge = meter.upDownCounterBuilder(USAGE_PREFIX + "schemas.active")
                 .setDescription("Number of schema versions classified as active")
                 .setUnit("1")
-                .ofLongs()
-                .buildWithCallback(measurement -> measurement.record(activeSchemasGauge.get()));
+                .build();
 
-        meter.gaugeBuilder(USAGE_PREFIX + "schemas.stale")
+        staleSchemasGauge = meter.upDownCounterBuilder(USAGE_PREFIX + "schemas.stale")
                 .setDescription("Number of schema versions classified as stale")
                 .setUnit("1")
-                .ofLongs()
-                .buildWithCallback(measurement -> measurement.record(staleSchemasGauge.get()));
+                .build();
 
-        meter.gaugeBuilder(USAGE_PREFIX + "schemas.dead")
+        deadSchemasGauge = meter.upDownCounterBuilder(USAGE_PREFIX + "schemas.dead")
                 .setDescription("Number of schema versions classified as dead")
                 .setUnit("1")
-                .ofLongs()
-                .buildWithCallback(measurement -> measurement.record(deadSchemasGauge.get()));
+                .build();
 
         // Iceberg counters
         icebergNamespaceOpsCounter = meter.counterBuilder(ICEBERG_PREFIX + "namespace.operations")
@@ -282,8 +281,11 @@ public class OTelMetricsProvider {
     }
 
     public void updateUsageSummaryCounts(int active, int stale, int dead) {
-        activeSchemasGauge.set(active);
-        staleSchemasGauge.set(stale);
-        deadSchemasGauge.set(dead);
+        activeSchemasGauge.add(active - lastActive);
+        staleSchemasGauge.add(stale - lastStale);
+        deadSchemasGauge.add(dead - lastDead);
+        lastActive = active;
+        lastStale = stale;
+        lastDead = dead;
     }
 }

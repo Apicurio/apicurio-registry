@@ -11,11 +11,11 @@ bin/go: check
 .PHONY: check
 check:
 	@{ \
-		V="$$(go version | sed -e 's|[^0-9.]*\([0-9.]*\).*|\1|')"; \
-		if [ ! "$$V" \> 1.23 ]; then \
-			echo "ERROR: Your go version $$V is not supported. Minimum required version is 1.23."; \
-			exit 1; \
-		fi \
+	V="$$(go version | sed -e 's|[^0-9.]*\([0-9.]*\).*|\1|')"; \
+	if [ ! "$$V" \> 1.23 ]; then \
+		echo "ERROR: Your go version $$V is not supported. Minimum required version is 1.23."; \
+		exit 1; \
+	fi \
 	}
 
 .PHONY: clean

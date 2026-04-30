@@ -1,13 +1,15 @@
 package io.apicurio.registry.avro.content.canon;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.canon.BaseContentCanonicalizer;
+import io.apicurio.registry.content.canon.ContentCanonicalizationException;
 import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.Schema;
 
@@ -22,10 +24,11 @@ import java.util.TreeSet;
 /**
  * An Avro implementation of a content Canonicalizer that handles avro references.
  */
-public class AvroContentCanonicalizer implements ContentCanonicalizer {
+public class AvroContentCanonicalizer extends BaseContentCanonicalizer {
 
     private final ObjectMapper mapper = new ObjectMapper()
-            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+        .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+        .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY);
 
     private final Comparator<JsonNode> fieldComparator = (n1, n2) -> {
         String name1 = n1.get("name").textValue();
@@ -34,10 +37,11 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
     };
 
     /**
-     * @see ContentCanonicalizer#canonicalize(io.apicurio.registry.content.TypedContent, Map)
+     * @see BaseContentCanonicalizer#canonicalize(io.apicurio.registry.content.TypedContent, Map)
      */
     @Override
-    public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+    protected TypedContent doCanonicalize(TypedContent content,
+            Map<String, TypedContent> refs) throws ContentCanonicalizationException {
         try {
             JsonNode root = mapper.readTree(content.getContent().content());
 
@@ -53,19 +57,20 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
                 fields.forEach(array::add);
                 ObjectNode.class.cast(root).replace("fields", array);
             }
+
             String converted = mapper.writeValueAsString(mapper.treeToValue(root, Object.class));
             return TypedContent.create(ContentHandle.create(converted), ContentTypes.APPLICATION_JSON);
         } catch (Throwable t) {
             // best effort
             final Schema.Parser parser = new Schema.Parser();
             final List<Schema> schemaRefs = new ArrayList<>();
-            for (TypedContent referencedContent : resolvedReferences.values()) {
+            for (TypedContent referencedContent : refs.values()) {
                 Schema schemaRef = parser.parse(referencedContent.getContent().content());
                 schemaRefs.add(schemaRef);
             }
             final Schema schema = parser.parse(content.getContent().content());
-            return TypedContent.create(ContentHandle.create(schema.toString(schemaRefs, false)),
-                    ContentTypes.APPLICATION_JSON);
+            String canonical = schema.toString(schemaRefs, false);
+            return TypedContent.create(ContentHandle.create(canonical), ContentTypes.APPLICATION_JSON);
         }
     }
 }

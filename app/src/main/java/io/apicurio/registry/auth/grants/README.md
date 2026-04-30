@@ -62,8 +62,8 @@ SecurityIdentity → Subject
 **Search/list filtering** (which artifacts does this user see?):
 ```
 GrantsData.getAllowedValues(user, roles, "artifact", "/")
-  → Set of allowed group IDs
-  → SQL WHERE groupId IN ('team-a', 'shared') / ES terms query
+  → Set of allowed group IDs + exact artifact grants
+  → SQL WHERE (groupId IN ('team-a', 'shared') OR (groupId = 'team-b' AND artifactId = 'public-schema'))
   → Database handles filtering + pagination correctly
 ```
 
@@ -113,6 +113,30 @@ apicurio.auth.resource-based-authorization.grants.path=/opt/apicurio/authz/grant
 - **`resource_type`** — system-specific (`artifact`, `group`, `topic`, `dashboard`, etc.)
 - **`resource_pattern_type`** — `prefix` (startsWith), `exact` (equals), or omitted for wildcard
 - **`resource_pattern`** — the pattern (`team-a/`, `my-topic`, `*`)
+- **`deny`** — optional boolean, default `false`. When `true`, denies the matched access. Deny rules take precedence over allow rules.
+
+### Deny rules
+
+Deny rules use the same fields as allow rules, with the addition of `"deny": true`. When the grants evaluator processes a request, deny rules are evaluated first. If any deny rule matches, access is denied regardless of any allow rules that also match.
+
+This enables patterns like "allow everything in `team-a/*` but deny `team-a/secret-schema`":
+
+```json
+{"principal": "alice", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
+{"principal": "alice", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "exact", "resource_pattern": "team-a/secret-schema", "deny": true}
+```
+
+In this example, Alice can read and write all artifacts under `team-a/` except `team-a/secret-schema`, which is explicitly denied.
+
+### Artifact-level search filtering
+
+Exact artifact grants (e.g., `team-b/public-schema`) appear in search results even when the user has no group-level access to the rest of that group. The SQL filter generates a `WHERE` clause combining group-level `IN` clauses with artifact-level matches:
+
+```sql
+WHERE (groupId IN ('team-a', 'shared') OR (groupId = 'team-b' AND artifactId = 'public-schema'))
+```
+
+This ensures that users see all artifacts they are explicitly granted access to, whether via a group-level prefix grant or an exact artifact-level grant.
 
 ## Grants management
 

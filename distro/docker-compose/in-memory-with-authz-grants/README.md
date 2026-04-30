@@ -17,7 +17,7 @@ Demonstrates two-layer authorization:
 | User | Password | RBAC Role | Per-Resource Access |
 |------|----------|-----------|---------------------|
 | `admin` | `admin` | sr-admin | Everything (admin role bypasses resource checks) |
-| `developer` | `developer` | sr-developer | Read+Write `team-a/*` artifacts, Read `shared/*` |
+| `developer` | `developer` | sr-developer | Read+Write `team-a/*` artifacts (except `team-a/secret-schema` which is denied), Read `shared/*`, Read `team-b/public-schema` (exact grant) |
 | `user` | `user` | sr-readonly | Read `shared/*` only |
 
 The `developer` and `user` have different RBAC roles AND different per-resource access. The key point: even if two users had the same RBAC role, grants can give them different per-resource permissions.
@@ -92,7 +92,7 @@ for g in team-a team-b shared; do
 done
 
 # Create artifacts
-for pair in "team-a:user-events" "team-a:order-schema" "team-b:inventory-schema" "team-b:shipping-events" "shared:common-types" "shared:error-schema"; do
+for pair in "team-a:user-events" "team-a:order-schema" "team-a:secret-schema" "team-b:inventory-schema" "team-b:shipping-events" "team-b:public-schema" "shared:common-types" "shared:error-schema"; do
   g="${pair%%:*}"; a="${pair##*:}"
   curl -s -o /dev/null -w "Create $g/$a: %{http_code}\n" \
     -X POST "http://localhost:8081/apis/registry/v3/groups/$g/artifacts" \
@@ -147,17 +147,18 @@ curl -s -o /dev/null -w "admin reads team-b/inventory-schema: %{http_code}\n" \
 This is the key demo — unauthorized artifacts don't appear in search results at all.
 
 ```bash
-# Admin sees ALL 6 artifacts
+# Admin sees ALL 8 artifacts
 echo "Admin search results:"
 curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
   "http://localhost:8081/apis/registry/v3/search/artifacts?limit=100" | jq '.count, [.artifacts[] | {group: .groupId, artifact: .artifactId}]'
-# → 6 artifacts across team-a, team-b, and shared
+# → 8 artifacts across team-a, team-b, and shared
 
-# Developer sees only team-a + shared (4 artifacts, team-b is hidden)
+# Developer sees team-a (minus denied secret-schema) + shared + team-b/public-schema (exact grant)
 echo "Developer search results:"
 curl -s -H "Authorization: Bearer $DEV_TOKEN" \
   "http://localhost:8081/apis/registry/v3/search/artifacts?limit=100" | jq '.count, [.artifacts[] | {group: .groupId, artifact: .artifactId}]'
-# → 4 artifacts, no team-b
+# → 5 artifacts: team-a/user-events, team-a/order-schema, shared/common-types, shared/error-schema, team-b/public-schema
+# Note: team-a/secret-schema is excluded (deny rule), team-b/public-schema is included (exact artifact grant)
 
 # Readonly user sees only shared (2 artifacts)
 echo "User search results:"
@@ -205,6 +206,36 @@ curl -s -o /dev/null -w "After: developer reads team-b/inventory-schema: %{http_
 5. Log out, log in as `user` / `user` — you see only `shared` group
 6. Log out, log in as `admin` / `admin` — you see all groups and all artifacts
 
+### 7. Deny rules and artifact-level grants
+
+This demonstrates deny rules (which take precedence over allow rules) and exact artifact grants (which surface individual artifacts in search results even when the rest of the group is denied).
+
+```bash
+# developer CAN read team-a/order-schema (allowed by prefix grant on team-a/)
+curl -s -o /dev/null -w "developer reads team-a/order-schema: %{http_code}\n" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/order-schema"
+# → 200
+
+# developer CANNOT read team-a/secret-schema (denied by deny rule)
+curl -s -o /dev/null -w "developer reads team-a/secret-schema: %{http_code}\n" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/groups/team-a/artifacts/secret-schema"
+# → 403
+
+# developer CAN read team-b/public-schema (allowed by exact artifact grant)
+curl -s -o /dev/null -w "developer reads team-b/public-schema: %{http_code}\n" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/public-schema"
+# → 200
+
+# developer CANNOT read team-b/inventory-schema (no grant for team-b prefix, only exact grant for public-schema)
+curl -s -o /dev/null -w "developer reads team-b/inventory-schema: %{http_code}\n" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
+  "http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/inventory-schema"
+# → 403
+```
+
 ## Grants file
 
 The `grants.json` file defines per-resource permissions. It's mounted into the Registry container and hot-reloaded every 5 seconds.
@@ -219,6 +250,10 @@ The `grants.json` file defines per-resource permissions. It's mounted into the R
      "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
     {"principal": "developer", "operation": "read", "resource_type": "artifact",
      "resource_pattern_type": "prefix", "resource_pattern": "shared/"},
+    {"principal": "developer", "operation": "read", "resource_type": "artifact",
+     "resource_pattern_type": "exact", "resource_pattern": "team-a/secret-schema", "deny": true},
+    {"principal": "developer", "operation": "read", "resource_type": "artifact",
+     "resource_pattern_type": "exact", "resource_pattern": "team-b/public-schema"},
     ...
   ]
 }

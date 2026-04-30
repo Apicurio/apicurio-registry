@@ -125,6 +125,10 @@ The grants file is a JSON file defining who can access what. It supports per-use
 |`resource_pattern`
 |Yes
 |The pattern to match. Use `*` for wildcard (all resources). For artifacts, the format is `{groupId}/{artifactId}`.
+
+|`deny`
+|No
+|When set to `true`, this grant denies the matched access instead of allowing it. Deny rules take precedence over allow rules. Default is `false`.
 |===
 
 === Operation hierarchy
@@ -158,6 +162,30 @@ Grant a user read access to all artifacts (wildcard):
 ----
 {"principal": "bob", "operation": "read", "resource_type": "artifact", "resource_pattern": "*"}
 ----
+
+=== Deny rules
+
+Deny rules use the same fields as allow rules, with the addition of `"deny": true`. When the grants evaluator processes a request, deny rules are evaluated first. If any deny rule matches, access is denied regardless of any allow rules that also match.
+
+Deny a user access to a specific artifact while allowing the rest of the group:
+[source,json]
+----
+{"principal": "alice", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"}
+{"principal": "alice", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "exact", "resource_pattern": "team-a/secret-schema", "deny": true}
+----
+
+In this example, Alice can read and write all artifacts under `team-a/` except `team-a/secret-schema`, which is explicitly denied.
+
+=== Artifact-level search filtering
+
+Exact artifact grants (for example, `team-b/public-schema`) appear in search results even when the user has no group-level access to the rest of that group. The SQL filter combines group-level `IN` clauses with artifact-level matches:
+
+[source,sql]
+----
+WHERE (groupId IN ('team-a', 'shared') OR (groupId = 'team-b' AND artifactId = 'public-schema'))
+----
+
+This ensures that users see all artifacts they are explicitly granted access to, whether via a group-level prefix grant or an exact artifact-level grant.
 
 [id="resource-authorization-monitoring_{context}"]
 == Monitoring and audit logging

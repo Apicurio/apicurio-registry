@@ -151,7 +151,7 @@ mvn verify -Dit.test=GrantsAuthIT -Dcheckstyle.skip=true -Dgroups=auth
 
 ## Docker-compose example
 
-See `distro/docker-compose/in-memory-with-opa-wasm/` for a working example with Keycloak + per-resource authorization.
+See `distro/docker-compose/in-memory-with-authz-grants/` for a working example with Keycloak + per-resource authorization.
 
 ## Known limitations
 

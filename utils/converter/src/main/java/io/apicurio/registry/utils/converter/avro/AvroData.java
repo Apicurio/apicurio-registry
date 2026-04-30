@@ -944,7 +944,7 @@ public class AvroData {
                         : null;
                     baseSchema = org.apache.avro.Schema.createRecord(name, doc, namespace, false);
                     if (schema.name() != null) {
-                        fromConnectContext.cycleReferences.put(schema.name(), baseSchema);
+                        fromConnectContext.cycleReferences.put(schema, baseSchema);
                     }
                     List<org.apache.avro.Schema.Field> fields = new ArrayList<>();
                     for (Field field : schema.fields()) {
@@ -1096,8 +1096,8 @@ public class AvroData {
     public org.apache.avro.Schema fromConnectSchemaWithCycle(Schema schema,
             FromConnectContext fromConnectContext, boolean ignoreOptional) {
         org.apache.avro.Schema resolvedSchema;
-        if (fromConnectContext.cycleReferences.containsKey(schema.name())) {
-            resolvedSchema = fromConnectContext.cycleReferences.get(schema.name());
+        if (fromConnectContext.cycleReferences.containsKey(schema)) {
+            resolvedSchema = fromConnectContext.cycleReferences.get(schema);
             if (!ignoreOptional) {
                 resolvedSchema = maybeMakeOptional(schema, resolvedSchema);
             }
@@ -2467,7 +2467,7 @@ public class AvroData {
         // SchemaMap is used to resolve references that need to mapped as types
         private final Map<Schema, org.apache.avro.Schema> schemaMap;
         // schema name to Schema reference to resolve cycles
-        private final Map<String, org.apache.avro.Schema> cycleReferences;
+        private final Map<Schema, org.apache.avro.Schema> cycleReferences;
         private int defaultSchemaNameIndex = 0;
 
         private FromConnectContext(Map<Schema, org.apache.avro.Schema> schemaMap) {

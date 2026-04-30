@@ -2,6 +2,7 @@ package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.storage.RegistryStorage;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -27,4 +28,10 @@ public class RuleContext {
     private final TypedContent updatedContent;
     private final List<ArtifactReference> references;
     private final Map<String, TypedContent> resolvedReferences;
+
+    /**
+     * The storage instance to use for lookups during rule execution.
+     * When null, rule executors fall back to their injected default storage.
+     */
+    private final RegistryStorage storage;
 }

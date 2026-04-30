@@ -1,0 +1,21 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: testgroup
+artifactId: compat-test
+artifactType: AVRO
+rules:
+  - ruleType: COMPATIBILITY
+    config: BACKWARD
+# v1 -> v2 is incompatible (field removed), but validatedUpTo skips that check.
+# v2 -> v3 is compatible (field added with default).
+validatedUpTo: "2"
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/v1.avsc
+  - version: "2"
+    state: ENABLED
+    content: ./content/v2.avsc
+  - version: "3"
+    state: ENABLED
+    content: ./content/v3.avsc

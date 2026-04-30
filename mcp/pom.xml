@@ -12,7 +12,7 @@
 
     <artifactId>apicurio-registry-mcp-server</artifactId>
 
-    <name>Apicurio Registry MCP Server</name>
+    <name>Registry :: MCP Server</name>
 
     <properties>
         <projectRoot>${project.basedir}/..</projectRoot>

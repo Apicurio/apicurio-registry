@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>apicurio-registry-schema-validation-avro</artifactId>
-  <name>apicurio-registry-schema-validation-avro</name>
+  <name>Registry :: Schema Validation :: Avro</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

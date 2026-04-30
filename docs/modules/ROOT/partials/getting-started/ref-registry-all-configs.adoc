@@ -214,6 +214,11 @@ The following {registry} configuration options are available for each component 
 |
 |`2.5.0.Final`
 |Client credentials scope.
+|`apicurio.authn.mechanism.priority`
+|`string`
+|`basic,proxy-header,oidc`
+|`3.2.3`
+|Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc.
 |`apicurio.authn.proxy-header.email`
 |`string`
 |`X-Forwarded-Email`
@@ -1242,6 +1247,11 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`3.2.0`
 |When enabled, a load is rejected if the data source does not contain a registry configuration file matching the configured registry ID. This prevents accidental data loss from force-pushes or empty branches. To intentionally clear all data, first push a commit with only the registry configuration file (no artifacts), then remove it. _(experimental)_
+|`apicurio.polling-storage.source-label-key`
+|`string`
+|`system:source`
+|`3.2.0`
+|Label key used to tag imported artifacts and groups with their source ID (e.g., repository ID). Set to empty string to disable. _(experimental)_
 |`apicurio.sql.db-schema`
 |`string`
 |`*`
@@ -1544,11 +1554,6 @@ The following {registry} configuration options are available for each component 
 |`apicurio.downloads.reaper.every`
 |`unknown`
 |`60s`
-|
-|
-|`apicurio.kafkasql.consumer.group.id`
-|`unknown`
-|`${registry.id}-${quarkus.uuid}`
 |
 |
 |`apicurio.kafkasql.producer.client.id`

@@ -21,8 +21,12 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import static io.restassured.RestAssured.get;
 import static java.util.Objects.requireNonNull;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -114,6 +118,65 @@ public class GitOpsSmokeTest {
 
         // Still ready (empty is a valid state after initial load)
         await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> assertTrue(storage.isReady()));
+    }
+
+    @Test
+    void validityRuleViolationPreventsLoad() throws Exception {
+        assertRuleViolationPreventsLoad("git/rule-violation", "VALIDITY");
+    }
+
+    @Test
+    void compatibilityRuleViolationPreventsLoad() throws Exception {
+        assertRuleViolationPreventsLoad("git/rule-violation-compatibility", "COMPATIBILITY");
+    }
+
+    @Test
+    void integrityRuleViolationPreventsLoad() throws Exception {
+        assertRuleViolationPreventsLoad("git/rule-violation-integrity", "INTEGRITY");
+    }
+
+    private void assertRuleViolationPreventsLoad(String violationDataPath, String expectedRuleType)
+            throws Exception {
+        var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // First load valid data
+        testRepository.load("git/smoke01");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // Load data that violates the rule — should fail validation
+        testRepository.load(violationDataPath);
+        await().pollDelay(Duration.ofSeconds(5)).untilAsserted(() -> {
+            // Previous data should still be served (validation failure prevents swap)
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // Verify status shows ERROR with the expected rule type
+        get("/apis/registry/v3/admin/gitops/status")
+                .then()
+                .statusCode(200)
+                .body("syncState", equalTo("ERROR"))
+                .body("errors", hasSize(1))
+                .body("errors[0].detail", containsString("Rule " + expectedRuleType + " violation"));
+    }
+
+    @Test
+    void validatedUpToSkipsIncompatibleVersions() throws Exception {
+        var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // Load data with incompatible v1->v2 but validatedUpTo="2" skips that check.
+        // Only v2->v3 is validated (v3 adds optional field = backward compatible).
+        testRepository.load("git/rule-validated-up-to");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("compat-test"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // All 3 versions should be loaded
+        var v1 = storage.getArtifactVersionContent("testgroup", "compat-test", "1");
+        var v3 = storage.getArtifactVersionContent("testgroup", "compat-test", "3");
+        assertNotNull(v1.getContent());
+        assertNotNull(v3.getContent());
     }
 
     @ActivateRequestContext

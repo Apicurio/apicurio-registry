@@ -48,6 +48,8 @@ both the sidecar and the registry:
 | `APICURIO_GITOPS_REPOS_N_DIR` | *(required)* | Directory name for repo N |
 | `APICURIO_GITOPS_REPOS_N_BRANCH` | `main` | Branch to track for repo N |
 | `APICURIO_GITOPS_REPOS_N_URL` | *(required for pull)* | Remote URL for repo N |
+| `APICURIO_GITOPS_REPOS_N_SSH_KEYS` | *(none)* | SSH keys for repo N (added alongside global `APICURIO_GITOPS_PULL_SSH_KEYS`) |
+| `APICURIO_GITOPS_REPOS_N_MODE` | *(global `APICURIO_GITOPS_MODE`)* | Mode for repo N: `pull` or `push` (overrides global) |
 
 Indexes must be dense (0, 1, 2, ... — no gaps). If indexed repos are configured,
 single-repo shorthand variables must not be set.
@@ -63,7 +65,7 @@ apicurio.gitops.repos.1.branch=fulfillment
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `APICURIO_GITOPS_MODE` | `pull` | Operating mode: `pull` (fetch from remote) or `push` (accept SSH pushes) |
+| `APICURIO_GITOPS_MODE` | `pull` | Operating mode: `pull` or `push` |
 | `APICURIO_GITOPS_PULL_INTERVAL` | `30` | Seconds between fetch attempts (pull mode) |
 | `APICURIO_GITOPS_PULL_DEPTH` | `1` | Git clone/fetch depth. `0` for full history (pull mode) |
 | `APICURIO_GITOPS_PULL_SSH_KEYS` | *(none)* | Path to SSH private key for pull authentication. Comma-separated list for multiple keys (SSH tries each in order). |
@@ -108,6 +110,14 @@ security requirements. Two levels are available:
 2. An SSH server starts on `PUSH_PORT`, restricted to a `git` user with `git-shell`.
 3. External clients push changes via SSH; the working tree updates in place.
 4. The registry detects the new commit on its next poll cycle.
+
+### Mixed mode
+
+In multi-repo setups, each repo can use a different mode via `APICURIO_GITOPS_REPOS_N_MODE`.
+For example, one repo can pull from a remote while another accepts pushes. The sidecar runs
+both the pull loop and SSH server simultaneously when needed. Push-mode repos reject pulls
+(no remote URL), and pull-mode repos reject pushes (git denies updates to checked-out branches
+without `updateInstead`).
 
 ## Security
 

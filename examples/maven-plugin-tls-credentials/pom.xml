@@ -12,7 +12,7 @@
 
   <artifactId>apicurio-registry-examples-maven-plugin-tls-credentials</artifactId>
   <packaging>jar</packaging>
-  <name>Apicurio Registry :: Examples :: Maven Plugin TLS and Credentials</name>
+  <name>Registry :: Examples :: Maven Plugin TLS Credentials</name>
   <description>Example demonstrating TLS and credential configuration for the Apicurio Registry Maven plugin</description>
 
   <properties>

@@ -11,7 +11,7 @@
 
     <artifactId>apicurio-registry-config-generator</artifactId>
     <packaging>jar</packaging>
-    <name>apicurio-registry-config-generator</name>
+    <name>Registry :: Docs :: Config Generator</name>
     <description>Configuration documentation generator</description>
 
     <properties>

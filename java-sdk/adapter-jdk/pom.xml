@@ -11,7 +11,7 @@
 
   <artifactId>apicurio-registry-java-sdk-adapter-jdk</artifactId>
 
-  <name>apicurio-registry-java-sdk-adapter-jdk</name>
+  <name>Registry :: Java SDK :: Adapter JDK</name>
   <description>JDK HTTP adapter for the Apicurio Registry Java SDK.
     Provides JdkAdapterFactory using java.net.http.HttpClient.
     This module is isolated so that consumers using only the Vert.x adapter

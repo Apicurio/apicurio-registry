@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-openrpc</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-openrpc</name>
+  <name>Registry :: Schema Util :: OpenRPC</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-avro-serde-nats</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-avro-serde-nats</name>
+  <name>Registry :: SerDes :: NATS :: Avro</name>
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>

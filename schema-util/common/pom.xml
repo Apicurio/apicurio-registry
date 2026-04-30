@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-common</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-common</name>
+  <name>Registry :: Schema Util :: Common</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

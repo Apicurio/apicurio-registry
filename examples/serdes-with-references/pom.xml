@@ -9,6 +9,7 @@
   </parent>
 
   <artifactId>apicurio-registry-examples-references</artifactId>
+  <name>Registry :: Examples :: SerDes With References</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

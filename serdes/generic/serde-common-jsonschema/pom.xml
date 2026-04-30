@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-serde-common-jsonschema</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-serde-common-jsonschema</name>
+  <name>Registry :: SerDes :: Common JSON Schema</name>
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>

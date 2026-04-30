@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-iceberg</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-iceberg</name>
+  <name>Registry :: Schema Util :: Iceberg</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

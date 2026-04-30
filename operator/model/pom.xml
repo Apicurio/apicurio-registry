@@ -10,7 +10,7 @@
   </parent>
   <artifactId>apicurio-registry-operator-model</artifactId>
 
-  <name>Apicurio Registry Operator :: Model</name>
+  <name>Registry :: Operator :: Model</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

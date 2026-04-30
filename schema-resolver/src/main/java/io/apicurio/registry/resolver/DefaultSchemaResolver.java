@@ -104,7 +104,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         }
 
         final ArtifactReference artifactReference = resolveArtifactReference(data, parsedSchema, false, null);
-        return getSchemaFromCache(artifactReference)
+        return getSchemaFromCache(artifactReference, parsedSchema)
                 .orElseGet(() -> getSchemaFromRegistry(parsedSchema, data, artifactReference));
     }
 
@@ -122,7 +122,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 .setRawSchema(schemaBytes);
     }
 
-    private Optional<SchemaLookupResult<S>> getSchemaFromCache(ArtifactReference artifactReference) {
+    private Optional<SchemaLookupResult<S>> getSchemaFromCache(ArtifactReference artifactReference,
+                                                               ParsedSchema<S> parsedSchema) {
         if (artifactReference.getGlobalId() != null
                 && schemaCache.containsByGlobalId(artifactReference.getGlobalId())) {
             return Optional.of(resolveSchemaByGlobalId(artifactReference.getGlobalId()));
@@ -132,10 +133,17 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         } else if (artifactReference.getContentHash() != null
                 && schemaCache.containsByContentHash(artifactReference.getContentHash())) {
             return Optional.of(resolveSchemaByContentHash(artifactReference.getContentHash()));
-        } else if (schemaCache.containsByArtifactCoordinates(
-                ArtifactCoordinates.fromArtifactReference(artifactReference))) {
-            return Optional.of(resolveSchemaByArtifactCoordinatesCached(
-                    ArtifactCoordinates.fromArtifactReference(artifactReference)));
+        } else {
+            ArtifactCoordinates coords = ArtifactCoordinates.fromArtifactReference(artifactReference);
+            ContentWithReferences incomingContent = null;
+            if (parsedSchema != null && parsedSchema.getRawSchema() != null) {
+                incomingContent = ContentWithReferences.builder()
+                        .content(IoUtil.toString(parsedSchema.getRawSchema()))
+                        .build();
+            }
+            if (schemaCache.containsByArtifactCoordinatesMatchingContent(coords, incomingContent)) {
+                return Optional.of(resolveSchemaByArtifactCoordinatesCached(coords));
+            }
         }
         return Optional.empty();
     }

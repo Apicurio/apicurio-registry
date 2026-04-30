@@ -2,4 +2,23 @@ openapi: "3.0.2"
 info:
   title: Petstore
   version: 1.0.0
-paths: {}
+  description: A sample Petstore API
+paths:
+  /pets:
+    get:
+      summary: List all pets
+      operationId: listPets
+      responses:
+        "200":
+          description: A list of pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string

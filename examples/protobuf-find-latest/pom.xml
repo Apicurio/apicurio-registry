@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-examples-protobuf-find-latest</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: Protobuf Find Latest</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

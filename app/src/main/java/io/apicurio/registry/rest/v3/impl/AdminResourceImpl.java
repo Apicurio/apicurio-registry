@@ -669,7 +669,6 @@ public class AdminResourceImpl implements AdminResource {
             final PollingStorageStatus status) {
         var result = new GitOpsStatus();
         result.setSyncState(status.getSyncState().name());
-        result.setCurrentMarker(status.getCurrentMarker());
         result.setLastSuccessfulSync(status.getLastSuccessfulSync() != null
                 ? java.util.Date.from(status.getLastSuccessfulSync()) : null);
         result.setLastSyncAttempt(status.getLastSyncAttempt() != null
@@ -677,12 +676,20 @@ public class AdminResourceImpl implements AdminResource {
         result.setGroupCount(status.getGroupCount());
         result.setArtifactCount(status.getArtifactCount());
         result.setVersionCount(status.getVersionCount());
-        result.setLastErrors(status.getLastErrors());
-        if (status.getSources() != null) {
-            var sources = new io.apicurio.registry.rest.v3.beans.Sources();
-            status.getSources().forEach(sources::setAdditionalProperty);
-            result.setSources(sources);
+        if (status.getErrors() != null) {
+            result.setErrors(status.getErrors().stream()
+                    .map(e -> {
+                        var err = new io.apicurio.registry.rest.v3.beans.GitOpsError();
+                        err.setDetail(e.detail());
+                        err.setSource(e.source());
+                        err.setContext(e.context());
+                        return err;
+                    })
+                    .toList());
         }
+        var sources = new io.apicurio.registry.rest.v3.beans.Sources();
+        status.getSources().forEach(sources::setAdditionalProperty);
+        result.setSources(sources);
         return result;
     }
 

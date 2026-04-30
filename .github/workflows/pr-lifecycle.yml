@@ -15,6 +15,7 @@ on:
     - cron: '17 8 * * *'
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
   issues: write

@@ -23,6 +23,7 @@ website
 *~
 .work
 .notes
+.projects
 **/bin
 *.jar
 

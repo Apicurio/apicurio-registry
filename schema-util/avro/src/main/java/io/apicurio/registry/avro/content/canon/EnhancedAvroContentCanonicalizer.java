@@ -2,7 +2,8 @@ package io.apicurio.registry.avro.content.canon;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.canon.BaseContentCanonicalizer;
+import io.apicurio.registry.content.canon.ContentCanonicalizationException;
 import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
@@ -16,7 +17,7 @@ import java.util.Map;
  * An Avro implementation of a content Canonicalizer that handles avro references. A custom version that can
  * be used to check subject compatibilities. It does not reorder fields.
  */
-public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
+public class EnhancedAvroContentCanonicalizer extends BaseContentCanonicalizer {
 
     public static final String EMPTY_DOC = "";
 
@@ -93,7 +94,7 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
     private static Schema.Field normalizeField(Schema.Field field, Map<String, Boolean> alreadyNormalized) {
         final Schema.Field result = new Schema.Field(field.name(),
                 normalizeSchema(field.schema(), alreadyNormalized), EMPTY_DOC, field.defaultVal(),
-                field.order());
+                        field.order());
         field.getObjectProps().forEach(result::addProp);
         return result;
     }
@@ -124,10 +125,11 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
     }
 
     /**
-     * @see ContentCanonicalizer#canonicalize(TypedContent, Map)
+     * @see BaseContentCanonicalizer#canonicalize(TypedContent, Map)
      */
     @Override
-    public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+    protected TypedContent doCanonicalize(TypedContent content,
+            Map<String, TypedContent> refs) throws ContentCanonicalizationException {
         String normalisedSchema = normalizeSchema(content.getContent().content()).toString();
         return TypedContent.create(ContentHandle.create(normalisedSchema), ContentTypes.APPLICATION_JSON);
     }

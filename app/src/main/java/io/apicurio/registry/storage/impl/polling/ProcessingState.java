@@ -32,7 +32,7 @@ public class ProcessingState {
     @Getter
     @Setter
     private Instant commitTime;
-    private final List<String> errors = new ArrayList<>();
+    private final List<PollingError> errors = new ArrayList<>();
 
     @Getter
     private final Map<String, PollingDataFile> pathIndex = new HashMap<>();
@@ -84,14 +84,21 @@ public class ProcessingState {
     }
 
     public void recordError(String message, Object... params) {
-        errors.add(String.format(message, params));
+        errors.add(new PollingError(String.format(message, params)));
+    }
+
+    /**
+     * Records an error with source context (repo ID and file path).
+     */
+    public void recordError(PollingDataFile file, String message, Object... params) {
+        errors.add(new PollingError(String.format(message, params), file.getSourceId(), file.getPath()));
     }
 
     public boolean isSuccessful() {
         return errors.isEmpty();
     }
 
-    public List<String> getErrors() {
+    public List<PollingError> getErrors() {
         return unmodifiableList(errors);
     }
 

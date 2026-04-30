@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-validation</artifactId>
   <packaging>pom</packaging>
-  <name>apicurio-registry-schema-validation</name>
+  <name>Registry :: Schema Validation</name>
   <description>Standalone schema validation library with Apicurio Registry integration.</description>
 
   <properties>

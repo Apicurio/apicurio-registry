@@ -4,7 +4,7 @@ import (
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
-// GitOpsStatus_sources per-source status. Maps source ID (e.g., repository ID) to its current marker (e.g., Git commit SHA).
+// GitOpsStatus_sources per-source identifiers. Maps source ID (e.g., repository ID, Kubernetes server/namespace) to its current marker (e.g., abbreviated commit SHA, resource version).
 type GitOpsStatus_sources struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any

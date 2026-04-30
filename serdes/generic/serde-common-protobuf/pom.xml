@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-serde-common-protobuf</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-serde-common-protobuf</name>
+  <name>Registry :: SerDes :: Common Protobuf</name>
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>

@@ -11,7 +11,7 @@
 
     <artifactId>raml-test-micro-service</artifactId>
     <packaging>jar</packaging>
-    <name>raml-test-micro-service</name>
+    <name>Registry :: Utils :: RAML Test Microservice</name>
 
     <properties>
         <projectRoot>${project.basedir}/../..</projectRoot>

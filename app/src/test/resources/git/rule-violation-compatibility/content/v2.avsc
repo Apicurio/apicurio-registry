@@ -1,0 +1,1 @@
+{"type":"record","name":"Rec","namespace":"com.example","fields":[{"name":"id","type":"string"},{"name":"name","type":"string"}]}

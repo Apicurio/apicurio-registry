@@ -9,6 +9,7 @@
   </parent>
 
   <artifactId>apicurio-registry-examples-protobuf-validation</artifactId>
+  <name>Registry :: Examples :: Protobuf Validation</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

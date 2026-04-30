@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>apicurio-registry-schema-validation-protobuf</artifactId>
-  <name>apicurio-registry-schema-validation-protobuf</name>
+  <name>Registry :: Schema Validation :: Protobuf</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

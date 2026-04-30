@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-protobuf-serde-kafka</name>
+  <name>Registry :: SerDes :: Kafka :: Protobuf</name>
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>

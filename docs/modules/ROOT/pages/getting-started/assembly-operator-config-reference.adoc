@@ -240,9 +240,9 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 |Default
 
 |`type`
-|Storage type: `<empty>` (in-memory), `postgresql`, `mysql`, `kafkasql`, or `kubernetesops`
+|Storage type: `<empty>` (embedded H2 database), `postgresql`, `mysql`, `kafkasql`, or `kubernetesops`. When left empty, {registry} uses SQL storage with an embedded H2 database.
 |String
-|`""` (in-memory)
+|`""` (embedded H2, development only)
 
 |`sql`
 |SQL database configuration. Required when `type` is `postgresql` or `mysql`
@@ -260,7 +260,7 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 |None
 |===
 
-IMPORTANT: The default in-memory storage is not suitable for production environments.
+IMPORTANT: The default embedded H2 configuration is not suitable for production environments. Specify a storage type for production use.
 
 === SqlSpec
 

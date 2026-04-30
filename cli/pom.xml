@@ -12,7 +12,7 @@
 
     <artifactId>apicurio-registry-cli</artifactId>
 
-    <name>Apicurio Registry CLI</name>
+    <name>Registry :: CLI</name>
 
     <properties>
         <projectRoot>${project.basedir}/..</projectRoot>

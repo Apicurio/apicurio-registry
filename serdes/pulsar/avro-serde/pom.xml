@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-avro-serde-pulsar</name>
+  <name>Registry :: SerDes :: Pulsar :: Avro</name>
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>

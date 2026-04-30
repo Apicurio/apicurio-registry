@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-examples-custom-strategy</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: Custom Strategy</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

@@ -99,13 +99,13 @@ class KubernetesOpsReferencesTest {
         var addressMeta = storage.getArtifactMetaData(GROUP, "address");
         assertEquals("Address Schema", addressMeta.getName());
         assertEquals("Reusable address record", addressMeta.getDescription());
-        assertEquals(Map.of("domain", "common"), addressMeta.getLabels());
+        assertEquals(Map.of("domain", "common", "system:source", "kubernetes"), addressMeta.getLabels());
         assertEquals("alice", addressMeta.getOwner());
 
         var customerMeta = storage.getArtifactMetaData(GROUP, "customer");
         assertEquals("Customer Schema", customerMeta.getName());
         assertEquals("Customer record referencing Address", customerMeta.getDescription());
-        assertEquals(Map.of("domain", "crm"), customerMeta.getLabels());
+        assertEquals(Map.of("domain", "crm", "system:source", "kubernetes"), customerMeta.getLabels());
 
         // Verify version-level metadata (name, description, labels, owner)
         var addressVerMeta = storage.getArtifactVersionMetaData(GROUP, "address", "1");

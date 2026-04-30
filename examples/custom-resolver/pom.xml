@@ -10,6 +10,7 @@
 
   <artifactId>apicurio-registry-examples-custom-resolver</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: Custom Resolver</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

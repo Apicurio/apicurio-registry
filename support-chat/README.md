@@ -99,6 +99,38 @@ Once deployed, run the prompt creation script against the deployed registry:
 REGISTRY_URL=https://apicurio-registry.onrender.com/apis/registry/v3 ./scripts/create-prompts.sh
 ```
 
+## Deploying to Hugging Face Spaces (Free)
+
+### 1. Create a new Space
+
+Go to [Hugging Face Spaces](https://huggingface.co/new-space) and create a new Space with **Docker** SDK.
+
+### 2. Push the deployment files
+
+```bash
+cd support-chat/huggingface
+git init
+git remote add space https://huggingface.co/spaces/<your-username>/apicurio-support-chat
+git add .
+git commit -m "Initial deployment"
+git push space main
+```
+
+### 3. Set the API key
+
+In your Space's **Settings > Secrets**, add:
+- `GOOGLE_AI_GEMINI_API_KEY` — your Google AI API key
+
+### 4. Create prompt templates
+
+Once the Space is running, create prompt templates against the registry running inside the Space:
+
+```bash
+REGISTRY_URL=https://<your-username>-apicurio-support-chat.hf.space:8080/apis/registry/v3 ./scripts/create-prompts.sh
+```
+
+> **Note:** The registry runs on port 8080 internally. If it's not directly reachable, you can skip this step — the chat app falls back to hardcoded prompts.
+
 ## Embedding the Chat Widget
 
 Add a single script tag to any website:
@@ -186,6 +218,10 @@ support-chat/
 ├── k8s/
 │   ├── deployment.yaml                # Kubernetes Deployment + Service
 │   └── configmap.yaml                 # Environment configuration
+├── huggingface/
+│   ├── Dockerfile                     # HF Spaces multi-service container
+│   ├── supervisord.conf               # Process supervisor for Registry + Chat
+│   └── README.md                      # HF Space metadata and instructions
 ├── render.yaml                        # Render.com deployment blueprint
 ├── render-registry.Dockerfile         # Dockerfile for Registry on Render
 ├── docker-compose.yaml                # Local development stack

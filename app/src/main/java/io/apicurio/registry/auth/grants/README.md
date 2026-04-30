@@ -61,9 +61,10 @@ SecurityIdentity → Subject
 
 **Search/list filtering** (which artifacts does this user see?):
 ```
-GrantsData.getAllowedValues(user, roles, "artifact", "/")
-  → Set of allowed group IDs + exact artifact grants
+GrantsData.getSearchFilterData(user, roles, "artifact", "/")
+  → SearchFilterData with allowed groups, exact artifact grants, and denied exact resources
   → SQL WHERE (groupId IN ('team-a', 'shared') OR (groupId = 'team-b' AND artifactId = 'public-schema'))
+         AND NOT (groupId = 'team-a' AND artifactId = 'secret-schema')
   → Database handles filtering + pagination correctly
 ```
 
@@ -130,13 +131,16 @@ In this example, Alice can read and write all artifacts under `team-a/` except `
 
 ### Artifact-level search filtering
 
-Exact artifact grants (e.g., `team-b/public-schema`) appear in search results even when the user has no group-level access to the rest of that group. The SQL filter generates a `WHERE` clause combining group-level `IN` clauses with artifact-level matches:
+Exact artifact grants (e.g., `team-b/public-schema`) appear in search results even when the user has no group-level access to the rest of that group. Deny rules also apply to search filtering — denied artifacts are excluded from results via SQL `NOT` clauses, even if they match an allow rule.
+
+The SQL filter generates a `WHERE` clause combining group-level `IN` clauses, artifact-level matches, and deny exclusions:
 
 ```sql
 WHERE (groupId IN ('team-a', 'shared') OR (groupId = 'team-b' AND artifactId = 'public-schema'))
+  AND NOT (groupId = 'team-a' AND artifactId = 'secret-schema')
 ```
 
-This ensures that users see all artifacts they are explicitly granted access to, whether via a group-level prefix grant or an exact artifact-level grant.
+This ensures that users see all artifacts they are explicitly granted access to, and never see artifacts that are explicitly denied.
 
 ## Grants management
 
@@ -162,7 +166,7 @@ Per-request evaluation is O(n) where n is the user's grant count (~5-20), not to
 ## Running the tests
 
 ```bash
-# Shared authz module (18 tests)
+# Shared authz module (26 tests)
 mvn test -pl authz -Dcheckstyle.skip=true
 
 # Registry unit tests (8 tests)

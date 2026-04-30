@@ -23,7 +23,7 @@ Both layers work together. A request must pass both RBAC and per-resource author
 
 === How it works
 
-Per-resource authorization uses a grants file that defines who can access which resources. The grants file is a JSON file containing a list of allow rules:
+Per-resource authorization uses a grants file that defines who can access which resources. The grants file is a JSON file containing allow and deny rules:
 
 * **Point-access checks** (reading, writing, deleting a specific artifact): The grants evaluator matches the user's identity and roles against the grants for the requested resource in-process. Only the current user's matching grants are evaluated, keeping per-request overhead constant regardless of total grant count.
 * **Search and list filtering** (what artifacts a user sees in search results): The user's allowed group patterns are translated into SQL query filters. The database handles filtering and pagination natively.
@@ -178,14 +178,17 @@ In this example, Alice can read and write all artifacts under `team-a/` except `
 
 === Artifact-level search filtering
 
-Exact artifact grants (for example, `team-b/public-schema`) appear in search results even when the user has no group-level access to the rest of that group. The SQL filter combines group-level `IN` clauses with artifact-level matches:
+Exact artifact grants (for example, `team-b/public-schema`) appear in search results even when the user has no group-level access to the rest of that group. Deny rules also apply to search filtering — denied artifacts are excluded from results even if they match an allow rule.
+
+The SQL filter combines group-level `IN` clauses, artifact-level matches, and deny exclusions:
 
 [source,sql]
 ----
 WHERE (groupId IN ('team-a', 'shared') OR (groupId = 'team-b' AND artifactId = 'public-schema'))
+  AND NOT (groupId = 'team-a' AND artifactId = 'secret-schema')
 ----
 
-This ensures that users see all artifacts they are explicitly granted access to, whether via a group-level prefix grant or an exact artifact-level grant.
+This ensures that users see all artifacts they are explicitly granted access to, and never see artifacts that are explicitly denied.
 
 [id="resource-authorization-monitoring_{context}"]
 == Monitoring and audit logging

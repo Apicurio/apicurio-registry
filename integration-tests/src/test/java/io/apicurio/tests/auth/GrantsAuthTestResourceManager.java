@@ -23,7 +23,7 @@ public class GrantsAuthTestResourceManager extends KeycloakTestContainerManager 
             Path grantsFile = tempDir.resolve("grants.json");
 
             try (InputStream grants = getClass().getClassLoader()
-                    .getResourceAsStream("opa-integration-test-grants.json")) {
+                    .getResourceAsStream("integration-test-grants.json")) {
                 Files.copy(grants, grantsFile, StandardCopyOption.REPLACE_EXISTING);
             }
 

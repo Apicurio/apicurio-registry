@@ -65,3 +65,9 @@ func (m *AdminRequestBuilder) Rules() *RulesRequestBuilder {
 func (m *AdminRequestBuilder) Snapshots() *SnapshotsRequestBuilder {
 	return NewSnapshotsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
+
+// Usage the usage property
+// returns a *UsageRequestBuilder when successful
+func (m *AdminRequestBuilder) Usage() *UsageRequestBuilder {
+	return NewUsageRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}

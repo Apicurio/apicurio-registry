@@ -181,7 +181,31 @@ public class SqlSearchRepository {
                                 binders.add((query, idx) -> {
                                     query.bind(idx, eArtifactId);
                                 });
-                                first = false;
+                                aFirst = false;
+                            }
+                        }
+                        where.append(")");
+                        break;
+                    case artifactExactDeny:
+                        var deniedResources = filter.getSetValue();
+                        where.append("NOT (");
+                        boolean dFirst = true;
+                        for (String resource : deniedResources) {
+                            int sepIdx = resource.indexOf("/");
+                            if (sepIdx > 0) {
+                                String dGroupId = resource.substring(0, sepIdx);
+                                String dArtifactId = resource.substring(sepIdx + 1);
+                                if (!dFirst) {
+                                    where.append(" OR ");
+                                }
+                                where.append("(a.groupId = ? AND a.artifactId = ?)");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, normalizeGroupId(dGroupId));
+                                });
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, dArtifactId);
+                                });
+                                dFirst = false;
                             }
                         }
                         where.append(")");
@@ -410,6 +434,30 @@ public class SqlSearchRepository {
                                     query.bind(idx, eArtifactId);
                                 });
                                 vFirst = false;
+                            }
+                        }
+                        where.append(")");
+                        break;
+                    case artifactExactDeny:
+                        var vDeniedResources = filter.getSetValue();
+                        where.append("NOT (");
+                        boolean vdFirst = true;
+                        for (String resource : vDeniedResources) {
+                            int sepIdx = resource.indexOf("/");
+                            if (sepIdx > 0) {
+                                String dGroupId = resource.substring(0, sepIdx);
+                                String dArtifactId = resource.substring(sepIdx + 1);
+                                if (!vdFirst) {
+                                    where.append(" OR ");
+                                }
+                                where.append("(a.groupId = ? AND a.artifactId = ?)");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, normalizeGroupId(dGroupId));
+                                });
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, dArtifactId);
+                                });
+                                vdFirst = false;
                             }
                         }
                         where.append(")");

@@ -86,22 +86,28 @@ public class GrantsSearchFilter {
         String separator = "artifact".equals(resourceType) ? "/" : null;
         SearchFilterData filterData = data.getSearchFilterData(user, roles, resourceType, separator);
 
-        if (filterData.allowAll()) {
+        if (filterData.allowAll() && !filterData.hasDenyFilters()) {
             return filters;
         }
-        if (!filterData.hasFilters()) {
+        if (!filterData.hasFilters() && !filterData.hasDenyFilters()) {
             return null;
         }
 
         Set<SearchFilter> augmented = new HashSet<>(filters);
-        if (filterData.allowedExactResources().isEmpty()) {
-            augmented.add(SearchFilter.ofGroupIdIn(filterData.allowedGroups()));
-        } else {
-            augmented.add(SearchFilter.ofGroupIdInOrArtifactExact(
-                    filterData.allowedGroups(), filterData.allowedExactResources()));
+        if (!filterData.allowAll()) {
+            if (filterData.allowedExactResources().isEmpty()) {
+                augmented.add(SearchFilter.ofGroupIdIn(filterData.allowedGroups()));
+            } else {
+                augmented.add(SearchFilter.ofGroupIdInOrArtifactExact(
+                        filterData.allowedGroups(), filterData.allowedExactResources()));
+            }
         }
-        LOG.debug("Authorization filter: user={}, groups={}, exact={}",
-                user, filterData.allowedGroups(), filterData.allowedExactResources());
+        if (filterData.hasDenyFilters()) {
+            augmented.add(SearchFilter.ofArtifactExactDeny(filterData.deniedExactResources()));
+        }
+        LOG.debug("Authorization filter: user={}, groups={}, exact={}, denied={}",
+                user, filterData.allowedGroups(), filterData.allowedExactResources(),
+                filterData.deniedExactResources());
         return augmented;
     }
 

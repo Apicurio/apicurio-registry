@@ -70,6 +70,10 @@ public class SearchFilter {
                 new Object[]{allowedGroups, exactResources});
     }
 
+    public static SearchFilter ofArtifactExactDeny(Set<String> deniedResources) {
+        return new SearchFilter(SearchFilterType.artifactExactDeny, deniedResources);
+    }
+
     @SuppressWarnings("unchecked")
     public Set<String> getSetValue() {
         if (value instanceof Set) {

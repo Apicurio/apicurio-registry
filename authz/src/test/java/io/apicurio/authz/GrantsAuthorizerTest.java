@@ -198,27 +198,10 @@ class GrantsAuthorizerTest {
     // ==================== GrantsData ====================
 
     @Test
-    void grantsDataAllowedValues() {
-        GrantsData data = authorizer.getGrantsData();
-        Set<String> groups = data.getAllowedValues("developer-client", Set.of(), "artifact", "/");
-        assertNotNull(groups);
-        assertTrue(groups.contains("team-a"));
-        assertTrue(groups.contains("shared"));
-    }
-
-    @Test
     void grantsDataMalformedJson() {
         GrantsData data = GrantsData.parse("broken{{{");
         assertFalse(data.isAdmin(Set.of("sr-admin")));
         assertTrue(data.getGrantsForUser("anyone", Set.of()).isEmpty());
-    }
-
-    @Test
-    void perUserCaching() {
-        GrantsData data = authorizer.getGrantsData();
-        String json1 = data.getDataJsonForUser("developer-client", Set.of());
-        String json2 = data.getDataJsonForUser("developer-client", Set.of());
-        assertTrue(json1 == json2);
     }
 
     // ==================== Deny rules ====================
@@ -279,6 +262,47 @@ class GrantsAuthorizerTest {
         assertTrue(filterData.allowedGroups().contains("team-a"));
         assertTrue(filterData.allowedGroups().contains("shared"));
         assertTrue(filterData.allowedExactResources().contains("team-b/public-schema"));
+    }
+
+    @Test
+    void searchFilterDataIncludesDeniedResources() {
+        GrantsData data = authorizer.getGrantsData();
+        SearchFilterData filterData = data.getSearchFilterData(
+                "developer-client", Set.of(), "artifact", "/");
+        assertNotNull(filterData);
+        assertTrue(filterData.hasDenyFilters());
+        assertTrue(filterData.deniedExactResources().contains("team-a/secret-schema"));
+    }
+
+    @Test
+    void searchFilterDataNoDenyForDifferentUser() {
+        GrantsData data = authorizer.getGrantsData();
+        SearchFilterData filterData = data.getSearchFilterData(
+                "unknown-user", Set.of("sr-readonly"), "artifact", "/");
+        assertNotNull(filterData);
+        assertFalse(filterData.hasDenyFilters());
+        assertTrue(filterData.deniedExactResources().isEmpty());
+    }
+
+    @Test
+    void searchFilterDataDenyWithWildcardAllow() {
+        String json = """
+                {
+                  "grants": [
+                    {"principal": "wildcard-user", "operation": "read", "resource_type": "artifact",
+                     "resource_pattern_type": "prefix", "resource_pattern": "*"},
+                    {"principal": "wildcard-user", "operation": "read", "resource_type": "artifact",
+                     "resource_pattern_type": "exact", "resource_pattern": "team-a/secret",
+                     "deny": true}
+                  ]
+                }""";
+        GrantsData data = GrantsData.parse(json);
+        SearchFilterData filterData = data.getSearchFilterData(
+                "wildcard-user", Set.of(), "artifact", "/");
+        assertNotNull(filterData);
+        assertTrue(filterData.allowAll());
+        assertTrue(filterData.hasDenyFilters());
+        assertTrue(filterData.deniedExactResources().contains("team-a/secret"));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package io.apicurio.registry.auth.grants;
 
 import io.apicurio.authz.GrantsData;
+import io.apicurio.authz.SearchFilterData;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -54,7 +55,7 @@ public class GrantsAccessControllerTest {
     }
 
     @Test
-    void grantsDataAllowedValuesFromSharedModule() {
+    void grantsDataSearchFilterFromSharedModule() {
         String json = """
                 {
                   "grants": [
@@ -65,10 +66,11 @@ public class GrantsAccessControllerTest {
                   ]
                 }""";
         GrantsData data = GrantsData.parse(json);
-        Set<String> groups = data.getAllowedValues("alice", Set.of(), "artifact", "/");
-        assertNotNull(groups);
-        assertTrue(groups.contains("team-a"));
-        assertTrue(groups.contains("shared"));
+        SearchFilterData filterData = data.getSearchFilterData("alice", Set.of(), "artifact", "/");
+        assertNotNull(filterData);
+        assertFalse(filterData.allowAll());
+        assertTrue(filterData.allowedGroups().contains("team-a"));
+        assertTrue(filterData.allowedGroups().contains("shared"));
     }
 
     @Test

@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.polling;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.polling.model.Type;
@@ -29,8 +30,9 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
-import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -39,13 +41,16 @@ import java.util.stream.Collectors;
  * Subclasses only need to implement data-source-specific methods (start, poll,
  * commitChange, getPreviousMarker) and provide the registry ID and commit time.
  */
-public abstract class AbstractPollingDataSourceManager<MARKER> implements PollingDataSourceManager<MARKER> {
+public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMarker> implements PollingDataSourceManager<MARKER> {
 
     @Inject
     Logger log;
 
     @Inject
     RegistryStorageContentUtils utils;
+
+    @Inject
+    RulesService rulesService;
 
     private PollingStorageConfig pollingConfig;
 
@@ -56,19 +61,11 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
         pollingConfig = config;
     }
 
-    /**
-     * Returns the commit/change time from the poll result marker.
-     *
-     * @param marker the marker from the PollingResult
-     * @return the commit time as an Instant
-     */
-    protected abstract Instant getCommitTime(MARKER marker);
-
     @Override
     public PollingProcessingResult process(RegistryStorage storage, PollingResult<MARKER> pollResult) throws Exception {
         ProcessingState state = new ProcessingState(pollingConfig, storage);
 
-        state.setCommitTime(getCommitTime(pollResult.getMarker()));
+        state.setCommitTime(pollResult.getMarker().getCommitTime());
 
         for (PollingDataFile file : pollResult.getFiles()) {
             state.index(file);
@@ -76,6 +73,12 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
 
         log.debug("Processing {} files", state.getPathIndex().size());
         processFiles(state);
+
+        // Validate loaded data against configured rules (before blue-green swap)
+        if (state.isSuccessful()) {
+            var validator = new PollingDataValidator(rulesService);
+            validator.validate(state, storage, pollingConfig);
+        }
 
         // Report unprocessed files - distinguish between expected (content/data files) and unexpected
         var unprocessedRegistryFiles = state.getPathIndex().values().stream()
@@ -137,7 +140,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                 }
 
                 if (state.checkArtifactConflict(artifact.getGroupId(), artifact.getArtifactId(), file.getSourceId())) {
-                    state.recordError("Artifact '%s:%s' is defined in multiple sources: '%s' and '%s'. "
+                    state.recordError(file, "Artifact '%s:%s' is defined in multiple sources: '%s' and '%s'. "
                             + "Each artifact must be defined in exactly one source.",
                             artifact.getGroupId(), artifact.getArtifactId(),
                             state.getArtifactSource(artifact.getGroupId(), artifact.getArtifactId()),
@@ -217,7 +220,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     Long contentId = processVersionContent(state, artifactFile, version,
                             artifact.getArtifactType());
                     if (contentId == null) {
-                        state.recordError("Could not import content for artifact version %s.",
+                        state.recordError(artifactFile, "Could not import content for artifact version %s.",
                                 artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion());
                         continue;
                     }
@@ -229,7 +232,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                         artifactEntity.artifactType = artifact.getArtifactType();
                         artifactEntity.name = artifact.getName();
                         artifactEntity.description = artifact.getDescription();
-                        artifactEntity.labels = artifact.getLabels();
+                        artifactEntity.labels = withSourceLabel(artifact.getLabels(), artifactFile.getSourceId());
                         artifactEntity.owner = artifact.getOwner();
                         artifactEntity.createdOn = TimestampParser.parse(artifact.getCreatedOn(), state.getCommitTime());
                         artifactEntity.modifiedOn = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
@@ -249,7 +252,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                         e.globalId = DeterministicIdGenerator.globalId(
                                 artifact.getGroupId(), artifact.getArtifactId(), version.getVersion());
                     } else {
-                        state.recordError("globalId is required for version %s (deterministic ID generation is disabled)",
+                        state.recordError(artifactFile, "globalId is required for version %s (deterministic ID generation is disabled)",
                                 artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion());
                         continue;
                     }
@@ -268,16 +271,15 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                     state.getStorage().importArtifactVersion(e);
                     state.incrementVersionCount();
                 } catch (Exception ex) {
-                    state.recordError("Could not import artifact version '%s': %s",
+                    state.recordError(artifactFile, "Could not import artifact version '%s': %s",
                             artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion(),
                             ex.getMessage());
                 }
             }
             processArtifactRules(state, artifact);
             artifactFile.setProcessed(true);
-        } else {
-            state.recordError("Could not find group %s", artifact.getGroupId());
         }
+        // Note: if group is null, processGroupRef() already recorded the error
     }
 
     private void processArtifactRules(ProcessingState state, Artifact artifact) {
@@ -343,7 +345,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                 var e = new GroupEntity();
                 e.groupId = group.getGroupId();
                 e.description = group.getDescription();
-                e.labels = group.getLabels();
+                e.labels = withSourceLabel(group.getLabels(), groupFile.getSourceId());
                 e.owner = group.getOwner();
                 e.artifactsType = group.getArtifactsType();
                 e.createdOn = TimestampParser.parse(group.getCreatedOn(), state.getCommitTime());
@@ -355,7 +357,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
                 groupFile.setProcessed(true);
                 return group;
             } catch (Exception ex) {
-                state.recordError("Could not import group %s: %s", group.getGroupId(), ex.getMessage());
+                state.recordError(groupFile, "Could not import group '%s': %s", group.getGroupId(), ex.getMessage());
                 return null;
             }
         }
@@ -379,7 +381,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
         String contentMetadataPath = version.getContentMetadata();
 
         if (contentPath == null || contentPath.isBlank()) {
-            state.recordError("Version in %s has no content path specified", artifactFile.getPath());
+            state.recordError(artifactFile, "Version has no content path specified");
             return null;
         }
 
@@ -388,14 +390,12 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
         if (contentMetadataPath != null && !contentMetadataPath.isBlank()) {
             var metadataFile = findFileByPathRef(state, artifactFile, contentMetadataPath);
             if (metadataFile == null) {
-                state.recordError("Could not find content metadata file at path %s referenced by %s",
-                        Path.of(artifactFile.getPath()).resolveSibling(contentMetadataPath).normalize(),
-                        artifactFile.getPath());
+                state.recordError(artifactFile, "Could not find content metadata file at path %s",
+                        Path.of(artifactFile.getPath()).resolveSibling(contentMetadataPath).normalize());
                 return null;
             }
             if (!metadataFile.isType(Type.CONTENT)) {
-                state.recordError("File %s is not a valid content metadata definition (expected $type: content-v0)",
-                        metadataFile.getPath());
+                state.recordError(metadataFile, "Not a valid content metadata definition (expected $type: content-v0)");
                 return null;
             }
             contentMetadata = metadataFile.getEntityUnchecked();
@@ -405,15 +405,14 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
         // Load the actual content file
         var dataFile = findFileByPathRef(state, artifactFile, contentPath);
         if (dataFile == null) {
-            state.recordError("Could not find content file at path %s referenced by %s",
-                    Path.of(artifactFile.getPath()).resolveSibling(contentPath).normalize(),
-                    artifactFile.getPath());
+            state.recordError(artifactFile, "Could not find content file at path %s",
+                    Path.of(artifactFile.getPath()).resolveSibling(contentPath).normalize());
             return null;
         }
 
         var data = dataFile.getData();
         if (data == null) {
-            state.recordError("Content data is null for file %s", dataFile.getPath());
+            state.recordError(dataFile, "Content data is null");
             return null;
         }
 
@@ -449,8 +448,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
             } else if (pollingConfig.isDeterministicIdGenerationEnabled()) {
                 contentId = DeterministicIdGenerator.contentId(data);
             } else {
-                state.recordError("contentId is required for content in %s (deterministic ID generation is disabled)",
-                        dataFile.getPath());
+                state.recordError(dataFile, "contentId is required (deterministic ID generation is disabled)");
                 return null;
             }
 
@@ -481,7 +479,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
             dataFile.setProcessed(true);
             return contentId;
         } catch (Exception ex) {
-            state.recordError("Could not import content from %s: %s", dataFile.getPath(), ex.getMessage());
+            state.recordError(dataFile, "Could not import content: %s", ex.getMessage());
             return null;
         }
     }
@@ -511,5 +509,19 @@ public abstract class AbstractPollingDataSourceManager<MARKER> implements Pollin
             return ContentTypes.APPLICATION_GRAPHQL;
         }
         return defaultType;
+    }
+
+    /**
+     * Adds the source label to a labels map if the source-label-key is configured.
+     * Returns the original map (or a new one) with the label added.
+     */
+    private Map<String, String> withSourceLabel(Map<String, String> labels, String sourceId) {
+        String key = pollingConfig.getSourceLabelKey();
+        if (key == null || key.isEmpty()) {
+            return labels;
+        }
+        var result = labels != null ? new LinkedHashMap<>(labels) : new LinkedHashMap<String, String>();
+        result.put(key, sourceId);
+        return result;
     }
 }

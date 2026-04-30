@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-schema-util-avro</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-util-avro</name>
+  <name>Registry :: Schema Util :: Avro</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

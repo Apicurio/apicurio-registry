@@ -162,7 +162,7 @@ jobs:
       - name: Maven Install
         run: |
           cd registry
-          mvn install -Pprod -Dfull -DskipTests
+          mvn install -pl app -am -Pprod -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
 
       - name: Generate Maven SBOMs
         run: |
@@ -219,9 +219,9 @@ jobs:
       - name: Generate Maven Site
         run: |
           cd registry
-          mvn clean install -DskipTests
+          mvn clean install -pl utils/maven-plugin -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
           cd utils/maven-plugin
-          mvn site
+          mvn site --no-transfer-progress
 
       - name: Apicurio Website Checkout
         run: |

@@ -10,7 +10,7 @@
   </parent>
   <artifactId>apicurio-registry-operator-olm-tests</artifactId>
 
-  <name>Apicurio Registry Operator :: OLM Tests</name>
+  <name>Registry :: Operator :: OLM Tests</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

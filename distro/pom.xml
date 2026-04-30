@@ -9,7 +9,7 @@
   </parent>
   <artifactId>apicurio-registry-distro</artifactId>
   <packaging>pom</packaging>
-  <name>apicurio-registry-distro</name>
+  <name>Registry :: Distro</name>
   <modules>
     <module>connect-converter</module>
     <module>docker</module>

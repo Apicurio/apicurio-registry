@@ -1,0 +1,40 @@
+maintainers:
+  - EricWittmann
+  - NikishaPatil
+  - andreaTP
+  - carlesarnal
+  - jsenko
+  - paoloantinori
+  - vandanayadav7
+
+auto_accept:
+  - renovate[bot]
+
+merge:
+  strategy: rebase
+  delete_branch: true
+
+stale:
+  days_until_stale: 7
+  days_until_close: 14
+  stale_message: |
+    This PR has been inactive for 7 days. @{author}, please update or comment
+    to keep it open. It will be closed in 7 days if no activity occurs.
+    Use `/unstale` to remove this label.
+  close_message: |
+    Closing this PR due to inactivity. Feel free to reopen if you
+    want to continue working on it.
+
+welcome_message: |
+  Thanks for opening this PR!
+
+  A maintainer will review and accept it shortly. In the meantime, you can
+  continue pushing changes.
+
+  **Available commands:**
+  | Command | Description |
+  |---------|-------------|
+  | `/ready` | Mark as ready for review (after a maintainer accepts the PR) |
+  | `/disable-tests` | Disable smoke tests during development |
+  | `/enable-tests` | Re-enable smoke tests |
+  | `/unstale` | Remove the stale label |

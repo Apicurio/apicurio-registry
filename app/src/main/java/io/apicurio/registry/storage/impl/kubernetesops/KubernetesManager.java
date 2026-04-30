@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @ApplicationScoped
-public class KubernetesManager extends AbstractPollingDataSourceManager<String> {
+public class KubernetesManager extends AbstractPollingDataSourceManager<KubernetesOpsMarker> {
 
     @Inject
     Logger log;
@@ -36,7 +36,7 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<String> 
     KubernetesClient kubernetesClient;
 
     private volatile String previousResourceVersion = "";
-    private volatile long lastConfigMapTimestamp = 0;
+    private String sourceId;
 
     private Watch configMapWatch;
     private volatile boolean watchActive = false;
@@ -49,22 +49,18 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<String> 
     });
 
     @Override
-    protected Instant getCommitTime(String marker) {
-        // Use the most recent ConfigMap timestamp for stable createdOn/modifiedOn values
-        // that survive pod restarts, falling back to current time if no timestamps available
-        return lastConfigMapTimestamp > 0 ? Instant.ofEpochMilli(lastConfigMapTimestamp) : Instant.now();
-    }
-
-    @Override
     public void start() throws Exception {
         start(config);
+        String host = kubernetesClient.getMasterUrl().getHost();
+        String namespace = config.getEffectiveNamespace();
+        sourceId = host + "/" + namespace;
         log.info("Initializing KubernetesOps manager with registry ID: {}", config.getRegistryId());
         log.info("Watching namespace: {} for ConfigMaps with selector {}",
-                config.getEffectiveNamespace(), config.getLabelSelector());
+                namespace, config.getLabelSelector());
     }
 
     @Override
-    public PollingResult<String> poll() throws Exception {
+    public PollingResult<KubernetesOpsMarker> poll() throws Exception {
         String namespace = config.getEffectiveNamespace();
         String labelSelector = config.getLabelSelector();
 
@@ -76,7 +72,7 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<String> 
         String currentResourceVersion = configMapList.getMetadata().getResourceVersion();
 
         if (currentResourceVersion.equals(previousResourceVersion)) {
-            return PollingResult.noChanges(currentResourceVersion);
+            return PollingResult.noChanges(new KubernetesOpsMarker(sourceId, currentResourceVersion, Instant.now()));
         }
 
         log.debug("Detected change in ConfigMaps: resourceVersion {} -> {}",
@@ -115,20 +111,21 @@ public class KubernetesManager extends AbstractPollingDataSourceManager<String> 
             }
         }
 
-        if (maxTimestamp > 0) {
-            lastConfigMapTimestamp = maxTimestamp;
-        }
+        // Use the most recent ConfigMap timestamp for stable createdOn/modifiedOn values
+        // that survive pod restarts, falling back to current time if no timestamps available
+        Instant commitTime = maxTimestamp > 0 ? Instant.ofEpochMilli(maxTimestamp) : Instant.now();
 
         log.debug("Found {} data files across {} ConfigMaps",
                 files.size(), configMapList.getItems().size());
 
         if (!tempState.isSuccessful()) {
-            for (String error : tempState.getErrors()) {
+            for (var error : tempState.getErrors()) {
                 log.warn("ConfigMap parse error: {}", error);
             }
         }
 
-        return PollingResult.withChanges(currentResourceVersion, files,
+        var marker = new KubernetesOpsMarker(sourceId, currentResourceVersion, commitTime);
+        return PollingResult.withChanges(marker, files,
                 () -> previousResourceVersion = currentResourceVersion);
     }
 

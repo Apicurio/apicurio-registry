@@ -147,6 +147,9 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         registryClient.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(car.getVersion().getVersion()).put(emd);
 
+        // Allow time for ES indexing
+        Thread.sleep(3000);
+
         // Search by label key
         retry(() -> {
             VersionSearchResults results = registryClient.search().versions().get(config -> {
@@ -163,7 +166,7 @@ public class SearchIT extends ApicurioRegistryBaseIT {
         retry(() -> {
             VersionSearchResults results = registryClient.search().versions().get(config -> {
                 config.queryParameters.groupId = GROUP;
-                config.queryParameters.labels = new String[] { labelKey + "=search-smoke-test" };
+                config.queryParameters.labels = new String[] { labelKey + ":search-smoke-test" };
             });
             Assertions.assertEquals(1, results.getCount(),
                     "Expected 1 result when searching by label key:value");

@@ -10,7 +10,7 @@
 
   <artifactId>apicurio-registry-go-sdk</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-go-sdk</name>
+  <name>Registry :: Go SDK</name>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>

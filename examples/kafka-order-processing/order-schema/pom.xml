@@ -13,7 +13,7 @@
 
     <artifactId>apicurio-registry-examples-kafka-order-schema</artifactId>
     <packaging>jar</packaging>
-    <name>Order Schema Module</name>
+    <name>Registry :: Examples :: Kafka Order Processing :: Order Schema</name>
     <description>Avro schema definitions for order processing</description>
 
     <properties>

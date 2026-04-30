@@ -9,11 +9,11 @@ import org.junit.jupiter.api.io.TempDir;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,6 +44,7 @@ public class RegisterRegistryMojoCliPropertiesTest {
         System.setProperty("artifacts.ifExists", "FIND_OR_CREATE_VERSION");
         System.setProperty("artifacts.canonicalize", "true");
         System.setProperty("artifacts.autoRefs", "true");
+        System.setProperty("artifacts.versionStrategy", "API_INFO_VERSION");
 
         RegisterRegistryMojo mojo = new RegisterRegistryMojo();
         mojo.validate();
@@ -59,12 +60,61 @@ public class RegisterRegistryMojoCliPropertiesTest {
         assertEquals(IfArtifactExists.FIND_OR_CREATE_VERSION, artifact.getIfExists());
         assertEquals(Boolean.TRUE, artifact.getCanonicalize());
         assertEquals(Boolean.TRUE, artifact.getAutoRefs());
+        assertEquals(RegisterArtifact.VersionStrategy.API_INFO_VERSION, artifact.getVersionStrategy());
     }
 
     @Test
-    void testCliSupportedFieldsStayAlignedWithSimpleRegisterArtifactProperties() throws IntrospectionException {
-        // If a new simple writable RegisterArtifact property is added, update the CLI mapping in
-        // RegisterRegistryMojo.applyCliArtifactField and the expected set below.
+    void testLoadsNestedArtifactListsFromCliProperties() throws IOException, MojoExecutionException {
+        Path artifactFile = Files.createFile(tempDir.resolve("api.yaml"));
+        Path protoPathOne = Files.createDirectory(tempDir.resolve("proto"));
+        Path protoPathTwo = Files.createDirectory(tempDir.resolve("shared-proto"));
+
+        System.setProperty("artifacts.groupId", "my.group.id");
+        System.setProperty("artifacts.artifactId", "my-artifact-id");
+        System.setProperty("artifacts.artifactType", "ASYNCAPI");
+        System.setProperty("artifacts.file", artifactFile.toString());
+
+        System.setProperty("artifacts.references.0.name", "ref-name");
+        System.setProperty("artifacts.references.0.groupId", "ref.group");
+        System.setProperty("artifacts.references.0.artifactId", "ref-artifact");
+        System.setProperty("artifacts.references.0.version", "1.0.0");
+
+        System.setProperty("artifacts.existingReferences.0.resourceName", "./schemas/shared.avsc");
+        System.setProperty("artifacts.existingReferences.0.groupId", "existing.group");
+        System.setProperty("artifacts.existingReferences.0.artifactId", "existing-artifact");
+        System.setProperty("artifacts.existingReferences.0.version", "2.0.0");
+
+        System.setProperty("artifacts.protoPaths.0", protoPathOne.toString());
+        System.setProperty("artifacts.protoPaths.1", protoPathTwo.toString());
+
+        RegisterRegistryMojo mojo = new RegisterRegistryMojo();
+        mojo.validate();
+
+        RegisterArtifact artifact = mojo.artifacts.get(0);
+
+        assertNotNull(artifact.getReferences());
+        assertEquals(1, artifact.getReferences().size());
+        RegisterArtifactReference reference = artifact.getReferences().get(0);
+        assertEquals("ref-name", reference.getName());
+        assertEquals("ref.group", reference.getGroupId());
+        assertEquals("ref-artifact", reference.getArtifactId());
+        assertEquals("1.0.0", reference.getVersion());
+
+        assertNotNull(artifact.getExistingReferences());
+        assertEquals(1, artifact.getExistingReferences().size());
+        ExistingReference existingReference = artifact.getExistingReferences().get(0);
+        assertEquals("./schemas/shared.avsc", existingReference.getResourceName());
+        assertEquals("existing.group", existingReference.getGroupId());
+        assertEquals("existing-artifact", existingReference.getArtifactId());
+        assertEquals("2.0.0", existingReference.getVersion());
+
+        assertEquals(List.of(protoPathOne.toFile(), protoPathTwo.toFile()), artifact.getProtoPaths());
+    }
+
+    @Test
+    void testCliSupportedFieldsStayAlignedWithRegisterArtifactProperties() throws IntrospectionException {
+        // If a new writable RegisterArtifact property is added, update the CLI system-property
+        // support and the expected set below.
         Set<String> expectedCliFields = Set.of(
                 "groupId",
                 "artifactId",
@@ -75,25 +125,20 @@ public class RegisterRegistryMojoCliPropertiesTest {
                 "canonicalize",
                 "minify",
                 "autoRefs",
+                "versionStrategy",
                 "avroAutoRefsNamingStrategy",
                 "isDraft",
-                "contentType");
+                "contentType",
+                "references",
+                "existingReferences",
+                "protoPaths");
 
-        Set<String> actualSimpleWritableProperties = Arrays.stream(
+        Set<String> actualWritableProperties = Arrays.stream(
                         Introspector.getBeanInfo(RegisterArtifact.class, Object.class).getPropertyDescriptors())
                 .filter(pd -> pd.getWriteMethod() != null)
-                .filter(pd -> isCliSupportedScalarType(pd.getPropertyType()))
                 .map(PropertyDescriptor::getName)
                 .collect(Collectors.toSet());
 
-        assertEquals(expectedCliFields, actualSimpleWritableProperties);
-    }
-
-    private static boolean isCliSupportedScalarType(Class<?> propertyType) {
-        return propertyType == String.class
-                || propertyType == File.class
-                || propertyType == Boolean.class
-                || propertyType == IfArtifactExists.class
-                || propertyType == RegisterArtifact.AvroAutoRefsNamingStrategy.class;
+        assertEquals(expectedCliFields, actualWritableProperties);
     }
 }

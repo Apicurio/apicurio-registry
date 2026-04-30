@@ -40,8 +40,12 @@ PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 PREVIOUS_PACKAGE_VERSION ?= 3.2.3
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
-CHANNELS ?= 3.x
-DEFAULT_CHANNEL ?= $(CHANNELS)
+# Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)
+CHANNEL ?= $(shell echo "$(LC_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+PREVIOUS_CHANNEL ?= $(shell echo "$(PREVIOUS_PACKAGE_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+
+CHANNELS ?= $(CHANNEL)
+DEFAULT_CHANNEL ?= $(CHANNEL)
 
 BUNDLE_OPTS ?= --package $(PACKAGE_NAME) --version $(LC_VERSION) --channels=$(CHANNELS) --default-channel=$(DEFAULT_CHANNEL)
 BUNDLE_DIR ?= target/bundle/$(PACKAGE_NAME)/$(LC_VERSION)
@@ -111,6 +115,8 @@ export PLACEHOLDER_BUNDLE_IMAGE := $(BUNDLE_IMAGE)
 export PLACEHOLDER_CATALOG_NAMESPACE := $(CATALOG_NAMESPACE)
 export PLACEHOLDER_CATALOG_IMAGE := $(CATALOG_IMAGE)
 
+export PLACEHOLDER_CHANNEL := $(CHANNEL)
+
 
 ########## Help
 
@@ -148,6 +154,8 @@ endif
 	@echo ""
 	@echo "$(CC_CYAN)Bundle$(CC_END)"
 	@echo "PACKAGE_NAME=$(PACKAGE_NAME)"
+	@echo "CHANNEL=$(CHANNEL)"
+	@echo "PREVIOUS_CHANNEL=$(PREVIOUS_CHANNEL)"
 	@echo "CHANNELS=$(CHANNELS)"
 	@echo "DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)"
 	@echo "BUNDLE_IMAGE=$(BUNDLE_IMAGE)"
@@ -480,8 +488,30 @@ endif
 
 .PHONY: release-catalog-template-update
 release-catalog-template-update: install-yq
+	# Update 3.x rolling channel: replace placeholder with released version, add new placeholder
 	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
 	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
+	# Update minor-version channel
+	@if $(YQ) -e '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(PREVIOUS_CHANNEL)"))' $(CATALOG_DIR)/catalog.template.yaml > /dev/null 2>&1; then \
+		echo "Updating existing $(PREVIOUS_CHANNEL) channel"; \
+		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(PREVIOUS_CHANNEL)") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml; \
+	else \
+		echo "Creating new $(PREVIOUS_CHANNEL) channel with $(PREVIOUS_PACKAGE)"; \
+		$(YQ) '.entries |= . + [{"schema": "olm.channel", "package": "$${PLACEHOLDER_PACKAGE_NAME}", "name": "$(PREVIOUS_CHANNEL)", "entries": [{"name": "$(PREVIOUS_PACKAGE)"}]}]' -i $(CATALOG_DIR)/catalog.template.yaml; \
+	fi
+	@if [ "$(CHANNEL)" = "$(PREVIOUS_CHANNEL)" ]; then \
+		echo "Adding placeholder to $(CHANNEL) channel (same minor)"; \
+		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml; \
+	elif $(YQ) -e '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)"))' $(CATALOG_DIR)/catalog.template.yaml > /dev/null 2>&1; then \
+		echo "Adding placeholder to existing $(CHANNEL) channel (new minor)"; \
+		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml; \
+	else \
+		echo "Creating new $(CHANNEL) channel with placeholder (new minor)"; \
+		$(YQ) '.entries |= . + [{"schema": "olm.channel", "package": "$${PLACEHOLDER_PACKAGE_NAME}", "name": "$(CHANNEL)", "entries": [{"name": "$${PLACEHOLDER_PACKAGE}"}]}]' -i $(CATALOG_DIR)/catalog.template.yaml; \
+	fi
+	# Update defaultChannel to the current channel
+	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
+	# Add bundle image for the released version
 	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(PREVIOUS_BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
 
 

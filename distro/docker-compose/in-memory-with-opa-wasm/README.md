@@ -65,22 +65,22 @@ Get a token for each user:
 # Admin token
 ADMIN_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=registry-api&username=admin&password=admin" | jq -r '.access_token')
+  -d "grant_type=password&client_id=apicurio-registry&username=admin&password=admin" | jq -r '.access_token')
 
 # Developer token (team-a access)
 DEV_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=registry-api&username=developer&password=developer" | jq -r '.access_token')
+  -d "grant_type=password&client_id=apicurio-registry&username=developer&password=developer" | jq -r '.access_token')
 
 # Developer2 token (team-b access)
 DEV2_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=registry-api&username=developer2&password=developer" | jq -r '.access_token')
+  -d "grant_type=password&client_id=apicurio-registry&username=developer2&password=developer" | jq -r '.access_token')
 
 # Read-only user token
 USER_TOKEN=$(curl -s -X POST "http://localhost:8090/realms/registry/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=password&client_id=registry-api&username=user&password=user" | jq -r '.access_token')
+  -d "grant_type=password&client_id=apicurio-registry&username=user&password=user" | jq -r '.access_token')
 ```
 
 Create artifacts as admin:
@@ -175,7 +175,7 @@ Edit `grants.json` to change per-resource permissions. The file is mounted into 
 # Edit grants.json -- changes take effect within 5 seconds
 ```
 
-See `app/src/main/java/io/apicurio/registry/auth/opawasm/README.md` for the full design documentation, scaling characteristics, and known limitations.
+See `app/src/main/java/io/apicurio/registry/auth/grants/README.md` for the full design documentation, scaling characteristics, and known limitations.
 
 ## Files
 

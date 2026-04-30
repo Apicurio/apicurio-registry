@@ -29,6 +29,7 @@ services:
       QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak:8080/realms/registry"
       QUARKUS_OIDC_CLIENT_ID: "registry-api"
       APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
+      apicurio.ui.auth.oidc.url: "http://localhost:8090/realms/registry"
       apicurio.ui.auth.oidc.redirect-uri: "http://localhost:8888/"
       QUARKUS_OIDC_TLS_VERIFICATION: "none"
       QUARKUS_OIDC_TOKEN_ISSUER: "any"

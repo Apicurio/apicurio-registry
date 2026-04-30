@@ -43,15 +43,22 @@ User → Keycloak (authn + JWT with roles)
 
 ## Quick start
 
-Build the Registry image from source (from the repository root):
+Build both the Registry API and UI images from source (from the repository root):
 
 ```bash
-# Build the app and prepare the docker context
+# Build the Registry API and docker context
 mvn install -pl distro/docker -am -DskipTests -Dcheckstyle.skip=true
 
-# Start all services (builds the Registry image automatically)
+# Build the UI
+cd ui && npm install && npm run build && cp -r ui-app/dist . && cd ..
+
+# Build Docker images
+docker build -t apicurio/apicurio-registry:latest-snapshot -f distro/docker/target/docker/Dockerfile.jvm distro/docker/target/docker/
+docker build -t apicurio/apicurio-registry-ui:latest-snapshot ui/
+
+# Start all services
 cd distro/docker-compose/in-memory-with-authz-grants
-docker compose up -d --build
+docker compose up -d
 ```
 
 Wait for Keycloak to start (~15 seconds), then access:

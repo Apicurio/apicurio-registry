@@ -293,6 +293,75 @@ When usage telemetry is enabled, the registry UI displays:
   ** Deprecation readiness panel (click a version column header to check).
 * **SUNSET badge** — Versions in the SUNSET state display a purple badge.
 
+== OpenTelemetry Metrics Export
+
+Usage telemetry data is also exported as OpenTelemetry metrics, allowing you to monitor schema usage in external dashboards (Grafana, Prometheus, etc.) alongside other registry metrics.
+
+When OpenTelemetry is enabled (`quarkus.otel.sdk.disabled=false`), the following metrics are available:
+
+=== Counters
+
+[cols="2,3"]
+|===
+|Metric |Description
+
+|`apicurio.usage.events.received`
+|Total number of usage telemetry events received from SerDes clients. Tagged with `operation` (SERIALIZE/DESERIALIZE).
+|===
+
+=== Gauges
+
+These gauges are updated after each aggregation job run and reflect the current classification counts:
+
+[cols="2,3"]
+|===
+|Metric |Description
+
+|`apicurio.usage.schemas.active`
+|Number of schema versions classified as Active (fetched within the active threshold).
+
+|`apicurio.usage.schemas.stale`
+|Number of schema versions classified as Stale (not fetched within the stale threshold).
+
+|`apicurio.usage.schemas.dead`
+|Number of schema versions classified as Dead (not fetched within the dead threshold or never fetched).
+|===
+
+=== Enabling OTel Export
+
+To export usage metrics to an OpenTelemetry collector:
+
+[source,properties]
+----
+# Enable OTel (disabled by default)
+quarkus.otel.sdk.disabled=false
+
+# Configure OTLP exporter
+quarkus.otel.exporter.otlp.endpoint=http://otel-collector:4317
+quarkus.otel.exporter.otlp.protocol=grpc
+
+# Enable metrics signal
+quarkus.otel.metrics.enabled=true
+----
+
+The metrics are exported via the standard OTLP protocol and can be scraped by any OTel-compatible backend. When OTel is disabled (the default), the metrics are silently no-ops with no performance overhead.
+
+=== Example Grafana Dashboard Query
+
+To visualize Active/Stale/Dead counts over time in Grafana with a Prometheus data source:
+
+[source,promql]
+----
+# Active schemas over time
+apicurio_usage_schemas_active
+
+# All classifications in one panel
+apicurio_usage_schemas_active or apicurio_usage_schemas_stale or apicurio_usage_schemas_dead
+
+# Usage event rate (events per second)
+rate(apicurio_usage_events_received_total[5m])
+----
+
 == Privacy and Data Collection
 
 Usage telemetry is designed with privacy in mind:

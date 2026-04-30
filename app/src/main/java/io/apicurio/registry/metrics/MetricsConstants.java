@@ -49,6 +49,23 @@ public interface MetricsConstants {
     String ICEBERG_ERRORS = ICEBERG_PREFIX + "errors";
     String ICEBERG_ERRORS_DESCRIPTION = "Iceberg-specific errors by type";
 
+    // Usage Telemetry
+
+    String USAGE_PREFIX = "usage.";
+    String USAGE_EVENTS_RECEIVED = USAGE_PREFIX + "events.received";
+    String USAGE_EVENTS_RECEIVED_DESCRIPTION = "Total number of usage telemetry events received from SerDes clients";
+    String USAGE_SCHEMAS_ACTIVE = USAGE_PREFIX + "schemas.active";
+    String USAGE_SCHEMAS_ACTIVE_DESCRIPTION = "Number of schema versions classified as active";
+    String USAGE_SCHEMAS_STALE = USAGE_PREFIX + "schemas.stale";
+    String USAGE_SCHEMAS_STALE_DESCRIPTION = "Number of schema versions classified as stale";
+    String USAGE_SCHEMAS_DEAD = USAGE_PREFIX + "schemas.dead";
+    String USAGE_SCHEMAS_DEAD_DESCRIPTION = "Number of schema versions classified as dead";
+
+    // Usage tags/labels
+
+    String USAGE_TAG_OPERATION = "operation";
+    String USAGE_TAG_CLIENT_ID = "clientId";
+
     // Iceberg tags/labels
 
     String ICEBERG_TAG_OPERATION = "operation";

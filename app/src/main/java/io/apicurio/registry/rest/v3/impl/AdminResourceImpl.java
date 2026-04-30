@@ -19,6 +19,7 @@ import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.v3.AdminResource;
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.rest.v3.beans.ActiveConsumer;
 import io.apicurio.registry.rest.v3.beans.ArtifactTypeInfo;
 import io.apicurio.registry.rest.v3.beans.ArtifactUsageMetrics;
@@ -124,6 +125,9 @@ public class AdminResourceImpl implements AdminResource {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    OTelMetricsProvider otelMetrics;
 
     @Inject
     RulesProperties rulesProperties;
@@ -709,6 +713,7 @@ public class AdminResourceImpl implements AdminResource {
                         .build())
                 .toList();
         storage.recordUsageEvents(dtos);
+        dtos.forEach(dto -> otelMetrics.recordUsageEventsReceived(1, dto.getOperation()));
     }
 
     @Override

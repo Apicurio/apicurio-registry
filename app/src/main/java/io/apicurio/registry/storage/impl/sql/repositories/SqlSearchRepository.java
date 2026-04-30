@@ -150,6 +150,42 @@ public class SqlSearchRepository {
                             });
                         }
                         break;
+                    case groupIdInOrArtifactExact:
+                        var allowedGroups = filter.getGroupIdInValue();
+                        var exactResources = filter.getExactResourcesValue();
+                        where.append("(");
+                        boolean aFirst = true;
+                        if (!allowedGroups.isEmpty()) {
+                            var gPlaceholders = String.join(", ",
+                                    allowedGroups.stream().map(g -> "?").toList());
+                            where.append("a.groupId IN (").append(gPlaceholders).append(")");
+                            for (String gid : allowedGroups) {
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, normalizeGroupId(gid));
+                                });
+                            }
+                            aFirst = false;
+                        }
+                        for (String resource : exactResources) {
+                            int sepIdx = resource.indexOf("/");
+                            if (sepIdx > 0) {
+                                String eGroupId = resource.substring(0, sepIdx);
+                                String eArtifactId = resource.substring(sepIdx + 1);
+                                if (!aFirst) {
+                                    where.append(" OR ");
+                                }
+                                where.append("(a.groupId = ? AND a.artifactId = ?)");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, normalizeGroupId(eGroupId));
+                                });
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, eArtifactId);
+                                });
+                                first = false;
+                            }
+                        }
+                        where.append(")");
+                        break;
                     case artifactId:
                         op = filter.isNot() ? "!=" : "=";
                         where.append("a.artifactId " + op + " ?");
@@ -341,6 +377,42 @@ public class SqlSearchRepository {
                                 query.bind(idx, normalizeGroupId(gid));
                             });
                         }
+                        break;
+                    case groupIdInOrArtifactExact:
+                        var vAllowedGroups = filter.getGroupIdInValue();
+                        var vExactResources = filter.getExactResourcesValue();
+                        where.append("(");
+                        boolean vFirst = true;
+                        if (!vAllowedGroups.isEmpty()) {
+                            var vgPlaceholders = String.join(", ",
+                                    vAllowedGroups.stream().map(g -> "?").toList());
+                            where.append("a.groupId IN (").append(vgPlaceholders).append(")");
+                            for (String gid : vAllowedGroups) {
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, normalizeGroupId(gid));
+                                });
+                            }
+                            vFirst = false;
+                        }
+                        for (String resource : vExactResources) {
+                            int sepIdx = resource.indexOf("/");
+                            if (sepIdx > 0) {
+                                String eGroupId = resource.substring(0, sepIdx);
+                                String eArtifactId = resource.substring(sepIdx + 1);
+                                if (!vFirst) {
+                                    where.append(" OR ");
+                                }
+                                where.append("(a.groupId = ? AND a.artifactId = ?)");
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, normalizeGroupId(eGroupId));
+                                });
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, eArtifactId);
+                                });
+                                vFirst = false;
+                            }
+                        }
+                        where.append(")");
                         break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";

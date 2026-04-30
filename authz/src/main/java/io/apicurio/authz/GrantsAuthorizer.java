@@ -120,33 +120,38 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
         String operation = action.operation().toString().toLowerCase(java.util.Locale.ROOT);
         String resourceName = action.resourceName();
 
+        // Deny rules take precedence — check them first
         for (Grant grant : userGrants) {
+            if (!grant.deny()) {
+                continue;
+            }
             if (!grant.matchesResourceType(resourceType)) {
                 continue;
             }
             if (!grant.impliesOperation(operation)) {
                 continue;
             }
-            if (matchesPattern(grant, resourceName)) {
+            if (grant.matchesResource(resourceName)) {
+                return false;
+            }
+        }
+
+        // Then check allow rules
+        for (Grant grant : userGrants) {
+            if (grant.deny()) {
+                continue;
+            }
+            if (!grant.matchesResourceType(resourceType)) {
+                continue;
+            }
+            if (!grant.impliesOperation(operation)) {
+                continue;
+            }
+            if (grant.matchesResource(resourceName)) {
                 return true;
             }
         }
         return false;
-    }
-
-    private static boolean matchesPattern(Grant grant, String resourceName) {
-        if (grant.isWildcard()) {
-            return true;
-        }
-        String patternType = grant.resourcePatternType();
-        String pattern = grant.resourcePattern();
-        if ("exact".equals(patternType)) {
-            return pattern.equals(resourceName);
-        }
-        if ("prefix".equals(patternType)) {
-            return resourceName.startsWith(pattern);
-        }
-        return pattern.equals(resourceName);
     }
 
     private static String extractUsername(Subject subject) {

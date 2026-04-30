@@ -64,12 +64,34 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.groupIdIn, values);
     }
 
+    public static SearchFilter ofGroupIdInOrArtifactExact(Set<String> allowedGroups,
+            Set<String> exactResources) {
+        return new SearchFilter(SearchFilterType.groupIdInOrArtifactExact,
+                new Object[]{allowedGroups, exactResources});
+    }
+
     @SuppressWarnings("unchecked")
     public Set<String> getSetValue() {
         if (value instanceof Set) {
             return (Set<String>) value;
         }
         throw new IllegalStateException("value is not of type Set");
+    }
+
+    @SuppressWarnings("unchecked")
+    public Set<String> getGroupIdInValue() {
+        if (value instanceof Object[] arr) {
+            return (Set<String>) arr[0];
+        }
+        throw new IllegalStateException("value is not a compound filter");
+    }
+
+    @SuppressWarnings("unchecked")
+    public Set<String> getExactResourcesValue() {
+        if (value instanceof Object[] arr) {
+            return (Set<String>) arr[1];
+        }
+        throw new IllegalStateException("value is not a compound filter");
     }
 
     public static SearchFilter ofArtifactId(String value) {

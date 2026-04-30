@@ -87,8 +87,10 @@ public class GrantsData {
                                 + "Valid values: prefix, exact.", i, resourcePatternType);
                     }
 
+                    boolean deny = g.path("deny").asBoolean(false);
+
                     grants.add(new Grant(principal, principalRole, operation, resourceType,
-                            resourcePatternType, resourcePattern));
+                            resourcePatternType, resourcePattern, deny));
                 }
             }
 
@@ -158,6 +160,62 @@ public class GrantsData {
             LOG.error("Failed to serialize per-user grants data", e);
             return rawJson;
         }
+    }
+
+    public SearchFilterData getSearchFilterData(String user, Set<String> roles, String resourceType,
+            String groupSeparator) {
+        Set<String> groups = new HashSet<>();
+        Set<String> exactResources = new HashSet<>();
+        boolean hasWildcard = false;
+
+        for (Grant grant : grants) {
+            if (grant.deny()) {
+                continue;
+            }
+            if (!grant.matchesPrincipal(user, roles)) {
+                continue;
+            }
+            if (!grant.matchesResourceType(resourceType)) {
+                continue;
+            }
+            if (!grant.impliesOperation("read")) {
+                continue;
+            }
+            if (grant.isWildcard()) {
+                hasWildcard = true;
+                break;
+            }
+
+            if (groupSeparator != null) {
+                if ("prefix".equals(grant.resourcePatternType())) {
+                    String group = grant.extractGroupFromPattern(groupSeparator);
+                    if (group != null) {
+                        groups.add(group);
+                    }
+                } else if ("exact".equals(grant.resourcePatternType())) {
+                    if (grant.resourcePattern().contains(groupSeparator)) {
+                        exactResources.add(grant.resourcePattern());
+                    } else {
+                        groups.add(grant.resourcePattern());
+                    }
+                }
+            } else {
+                if ("exact".equals(grant.resourcePatternType())) {
+                    groups.add(grant.resourcePattern());
+                } else if ("prefix".equals(grant.resourcePatternType())) {
+                    hasWildcard = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasWildcard) {
+            return SearchFilterData.all();
+        }
+        if (groups.isEmpty() && exactResources.isEmpty()) {
+            return SearchFilterData.none();
+        }
+        return new SearchFilterData(groups, exactResources, false);
     }
 
     public Set<String> getAllowedValues(String user, Set<String> roles, String resourceType,

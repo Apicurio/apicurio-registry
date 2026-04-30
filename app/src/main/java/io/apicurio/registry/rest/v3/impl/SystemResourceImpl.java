@@ -99,7 +99,7 @@ public class SystemResourceImpl implements SystemResource {
                 : UserInterfaceConfigAuth.Type.none);
         if (authConfig.isOidcAuthEnabled()) {
             Map<String, String> options = new HashMap<>();
-            options.put("url", uiConfig.authOidcUrl);
+            options.put("url", uiConfig.authOidcUrlOverride.orElse(uiConfig.authOidcUrl));
             // Only include redirectUri if explicitly configured
             uiConfig.authOidcRedirectUri.ifPresent(uri -> options.put("redirectUri", uri));
             options.put("clientId", uiConfig.authOidcClientId);

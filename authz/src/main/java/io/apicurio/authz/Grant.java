@@ -8,7 +8,8 @@ public record Grant(
         String operation,
         String resourceType,
         String resourcePatternType,
-        String resourcePattern) {
+        String resourcePattern,
+        boolean deny) {
 
     public boolean matchesPrincipal(String user, Set<String> roles) {
         if (user.equals(principal)) {
@@ -33,6 +34,19 @@ public record Grant(
 
     public boolean isWildcard() {
         return "*".equals(resourcePattern);
+    }
+
+    public boolean matchesResource(String resourceName) {
+        if (isWildcard()) {
+            return true;
+        }
+        if ("exact".equals(resourcePatternType)) {
+            return resourcePattern.equals(resourceName);
+        }
+        if ("prefix".equals(resourcePatternType)) {
+            return resourceName.startsWith(resourcePattern);
+        }
+        return resourcePattern.equals(resourceName);
     }
 
     public String extractGroupFromPattern(String separator) {

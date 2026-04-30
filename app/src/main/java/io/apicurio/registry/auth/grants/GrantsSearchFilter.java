@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.apicurio.authz.GrantsData;
+import io.apicurio.authz.SearchFilterData;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -83,17 +84,24 @@ public class GrantsSearchFilter {
         }
 
         String separator = "artifact".equals(resourceType) ? "/" : null;
-        Set<String> allowedGroups = data.getAllowedValues(user, roles, resourceType, separator);
-        if (allowedGroups == null) {
+        SearchFilterData filterData = data.getSearchFilterData(user, roles, resourceType, separator);
+
+        if (filterData.allowAll()) {
             return filters;
         }
-        if (allowedGroups.isEmpty()) {
+        if (!filterData.hasFilters()) {
             return null;
         }
 
         Set<SearchFilter> augmented = new HashSet<>(filters);
-        augmented.add(SearchFilter.ofGroupIdIn(allowedGroups));
-        LOG.debug("Authorization filter: user={}, allowedGroups={}", user, allowedGroups);
+        if (filterData.allowedExactResources().isEmpty()) {
+            augmented.add(SearchFilter.ofGroupIdIn(filterData.allowedGroups()));
+        } else {
+            augmented.add(SearchFilter.ofGroupIdInOrArtifactExact(
+                    filterData.allowedGroups(), filterData.allowedExactResources()));
+        }
+        LOG.debug("Authorization filter: user={}, groups={}, exact={}",
+                user, filterData.allowedGroups(), filterData.allowedExactResources());
         return augmented;
     }
 

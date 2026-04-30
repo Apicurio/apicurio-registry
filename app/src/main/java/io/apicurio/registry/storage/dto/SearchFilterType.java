@@ -6,6 +6,6 @@ package io.apicurio.registry.storage.dto;
  */
 public enum SearchFilterType {
 
-    groupId, groupIdIn, artifactId, version, name, description, labels, contentHash, canonicalHash, globalId, contentId, state, artifactType, content, structure
+    groupId, groupIdIn, groupIdInOrArtifactExact, artifactId, version, name, description, labels, contentHash, canonicalHash, globalId, contentId, state, artifactType, content, structure
 
 }

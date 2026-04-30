@@ -32,6 +32,28 @@
       "resource_pattern": "shared"
     },
     {
+      "principal": "developer",
+      "operation": "read",
+      "resource_type": "artifact",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-a/secret-schema",
+      "deny": true
+    },
+    {
+      "principal": "developer",
+      "operation": "read",
+      "resource_type": "artifact",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-b/public-schema"
+    },
+    {
+      "principal": "developer",
+      "operation": "read",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-b"
+    },
+    {
       "principal": "user",
       "operation": "read",
       "resource_type": "artifact",

@@ -53,6 +53,14 @@
       "resource_pattern": "team-b"
     },
     {
+      "principal": "developer-client",
+      "operation": "read",
+      "resource_type": "artifact",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "team-a/secret-schema",
+      "deny": true
+    },
+    {
       "principal_role": "sr-readonly",
       "operation": "read",
       "resource_type": "artifact",

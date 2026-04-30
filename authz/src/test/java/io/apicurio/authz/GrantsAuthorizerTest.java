@@ -221,6 +221,72 @@ class GrantsAuthorizerTest {
         assertTrue(json1 == json2);
     }
 
+    // ==================== Deny rules ====================
+
+    @Test
+    void denyRuleBlocksAllowedResource() {
+        Subject dev = user("developer-client");
+        assertEquals(Decision.ALLOW, decide(dev, Artifact.Read, "team-a/schema-1"));
+        assertEquals(Decision.DENY, decide(dev, Artifact.Read, "team-a/secret-schema"));
+    }
+
+    @Test
+    void denyRuleDoesNotAffectOtherResources() {
+        Subject dev = user("developer-client");
+        assertEquals(Decision.ALLOW, decide(dev, Artifact.Write, "team-a/other-schema"));
+        assertEquals(Decision.ALLOW, decide(dev, Artifact.Read, "shared/common"));
+    }
+
+    @Test
+    void denyRuleTakesPrecedenceOverAllow() {
+        Subject dev = user("developer-client");
+        assertEquals(Decision.ALLOW, decide(dev, Artifact.Write, "team-a/normal-schema"));
+        assertEquals(Decision.DENY, decide(dev, Artifact.Read, "team-a/secret-schema"));
+    }
+
+    @Test
+    void batchedWithDenyRules() {
+        Subject dev = user("developer-client");
+        List<Action> actions = List.of(
+                new Action(Artifact.Read, "team-a/schema-1"),
+                new Action(Artifact.Read, "team-a/secret-schema"),
+                new Action(Artifact.Read, "shared/common")
+        );
+        AuthorizeResult result = authorizer.authorize(dev, actions).toCompletableFuture().join();
+        assertEquals(2, result.allowed().size());
+        assertEquals(1, result.denied().size());
+        assertEquals("team-a/secret-schema", result.denied().get(0).resourceName());
+    }
+
+    // ==================== Exact artifact grants ====================
+
+    @Test
+    void exactArtifactGrantInDeniedGroup() {
+        Subject dev = user("developer-client");
+        assertEquals(Decision.ALLOW, decide(dev, Artifact.Read, "team-b/public-schema"));
+        assertEquals(Decision.DENY, decide(dev, Artifact.Read, "team-b/private-schema"));
+    }
+
+    // ==================== SearchFilterData ====================
+
+    @Test
+    void searchFilterDataIncludesExactResources() {
+        GrantsData data = authorizer.getGrantsData();
+        SearchFilterData filterData = data.getSearchFilterData(
+                "developer-client", Set.of(), "artifact", "/");
+        assertNotNull(filterData);
+        assertFalse(filterData.allowAll());
+        assertTrue(filterData.allowedGroups().contains("team-a"));
+        assertTrue(filterData.allowedGroups().contains("shared"));
+        assertTrue(filterData.allowedExactResources().contains("team-b/public-schema"));
+    }
+
+    @Test
+    void searchFilterDataAdminCheckedSeparately() {
+        GrantsData data = authorizer.getGrantsData();
+        assertTrue(data.isAdmin(Set.of("sr-admin")));
+    }
+
     // ==================== Permissions query ====================
 
     @Test

@@ -8,12 +8,16 @@ import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Content validator for AI/ML Model Schema artifacts.
@@ -21,7 +25,7 @@ import java.util.Set;
  * Validates the structural integrity of Model Schema documents including required fields,
  * field types, and reference consistency.
  */
-public class ModelSchemaContentValidator extends AbstractContentValidator {
+public class ModelSchemaContentValidator implements ContentValidator {
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -98,7 +102,20 @@ public class ModelSchemaContentValidator extends AbstractContentValidator {
             throws RuleViolationException {
         Set<String> allRefs = getAllRefs(content);
         if (!allRefs.isEmpty()) {
-            validateMappedReferences(references, allRefs, "Unmapped reference detected.");
+            Set<String> mappedRefNames = references.stream()
+                    .map(ArtifactReference::getName)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            Set<RuleViolation> violations = allRefs.stream()
+                    .filter(ref -> !mappedRefNames.contains(ref))
+                    .map(missingRef -> new RuleViolation("Unmapped reference detected.", missingRef))
+                    .collect(Collectors.toSet());
+
+            if (!violations.isEmpty()) {
+                throw new RuleViolationException("Unmapped reference detected.",
+                        RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(), violations);
+            }
         }
     }
 

@@ -8,6 +8,8 @@ import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,9 +17,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Content validator for Prompt Template artifacts.
@@ -25,7 +29,7 @@ import java.util.regex.Pattern;
  * Validates the structural integrity of Prompt Template documents including required fields,
  * template variable cross-checking, variable schema validation, and reference consistency.
  */
-public class PromptTemplateContentValidator extends AbstractContentValidator {
+public class PromptTemplateContentValidator implements ContentValidator {
 
     private static final Pattern TEMPLATE_VARIABLE_PATTERN = Pattern.compile("\\{\\{(\\w+)\\}\\}");
     private static final List<String> VALID_VARIABLE_TYPES = Arrays.asList(
@@ -187,7 +191,20 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             throws RuleViolationException {
         Set<String> allRefs = getAllRefs(content);
         if (!allRefs.isEmpty()) {
-            validateMappedReferences(references, allRefs, "Unmapped reference detected.");
+            Set<String> mappedRefNames = references.stream()
+                    .map(ArtifactReference::getName)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            Set<RuleViolation> violations = allRefs.stream()
+                    .filter(ref -> !mappedRefNames.contains(ref))
+                    .map(missingRef -> new RuleViolation("Unmapped reference detected.", missingRef))
+                    .collect(Collectors.toSet());
+
+            if (!violations.isEmpty()) {
+                throw new RuleViolationException("Unmapped reference detected.",
+                        RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(), violations);
+            }
         }
     }
 

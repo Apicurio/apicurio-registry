@@ -204,6 +204,85 @@ class RetryInvocationHandlerTest {
                 "Should have retried once after wrapped Connection reset IOException");
     }
 
+    /**
+     * Simulates the production scenario where Method.invoke() does NOT wrap the exception in
+     * InvocationTargetException (observed with JDK 21's DirectMethodHandleAccessor). The
+     * RuntimeException with a retryable cause should still trigger retries.
+     */
+    @Test
+    void testRuntimeExceptionWithRetryableCauseIsRetried() throws Throwable {
+        AtomicInteger callCount = new AtomicInteger(0);
+        RequestAdapter realAdapter = throwingAdapter(() -> {
+            if (callCount.incrementAndGet() <= 1) {
+                throw new RuntimeException(
+                        new ExecutionException(new HttpClosedException("Connection was closed")));
+            }
+            return "success";
+        });
+
+        RequestAdapter proxy = (RequestAdapter) java.lang.reflect.Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{RequestAdapter.class},
+                new RegistryClientRequestAdapterFactory.RetryInvocationHandler(
+                        realAdapter, MAX_RETRIES, NO_DELAY, BACKOFF, NO_MAX_DELAY));
+
+        proxy.getBaseUrl();
+
+        assertEquals(2, callCount.get(),
+                "Should have retried once after RuntimeException with retryable cause");
+    }
+
+    /**
+     * A RuntimeException wrapping a non-retryable cause should propagate immediately.
+     */
+    @Test
+    void testRuntimeExceptionWithNonRetryableCauseIsNotRetried() {
+        AtomicInteger callCount = new AtomicInteger(0);
+        RequestAdapter realAdapter = throwingAdapter(() -> {
+            callCount.incrementAndGet();
+            throw new RuntimeException(new IllegalStateException("not retryable"));
+        });
+
+        RequestAdapter proxy = (RequestAdapter) java.lang.reflect.Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{RequestAdapter.class},
+                new RegistryClientRequestAdapterFactory.RetryInvocationHandler(
+                        realAdapter, MAX_RETRIES, NO_DELAY, BACKOFF, NO_MAX_DELAY));
+
+        assertThrows(RuntimeException.class, proxy::getBaseUrl,
+                "Non-retryable RuntimeException should propagate immediately");
+        assertEquals(1, callCount.get(),
+                "Should have been called exactly once with no retries");
+    }
+
+    /**
+     * End-to-end test through a real JDK Proxy to exercise the actual proxy dispatch path
+     * with HttpClosedException wrapped in RuntimeException → ExecutionException.
+     */
+    @Test
+    void testProxyBasedRetryWithHttpClosedException() throws Throwable {
+        AtomicInteger callCount = new AtomicInteger(0);
+        RequestAdapter realAdapter = throwingAdapter(() -> {
+            if (callCount.incrementAndGet() <= 2) {
+                throw new RuntimeException(
+                        new ExecutionException(new HttpClosedException("Connection was closed")));
+            }
+            return "success";
+        });
+
+        RequestAdapter proxy = (RequestAdapter) java.lang.reflect.Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{RequestAdapter.class},
+                new RegistryClientRequestAdapterFactory.RetryInvocationHandler(
+                        realAdapter, MAX_RETRIES, NO_DELAY, BACKOFF, NO_MAX_DELAY));
+
+        String result = proxy.getBaseUrl();
+
+        assertEquals("success", result, "Should succeed after retries");
+        assertEquals(3, callCount.get(),
+                "Should have been called 3 times (1 initial + 2 retries)");
+    }
+
     // ==================== Test Helpers ====================
 
     @FunctionalInterface

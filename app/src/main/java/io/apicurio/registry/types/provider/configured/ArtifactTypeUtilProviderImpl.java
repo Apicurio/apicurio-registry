@@ -18,7 +18,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.io.File;
-import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -41,27 +40,16 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     @Getter
     private String configFile;
 
-    private static final String BUNDLED_CONFIG_PATH = "llm-artifact-types/default-artifact-types-config.json";
-
     @PostConstruct
     public void init() {
-        // First, try to load from external config file
+        // Try to load from external config file for user-defined custom types
         ArtifactTypesConfiguration config = loadArtifactTypeConfiguration();
         if (config != null) {
             loadConfiguredProviders(config);
             return;
         }
 
-        // If no external config, try loading bundled LLM artifact types from classpath
-        config = loadBundledConfiguration();
-        if (config != null) {
-            log.info("Loading bundled LLM artifact types from classpath");
-            loadConfiguredProviders(config);
-            return;
-        }
-
-        // Fallback to standard providers only
-        log.info("No artifact type configuration found, using standard types only.");
+        // No external config — use standard providers (includes all built-in types)
         loadStandardProviders();
     }
 
@@ -117,20 +105,6 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
                 providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, scriptingService, artifactType));
                 artifactTypes.add(type);
             });
-        }
-    }
-
-    private ArtifactTypesConfiguration loadBundledConfiguration() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream(BUNDLED_CONFIG_PATH)) {
-            if (is == null) {
-                return null;
-            }
-            String configSrc = IoUtil.toString(is);
-            ObjectMapper mapper = new ObjectMapper();
-            return mapper.readValue(configSrc, ArtifactTypesConfiguration.class);
-        } catch (Exception e) {
-            log.warn("Failed to load bundled artifact type configuration from classpath", e);
-            return null;
         }
     }
 

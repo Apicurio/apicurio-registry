@@ -32,6 +32,8 @@ jobs:
     steps:
       - name: Evaluate scope
         id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           EVENT="${{ github.event_name }}"
           ACTION="${{ github.event.action }}"
@@ -53,7 +55,11 @@ jobs:
             fi
           fi
 
-          LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          # Fetch current labels from the API instead of the event payload.
+          # The event payload labels are stale when the orchestrator adds
+          # lifecycle labels after the workflow has already started.
+          PR_NUMBER='${{ github.event.pull_request.number }}'
+          LABELS=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" --jq '[.labels[].name]')
           has_label() { echo "$LABELS" | jq -e "index(\"$1\")" > /dev/null 2>&1; }
 
           if has_label "orchestrator/disabled"; then

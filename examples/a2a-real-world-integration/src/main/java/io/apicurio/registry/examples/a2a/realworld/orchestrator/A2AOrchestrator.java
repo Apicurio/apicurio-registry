@@ -91,8 +91,9 @@ public class A2AOrchestrator {
                 // Try to get the full agent card to get the URL
                 try {
                     agent.agentCard = fetchAgentCard(agent.groupId, agent.artifactId);
-                    if (agent.agentCard.has("url")) {
-                        agent.url = agent.agentCard.get("url").asText();
+                    JsonNode interfaces = agent.agentCard.path("supportedInterfaces");
+                    if (interfaces.isArray() && !interfaces.isEmpty()) {
+                        agent.url = interfaces.get(0).get("url").asText();
                     }
                 } catch (Exception e) {
                     LOGGER.warning("Could not fetch agent card for " + agent.name);

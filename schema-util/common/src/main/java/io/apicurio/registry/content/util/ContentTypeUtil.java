@@ -155,7 +155,8 @@ public final class ContentTypeUtil {
     public static JsonNode parseJsonOrYaml(TypedContent content) throws IOException {
         JsonNode node = null;
         String contentType = content.getContentType();
-        if (contentType.toLowerCase().contains("yaml") || contentType.toLowerCase().contains("yml")) {
+        if (contentType.toLowerCase().contains("yaml") || contentType.toLowerCase().contains("yml")
+                || contentType.equalsIgnoreCase("text/x-prompt-template")) {
             node = ContentTypeUtil.parseYaml(content.getContent());
         } else {
             node = ContentTypeUtil.parseJson(content.getContent());

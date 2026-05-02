@@ -41,6 +41,15 @@ public interface WellKnownResource {
     AgentCard getAgentCard();
 
     /**
+     * Returns the Agent Card for this Apicurio Registry instance.
+     * This is the canonical A2A v1.0 discovery endpoint.
+     */
+    @GET
+    @Path("/a2a")
+    @Produces(MediaType.APPLICATION_JSON)
+    AgentCard getAgentCardV1();
+
+    /**
      * Returns a specific registered Agent Card by group and artifact ID.
      * This enables proxying/serving of registered agent cards stored in the registry.
      *

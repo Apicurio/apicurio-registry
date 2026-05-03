@@ -229,8 +229,6 @@
     <debezium.version>2.7.4.Final</debezium.version>
     <pulsar-clients.version>3.3.9</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
-    <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
-    <quickjs4j.version>0.0.17</quickjs4j.version>
 
     <nats.version>2.25.2</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
@@ -816,26 +814,6 @@
         <version>${picocli.version}</version>
       </dependency>
 
-      <dependency>
-        <groupId>io.quarkiverse.quickjs4j</groupId>
-        <artifactId>quarkus-quickjs4j</artifactId>
-        <version>${quarkus-quickjs4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.roastedroot</groupId>
-        <artifactId>quickjs4j</artifactId>
-        <version>${quickjs4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.roastedroot</groupId>
-        <artifactId>quickjs4j-annotations</artifactId>
-        <version>${quickjs4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.roastedroot</groupId>
-        <artifactId>quickjs4j-processor</artifactId>
-        <version>${quickjs4j.version}</version>
-      </dependency>
       <dependency>
         <groupId>com.fasterxml.woodstox</groupId>
         <artifactId>woodstox-core</artifactId>

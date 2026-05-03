@@ -2,21 +2,18 @@ package io.apicurio.registry.types.provider.configured;
 
 import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
 import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
-import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.http.HttpClientService;
-import io.apicurio.registry.script.ArtifactTypeScriptProvider;
-import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ContentAccepterRequest;
 
 import java.util.Map;
 
 public class ConfiguredContentAccepter extends AbstractConfiguredArtifactTypeUtil<ContentAccepter> implements ContentAccepter {
 
-    public ConfiguredContentAccepter(HttpClientService httpClientService, ScriptingService scriptingService, ArtifactTypeConfiguration artifactType) {
-        super(httpClientService, scriptingService, artifactType, artifactType.getContentAccepter());
+    public ConfiguredContentAccepter(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getContentAccepter());
     }
 
     @Override
@@ -60,34 +57,6 @@ public class ConfiguredContentAccepter extends AbstractConfiguredArtifactTypeUti
             } catch (Throwable e) {
                 log.error("Error invoking webhook", e);
                 return false;
-            }
-        }
-
-    }
-
-    @Override
-    protected ContentAccepter createScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) throws Exception {
-        return new ScriptContentAccepterDelegate(artifactType, provider);
-    }
-
-    private class ScriptContentAccepterDelegate extends AbstractScriptDelegate implements ContentAccepter {
-
-        protected ScriptContentAccepterDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
-            super(artifactType, provider);
-        }
-
-        @Override
-        public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-            ContentAccepterRequest requestBody = createRequest(content, resolvedReferences);
-            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
-
-            try {
-                return scriptProvider.acceptsContent(requestBody);
-            } catch (Throwable e) {
-                log.error("Error executing script", e);
-                return false;
-            } finally {
-                closeScriptProvider(scriptProvider);
             }
         }
 

@@ -7,7 +7,6 @@ import io.apicurio.common.apps.config.ConfigPropertyCategory;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.config.artifactTypes.ArtifactTypesConfiguration;
 import io.apicurio.registry.http.HttpClientService;
-import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.utils.IoUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -31,9 +30,6 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
 
     @Inject
     HttpClientService httpClientService;
-
-    @Inject
-    ScriptingService scriptingService;
 
     @ConfigProperty(name = "apicurio.artifact-types.config-file", defaultValue = "/tmp/apicurio-registry-artifact-types.json")
     @Info(category = ConfigPropertyCategory.CATEGORY_TYPES, description = "Path to a configuration file containing a list of supported artifact types.", availableSince = "3.1.0")
@@ -72,7 +68,6 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     }
 
     private void loadConfiguredProviders(ArtifactTypesConfiguration config) {
-        // The set of loaded artifact types.
         Set<String> artifactTypes = new HashSet<>();
 
         if (config.getIncludeStandardArtifactTypes()) {
@@ -83,26 +78,22 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
         }
 
         if (!config.getArtifactTypes().isEmpty()) {
-            // Process each configured artifact type.
             config.getArtifactTypes().forEach(artifactType -> {
-                // All artifact types must have a valid, non-null "name" property
                 if (Objects.isNull(artifactType.getName()) || artifactType.getName().trim().isEmpty()) {
                     throw new IllegalArgumentException("Invalid configuration: Artifact type '" + artifactType.getArtifactType() + "' found with missing or empty 'name'.");
                 }
 
-                // All artifact types must have a valid and unique "artifactType" property
                 String type = artifactType.getArtifactType();
                 if (Objects.isNull(type) || type.trim().isEmpty()) {
                     throw new IllegalArgumentException("Invalid configuration: Artifact type named '" + artifactType.getName() + "' has missing or empty 'artifactType' property.");
                 }
 
-                // Artifact types must be unique.
                 if (artifactTypes.contains(type)) {
                     throw new IllegalArgumentException("Invalid configuration: Duplicate artifactType '" + type + "' found.");
                 }
 
                 log.info("Adding artifact type {}", artifactType.getName());
-                providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, scriptingService, artifactType));
+                providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, artifactType));
                 artifactTypes.add(type);
             });
         }

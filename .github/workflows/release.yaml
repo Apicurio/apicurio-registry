@@ -141,10 +141,6 @@ jobs:
           npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
           popd
 
-          pushd artifact-type-builtins
-          npm version ${{ env.RELEASE_UI_VERSION }} --allow-same-version
-          popd
-
       - name: (Operator) Configure env. variables
         run: |
           echo "OPERAND_IMAGE_TAG=${{ github.event.inputs.release-version }}" >> $GITHUB_ENV
@@ -415,10 +411,6 @@ jobs:
           popd
 
           pushd typescript-sdk
-          npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
-          popd
-
-          pushd artifact-type-builtins
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
           popd
 

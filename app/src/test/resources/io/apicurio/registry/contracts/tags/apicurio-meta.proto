@@ -1,0 +1,15 @@
+syntax = "proto3";
+package apicurio;
+
+import "google/protobuf/descriptor.proto";
+
+option java_package = "io.apicurio.registry.protobuf.meta";
+option java_outer_classname = "ApicurioMetaProto";
+
+message FieldMeta {
+    string tags = 1;
+}
+
+extend google.protobuf.FieldOptions {
+    FieldMeta field_meta = 51031;
+}

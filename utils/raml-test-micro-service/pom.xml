@@ -5,13 +5,13 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>3.2.2-SNAPSHOT</version>
+        <version>3.3.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>raml-test-micro-service</artifactId>
     <packaging>jar</packaging>
-    <name>raml-test-micro-service</name>
+    <name>Registry :: Utils :: RAML Test Microservice</name>
 
     <properties>
         <projectRoot>${project.basedir}/../..</projectRoot>

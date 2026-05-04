@@ -4,11 +4,12 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-examples</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>apicurio-registry-examples-json-maven-with-references-auto</artifactId>
   <packaging>jar</packaging>
+  <name>Registry :: Examples :: JSON Maven With References Auto</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

@@ -15,7 +15,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_CON
 public class DataContractsConfig {
 
     @ConfigProperty(name = "apicurio.contracts.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_CONTRACTS, description = "Enable data contracts support", registryAvailableSince = "3.2.0", experimental = true)
+    @Info(category = CATEGORY_CONTRACTS, description = "Enable data contracts support", availableSince = "3.2.0", experimental = true)
     boolean enabled;
 
     public boolean isEnabled() {

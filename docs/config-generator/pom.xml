@@ -5,13 +5,13 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-docs</artifactId>
-        <version>3.2.2-SNAPSHOT</version>
+        <version>3.3.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>apicurio-registry-config-generator</artifactId>
     <packaging>jar</packaging>
-    <name>apicurio-registry-config-generator</name>
+    <name>Registry :: Docs :: Config Generator</name>
     <description>Configuration documentation generator</description>
 
     <properties>

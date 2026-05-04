@@ -55,6 +55,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -226,10 +227,20 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         Collection<String> topics = Collections.singleton(configuration.getSnapshotsTopic());
         snapshotsConsumer.subscribe(topics);
 
+        // Wait for partition assignment
+        var assigned = snapshotsConsumer.assignment();
+        while (assigned.isEmpty()) {
+            snapshotsConsumer.poll(configuration.getPollTimeout());
+            assigned = snapshotsConsumer.assignment();
+        }
+
+        // Record the current end offsets so we stop there, even if other pods produce new snapshots
+        var endOffsets = snapshotsConsumer.endOffsets(assigned);
+
         List<ConsumerRecord<String, String>> snapshots = new ArrayList<>();
         String snapshotRecordKey = null;
 
-        // Poll in a loop until we get an empty result, indicating we've reached the end of the topic
+        // Poll until we reach the original end offsets or get an empty result
         ConsumerRecords<String, String> records;
         do {
             records = snapshotsConsumer.poll(configuration.getPollTimeout());
@@ -237,7 +248,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                 records.forEach(snapshots::add);
                 log.debug("Polled {} snapshot records, total collected: {}", records.count(), snapshots.size());
             }
-        } while (records != null && !records.isEmpty());
+        } while (records != null && !records.isEmpty()
+                && endOffsets.entrySet().stream()
+                        .anyMatch(e -> snapshotsConsumer.position(e.getKey()) < e.getValue()));
 
         if (!snapshots.isEmpty()) {
             log.info("Found {} total snapshots in the snapshots topic.", snapshots.size());
@@ -373,7 +386,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // If the key is a Bootstrap key, then we have processed all messages and can set bootstrapped to
         // 'true'
         if (BOOTSTRAP_MESSAGE_TYPE.equals(record.key().getMessageType())) {
-            KafkaSqlMessageKey bkey = (KafkaSqlMessageKey) record.key();
+            KafkaSqlMessageKey bkey = record.key();
             if (bkey.getUuid().equals(bootstrapId)) {
                 this.bootstrapped = true;
                 storageEvent.fireAsync(StorageEvent.builder().type(StorageEventType.READY).build());
@@ -643,6 +656,56 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         coordinator.waitForResponse(uuid);
     }
 
+    @Override
+    public ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException {
+        return sqlStore.getArtifactContractRuleset(groupId, artifactId);
+    }
+
+    @Override
+    public void setArtifactContractRuleset(String groupId, String artifactId,
+            ContractRuleSetDto ruleset) throws RegistryStorageException {
+        var message = new SetArtifactContractRuleset3Message(groupId, artifactId, ruleset);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void deleteArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException {
+        var message = new DeleteArtifactContractRuleset2Message(groupId, artifactId);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId,
+            String version) throws VersionNotFoundException, RegistryStorageException {
+        return sqlStore.getVersionContractRuleset(groupId, artifactId, version);
+    }
+
+    @Override
+    public void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException {
+        var message = new SetVersionContractRuleset4Message(groupId, artifactId, version, ruleset);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void deleteVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException {
+        var message = new DeleteVersionContractRuleset3Message(groupId, artifactId, version);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
+            throws RegistryStorageException {
+        return sqlStore.getContractRulesByTag(tag);
+    }
+
     /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteArtifactVersion(java.lang.String,
      *      java.lang.String, java.lang.String)
@@ -862,23 +925,27 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     /**
+     * Bypasses the Kafka journal and writes directly to SQL. This operation is triggered by a
+     * scheduled job that runs independently on every pod, so coordinating via the journal is
+     * unnecessary and would add bloat that slows down new-pod bootstrap.
+     *
      * @see io.apicurio.registry.storage.RegistryStorage#deleteAllExpiredDownloads()
      */
     @Override
     public void deleteAllExpiredDownloads() throws RegistryStorageException {
-        var message = new DeleteAllExpiredDownloads0Message();
-        var uuid = blockOnResult(submitter.submitMessage(message));
-        coordinator.waitForResponse(uuid);
+        sqlStore.deleteAllExpiredDownloads();
     }
 
     /**
+     * Bypasses the Kafka journal and writes directly to SQL. This operation is triggered by a
+     * scheduled job that runs independently on every pod, so coordinating via the journal is
+     * unnecessary and would add bloat that slows down new-pod bootstrap.
+     *
      * @see io.apicurio.registry.storage.RegistryStorage#deleteAllOrphanedContent()
      */
     @Override
     public void deleteAllOrphanedContent() throws RegistryStorageException {
-        var message = new DeleteAllOrphanedContent0Message();
-        var uuid = blockOnResult(submitter.submitMessage(message));
-        coordinator.waitForResponse(uuid);
+        sqlStore.deleteAllOrphanedContent();
     }
 
     @Override
@@ -1047,6 +1114,13 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
         var message = new ImportArtifactRule1Message(entity);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void importContractRule(ContractRuleEntity entity) {
+        var message = new ImportContractRule1Message(entity);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }

@@ -34,7 +34,18 @@ public class Artifact extends HasSchema {
 
     private String owner;
 
+    private String createdOn;
+
+    private String modifiedOn;
+
     private List<Version> versions;
 
     private List<Rule> rules;
+
+    /**
+     * Version up to which rule validation is skipped (inclusive).
+     * Versions after this are validated against their predecessors.
+     * If not set, only the last version is validated.
+     */
+    private String validatedUpTo;
 }

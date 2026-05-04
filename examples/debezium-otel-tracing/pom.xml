@@ -4,13 +4,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-examples</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-examples-debezium-otel-tracing</artifactId>
   <packaging>pom</packaging>
-  <name>Apicurio Registry Examples - Debezium CDC with OpenTelemetry Tracing</name>
+  <name>Registry :: Examples :: Debezium OTel Tracing</name>
   <description>Example demonstrating end-to-end distributed tracing with Debezium CDC, Kafka, and Apicurio Registry</description>
 
   <properties>

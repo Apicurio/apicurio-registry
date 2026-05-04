@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.artifact;
 
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
@@ -69,10 +70,10 @@ public class ArtifactUpdateCommand extends AbstractCommand {
             throw new CliException("At least one update option is required (--name, --description, --set-label, or --delete-label).",
                     CliException.VALIDATION_ERROR_RETURN_CODE);
         }
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId, config);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         try {
             final var registryClient = client.getRegistryClient();
-            ArtifactUtil.validateGroup(registryClient, resolvedGroupId);
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
             final var existing = registryClient
                     .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).get();
             final var updatedArtifact = new EditableArtifactMetaData();

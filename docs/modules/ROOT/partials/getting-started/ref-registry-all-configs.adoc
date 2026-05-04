@@ -27,11 +27,26 @@ The following {registry} configuration options are available for each component 
 |`API and Schema Registry with A2A Agent support`
 |`3.0.0`
 |Description of the registry agent
+|`apicurio.a2a.agent.documentation-url`
+|`optional<string>`
+|
+|`3.0.0`
+|URL to the registry agent documentation
+|`apicurio.a2a.agent.icon-url`
+|`optional<string>`
+|
+|`3.0.0`
+|URL to the registry agent icon
 |`apicurio.a2a.agent.name`
 |`string`
 |`Apicurio Registry`
 |`3.0.0`
 |Name of the registry agent for A2A discovery
+|`apicurio.a2a.agent.protocol-version`
+|`string`
+|`1.0`
+|`3.0.0`
+|A2A protocol version supported by the registry agent
 |`apicurio.a2a.agent.provider.organization`
 |`string`
 |`Apicurio`
@@ -214,6 +229,11 @@ The following {registry} configuration options are available for each component 
 |
 |`2.5.0.Final`
 |Client credentials scope.
+|`apicurio.authn.mechanism.priority`
+|`string`
+|`basic,proxy-header,oidc`
+|`3.2.3`
+|Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc.
 |`apicurio.authn.proxy-header.email`
 |`string`
 |`X-Forwarded-Email`
@@ -400,18 +420,18 @@ The following {registry} configuration options are available for each component 
 |Available from
 |Description
 |`apicurio.gitops.repo.branch`
-|`string`
-|`main`
+|`optional<string>`
+|
 |`3.2.0`
-|Branch to read from. _(experimental)_
+|Branch to read from. This is a shorthand for single-repo setups. For multiple repositories, use the indexed apicurio.gitops.repos.N.branch properties instead. _(experimental)_
 |`apicurio.gitops.repo.dir`
 |`optional<string>`
 |
 |`3.2.0`
-|Directory name of the Git repository, relative to the workspace. _(experimental)_
+|Directory name of the Git repository, relative to the workspace. This is a shorthand for single-repo setups. For multiple repositories, use the indexed apicurio.gitops.repos.N.dir properties instead. _(experimental)_
 |`apicurio.gitops.workspace`
 |`string`
-|`.`
+|`/repos`
 |`3.2.0`
 |Base directory where Git repositories are mounted. Repository directories are resolved relative to this path. _(experimental)_
 |===
@@ -705,6 +725,22 @@ The following {registry} configuration options are available for each component 
 |`INFO`
 |`3.1.0`
 |Dynamic log level for Apicurio Registry
+|===
+
+== mcp
+.mcp configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.mcp-tools.enabled`
+|`boolean`
+|`false`
+|`3.0.0`
+|Enable MCP tool definition discovery endpoints _(experimental)_
 |===
 
 == observability
@@ -1226,6 +1262,11 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`3.2.0`
 |When enabled, a load is rejected if the data source does not contain a registry configuration file matching the configured registry ID. This prevents accidental data loss from force-pushes or empty branches. To intentionally clear all data, first push a commit with only the registry configuration file (no artifacts), then remove it. _(experimental)_
+|`apicurio.polling-storage.source-label-key`
+|`string`
+|`system:source`
+|`3.2.0`
+|Label key used to tag imported artifacts and groups with their source ID (e.g., repository ID). Set to empty string to disable. _(experimental)_
 |`apicurio.sql.db-schema`
 |`string`
 |`*`
@@ -1528,11 +1569,6 @@ The following {registry} configuration options are available for each component 
 |`apicurio.downloads.reaper.every`
 |`unknown`
 |`60s`
-|
-|
-|`apicurio.kafkasql.consumer.group.id`
-|`unknown`
-|`${registry.id}-${quarkus.uuid}`
 |
 |
 |`apicurio.kafkasql.producer.client.id`

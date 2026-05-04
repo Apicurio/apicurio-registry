@@ -47,6 +47,9 @@ public class ArtifactType {
     /** AI Agent Card for the A2A (Agent-to-Agent) protocol. */
     public static final String AGENT_CARD = "AGENT_CARD";
 
+    /** MCP (Model Context Protocol) tool definition. */
+    public static final String MCP_TOOL = "MCP_TOOL";
+
     /** Apache Iceberg table metadata. */
     public static final String ICEBERG_TABLE = "ICEBERG_TABLE";
 
@@ -55,5 +58,11 @@ public class ArtifactType {
 
     /** OpenRPC specification for JSON-RPC APIs. */
     public static final String OPENRPC = "OPENRPC";
+
+    /** AI/ML model input/output schema definition. */
+    public static final String MODEL_SCHEMA = "MODEL_SCHEMA";
+
+    /** Version-controlled prompt template with variable schemas. */
+    public static final String PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
 
 }

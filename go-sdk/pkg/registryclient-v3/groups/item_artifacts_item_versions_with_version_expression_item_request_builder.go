@@ -62,6 +62,12 @@ func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) Conte
 	return NewItemArtifactsItemVersionsItemContentRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
+// Contract the contract property
+// returns a *ItemArtifactsItemVersionsItemContractRequestBuilder when successful
+func (m *ItemArtifactsItemVersionsWithVersionExpressionItemRequestBuilder) Contract() *ItemArtifactsItemVersionsItemContractRequestBuilder {
+	return NewItemArtifactsItemVersionsItemContractRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Delete deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`are needed. If this is the only version of the artifact, this operation is the same as deleting the entire artifact.This feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`) * Feature is disabled (HTTP error `405`) * A server error occurred (HTTP error `500`)
 // returns a ProblemDetails error when the service returns a 400 status code
 // returns a ProblemDetails error when the service returns a 401 status code

@@ -111,7 +111,13 @@ public class MockAgentServer {
             agentCard.put("name", agentName);
             agentCard.put("description", agentDescription);
             agentCard.put("version", "1.0.0");
-            agentCard.put("url", getUrl());
+            agentCard.put("protocolVersion", "1.0");
+
+            ArrayNode interfaces = agentCard.putArray("supportedInterfaces");
+            ObjectNode iface = interfaces.addObject();
+            iface.put("url", getUrl());
+            iface.put("protocolBinding", "http+json");
+            iface.put("protocolVersion", "1.0");
 
             ObjectNode provider = agentCard.putObject("provider");
             provider.put("organization", "A2A Demo");
@@ -134,9 +140,6 @@ public class MockAgentServer {
             inputModes.add("text");
             ArrayNode outputModes = agentCard.putArray("defaultOutputModes");
             outputModes.add("text");
-
-            ObjectNode auth = agentCard.putObject("authentication");
-            auth.putArray("schemes").add("none");
 
             String response = objectMapper.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(agentCard);

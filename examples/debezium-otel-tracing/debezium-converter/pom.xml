@@ -4,13 +4,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-examples-debezium-otel-tracing</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-examples-debezium-otel-converter</artifactId>
   <packaging>jar</packaging>
-  <name>Apicurio Registry Examples - Debezium OTel SMT</name>
+  <name>Registry :: Examples :: Debezium OTel Tracing :: Converter</name>
   <description>Custom Debezium SMT with OpenTelemetry instrumentation for trace context propagation</description>
 
   <properties>

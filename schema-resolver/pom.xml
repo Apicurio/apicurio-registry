@@ -4,13 +4,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-schema-resolver</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-schema-resolver</name>
+  <name>Registry :: Schema Resolver</name>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>

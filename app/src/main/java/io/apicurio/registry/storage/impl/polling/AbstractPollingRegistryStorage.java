@@ -20,6 +20,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -29,15 +30,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static io.apicurio.registry.exception.RuntimeAssertionFailedException.assertion;
-import static io.quarkus.runtime.configuration.ConfigUtils.isProfileActive;
 
 /**
  * Abstract base class for polling-based registry storage implementations.
  * Provides the blue-green switching pattern for loading data from external sources
  * (Git, Kubernetes ConfigMaps, etc.) without service interruption.
  */
-public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractReadOnlyRegistryStorage {
+public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker> extends AbstractReadOnlyRegistryStorage {
 
     @Inject
     Logger log;
@@ -68,13 +67,16 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
     private int switchRetryCount = 0;
     private static final int MAX_SWITCH_RETRIES = 3;
 
+    // The processing result pending switch (holds load stats)
+    private PollingProcessingResult pendingProcessingResult = null;
+
     // Tracks whether the first successful data load has completed.
     // Used by isReady() to prevent serving empty results before initial data is available.
     private volatile boolean isReady = false;
 
-    // When a watch event arrives while a refresh is in progress (lock held),
-    // this flag ensures we re-poll immediately after the current cycle completes.
-    private volatile boolean watchEventPending = false;
+    // When set, the next refresh cycle will poll immediately without waiting
+    // for the poll period. Used by requestSync() and K8s watch callbacks.
+    private volatile boolean syncRequested = false;
 
     private volatile boolean initialized = false;
     private PollingStorageConfig pollingConfig;
@@ -83,18 +85,9 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
 
     private final ReentrantLock refreshLock = new ReentrantLock();
 
-    /**
-     * Returns the refresh lock. Holding this lock prevents the scheduler from
-     * polling and loading data. Used by tests that directly manipulate the
-     * blue/green storages to prevent concurrent access.
-     * The `test` profile must be active to access the lock.
-     */
-    public ReentrantLock getRefreshLock() {
-        assertion(isProfileActive("test"), "Refresh lock can only be accessed when the 'test' profile is active.");
-        return refreshLock;
-    }
-
     private Instant lastRefresh = Instant.MIN;
+
+    private volatile PollingStorageStatus status = PollingStorageStatus.initializing();
 
     @Override
     public String storageName() {
@@ -129,14 +122,6 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
      * <p>
      * This method is thread-safe.
      */
-    /**
-     * Signals that a watch event was received. If the refresh lock is currently held,
-     * this sets a flag so the next refresh cycle re-polls immediately.
-     */
-    protected void onWatchEvent() {
-        watchEventPending = true;
-    }
-
     protected void tryRefresh() {
         if (!initialized) {
             return;
@@ -148,10 +133,23 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
 
                 switch (state) {
                     case READY_TO_SWITCH -> {
+                        MARKER completedMarker = pendingResult.getMarker();
                         if (doSwitch()) {
                             switchRetryCount = 0;
                             pendingResult.commit();
                             pendingResult = null;
+                            var completedResult = pendingProcessingResult;
+                            pendingProcessingResult = null;
+                            status = PollingStorageStatus.builder()
+                                    .syncState(PollingStorageStatus.SyncState.IDLE)
+                                    .sources(completedMarker.toSources())
+                                    .lastSuccessfulSync(Instant.now())
+                                    .lastSyncAttempt(status.getLastSyncAttempt())
+                                    .groupCount(completedResult.getGroupCount())
+                                    .artifactCount(completedResult.getArtifactCount())
+                                    .versionCount(completedResult.getVersionCount())
+                                    .errors(Collections.emptyList())
+                                    .build();
                             if (!isReady) {
                                 isReady = true;
                                 log.info("{} initial data load completed, storage is now ready", storageName());
@@ -161,20 +159,33 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
                             if (switchRetryCount >= MAX_SWITCH_RETRIES) {
                                 log.error("{} failed to acquire write lock after {} attempts, " +
                                         "discarding pending update to prevent deadlock", storageName(), MAX_SWITCH_RETRIES);
+                                status = status.toBuilder()
+                                        .syncState(PollingStorageStatus.SyncState.ERROR)
+                                        .errors(List.of(new PollingError("Failed to publish update: could not acquire write lock after "
+                                                + MAX_SWITCH_RETRIES + " attempts")))
+                                        .build();
                                 pendingResult = null;
+                                pendingProcessingResult = null;
                                 state = State.READY_TO_WRITE;
                                 switchRetryCount = 0;
+                            } else {
+                                status = status.toBuilder()
+                                        .syncState(PollingStorageStatus.SyncState.SWITCHING)
+                                        .build();
                             }
                         }
                     }
                     case READY_TO_WRITE -> {
                         var now = Instant.now();
-                        boolean forceRefresh = watchEventPending;
+                        boolean forceRefresh = syncRequested;
                         if (forceRefresh) {
-                            watchEventPending = false;
+                            syncRequested = false;
                         }
                         if (forceRefresh || now.isAfter(lastRefresh.plus(pollingConfig.getPollPeriod()))) {
                             lastRefresh = now;
+                            status = status.toBuilder()
+                                    .lastSyncAttempt(now)
+                                    .build();
                             log.debug("Running {} poll. Active database is {} and state is {}.",
                                     storageName(), active == green ? "green" : "blue", state);
                             try {
@@ -205,19 +216,37 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
      */
     private void loadInactive(PollingResult<MARKER> pollResult) {
         try {
+            status = status.toBuilder()
+                    .syncState(PollingStorageStatus.SyncState.LOADING)
+                    .build();
+
             inactive.deleteAllUserData();
             var result = pollingDataSourceManager.process(inactive, pollResult);
             if (result.isSuccessful()) {
                 log.info("{} update loaded successfully (marker: {})", storageName(), pollResult.getMarker());
                 pendingResult = pollResult;
+                pendingProcessingResult = result;
                 state = State.READY_TO_SWITCH;
             } else {
                 log.error("{} update failed to load (marker: {}). {} error(s):",
                         storageName(), pollResult.getMarker(), result.getErrors().size());
                 result.getErrors().forEach(e -> log.error("  - {}", e));
+                // Data errors won't be fixed by retrying the same commit — commit the marker
+                // so we stop re-detecting this change. A new commit will trigger a fresh attempt.
+                pollResult.commit();
+                status = status.toBuilder()
+                        .syncState(PollingStorageStatus.SyncState.ERROR)
+                        .errors(result.getErrors())
+                        .build();
             }
         } catch (Exception e) {
+            // Transient errors (H2 issues, OOM, etc.) — don't commit the marker,
+            // so the next poll cycle will retry the same commit.
             log.error("{} failed to load data into inactive storage: {}", storageName(), e.getMessage(), e);
+            status = status.toBuilder()
+                    .syncState(PollingStorageStatus.SyncState.ERROR)
+                    .errors(List.of(new PollingError("Transient error: " + e.getMessage())))
+                    .build();
         }
     }
 
@@ -280,6 +309,21 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
         } catch (InterruptedException ex) {
             throw new RegistryStorageException("Could not acquire read lock to get the active storage", ex);
         }
+    }
+
+    /**
+     * Returns the current synchronization status of this storage.
+     */
+    public PollingStorageStatus getStatus() {
+        return status;
+    }
+
+    /**
+     * Requests an immediate synchronization.
+     * The next scheduler invocation will poll without waiting for the poll period.
+     */
+    public void requestSync() {
+        syncRequested = true;
     }
 
     @Override
@@ -359,6 +403,22 @@ public abstract class AbstractPollingRegistryStorage<MARKER> extends AbstractRea
     @Override
     public RuleConfigurationDto getGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
         return proxy(storage -> storage.getGroupRule(groupId, rule));
+    }
+
+    @Override
+    public ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId) {
+        return proxy(storage -> storage.getArtifactContractRuleset(groupId, artifactId));
+    }
+
+    @Override
+    public ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId,
+            String version) {
+        return proxy(storage -> storage.getVersionContractRuleset(groupId, artifactId, version));
+    }
+
+    @Override
+    public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag) {
+        return proxy(storage -> storage.getContractRulesByTag(tag));
     }
 
     @Override

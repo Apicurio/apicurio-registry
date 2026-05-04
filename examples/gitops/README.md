@@ -1,121 +1,143 @@
-# Apicurio Registry - GitOps Storage Example
+# Apicurio Registry - GitOps Storage Examples
 
-This example demonstrates Apicurio Registry running in **GitOps mode**, where registry data (schemas, artifacts, groups, rules) is loaded from a Git repository. The registry is read-only - all changes are made by modifying files in the Git repository.
+This directory contains examples for running Apicurio Registry in **GitOps mode**, where
+registry data (schemas, artifacts, groups, rules) is loaded from a Git repository.
+The registry is read-only — all changes are made by modifying files in the Git repository.
 
-## Sample Repository
+## Examples
 
-The `example-repo/` directory showcases a **multi-registry setup** where a single repository serves two Registry instances (`prod` and `staging`) with different configurations:
+| Example | Description | Sidecar | Security |
+|---------|-------------|---------|----------|
+| [Local volume](#local-volume) | Git repo cloned locally, no sidecar | No | N/A |
+| [Pull HTTPS](#pull-https) | Sidecar pulls from a public repo over HTTPS | Yes | `dev` |
+| [Pull SSH](#pull-ssh) | Sidecar pulls from a private repo over SSH | Yes | `dev` |
+| [Multi-repo HTTPS pull](#multi-repo-pull-https) | Sidecar pulls two branches (two teams) over HTTPS | Yes | `dev` |
+| [Push](#push) | Sidecar accepts `git push` over SSH | Yes | `dev` |
 
-```
-example-repo/
-├── config/
-│   ├── prod.registry.yaml              # prod: strict rules (VALIDITY + COMPATIBILITY)
-│   └── staging.registry.yaml           # staging: no global rules (relaxed)
-├── payments/
-│   ├── payments.registry.yaml          # group: loaded by both prod and staging
-│   ├── order-created.registry.yaml     # artifact: loaded by both prod and staging
-│   ├── order-created-v1.avsc
-│   └── order-created-v2.avsc
-├── common/
-│   ├── common.registry.yaml            # group: loaded by both prod and staging
-│   ├── address.registry.yaml           # artifact: loaded by both prod and staging
-│   └── address.json
-└── experimental/
-    ├── experimental.registry.yaml      # group: loaded by staging ONLY
-    ├── user-activity.registry.yaml     # artifact: loaded by staging ONLY
-    └── user-activity.avsc
-```
+Each example has a `docker-compose.yaml` for the full stack (registry + sidecar + UI).
+Most examples also have a `docker-compose-dev.yaml` for use with `mvn quarkus:dev`.
 
-This demonstrates:
-- **Two registry configurations** with different global rules (strict prod vs relaxed staging)
-- **Shared groups and artifacts** loaded by both registries (`registryIds: [prod, staging]`)
-- **Staging-only experimental schemas** not visible in production (`registryIds: [staging]`)
-- **One-to-many** - one repo serves multiple registries (multi-repo support is planned for a future phase)
+See the comments at the top of each compose file for setup and run instructions.
 
-### Data Format
+## Local Volume
 
-Registry metadata files use the `*.registry.yaml` extension and a `$type` discriminator field:
-
-- `$type: registry-v0` - Registry configuration (global rules, settings) scoped by `registryId`
-- `$type: group-v0` - Group definition, scoped by `registryIds`
-- `$type: artifact-v0` - Artifact with inline versions, scoped by `registryIds`
-
-Content files (the actual schemas) are plain files (`.avsc`, `.json`, `.proto`, etc.) referenced from artifact metadata via relative paths.
-
-## Running with Docker Compose
-
-Start the full stack (Registry + UI + sample Git repo). By default, runs as the `prod` registry:
+The simplest setup — the example repository is cloned locally and mounted into the
+registry container. No sidecar needed. Good for trying out GitOps mode and experimenting
+with changes.
 
 ```bash
 cd examples/gitops
 docker compose up
 ```
 
-To run as the `staging` registry instead (includes experimental schemas):
+To run as the `staging` registry (includes experimental schemas):
 
 ```bash
-cd examples/gitops
 APICURIO_POLLING_STORAGE_ID=staging docker compose up
 ```
 
-**Endpoints:**
-- Registry API: http://localhost:8080/apis/registry/v3
-- Registry UI: http://localhost:8888
+## Pull HTTPS
 
-The sample repository is initialized as a Git repo in a Docker volume and mounted read-only into the Registry container.
-
-## Running with quarkus:dev
-
-For development, run Registry locally with Quarkus dev mode and only use Docker for the UI.
-
-**Terminal 1 - Start Registry (as prod):**
+Uses the GitOps sidecar to pull from a public Git repository over HTTPS.
+The sidecar clones the repo and periodically fetches updates.
 
 ```bash
-cd app
-mvn quarkus:dev \
-  -Dapicurio.storage.kind=gitops \
-  -Dapicurio.features.experimental.enabled=true \
-  -Dapicurio.polling-storage.id=prod \
-  -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops \
-  -Dapicurio.gitops.repo.dir=example-repo
+cd examples/gitops/pull-https
+docker compose up
 ```
 
-Or as staging (includes experimental schemas):
+See `pull-https/docker-compose.yaml` for fork/URL configuration options.
+
+## Pull SSH
+
+Uses the GitOps sidecar to pull from a private Git repository over SSH.
+Requires an SSH deploy key.
+
+**Quick setup:**
+
+1. Generate a key: `ssh-keygen -t ed25519 -f pull-ssh/secrets/id_ed25519 -N ""`
+2. Add `pull-ssh/secrets/id_ed25519.pub` as a deploy key in your Git repository
+3. Run:
 
 ```bash
-cd app
-mvn quarkus:dev \
-  -Dapicurio.storage.kind=gitops \
-  -Dapicurio.features.experimental.enabled=true \
-  -Dapicurio.polling-storage.id=staging \
-  -Dapicurio.gitops.workspace=$(pwd)/../examples/gitops \
-  -Dapicurio.gitops.repo.dir=example-repo
+cd examples/gitops/pull-ssh
+APICURIO_GITOPS_REPO_URL=git@github.com:your-org/your-schemas.git docker compose up
 ```
 
-**Terminal 2 - Start UI (optional):**
+See `pull-ssh/docker-compose.yaml` for full setup instructions including known_hosts.
+
+## Multi-Repo HTTPS Pull
+
+Aggregates schemas from two Git branches (simulating two team repositories) into a
+single registry using the GitOps sidecar. Uses the
+[apicurio-registry-gitops-example](https://github.com/Apicurio/apicurio-registry-gitops-example)
+repository:
+
+- **`main`** (Platform team) — registry config, common schemas, order events
+- **`fulfillment`** (Fulfillment team) — shipment events, experimental schemas (staging only)
 
 ```bash
-cd examples/gitops
-docker compose -f docker-compose-dev.yaml up
+cd examples/gitops/multi-repo-pull-https
+docker compose up
 ```
 
-**Endpoints:**
-- Registry API: http://localhost:8080/apis/registry/v3
-- Registry UI: http://localhost:8888
+**Prod** loads: common (2) + orders (1) + fulfillment (1) = 4 artifacts.
+**Staging** loads the above + experimental (1) = 5 artifacts:
 
-### Making Changes
+```bash
+APICURIO_POLLING_STORAGE_ID=staging docker compose up
+```
 
-To observe the GitOps reload behavior:
+See `multi-repo-pull-https/docker-compose.yaml` for local image build instructions.
 
-1. Modify a file in `example-repo/` (e.g., add a new version to an artifact)
-2. If using `quarkus:dev`, changes are detected automatically from the local directory
-3. If using Docker Compose, you need to commit changes to the Git repo in the volume
+## Push
 
-### Experimenting with Multi-Registry
+The sidecar runs an SSH server and accepts `git push` directly. Useful for
+restricted networks where outbound Git access is not available, or for CI/CD
+pipelines that push schema changes to the registry.
 
-Try switching between `prod` and `staging` to see different data:
-- **prod** loads: `payments` group, `common` group (4 artifacts total)
-- **staging** loads: `payments` group, `common` group, `experimental` group (5 artifacts total, including the draft `user-activity`)
+**Quick setup:**
+
+1. Generate a key: `ssh-keygen -t ed25519 -f push/secrets/id_ed25519 -N ""`
+2. Start the stack:
+
+```bash
+cd examples/gitops/push
+docker compose up
+```
+
+3. Push schemas from a local Git repository:
+
+```bash
+export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i examples/gitops/push/secrets/id_ed25519 -p 2222"
+git remote add registry git@localhost:/repos/default
+git push registry main
+```
+
+The registry detects the new commit on the next poll cycle and loads the data.
+
+See `push/docker-compose.yaml` for full setup instructions.
+
+## Endpoints
+
+All examples expose the same endpoints:
+
+- **Registry API:** http://localhost:8080/apis/registry/v3
+- **Registry UI:** http://localhost:8888
+
+## Sample Repository
+
+All examples use the
+[apicurio-registry-gitops-example](https://github.com/Apicurio/apicurio-registry-gitops-example)
+repository:
+
+- **`main` branch** (Platform team) — registry configs (prod/staging), common schemas (address, money), order events
+- **`fulfillment` branch** (Fulfillment team) — shipment events, experimental schemas (staging only)
+
+Single-repo examples use the `main` branch alone. The multi-repo example aggregates both branches.
+
+See the [example repository README](https://github.com/Apicurio/apicurio-registry-gitops-example)
+for the full scenario description and directory layout.
 
 ## Data Format Reference
 
@@ -139,11 +161,11 @@ $type: group-v0
 registryIds: [my-registry]
 groupId: my-group
 description: Description of the group
-labels:
-  key: value
+createdOn: "2024-03-04"
 ```
 
-The `registryIds` field lists which Registry instances should load this group. If omitted, the group is loaded by any registry.
+The `registryIds` field lists which Registry instances should load this group.
+If omitted or empty, the group is loaded by all registry instances.
 
 ### Artifact Definition (`*.registry.yaml`)
 
@@ -155,29 +177,34 @@ artifactId: my-artifact
 artifactType: AVRO
 name: Human-readable name
 description: Description of the artifact
-labels:
-  key: value
-rules:
-  - ruleType: COMPATIBILITY
-    config: BACKWARD
+createdOn: "2024-03-04"
 versions:
   - version: "1.0.0"
     state: ENABLED
-    description: Version description
     content: ./path/to/schema.avsc
-  - version: "2.0.0"
-    state: ENABLED
-    content: ./path/to/schema-v2.avsc
 ```
 
-The order of versions defines the `latest` branch - the last entry is what `latest` resolves to.
+### Timestamps
+
+The `createdOn` and `modifiedOn` fields are optional on groups, artifacts, and versions.
+When omitted, the Git commit time is used as a fallback.
+
+Supported formats: `2024-03-04`, `2024-03-04T10:30:00Z`, `2024-03-04T10:30:00+01:00`,
+`2024-03-04T10:30:00` (assumed UTC), or unix milliseconds (`1709510400000`).
 
 ### Supported Content Types
 
 Content files are detected by file extension:
-- `.avsc`, `.avro` - Apache Avro
-- `.json` - JSON Schema
-- `.yaml`, `.yml` - OpenAPI / AsyncAPI (YAML format)
-- `.proto` - Protocol Buffers
-- `.graphql` - GraphQL
-- `.xml`, `.xsd`, `.wsdl` - XML Schema / WSDL
+- `.avsc`, `.avro` — Apache Avro
+- `.json` — JSON Schema
+- `.yaml`, `.yml` — OpenAPI / AsyncAPI
+- `.proto` — Protocol Buffers
+- `.graphql` — GraphQL
+- `.xml`, `.xsd`, `.wsdl` — XML Schema / WSDL
+
+## Related Documentation
+
+- [GitOps Storage Overview](../../app/src/main/java/io/apicurio/registry/storage/impl/gitops/README.md) — architecture, configuration properties, management API, error handling
+- [GitOps Sync Container](../../distro/gitops/README.md) — sidecar image configuration, security levels, threat model, build instructions
+- [Example Repository](https://github.com/Apicurio/apicurio-registry-gitops-example) — sample multi-registry data
+- [GitOps Design Epic](https://github.com/Apicurio/apicurio-registry/issues/7480) — design document and implementation plan

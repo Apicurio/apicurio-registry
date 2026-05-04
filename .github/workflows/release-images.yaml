@@ -54,6 +54,29 @@ jobs:
           echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
           echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
 
+      - name: Determine if this is the latest release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const [releaseMajor, releaseMinor] = process.env.RELEASE_VERSION.split('.').map(Number);
+            core.info(`Release version: ${process.env.RELEASE_VERSION} (major=${releaseMajor}, minor=${releaseMinor})`);
+
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const hasNewer = releases.some(r => {
+              if (r.prerelease || r.draft) return false;
+              const parts = r.tag_name.split('.').map(Number);
+              if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return false;
+              return parts[0] > releaseMajor || (parts[0] === releaseMajor && parts[1] > releaseMinor);
+            });
+
+            const isLatest = !hasNewer;
+            core.info(`IS_LATEST_RELEASE=${isLatest}`);
+            core.exportVariable('IS_LATEST_RELEASE', String(isLatest));
+
       - name: Download Source Code
         run: git clone --branch $RELEASE_VERSION --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git registry
 
@@ -108,38 +131,59 @@ jobs:
         working-directory: registry/operator
         run: |
           make config-show
-          make ADDITIONAL_IMAGE_TAG=latest image-build image-push          
+          if [ "$IS_LATEST_RELEASE" = "true" ]; then
+            make ADDITIONAL_IMAGE_TAG=latest image-build image-push
+          else
+            make image-build image-push
+          fi
+
+      - name: Build and push Apicurio Registry GitOps Sync image
+        working-directory: registry
+        run: |
+          docker buildx build --push -f ./distro/gitops/Dockerfile \
+              -t quay.io/apicurio/apicurio-registry-gitops-sync:$RELEASE_VERSION \
+              -t quay.io/apicurio/apicurio-registry-gitops-sync:latest \
+              --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/gitops
 
       - name: Build and push Apicurio Registry MCP Server image
         working-directory: registry/mcp
         run: |
+          TAGS="-t quay.io/apicurio/apicurio-registry-mcp-server:$RELEASE_VERSION"
+          if [ "$IS_LATEST_RELEASE" = "true" ]; then
+            TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-mcp-server:latest"
+          fi
           docker buildx build --push -f ./target/docker/Dockerfile.jvm \
-              -t quay.io/apicurio/apicurio-registry-mcp-server:$RELEASE_VERSION \
-              -t quay.io/apicurio/apicurio-registry-mcp-server:latest \
+              $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./target/docker
 
       - name: Build and Push Multi-arch Application Images
         run: |
           cd registry
+          TAGS="-t docker.io/apicurio/apicurio-registry:$RELEASE_VERSION"
+          TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:$RELEASE_VERSION"
+          if [ "$IS_LATEST_RELEASE" = "true" ]; then
+            TAGS="$TAGS -t docker.io/apicurio/apicurio-registry:latest"
+            TAGS="$TAGS -t docker.io/apicurio/apicurio-registry:latest-release"
+            TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:latest"
+            TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:latest-release"
+          fi
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm \
-              -t docker.io/apicurio/apicurio-registry:latest \
-              -t docker.io/apicurio/apicurio-registry:latest-release \
-              -t docker.io/apicurio/apicurio-registry:$RELEASE_VERSION \
-              -t quay.io/apicurio/apicurio-registry:latest \
-              -t quay.io/apicurio/apicurio-registry:latest-release \
-              -t quay.io/apicurio/apicurio-registry:$RELEASE_VERSION \
+              $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
       - name: Build and Push Multi-arch UI Images
         run: |
           cd registry/ui
+          TAGS="-t docker.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION"
+          TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION"
+          if [ "$IS_LATEST_RELEASE" = "true" ]; then
+            TAGS="$TAGS -t docker.io/apicurio/apicurio-registry-ui:latest"
+            TAGS="$TAGS -t docker.io/apicurio/apicurio-registry-ui:latest-release"
+            TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-ui:latest"
+            TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-ui:latest-release"
+          fi
           docker buildx build --push -f ./Dockerfile \
-              -t docker.io/apicurio/apicurio-registry-ui:latest \
-              -t docker.io/apicurio/apicurio-registry-ui:latest-release \
-              -t docker.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION \
-              -t quay.io/apicurio/apicurio-registry-ui:latest \
-              -t quay.io/apicurio/apicurio-registry-ui:latest-release \
-              -t quay.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION \
+              $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 
   # Slack notification using reusable workflow

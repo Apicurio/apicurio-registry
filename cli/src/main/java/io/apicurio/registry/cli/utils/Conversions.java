@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
@@ -149,6 +150,15 @@ public final class Conversions {
                         .map(Conversions::convert)
                         .collect(Collectors.toList()))
                 .count(searchResults.getCount())
+                .build();
+    }
+
+    public static Rule convert(io.apicurio.registry.rest.client.models.Rule rule) {
+        return Rule.builder()
+                .ruleType(ofNullable(rule.getRuleType())
+                        .map(rt -> io.apicurio.registry.types.RuleType.fromValue(rt.getValue()))
+                        .orElse(null))
+                .config(rule.getConfig())
                 .build();
     }
 

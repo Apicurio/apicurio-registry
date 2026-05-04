@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.impl.polling.model.v0.Registry;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,8 +31,8 @@ public class ProcessingState {
 
     @Getter
     @Setter
-    private long commitTime;
-    private final List<String> errors = new ArrayList<>();
+    private Instant commitTime;
+    private final List<PollingError> errors = new ArrayList<>();
 
     @Getter
     private final Map<String, PollingDataFile> pathIndex = new HashMap<>();
@@ -41,6 +42,9 @@ public class ProcessingState {
     // Track content already imported by hash to enable deduplication
     @Getter
     private final Map<String, Long> contentHashToId = new HashMap<>();
+
+    // Track artifact sources for cross-repo conflict detection (groupId:artifactId -> sourceId)
+    private final Map<String, String> artifactSources = new HashMap<>();
 
     // Counters for summary logging
     @Getter
@@ -59,20 +63,49 @@ public class ProcessingState {
         this.storage = storage;
     }
 
+    /**
+     * Checks whether an artifact from the given source conflicts with a previously
+     * registered artifact from a different source. If no conflict, registers the artifact.
+     *
+     * @return true if there is a conflict (same artifact from a different source)
+     */
+    public boolean checkArtifactConflict(String groupId, String artifactId, String sourceId) {
+        String key = groupId + ":" + artifactId;
+        String previousSource = artifactSources.putIfAbsent(key, sourceId);
+        return previousSource != null && !previousSource.equals(sourceId);
+    }
+
+    /**
+     * Returns the source ID that first registered the given artifact.
+     * Used for conflict error messages.
+     */
+    public String getArtifactSource(String groupId, String artifactId) {
+        return artifactSources.get(groupId + ":" + artifactId);
+    }
+
     public void recordError(String message, Object... params) {
-        errors.add(String.format(message, params));
+        errors.add(new PollingError(String.format(message, params)));
+    }
+
+    /**
+     * Records an error with source context (repo ID and file path).
+     */
+    public void recordError(PollingDataFile file, String message, Object... params) {
+        errors.add(new PollingError(String.format(message, params), file.getSourceId(), file.getPath()));
     }
 
     public boolean isSuccessful() {
         return errors.isEmpty();
     }
 
-    public List<String> getErrors() {
+    public List<PollingError> getErrors() {
         return unmodifiableList(errors);
     }
 
     public PollingProcessingResult getResult() {
-        return isSuccessful() ? PollingProcessingResult.success() : PollingProcessingResult.failure(errors);
+        return isSuccessful()
+                ? PollingProcessingResult.success(groupCount, artifactCount, versionCount)
+                : PollingProcessingResult.failure(errors);
     }
 
     public Set<PollingDataFile> fromTypeIndex(Type type) {
@@ -80,7 +113,7 @@ public class ProcessingState {
     }
 
     public void index(PollingDataFile file) {
-        pathIndex.put(file.getPath(), file);
+        pathIndex.put(file.getSourceId() + ":" + file.getPath(), file);
         file.getAny().ifPresent(a -> typeIndex.computeIfAbsent(a.getType(), k -> new HashSet<>()).add(file));
     }
 }

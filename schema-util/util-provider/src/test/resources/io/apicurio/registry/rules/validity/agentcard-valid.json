@@ -2,30 +2,19 @@
   "name": "TestAgent",
   "description": "A test AI agent for unit testing",
   "version": "1.0.0",
-  "url": "https://example.com/agents/test-agent",
-  "provider": {
-    "organization": "Apicurio",
-    "url": "https://www.apicur.io"
-  },
-  "capabilities": {
-    "streaming": true,
-    "pushNotifications": false
-  },
+  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    { "url": "https://example.com/agents/test-agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+  ],
+  "provider": { "organization": "Test Corp", "url": "https://example.com" },
+  "capabilities": { "streaming": true, "pushNotifications": false },
   "skills": [
-    {
-      "id": "schema-validation",
-      "name": "Schema Validation",
-      "description": "Validates schemas against various formats"
-    },
-    {
-      "id": "schema-search",
-      "name": "Schema Search",
-      "description": "Searches for schemas in the registry"
-    }
+    { "id": "analysis", "name": "Data Analysis", "description": "Analyze data", "tags": ["analytics", "data"] },
+    { "id": "reporting", "name": "Report Generation", "description": "Generate reports", "tags": ["reporting"] }
   ],
   "defaultInputModes": ["text"],
   "defaultOutputModes": ["text"],
-  "authentication": {
-    "schemes": ["bearer"]
+  "securitySchemes": {
+    "bearer": { "type": "httpAuth", "scheme": "Bearer" }
   }
 }

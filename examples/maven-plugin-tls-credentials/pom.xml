@@ -6,13 +6,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-examples</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-examples-maven-plugin-tls-credentials</artifactId>
   <packaging>jar</packaging>
-  <name>Apicurio Registry :: Examples :: Maven Plugin TLS and Credentials</name>
+  <name>Registry :: Examples :: Maven Plugin TLS Credentials</name>
   <description>Example demonstrating TLS and credential configuration for the Apicurio Registry Maven plugin</description>
 
   <properties>

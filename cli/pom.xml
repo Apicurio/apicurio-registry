@@ -6,13 +6,13 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>3.2.2-SNAPSHOT</version>
+        <version>3.3.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>apicurio-registry-cli</artifactId>
 
-    <name>Apicurio Registry CLI</name>
+    <name>Registry :: CLI</name>
 
     <properties>
         <projectRoot>${project.basedir}/..</projectRoot>
@@ -73,6 +73,11 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-schema-util-common</artifactId>
         </dependency>
 
         <dependency>

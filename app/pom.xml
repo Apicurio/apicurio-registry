@@ -4,18 +4,23 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-app</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-app</name>
+  <name>Registry :: App</name>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
     <maven.compiler.release>21</maven.compiler.release>
     <groups/>
+    <!-- Default empty argLine so that the @{argLine} late-binding reference in
+         maven-surefire-plugin resolves to empty when no plugin (e.g., JaCoCo) sets it.
+         Without this, Java 25+ treats the literal '@{argLine}' as an arg file reference
+         and fails with 'could not open {argLine}'. -->
+    <argLine/>
   </properties>
 
   <dependencies>
@@ -150,22 +155,6 @@
     </dependency>
 
     <!-- Third Party Libraries -->
-    <dependency>
-      <groupId>io.roastedroot</groupId>
-      <artifactId>quickjs4j</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.roastedroot</groupId>
-      <artifactId>quickjs4j-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.roastedroot</groupId>
-      <artifactId>quickjs4j-processor</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.quickjs4j</groupId>
-      <artifactId>quarkus-quickjs4j</artifactId>
-    </dependency>
     <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
@@ -473,11 +462,6 @@
               <artifactId>lombok</artifactId>
               <version>${lombok.version}</version>
             </path>
-            <path>
-              <groupId>io.quarkiverse.quickjs4j</groupId>
-              <artifactId>quarkus-quickjs4j</artifactId>
-              <version>${quarkus-quickjs4j.version}</version>
-            </path>
           </annotationProcessorPaths>
         </configuration>
       </plugin>
@@ -498,6 +482,8 @@
         <configuration>
           <groups>${groups}</groups>
           <forkCount>1</forkCount>
+          <argLine>@{argLine} -Xmx4g</argLine>
+          <forkedProcessExitTimeoutInSeconds>1800</forkedProcessExitTimeoutInSeconds>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <org.jboss.logging.provider>jboss</org.jboss.logging.provider>
@@ -623,43 +609,6 @@
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <executions>
-          <!-- LLM Artifact Types: npm install -->
-          <execution>
-            <id>llm-artifact-types-npm-install</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <executable>npm</executable>
-              <workingDirectory>${project.basedir}/llm-artifact-types-src</workingDirectory>
-              <arguments>
-                <argument>install</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <!-- LLM Artifact Types: npm run build -->
-          <execution>
-            <id>llm-artifact-types-npm-build</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <executable>npm</executable>
-              <workingDirectory>${project.basedir}/llm-artifact-types-src</workingDirectory>
-              <arguments>
-                <argument>run</argument>
-                <argument>build</argument>
-              </arguments>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
           <execution>
@@ -727,6 +676,26 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
+          <!-- Copy the v3 OpenAPI spec to the api-specifications path served by the Swagger UI.
+               This keeps it in sync with the canonical spec in the common module. -->
+          <execution>
+            <id>copy-openapi-to-api-docs</id>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <phase>process-resources</phase>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}/META-INF/resources/api-specifications/registry/v3</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.build.outputDirectory}/META-INF</directory>
+                  <includes>
+                    <include>openapi.json</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
           <execution>
             <id>copy-dist</id>
             <goals>

@@ -5,12 +5,12 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-distro</artifactId>
-    <version>3.2.2-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-distro-connect-converter</artifactId>
-  <name>apicurio-registry-distro-connect-converter</name>
+  <name>Registry :: Distro :: Connect Converter</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

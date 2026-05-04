@@ -33,6 +33,6 @@
     "react-dom": "19.2.5",
     "redoc": "2.5.2",
     "styled-components": "6.3.12",
-    "yaml": "2.8.3"
+    "yaml": "2.8.4"
   }
 }

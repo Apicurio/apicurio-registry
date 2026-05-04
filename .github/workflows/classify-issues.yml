@@ -1,0 +1,44 @@
+name: Classify Issues
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: classify-pip-${{ hashFiles('.github/scripts/label-classification/classify.py') }}
+          restore-keys: classify-pip-
+
+      - name: Cache model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: classify-model-all-MiniLM-L6-v2
+
+      - name: Install dependencies
+        run: pip install pyyaml sentence-transformers
+
+      - name: Classify issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python .github/scripts/label-classification/classify.py \
+            --repo ${{ github.repository }} \
+            --issue ${{ github.event.issue.number }}

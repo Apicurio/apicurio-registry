@@ -13,8 +13,24 @@ on:
 
 jobs:
   unit-tests:
-    name: Unit Tests
+    name: Unit Tests (${{ matrix.shard.name }})
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - name: app-shard1
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,io.apicurio.registry.noprofile.ccompat.**,io.apicurio.registry.storage.**,io.apicurio.registry.event.**"
+            maven-opts: "-Xmx4g"
+          - name: app-shard2
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**"
+            maven-opts: "-Xmx4g"
+          - name: non-app
+            modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"
+            test-filter: ""
+            maven-opts: "-Xmx2g"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -34,28 +50,19 @@ jobs:
 
       - name: Restore executable permissions
         run: |
-          # GitHub Actions artifact upload/download doesn't preserve executable permissions
-          # Restore execute permission on protoc binaries
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
 
-      - name: Load Docker Image
-        uses: apicurio/apicurio-github-actions/load-docker-image@v2
-        with:
-          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
-          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
-          image-name: apicurio/apicurio-registry
-          tag: ${{ inputs.image-tag }}
-
-      - name: Run Unit Tests
+      - name: Run Unit Tests (${{ matrix.shard.name }})
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
-          MAVEN_OPTS: -Xmx4g
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_OPTS: ${{ matrix.shard.maven-opts }}
         run: |
           ./mvnw verify \
             --no-transfer-progress \
-            -Pprod -Dfull -DcliSkipNative \
+            -Pprod ${{ matrix.shard.modules }} \
+            ${{ matrix.shard.test-filter }} \
+            -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipCommitIdPlugin=false \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
-            -Dmaven.wagon.http.retryHandler.count=5 \
-            -Dtest.app.image=apicurio/apicurio-registry:${{ inputs.image-tag }}
+            -Dmaven.wagon.http.retryHandler.count=5

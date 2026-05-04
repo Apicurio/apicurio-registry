@@ -483,7 +483,7 @@ curl -X PUT \
 +
 After you set the state to `DEPRECATED`, consumers that fetch the schema receive an `X-Registry-Deprecated` header in the response. The schema content remains accessible, and existing consumers continue to work without interruption.
 
-. Notify your consumer teams that the schema version is deprecated and provide a grace period for migration. A grace period of two to four weeks gives consumers time to update their applications to use the newer version.
+. Notify your consumer teams that the schema version is deprecated and provide a reasonable grace period for migration, commonly two to four weeks depending on your organization and consumer count.
 
 . After the grace period expires, verify that no active consumers depend on the deprecated version. Check application logs or monitoring dashboards to confirm that no clients fetch the deprecated version.
 
@@ -607,7 +607,7 @@ The `AvroKafkaSerializer` resolves the writer schema from {registry} and seriali
 +
 WARNING: When you set `apicurio.registry.auto-register` to `true`, any producer can register new schemas in {registry}. In production, pre-register schemas during your CI/CD pipeline and set `apicurio.registry.auto-register` to `false`. If you must use auto-registration, configure authentication and role-based access control (RBAC) to restrict write access. For details, see xref:configuring-registry-security_{context}[].
 +
-IMPORTANT: The `apicurio.registry.url` property is required. The serializer throws an `IllegalArgumentException` at startup if you omit the property. By default, the serializer caches schemas for 30 seconds and retries failed registry requests up to 3 times with a 300 ms backoff. To handle registry unavailability, set `apicurio.registry.fault-tolerant-refresh` to `true`.
+IMPORTANT: The `apicurio.registry.url` property is required. The serializer throws an `IllegalArgumentException` at startup if you omit the property. The serializer caches schemas and retries failed registry requests with a backoff interval. For default values and tuning options, see {registry-client-serdes-config}. To handle registry unavailability, set `apicurio.registry.fault-tolerant-refresh` to `true`.
 
 . Add application-level validation in your producer code to enforce business rules before serialization:
 +
@@ -676,15 +676,17 @@ The following Debezium connector configuration uses the {registry} Avro converte
   "schema.name.adjustment.mode": "avro",
   "field.name.adjustment.mode": "avro",
   "key.converter": "io.apicurio.registry.utils.converter.AvroConverter",
-  "key.converter.apicurio.registry.url": "http://MY-REGISTRY-URL/apis/registry/v2",
+  "key.converter.apicurio.registry.url": "http://MY-REGISTRY-URL/apis/registry/v3",
   "key.converter.apicurio.registry.auto-register": "true",
   "value.converter": "io.apicurio.registry.utils.converter.AvroConverter",
-  "value.converter.apicurio.registry.url": "http://MY-REGISTRY-URL/apis/registry/v2",
+  "value.converter.apicurio.registry.url": "http://MY-REGISTRY-URL/apis/registry/v3",
   "value.converter.apicurio.registry.auto-register": "true"
 }
 ----
 
-NOTE: The Debezium Avro converter uses the Core Registry API v2 by default. Use `/apis/registry/v2` in the converter URL unless you have verified that your Debezium version supports v3.
+NOTE: The {registry} Avro converter supports both the v2 and v3 APIs. The converter uses the v3 API by default. If you use a Debezium version that requires v2, change the converter URL to `/apis/registry/v2`.
+
+IMPORTANT: Do not store database credentials in connector configurations in production. Use environment variables, {kubernetes} secrets, or a secrets management tool such as HashiCorp Vault to inject credentials at deployment time.
 
 The following properties are key in this configuration:
 
@@ -794,7 +796,7 @@ Follow these recommendations when you evolve schemas. For compatible and incompa
 
 Follow these recommendations when you deprecate and retire schemas. For the step-by-step procedure, see xref:managing-schema-lifecycle-states_{context}[].
 
-* Set the version state to `DEPRECATED` before disabling a schema. Give consumers a grace period of two to four weeks.
+* Set the version state to `DEPRECATED` before disabling a schema. Give consumers a reasonable grace period, commonly two to four weeks depending on your organization and consumer count.
 * Set the version state to `DISABLED` only after you confirm that all consumers have migrated.
 * Delete artifact versions only after you confirm that no audit or compliance requirements mandate retention.
 * Monitor consumer access patterns to verify that no consumers fetch deprecated versions.

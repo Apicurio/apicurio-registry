@@ -293,7 +293,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>4.0.31</groovy.version>
+    <groovy.version>5.0.5</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
@@ -1263,7 +1263,7 @@
       <plugin>
         <groupId>io.github.git-commit-id</groupId>
         <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>9.2.0</version>
+        <version>10.0.0</version>
         <configuration>
           <skip>${skipCommitIdPlugin}</skip>
           <generateGitPropertiesFile>true</generateGitPropertiesFile>

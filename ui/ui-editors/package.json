@@ -1,6 +1,6 @@
 {
     "name": "@apicurio/apicurio-studio-editors",
-    "version": "3.2.4-Dev",
+    "version": "3.2.4",
     "scripts": {
         "clean": "rimraf dist",
         "dev": "ng serve --port 9011",

@@ -10,14 +10,14 @@ Usage:
 
 import argparse
 import json
-import os
 import subprocess
-import sys
 from pathlib import Path
 
 import yaml
 import numpy as np
 from sentence_transformers import SentenceTransformer
+
+_FAILED = object()
 
 
 def load_config():
@@ -35,6 +35,7 @@ def get_issue(repo, number):
 
 
 def get_issue_type(repo, number):
+    """Returns the issue type dict, None if no type is set, or _FAILED on query failure."""
     query = """
     query($owner: String!, $name: String!, $number: Int!) {
       repository(owner: $owner, name: $name) {
@@ -54,11 +55,11 @@ def get_issue_type(repo, number):
         capture_output=True, text=True,
     )
     if result.returncode != 0:
-        return None
+        return _FAILED
     data = json.loads(result.stdout)
     issue = data["data"]["repository"].get("issue")
     if not issue:
-        return None
+        return _FAILED
     return issue.get("issueType")
 
 
@@ -90,24 +91,22 @@ def cosine_similarity(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-def classify_area_labels(issue_embedding, model, config):
+def classify_area_labels(issue_embedding, label_embeddings, config):
     label_config = config["area_labels"]
-    threshold = label_config["threshold"]
-    max_labels = label_config["max_labels"]
+    default_threshold = label_config["threshold"]
     labels = label_config["labels"]
 
     scores = {}
-    for label_name, label_info in labels.items():
-        label_embedding = model.encode(label_info["description"])
-        score = cosine_similarity(issue_embedding, label_embedding)
+    for label_name in labels:
+        score = cosine_similarity(issue_embedding, label_embeddings[label_name])
         scores[label_name] = float(score)
 
     sorted_labels = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     selected = [
         (name, score) for name, score in sorted_labels
-        if score >= labels[name].get("threshold", threshold)
+        if score >= labels[name].get("threshold", default_threshold)
     ]
-    selected = selected[:max_labels]
+    selected = selected[:label_config["max_labels"]]
 
     result = set(name for name, _ in selected)
     for name, _ in selected:
@@ -118,15 +117,14 @@ def classify_area_labels(issue_embedding, model, config):
     return result, scores
 
 
-def classify_issue_type(issue_embedding, model, config):
+def classify_issue_type(issue_embedding, type_embeddings, config):
     type_config = config["issue_types"]
     threshold = type_config["threshold"]
     types = type_config["types"]
 
     scores = {}
-    for type_name, type_info in types.items():
-        type_embedding = model.encode(type_info["description"])
-        score = cosine_similarity(issue_embedding, type_embedding)
+    for type_name in types:
+        score = cosine_similarity(issue_embedding, type_embeddings[type_name])
         scores[type_name] = float(score)
 
     best_type, best_score = max(scores.items(), key=lambda x: x[1])
@@ -147,6 +145,9 @@ def apply_labels(repo, number, labels):
 
 def apply_issue_type(repo, number, type_id):
     issue_node_id = get_issue_node_id(repo, number)
+    if not issue_node_id:
+        print("Warning: could not resolve issue node ID, skipping issue type assignment.")
+        return
     mutation = """
     mutation($issueId: ID!, $typeId: ID!) {
       updateIssue(input: { id: $issueId, issueTypeId: $typeId }) {
@@ -180,7 +181,6 @@ def main():
     existing_area_labels = {l for l in existing_labels if l.startswith("area/")}
 
     issue_text = f"{title}\n\n{body}"
-    # Truncate very long issue bodies to avoid excessive embedding time
     if len(issue_text) > 8000:
         issue_text = issue_text[:8000]
 
@@ -190,16 +190,27 @@ def main():
     print("Computing embeddings...")
     issue_embedding = model.encode(issue_text)
 
+    label_names = list(config["area_labels"]["labels"].keys())
+    label_descs = [config["area_labels"]["labels"][n]["description"] for n in label_names]
+    label_vecs = model.encode(label_descs)
+    label_embeddings = dict(zip(label_names, label_vecs))
+
+    type_names = list(config["issue_types"]["types"].keys())
+    type_descs = [config["issue_types"]["types"][n]["description"] for n in type_names]
+    type_vecs = model.encode(type_descs)
+    type_embeddings = dict(zip(type_names, type_vecs))
+
     # --- Area labels ---
-    new_labels, area_scores = classify_area_labels(issue_embedding, model, config)
-    # Don't re-apply labels that already exist
+    default_threshold = config["area_labels"]["threshold"]
+    labels_config = config["area_labels"]["labels"]
+    new_labels, area_scores = classify_area_labels(issue_embedding, label_embeddings, config)
     labels_to_add = new_labels - existing_area_labels
 
     print("\n=== Area Label Scores ===")
-    threshold = config["area_labels"]["threshold"]
     for label, score in sorted(area_scores.items(), key=lambda x: x[1], reverse=True):
+        effective_threshold = labels_config[label].get("threshold", default_threshold)
         marker = ">>>" if label in new_labels else "   "
-        print(f"  {marker} {label}: {score:.4f} (threshold: {threshold})")
+        print(f"  {marker} {label}: {score:.4f} (threshold: {effective_threshold})")
 
     if labels_to_add:
         print(f"\nLabels to add: {', '.join(sorted(labels_to_add))}")
@@ -208,7 +219,7 @@ def main():
 
     # --- Issue type ---
     current_type = get_issue_type(args.repo, args.issue)
-    type_name, type_id, type_scores = classify_issue_type(issue_embedding, model, config)
+    type_name, type_id, type_scores = classify_issue_type(issue_embedding, type_embeddings, config)
 
     print("\n=== Issue Type Scores ===")
     type_threshold = config["issue_types"]["threshold"]
@@ -216,13 +227,18 @@ def main():
         marker = ">>>" if tname == type_name else "   "
         print(f"  {marker} {tname}: {score:.4f} (threshold: {type_threshold})")
 
-    should_set_type = type_name and not current_type
-    if current_type:
+    if current_type is _FAILED:
+        print("\nWarning: failed to fetch current issue type, skipping type assignment.")
+        should_set_type = False
+    elif current_type:
         print(f"\nIssue already has type '{current_type['name']}', skipping.")
+        should_set_type = False
     elif type_name:
         print(f"\nWill set issue type to: {type_name}")
+        should_set_type = True
     else:
         print("\nNo issue type above threshold.")
+        should_set_type = False
 
     # --- Apply ---
     if args.dry_run:
@@ -230,7 +246,7 @@ def main():
         return
 
     if labels_to_add:
-        print(f"\nApplying labels...")
+        print("\nApplying labels...")
         apply_labels(args.repo, args.issue, labels_to_add)
         print("Labels applied.")
 

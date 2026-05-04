@@ -210,6 +210,8 @@ def main():
 
         print(f"\nFetching {args.precision_sample} recent issues...")
         recent_issues = fetch_recent_issues(args.repo, args.precision_sample)
+        # Exclude issues already used in the recall sample to avoid double-counting
+        recent_issues = [iss for iss in recent_issues if iss["number"] not in recall_issue_numbers]
         recent_embeddings = model.encode([issue_text(iss) for iss in recent_issues])
 
         fp_by_label = defaultdict(list)
@@ -237,9 +239,6 @@ def main():
         for label_name in labels_to_test:
             tp = tp_by_label.get(label_name, 0)
             fps = fp_by_label.get(label_name, [])
-            # Exclude FPs on issues that were in the recall sample (they have the label)
-            fps = [fp for fp in fps if fp["number"] not in recall_issue_numbers]
-            # Add recall-phase true positives
             recall_tp = recall_data.get(label_name, {}).get("found", 0)
             total_tp = tp + recall_tp
             total_predicted = total_tp + len(fps)

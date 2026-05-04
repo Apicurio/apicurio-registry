@@ -1,6 +1,6 @@
 # Label Classification
 
-Automatically assigns `area/*` labels and issue types to GitHub issues using sentence embeddings. Runs in GitHub Actions on every issue open/edit — no API keys or GPU required.
+Automatically assigns `area/*` labels and issue types to GitHub issues using sentence embeddings. Runs in GitHub Actions on every issue open/edit — no inference API calls, no API keys, no GPU required. The embedding model is downloaded from Hugging Face Hub on first run and cached between workflow runs.
 
 ## Usage
 

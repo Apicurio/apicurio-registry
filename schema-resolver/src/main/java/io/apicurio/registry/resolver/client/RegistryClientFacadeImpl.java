@@ -210,6 +210,9 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
                     .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
                     .build();
             HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.discarding());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.log(Level.WARNING, "Interrupted while reporting usage telemetry events", e);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to report usage telemetry events to registry", e);
         }

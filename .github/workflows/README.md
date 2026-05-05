@@ -38,7 +38,7 @@ Every downstream job uses a single `if:` condition.
 | `integration` | `app/`, `common/`, `integration-tests/`, `schema-*/`, `serdes/`, `distro/`, `pom.xml` | integration-tests |
 | `sdk` | `java-sdk/`, `go-sdk/`, `python-sdk/`, `typescript-sdk/` | build, sdk |
 | `cli` | `cli/`, `java-sdk/`, `verify-cli.yaml` | build, cli-verify |
-| `ci` | `.github/workflows/**` | all test phases |
+| `ci` | `.github/workflows/**` | all test phases except cli-verify |
 
 Docs-only or UI-only PRs skip Java unit tests and integration tests entirely.
 Push to main always runs everything regardless of change detection.

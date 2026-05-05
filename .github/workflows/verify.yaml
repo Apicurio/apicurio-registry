@@ -91,11 +91,15 @@ jobs:
             run_smoke=true
             run_full=true
           else
-            # Labeled events: only react to lifecycle label changes
+            # Non-lifecycle label events: skip the workflow run entirely.
+            # Unlike other PR events, we do NOT need to evaluate lifecycle
+            # state here — the workflow already ran (or will run) for the
+            # synchronize/opened event on the same SHA, so the gate result
+            # from that run is authoritative.
             if [ "$ACTION" = "labeled" ]; then
               LABEL='${{ github.event.label.name }}'
               if [[ "$LABEL" != lifecycle/* ]]; then
-                echo "lifecycle-ready=false" >> "$GITHUB_OUTPUT"
+                echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
                 for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli; do
                   echo "$out=false" >> "$GITHUB_OUTPUT"
                 done
@@ -281,8 +285,10 @@ jobs:
             exit 1
           fi
 
-          # On PRs, fail if lifecycle state does not allow merging
-          if [ "$EVENT" != "push" ] && [ "$LIFECYCLE_READY" != "true" ]; then
+          # On PRs, fail if lifecycle state does not allow merging.
+          # "skip" means this run was triggered by a non-lifecycle label and
+          # is not authoritative — let it pass without blocking.
+          if [ "$EVENT" != "push" ] && [ "$LIFECYCLE_READY" != "true" ] && [ "$LIFECYCLE_READY" != "skip" ]; then
             echo "::error::PR is not in a testable lifecycle state"
             exit 1
           fi

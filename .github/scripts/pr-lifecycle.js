@@ -43,6 +43,7 @@ const COLORS = {
   SUCCESS_LIGHT: 'B5E8B5',
   SUCCESS: '5BB85B',
   ATTENTION: 'F7BF6A',
+  ATTENTION_STRONG: 'E8836B',
   INACTIVE: 'CCCCCC',
 };
 
@@ -54,7 +55,7 @@ const LABEL_DEFS = {
   [LABELS.TESTED]:               { color: COLORS.SUCCESS, description: 'Full test suite passed for current HEAD' },
   [LABELS.REVIEW_APPROVED]:      { color: COLORS.SUCCESS, description: 'PR has an approved review' },
   [LABELS.READY_TO_MERGE]:       { color: COLORS.INFO, description: 'Approved and tested, ready to merge' },
-  [LABELS.WAITING_ON_AUTHOR]:    { color: COLORS.ATTENTION, description: 'Blocked on contributor action' },
+  [LABELS.WAITING_ON_AUTHOR]:    { color: COLORS.ATTENTION_STRONG, description: 'Blocked on contributor action' },
   [LABELS.WAITING_ON_MAINTAINER]:{ color: COLORS.ATTENTION, description: 'Blocked on maintainer action' },
   [LABELS.STALE]:                { color: COLORS.INACTIVE, description: 'No activity for 7+ days' },
   [LABELS.DISABLED]:             { color: COLORS.INACTIVE, description: 'PR excluded from lifecycle orchestrator' },

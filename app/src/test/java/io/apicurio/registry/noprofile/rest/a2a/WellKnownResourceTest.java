@@ -338,8 +338,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
 
         String requestBody = """
                 {
-                    "query": "TestAgent",
-                    "limit": 10,
+                    "limit": 50,
                     "offset": 0
                 }
                 """;
@@ -351,7 +350,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .post("/.well-known/agents/search")
                 .then()
                 .statusCode(200)
-                .body("count", greaterThanOrEqualTo(1))
+                .body("count", greaterThanOrEqualTo(2))
                 .body("agents", notNullValue());
     }
 

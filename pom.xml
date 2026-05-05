@@ -218,7 +218,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.40</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.41</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -236,7 +236,7 @@
     <jgit.version>7.6.0.202603022253-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>
-    <semver4j.version>5.8.0</semver4j.version>
+    <semver4j.version>6.0.0</semver4j.version>
     <slf4j.version>2.0.17</slf4j.version>
 
     <!-- Kafka Connect -->
@@ -286,7 +286,7 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.2</kiota.libs.version>
-    <kiota.community.version>0.0.34</kiota.community.version>
+    <kiota.community.version>0.0.35</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->

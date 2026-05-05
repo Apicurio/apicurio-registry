@@ -12,6 +12,7 @@ import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResult;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
 import io.apicurio.registry.auth.AdminOverride;
+import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -86,6 +87,9 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Inject
     AdminOverride adminOverride;
+
+    @Inject
+    AuthConfig authConfig;
 
     @Context
     HttpServletRequest request;
@@ -582,6 +586,17 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     private List<AgentSearchResult> filterByVisibility(List<SearchedArtifactDto> artifacts) {
+        boolean authEnabled = authConfig.isOidcAuthEnabled()
+                || authConfig.isBasicAuthEnabled();
+
+        if (!authEnabled) {
+            List<AgentSearchResult> result = new ArrayList<>();
+            for (SearchedArtifactDto artifact : artifacts) {
+                result.add(convertToAgentSearchResult(artifact));
+            }
+            return result;
+        }
+
         boolean isAuthenticated = securityIdentity != null && !securityIdentity.isAnonymous();
         boolean isAdmin = adminOverride.isAdmin();
         String currentUser = isAuthenticated

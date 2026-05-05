@@ -42,7 +42,7 @@ const COLORS = {
   INFO: 'A8D8F0',
   SUCCESS_LIGHT: 'B5E8B5',
   SUCCESS: '5BB85B',
-  ATTENTION: 'F5A623',
+  ATTENTION: 'F7BF6A',
   INACTIVE: 'CCCCCC',
 };
 
@@ -384,6 +384,9 @@ async function handlePrOpened({ github, context, core }) {
   }
 
   await api.addLabel(pr.number, LABELS.NEW);
+  if (!pr.draft) {
+    await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+  }
   const message = config.welcome_message.replace(/\{author\}/g, pr.user.login);
   await api.postComment(pr.number, message);
   core.info(`PR #${pr.number} opened, set to lifecycle/new`);
@@ -835,15 +838,30 @@ async function handleLabelChange({ github, context, core }) {
 
 async function handleTestResult({ github, context, core }) {
   const workflowRun = context.payload.workflow_run;
-  if (workflowRun.event !== 'pull_request' || !workflowRun.pull_requests?.length) {
-    core.info('Workflow run is not from a PR, skipping');
+  if (workflowRun.event !== 'pull_request') {
+    core.info('Workflow run is not from a PR event, skipping');
     return;
   }
 
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
 
-  for (const prRef of workflowRun.pull_requests) {
+  // Re-run attempts may lose the pull_requests array from the workflow_run
+  // payload. Fall back to searching for PRs by the head SHA.
+  let prRefs = workflowRun.pull_requests || [];
+  if (!prRefs.length) {
+    const { data: prs } = await github.rest.pulls.list({
+      owner, repo, state: 'open', head: `${owner}:${workflowRun.head_branch}`, per_page: 10,
+    });
+    prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
+    if (!prRefs.length) {
+      core.info(`No open PR found for branch ${workflowRun.head_branch} / SHA ${workflowRun.head_sha}, skipping`);
+      return;
+    }
+    core.info(`Resolved ${prRefs.length} PR(s) from head branch lookup (re-run fallback)`);
+  }
+
+  for (const prRef of prRefs) {
     const pr = await api.getPr(prRef.number);
 
     if (hasLabel(pr, LABELS.DISABLED)) continue;
@@ -867,6 +885,7 @@ async function handleTestResult({ github, context, core }) {
         core.info(`PR #${pr.number} smoke tests passed, added lifecycle/smoke-tested`);
       } else if (workflowRun.conclusion === 'failure') {
         await api.removeLabel(pr.number, LABELS.SMOKE_TESTED);
+        await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
         core.info(`PR #${pr.number} smoke tests failed`);
       }
       continue;
@@ -883,6 +902,8 @@ async function handleTestResult({ github, context, core }) {
       if (result === 'auto-merge') {
         const config = loadConfig();
         await performMerge(api, config, freshPr, core);
+      } else if (!result) {
+        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
       }
     } else if (workflowRun.conclusion === 'failure') {
       await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);

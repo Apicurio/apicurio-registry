@@ -409,9 +409,9 @@ async function handlePrSynchronize({ github, context, core }) {
     await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
     core.info(`PR #${pr.number} new push, removed lifecycle/review-approved`);
   }
-  if (hasLabel(pr, LABELS.REVIEW_SKIPPED)) {
-    await api.removeLabel(pr.number, LABELS.REVIEW_SKIPPED);
-    core.info(`PR #${pr.number} new push, removed orchestrator/review-skipped`);
+  if (hasLabel(pr, LABELS.AUTO_MERGE)) {
+    await api.removeLabel(pr.number, LABELS.AUTO_MERGE);
+    core.info(`PR #${pr.number} new push, removed orchestrator/auto-merge`);
   }
   if (hasLabel(pr, LABELS.STALE)) {
     await api.removeLabel(pr.number, LABELS.STALE);

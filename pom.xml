@@ -218,7 +218,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.40</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.41</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -286,7 +286,7 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.2</kiota.libs.version>
-    <kiota.community.version>0.0.34</kiota.community.version>
+    <kiota.community.version>0.0.35</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->

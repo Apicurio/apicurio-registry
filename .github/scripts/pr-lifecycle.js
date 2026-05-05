@@ -642,6 +642,7 @@ async function cmdAutoMerge(api, config, core, pr, actor, maintainer, commentId)
   }
 
   await api.addLabel(pr.number, LABELS.AUTO_MERGE);
+  await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.addReaction(commentId, '+1');
   await api.postComment(pr.number,
     `Auto-merge enabled by @${actor}. This PR will be merged automatically ` +
@@ -676,11 +677,11 @@ async function cmdSkipReview(api, config, core, pr, actor, maintainer, commentId
     const freshPr = await api.getPr(pr.number);
     await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
     await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-    await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
     await retriggerVerify(api, freshPr, core);
   }
 
   await api.addLabel(pr.number, LABELS.REVIEW_SKIPPED);
+  await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.addReaction(commentId, '+1');
 
   const freshPr = await api.getPr(pr.number);

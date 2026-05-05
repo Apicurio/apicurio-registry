@@ -344,12 +344,19 @@ async function handlePrOpened({ github, context, core }) {
   const config = loadConfig();
 
   if (isAutoAccepted(config, pr.user.login)) {
-    await api.addLabel(pr.number, LABELS.WIP);
-    await api.postComment(pr.number,
-      `PR auto-accepted (trusted author). Smoke tests will run on each push.\n\n` +
-      `When ready, use \`/ready\` to request a full review.`
-    );
-    core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}`);
+    const initialState = pr.draft ? LABELS.WIP : LABELS.READY_FOR_REVIEW;
+    await api.addLabel(pr.number, initialState);
+    if (pr.draft) {
+      await api.postComment(pr.number,
+        `PR auto-accepted (trusted author). Smoke tests will run on each push.\n\n` +
+        `When ready, use \`/ready\` or mark as non-draft to run the full test suite.`
+      );
+    } else {
+      await api.postComment(pr.number,
+        `PR auto-accepted (trusted author). Full test suite will run.`
+      );
+    }
+    core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${initialState}`);
     await retriggerVerify(api, pr, core, { waitForRun: true });
     return;
   }

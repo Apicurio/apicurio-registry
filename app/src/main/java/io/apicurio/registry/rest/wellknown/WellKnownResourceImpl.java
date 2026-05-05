@@ -149,16 +149,23 @@ public class WellKnownResourceImpl implements WellKnownResource {
         ArtifactSearchResultsDto results = storage.searchArtifacts(
                 filters, OrderBy.createdOn, OrderDirection.desc, 0, Integer.MAX_VALUE);
 
-        List<AgentSearchResult> agents = filterByVisibility(results.getArtifacts());
+        // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
+        List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
 
-        int total = agents.size();
-        int fromIndex = Math.min(offset, total);
-        int toIndex = Math.min(fromIndex + limit, total);
-        List<AgentSearchResult> page = agents.subList(fromIndex, toIndex);
+        int total = visible.size();
+        int safeOffset = Math.max(0, Math.min(offset, total));
+        int safeLimit = Math.max(0, limit);
+        int toIndex = Math.min(safeOffset + safeLimit, total);
+        List<SearchedArtifactDto> page = visible.subList(safeOffset, toIndex);
+
+        List<AgentSearchResult> agents = new ArrayList<>();
+        for (SearchedArtifactDto artifact : page) {
+            agents.add(convertToAgentSearchResult(artifact));
+        }
 
         return AgentSearchResults.builder()
                 .count((long) total)
-                .agents(page)
+                .agents(agents)
                 .build();
     }
 
@@ -215,26 +222,34 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
         }
 
+        int safeOffset = Math.max(0, request.getOffset());
+        int safeLimit = Math.max(1, Math.min(request.getLimit(), 500));
+
         if (a2aConfig.isEntitlementsEnabled()) {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
                     filters, OrderBy.createdOn, OrderDirection.desc, 0, Integer.MAX_VALUE);
 
-            List<AgentSearchResult> agents = filterByVisibility(results.getArtifacts());
+            // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
+            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
 
-            int total = agents.size();
-            int fromIndex = Math.min(request.getOffset(), total);
-            int toIndex = Math.min(fromIndex + request.getLimit(), total);
-            List<AgentSearchResult> page = agents.subList(fromIndex, toIndex);
+            int total = visible.size();
+            int fromIndex = Math.min(safeOffset, total);
+            int toIndex = Math.min(fromIndex + safeLimit, total);
+            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
+
+            List<AgentSearchResult> agents = new ArrayList<>();
+            for (SearchedArtifactDto artifact : page) {
+                agents.add(convertToAgentSearchResult(artifact));
+            }
 
             return AgentSearchResults.builder()
                     .count((long) total)
-                    .agents(page)
+                    .agents(agents)
                     .build();
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc,
-                request.getOffset(), request.getLimit());
+                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit);
 
         List<AgentSearchResult> agents = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
@@ -585,16 +600,17 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
     }
 
-    private List<AgentSearchResult> filterByVisibility(List<SearchedArtifactDto> artifacts) {
+    /**
+     * Filters artifact DTOs by visibility rules without performing expensive content conversion.
+     * When no auth is enabled, all artifacts are returned. Otherwise, visibility is determined
+     * by the {@code apicurio.agent.visibility} label (falling back to the configured default).
+     */
+    private List<SearchedArtifactDto> filterDtosByVisibility(List<SearchedArtifactDto> artifacts) {
         boolean authEnabled = authConfig.isOidcAuthEnabled()
                 || authConfig.isBasicAuthEnabled();
 
         if (!authEnabled) {
-            List<AgentSearchResult> result = new ArrayList<>();
-            for (SearchedArtifactDto artifact : artifacts) {
-                result.add(convertToAgentSearchResult(artifact));
-            }
-            return result;
+            return new ArrayList<>(artifacts);
         }
 
         boolean isAuthenticated = securityIdentity != null && !securityIdentity.isAnonymous();
@@ -602,29 +618,37 @@ public class WellKnownResourceImpl implements WellKnownResource {
         String currentUser = isAuthenticated
                 ? securityIdentity.getPrincipal().getName() : null;
 
-        List<AgentSearchResult> result = new ArrayList<>();
+        List<SearchedArtifactDto> result = new ArrayList<>();
         for (SearchedArtifactDto artifact : artifacts) {
-            String visibility = getVisibilityLabel(artifact.getLabels());
+            String visibility = resolveVisibility(artifact.getLabels());
             if ("public".equals(visibility)) {
-                result.add(convertToAgentSearchResult(artifact));
+                result.add(artifact);
             } else if (!isAuthenticated) {
                 continue;
             } else if ("private".equals(visibility)) {
                 if (isAdmin || currentUser.equals(artifact.getOwner())) {
-                    result.add(convertToAgentSearchResult(artifact));
+                    result.add(artifact);
                 }
             } else {
-                result.add(convertToAgentSearchResult(artifact));
+                // "entitled" or any unrecognized value — visible to authenticated users
+                result.add(artifact);
             }
         }
         return result;
     }
 
-    private String getVisibilityLabel(Map<String, String> labels) {
-        if (labels == null) {
-            return null;
+    /**
+     * Returns the effective visibility for an artifact. If the {@code apicurio.agent.visibility}
+     * label is not set, falls back to the configured default visibility.
+     */
+    private String resolveVisibility(Map<String, String> labels) {
+        if (labels != null) {
+            String explicit = labels.get("apicurio.agent.visibility");
+            if (explicit != null) {
+                return explicit;
+            }
         }
-        return labels.get("apicurio.agent.visibility");
+        return a2aConfig.getDefaultVisibility();
     }
 
     private String getBaseUrl() {

@@ -37,6 +37,12 @@ public class ProtobufContentValidator extends AbstractContentValidator {
     public void validate(ValidityLevel level, TypedContent content,
                          Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
+            // Run FQN / identifier hardening first. The detector contract guarantees
+            // RuleViolationException is the only type that can escape this call — it
+            // catches and wraps any parser / base64 / descriptor failures from its own
+            // inputs internally — so no outer try/catch is needed here.
+            Map<String, String> referenceTextSchemas = ProtobufFqnConflictDetector
+                    .assertNoConflicts(level, content, resolvedReferences);
             try {
                 if (resolvedReferences == null || resolvedReferences.isEmpty()) {
                     // Parse the protobuf content (syntax validation)
@@ -75,10 +81,9 @@ public class ProtobufContentValidator extends AbstractContentValidator {
                             .toProtoFileElement(content.getContent().content());
                     String textMainContent = protoFileElement.toSchema();
 
-                    // Convert references if binary and build required deps map with text content
-                    final Map<String, String> requiredDeps = resolvedReferences.entrySet().stream().collect(
-                            Collectors.toMap(Map.Entry::getKey,
-                                    e -> ProtobufFile.toProtoFileElement(e.getValue().getContent().content()).toSchema()));
+                    // Reuse the text schemas already materialized by the FQN detector to
+                    // avoid converting every reference twice (once there, once here).
+                    final Map<String, String> requiredDeps = referenceTextSchemas;
 
                     final Set<FileDescriptorUtils.ProtobufSchemaContent> dependencies = requiredDeps.entrySet()
                             .stream()

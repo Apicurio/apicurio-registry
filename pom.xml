@@ -218,7 +218,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.40</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.41</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -229,8 +229,6 @@
     <debezium.version>2.7.4.Final</debezium.version>
     <pulsar-clients.version>3.3.9</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
-    <quarkus-quickjs4j.version>0.0.3</quarkus-quickjs4j.version>
-    <quickjs4j.version>0.0.17</quickjs4j.version>
 
     <nats.version>2.25.2</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
@@ -276,7 +274,7 @@
     <version.org.sonatype.central-publishing-maven-plugin>0.10.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>8.45.1</version.puppycrawl>
+    <version.puppycrawl>13.4.2</version.puppycrawl>
     <apicurio-maven-plugin.version>0.0.8</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
@@ -288,14 +286,14 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.2</kiota.libs.version>
-    <kiota.community.version>0.0.34</kiota.community.version>
+    <kiota.community.version>0.0.35</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>4.0.31</groovy.version>
+    <groovy.version>5.0.5</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
@@ -817,26 +815,6 @@
       </dependency>
 
       <dependency>
-        <groupId>io.quarkiverse.quickjs4j</groupId>
-        <artifactId>quarkus-quickjs4j</artifactId>
-        <version>${quarkus-quickjs4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.roastedroot</groupId>
-        <artifactId>quickjs4j</artifactId>
-        <version>${quickjs4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.roastedroot</groupId>
-        <artifactId>quickjs4j-annotations</artifactId>
-        <version>${quickjs4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.roastedroot</groupId>
-        <artifactId>quickjs4j-processor</artifactId>
-        <version>${quickjs4j.version}</version>
-      </dependency>
-      <dependency>
         <groupId>com.fasterxml.woodstox</groupId>
         <artifactId>woodstox-core</artifactId>
         <version>${woodstox-core.version}</version>
@@ -1285,7 +1263,7 @@
       <plugin>
         <groupId>io.github.git-commit-id</groupId>
         <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>9.2.0</version>
+        <version>10.0.0</version>
         <configuration>
           <skip>${skipCommitIdPlugin}</skip>
           <generateGitPropertiesFile>true</generateGitPropertiesFile>

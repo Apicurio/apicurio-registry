@@ -36,8 +36,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     }
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map<String,
-     *      ParsedSchema<ProtobufSchema>>)
+     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map)
      */
     @Override
     public ProtobufSchema parseSchema(byte[] rawSchema,

@@ -176,7 +176,7 @@
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.17.0</okio.version>
     <kotlin-stdlib.version>2.3.21</kotlin-stdlib.version>
-    <icu4j.version>76.1</icu4j.version>
+    <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.34.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.70.0</protobuf.googleapi.types.version>
@@ -211,14 +211,14 @@
     <org.everit.json.schema.version>1.14.6</org.everit.json.schema.version>
     <json-sKema.version>0.30.0</json-sKema.version>
     <!-- TODO unification -->
-    <org.json.version>20250107</org.json.version>
+    <org.json.version>20250517</org.json.version>
     <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
     <jackson-dataformat-yaml.version>2.18.2</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.40</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.41</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -236,7 +236,7 @@
     <jgit.version>7.6.0.202603022253-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>
-    <semver4j.version>5.8.0</semver4j.version>
+    <semver4j.version>6.0.0</semver4j.version>
     <slf4j.version>2.0.17</slf4j.version>
 
     <!-- Kafka Connect -->
@@ -274,7 +274,7 @@
     <version.org.sonatype.central-publishing-maven-plugin>0.10.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>8.45.1</version.puppycrawl>
+    <version.puppycrawl>13.4.2</version.puppycrawl>
     <apicurio-maven-plugin.version>0.0.8</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
@@ -286,14 +286,14 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.2</kiota.libs.version>
-    <kiota.community.version>0.0.34</kiota.community.version>
+    <kiota.community.version>0.0.35</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>4.0.31</groovy.version>
+    <groovy.version>5.0.5</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
@@ -1263,7 +1263,7 @@
       <plugin>
         <groupId>io.github.git-commit-id</groupId>
         <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>9.2.0</version>
+        <version>10.0.0</version>
         <configuration>
           <skip>${skipCommitIdPlugin}</skip>
           <generateGitPropertiesFile>true</generateGitPropertiesFile>

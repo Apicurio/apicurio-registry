@@ -13,7 +13,7 @@ import java.util.UUID;
  * <p>
  * 1) Register a new schema in the Registry. 2) Fetch the newly created schema. 3) Delete the schema.
  *
- * @author Carles Arnal <carnalca@redhat.com>
+ * @author Carles Arnal
  */
 public class SimpleRegistryDemoBasicAuth {
 

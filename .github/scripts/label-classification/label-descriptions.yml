@@ -1,0 +1,270 @@
+# Classification configuration for AI-based issue/PR labeling.
+#
+# Each description is used as input to a sentence embedding model.
+# The model computes cosine similarity between the issue text and each description.
+# Better descriptions = better classification. Include keywords, synonyms, and
+# phrases that typically appear in issues for that area.
+#
+# To tune accuracy:
+#   - Edit descriptions to include terms from misclassified issues
+#   - Adjust thresholds (lower = more labels assigned, higher = fewer but more precise)
+#   - Run the test script to measure impact: python test_classify.py --repo OWNER/REPO
+
+model: all-MiniLM-L6-v2
+
+area_labels:
+  threshold: 0.35
+  max_labels: 4
+
+  labels:
+    area/AI:
+      threshold: 0.30
+      description: >-
+        AI features, artificial intelligence, MCP server, Model Context Protocol,
+        A2A protocol, agent-to-agent, AI agent registry, agent discovery,
+        agent entitlement, LLM integration, quarkus-mcp-server,
+        MCP tool, MCP resource, AI-native, agent card
+    area/auth:
+      threshold: 0.25
+      description: >-
+        Authentication, authorization, OIDC, OpenID Connect, Keycloak, OAuth2,
+        RBAC, role-based access control, access token, login, SSO, single sign-on,
+        admin override, permissions, security, credentials, JWT, bearer token,
+        entitlement, visibility model, per-resource permissions, access control,
+        @Authorized, AuthorizedStyle, AuthorizedLevel, access hints,
+        self-signed certificate, TLS trust, protected registry
+    area/avro:
+      threshold: 0.30
+      description: >-
+        Apache Avro, Avro schema, .avsc file, Avro serialization, Avro format,
+        Avro compatibility, Avro canonical form, Avro union, Avro record,
+        Avro linting, Avro naming conventions, Avro field type
+    area/build:
+      threshold: 0.25
+      description: >-
+        Maven build system, build failure, compilation, packaging, pom.xml,
+        build configuration, module structure, Quarkus build, mvnw, build plugin,
+        assembly, build profile, checkstyle configuration, merge repository,
+        monorepo, container image, docker image, arm64 image, publish image,
+        @Info annotation, module consolidation, build flag
+    area/caching:
+      threshold: 0.30
+      description: >-
+        Caching, HTTP cache, ETag, cache invalidation, in-memory cache,
+        cache headers, response caching, artifact cache, schema cache,
+        cache configuration, cache performance, schema resolver cache,
+        cache bypass, duplicate cache calls, cache miss
+    area/CI:
+      threshold: 0.30
+      description: >-
+        CI/CD, continuous integration, GitHub Actions, workflow, pipeline,
+        GitHub workflow, CI failure, automated build, CI configuration,
+        workflow file, .github/workflows, CI broken, CI test,
+        lifecycle orchestrator, workflow YAML, secrets inherit,
+        Java heap space, CI out of memory
+    area/CLI:
+      threshold: 0.20
+      description: >-
+        Command line interface, CLI tool, terminal, command line client,
+        CLI command, registry CLI, shell, CLI usage, acr command,
+        CLI search, CLI context, CLI version comments, CLI update,
+        CLI blog, CLI capabilities, CLI phase
+    area/converter:
+      threshold: 0.35
+      description: >-
+        Apicurio Registry Kafka Connect converter, Kafka Connect SMT,
+        single message transform, Debezium connector plugin,
+        io.apicurio.registry.utils.converter, SchemaResolverStrategy in Connect
+    area/dependencies:
+      threshold: 0.25
+      description: >-
+        Maven dependencies, npm dependencies, library update, version bump,
+        dependency upgrade, dependency management, Dependabot, pom dependency,
+        node_modules, package.json, third-party library, CVE, vulnerability,
+        security alert, code scanning, inline library, archive library,
+        missing dependency, dependency resolution
+    area/documentation:
+      threshold: 0.25
+      description: >-
+        Documentation, docs, user guide, asciidoc, adoc, README,
+        documentation update, documentation fix, typo in docs, missing docs,
+        API documentation, configuration documentation, stale documentation,
+        cleanup policy documentation, CLAUDE.md, contributor docs
+    area/examples:
+      threshold: 0.15
+      description: >-
+        Examples, demo, sample code, example application, getting started,
+        tutorial, quickstart, example project, demo application,
+        distributed tracing example, Strimzi example, example consolidation,
+        example review
+    area/lakehouse:
+      description: >-
+        Data lakehouse, Apache Iceberg, Iceberg REST Catalog, Apache Flink,
+        table format, Iceberg table, catalog API, Iceberg integration,
+        lakehouse storage, Iceberg namespace, Iceberg metrics
+    area/maven-plugin:
+      threshold: 0.40
+      description: >-
+        Apicurio Registry Maven plugin, registry-maven-plugin, Maven goal,
+        autoRefs, Maven artifact registration, Maven schema download,
+        Maven plugin configuration, Maven plugin failure
+    area/observability:
+      threshold: 0.25
+      description: >-
+        Observability, Prometheus, OpenTelemetry, metrics, tracing,
+        monitoring, health check, liveness, readiness, distributed tracing,
+        metric endpoint, telemetry, logging, audit log,
+        startup probe, log level, apicurio.log.level, probe failure,
+        management interface, Micrometer
+    area/operator:
+      threshold: 0.30
+      description: >-
+        Kubernetes operator, OpenShift operator, CRD, custom resource,
+        ApicurioRegistry CR, operator deployment, OLM, OperatorHub,
+        operator configuration, operator reconciliation, operator RBAC,
+        OLM release channel, community-operators, CNCF operator,
+        operator startup probe, operator IT test, deployment-mode
+    area/protobuf:
+      description: >-
+        Protocol Buffers, protobuf, .proto file, gRPC, protobuf schema,
+        protobuf serialization, protobuf compatibility, proto definition,
+        protobuf descriptor, base64 protobuf, protobuf field number
+    area/QE:
+      threshold: 0.20
+      description: >-
+        Quality engineering, test infrastructure, test framework, integration test,
+        test suite, test flake, test failure, test environment, Testcontainers,
+        test profile, test coverage, JUnit, SearchIT, test delimiter,
+        intermittent test failure, HttpClosedException, eventual consistency,
+        flaky test, test consolidation, IT test
+    area/references:
+      description: >-
+        Artifact references, schema references, cross-references, $ref,
+        reference resolution, dereference, resolveReferences, reference graph,
+        transitive references, nested references, reference integrity
+    area/rest:
+      threshold: 0.20
+      description: >-
+        REST API, HTTP endpoint, API v3, registry API, REST endpoint,
+        API request, API response, HTTP method, REST client, API operation,
+        REST resource, API path, content negotiation,
+        /apis/registry/v3, /groups, /artifacts, /versions, /admin,
+        endpoint implementation, API feature, new endpoint,
+        permissions endpoint, discovery endpoint, promotion endpoint
+    area/rest/ccompat:
+      threshold: 0.45
+      description: >-
+        ccompat API, Confluent Schema Registry compatible API,
+        /ccompat/v7 endpoint, /subjects REST endpoint,
+        Confluent subject version, ccompat compatibility mode,
+        Confluent-compatible REST proxy
+    area/rules:
+      description: >-
+        Rules, global rules, group rules, artifact rules, compatibility rule,
+        validity rule, rule configuration, rule enforcement, schema evolution,
+        rule violation, compatibility check, backward compatible, forward compatible,
+        RulesService, applyRules, rule type enumeration
+      children:
+        - area/rules/integrity
+        - area/rules/validity
+    area/rules/integrity:
+      description: >-
+        Integrity rule, referential integrity, NO_DUPLICATES, FULL,
+        integrity check, reference integrity validation, integrity level,
+        circular reference check, missing reference check
+      parent: area/rules
+    area/rules/validity:
+      description: >-
+        Validity rule, schema validation, FULL validation, SYNTAX_ONLY,
+        validity level, schema syntax check, invalid schema, schema parsing,
+        validation error, schema well-formedness
+      parent: area/rules
+    area/sdk:
+      threshold: 0.20
+      description: >-
+        SDK, client SDK, client library, Java SDK, TypeScript SDK, Go SDK,
+        Python SDK, Kiota, generated client, SDK configuration, SDK authentication,
+        SDK error, SDK usage, registry client, RegistryClient,
+        status code 401, unexpected status code, Vertx client,
+        date parsing, SDK version, npm publish, npmjs, JavaScript library,
+        apicurio-registry-client
+    area/search:
+      threshold: 0.30
+      description: >-
+        Search, full-text search, content search, artifact search,
+        search filter, search query, Elasticsearch, search API,
+        search by label, search by content, search versions,
+        /search/versions, search POST, DRAFT to ENABLED
+    area/serdes:
+      description: >-
+        Serializer, deserializer, SerDes, Kafka serializer, Kafka deserializer,
+        schema resolver, NATS serializer, Pulsar serializer, Avro serde,
+        JSON Schema serde, Protobuf serde, schema ID strategy, record headers
+    area/storage:
+      threshold: 0.25
+      description: >-
+        Storage layer, persistence, database, storage implementation,
+        data access, storage query, storage migration, storage configuration,
+        APICURIO_STORAGE_KIND, orphan cleanup, content type handling,
+        artifact type handling, storage initialization, storage startup,
+        KafkaSQL, Kafka journal, storage snapshot
+      children:
+        - area/storage/sql
+        - area/storage/gitops
+    area/storage/gitops:
+      threshold: 0.25
+      description: >-
+        GitOps storage, git-based storage, git repository storage,
+        read-only storage, git backend, GitOps configuration,
+        KubernetesOps, ConfigMap storage, Kubernetes-based storage,
+        declarative configuration, GitOps test, @TestProfile, H2 leak
+      parent: area/storage
+    area/storage/sql:
+      threshold: 0.20
+      description: >-
+        SQL storage, PostgreSQL, JDBC, database queries, SQL migration,
+        SQL schema, H2 database, MySQL, MSSQL, SQL dialect,
+        database connection, SQL performance, database table,
+        DDL, PRIMARY KEY, ALTER TABLE, bulk import, /admin/import,
+        SqlSequenceRepository, sequenceCounter, ID collision,
+        database startup, database initialization, race condition,
+        multiple replicas, database crash, RuntimeSqlException
+      parent: area/storage
+    area/ui:
+      threshold: 0.20
+      description: >-
+        User interface, React frontend, UI component, web UI, browser,
+        UI page, UI bug, frontend, TypeScript UI, Vite, PatternFly,
+        UI editor, artifact editor, UI navigation, UI display,
+        agent catalog UI, schema diff UI, schema visualization,
+        apicurio-ts-core, ui-editors, ui-app, UI permissions,
+        show/hide buttons, UI module, npm library
+
+issue_types:
+  threshold: 0.40
+
+  types:
+    Bug:
+      id: "IT_kwDOAaziE84AW7Y_"
+      description: >-
+        Bug report, unexpected behavior, error, regression, broken functionality,
+        exception, NullPointerException, stack trace, crash, failure, HTTP 500,
+        wrong result, incorrect output, does not work, reproducer, steps to reproduce
+    Feature:
+      id: "IT_kwDOAaziE84AW7ZC"
+      description: >-
+        Feature request, new functionality, enhancement, add support for,
+        implement new, proposal, improvement suggestion, new capability,
+        would like to, should support, consider adding, use case
+    Task:
+      id: "IT_kwDOAaziE84AW7Y9"
+      description: >-
+        Maintenance task, refactoring, cleanup, chore, code reorganization,
+        migration, upgrade, rename, consolidate, remove deprecated,
+        technical improvement, internal change, housekeeping
+    Quality:
+      id: "IT_kwDOAaziE84Bi0uw"
+      description: >-
+        Quality issue, poor user experience, confusing behavior, inconsistency,
+        tech debt, suboptimal performance, unclear error message, misleading UI,
+        usability problem, not intuitive, hard to use, poor defaults

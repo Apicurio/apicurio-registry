@@ -67,11 +67,26 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |Version of the registry agent (defaults to app version)
+|`apicurio.a2a.default-visibility`
+|`string`
+|`entitled`
+|`3.0.0`
+|Default visibility for new Agent Card artifacts (public, entitled, private)
 |`apicurio.a2a.enabled`
 |`boolean`
 |`false`
 |`3.0.0`
 |Enable A2A protocol support _(experimental)_
+|`apicurio.a2a.entitlements.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable entitlement-based agent filtering
+|`apicurio.a2a.public-discovery.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable public (unauthenticated) agent discovery endpoint
 |===
 
 == api

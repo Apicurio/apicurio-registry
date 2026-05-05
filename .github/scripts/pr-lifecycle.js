@@ -361,18 +361,21 @@ async function handlePrOpened({ github, context, core }) {
   if (isAutoAccepted(config, pr.user.login)) {
     const initialState = pr.draft ? LABELS.WIP : LABELS.READY_FOR_REVIEW;
     await api.addLabel(pr.number, initialState);
+    const maintainerHint = isMaintainer(config, pr.user.login)
+      ? `\n\nA maintainer can use \`/skip-review\` to skip the review requirement for small changes, ` +
+        `or \`/auto-merge\` to merge automatically once approved and tested.`
+      : '';
     if (pr.draft) {
       await api.postComment(pr.number,
         `PR auto-accepted (trusted author). Smoke tests will run on each push.\n\n` +
-        `When ready, use \`/ready\` or mark as non-draft to run the full test suite, ` +
-        `or \`/skip-review\` to skip the review requirement for small changes (tests are still required).`
+        `When ready, use \`/ready\` or mark as non-draft to run the full test suite.` +
+        maintainerHint
       );
     } else {
       await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
       await api.postComment(pr.number,
-        `PR auto-accepted (trusted author). Full test suite will run.\n\n` +
-        `Use \`/skip-review\` to skip the review requirement for small changes, ` +
-        `or \`/auto-merge\` to merge automatically once approved and tested.`
+        `PR auto-accepted (trusted author). Full test suite will run.` +
+        maintainerHint
       );
     }
     core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${initialState}`);
@@ -682,10 +685,12 @@ async function cmdSkipReview(api, config, core, pr, actor, maintainer, commentId
     const result = await checkAndTransitionToReady(api, freshPr, core);
     if (result === 'auto-merge') {
       await performMerge(api, config, freshPr, core);
+      await api.postComment(pr.number,
+        `Review requirement skipped by @${actor}. PR was tested and has been auto-merged.`
+      );
+    } else if (result === 'ready-to-merge') {
+      // checkAndTransitionToReady already posted its own comment
     }
-    await api.postComment(pr.number,
-      `Review requirement skipped by @${actor}. PR is tested and ready to merge.`
-    );
   } else {
     await api.postComment(pr.number,
       `Review requirement skipped by @${actor}. The PR will move to \`lifecycle/ready-to-merge\` ` +
@@ -855,7 +860,9 @@ async function handleTestResult({ github, context, core }) {
     }
 
     if (state === LABELS.WIP) {
-      if (workflowRun.conclusion === 'success') {
+      if (hasLabel(pr, LABELS.TESTS_DISABLED)) {
+        core.info(`PR #${pr.number} tests disabled, skipping smoke-tested update`);
+      } else if (workflowRun.conclusion === 'success') {
         await api.addLabel(pr.number, LABELS.SMOKE_TESTED);
         core.info(`PR #${pr.number} smoke tests passed, added lifecycle/smoke-tested`);
       } else if (workflowRun.conclusion === 'failure') {

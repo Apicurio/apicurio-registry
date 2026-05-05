@@ -8,37 +8,52 @@ It runs on pull requests to `main` and on pushes to `main`.
 ### Pipeline Phases
 
 ```
-determine-scope ──┐
-                   ├── lint-and-validate ── build ──┬── unit-tests (3 shards)
-detect-changes ───┘                                 ├── integration-tests (13 jobs)
-                                                    ├── extras (5 jobs)
-                                                    ├── sdk
-                                                    ├── cli-verify (conditional)
-                                                    └── publish (main only) ── notify-slack
+decide ── lint-and-validate ── build ──┬── unit-tests (3 shards)
+                                       ├── integration-tests (13 jobs)
+                                       ├── extras (5 jobs)
+                                       ├── sdk
+                                       ├── cli-verify (conditional)
+                                       ├── publish (main only) ── notify-slack
+                                       └── verification-gate (aggregates all results)
 ```
 
-### Two Gating Systems
+### Centralized Decision (`decide` job)
 
-Every test phase is gated by **both**:
+A single `decide` job combines **lifecycle scope** (PR labels) and **change
+detection** (path-based filtering) into one boolean output per test phase.
+Every downstream job uses a single `if:` condition.
 
-1. **Lifecycle scope** (`determine-scope`): driven by PR labels from the
-   PR lifecycle orchestrator. WIP PRs run smoke tests only; `ready-for-review`
-   PRs run the full suite. Push to main always runs everything.
+**Lifecycle scope** is driven by PR labels from the PR lifecycle orchestrator:
+- `lifecycle/new` or no label → no tests
+- `lifecycle/wip` → smoke tests only (build + unit tests)
+- `lifecycle/ready-for-review` / `lifecycle/ready-to-merge` → full suite
+- Push to main → always full suite
 
-2. **Change detection** (`detect-changes`): uses `dorny/paths-filter` to
-   detect which areas of the codebase changed. Outputs 6 flags:
+**Change detection** uses `dorny/paths-filter` to determine which areas changed:
 
-   | Flag | Paths | Gates |
-   |------|-------|-------|
-   | `java` | `app/`, `common/`, `schema-*/`, `serdes/`, `config-index/`, `java-sdk/`, `mcp/`, `distro/`, `pom.xml` | unit-tests, extras |
-   | `ui` | `ui/` | extras |
-   | `integration` | `app/`, `common/`, `integration-tests/`, `schema-*/`, `serdes/`, `distro/`, `pom.xml` | integration-tests |
-   | `sdk` | `java-sdk/`, `go-sdk/`, `python-sdk/`, `typescript-sdk/` | sdk |
-   | `cli` | `cli/`, `java-sdk/`, `verify-cli.yaml` | cli-verify |
-   | `ci` | `.github/workflows/**` | all test phases |
+| Flag | Paths | Phases |
+|------|-------|--------|
+| `java` | `app/`, `common/`, `schema-*/`, `serdes/`, `config-index/`, `java-sdk/`, `mcp/`, `distro/`, `pom.xml` | build, unit-tests, extras, sdk |
+| `ui` | `ui/` | build, extras |
+| `integration` | `app/`, `common/`, `integration-tests/`, `schema-*/`, `serdes/`, `distro/`, `pom.xml` | integration-tests |
+| `sdk` | `java-sdk/`, `go-sdk/`, `python-sdk/`, `typescript-sdk/` | build, sdk |
+| `cli` | `cli/`, `java-sdk/`, `verify-cli.yaml` | build, cli-verify |
+| `ci` | `.github/workflows/**` | all test phases |
 
-   Docs-only or UI-only PRs skip Java unit tests and integration tests entirely.
-   Push to main always runs everything regardless of change detection.
+Docs-only or UI-only PRs skip Java unit tests and integration tests entirely.
+Push to main always runs everything regardless of change detection.
+
+### Verification Gate
+
+The `verification-gate` job is the **single required check** for branch protection.
+It runs with `if: always()` and aggregates all upstream results:
+
+- Any job **failed** → gate fails
+- PR in non-testable lifecycle state (`lifecycle/new`, etc.) → gate fails
+- All jobs passed or appropriately skipped → gate passes
+
+This replaces the previous approach of configuring 24 individual jobs as required
+checks, which caused skipped jobs to show as permanently pending.
 
 ## Unit Test Sharding
 
@@ -110,7 +125,7 @@ non-Java changes (docs, UI).
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `verify.yaml` | PR, push to main | Main orchestrator: gates and coordinates all phases | N/A |
+| `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `verification-gate` is the single required check | N/A |
 | `verify-build.yaml` | Called by verify | Parallel Java (`mvnw package -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 3 parallel shards (see above) | ~16 min (critical path) |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |

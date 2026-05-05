@@ -856,11 +856,14 @@ async function handleTestResult({ github, context, core }) {
   const api = createApi(github, owner, repo);
 
   // Re-run attempts may lose the pull_requests array from the workflow_run
-  // payload. Fall back to searching for PRs by the head SHA.
+  // payload, and fork PRs always have an empty array. Fall back to
+  // searching for PRs by the head SHA, using the head repository owner
+  // (which differs from the base owner for fork PRs).
   let prRefs = workflowRun.pull_requests || [];
   if (!prRefs.length) {
+    const headOwner = workflowRun.head_repository?.owner?.login || owner;
     const { data: prs } = await github.rest.pulls.list({
-      owner, repo, state: 'open', head: `${owner}:${workflowRun.head_branch}`, per_page: 10,
+      owner, repo, state: 'open', head: `${headOwner}:${workflowRun.head_branch}`, per_page: 10,
     });
     prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
     if (!prRefs.length) {

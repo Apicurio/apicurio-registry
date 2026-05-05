@@ -266,6 +266,10 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
     await new Promise(r => setTimeout(r, 3000));
   }
 
+  // Allow label changes to propagate through GitHub's eventually-consistent API
+  // before re-triggering, so the scope job sees the current labels.
+  await new Promise(r => setTimeout(r, 5000));
+
   try {
     await api.reRunWorkflow(run.id);
     core.info(`PR #${pr.number} re-triggered Verify run ${run.id}`);

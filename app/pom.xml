@@ -156,22 +156,6 @@
 
     <!-- Third Party Libraries -->
     <dependency>
-      <groupId>io.roastedroot</groupId>
-      <artifactId>quickjs4j</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.roastedroot</groupId>
-      <artifactId>quickjs4j-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.roastedroot</groupId>
-      <artifactId>quickjs4j-processor</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.quickjs4j</groupId>
-      <artifactId>quarkus-quickjs4j</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
     </dependency>
@@ -478,11 +462,6 @@
               <artifactId>lombok</artifactId>
               <version>${lombok.version}</version>
             </path>
-            <path>
-              <groupId>io.quarkiverse.quickjs4j</groupId>
-              <artifactId>quarkus-quickjs4j</artifactId>
-              <version>${quarkus-quickjs4j.version}</version>
-            </path>
           </annotationProcessorPaths>
         </configuration>
       </plugin>
@@ -662,43 +641,6 @@
                 <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/iceberg/v1/openapi.json</inputSpec>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <executions>
-          <!-- LLM Artifact Types: npm install -->
-          <execution>
-            <id>llm-artifact-types-npm-install</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <executable>npm</executable>
-              <workingDirectory>${project.basedir}/llm-artifact-types-src</workingDirectory>
-              <arguments>
-                <argument>install</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <!-- LLM Artifact Types: npm run build -->
-          <execution>
-            <id>llm-artifact-types-npm-build</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <executable>npm</executable>
-              <workingDirectory>${project.basedir}/llm-artifact-types-src</workingDirectory>
-              <arguments>
-                <argument>run</argument>
-                <argument>build</argument>
-              </arguments>
             </configuration>
           </execution>
         </executions>

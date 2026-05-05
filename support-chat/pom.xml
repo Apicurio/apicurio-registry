@@ -16,8 +16,8 @@
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <quarkus.version>3.27.2</quarkus.version>
-        <quarkus-langchain4j.version>1.9.1</quarkus-langchain4j.version>
-        <apicurio-registry-sdk.version>3.2.1</apicurio-registry-sdk.version>
+        <quarkus-langchain4j.version>1.9.2</quarkus-langchain4j.version>
+        <apicurio-registry-sdk.version>3.2.4</apicurio-registry-sdk.version>
         <jsoup.version>1.22.2</jsoup.version>
     </properties>
 

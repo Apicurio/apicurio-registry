@@ -397,6 +397,8 @@ async function handlePrSynchronize({ github, context, core }) {
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
 
+  const rerunHints = [];
+
   if (hasLabel(pr, LABELS.TESTED)) {
     await api.removeLabel(pr.number, LABELS.TESTED);
     core.info(`PR #${pr.number} new push, removed lifecycle/tested`);
@@ -407,10 +409,12 @@ async function handlePrSynchronize({ github, context, core }) {
   }
   if (hasLabel(pr, LABELS.REVIEW_APPROVED)) {
     await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
+    rerunHints.push('Review approval has been reset — a new review is required.');
     core.info(`PR #${pr.number} new push, removed lifecycle/review-approved`);
   }
   if (hasLabel(pr, LABELS.AUTO_MERGE)) {
     await api.removeLabel(pr.number, LABELS.AUTO_MERGE);
+    rerunHints.push('Auto-merge has been disabled — use `/auto-merge` to re-enable after tests pass.');
     core.info(`PR #${pr.number} new push, removed orchestrator/auto-merge`);
   }
   if (hasLabel(pr, LABELS.STALE)) {
@@ -424,11 +428,14 @@ async function handlePrSynchronize({ github, context, core }) {
     await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
     await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-    await api.postComment(pr.number,
-      `New commits pushed. Reverting to \`lifecycle/ready-for-review\` — ` +
-      `the full test suite will re-run. Use \`/auto-merge\` to merge automatically once approved and tested.`
-    );
     core.info(`PR #${pr.number} reverted from ready-to-merge to ready-for-review`);
+  }
+
+  if (rerunHints.length > 0) {
+    await api.postComment(pr.number,
+      `New commits pushed. The test suite will re-run.\n\n` +
+      rerunHints.map(h => `- ${h}`).join('\n')
+    );
   }
 }
 

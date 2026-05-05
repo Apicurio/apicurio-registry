@@ -15,6 +15,8 @@ public class AgentSearchRequest {
     @JsonProperty("filters")
     private AgentSearchFilters filters;
 
+    private static final int MAX_LIMIT = 500;
+
     @JsonProperty("limit")
     private int limit = 20;
 
@@ -45,7 +47,7 @@ public class AgentSearchRequest {
     }
 
     public void setLimit(int limit) {
-        this.limit = limit;
+        this.limit = Math.max(1, Math.min(limit, MAX_LIMIT));
     }
 
     public int getOffset() {
@@ -53,6 +55,6 @@ public class AgentSearchRequest {
     }
 
     public void setOffset(int offset) {
-        this.offset = offset;
+        this.offset = Math.max(0, offset);
     }
 }

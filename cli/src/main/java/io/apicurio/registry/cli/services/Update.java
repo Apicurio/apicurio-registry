@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.services;
 
+import io.apicurio.registry.cli.utils.PlatformUtils;
 import io.vertx.core.http.HttpMethod;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -8,18 +9,17 @@ import org.jboss.logging.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-/**
- * Service for checking and managing CLI updates.
- * Uses MicroProfile Config for configuration management.
- */
 @ApplicationScoped
 public class Update {
 
@@ -28,171 +28,197 @@ public class Update {
     @Inject
     Client client;
 
-    public String getLatestVersion() {
+    public UpdateCheckResult checkForUpdates(CliVersion currentVersion) {
+        var allVersions = fetchAvailableVersions();
+        if (allVersions == null || allVersions.isEmpty()) {
+            return new UpdateCheckResult(currentVersion, List.of());
+        }
+
+        // Filter parsed versions by productized/community compatibility, keep only newer
+        var newer = allVersions.stream()
+                .filter(CliVersion::isParsed)
+                .filter(v -> v.isProductized() == currentVersion.isProductized())
+                .filter(v -> v.isNewerThan(currentVersion))
+                .toList();
+
+        // Group by major.minor series, pick the latest in each series
+        var parsed = newer.stream()
+                .collect(Collectors.groupingBy(
+                        v -> v.major() + "." + v.minor(),
+                        Collectors.maxBy(CliVersion.COMPARATOR)))
+                .values().stream()
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .sorted(CliVersion.COMPARATOR)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        // Include unparsed versions as ambiguous candidates
+        allVersions.stream()
+                .filter(v -> !v.isParsed())
+                .forEach(parsed::add);
+
+        return new UpdateCheckResult(currentVersion, List.copyOf(parsed));
+    }
+
+    List<CliVersion> fetchAvailableVersions() {
+        var xml = fetchContent(getMetadataUrl(), 30);
+        if (xml == null) {
+            return List.of();
+        }
         try {
-            String updateUrl = ConfigProvider.getConfig().getValue("acr.update.repo.url", String.class);
-            if (updateUrl == null || updateUrl.isBlank()) {
-                throw new RuntimeException("Update repository URL is not configured.");
+            var factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            var builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes()));
+
+            NodeList versionNodes = doc.getElementsByTagName("version");
+            List<CliVersion> versions = new ArrayList<>();
+            for (int i = 0; i < versionNodes.getLength(); i++) {
+                var text = versionNodes.item(i).getTextContent();
+                if (text != null && !text.isBlank()) {
+                    versions.add(CliVersion.parse(text));
+                }
             }
-            String metadataUri = updateUrl.endsWith("/") ? updateUrl + "maven-metadata.xml" : updateUrl + "/maven-metadata.xml";
+            var unparsed = versions.stream().filter(v -> !v.isParsed()).count();
+            log.debugf("Found %d versions in metadata (%d unparsed)", versions.size(), unparsed);
+            return versions;
+        } catch (Exception e) {
+            log.error("Error parsing maven-metadata.xml", e);
+            return List.of();
+        }
+    }
 
-            // Parse the URI to get host, port, and path
-            URI uri = URI.create(metadataUri);
-            String host = uri.getHost();
-            int port = uri.getPort() != -1 ? uri.getPort() : (uri.getScheme().equals("https") ? 443 : 80);
-            String path = uri.getPath() + (uri.getQuery() != null ? "?" + uri.getQuery() : "");
+    public Path downloadVersion(String version, Path targetDir) {
+        var platform = PlatformUtils.detectPlatformClassifier();
+        log.debugf("Detected platform: %s", platform);
+        var fileName = "apicurio-registry-cli-%s-%s.zip".formatted(version, platform);
+        var pathSegment = "%s/%s".formatted(version, fileName);
+        var repoUrl = getRepoUrl();
+        var fileUri = repoUrl.endsWith("/") ? repoUrl + pathSegment : repoUrl + "/" + pathSegment;
 
-            log.debugf("Downloading metadata from: %s", metadataUri);
+        log.infof("Downloading version %s from: %s", version, fileUri);
 
-            // Use Vertx HttpClient to download the metadata XML file
+        if (!targetDir.toFile().exists()) {
+            targetDir.toFile().mkdirs();
+        }
+
+        Path targetFile = targetDir.resolve(fileName);
+        var content = fetchBytes(fileUri, 60);
+        if (content == null) {
+            return null;
+        }
+        try {
+            java.nio.file.Files.write(targetFile, content);
+            log.infof("Successfully downloaded file to: %s", targetFile);
+            return targetFile;
+        } catch (Exception e) {
+            log.errorf(e, "Error writing downloaded file to: %s", targetFile);
+            return null;
+        }
+    }
+
+    private String getRepoUrl() {
+        String url = ConfigProvider.getConfig().getValue("internal.update.repo-url", String.class);
+        if (url == null || url.isBlank()) {
+            throw new RuntimeException("Update repository URL is not configured.");
+        }
+        return url;
+    }
+
+    private String getMetadataUrl() {
+        var repoUrl = getRepoUrl();
+        return repoUrl.endsWith("/") ? repoUrl + "maven-metadata.xml" : repoUrl + "/maven-metadata.xml";
+    }
+
+    private String fetchContent(String url, int timeoutSeconds) {
+        try {
+            URI uri = URI.create(url);
             var httpClient = client.getHttpClient();
             CompletableFuture<String> future = new CompletableFuture<>();
 
             var requestOptions = new io.vertx.core.http.RequestOptions()
                     .setMethod(HttpMethod.GET)
-                    .setPort(port)
-                    .setHost(host)
-                    .setURI(path)
-                    .setSsl(uri.getScheme().equals("https"));
+                    .setPort(uri.getPort() != -1 ? uri.getPort() : (Objects.equals(uri.getScheme(), "https") ? 443 : 80))
+                    .setHost(uri.getHost())
+                    .setURI(uri.getPath() + (uri.getQuery() != null ? "?" + uri.getQuery() : ""))
+                    .setSsl(Objects.equals(uri.getScheme(), "https"));
+
+            log.debugf("Fetching: %s", url);
 
             httpClient.request(requestOptions)
-                    .onSuccess(clientReq -> {
-                        clientReq.send()
-                                .onSuccess(response -> {
-                                    if (response.statusCode() != 200) {
-                                        log.warnf("Failed to fetch metadata. Status code: %s", response.statusCode());
-                                        future.complete(null);
-                                        return;
-                                    }
-
-                                    response.body()
-                                            .onSuccess(buffer -> {
-                                                try {
-                                                    String xmlContent = buffer.toString();
-                                                    log.debug("Metadata XML content received");
-
-                                                    // Parse the XML and extract the latest version
-                                                    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                                                    DocumentBuilder builder = factory.newDocumentBuilder();
-                                                    Document doc = builder.parse(new ByteArrayInputStream(xmlContent.getBytes()));
-
-                                                    // Extract the <latest> tag from <versioning>
-                                                    NodeList latestNodes = doc.getElementsByTagName("latest");
-                                                    if (latestNodes.getLength() > 0) {
-                                                        String latestVersion = latestNodes.item(0).getTextContent();
-                                                        log.debugf("Latest version available: %s", latestVersion);
-                                                        future.complete(latestVersion);
-                                                    } else {
-                                                        log.warn("No <latest> tag found in metadata XML");
-                                                        future.complete(null);
-                                                    }
-                                                } catch (Exception e) {
-                                                    log.error("Error parsing XML", e);
-                                                    future.completeExceptionally(e);
-                                                }
-                                            })
-                                            .onFailure(err -> {
-                                                log.error("Error reading response body", err);
-                                                future.completeExceptionally(err);
-                                            });
-                                })
-                                .onFailure(err -> {
-                                    log.error("Error sending request", err);
-                                    future.completeExceptionally(err);
-                                });
-                    })
+                    .onSuccess(req -> req.send()
+                            .onSuccess(response -> {
+                                if (response.statusCode() != 200) {
+                                    log.warnf("HTTP %d from %s", response.statusCode(), url);
+                                    future.complete(null);
+                                    return;
+                                }
+                                response.body()
+                                        .onSuccess(buffer -> future.complete(buffer.toString()))
+                                        .onFailure(err -> {
+                                            log.error("Error reading response body", err);
+                                            future.completeExceptionally(err);
+                                        });
+                            })
+                            .onFailure(err -> {
+                                log.error("Error sending request", err);
+                                future.completeExceptionally(err);
+                            }))
                     .onFailure(err -> {
                         log.error("Error creating request", err);
                         future.completeExceptionally(err);
                     });
 
-            // Wait for the async operation to complete (with timeout)
-            return future.get(30, TimeUnit.SECONDS);
-
+            return future.get(timeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception e) {
-            log.error("Error checking for latest version", e);
+            log.errorf("Error fetching %s: %s", url, e.getMessage());
             return null;
         }
     }
 
-    public Path downloadVersion(String version, Path targetDir) {
+    private byte[] fetchBytes(String url, int timeoutSeconds) {
         try {
-            String updateUrl = ConfigProvider.getConfig().getValue("acr.update.repo.url", String.class);
-            if (updateUrl == null || updateUrl.isBlank()) {
-                throw new RuntimeException("Update repository URL is not configured.");
-            }
-            var pathSegment = "%1$s/apicurio-registry-cli-%1$s.zip".formatted(version);
-            String fileUri = updateUrl.endsWith("/") ? updateUrl + pathSegment : updateUrl + "/" + pathSegment;
-
-            // Parse the URI to get host, port, and path
-            URI uri = URI.create(fileUri);
-            String host = uri.getHost();
-            int port = uri.getPort() != -1 ? uri.getPort() : (uri.getScheme().equals("https") ? 443 : 80);
-            String uriPath = uri.getPath() + (uri.getQuery() != null ? "?" + uri.getQuery() : "");
-
-            log.infof("Downloading version %s from: %s", version, fileUri);
-
-            // Ensure target directory exists
-            if (!targetDir.toFile().exists()) {
-                targetDir.toFile().mkdirs();
-            }
-
-            // Create the target file path
-            Path targetFile = targetDir.resolve("apicurio-registry-cli-" + version + ".zip");
-
-            // Use Vertx HttpClient to download the file
+            URI uri = URI.create(url);
             var httpClient = client.getHttpClient();
-            CompletableFuture<Path> future = new CompletableFuture<>();
+            CompletableFuture<byte[]> future = new CompletableFuture<>();
 
             var requestOptions = new io.vertx.core.http.RequestOptions()
                     .setMethod(HttpMethod.GET)
-                    .setPort(port)
-                    .setHost(host)
-                    .setURI(uriPath)
-                    .setSsl(uri.getScheme().equals("https"));
+                    .setPort(uri.getPort() != -1 ? uri.getPort() : (Objects.equals(uri.getScheme(), "https") ? 443 : 80))
+                    .setHost(uri.getHost())
+                    .setURI(uri.getPath() + (uri.getQuery() != null ? "?" + uri.getQuery() : ""))
+                    .setSsl(Objects.equals(uri.getScheme(), "https"));
+
+            log.debugf("Downloading: %s", url);
 
             httpClient.request(requestOptions)
-                    .onSuccess(clientReq -> {
-                        clientReq.send()
-                                .onSuccess(response -> {
-                                    if (response.statusCode() != 200) {
-                                        log.errorf("Failed to download file. Status code: %s", response.statusCode());
-                                        future.completeExceptionally(new RuntimeException("HTTP " + response.statusCode()));
-                                        return;
-                                    }
-
-                                    response.body()
-                                            .onSuccess(buffer -> {
-                                                try {
-                                                    // Write the buffer to the target file
-                                                    java.nio.file.Files.write(targetFile, buffer.getBytes());
-                                                    log.infof("Successfully downloaded file to: %s", targetFile);
-                                                    future.complete(targetFile);
-                                                } catch (Exception e) {
-                                                    log.error("Error writing file to disk", e);
-                                                    future.completeExceptionally(e);
-                                                }
-                                            })
-                                            .onFailure(err -> {
-                                                log.error("Error reading response body", err);
-                                                future.completeExceptionally(err);
-                                            });
-                                })
-                                .onFailure(err -> {
-                                    log.error("Error sending request", err);
-                                    future.completeExceptionally(err);
-                                });
-                    })
+                    .onSuccess(req -> req.send()
+                            .onSuccess(response -> {
+                                if (response.statusCode() != 200) {
+                                    log.errorf("HTTP %d from %s", response.statusCode(), url);
+                                    future.completeExceptionally(new RuntimeException("HTTP " + response.statusCode()));
+                                    return;
+                                }
+                                response.body()
+                                        .onSuccess(buffer -> future.complete(buffer.getBytes()))
+                                        .onFailure(err -> {
+                                            log.error("Error reading response body", err);
+                                            future.completeExceptionally(err);
+                                        });
+                            })
+                            .onFailure(err -> {
+                                log.error("Error sending request", err);
+                                future.completeExceptionally(err);
+                            }))
                     .onFailure(err -> {
                         log.error("Error creating request", err);
                         future.completeExceptionally(err);
                     });
 
-            // Wait for the async operation to complete (with timeout)
-            return future.get(60, TimeUnit.SECONDS);
-
+            return future.get(timeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception e) {
-            log.error("Error downloading version", e);
+            log.errorf("Error downloading %s: %s", url, e.getMessage());
             return null;
         }
     }

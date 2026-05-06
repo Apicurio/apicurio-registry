@@ -50,6 +50,18 @@ public class A2AConfig {
     @Info(category = CATEGORY_A2A, description = "Whether the agent supports push notifications", availableSince = "3.0.0")
     boolean capabilitiesPushNotifications;
 
+    @ConfigProperty(name = "apicurio.a2a.public-discovery.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_A2A, description = "Enable public (unauthenticated) agent discovery endpoint", availableSince = "3.0.0")
+    boolean publicDiscoveryEnabled;
+
+    @ConfigProperty(name = "apicurio.a2a.entitlements.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_A2A, description = "Enable entitlement-based agent filtering", availableSince = "3.0.0")
+    boolean entitlementsEnabled;
+
+    @ConfigProperty(name = "apicurio.a2a.default-visibility", defaultValue = "entitled")
+    @Info(category = CATEGORY_A2A, description = "Default visibility for new Agent Card artifacts (public, entitled, private)", availableSince = "3.0.0")
+    String defaultVisibility;
+
     @ConfigProperty(name = "apicurio.a2a.agent.protocol-version", defaultValue = "1.0")
     @Info(category = CATEGORY_A2A, description = "A2A protocol version supported by the registry agent", availableSince = "3.0.0")
     String protocolVersion;
@@ -108,5 +120,17 @@ public class A2AConfig {
 
     public Optional<String> getIconUrl() {
         return iconUrl;
+    }
+
+    public boolean isPublicDiscoveryEnabled() {
+        return publicDiscoveryEnabled;
+    }
+
+    public boolean isEntitlementsEnabled() {
+        return entitlementsEnabled;
+    }
+
+    public String getDefaultVisibility() {
+        return defaultVisibility;
     }
 }

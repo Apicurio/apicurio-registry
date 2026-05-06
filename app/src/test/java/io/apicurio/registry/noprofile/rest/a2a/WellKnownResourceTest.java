@@ -4,6 +4,8 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -11,10 +13,13 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -273,6 +278,130 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("count", notNullValue())
                 .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testGetPublicAgents() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create an agent card and mark it as public
+        createAgentCard(groupId, "public-agent", AGENT_CARD_CONTENT);
+        setVisibility(groupId, "public-agent", "public");
+
+        // Create an agent card without public label
+        createAgentCard(groupId, "private-agent", STREAMING_AGENT_CARD);
+
+        // Public endpoint should return only the public agent
+        givenAtRoot()
+                .when()
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("public-agent"));
+    }
+
+    @Test
+    public void testGetPublicAgentsNoAuthRequired() {
+        givenAtRoot()
+                .when()
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testGetEntitledAgents() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "entitled-agent-1", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "entitled-agent-2", STREAMING_AGENT_CARD);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/agents/entitled")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(2))
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testSearchAgentsAdvanced() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "search-agent-1", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "search-agent-2", STREAMING_AGENT_CARD);
+
+        String requestBody = """
+                {
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(2))
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testSearchAgentsAdvancedWithFilters() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "filter-agent", AGENT_CARD_CONTENT);
+        setVisibility(groupId, "filter-agent", "public");
+
+        String requestBody = """
+                {
+                    "filters": {
+                        "labels": {
+                            "apicurio.agent.visibility": "public"
+                        }
+                    },
+                    "limit": 20,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("filter-agent"));
+    }
+
+    @Test
+    public void testExistingSearchAgentsStillWorks() throws Exception {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    private void setVisibility(String groupId, String artifactId, String visibility) {
+        EditableArtifactMetaData meta = new EditableArtifactMetaData();
+        Labels labels = new Labels();
+        labels.setAdditionalData(Map.of("apicurio.agent.visibility", visibility));
+        meta.setLabels(labels);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(meta);
     }
 
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {

@@ -45,6 +45,7 @@ import io.apicurio.registry.rest.v3.impl.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.UsageTelemetryConfig;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
@@ -102,7 +103,6 @@ import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_DOWNLOAD;
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_USAGE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_FOR_BROWSER;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_NAME;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PRINCIPAL_ID;
@@ -161,25 +161,8 @@ public class AdminResourceImpl implements AdminResource {
     @Info(category = CATEGORY_DOWNLOAD, description = "Download link expiry", availableSince = "2.1.2.Final")
     Supplier<Long> downloadHrefTtl;
 
-    @ConfigProperty(name = "apicurio.usage.telemetry.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_USAGE, description = "Enable usage telemetry collection from SerDes clients", availableSince = "3.1.0")
-    boolean usageTelemetryEnabled;
-
-    @ConfigProperty(name = "apicurio.usage.active-threshold-days", defaultValue = "7")
-    @Info(category = CATEGORY_USAGE, description = "Number of days within which a schema is classified as ACTIVE", availableSince = "3.1.0")
-    int activeThresholdDays;
-
-    @ConfigProperty(name = "apicurio.usage.stale-threshold-days", defaultValue = "30")
-    @Info(category = CATEGORY_USAGE, description = "Number of days after which a schema is classified as STALE", availableSince = "3.1.0")
-    int staleThresholdDays;
-
-    @ConfigProperty(name = "apicurio.usage.dead-threshold-days", defaultValue = "90")
-    @Info(category = CATEGORY_USAGE, description = "Number of days after which a schema is classified as DEAD", availableSince = "3.1.0")
-    int deadThresholdDays;
-
-    @ConfigProperty(name = "apicurio.usage.drift-alert-threshold", defaultValue = "2")
-    @Info(category = CATEGORY_USAGE, description = "Number of versions behind latest before triggering a drift alert", availableSince = "3.1.0")
-    int driftAlertThreshold;
+    @Inject
+    UsageTelemetryConfig usageTelemetryConfig;
 
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
@@ -700,7 +683,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public void reportUsageEvents(SchemaUsageEventList data) {
-        if (!usageTelemetryEnabled) {
+        if (!usageTelemetryConfig.isEnabled()) {
             throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
         }
         ParameterValidationUtils.requireParameter("events", data.getEvents());
@@ -719,7 +702,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public ArtifactUsageMetrics getArtifactUsageMetrics(String groupId, String artifactId) {
-        if (!usageTelemetryEnabled) {
+        if (!usageTelemetryConfig.isEnabled()) {
             throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
         }
         ParameterValidationUtils.requireParameter("groupId", groupId);
@@ -728,9 +711,9 @@ public class AdminResourceImpl implements AdminResource {
         List<SchemaUsageSummaryDto> dtos = storage.getArtifactUsageMetrics(groupId, artifactId);
 
         long now = System.currentTimeMillis();
-        long activeMs = activeThresholdDays * 86_400_000L;
-        long staleMs = staleThresholdDays * 86_400_000L;
-        long deadMs = deadThresholdDays * 86_400_000L;
+        long activeMs = usageTelemetryConfig.getActiveMsThreshold();
+        long staleMs = usageTelemetryConfig.getStaleMsThreshold();
+        long deadMs = usageTelemetryConfig.getDeadMsThreshold();
 
         ArtifactUsageMetrics result = new ArtifactUsageMetrics();
         result.setGroupId(groupId);
@@ -764,12 +747,12 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public UsageSummary getUsageSummary() {
-        if (!usageTelemetryEnabled) {
+        if (!usageTelemetryConfig.isEnabled()) {
             throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
         }
         long nowMs = System.currentTimeMillis();
-        long activeMs = activeThresholdDays * 86_400_000L;
-        long staleMs = staleThresholdDays * 86_400_000L;
+        long activeMs = usageTelemetryConfig.getActiveMsThreshold();
+        long staleMs = usageTelemetryConfig.getStaleMsThreshold();
         UsageSummaryCountsDto counts = storage.getUsageSummaryCounts(nowMs, activeMs, staleMs, staleMs);
 
         UsageSummary summary = new UsageSummary();
@@ -782,7 +765,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public ConsumerVersionHeatmap getConsumerVersionHeatmap(String groupId, String artifactId) {
-        if (!usageTelemetryEnabled) {
+        if (!usageTelemetryConfig.isEnabled()) {
             throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
         }
         ParameterValidationUtils.requireParameter("groupId", groupId);
@@ -817,7 +800,7 @@ public class AdminResourceImpl implements AdminResource {
                     .max().orElse(0);
             int behind = maxVersionOrder - clientMaxOrder;
             entry.setVersionsBehind(behind);
-            entry.setDriftAlert(behind >= driftAlertThreshold);
+            entry.setDriftAlert(behind >= usageTelemetryConfig.getDriftAlertThreshold());
         }
 
         ConsumerVersionHeatmap heatmap = new ConsumerVersionHeatmap();
@@ -831,7 +814,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public DeprecationReadiness getDeprecationReadiness(String groupId, String artifactId, String version) {
-        if (!usageTelemetryEnabled) {
+        if (!usageTelemetryConfig.isEnabled()) {
             throw new ConflictException("Usage telemetry is not enabled on this registry instance.");
         }
         ParameterValidationUtils.requireParameter("groupId", groupId);
@@ -841,7 +824,7 @@ public class AdminResourceImpl implements AdminResource {
         List<DeprecationReadinessDto> consumers = storage.getDeprecationReadiness(groupId, artifactId,
                 version);
 
-        long activeMs = activeThresholdDays * 86_400_000L;
+        long activeMs = usageTelemetryConfig.getActiveMsThreshold();
         long nowMs = System.currentTimeMillis();
 
         List<ActiveConsumer> activeConsumers = consumers.stream()

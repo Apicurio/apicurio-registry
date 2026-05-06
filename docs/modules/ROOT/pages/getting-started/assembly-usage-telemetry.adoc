@@ -6,7 +6,7 @@ Apicurio Registry provides usage telemetry capabilities that track which client 
 
 == Overview
 
-No competing schema registry tracks schema usage or consumer version visibility. Usage telemetry in Apicurio Registry answers questions that other registries cannot:
+Usage telemetry in Apicurio Registry answers key governance questions:
 
 * **Is anyone actually using this schema?** Active/Stale/Dead classification based on actual fetch patterns.
 * **Who uses which version?** Consumer version heatmap showing adoption across client applications.

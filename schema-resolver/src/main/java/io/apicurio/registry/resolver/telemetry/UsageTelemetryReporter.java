@@ -15,6 +15,8 @@ import java.util.logging.Logger;
 public class UsageTelemetryReporter implements Closeable {
 
     private static final Logger logger = Logger.getLogger(UsageTelemetryReporter.class.getName());
+    private static final int MAX_BATCH_MULTIPLIER = 2;
+    private static final int SHUTDOWN_TIMEOUT_SECONDS = 5;
 
     private final RegistryClientFacade clientFacade;
     private final int bufferSize;
@@ -47,7 +49,7 @@ public class UsageTelemetryReporter implements Closeable {
         }
         List<UsageTelemetryEvent> batch = new ArrayList<>();
         UsageTelemetryEvent event;
-        while ((event = buffer.poll()) != null && batch.size() < bufferSize * 2) {
+        while ((event = buffer.poll()) != null && batch.size() < bufferSize * MAX_BATCH_MULTIPLIER) {
             batch.add(event);
         }
         if (!batch.isEmpty()) {
@@ -63,7 +65,7 @@ public class UsageTelemetryReporter implements Closeable {
     public void close() {
         scheduler.shutdown();
         try {
-            scheduler.awaitTermination(5, TimeUnit.SECONDS);
+            scheduler.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

@@ -15,3 +15,14 @@ CREATE TABLE schema_usage (
 CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
 CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);
+
+CREATE TABLE schema_usage_summary (
+    globalId        BIGINT       NOT NULL,
+    totalFetches    BIGINT       NOT NULL DEFAULT 0,
+    uniqueClients   INT          NOT NULL DEFAULT 0,
+    firstFetchedOn  BIGINT       NOT NULL,
+    lastFetchedOn   BIGINT       NOT NULL,
+    clientList      TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    updatedOn       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (globalId)
+) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;

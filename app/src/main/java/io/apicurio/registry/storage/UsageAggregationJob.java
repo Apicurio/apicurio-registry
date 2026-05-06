@@ -6,7 +6,6 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.time.Instant;
@@ -26,18 +25,12 @@ public class UsageAggregationJob {
     @Inject
     OTelMetricsProvider otelMetrics;
 
-    @ConfigProperty(name = "apicurio.usage.telemetry.enabled", defaultValue = "false")
-    boolean usageTelemetryEnabled;
-
-    @ConfigProperty(name = "apicurio.usage.active-threshold-days", defaultValue = "7")
-    int activeThresholdDays;
-
-    @ConfigProperty(name = "apicurio.usage.stale-threshold-days", defaultValue = "30")
-    int staleThresholdDays;
+    @Inject
+    UsageTelemetryConfig usageConfig;
 
     @Scheduled(delay = 120, concurrentExecution = SKIP, every = "{apicurio.usage.aggregation.every}")
     void run() {
-        if (!usageTelemetryEnabled) {
+        if (!usageConfig.isEnabled()) {
             return;
         }
         try {
@@ -60,8 +53,8 @@ public class UsageAggregationJob {
     private void updateOTelGauges() {
         try {
             long nowMs = System.currentTimeMillis();
-            long activeMs = activeThresholdDays * 86_400_000L;
-            long staleMs = staleThresholdDays * 86_400_000L;
+            long activeMs = usageConfig.getActiveMsThreshold();
+            long staleMs = usageConfig.getStaleMsThreshold();
             UsageSummaryCountsDto counts = storage.getUsageSummaryCounts(nowMs, activeMs, staleMs, staleMs);
             otelMetrics.updateUsageSummaryCounts(counts.getActive(), counts.getStale(), counts.getDead());
         } catch (Exception ex) {

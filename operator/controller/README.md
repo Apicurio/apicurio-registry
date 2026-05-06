@@ -15,3 +15,18 @@ is used as the base, and default values (as described below) are merged with it.
 - `spec.(app/ui).podTemplateSpec.spec.containers[name = apicurio-registry-app/apicurio-registry-ui].readinessProbe` user override this field as a whole (subfields are not merged).
 - `spec.(app/ui).podTemplateSpec.spec.containers[name = apicurio-registry-app/apicurio-registry-ui].livenessProbe` user override this field as a whole (subfields are not merged).
 - `spec.(app/ui).podTemplateSpec.spec.containers[name = apicurio-registry-app/apicurio-registry-ui].resources` user override this field as a whole (subfields are not merged).
+
+## Operator Environment Variables
+
+The operator controller reads the following environment variables:
+
+| Environment Variable                                 | Description                                                              | Default Value                          |
+|------------------------------------------------------|--------------------------------------------------------------------------|----------------------------------------|
+| `APICURIO_OPERATOR_WATCHED_NAMESPACES`               | Comma-separated list of namespaces to watch. Empty means all namespaces. | *(empty — watches all namespaces)*     |
+| `APICURIO_OPERATOR_LEADER_ELECTION_ENABLED`          | Enable Kubernetes leader election for HA deployments.                    | `true`                                |
+| `APICURIO_OPERATOR_LEADER_ELECTION_LEASE_NAME`       | Name of the Lease resource used for leader election.                     | `apicurio-registry-operator-lease`     |
+| `APICURIO_OPERATOR_LEADER_ELECTION_LEASE_NAMESPACE`  | Namespace for the Lease resource. Falls back to `POD_NAMESPACE`.         | *(value of `POD_NAMESPACE`)*           |
+| `POD_NAME`                                           | Name of the operator pod. Injected via the Downward API.                 | -                                      |
+| `POD_NAMESPACE`                                      | Namespace of the operator pod. Injected via the Downward API.            | -                                      |
+| `REGISTRY_APP_IMAGE`                                 | Container image for the Registry application component.                  | -                                      |
+| `REGISTRY_UI_IMAGE`                                  | Container image for the Registry UI component.                           | -                                      |

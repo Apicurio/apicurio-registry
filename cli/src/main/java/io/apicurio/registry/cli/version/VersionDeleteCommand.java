@@ -14,7 +14,7 @@ import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 @Command(
         name = "delete",
         aliases = {"remove", "rm"},
-        description = "Delete a version. Apicurio Registry must be configured with " +
+        description = "Delete a version. {{product-name}} must be configured with " +
                 "`apicurio.rest.deletion.artifact-version.enabled=true` to allow version deletions."
 )
 public class VersionDeleteCommand extends AbstractCommand {

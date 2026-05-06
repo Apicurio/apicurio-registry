@@ -14,7 +14,7 @@ import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 @Command(
         name = "delete",
         aliases = {"remove", "rm"},
-        description = "Delete an existing artifact. Apicurio Registry must be configured " +
+        description = "Delete an existing artifact. {{product-name}} must be configured " +
                 "with `apicurio.rest.deletion.artifact.enabled=true` to allow artifact deletions."
 )
 public class ArtifactDeleteCommand extends AbstractCommand {

@@ -21,6 +21,9 @@
         <quarkus.native.builder-image>
             quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-23
         </quarkus.native.builder-image>
+        <!-- CLI branding and update defaults. Override in productized profiles. -->
+        <update.repo.url>https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli</update.repo.url>
+        <branding.product-name>Apicurio Registry CLI</branding.product-name>
     </properties>
 
     <dependencies>
@@ -234,6 +237,15 @@
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>META-INF/**</include>
+                </includes>
+            </resource>
+            <!-- Filter config.json with Maven properties for branding/productization -->
+            <resource>
+                <filtering>true</filtering>
+                <directory>src/main/scripts/common</directory>
+                <targetPath>${project.build.directory}/filtered-scripts</targetPath>
+                <includes>
+                    <include>config.json</include>
                 </includes>
             </resource>
         </resources>

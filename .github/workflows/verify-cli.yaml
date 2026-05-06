@@ -83,3 +83,9 @@ jobs:
         run: |
           cli/target/apicurio-registry-cli-*-runner --help
           cli/target/apicurio-registry-cli-*-runner version
+
+      - name: Run CLI Update E2E Tests
+        if: matrix.os-name == 'linux-x86_64'
+        run: |
+          cli/src/test/scripts/test-update.sh
+          cli/src/test/scripts/test-upgrade-from-previous.sh

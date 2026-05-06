@@ -652,9 +652,15 @@ async function cmdAutoMerge(api, config, core, pr, actor, maintainer, commentId)
   await api.addLabel(pr.number, LABELS.AUTO_MERGE);
   await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.addReaction(commentId, '+1');
+
+  const approved = isApproved(await api.getReviews(pr.number));
+  const reviewSkipped = hasLabel(pr, LABELS.REVIEW_SKIPPED);
+  const needsReview = !approved && !reviewSkipped;
+
   await api.postComment(pr.number,
     `Auto-merge enabled by @${actor}. This PR will be merged automatically ` +
-    `when it reaches \`lifecycle/ready-to-merge\` state. Use \`/auto-merge\` again to disable.`
+    `when it reaches \`lifecycle/ready-to-merge\` state. Use \`/auto-merge\` again to disable.` +
+    (needsReview ? `\n\n**Note:** A review or \`/skip-review\` is still required before auto-merge can proceed.` : '')
   );
 
   if (state === LABELS.READY_TO_MERGE) {

@@ -174,7 +174,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          icon() { if [ "$1" = "true" ]; then echo "🟢"; else echo "⚪"; fi; }
+          icon() { if [ "$1" = "true" ]; then echo "🟢"; else echo "➖"; fi; }
 
           BODY=$(cat <<EOF
           <!-- verify-decide-summary -->

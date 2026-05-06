@@ -39,6 +39,8 @@ endif::[]
 ** xref:getting-started/assembly-llm-artifact-types-implementation.adoc[]
 * Confluent Schema Registry Compatibility
 ** xref:getting-started/assembly-confluent-schema-registry-compatibility.adoc[]
+* Best Practices Guide
+** xref:getting-started/assembly-schema-lifecycle-best-practices.adoc[]
 * Reference
 ** xref:getting-started/assembly-artifact-reference.adoc[]
 ** xref:getting-started/assembly-rule-reference.adoc[]

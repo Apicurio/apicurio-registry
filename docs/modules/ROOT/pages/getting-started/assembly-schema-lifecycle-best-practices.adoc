@@ -1,0 +1,802 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+:_mod-docs-content-type: ASSEMBLY
+[id="schema-lifecycle-best-practices_{context}"]
+= Schema lifecycle best practices
+
+[role="_abstract"]
+Teams that build event-driven architectures with {registry} face recurring questions about how to manage schemas over time. Poor answers lead to production incidents, schema sprawl, and compatibility failures. {registry} provides compatibility rules, artifact references, version states, and serializer/deserializer (SerDes) validation to help you manage every phase of the schema lifecycle.
+
+Sections in this guide cover the schema lifecycle from initial design to retirement, including shared type references, safe evolution patterns, data structure recommendations, state management, runtime validation, and event-driven integration.
+
+* xref:schema-lifecycle-overview_{context}[]
+* xref:schema-references-shared-types_{context}[]
+* xref:schema-evolution-strategies_{context}[]
+* xref:schema-data-structure-recommendations_{context}[]
+* xref:managing-schema-lifecycle-states_{context}[]
+* xref:validating-data-avro-generated-classes_{context}[]
+* xref:schema-event-driven-integration_{context}[]
+* xref:schema-lifecycle-checklist_{context}[]
+
+// con-schema-lifecycle-overview
+:_mod-docs-content-type: CONCEPT
+[id="schema-lifecycle-overview_{context}"]
+== Schema lifecycle overview
+
+[role="_abstract"]
+Managing schemas through a structured lifecycle prevents breaking changes from reaching consumers, reduces schema sprawl, and eliminates unplanned production incidents.
+
+Without lifecycle management, teams encounter common problems:
+
+* Producers deploy incompatible schema changes that break downstream consumers.
+* Deprecated schemas accumulate without cleanup.
+* No one knows which schema versions are safe to remove.
+
+A structured lifecycle addresses each of these risks.
+
+Every schema moves through four phases. The following table summarizes each phase, the actions you take, and the {registry} features that support each action.
+
+.Schema lifecycle phases
+[cols="1,2,2,2",options="header"]
+|===
+|Phase
+|What you do
+|{registry} feature
+|Why it matters
+
+|Creation
+|Define the schema, register it as an artifact, and configure rules.
+|Artifact types, groups, compatibility and validity rules, artifact references
+|You establish a validated baseline and catch structural errors before any consumer reads the schema.
+
+|Evolution
+|Add, modify, or remove fields as requirements change.
+|Compatibility modes (BACKWARD, FORWARD, FULL, and transitive variants)
+|{registry} validates each new version against previous versions and rejects breaking changes automatically.
+
+|Deprecation
+|Signal consumers to migrate away from an outdated version.
+|Version states (`DEPRECATED`)
+|Consumers receive a deprecation warning header but continue to operate without interruption during the migration window.
+
+|Retirement
+|Disable or delete the schema version after all consumers have migrated.
+|Version states (`DISABLED`), artifact deletion
+|You remove unused schemas and prevent new consumers from depending on outdated versions.
+|===
+
+After you understand these four phases, decide how to structure shared types so that you do not duplicate definitions across schemas.
+
+// con-schema-references-shared-types
+:_mod-docs-content-type: CONCEPT
+[id="schema-references-shared-types_{context}"]
+== Schema references for shared types
+
+[role="_abstract"]
+Shared schema references reduce duplication and improve consistency in event-driven architectures. When multiple schemas use the same data structure, you define that structure once as a stand-alone artifact in {registry} and reference it from every schema that needs it.
+
+=== Intra-schema and cross-schema references
+
+An _intra-schema reference_ points to a type defined within the same artifact file. Avro schemas support intra-schema references natively through nested record definitions.
+
+A _cross-schema reference_ points to a type registered as a separate artifact in {registry}. Cross-schema references maintain a single source of truth for shared types and enable reuse across multiple schemas.
+
+{registry} supports cross-schema references for the following artifact types:
+
+* *Avro*: references by using namespace-qualified type names
+* *JSON Schema*: references by using `$ref` statements
+* *Protobuf*: references by using `import` statements
+* *OpenAPI and AsyncAPI*: references by using `$ref` statements
+
+=== Shared type example with Avro
+
+Consider a `MonetaryAmount` record that represents a monetary value with currency. Trade events, order events, and invoice events all use this type. Rather than duplicating the definition in each schema, you register `MonetaryAmount` as a stand-alone artifact and reference the artifact from every schema that needs it.
+
+Define the shared `MonetaryAmount` artifact:
+
+[source,json]
+----
+{
+  "namespace": "com.example.common",
+  "type": "record",
+  "name": "MonetaryAmount",
+  "fields": [
+    {
+      "name": "amount",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 18,
+        "scale": 2
+      }
+    },
+    {
+      "name": "currency",
+      "type": "string"
+    }
+  ]
+}
+----
+
+Reference `MonetaryAmount` from a `TradeKey` schema:
+
+[source,json]
+----
+{
+  "namespace": "com.example.trade",
+  "type": "record",
+  "name": "TradeKey",
+  "fields": [
+    {
+      "name": "tradeId",
+      "type": "string"
+    },
+    {
+      "name": "price",
+      "type": "com.example.common.MonetaryAmount"
+    },
+    {
+      "name": "exchange",
+      "type": "string"
+    }
+  ]
+}
+----
+
+Reference `MonetaryAmount` from an `Order` schema:
+
+[source,json]
+----
+{
+  "namespace": "com.example.order",
+  "type": "record",
+  "name": "Order",
+  "fields": [
+    {
+      "name": "orderId",
+      "type": "string"
+    },
+    {
+      "name": "total",
+      "type": "com.example.common.MonetaryAmount"
+    },
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": "string"
+      }
+    }
+  ]
+}
+----
+
+When you register `TradeKey` or `Order` in {registry}, you specify the artifact reference. The reference maps the `com.example.common.MonetaryAmount` type name to the group ID, artifact ID, and version of the `MonetaryAmount` artifact. {registry} stores each reference alongside the artifact content. You can register artifacts with references by using the {registry} REST API or the Maven plug-in. For details, see {managing-registry-artifacts-api} and {managing-registry-artifacts-maven}.
+
+After you establish shared types, choose strategies for evolving schemas safely as requirements change.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-overview}
+* {managing-registry-artifacts-api}
+* {managing-registry-artifacts-maven}
+* https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[SerDes with references demonstration]
+
+// ref-schema-evolution-strategies
+:_mod-docs-content-type: REFERENCE
+[id="schema-evolution-strategies_{context}"]
+== Schema evolution strategies
+
+[role="_abstract"]
+Evolving a schema means adding, modifying, or removing fields as requirements change. Not every change is safe. Use the following table to identify which change patterns maintain compatibility and which patterns break consumers.
+
+.Schema evolution patterns
+[cols="3,1,3",options="header"]
+|===
+|Pattern
+|Compatible?
+|Reason
+
+|Add a field with a default value
+|Yes
+|Backward-compatible and forward-compatible. Old consumers ignore the new field. New consumers use the default value when reading old data.
+
+|Add a field without a default value
+|No
+|Breaks backward compatibility. New consumers cannot read old data that lacks the field.
+
+|Use unions for optional data
+|Yes
+|Flexible evolution. You can add new types to a union without breaking existing consumers.
+
+|Remove enum symbols
+|No
+|Breaks backward compatibility. Old data that contains the removed symbol causes deserialization failures in new consumers.
+
+|Rename a field with an alias
+|Yes*
+|Compatible per the Avro specification. Consumers compiled against the old field name resolve the alias during deserialization. Test alias support with your specific {registry} version before you rely on this pattern in production.
+
+|Change a field type directly
+|No*
+|Breaks both backward and forward compatibility in most cases. Avro supports specific type promotions (`int` to `long`, `float` to `double`, `string` to `bytes`) that maintain compatibility. All other type changes cause deserialization failures.
+
+|Remove a Protobuf field without reserving the tag
+|No
+|Breaks compatibility. A future field might reuse the tag number with a different type, which causes data corruption. Always add `reserved` declarations when you remove Protobuf fields.
+|===
+
+For production environments where consumers might lag behind producers by more than one schema version, use `BACKWARD_TRANSITIVE` compatibility. Transitive compatibility modes validate each new version against _all_ previous versions, not just the most recent version. Avoid `NONE` compatibility in production because `NONE` disables all compatibility checks and allows breaking changes to reach consumers.
+
+=== Field addition with a default value
+
+You add new fields with default values to extend a schema without breaking consumers. Old consumers ignore the new field. New consumers use the default value when reading old data.
+
+The following example shows the original schema:
+
+[source,json]
+----
+{
+  "namespace": "com.example.events",
+  "type": "record",
+  "name": "UserEvent",
+  "fields": [
+    {"name": "userId", "type": "string"},
+    {"name": "action", "type": "string"}
+  ]
+}
+----
+
+The following example shows the updated schema with a new field and default value:
+
+[source,json]
+----
+{
+  "namespace": "com.example.events",
+  "type": "record",
+  "name": "UserEvent",
+  "fields": [
+    {"name": "userId", "type": "string"},
+    {"name": "action", "type": "string"},
+    {"name": "source", "type": "string", "default": "unknown"}
+  ]
+}
+----
+
+=== Union types for optional data
+
+You use Avro unions to represent optional fields. With a union of `["null", "type"]` and a `null` default, you can add the field without breaking existing consumers.
+
+The following example shows the original schema:
+
+[source,json]
+----
+{
+  "namespace": "com.example.events",
+  "type": "record",
+  "name": "OrderEvent",
+  "fields": [
+    {"name": "orderId", "type": "string"},
+    {"name": "total", "type": "double"}
+  ]
+}
+----
+
+The following example shows the updated schema with an optional field that uses a union:
+
+[source,json]
+----
+{
+  "namespace": "com.example.events",
+  "type": "record",
+  "name": "OrderEvent",
+  "fields": [
+    {"name": "orderId", "type": "string"},
+    {"name": "total", "type": "double"},
+    {"name": "discountCode", "type": ["null", "string"], "default": null}
+  ]
+}
+----
+
+=== Field rename with an alias
+
+You use the `aliases` property to rename a field while maintaining compatibility. Consumers compiled against the old schema resolve the alias to the new field name during deserialization.
+
+The following example shows the original schema with the field named `dest`:
+
+[source,json]
+----
+{
+  "namespace": "com.example.events",
+  "type": "record",
+  "name": "ShipmentEvent",
+  "fields": [
+    {"name": "shipmentId", "type": "string"},
+    {"name": "dest", "type": "string"}
+  ]
+}
+----
+
+The following example shows the updated schema with the renamed field `destination` and an alias that maps back to `dest`:
+
+[source,json]
+----
+{
+  "namespace": "com.example.events",
+  "type": "record",
+  "name": "ShipmentEvent",
+  "fields": [
+    {"name": "shipmentId", "type": "string"},
+    {"name": "destination", "type": "string", "aliases": ["dest"]}
+  ]
+}
+----
+
+With these evolution strategies, you can identify which changes are safe. To encounter fewer breaking changes later, choose the right data structures from the start.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-rule-reference_{context}[]
+
+// ref-schema-data-structure-recommendations
+:_mod-docs-content-type: REFERENCE
+[id="schema-data-structure-recommendations_{context}"]
+== Data structure recommendations for evolvability
+
+[role="_abstract"]
+Use the following recommendations to design Avro schemas that are easier to evolve over time. Choosing the right data structures at the start reduces the number of breaking changes you encounter later.
+
+.Data structure recommendations
+[cols="2,3,4",options="header"]
+|===
+|Recommendation
+|When to use
+|Avro example
+
+|Use enums for fixed, closed sets
+|You have a small, well-defined set of values that rarely changes, such as HTTP methods or order statuses.
+a|
+[source,json]
+----
+{
+  "name": "status",
+  "type": {
+    "type": "enum",
+    "name": "OrderStatus",
+    "symbols": ["PENDING", "SHIPPED", "DELIVERED"]
+  }
+}
+----
+
+|Use strings for open-ended values
+|You have values that change frequently or that external systems control, such as region codes or product categories.
+a|
+[source,json]
+----
+{
+  "name": "region",
+  "type": "string"
+}
+----
+
+|Use `["null", "type"]` with `default: null` for optional fields
+|You want to add a field that might not be present in older messages. All new optional fields must follow this pattern.
+a|
+[source,json]
+----
+{
+  "name": "metadata",
+  "type": ["null", "string"],
+  "default": null
+}
+----
+
+|Wrap related fields in nested records
+|You have a group of fields that belong together logically, such as an address or a set of timestamps. When you group them in a nested record, you can evolve that group independently.
+a|
+[source,json]
+----
+{
+  "name": "address",
+  "type": {
+    "type": "record",
+    "name": "Address",
+    "fields": [
+      {"name": "street", "type": "string"},
+      {"name": "city", "type": "string"},
+      {"name": "zip", "type": "string"}
+    ]
+  }
+}
+----
+|===
+
+=== Enum versus string tradeoffs
+
+Enums enforce a closed set of values at the schema level. Producers that send an unrecognized symbol fail during serialization, which catches errors early. However, removing or reordering enum symbols breaks backward compatibility.
+
+Strings accept any value and impose no schema-level constraints. With strings, you avoid breaking changes when new values appear, but you lose compile-time validation. Use strings when the set of valid values changes frequently or when external systems control the values.
+
+=== Record wrapping for compartmentalized evolution
+
+When you wrap related fields in a nested record, you can evolve the nested record independently of the parent schema. For example, if your `Order` schema contains shipping address fields (`street`, `city`, `zip`, `country`), you wrap those fields in an `Address` record. You can then add a `state` field to `Address` without modifying any other part of the `Order` schema. Consumers that deserialize the parent schema delegate the address portion to the `Address` reader schema. This delegation keeps compatibility evaluation scoped to the nested record.
+
+With shared types, evolution strategies, and data structures in place, you can control which schema versions consumers can access by using {registry} version states to deprecate and retire schema versions.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-rule-reference_{context}[]
+
+// proc-managing-schema-lifecycle-states
+:_mod-docs-content-type: PROCEDURE
+[id="managing-schema-lifecycle-states_{context}"]
+== Managing schema lifecycle states
+
+[role="_abstract"]
+You can use {registry} version states to control whether consumers can retrieve a schema version. Moving a schema through the ENABLED, DEPRECATED, and DISABLED states gives your team a structured way to retire schemas without breaking active consumers.
+
+{registry} supports three version states:
+
+* *ENABLED*: consumers can retrieve the schema version normally. All new versions start in this state.
+* *DEPRECATED*: consumers can still retrieve the schema version, but {registry} adds an `X-Registry-Deprecated` header to the response. Use this state to signal that consumers must migrate to a newer version.
+* *DISABLED*: consumers receive a `404 Not Found` response when they request the schema version. Use this state after you confirm that all consumers have migrated away.
+
+The following table summarizes when to use each state transition.
+
+.Schema state decision guide
+[cols="3,2",options="header"]
+|===
+|Scenario
+|Recommended action
+
+|Producers and consumers actively use the schema
+|Keep ENABLED
+
+|A newer version is available and consumers are migrating
+|Set DEPRECATED
+
+|Events have stopped and all consumers have confirmed migration
+|Set DISABLED
+
+|No audit or compliance requirements mandate retaining the schema
+|Delete the artifact
+|===
+
+.Prerequisites
+* You have a running {registry} instance.
+* You have registered a schema artifact with at least one version.
+* You have the group ID, artifact ID, and version identifier for the version you want to update.
+* If your {registry} instance requires authentication, you have a valid access token. Changing version states requires the `developer` or `admin` role when role-based access control is enabled. For details, see xref:configuring-registry-security_{context}[].
+
+NOTE: The examples in this procedure omit authentication headers for brevity. If your {registry} instance requires authentication, include an `Authorization` header with a valid bearer token in each request.
+
+.Procedure
+. Deprecate the schema version by sending a `PUT` request to the version state endpoint:
++
+[source,bash]
+----
+curl -X PUT \
+  http://MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/my-schema/versions/1.0/state \
+  -H "Content-Type: application/json" \
+  -d '{"state": "DEPRECATED"}'
+----
++
+After you set the state to `DEPRECATED`, consumers that fetch the schema receive an `X-Registry-Deprecated` header in the response. The schema content remains accessible, and existing consumers continue to work without interruption.
+
+. Notify your consumer teams that the schema version is deprecated and provide a reasonable grace period for migration, commonly two to four weeks depending on your organization and consumer count.
+
+. After the grace period expires, verify that no active consumers depend on the deprecated version. Check application logs or monitoring dashboards to confirm that no clients fetch the deprecated version.
+
+. Disable the schema version by sending a `PUT` request:
++
+[source,bash]
+----
+curl -X PUT \
+  http://MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/my-schema/versions/1.0/state \
+  -H "Content-Type: application/json" \
+  -d '{"state": "DISABLED"}'
+----
++
+After you set the state to `DISABLED`, any consumer that requests the schema version receives a `404 Not Found` response. SerDes clients that cache schemas locally continue to work until the cache expires. When a client requests the latest version (for example, `branch=latest`), {registry} skips disabled versions and returns the most recent enabled or deprecated version.
++
+NOTE: All state transitions between ENABLED, DEPRECATED, and DISABLED are reversible. You can re-enable a disabled version by setting the state back to `ENABLED`, revert a deprecated version to `ENABLED`, or move a disabled version directly to `DEPRECATED`. Use reverse transitions when you discover that consumers still depend on a version.
+
+. Optionally, delete the artifact version after you confirm that no audit or compliance requirements mandate retaining the schema:
++
+NOTE: Artifact version deletion is disabled by default. To enable deletion, set the `apicurio.rest.deletion.artifact-version.enabled` property to `true` in your {registry} configuration. Without this property, the DELETE request returns a `405 Method Not Allowed` response.
++
+[source,bash]
+----
+curl -X DELETE \
+  http://MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/my-schema/versions/1.0
+----
+
+.Verification
+* Send a `GET` request to retrieve the version state and verify that it matches the expected value:
++
+[source,bash]
+----
+curl http://MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/my-schema/versions/1.0/state
+----
++
+The response body contains the current state, for example `{"state": "DEPRECATED"}`.
+
+State management controls access to schema versions. To catch invalid data before the data reaches consumers, add runtime validation at multiple points in the pipeline.
+
+// proc-validating-data-avro-generated-classes
+:_mod-docs-content-type: PROCEDURE
+[id="validating-data-avro-generated-classes_{context}"]
+== Validating data with Avro generated classes
+
+[role="_abstract"]
+You can validate data at multiple points in the pipeline when you use Avro generated classes with {registry}. Avro provides two record types, each with different validation behavior:
+
+* *`SpecificRecord`* (Avro-generated classes): generated constructors and builders enforce field types and required fields at construction time.
+* *`GenericRecord`*: Avro validates structural compliance when the `DatumWriter` serializes the record.
+
+Neither approach validates business rules or semantic constraints. To catch invalid data before it reaches consumers, you combine three validation layers:
+
+* *SerDes validation*: the {registry} Kafka SerDes validates schema compatibility at serialization and deserialization time. The serializer resolves the schema from {registry}, and the deserializer verifies that the data matches the reader schema. If the schema versions are incompatible, the SerDes throws an exception.
+* *Maven plug-in pre-registration*: you register schemas before deployment by using the {registry} Maven plug-in. When you configure compatibility rules on the artifact, {registry} rejects any new version that violates the rules. Pre-registration catches breaking changes during the build rather than at runtime.
+* *Application-level validation*: you implement custom validators in your application code to enforce business rules that schema-level validation cannot express. For example, you validate that a `price` field is positive or that a `country` field contains a valid ISO 3166 code.
+
+.Prerequisites
+* You have a running {registry} instance.
+* You have a Maven project that uses Avro generated classes.
+* You have configured compatibility rules on your schema artifact in {registry}.
+
+.Procedure
+. Configure your Maven `pom.xml` to register the Avro schema during the build. The Maven plug-in validates the schema against existing compatibility rules before it registers a new version:
++
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>register</goal>
+      </goals>
+      <configuration>
+        <registryUrl>http://MY-REGISTRY-URL/apis/registry/v3</registryUrl>
+        <artifacts>
+          <artifact>
+            <groupId>my-group</groupId>
+            <artifactId>UserEvent</artifactId>
+            <artifactType>AVRO</artifactType>
+            <file>${project.basedir}/src/main/resources/schemas/user-event.avsc</file>
+            <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+          </artifact>
+        </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
++
+When you run `mvn package`, the plug-in attempts to register the schema. If the schema violates the compatibility rules configured on the artifact, the build fails with a compatibility error.
+
+. Configure the {registry} Kafka SerDes in your producer application to validate schema compatibility at runtime:
++
+[source,java]
+----
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+
+Properties props = new Properties();
+props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+props.put(ProducerConfig.CLIENT_ID_CONFIG, "my-producer");
+props.put(ProducerConfig.ACKS_CONFIG, "all");
+props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+    org.apache.kafka.common.serialization.StringSerializer.class.getName());
+props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+    AvroKafkaSerializer.class.getName());
+props.put("apicurio.registry.url", "http://MY-REGISTRY-URL/apis/registry/v3");
+props.put("apicurio.registry.auto-register", "true");
+props.put("apicurio.registry.artifact-resolver-strategy",
+    "io.apicurio.registry.serde.strategy.TopicIdStrategy");
+----
++
+The `AvroKafkaSerializer` resolves the writer schema from {registry} and serializes the record. The key properties in this configuration are:
++
+* `artifact-resolver-strategy`: determines how the serializer maps each Kafka message to an artifact in {registry}. The default `TopicIdStrategy` uses the topic name as the artifact ID.
+* `auto-register`: when enabled, the serializer registers new schemas automatically, and {registry} applies the configured compatibility rules.
++
+WARNING: When you set `apicurio.registry.auto-register` to `true`, any producer can register new schemas in {registry}. In production, pre-register schemas during your CI/CD pipeline and set `apicurio.registry.auto-register` to `false`. If you must use auto-registration, configure authentication and role-based access control (RBAC) to restrict write access. For details, see xref:configuring-registry-security_{context}[].
++
+IMPORTANT: The `apicurio.registry.url` property is required. The serializer throws an `IllegalArgumentException` at startup if you omit the property. The serializer caches schemas and retries failed registry requests with a backoff interval. For default values and tuning options, see {registry-client-serdes-config}. To handle registry unavailability, set `apicurio.registry.fault-tolerant-refresh` to `true`.
+
+. Add application-level validation in your producer code to enforce business rules before serialization:
++
+[source,java]
+----
+import com.example.events.UserEvent;
+
+public UserEvent createValidatedEvent(String userId, String action) {
+    // Validate business rules before serialization
+    if (userId == null || userId.isBlank()) {
+        throw new IllegalArgumentException("userId must not be blank");
+    }
+    // VALID_ACTIONS is a Set<String> defined elsewhere, for example: Set.of("LOGIN", "LOGOUT", "PURCHASE")
+    if (action == null || !VALID_ACTIONS.contains(action)) {
+        throw new IllegalArgumentException("action must be one of: " + VALID_ACTIONS);
+    }
+
+    return UserEvent.newBuilder()
+        .setUserId(userId)
+        .setAction(action)
+        .build();
+}
+----
++
+Avro generated classes enforce structural constraints (field types, required fields) at construction time. You add explicit checks for business-level constraints that the schema cannot express.
+
+. Build and test your project to verify that all three validation layers work together:
++
+[source,bash]
+----
+mvn clean package
+----
++
+A successful build confirms that the schema is compatible with the version registered in {registry}. At runtime, the SerDes validates structural compatibility, and your application code enforces business rules.
+
+These validation layers apply to any Kafka producer. If your architecture includes CDC or the outbox pattern, you can extend schema lifecycle management to cover those integration points.
+
+// con-schema-event-driven-integration
+:_mod-docs-content-type: CONCEPT
+[id="schema-event-driven-integration_{context}"]
+== Schema management in event-driven architectures
+
+[role="_abstract"]
+Event-driven architectures that use change data capture (CDC) and messaging platforms require coordination between schema producers, consumers, and {registry}. You integrate {registry} with tools such as Debezium to automate schema registration and enforce compatibility throughout the data pipeline.
+
+=== Debezium integration with {registry}
+
+Debezium captures row-level changes from databases and publishes the changes as events to Kafka topics. When you configure the Debezium connector to use the {registry} Avro converter, Debezium registers Avro schemas for each captured table. The converter maps Kafka Connect schemas to Avro schemas and stores the Avro schemas in {registry}.
+
+The following Debezium connector configuration uses the {registry} Avro converter for both keys and values:
+
+[source,json]
+----
+{
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+  "database.hostname": "my-database",
+  "database.port": "5432",
+  "database.user": "debezium",
+  "database.password": "<your-database-password>",
+  "database.dbname": "mydb",
+  "database.server.name": "my-app-db",
+  "topic.prefix": "my-app",
+  "schema.include.list": "public",
+  "plugin.name": "pgoutput",
+  "slot.name": "debezium_slot",
+  "schema.name.adjustment.mode": "avro",
+  "field.name.adjustment.mode": "avro",
+  "key.converter": "io.apicurio.registry.utils.converter.AvroConverter",
+  "key.converter.apicurio.registry.url": "http://MY-REGISTRY-URL/apis/registry/v3",
+  "key.converter.apicurio.registry.auto-register": "true",
+  "value.converter": "io.apicurio.registry.utils.converter.AvroConverter",
+  "value.converter.apicurio.registry.url": "http://MY-REGISTRY-URL/apis/registry/v3",
+  "value.converter.apicurio.registry.auto-register": "true"
+}
+----
+
+NOTE: The {registry} Avro converter supports both the v2 and v3 APIs. The converter uses the v3 API by default. If you use a Debezium version that requires v2, change the converter URL to `/apis/registry/v2`.
+
+IMPORTANT: Do not store database credentials in connector configurations in production. Use environment variables, {kubernetes} secrets, or a secrets management tool such as HashiCorp Vault to inject credentials at deployment time.
+
+The following properties are key in this configuration:
+
+* `slot.name`: required for PostgreSQL replication state tracking.
+* `schema.name.adjustment.mode` and `field.name.adjustment.mode`: convert column names with special characters to valid Avro field names.
+
+With this configuration, Debezium registers a schema for each table that Debezium captures. When a table schema changes (for example, when you add a column), Debezium registers a new schema version. If you configure compatibility rules on the artifact in {registry}, {registry} validates the new version against the previous version and rejects incompatible changes.
+
+If the new schema violates compatibility rules, the connector task fails and stops processing events until you resolve the schema conflict.
+
+=== Outbox pattern with schema registration
+
+The outbox pattern supports reliable event publishing by writing events to an outbox table in the same database transaction as the business data. Debezium captures changes from the outbox table and publishes the changes to Kafka.
+
+The schema lifecycle in this pattern follows four stages:
+
+. *Database write*: your application writes a business record and a corresponding event record to the outbox table in a single transaction.
+. *CDC capture*: Debezium detects the new outbox record and creates a Kafka event.
+. *Schema registration*: the Avro converter registers or resolves the event schema in {registry}.
+. *Event delivery*: Debezium publishes the serialized event to the target Kafka topic.
+
+Because the outbox table has a stable schema, the Avro schema that Debezium registers rarely changes. When you add fields to the outbox event payload, follow the evolution patterns described in xref:schema-evolution-strategies_{context}[] to maintain compatibility.
+
+=== Schema lifecycle in event-driven context
+
+The four lifecycle phases described in xref:schema-lifecycle-overview_{context}[] apply directly to event-driven architectures. The following list describes how each phase maps to CDC and messaging workflows:
+
+* *Creation*: Debezium or your application auto-registers schemas when you produce the first event. You configure compatibility rules (such as `BACKWARD` or `FULL`) on the artifact at this point.
+* *Evolution*: as your data model changes, producers register new schema versions. {registry} compatibility rules prevent breaking changes from reaching consumers.
+* *Deprecation*: when you replace an event type or retire a service, you set the schema version state to `DEPRECATED`. Consumers that fetch the schema receive a deprecation warning header.
+* *Retirement*: after all consumers have migrated, you set the schema version state to `DISABLED` and eventually delete the artifact.
+
+For a working example that demonstrates Debezium, Kafka, and {registry} working together, see the https://github.com/Apicurio/apicurio-registry/tree/main/examples/event-driven-architecture[event-driven architecture example] in the {registry} repository.
+
+[role="_additional-resources"]
+.Additional resources
+* {managing-registry-artifacts-api}
+* xref:registry-rule-reference_{context}[]
+
+// ref-schema-lifecycle-checklist
+:_mod-docs-content-type: REFERENCE
+[id="schema-lifecycle-checklist_{context}"]
+== Schema lifecycle best practices checklist
+
+[role="_abstract"]
+Use the following checklist as a quick reference for schema lifecycle best practices. The phase-specific lists after the summary table provide additional detail.
+
+.Schema lifecycle best practices
+[cols="1,1",options="header"]
+|===
+|Do
+|Avoid
+
+|Always add fields with default values
+|Adding required fields without defaults
+
+|Use `["null", "type"]` for optional fields
+|Removing enum symbols from existing schemas
+
+|Define shared types as separate artifacts
+|Duplicating type definitions across schemas
+
+|Deprecate before disabling
+|Disabling schemas without warning consumers
+
+|Use `BACKWARD_TRANSITIVE` for production
+|Using `NONE` compatibility in production
+
+|Test schema changes against compatibility rules
+|Deploying schema changes without testing
+
+|Use aliases when renaming fields
+|Renaming fields without aliases
+
+|Reserve removed Protobuf field tags
+|Removing fields without reserving tags
+|===
+
+=== Design phase
+
+Follow these recommendations when you design schemas. For detailed guidance and examples, see xref:schema-references-shared-types_{context}[] and xref:schema-data-structure-recommendations_{context}[].
+
+* Choose the right artifact type (Avro, JSON Schema, Protobuf, or OpenAPI) based on your serialization format and language ecosystem.
+* Define shared types as separate artifacts in {registry} and reference them from dependent schemas.
+* Use `["null", "type"]` unions with `null` defaults for all optional fields. New fields that you add later must follow this pattern.
+* Wrap related fields in nested records to support independent evolution.
+
+=== Registration phase
+
+Follow these recommendations when you register schemas. For a working Maven plug-in example, see xref:validating-data-avro-generated-classes_{context}[].
+
+* Register schemas before deployment by using the {registry} Maven plug-in or REST API.
+* Configure compatibility rules (`BACKWARD`, `FORWARD`, `FULL`, or their transitive variants) on each artifact immediately after creation.
+* Use `BACKWARD_TRANSITIVE` for production environments where consumers might lag behind producers by more than one version.
+* Set `ifExists` to `FIND_OR_CREATE_VERSION` in the Maven plug-in to avoid duplicate registrations.
+
+=== Evolution phase
+
+Follow these recommendations when you evolve schemas. For compatible and incompatible change patterns with examples, see xref:schema-evolution-strategies_{context}[].
+
+* Always add new fields with default values to maintain backward compatibility.
+* Use Avro aliases when renaming fields to preserve compatibility with existing consumers.
+* Reserve removed Protobuf field tags by adding `reserved` declarations to prevent tag reuse.
+* Test every schema change against the configured compatibility rules before merging your code.
+
+=== Deprecation and retirement phase
+
+Follow these recommendations when you deprecate and retire schemas. For the step-by-step procedure, see xref:managing-schema-lifecycle-states_{context}[].
+
+* Set the version state to `DEPRECATED` before disabling a schema. Give consumers a reasonable grace period, commonly two to four weeks depending on your organization and consumer count.
+* Set the version state to `DISABLED` only after you confirm that all consumers have migrated.
+* Delete artifact versions only after you confirm that no audit or compliance requirements mandate retention.
+* Monitor consumer access patterns to verify that no consumers fetch deprecated versions.

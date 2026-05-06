@@ -4,17 +4,23 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-app</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-app</name>
+  <name>Registry :: App</name>
 
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
+    <maven.compiler.release>21</maven.compiler.release>
     <groups/>
+    <!-- Default empty argLine so that the @{argLine} late-binding reference in
+         maven-surefire-plugin resolves to empty when no plugin (e.g., JaCoCo) sets it.
+         Without this, Java 25+ treats the literal '@{argLine}' as an arg file reference
+         and fails with 'could not open {argLine}'. -->
+    <argLine/>
   </properties>
 
   <dependencies>
@@ -22,11 +28,6 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-common</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-utils-kafka</artifactId>
     </dependency>
 
     <dependency>
@@ -49,17 +50,6 @@
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-config-index-deployment</artifactId>
       <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-jdk</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-common-rest-client-vertx</artifactId>
     </dependency>
 
     <dependency>
@@ -166,22 +156,6 @@
 
     <!-- Third Party Libraries -->
     <dependency>
-      <groupId>io.roastedroot</groupId>
-      <artifactId>quickjs4j</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.roastedroot</groupId>
-      <artifactId>quickjs4j-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.roastedroot</groupId>
-      <artifactId>quickjs4j-processor</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.quickjs4j</groupId>
-      <artifactId>quarkus-quickjs4j</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
     </dependency>
@@ -200,6 +174,12 @@
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
+    </dependency>
+
+    <!-- Elasticsearch Java client for content search indexing -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-elasticsearch-java-client</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -265,6 +245,11 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-test-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5-mockito</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -366,12 +351,12 @@
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>mssqlserver</artifactId>
+      <artifactId>testcontainers-mssqlserver</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>mysql</artifactId>
+      <artifactId>testcontainers-mysql</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -440,12 +425,6 @@
       </plugin>
 
       <plugin>
-        <groupId>kr.motd.maven</groupId>
-        <artifactId>os-maven-plugin</artifactId>
-        <version>1.7.1</version>
-      </plugin>
-
-      <plugin>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-codegen-maven-plugin</artifactId>
         <version>${version.apicurio-codegen-plugin}</version>
@@ -458,7 +437,7 @@
       </plugin>
 
       <plugin>
-        <groupId>org.xolstice.maven.plugins</groupId>
+        <groupId>io.github.ascopes</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
         <version>${proto-plugin.version}</version>
       </plugin>
@@ -483,11 +462,6 @@
               <artifactId>lombok</artifactId>
               <version>${lombok.version}</version>
             </path>
-            <path>
-              <groupId>io.quarkiverse.quickjs4j</groupId>
-              <artifactId>quarkus-quickjs4j</artifactId>
-              <version>${quarkus-quickjs4j.version}</version>
-            </path>
           </annotationProcessorPaths>
         </configuration>
       </plugin>
@@ -506,13 +480,16 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <skipExec>${skipTests}</skipExec>
-          <skipTests>${skipAppTests}</skipTests>
           <groups>${groups}</groups>
           <forkCount>1</forkCount>
+          <argLine>@{argLine} -Xmx4g</argLine>
+          <forkedProcessExitTimeoutInSeconds>1800</forkedProcessExitTimeoutInSeconds>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <org.jboss.logging.provider>jboss</org.jboss.logging.provider>
+            <project.build.directory>${project.build.directory}</project.build.directory>
+            <!-- Prevent OTel SPI conflict between Quarkus ContextStorageProvider and SDK testing -->
+            <io.opentelemetry.context.contextStorageProvider>default</io.opentelemetry.context.contextStorageProvider>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -618,18 +595,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>kr.motd.maven</groupId>
-        <artifactId>os-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>detect</goal>
-            </goals>
-            <phase>initialize</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-codegen-maven-plugin</artifactId>
         <executions>
@@ -682,69 +647,6 @@
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>generate-reflection-registry</id>
-            <goals>
-              <goal>java</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <mainClass>io.apicurio.registry.utils.reflectgen.ReflectionRegistryGenerator</mainClass>
-              <arguments>
-                <argument>${project.basedir}/target/generated-sources/reflection/io/apicurio/registry/ApicurioRegisterForReflection.java</argument>
-              </arguments>
-              <includePluginDependencies>true</includePluginDependencies>
-            </configuration>
-          </execution>
-          <!-- LLM Artifact Types: npm install -->
-          <execution>
-            <id>llm-artifact-types-npm-install</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <executable>npm</executable>
-              <workingDirectory>${project.basedir}/llm-artifact-types-src</workingDirectory>
-              <arguments>
-                <argument>install</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <!-- LLM Artifact Types: npm run build -->
-          <execution>
-            <id>llm-artifact-types-npm-build</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <executable>npm</executable>
-              <workingDirectory>${project.basedir}/llm-artifact-types-src</workingDirectory>
-              <arguments>
-                <argument>run</argument>
-                <argument>build</argument>
-              </arguments>
-            </configuration>
-          </execution>
-        </executions>
-        <dependencies>
-          <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-registry-utils-reflectgen</artifactId>
-            <version>${project.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>io.apicurio</groupId>
-            <artifactId>apicurio-data-models</artifactId>
-            <version>${apicurio-data-models.version}</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
           <execution>
@@ -756,7 +658,6 @@
             <configuration>
               <sources>
                 <source>${project.basedir}/target/generated-sources/jaxrs</source>
-                <source>${project.basedir}/target/generated-sources/reflection</source>
               </sources>
             </configuration>
           </execution>
@@ -764,20 +665,20 @@
       </plugin>
 
       <plugin>
-        <groupId>org.xolstice.maven.plugins</groupId>
+        <groupId>io.github.ascopes</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
-        <extensions>true</extensions>
         <executions>
           <execution>
             <id>gencode</id>
             <goals>
-              <goal>compile</goal>
-              <goal>test-compile</goal>
+              <goal>generate</goal>
             </goals>
             <phase>generate-sources</phase>
             <configuration>
-              <protoSourceRoot>./src/test/resources/schema</protoSourceRoot>
-              <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+              <sourceDirectories>
+                <sourceDirectory>./src/test/resources/schema</sourceDirectory>
+              </sourceDirectories>
+              <protoc>${protobuf.version}</protoc>
             </configuration>
           </execution>
         </executions>
@@ -813,6 +714,26 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
+          <!-- Copy the v3 OpenAPI spec to the api-specifications path served by the Swagger UI.
+               This keeps it in sync with the canonical spec in the common module. -->
+          <execution>
+            <id>copy-openapi-to-api-docs</id>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <phase>process-resources</phase>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}/META-INF/resources/api-specifications/registry/v3</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.build.outputDirectory}/META-INF</directory>
+                  <includes>
+                    <include>openapi.json</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
           <execution>
             <id>copy-dist</id>
             <goals>
@@ -835,41 +756,4 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>native</id>
-      <activation>
-        <property>
-          <name>native</name>
-        </property>
-      </activation>
-      <properties>
-        <quarkus.native.enabled>true</quarkus.native.enabled>
-        <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-                <configuration>
-                  <systemPropertyVariables>
-                    <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
-                    <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                    <maven.home>${maven.home}</maven.home>
-                  </systemPropertyVariables>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-  </profiles>
 </project>

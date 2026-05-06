@@ -2,7 +2,7 @@ package io.apicurio.registry.utils.tests;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.testcontainers.containers.MSSQLServerContainer;
+import org.testcontainers.mssqlserver.MSSQLServerContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
@@ -15,7 +15,7 @@ public class MsSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
     private static final DockerImageName IMAGE = DockerImageName.parse("mcr.microsoft.com/mssql/server")
             .withTag("2022-latest");
-    private MSSQLServerContainer<?> database = new MSSQLServerContainer<>(IMAGE).withPassword(DB_PASSWORD)
+    private MSSQLServerContainer database = new MSSQLServerContainer(IMAGE).withPassword(DB_PASSWORD)
             .acceptLicense();
 
     /**

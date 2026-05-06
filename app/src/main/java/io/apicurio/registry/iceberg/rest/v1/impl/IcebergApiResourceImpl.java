@@ -8,22 +8,35 @@ import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.iceberg.rest.v1.ApisResource;
 import io.apicurio.registry.iceberg.rest.v1.beans.CatalogConfig;
+import io.apicurio.registry.iceberg.rest.v1.beans.CommitTableRequest;
+import io.apicurio.registry.iceberg.rest.v1.beans.CommitViewRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.Config;
 import io.apicurio.registry.iceberg.rest.v1.beans.CreateNamespaceRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.CreateNamespaceResponse;
 import io.apicurio.registry.iceberg.rest.v1.beans.CreateTableRequest;
+import io.apicurio.registry.iceberg.rest.v1.beans.CreateViewRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.Defaults;
 import io.apicurio.registry.iceberg.rest.v1.beans.GetNamespaceResponse;
 import io.apicurio.registry.iceberg.rest.v1.beans.ListNamespacesResponse;
 import io.apicurio.registry.iceberg.rest.v1.beans.ListTablesResponse;
 import io.apicurio.registry.iceberg.rest.v1.beans.LoadTableResponse;
+import io.apicurio.registry.iceberg.rest.v1.beans.LoadViewResponse;
 import io.apicurio.registry.iceberg.rest.v1.beans.Overrides;
 import io.apicurio.registry.iceberg.rest.v1.beans.Properties;
+import io.apicurio.registry.iceberg.rest.v1.beans.Requirement;
 import io.apicurio.registry.iceberg.rest.v1.beans.RenameTableRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.TableIdentifier;
 import io.apicurio.registry.iceberg.rest.v1.beans.TableMetadata;
+import io.apicurio.registry.iceberg.rest.v1.beans.Update;
+import io.apicurio.registry.iceberg.rest.v1.beans.ViewMetadata;
 import io.apicurio.registry.iceberg.rest.v1.beans.UpdateNamespacePropertiesRequest;
 import io.apicurio.registry.iceberg.rest.v1.beans.UpdateNamespacePropertiesResponse;
+import io.apicurio.registry.iceberg.metrics.IcebergMetricsService;
+import io.apicurio.registry.iceberg.rest.v1.impl.commit.TableRequirementValidator;
+import io.apicurio.registry.iceberg.rest.v1.impl.commit.TableUpdateApplicator;
+import io.apicurio.registry.iceberg.rest.v1.impl.commit.ViewRequirementValidator;
+import io.apicurio.registry.iceberg.rest.v1.impl.commit.ViewUpdateApplicator;
+import io.micrometer.core.instrument.Timer;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -33,6 +46,7 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
@@ -43,6 +57,7 @@ import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.GroupNotEmptyException;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -64,12 +79,17 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Implementation of the Iceberg REST Catalog API.
  */
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class IcebergApiResourceImpl implements ApisResource {
+
+    private static final Logger log = LoggerFactory.getLogger(IcebergApiResourceImpl.class);
 
     private static final String NAMESPACE_SEPARATOR = "\u0000";
 
@@ -85,6 +105,9 @@ public class IcebergApiResourceImpl implements ApisResource {
 
     @Inject
     ObjectMapper objectMapper;
+
+    @Inject
+    IcebergMetricsService metricsService;
 
     private void requireIcebergEnabled() {
         if (!icebergConfig.isEnabled()) {
@@ -105,7 +128,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         defaults.setAdditionalProperty("prefix", icebergConfig.getDefaultPrefix());
 
         Overrides overrides = new Overrides();
-        overrides.setAdditionalProperty("uri", "");
+        overrides.setAdditionalProperty("view-endpoints-supported", "true");
 
         config.setDefaults(defaults);
         config.setOverrides(overrides);
@@ -179,6 +202,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .build();
 
         storage.createGroup(dto);
+        metricsService.recordNamespaceCreated();
 
         CreateNamespaceResponse response = new CreateNamespaceResponse();
         response.setNamespace(namespace);
@@ -237,6 +261,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         }
 
         storage.deleteGroup(groupId);
+        metricsService.recordNamespaceDeleted();
     }
 
     @Override
@@ -281,6 +306,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                         .labels(currentLabels)
                         .build();
         storage.updateGroupMetaData(groupId, editableDto);
+        metricsService.recordNamespaceUpdated();
 
         UpdateNamespacePropertiesResponse response = new UpdateNamespacePropertiesResponse();
         response.setUpdated(updated);
@@ -360,9 +386,12 @@ public class IcebergApiResourceImpl implements ApisResource {
         metadata.put("location", location);
         metadata.put("last-sequence-number", 0);
         metadata.put("last-updated-ms", System.currentTimeMillis());
-        metadata.put("last-column-id", 0);
         metadata.put("current-schema-id", 0);
         metadata.put("schemas", List.of(data.getSchema()));
+
+        // Compute last-column-id from schema fields
+        int lastColumnId = computeMaxFieldId(data.getSchema());
+        metadata.put("last-column-id", lastColumnId);
         metadata.put("default-spec-id", 0);
         metadata.put("partition-specs", data.getPartitionSpec() != null
                 ? List.of(data.getPartitionSpec())
@@ -413,18 +442,17 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         storage.createArtifact(groupId, tableName, ArtifactType.ICEBERG_TABLE, artifactMetaData, null,
                 content, versionMetaData, null, false, false, getCurrentUser());
+        metricsService.recordTableCreated();
+
+        TableMetadata tableMetadata;
+        try {
+            tableMetadata = objectMapper.readValue(metadataJson, TableMetadata.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse table metadata", e);
+        }
 
         LoadTableResponse response = new LoadTableResponse();
         response.setMetadataLocation(location + "/metadata/v1.metadata.json");
-
-        TableMetadata tableMetadata = new TableMetadata();
-        tableMetadata.setFormatVersion(2);
-        tableMetadata.setTableUuid(tableUuid);
-        tableMetadata.setLocation(location);
-        tableMetadata.setSchemas(List.of(data.getSchema()));
-        tableMetadata.setCurrentSchemaId(0);
-        tableMetadata.setProperties(data.getProperties());
-
         response.setMetadata(tableMetadata);
         response.setConfig(new Config());
 
@@ -475,6 +503,151 @@ public class IcebergApiResourceImpl implements ApisResource {
         requireIcebergEnabled();
         String groupId = namespaceToGroupId(namespace);
         storage.deleteArtifact(groupId, table);
+        metricsService.recordTableDeleted();
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public LoadTableResponse commitTable(String prefix, String namespace, String table,
+            CommitTableRequest data) {
+        requireIcebergEnabled();
+
+        Timer.Sample commitTimerSample = metricsService.startCommitTimer();
+
+        String groupId = namespaceToGroupId(namespace);
+
+        // Load current metadata and record the base version order
+        GAV branchTip = storage.getBranchTip(new GA(groupId, table), BranchId.LATEST,
+                RetrievalBehavior.SKIP_DISABLED_LATEST);
+        ArtifactVersionMetaDataDto currentVersionMeta = storage.getArtifactVersionMetaData(groupId, table,
+                branchTip.getRawVersionId());
+        int baseVersionOrder = currentVersionMeta.getVersionOrder();
+
+        StoredArtifactVersionDto currentArtifact = storage.getArtifactVersionContent(groupId, table,
+                branchTip.getRawVersionId());
+        String currentMetadataJson = currentArtifact.getContent().content();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> currentMetadata;
+        try {
+            currentMetadata = objectMapper.readValue(currentMetadataJson, Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse current table metadata", e);
+        }
+
+        // Validate requirements
+        List<Map<String, Object>> requirements = parseObjectList(data.getRequirements());
+        TableRequirementValidator.validate(requirements, currentMetadata, groupId, table);
+
+        // Deep-copy metadata and apply updates
+        @SuppressWarnings("unchecked")
+        Map<String, Object> newMetadata;
+        try {
+            String metadataCopy = objectMapper.writeValueAsString(currentMetadata);
+            newMetadata = objectMapper.readValue(metadataCopy, Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to copy table metadata", e);
+        }
+
+        List<Map<String, Object>> updates = parseObjectList(data.getUpdates());
+        TableUpdateApplicator.apply(updates, newMetadata);
+
+        // Serialize new metadata
+        String newMetadataJson;
+        try {
+            newMetadataJson = objectMapper.writeValueAsString(newMetadata);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize updated table metadata", e);
+        }
+
+        // Create new artifact version
+        ContentWrapperDto content = ContentWrapperDto.builder()
+                .content(ContentHandle.create(newMetadataJson))
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .references(Collections.emptyList())
+                .build();
+
+        // Compute artifact label updates before the atomic write so that the version
+        // creation and the label update happen in the same storage transaction.
+        EditableArtifactMetaDataDto artifactMetaData = buildArtifactMetaDataIfNeeded(
+                currentMetadata, newMetadata);
+
+        storage.createArtifactVersionIfLatest(groupId, table,
+                null, ArtifactType.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(),
+                null, false, getCurrentUser(), baseVersionOrder, artifactMetaData);
+
+        metricsService.recordTableCommitted();
+        metricsService.stopCommitTimer(commitTimerSample, "table", "success");
+
+        // Build and return the response
+        return buildLoadTableResponse(newMetadata);
+    }
+
+    private <T> List<Map<String, Object>> parseObjectList(List<T> items) {
+        if (items == null) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (T item : items) {
+            if (item instanceof Requirement) {
+                result.add(((Requirement) item).getAdditionalProperties());
+            } else if (item instanceof Update) {
+                result.add(((Update) item).getAdditionalProperties());
+            } else if (item instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) item;
+                result.add(map);
+            }
+        }
+        return result;
+    }
+
+    private LoadTableResponse buildLoadTableResponse(Map<String, Object> metadata) {
+        TableMetadata tableMetadata = objectMapper.convertValue(metadata, TableMetadata.class);
+
+        LoadTableResponse response = new LoadTableResponse();
+        response.setMetadata(tableMetadata);
+        String location = (String) metadata.get("location");
+        if (location != null) {
+            response.setMetadataLocation(location + "/metadata/v1.metadata.json");
+        }
+        response.setConfig(new Config());
+        return response;
+    }
+
+    /**
+     * Computes the artifact-level metadata update needed after a commit, or returns {@code null}
+     * if no update is necessary. The result is passed to
+     * {@code createArtifactVersionIfLatest} so the label update happens atomically within the
+     * same storage transaction as the version creation.
+     */
+    private EditableArtifactMetaDataDto buildArtifactMetaDataIfNeeded(
+            Map<String, Object> oldMetadata, Map<String, Object> newMetadata) {
+        String oldUuid = (String) oldMetadata.get("table-uuid");
+        String newUuid = (String) newMetadata.get("table-uuid");
+        String oldLocation = (String) oldMetadata.get("location");
+        String newLocation = (String) newMetadata.get("location");
+
+        boolean needsUpdate = false;
+        if (newUuid != null && !newUuid.equals(oldUuid)) {
+            needsUpdate = true;
+        }
+        if (newLocation != null && !newLocation.equals(oldLocation)) {
+            needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+            Map<String, String> labels = new HashMap<>();
+            if (newUuid != null) {
+                labels.put("table-uuid", newUuid);
+            }
+            if (newLocation != null) {
+                labels.put("location", newLocation);
+            }
+            return EditableArtifactMetaDataDto.builder().labels(labels).build();
+        }
+        return null;
     }
 
     @Override
@@ -511,7 +684,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                     metadataJson = objectMapper.writeValueAsString(metadata);
                 }
             } catch (Exception e) {
-                // Keep original metadata if parsing fails
+                log.warn("Failed to update location during rename, keeping original metadata", e);
             }
         }
 
@@ -525,7 +698,372 @@ public class IcebergApiResourceImpl implements ApisResource {
                 EditableArtifactMetaDataDto.builder().build(), null, content,
                 EditableVersionMetaDataDto.builder().build(), null, false, false, getCurrentUser());
 
-        storage.deleteArtifact(sourceGroupId, sourceTable);
+        try {
+            storage.deleteArtifact(sourceGroupId, sourceTable);
+        } catch (Exception e) {
+            log.warn("Rename succeeded but failed to delete source table {}/{}, it may need manual cleanup",
+                    sourceGroupId, sourceTable, e);
+        }
+        metricsService.recordTableRenamed();
+    }
+
+    // --- Views ---
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
+    public ListTablesResponse listViews(String prefix, String namespace, String pageToken,
+            BigInteger pageSize) {
+        requireIcebergEnabled();
+
+        String groupId = namespaceToGroupId(namespace);
+
+        int limit = pageSize != null ? pageSize.intValue() : 100;
+        int offset = 0;
+        if (pageToken != null && !pageToken.isEmpty()) {
+            try {
+                offset = Integer.parseInt(pageToken);
+            } catch (NumberFormatException e) {
+                // Invalid page token, start from beginning
+            }
+        }
+
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofGroupId(groupId));
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.ICEBERG_VIEW));
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.artifactId,
+                OrderDirection.asc, offset, limit);
+
+        List<TableIdentifier> identifiers = results.getArtifacts().stream()
+                .map(a -> {
+                    TableIdentifier id = new TableIdentifier();
+                    id.setNamespace(groupIdToNamespace(a.getGroupId()));
+                    id.setName(a.getArtifactId());
+                    return id;
+                })
+                .collect(Collectors.toList());
+
+        ListTablesResponse response = new ListTablesResponse();
+        response.setIdentifiers(identifiers);
+
+        if (results.getCount() > offset + limit) {
+            response.setNextPageToken(String.valueOf(offset + limit));
+        }
+
+        return response;
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
+    public LoadViewResponse createView(String prefix, String namespace, CreateViewRequest data) {
+        requireIcebergEnabled();
+
+        String groupId = namespaceToGroupId(namespace);
+        String viewName = data.getName();
+
+        String viewUuid = UUID.randomUUID().toString();
+        String location = data.getLocation();
+        if (location == null || location.isEmpty()) {
+            String warehouse = icebergConfig.getDefaultWarehouse();
+            if (warehouse == null || warehouse.isEmpty()) {
+                warehouse = "/warehouse";
+            }
+            location = warehouse + "/" + groupId.replace(".", "/") + "/" + viewName;
+        }
+
+        long now = System.currentTimeMillis();
+
+        // Build the initial view version from the request
+        Map<String, Object> viewVersion = new HashMap<>();
+        viewVersion.put("version-id", 1);
+        viewVersion.put("schema-id", 0);
+        viewVersion.put("timestamp-ms", now);
+        viewVersion.put("summary", Map.of("operation", "create"));
+        viewVersion.put("default-namespace", groupIdToNamespace(groupId));
+
+        if (data.getViewVersion() != null) {
+            if (data.getViewVersion().getRepresentations() != null) {
+                viewVersion.put("representations", data.getViewVersion().getRepresentations());
+            }
+            if (data.getViewVersion().getDefaultCatalog() != null) {
+                viewVersion.put("default-catalog", data.getViewVersion().getDefaultCatalog());
+            }
+            if (data.getViewVersion().getDefaultNamespace() != null) {
+                viewVersion.put("default-namespace", data.getViewVersion().getDefaultNamespace());
+            }
+            if (data.getViewVersion().getSchemaId() != null) {
+                viewVersion.put("schema-id", data.getViewVersion().getSchemaId());
+            }
+        }
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("format-version", 1);
+        metadata.put("view-uuid", viewUuid);
+        metadata.put("location", location);
+        metadata.put("current-version-id", 1);
+        metadata.put("versions", List.of(viewVersion));
+        metadata.put("version-log", List.of(Map.of("version-id", 1, "timestamp-ms", now)));
+        metadata.put("schemas", List.of(data.getSchema()));
+
+        Map<String, Object> viewProps = new HashMap<>();
+        if (data.getProperties() != null) {
+            viewProps.putAll(data.getProperties().getAdditionalProperties());
+        }
+        metadata.put("properties", viewProps);
+
+        String metadataJson;
+        try {
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize view metadata", e);
+        }
+
+        Map<String, String> labels = new HashMap<>();
+        labels.put("view-uuid", viewUuid);
+        labels.put("location", location);
+        if (data.getProperties() != null) {
+            for (Map.Entry<String, Object> entry : data.getProperties().getAdditionalProperties().entrySet()) {
+                labels.put(entry.getKey(), String.valueOf(entry.getValue()));
+            }
+        }
+
+        EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
+                .labels(labels)
+                .build();
+        EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder()
+                .build();
+        ContentWrapperDto content = ContentWrapperDto.builder()
+                .content(ContentHandle.create(metadataJson))
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .references(Collections.emptyList())
+                .build();
+
+        storage.createArtifact(groupId, viewName, ArtifactType.ICEBERG_VIEW, artifactMetaData, null,
+                content, versionMetaData, null, false, false, getCurrentUser());
+        metricsService.recordViewCreated();
+
+        return buildLoadViewResponse(metadata);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public LoadViewResponse loadView(String prefix, String namespace, String view) {
+        requireIcebergEnabled();
+
+        String groupId = namespaceToGroupId(namespace);
+
+        StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(groupId, view,
+                storage.getBranchTip(new GA(groupId, view), BranchId.LATEST,
+                        RetrievalBehavior.SKIP_DISABLED_LATEST).getRawVersionId());
+
+        String metadataJson = artifact.getContent().content();
+
+        ViewMetadata metadata;
+        try {
+            metadata = objectMapper.readValue(metadataJson, ViewMetadata.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse view metadata", e);
+        }
+
+        LoadViewResponse response = new LoadViewResponse();
+        response.setMetadata(metadata);
+        response.setMetadataLocation(metadata.getLocation() + "/metadata/v1.metadata.json");
+        response.setConfig(new Config());
+
+        return response;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public void viewExists(String prefix, String namespace, String view) {
+        requireIcebergEnabled();
+        String groupId = namespaceToGroupId(namespace);
+        storage.getArtifactMetaData(groupId, view);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Admin)
+    public void dropView(String prefix, String namespace, String view) {
+        requireIcebergEnabled();
+        String groupId = namespaceToGroupId(namespace);
+        storage.deleteArtifact(groupId, view);
+        metricsService.recordViewDeleted();
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
+    public LoadViewResponse replaceView(String prefix, String namespace, String view,
+            CommitViewRequest data) {
+        requireIcebergEnabled();
+
+        Timer.Sample commitTimerSample = metricsService.startCommitTimer();
+
+        String groupId = namespaceToGroupId(namespace);
+
+        // Load current metadata and record the base version order
+        GAV branchTip = storage.getBranchTip(new GA(groupId, view), BranchId.LATEST,
+                RetrievalBehavior.SKIP_DISABLED_LATEST);
+        ArtifactVersionMetaDataDto currentVersionMeta = storage.getArtifactVersionMetaData(groupId, view,
+                branchTip.getRawVersionId());
+        int baseVersionOrder = currentVersionMeta.getVersionOrder();
+
+        StoredArtifactVersionDto currentArtifact = storage.getArtifactVersionContent(groupId, view,
+                branchTip.getRawVersionId());
+        String currentMetadataJson = currentArtifact.getContent().content();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> currentMetadata;
+        try {
+            currentMetadata = objectMapper.readValue(currentMetadataJson, Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse current view metadata", e);
+        }
+
+        // Validate requirements
+        List<Map<String, Object>> requirements = parseObjectList(data.getRequirements());
+        ViewRequirementValidator.validate(requirements, currentMetadata, groupId, view);
+
+        // Deep-copy metadata and apply updates
+        @SuppressWarnings("unchecked")
+        Map<String, Object> newMetadata;
+        try {
+            String metadataCopy = objectMapper.writeValueAsString(currentMetadata);
+            newMetadata = objectMapper.readValue(metadataCopy, Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to copy view metadata", e);
+        }
+
+        List<Map<String, Object>> updates = parseObjectList(data.getUpdates());
+        ViewUpdateApplicator.apply(updates, newMetadata);
+
+        // Serialize new metadata
+        String newMetadataJson;
+        try {
+            newMetadataJson = objectMapper.writeValueAsString(newMetadata);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize updated view metadata", e);
+        }
+
+        // Create new artifact version
+        ContentWrapperDto content = ContentWrapperDto.builder()
+                .content(ContentHandle.create(newMetadataJson))
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .references(Collections.emptyList())
+                .build();
+
+        // Compute artifact label updates
+        EditableArtifactMetaDataDto artifactMetaData = buildViewArtifactMetaDataIfNeeded(
+                currentMetadata, newMetadata);
+
+        storage.createArtifactVersionIfLatest(groupId, view,
+                null, ArtifactType.ICEBERG_VIEW, content, EditableVersionMetaDataDto.builder().build(),
+                null, false, getCurrentUser(), baseVersionOrder, artifactMetaData);
+
+        metricsService.recordViewReplaced();
+        metricsService.stopCommitTimer(commitTimerSample, "view", "success");
+
+        return buildLoadViewResponse(newMetadata);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
+    public void renameView(String prefix, RenameTableRequest data) {
+        requireIcebergEnabled();
+        TableIdentifier source = data.getSource();
+        TableIdentifier destination = data.getDestination();
+
+        String sourceGroupId = namespaceToGroupId(source.getNamespace());
+        String sourceView = source.getName();
+        String destGroupId = namespaceToGroupId(destination.getNamespace());
+        String destView = destination.getName();
+
+        StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(sourceGroupId, sourceView,
+                storage.getBranchTip(new GA(sourceGroupId, sourceView), BranchId.LATEST,
+                        RetrievalBehavior.SKIP_DISABLED_LATEST).getRawVersionId());
+
+        String metadataJson = artifact.getContent().content();
+
+        if (!sourceGroupId.equals(destGroupId) || !sourceView.equals(destView)) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> metadata = objectMapper.readValue(metadataJson, Map.class);
+                String oldLocation = (String) metadata.get("location");
+                if (oldLocation != null) {
+                    String warehouse = icebergConfig.getDefaultWarehouse();
+                    if (warehouse == null || warehouse.isEmpty()) {
+                        warehouse = "/warehouse";
+                    }
+                    String newLocation = warehouse + "/" + destGroupId.replace(".", "/") + "/" + destView;
+                    metadata.put("location", newLocation);
+                    metadataJson = objectMapper.writeValueAsString(metadata);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to update location during rename, keeping original metadata", e);
+            }
+        }
+
+        ContentWrapperDto content = ContentWrapperDto.builder()
+                .content(ContentHandle.create(metadataJson))
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .references(Collections.emptyList())
+                .build();
+
+        storage.createArtifact(destGroupId, destView, ArtifactType.ICEBERG_VIEW,
+                EditableArtifactMetaDataDto.builder().build(), null, content,
+                EditableVersionMetaDataDto.builder().build(), null, false, false, getCurrentUser());
+
+        try {
+            storage.deleteArtifact(sourceGroupId, sourceView);
+        } catch (Exception e) {
+            log.warn("Rename succeeded but failed to delete source view {}/{}, it may need manual cleanup",
+                    sourceGroupId, sourceView, e);
+        }
+        metricsService.recordViewRenamed();
+    }
+
+    private LoadViewResponse buildLoadViewResponse(Map<String, Object> metadata) {
+        ViewMetadata viewMetadata = objectMapper.convertValue(metadata, ViewMetadata.class);
+
+        LoadViewResponse response = new LoadViewResponse();
+        response.setMetadata(viewMetadata);
+        String location = (String) metadata.get("location");
+        if (location != null) {
+            response.setMetadataLocation(location + "/metadata/v1.metadata.json");
+        }
+        response.setConfig(new Config());
+        return response;
+    }
+
+    private EditableArtifactMetaDataDto buildViewArtifactMetaDataIfNeeded(
+            Map<String, Object> oldMetadata, Map<String, Object> newMetadata) {
+        String oldUuid = (String) oldMetadata.get("view-uuid");
+        String newUuid = (String) newMetadata.get("view-uuid");
+        String oldLocation = (String) oldMetadata.get("location");
+        String newLocation = (String) newMetadata.get("location");
+
+        boolean needsUpdate = false;
+        if (newUuid != null && !newUuid.equals(oldUuid)) {
+            needsUpdate = true;
+        }
+        if (newLocation != null && !newLocation.equals(oldLocation)) {
+            needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+            Map<String, String> labels = new HashMap<>();
+            if (newUuid != null) {
+                labels.put("view-uuid", newUuid);
+            }
+            if (newLocation != null) {
+                labels.put("location", newLocation);
+            }
+            return EditableArtifactMetaDataDto.builder().labels(labels).build();
+        }
+        return null;
     }
 
     private String namespaceToGroupId(List<String> namespace) {
@@ -549,6 +1087,31 @@ public class IcebergApiResourceImpl implements ApisResource {
         String decoded = URLDecoder.decode(encodedNamespace, StandardCharsets.UTF_8);
         List<String> parts = Arrays.asList(decoded.split(NAMESPACE_SEPARATOR));
         return namespaceToGroupId(parts);
+    }
+
+    @SuppressWarnings("unchecked")
+    private int computeMaxFieldId(Object schema) {
+        Map<String, Object> schemaMap;
+        if (schema instanceof Map) {
+            schemaMap = (Map<String, Object>) schema;
+        } else {
+            schemaMap = objectMapper.convertValue(schema, Map.class);
+        }
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) schemaMap.get("fields");
+        if (fields == null || fields.isEmpty()) {
+            return 0;
+        }
+        int maxId = 0;
+        for (Map<String, Object> field : fields) {
+            Object idObj = field.get("id");
+            if (idObj instanceof Number) {
+                int id = ((Number) idObj).intValue();
+                if (id > maxId) {
+                    maxId = id;
+                }
+            }
+        }
+        return maxId;
     }
 
     private String getCurrentUser() {

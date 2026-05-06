@@ -56,12 +56,12 @@ spec:
               value: "kubernetesops"
             - name: APICURIO_STORAGE_SQL_KIND
               value: "h2"
-            - name: APICURIO_KUBERNETESOPS_ID
+            - name: APICURIO_POLLING_STORAGE_ID
               value: "e2e-test"
             - name: APICURIO_KUBERNETESOPS_NAMESPACE
               value: "apicurio-registry-e2e"
-            - name: APICURIO_KUBERNETESOPS_REFRESH_EVERY
-              value: "5s"
+            - name: APICURIO_POLLING_STORAGE_POLL_PERIOD
+              value: "PT5S"
             - name: APICURIO_KUBERNETESOPS_WATCH_ENABLED
               value: "true"
             - name: APICURIO_FEATURES_EXPERIMENTAL_ENABLED
@@ -71,7 +71,7 @@ spec:
           startupProbe:
             httpGet:
               path: /health/ready
-              port: 8080
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -81,7 +81,7 @@ spec:
             failureThreshold: 3
             httpGet:
               path: /health/live
-              port: 8080
+              port: 9000
               scheme: HTTP
             periodSeconds: 10
             successThreshold: 1
@@ -91,11 +91,14 @@ spec:
             - containerPort: 8080
               name: http
               protocol: TCP
+            - containerPort: 9000
+              name: management
+              protocol: TCP
           readinessProbe:
             failureThreshold: 3
             httpGet:
               path: /health/ready
-              port: 8080
+              port: 9000
               scheme: HTTP
             periodSeconds: 10
             successThreshold: 1
@@ -110,10 +113,15 @@ metadata:
   name: apicurio-registry-service
 spec:
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 8080
       targetPort: 8080
       nodePort: 32586
+    - name: management
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
   selector:
     app: apicurio-registry-kubernetesops
   type: LoadBalancer

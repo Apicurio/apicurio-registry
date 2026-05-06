@@ -1,13 +1,13 @@
 package io.apicurio.tests.serdes.apicurio.debezium.mysql;
 
 import io.apicurio.tests.serdes.apicurio.debezium.DebeziumAvroV3DeserializerMixin;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Tag;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 /**
  * Integration tests for Debezium MySQL CDC with Apicurio Registry Avro
@@ -17,7 +17,7 @@ import org.testcontainers.containers.MySQLContainer;
  *
  * Tests schema auto-registration, evolution, MySQL data types, and CDC operations.
  */
-@Tag(Constants.DEBEZIUM_MYSQL_SNAPSHOT)
+@Tag(DEBEZIUM_MYSQL_SNAPSHOT)
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DebeziumMySQLLocalConvertersResource.class, restrictToAnnotatedClass = true)
 public class DebeziumMySQLAvroLocalConvertersIT extends DebeziumMySQLAvroBaseIT
@@ -34,7 +34,7 @@ public class DebeziumMySQLAvroLocalConvertersIT extends DebeziumMySQLAvroBaseIT
     }
 
     @Override
-    protected MySQLContainer<?> getMySQLContainer() {
+    protected MySQLContainer getMySQLContainer() {
         return DebeziumMySQLLocalConvertersResource.mysqlContainer;
     }
 

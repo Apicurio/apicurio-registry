@@ -413,6 +413,54 @@
           }
         }
       },
+      "post": {
+        "operationId": "commitTable",
+        "tags": ["Tables"],
+        "summary": "Commit updates to a table",
+        "description": "Commit updates to a table. Commits can optionally include requirements that must be satisfied for the commit to succeed. If any requirement is not met, the commit will fail with a 409 Conflict response.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/table"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitTableRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadTableResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      },
       "delete": {
         "operationId": "dropTable",
         "tags": ["Tables"],
@@ -482,6 +530,259 @@
           }
         }
       }
+    },
+    "/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views": {
+      "get": {
+        "operationId": "listViews",
+        "tags": ["Views"],
+        "summary": "List views in a namespace",
+        "description": "Return all view identifiers under this namespace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of view identifiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListTablesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createView",
+        "tags": ["Views"],
+        "summary": "Create a view in a namespace",
+        "description": "Create a view defined by a SQL query",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateViewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "View created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadViewResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      }
+    },
+    "/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views/{view}": {
+      "get": {
+        "operationId": "loadView",
+        "tags": ["Views"],
+        "summary": "Load a view",
+        "description": "Load a view from the catalog",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/view"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "View metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadViewResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "head": {
+        "operationId": "viewExists",
+        "tags": ["Views"],
+        "summary": "Check if a view exists",
+        "description": "Check if a view exists. Returns 204 if the view exists, 404 otherwise",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/view"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "View exists"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "replaceView",
+        "tags": ["Views"],
+        "summary": "Replace a view",
+        "description": "Commit updates to a view. Commits can optionally include requirements that must be satisfied for the commit to succeed.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/view"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitViewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "View updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadViewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "dropView",
+        "tags": ["Views"],
+        "summary": "Drop a view",
+        "description": "Drop a view from the catalog",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          },
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/view"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "View successfully dropped"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/apis/iceberg/v1/{prefix}/views/rename": {
+      "post": {
+        "operationId": "renameView",
+        "tags": ["Views"],
+        "summary": "Rename a view",
+        "description": "Rename a view from its current name to a new name",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/prefix"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameTableRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "View successfully renamed"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -512,11 +813,30 @@
         "schema": {
           "type": "string"
         }
+      },
+      "view": {
+        "name": "view",
+        "in": "path",
+        "required": true,
+        "description": "A view name",
+        "schema": {
+          "type": "string"
+        }
       }
     },
     "responses": {
       "NotFoundError": {
         "description": "Not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IcebergErrorResponse"
+            }
+          }
+        }
+      },
+      "BadRequestError": {
+        "description": "Bad request - Invalid input",
         "content": {
           "application/json": {
             "schema": {
@@ -1001,6 +1321,216 @@
           },
           "destination": {
             "$ref": "#/components/schemas/TableIdentifier"
+          }
+        }
+      },
+      "CommitTableRequest": {
+        "type": "object",
+        "required": ["requirements", "updates"],
+        "properties": {
+          "requirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Requirements that must be met for the commit to succeed. Each requirement has a 'type' field indicating the assertion type."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Updates to apply to the table metadata. Each update has an 'action' field indicating the update type."
+          }
+        }
+      },
+      "CreateViewRequest": {
+        "type": "object",
+        "required": ["name", "schema", "view-version"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "View name"
+          },
+          "location": {
+            "type": "string",
+            "description": "View location. If not specified, the location will be computed by the catalog"
+          },
+          "schema": {
+            "$ref": "#/components/schemas/Schema"
+          },
+          "view-version": {
+            "$ref": "#/components/schemas/ViewVersion"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ViewVersion": {
+        "type": "object",
+        "required": ["version-id", "schema-id", "timestamp-ms", "representations"],
+        "properties": {
+          "version-id": {
+            "type": "integer",
+            "description": "Version ID"
+          },
+          "schema-id": {
+            "type": "integer",
+            "description": "Schema ID for this version"
+          },
+          "timestamp-ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Timestamp when this version was created"
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Summary of the version"
+          },
+          "representations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViewRepresentation"
+            },
+            "description": "SQL representations of the view"
+          },
+          "default-catalog": {
+            "type": "string",
+            "description": "Default catalog for SQL resolution"
+          },
+          "default-namespace": {
+            "$ref": "#/components/schemas/Namespace"
+          }
+        }
+      },
+      "ViewRepresentation": {
+        "type": "object",
+        "required": ["type", "sql", "dialect"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["sql"],
+            "description": "Representation type"
+          },
+          "sql": {
+            "type": "string",
+            "description": "SQL expression"
+          },
+          "dialect": {
+            "type": "string",
+            "description": "SQL dialect"
+          }
+        }
+      },
+      "ViewMetadata": {
+        "type": "object",
+        "required": ["format-version", "view-uuid", "location"],
+        "properties": {
+          "format-version": {
+            "type": "integer",
+            "description": "Iceberg format version"
+          },
+          "view-uuid": {
+            "type": "string",
+            "description": "UUID of the view"
+          },
+          "location": {
+            "type": "string",
+            "description": "View location"
+          },
+          "current-version-id": {
+            "type": "integer",
+            "description": "ID of the current view version"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViewVersion"
+            },
+            "description": "List of view versions"
+          },
+          "version-log": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "version-id": {
+                  "type": "integer",
+                  "description": "Version ID"
+                },
+                "timestamp-ms": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "Timestamp in milliseconds"
+                }
+              },
+              "required": ["version-id", "timestamp-ms"]
+            },
+            "description": "Log of version changes"
+          },
+          "schemas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Schema"
+            },
+            "description": "List of schemas"
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LoadViewResponse": {
+        "type": "object",
+        "required": ["metadata"],
+        "properties": {
+          "metadata-location": {
+            "type": "string",
+            "description": "Location of the metadata file"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ViewMetadata"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Configuration for accessing the view"
+          }
+        }
+      },
+      "CommitViewRequest": {
+        "type": "object",
+        "required": ["requirements", "updates"],
+        "properties": {
+          "requirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Requirements that must be met for the commit to succeed. Each requirement has a 'type' field indicating the assertion type."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Updates to apply to the view metadata. Each update has an 'action' field indicating the update type."
           }
         }
       }

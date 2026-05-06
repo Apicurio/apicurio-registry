@@ -6,6 +6,7 @@ import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
+import com.squareup.wire.schema.SchemaException;
 import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
@@ -35,8 +36,7 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
     }
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map<String,
-     *      ParsedSchema<ProtobufSchema>>)
+     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map)
      */
     @Override
     public ProtobufSchema parseSchema(byte[] rawSchema,
@@ -75,6 +75,12 @@ public class ProtobufSchemaParser<U extends Message> implements SchemaParser<Pro
             throw new IllegalStateException("Error parsing protobuf schema ", pe);
         } catch (IllegalStateException illegalStateException) {
             // If we get here the server likely returned the full descriptor, try to parse it.
+            return parseDescriptor(rawSchema, resolvedReferences);
+        } catch (SchemaException se) {
+            // wire-schema throws SchemaException when the .proto text references imports that
+            // can't be resolved locally (e.g. custom proto files from other modules not present
+            // in resolvedReferences). Fall back to binary descriptor parsing, which does not
+            // require import resolution.
             return parseDescriptor(rawSchema, resolvedReferences);
         }
     }

@@ -64,6 +64,7 @@ export interface FeaturesConfig {
     draftMutability?: boolean;
     settings?: boolean;
     agents?: boolean;
+    searchIndex?: boolean;
     alerts?: Alerts;
 }
 
@@ -234,6 +235,7 @@ export interface ConfigService {
     featureDeleteVersion(): boolean;
     featureDraftMutability(): boolean;
     featureAgents(): boolean;
+    featureSearchIndex(): boolean;
     authType(): string;
     authRbacEnabled(): boolean;
     authObacEnabled(): boolean;
@@ -355,6 +357,10 @@ export class ConfigServiceImpl implements ConfigService {
 
     public featureAgents(): boolean {
         return this.features().agents || false;
+    }
+
+    public featureSearchIndex(): boolean {
+        return this.features().searchIndex || false;
     }
 
     public authType(): string {

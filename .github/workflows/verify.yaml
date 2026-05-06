@@ -1,16 +1,9 @@
 name: Verify
 on:
   push:
-    paths-ignore:
-      - '.gitignore'
-      - 'LICENSE'
-      - 'README*'
     branches: [main]
   pull_request:
-    paths-ignore:
-      - '.gitignore'
-      - 'LICENSE'
-      - 'README*'
+    types: [opened, reopened, synchronize, labeled]
     branches: [main]
 
 concurrency:
@@ -19,12 +12,170 @@ concurrency:
 
 jobs:
   # ============================================================================
+  # DECIDE: Centralized decision on what to run
+  #
+  # Combines lifecycle-label evaluation (PR readiness) with path-based change
+  # detection into a single set of per-phase boolean outputs.  Every downstream
+  # job references exactly one output instead of combining two jobs.
+  # ============================================================================
+  decide:
+    name: Decide
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    outputs:
+      lifecycle-ready: ${{ steps.decide.outputs.lifecycle-ready }}
+      run-build: ${{ steps.decide.outputs.run-build }}
+      run-unit-tests: ${{ steps.decide.outputs.run-unit-tests }}
+      run-integration: ${{ steps.decide.outputs.run-integration }}
+      run-extras: ${{ steps.decide.outputs.run-extras }}
+      run-sdk: ${{ steps.decide.outputs.run-sdk }}
+      run-cli: ${{ steps.decide.outputs.run-cli }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            java:
+              - 'app/**'
+              - 'common/**'
+              - 'schema-util/**'
+              - 'schema-validation/**'
+              - 'schema-resolver/**'
+              - 'serdes/**'
+              - 'config-index/**'
+              - 'java-sdk/**'
+              - 'mcp/**'
+              - 'distro/**'
+              - 'pom.xml'
+            ui:
+              - 'ui/**'
+            integration:
+              - 'app/**'
+              - 'common/**'
+              - 'integration-tests/**'
+              - 'schema-util/**'
+              - 'schema-validation/**'
+              - 'schema-resolver/**'
+              - 'serdes/**'
+              - 'distro/**'
+              - 'pom.xml'
+            sdk:
+              - 'java-sdk/**'
+              - 'go-sdk/**'
+              - 'python-sdk/**'
+              - 'typescript-sdk/**'
+            cli:
+              - 'cli/**'
+              - 'java-sdk/**'
+              - '.github/workflows/verify-cli.yaml'
+            ci:
+              - '.github/workflows/**'
+
+      - name: Evaluate scope and decide
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EVENT="${{ github.event_name }}"
+          ACTION="${{ github.event.action }}"
+
+          # ── Phase 1: Lifecycle scope ──────────────────────────────────
+          run_smoke=false
+          run_full=false
+
+          if [ "$EVENT" = "push" ]; then
+            run_smoke=true
+            run_full=true
+          else
+            # Non-lifecycle label events: skip the workflow run entirely.
+            # Unlike other PR events, we do NOT need to evaluate lifecycle
+            # state here — the workflow already ran (or will run) for the
+            # synchronize/opened event on the same SHA, so the gate result
+            # from that run is authoritative.
+            if [ "$ACTION" = "labeled" ]; then
+              LABEL='${{ github.event.label.name }}'
+              if [[ "$LABEL" != lifecycle/* ]]; then
+                echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
+                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli; do
+                  echo "$out=false" >> "$GITHUB_OUTPUT"
+                done
+                exit 0
+              fi
+            fi
+
+            # Fetch current labels from the API (event payload can be stale)
+            PR_NUMBER='${{ github.event.pull_request.number }}'
+            LABELS=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" --jq '[.labels[].name]')
+            has_label() { echo "$LABELS" | jq -e "index(\"$1\")" > /dev/null 2>&1; }
+
+            if has_label "orchestrator/disabled"; then
+              if has_label "DO NOT MERGE"; then
+                run_smoke=false; run_full=false
+              else
+                run_smoke=true; run_full=true
+              fi
+            else
+              if has_label "lifecycle/ready-for-review" || has_label "lifecycle/ready-to-merge"; then
+                run_smoke=true; run_full=true
+              elif has_label "lifecycle/wip"; then
+                if has_label "orchestrator/tests-disabled"; then
+                  run_smoke=false; run_full=false
+                else
+                  run_smoke=true; run_full=false
+                fi
+              else
+                # lifecycle/new or no lifecycle label
+                run_smoke=false; run_full=false
+              fi
+            fi
+          fi
+
+          # ── Phase 2: Read change-detection results ────────────────────
+          JAVA='${{ steps.filter.outputs.java }}'
+          UI='${{ steps.filter.outputs.ui }}'
+          INTEGRATION='${{ steps.filter.outputs.integration }}'
+          SDK='${{ steps.filter.outputs.sdk }}'
+          CLI='${{ steps.filter.outputs.cli }}'
+          CI='${{ steps.filter.outputs.ci }}'
+
+          # ── Phase 3: Combine scope + changes into per-phase decisions ─
+          # decide <output-name> <scope-flag> <change-flags...>
+          # Outputs true when scope is active AND at least one flag is true.
+          decide() {
+            local name="$1" scope="$2"; shift 2
+            if [ "$scope" != "true" ]; then
+              echo "$name=false" >> "$GITHUB_OUTPUT"; return
+            fi
+            for flag in "$@"; do
+              if [ "$flag" = "true" ]; then
+                echo "$name=true" >> "$GITHUB_OUTPUT"; return
+              fi
+            done
+            echo "$name=false" >> "$GITHUB_OUTPUT"
+          }
+
+          IS_PUSH=$( [ "$EVENT" = "push" ] && echo true || echo false )
+
+          echo "lifecycle-ready=$run_smoke" >> "$GITHUB_OUTPUT"
+          decide run-build       "$run_smoke" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI"
+          decide run-unit-tests  "$run_smoke" "$IS_PUSH" "$JAVA" "$CI"
+          decide run-integration "$run_full"  "$IS_PUSH" "$INTEGRATION" "$CI"
+          decide run-extras      "$run_full"  "$IS_PUSH" "$JAVA" "$UI" "$CI"
+          decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
+          decide run-cli         "$run_full"  "$CLI"
+
+  # ============================================================================
   # PHASE 1: Fast Checks (fail early)
   # ============================================================================
   lint-and-validate:
     name: Lint and Validate
     runs-on: ubuntu-22.04
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: decide
+    if: needs.decide.outputs.lifecycle-ready == 'true'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -45,46 +196,29 @@ jobs:
   # ============================================================================
   build:
     name: Build
-    needs: lint-and-validate
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [decide, lint-and-validate]
+    if: needs.decide.outputs.run-build == 'true'
     uses: ./.github/workflows/verify-build.yaml
 
   # ============================================================================
-  # PHASE 3: Unit Tests (parallel with integration tests)
+  # PHASE 3: Unit Tests
   # ============================================================================
   unit-tests:
     name: Unit Tests
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [decide, build]
+    if: needs.decide.outputs.run-unit-tests == 'true'
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
 
-  # Path filter for conditional macOS CLI test execution
-  detect-cli-changes:
-    name: Detect CLI Changes
-    needs: build
-    runs-on: ubuntu-latest
-    outputs:
-      cli: ${{ steps.filter.outputs.cli }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Check for CLI changes
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            cli:
-              - 'cli/**'
-              - '.github/workflows/verify-cli-macos.yaml'
-
-  cli-tests-macos:
-    name: CLI Tests (macOS)
-    needs: detect-cli-changes
-    if: needs.detect-cli-changes.outputs.cli == 'true'
-    uses: ./.github/workflows/verify-cli-macos.yaml
+  # ============================================================================
+  # CLI Verification
+  # ============================================================================
+  cli-verify:
+    name: CLI Verification
+    needs: [decide, build]
+    if: needs.decide.outputs.run-cli == 'true'
+    uses: ./.github/workflows/verify-cli.yaml
     with:
       image-tag: ${{ github.sha }}
 
@@ -93,8 +227,8 @@ jobs:
   # ============================================================================
   integration-tests:
     name: Integration Tests
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [decide, build]
+    if: needs.decide.outputs.run-integration == 'true'
     uses: ./.github/workflows/verify-integration-tests.yaml
     with:
       image-tag: ${{ github.sha }}
@@ -104,8 +238,8 @@ jobs:
   # ============================================================================
   extras:
     name: Extra Tests
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [decide, build]
+    if: needs.decide.outputs.run-extras == 'true'
     uses: ./.github/workflows/verify-extras.yaml
     with:
       image-tag: ${{ github.sha }}
@@ -115,25 +249,54 @@ jobs:
   # ============================================================================
   sdk:
     name: SDK Verification
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
+    needs: [decide, build]
+    if: needs.decide.outputs.run-sdk == 'true'
     uses: ./.github/workflows/verify-sdk.yaml
     with:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
-  # PHASE 7: Native Build (reuses build artifacts)
+  # VERIFICATION GATE: Single required check for branch protection
+  #
+  # Aggregates results from all test phases.  Passes when every upstream job
+  # either succeeded or was appropriately skipped by change detection.
+  # Fails when any job failed, or when the PR lifecycle state does not allow
+  # merging (lifecycle/new, DO NOT MERGE, etc.).
   # ============================================================================
-  native:
-    name: Native Build
-    needs: build
-    if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
-    uses: ./.github/workflows/verify-native.yaml
-    with:
-      image-tag: ${{ github.sha }}
+  verification-gate:
+    name: Verification Gate
+    if: always()
+    needs: [decide, lint-and-validate, build, unit-tests, cli-verify,
+            integration-tests, extras, sdk]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate gate
+        env:
+          LIFECYCLE_READY: ${{ needs.decide.outputs.lifecycle-ready }}
+          EVENT: ${{ github.event_name }}
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "Job results: $RESULTS"
+
+          # Fail if any upstream job failed or was cancelled
+          FAILED=$(echo "$RESULTS" | jq '[.[] | select(. != "success" and . != "skipped")] | length')
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::One or more required jobs failed or were cancelled"
+            exit 1
+          fi
+
+          # On PRs, fail if lifecycle state does not allow merging.
+          # "skip" means this run was triggered by a non-lifecycle label and
+          # is not authoritative — let it pass without blocking.
+          if [ "$EVENT" != "push" ] && [ "$LIFECYCLE_READY" != "true" ] && [ "$LIFECYCLE_READY" != "skip" ]; then
+            echo "::error::PR is not in a testable lifecycle state"
+            exit 1
+          fi
+
+          echo "All checks passed"
 
   # ============================================================================
-  # PHASE 8: Publish Images (only on push to main)
+  # PUBLISH: Push images (only on push to main)
   # ============================================================================
   publish:
     name: Publish Images
@@ -149,7 +312,7 @@ jobs:
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
 
   # ============================================================================
-  # PHASE 9: Notifications (using reusable workflow)
+  # NOTIFICATIONS
   # ============================================================================
   notify-slack:
     name: Slack Notification
@@ -163,13 +326,3 @@ jobs:
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
-
-  # ============================================================================
-  # PHASE 10: Trigger Downstream (only on push to main)
-  # ============================================================================
-  trigger-3scale-deploy:
-    name: Trigger 3scale Deploy
-    needs: publish
-    if: github.event_name == 'push'
-    uses: apicurio/apicurio-3scale-gitops/.github/workflows/deploy_latest_registry.yml@main
-    secrets: inherit

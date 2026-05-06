@@ -4,13 +4,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-examples-debezium-otel-tracing</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-examples-debezium-otel-order-service</artifactId>
   <packaging>jar</packaging>
-  <name>Apicurio Registry Examples - Debezium OTel Order Service</name>
+  <name>Registry :: Examples :: Debezium OTel Tracing :: Order Service</name>
   <description>Order service that writes to PostgreSQL with OpenTelemetry tracing</description>
 
   <properties>

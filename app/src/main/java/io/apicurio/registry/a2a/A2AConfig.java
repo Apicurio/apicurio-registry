@@ -50,6 +50,18 @@ public class A2AConfig {
     @Info(category = CATEGORY_A2A, description = "Whether the agent supports push notifications", availableSince = "3.0.0")
     boolean capabilitiesPushNotifications;
 
+    @ConfigProperty(name = "apicurio.a2a.agent.protocol-version", defaultValue = "1.0")
+    @Info(category = CATEGORY_A2A, description = "A2A protocol version supported by the registry agent", availableSince = "3.0.0")
+    String protocolVersion;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.documentation-url")
+    @Info(category = CATEGORY_A2A, description = "URL to the registry agent documentation", availableSince = "3.0.0")
+    Optional<String> documentationUrl;
+
+    @ConfigProperty(name = "apicurio.a2a.agent.icon-url")
+    @Info(category = CATEGORY_A2A, description = "URL to the registry agent icon", availableSince = "3.0.0")
+    Optional<String> iconUrl;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -84,5 +96,17 @@ public class A2AConfig {
 
     public boolean isCapabilitiesPushNotifications() {
         return capabilitiesPushNotifications;
+    }
+
+    public String getProtocolVersion() {
+        return protocolVersion;
+    }
+
+    public Optional<String> getDocumentationUrl() {
+        return documentationUrl;
+    }
+
+    public Optional<String> getIconUrl() {
+        return iconUrl;
     }
 }

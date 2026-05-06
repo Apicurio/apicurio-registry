@@ -12,8 +12,6 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoM
 import io.apicurio.registry.storage.impl.sql.mappers.CommentDtoMapper;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.util.Date;
@@ -26,34 +24,25 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  * Repository handling comment operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlCommentRepository {
 
-    @Inject
-    Logger log;
+    private final Logger log;
+    private final SqlStatements sqlStatements;
+    private final HandleFactory handles;
+    private final SecurityIdentity securityIdentity;
+    private final SqlVersionRepository versionRepository;
+    private final SqlSequenceRepository sequenceRepository;
 
-    @Inject
-    SqlStatements sqlStatements;
-
-    @Inject
-    HandleFactory handles;
-
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlCommentRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            SecurityIdentity securityIdentity, SqlVersionRepository versionRepository,
+            SqlSequenceRepository sequenceRepository) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.securityIdentity = securityIdentity;
+        this.versionRepository = versionRepository;
+        this.sequenceRepository = sequenceRepository;
     }
-
-    @Inject
-    SecurityIdentity securityIdentity;
-
-    @Inject
-    SqlVersionRepository versionRepository;
-
-    @Inject
-    SqlSequenceRepository sequenceRepository;
 
     /**
      * Create a new comment on an artifact version.

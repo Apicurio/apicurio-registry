@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.gitops;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import lombok.Getter;
 
+import java.nio.file.Path;
 import java.util.Map;
 
 public class GitTestRepositoryManager implements QuarkusTestResourceLifecycleManager {
@@ -15,9 +16,15 @@ public class GitTestRepositoryManager implements QuarkusTestResourceLifecycleMan
         testRepository = new GitTestRepository();
         testRepository.initialize();
 
-        return Map.of("apicurio.gitops.id", "test", "apicurio.gitops.repo.origin.uri",
-                testRepository.getGitRepoUrl(), "apicurio.gitops.repo.origin.branch",
-                testRepository.getGitRepoBranch(), "apicurio.gitops.refresh.every", "5s");
+        Path repoPath = Path.of(testRepository.getGitRepoUrl());
+
+        return Map.of("apicurio.polling-storage.id", "test",
+                "apicurio.gitops.workspace", repoPath.getParent().toString(),
+                "apicurio.gitops.repo.dir", repoPath.getFileName().toString(),
+                "apicurio.gitops.repo.branch", testRepository.getGitRepoBranch(),
+                "apicurio.polling-storage.poll-period", "PT1S",
+                "apicurio.polling-storage.debounce.quiet-period", "PT0S",
+                "apicurio.polling-storage.debounce.max-wait-period", "PT0S");
     }
 
     @Override

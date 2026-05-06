@@ -3,12 +3,9 @@ package io.apicurio.registry.types.provider.configured;
 import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
 import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
 import io.apicurio.registry.config.artifactTypes.Provider;
-import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.http.HttpClientException;
 import io.apicurio.registry.http.HttpClientService;
-import io.apicurio.registry.script.ArtifactTypeScriptProvider;
-import io.apicurio.registry.script.ScriptingService;
 import org.apache.commons.lang3.ClassUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +14,6 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final HttpClientService httpClientService;
-    protected final ScriptingService scriptingService;
     protected final T delegate;
 
     protected class AbstractWebhookDelegate<I, O> {
@@ -35,40 +31,13 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
         }
     }
 
-    protected class AbstractScriptDelegate {
-
-        protected final ArtifactTypeConfiguration artifactType;
-        protected final ScriptProvider provider;
-
-        protected AbstractScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
-            this.artifactType = artifactType;
-            this.provider = provider;
-        }
-
-        protected ArtifactTypeScriptProvider createScriptProvider() {
-            String scriptLocation = provider.getScriptLocation();
-            if (scriptLocation == null) {
-                scriptLocation = artifactType.getScriptLocation();
-            }
-            return scriptingService.createScriptProvider(scriptLocation);
-        }
-
-        protected void closeScriptProvider(ArtifactTypeScriptProvider scriptProvider) {
-            try {
-                ((AutoCloseable) scriptProvider).close();
-            } catch (Exception e) {
-                log.warn("Error closing script provider", e);
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
     protected class AbstractJavaClassDelegate {
         protected final ArtifactTypeConfiguration artifactType;
         protected final JavaClassProvider provider;
         protected final Class<T> javaClass;
         protected final T instance;
 
+        @SuppressWarnings("unchecked")
         public AbstractJavaClassDelegate(ArtifactTypeConfiguration artifactType, JavaClassProvider provider) throws Exception {
             this.artifactType = artifactType;
             this.provider = provider;
@@ -87,17 +56,18 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
 
         private T instantiateJavaClass(Class<?> javaClass) throws Exception {
             try {
-                return (T) javaClass.getDeclaredConstructor().newInstance();
+                @SuppressWarnings("unchecked")
+                T result = (T) javaClass.getDeclaredConstructor().newInstance();
+                return result;
             } catch (Exception e) {
                 throw new Exception("JavaClass artifact type util failed (could not instantiate class): " + e.getMessage(), e);
             }
         }
     }
 
-    public AbstractConfiguredArtifactTypeUtil(HttpClientService httpClientService, ScriptingService scriptingService,
+    public AbstractConfiguredArtifactTypeUtil(HttpClientService httpClientService,
                                               ArtifactTypeConfiguration artifactType, Provider provider) {
         this.httpClientService = httpClientService;
-        this.scriptingService = scriptingService;
         try {
             this.delegate = createDelegate(artifactType, provider);
         } catch (Exception e) {
@@ -110,8 +80,6 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
             return createWebhookDelegate(artifactType, (WebhookProvider) provider);
         } else if (provider instanceof JavaClassProvider) {
             return createJavaClassDelegate(artifactType, (JavaClassProvider) provider);
-        } else if (provider instanceof ScriptProvider) {
-            return createScriptDelegate(artifactType, (ScriptProvider) provider);
         } else {
             throw new Exception("Unknown provider type: " + provider.getClass().getName());
         }
@@ -120,6 +88,4 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
     protected abstract T createWebhookDelegate(ArtifactTypeConfiguration artifactType, WebhookProvider provider) throws Exception;
 
     protected abstract T createJavaClassDelegate(ArtifactTypeConfiguration artifactType, JavaClassProvider provider) throws Exception;
-
-    protected abstract T createScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) throws Exception;
 }

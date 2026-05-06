@@ -1024,7 +1024,8 @@ You must use a different Kafka topic for v3 than v2 because the journal formats 
 | `APICURIO_KAFKASQL_TOPIC`
 
 | `REGISTRY_KAFKASQL_CONSUMER_GROUP_ID`
-| `APICURIO_KAFKASQL_CONSUMER_GROUP_ID` (optional)
+| Not applicable — remove this property. In v3, the consumer group ID is always auto-generated. Use
+`APICURIO_KAFKASQL_CONSUMER_GROUP_PREFIX` to set a recognizable prefix if needed.
 
 | Not applicable
 | `APICURIO_STORAGE_KIND=kafkasql` (required)
@@ -1687,7 +1688,7 @@ The migration scripts are production-ready tools that handle the most critical a
 * **apicurio-verify-registry-version.sh** - Verifies registry version and health
 * **apicurio-verify-v3-api-features.sh** - Tests v3-specific API features
 
-Find all scripts in the {registry} GitHub repository under link:https://github.com/Apicurio/apicurio-registry/tree/3.1.x/docs/scripts[docs/scripts/].
+Find all scripts in the {registry} GitHub repository under link:https://github.com/Apicurio/apicurio-registry/tree/3.2.x/docs/scripts[docs/scripts/].
 
 .Understanding common features
 

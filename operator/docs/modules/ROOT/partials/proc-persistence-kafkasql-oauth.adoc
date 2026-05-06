@@ -1,0 +1,109 @@
+[id="registry-persistence-kafkasql-oauth"]
+= Configuring Kafka storage with OAuth authentication
+
+You can configure the {operator} to use OAuth (OAUTHBEARER) authentication when connecting to a secured Kafka cluster.
+This is useful when your Kafka cluster is secured using an OAuth identity provider such as Keycloak.
+
+.Prerequisites
+
+* You have installed the {operator} using the OperatorHub or command line.
+* You have installed the {kafka-streams} Operator or have Kafka accessible from your OpenShift cluster.
+* You have an OAuth identity provider (for example, Keycloak) configured with a client for {registry}.
+
+NOTE: This section assumes that the {kafka-streams} Operator is available, however you can use any Kafka deployment.
+
+.Procedure
+
+. In the OpenShift web console, click *Installed Operators*, select the *{kafka-streams}* Operator details, and then the *Kafka* tab.
+
+. Click *Create Kafka* to provision a new Kafka cluster for {registry} storage.
+
+. Configure the Kafka cluster with an OAuth listener, for example:
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: registry-example-kafkasql-oauth
+spec:
+  kafka:
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+    version: 3.7.0
+    storage:
+      type: ephemeral
+    replicas: 3
+    listeners:
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: oauth
+          validIssuerUri: "http://keycloak:8080/realms/kafka"
+          jwksEndpointUri: "http://keycloak:8080/realms/kafka/protocol/openid-connect/certs"
+          userNameClaim: preferred_username
+    authorization:
+      type: simple
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  zookeeper:
+    storage:
+      type: ephemeral
+    replicas: 3
+----
+
+. Create a Kubernetes Secret containing the OAuth client credentials that {registry} will use to authenticate:
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Secret
+metadata:
+  name: client-credentials
+  namespace: registry-example-kafkasql-oauth
+type: Opaque
+stringData:
+  clientId: "registry-client"
+  clientSecret: "<your-client-secret>"
+----
+
+. Configure the following example settings to deploy {registry} with OAuth authentication.
+The `tls` section is required when the Kafka listener uses TLS.
+The `auth` section configures the OAuth mechanism:
++
+[source,yaml]
+----
+include::example$apicurioregistry_kafkasql_oauth_cr.yaml[]
+----
+
+.Configuration fields for OAuth authentication
+[%header,cols="3,4"]
+|===
+| Field | Description
+
+| `auth/enabled`
+| Set to `true` to enable SASL OAuth authentication.
+
+| `auth/mechanism`
+| The SASL mechanism. Use `OAUTHBEARER` for OAuth authentication.
+
+| `auth/clientIdRef`
+| Reference to a Secret and key containing the OAuth client ID.
+
+| `auth/clientSecretRef`
+| Reference to a Secret and key containing the OAuth client secret.
+
+| `auth/tokenEndpoint`
+| The URL of the OAuth token endpoint on the identity provider.
+
+| `auth/loginHandlerClass`
+| The JAAS login callback handler class. For Strimzi OAuth, use `io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler`.
+|===
+
+NOTE: When both `tls` and `auth` are configured, the operator automatically sets the Kafka security protocol to `SASL_SSL`. When only `auth` is configured without TLS, the protocol is set to `SASL_PLAINTEXT`.

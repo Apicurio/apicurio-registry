@@ -54,6 +54,10 @@ PROJECT_INDEX.json
 CLAUDE.local.md
 claudedocs
 
+# Vale linter
+.vale.ini
+.vale/
+
 # Serena MCP
 .serena
 

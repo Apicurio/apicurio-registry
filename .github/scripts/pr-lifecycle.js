@@ -836,16 +836,20 @@ async function handleLabelChange({ github, context, core }) {
 
   if (actor === BOT_LOGIN) return;
 
-  if (label.name === LABELS.DISABLED) {
-    const config = loadConfig();
-    if (isMaintainer(config, actor)) {
-      core.info(`PR #${pr.number} orchestrator ${action === 'labeled' ? 'disabled' : 'enabled'} by maintainer ${actor}`);
-      return;
-    }
-    // Non-maintainer: fall through to label protection below
-  }
-
   if (!CONTROL_LABELS.includes(label.name)) return;
+
+  const MAINTAINER_EDITABLE = [
+    LABELS.WAITING_ON_AUTHOR,
+    LABELS.WAITING_ON_MAINTAINER,
+    LABELS.STALE,
+    LABELS.DISABLED,
+  ];
+
+  const config = loadConfig();
+  if (isMaintainer(config, actor) && MAINTAINER_EDITABLE.includes(label.name)) {
+    core.info(`PR #${pr.number} label ${action}: ${label.name} by maintainer ${actor} (allowed)`);
+    return;
+  }
 
   if (action === 'labeled') {
     await api.removeLabel(pr.number, label.name);

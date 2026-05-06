@@ -38,9 +38,11 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     private static final Logger logger = Logger.getLogger(RegistryClientFacadeImpl.class.getName());
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+    private static final int HTTP_CONFLICT = 409;
 
     private final RegistryClient client;
     private final String baseUrl;
+    private volatile boolean telemetryDisabledOnServer = false;
 
     public RegistryClientFacadeImpl(RegistryClient client, String baseUrl) {
         this.client = client;
@@ -181,8 +183,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     @Override
     public void reportUsageEvents(List<UsageTelemetryEvent> events) {
-        if (baseUrl == null) {
-            logger.warning("Cannot report usage telemetry: registry base URL not configured");
+        if (baseUrl == null || telemetryDisabledOnServer) {
             return;
         }
         try {
@@ -210,7 +211,11 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
                     .build();
-            HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
+            HttpResponse<Void> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
+            if (response.statusCode() == HTTP_CONFLICT) {
+                logger.info("Usage telemetry is not enabled on the registry server. Disabling client reporting.");
+                telemetryDisabledOnServer = true;
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             logger.log(Level.WARNING, "Interrupted while reporting usage telemetry events", e);

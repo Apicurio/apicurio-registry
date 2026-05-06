@@ -63,12 +63,12 @@ public class UsageTelemetryReporter implements Closeable {
 
     @Override
     public void close() {
+        flush();
         scheduler.shutdown();
         try {
             scheduler.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        flush();
     }
 }

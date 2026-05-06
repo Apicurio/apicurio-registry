@@ -99,9 +99,9 @@ export const ArtifactUsageTabContent: FunctionComponent<ArtifactUsageTabContentP
 
     const cellColor = (count: number | undefined): string => {
         if (!count || count === 0) return "";
-        if (count > 100) return "#c3e6cb";
-        if (count > 10) return "#ffeeba";
-        return "#f5c6cb";
+        if (count > 100) return "#bee1f4";
+        if (count > 10) return "#d2d2d2";
+        return "#ededed";
     };
 
     if (isLoading) {

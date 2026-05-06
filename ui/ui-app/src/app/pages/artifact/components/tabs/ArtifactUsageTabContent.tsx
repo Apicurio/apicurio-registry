@@ -60,48 +60,39 @@ export const ArtifactUsageTabContent: FunctionComponent<ArtifactUsageTabContentP
 
     useEffect(() => {
         setIsLoading(true);
-        usage.getArtifactUsageMetrics(
-            props.artifact.groupId || "default",
-            props.artifact.artifactId!
-        ).then(() => {
-            return (usage as any).getConsumerVersionHeatmap
-                ? fetchHeatmap()
-                : fetchHeatmapDirect();
-        }).catch(() => {
+        const groupId = props.artifact.groupId || "default";
+        const artifactId = props.artifact.artifactId;
+        if (!artifactId) {
+            setError("Artifact ID is not available.");
+            setIsLoading(false);
+            return;
+        }
+        usage.getConsumerVersionHeatmap(groupId, artifactId).then(data => {
+            if (data) {
+                setHeatmap(data);
+            } else {
+                setError("Usage telemetry is not enabled or no data available.");
+            }
+            setIsLoading(false);
+        }).catch((err) => {
+            console.error("Failed to load heatmap data:", err);
             setError("Usage telemetry is not enabled or no data available.");
             setIsLoading(false);
         });
     }, [props.artifact]);
 
-    const fetchHeatmap = async () => {
-        try {
-            const resp = await fetch(
-                `http://localhost:8080/apis/registry/v3/admin/usage/artifacts/${encodeURIComponent(props.artifact.groupId || "default")}/${encodeURIComponent(props.artifact.artifactId!)}/heatmap`
-            );
-            if (resp.ok) {
-                const data = await resp.json();
-                setHeatmap(data);
-            } else {
-                setError("Usage telemetry not enabled.");
-            }
-        } catch {
-            setError("Failed to load heatmap data.");
-        }
-        setIsLoading(false);
-    };
-
-    const fetchHeatmapDirect = fetchHeatmap;
-
     const loadDeprecation = async (version: string) => {
         setSelectedVersion(version);
+        const groupId = props.artifact.groupId || "default";
+        const artifactId = props.artifact.artifactId;
+        if (!artifactId) return;
         try {
-            const resp = await fetch(
-                `http://localhost:8080/apis/registry/v3/admin/usage/artifacts/${encodeURIComponent(props.artifact.groupId || "default")}/${encodeURIComponent(props.artifact.artifactId!)}/versions/${encodeURIComponent(version)}/deprecation-readiness`
-            );
-            if (resp.ok) {
-                setDeprecation(await resp.json());
+            const data = await usage.getDeprecationReadiness(groupId, artifactId, version);
+            if (data) {
+                setDeprecation(data);
             }
-        } catch {
+        } catch (err) {
+            console.error("Failed to load deprecation readiness:", err);
             // ignore
         }
     };

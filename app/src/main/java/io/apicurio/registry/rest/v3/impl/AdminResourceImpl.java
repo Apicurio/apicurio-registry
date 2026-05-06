@@ -753,7 +753,8 @@ public class AdminResourceImpl implements AdminResource {
         long nowMs = System.currentTimeMillis();
         long activeMs = usageTelemetryConfig.getActiveMsThreshold();
         long staleMs = usageTelemetryConfig.getStaleMsThreshold();
-        UsageSummaryCountsDto counts = storage.getUsageSummaryCounts(nowMs, activeMs, staleMs, staleMs);
+        long deadMs = usageTelemetryConfig.getDeadMsThreshold();
+        UsageSummaryCountsDto counts = storage.getUsageSummaryCounts(nowMs, activeMs, staleMs, deadMs);
 
         UsageSummary summary = new UsageSummary();
         summary.setActive(counts.getActive());

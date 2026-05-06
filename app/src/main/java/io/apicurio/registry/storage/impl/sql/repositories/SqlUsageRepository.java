@@ -25,11 +25,8 @@ public class SqlUsageRepository {
     }
 
     public void recordUsageEvents(List<SchemaUsageEventDto> events) {
-        log.info("Recording {} usage events", events.size());
         handles.withHandle(handle -> {
             for (SchemaUsageEventDto event : events) {
-                log.debug("Inserting usage event: globalId={}, clientId={}", event.getGlobalId(),
-                        event.getClientId());
                 handle.createUpdate(sqlStatements.insertSchemaUsage())
                         .bind(0, event.getGlobalId())
                         .bind(1, event.getClientId())

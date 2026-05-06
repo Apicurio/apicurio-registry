@@ -55,7 +55,8 @@ public class UsageAggregationJob {
             long nowMs = System.currentTimeMillis();
             long activeMs = usageConfig.getActiveMsThreshold();
             long staleMs = usageConfig.getStaleMsThreshold();
-            UsageSummaryCountsDto counts = storage.getUsageSummaryCounts(nowMs, activeMs, staleMs, staleMs);
+            long deadMs = usageConfig.getDeadMsThreshold();
+            UsageSummaryCountsDto counts = storage.getUsageSummaryCounts(nowMs, activeMs, staleMs, deadMs);
             otelMetrics.updateUsageSummaryCounts(counts.getActive(), counts.getStale(), counts.getDead());
         } catch (Exception ex) {
             log.debug("Failed to update OTel usage gauges", ex);

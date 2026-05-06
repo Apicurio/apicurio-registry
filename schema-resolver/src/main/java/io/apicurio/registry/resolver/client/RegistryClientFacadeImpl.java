@@ -37,6 +37,7 @@ import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
 public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     private static final Logger logger = Logger.getLogger(RegistryClientFacadeImpl.class.getName());
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     private final RegistryClient client;
     private final String baseUrl;
@@ -209,7 +210,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
                     .build();
-            HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.discarding());
+            HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             logger.log(Level.WARNING, "Interrupted while reporting usage telemetry events", e);
@@ -222,7 +223,26 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
         if (value == null) {
             return "";
         }
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        StringBuilder sb = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            switch (c) {
+                case '\\': sb.append("\\\\"); break;
+                case '"': sb.append("\\\""); break;
+                case '\n': sb.append("\\n"); break;
+                case '\r': sb.append("\\r"); break;
+                case '\t': sb.append("\\t"); break;
+                case '\b': sb.append("\\b"); break;
+                case '\f': sb.append("\\f"); break;
+                default:
+                    if (c < 0x20) {
+                        sb.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+            }
+        }
+        return sb.toString();
     }
 
     private static List<ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {

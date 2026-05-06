@@ -168,46 +168,25 @@ jobs:
           decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_full"  "$CLI"
 
-      - name: Post decision summary
+      - name: Save decision summary
         if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          icon() { if [ "$1" = "true" ]; then echo "🟢"; else echo "➖"; fi; }
+          cat > /tmp/verify-decisions.json <<'DECISIONS_EOF'
+          ${{ toJSON(steps.decide.outputs) }}
+          DECISIONS_EOF
+          cat > /tmp/verify-changes.json <<'CHANGES_EOF'
+          ${{ toJSON(steps.filter.outputs) }}
+          CHANGES_EOF
 
-          BODY=$(cat <<EOF
-          <!-- verify-decide-summary -->
-          **Verify — test plan for this run:**
-
-          | Phase | Status |
-          |-------|--------|
-          | Lint and Validate | $(icon "${{ steps.decide.outputs.lifecycle-ready }}") |
-          | Build | $(icon "${{ steps.decide.outputs.run-build }}") |
-          | Unit Tests | $(icon "${{ steps.decide.outputs.run-unit-tests }}") |
-          | Integration Tests | $(icon "${{ steps.decide.outputs.run-integration }}") |
-          | Extra Tests | $(icon "${{ steps.decide.outputs.run-extras }}") |
-          | SDK Verification | $(icon "${{ steps.decide.outputs.run-sdk }}") |
-          | CLI Verification | $(icon "${{ steps.decide.outputs.run-cli }}") |
-
-          <details><summary>Change detection</summary>
-
-          java: \`${{ steps.filter.outputs.java }}\`, ui: \`${{ steps.filter.outputs.ui }}\`, integration: \`${{ steps.filter.outputs.integration }}\`, sdk: \`${{ steps.filter.outputs.sdk }}\`, cli: \`${{ steps.filter.outputs.cli }}\`, ci: \`${{ steps.filter.outputs.ci }}\`
-          </details>
-          EOF
-          )
-
-          # Update existing comment or create new one
-          COMMENT_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-            --paginate --jq '.[] | select(.body | contains("<!-- verify-decide-summary -->")) | .id' | tail -1)
-
-          if [ -n "$COMMENT_ID" ]; then
-            gh api "repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
-              -X PATCH -f body="$BODY" > /dev/null
-          else
-            gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-              -f body="$BODY" > /dev/null
-          fi
+      - name: Upload decision summary
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-decisions
+          retention-days: 1
+          path: |
+            /tmp/verify-decisions.json
+            /tmp/verify-changes.json
 
   # ============================================================================
   # PHASE 1: Fast Checks (fail early)

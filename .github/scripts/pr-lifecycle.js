@@ -933,6 +933,116 @@ async function handleTestResult({ github, context, core }) {
       );
       core.info(`PR #${pr.number} tests failed`);
     }
+
+    // Post or update the decision summary comment
+    await postDecisionSummary(github, owner, repo, workflowRun, pr.number, core);
+  }
+}
+
+async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, core) {
+
+  try {
+    // Find the decisions artifact from the workflow run
+    const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
+      owner, repo, run_id: workflowRun.id,
+    });
+    const artifact = artifacts.find(a => a.name === 'verify-decisions');
+    if (!artifact) {
+      core.info(`No verify-decisions artifact found for run ${workflowRun.id}, skipping summary`);
+      return;
+    }
+
+    // Download and extract artifact
+    const { data: zip } = await github.rest.actions.downloadArtifact({
+      owner, repo, artifact_id: artifact.id, archive_format: 'zip',
+    });
+
+    // Extract zip using Node built-ins
+    const os = require('os');
+    const { execSync } = require('child_process');
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-decisions-'));
+    const zipPath = path.join(tmpDir, 'artifact.zip');
+    fs.writeFileSync(zipPath, Buffer.from(zip));
+    execSync(`unzip -o "${zipPath}" -d "${tmpDir}"`, { stdio: 'ignore' });
+
+    const decisionsPath = path.join(tmpDir, 'verify-decisions.json');
+    const changesPath = path.join(tmpDir, 'verify-changes.json');
+    if (!fs.existsSync(decisionsPath) || !fs.existsSync(changesPath)) {
+      core.info('Decision artifact missing expected files, skipping summary');
+      return;
+    }
+
+    const decisions = JSON.parse(fs.readFileSync(decisionsPath, 'utf8'));
+    const changes = JSON.parse(fs.readFileSync(changesPath, 'utf8'));
+
+    // Fetch actual job results from the workflow run
+    const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
+      owner, repo, run_id: workflowRun.id, per_page: 100,
+    });
+
+    const jobResult = (namePrefix) => {
+      const matching = jobs.filter(j => j.name.startsWith(namePrefix));
+      if (!matching.length) return 'skipped';
+      if (matching.some(j => j.conclusion === 'failure')) return 'failure';
+      if (matching.every(j => j.conclusion === 'success')) return 'success';
+      if (matching.every(j => j.conclusion === 'skipped')) return 'skipped';
+      return 'mixed';
+    };
+
+    const icon = (planned, result) => {
+      if (planned !== 'true') return '➖';
+      if (result === 'success') return '🟢';
+      if (result === 'failure') return '🔴';
+      return '🟡';
+    };
+
+    const conclusion = workflowRun.conclusion === 'success' ? '✅ passed' : '❌ failed';
+
+    const phases = [
+      ['Lint and Validate', 'lifecycle-ready', 'Lint and Validate'],
+      ['Build', 'run-build', 'Build /'],
+      ['Unit Tests', 'run-unit-tests', 'Unit Tests /'],
+      ['Integration Tests', 'run-integration', 'Integration Tests /'],
+      ['Extra Tests', 'run-extras', 'Extra Tests /'],
+      ['SDK Verification', 'run-sdk', 'SDK Verification /'],
+      ['CLI Verification', 'run-cli', 'CLI Verification'],
+    ];
+
+    const rows = phases.map(([label, key, jobPrefix]) =>
+      `| ${label} | ${icon(decisions[key], jobResult(jobPrefix))} |`
+    );
+
+    const body = [
+      '<!-- verify-decide-summary -->',
+      `**Verify — ${conclusion}** ([run](${workflowRun.html_url}))`,
+      '',
+      '| Phase | Status |',
+      '|-------|--------|',
+      ...rows,
+      '',
+      '<details><summary>Change detection</summary>',
+      '',
+      Object.entries(changes)
+        .filter(([k]) => ['java', 'ui', 'integration', 'sdk', 'cli', 'ci'].includes(k))
+        .map(([k, v]) => `${k}: \`${v}\``)
+        .join(', '),
+      '</details>',
+    ].join('\n');
+
+    // Update existing comment or create new one
+    const { data: comments } = await github.rest.issues.listComments({
+      owner, repo, issue_number: prNumber, per_page: 100,
+    });
+    const existing = comments.find(c => c.body?.includes('<!-- verify-decide-summary -->'));
+
+    if (existing) {
+      await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+    } else {
+      await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+    }
+    core.info(`PR #${prNumber} decision summary posted`);
+  } catch (err) {
+    core.warning(`Failed to post decision summary: ${err.message}`);
   }
 }
 

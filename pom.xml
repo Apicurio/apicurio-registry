@@ -171,7 +171,7 @@
 
     <!-- Schema types -->
     <avro.version>1.12.1</avro.version>
-    <json-schema-validator.version>1.5.9</json-schema-validator.version>
+    <json-schema-validator.version>3.0.2</json-schema-validator.version>
     <wire-schema.version>5.3.3</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.17.0</okio.version>
@@ -224,7 +224,7 @@
     <lombok.version>1.18.46</lombok.version>
     <commons-codec.version>1.22.0</commons-codec.version>
     <netty.version>4.1.132.Final</netty.version>
-    <kafka-clients.version>3.9.2</kafka-clients.version>
+    <kafka-clients.version>4.2.0</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
     <debezium.version>2.7.4.Final</debezium.version>
     <pulsar-clients.version>4.2.1</pulsar-clients.version>
@@ -247,7 +247,7 @@
 
     <!-- Scala -->
     <version.scala-maven.plugin>4.9.10</version.scala-maven.plugin>
-    <scala.version>2.13.18</scala.version>
+    <scala.version>3.8.3</scala.version>
 
     <!-- Plugin Versions -->
     <version.build.helper.maven.plugin>3.6.1</version.build.helper.maven.plugin>
@@ -282,7 +282,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
-    <flink.version>1.20.3</flink.version>
+    <flink.version>2.2.0</flink.version>
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.2</kiota.libs.version>

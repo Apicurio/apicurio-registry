@@ -301,6 +301,7 @@ async function performMerge(api, config, pr, core) {
     core.warning(`PR #${pr.number} merge aborted: state changed since merge was initiated`);
     return false;
   }
+
   const strategy = config.merge?.strategy || 'rebase';
   try {
     await api.mergePr(pr.number, strategy, freshPr.title);
@@ -310,13 +311,16 @@ async function performMerge(api, config, pr, core) {
     core.info(`PR #${pr.number} merged using ${strategy}`);
     return true;
   } catch (e) {
+    const workflowHint = e.message?.includes('workflow')
+      ? ' This PR modifies workflow files and requires manual merge via the GitHub UI (the `workflow` token scope is not available to GitHub Actions).'
+      : '';
     await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
     await api.removeLabel(pr.number, LABELS.TESTED);
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
     await api.postComment(pr.number,
       `Merge failed: ${e.message}\n\n` +
-      `Reverted to \`lifecycle/ready-for-review\`. The branch may need to be rebased. ` +
-      `Use \`/auto-merge\` to merge automatically once approved and tested.`
+      `Reverted to \`lifecycle/ready-for-review\`.${workflowHint}` +
+      (workflowHint ? '' : ` The branch may need to be rebased. Use \`/auto-merge\` to merge automatically once approved and tested.`)
     );
     core.error(`PR #${pr.number} merge failed: ${e.message}`);
     return false;
@@ -339,8 +343,20 @@ async function checkAndTransitionToReady(api, pr, core) {
       core.info(`PR #${pr.number} auto-merge enabled, will merge`);
       return 'auto-merge';
     }
+
+    // Ping reviewers/requested reviewers so they know the PR is ready
+    const reviews = await api.getReviews(pr.number);
+    const reviewerLogins = [...new Set(reviews.map(r => r.user.login))];
+    const requestedLogins = (pr.requested_reviewers || []).map(r => r.login);
+    const allReviewers = [...new Set([...reviewerLogins, ...requestedLogins])];
+    const mentions = allReviewers
+      .filter(login => login !== pr.user.login)
+      .map(login => `@${login}`)
+      .join(' ');
+    const mentionSuffix = mentions ? ` ${mentions}` : '';
+
     await api.postComment(pr.number,
-      `This PR is approved and tested. A maintainer can merge it with \`/merge\`, ` +
+      `This PR is approved and tested.${mentionSuffix} A maintainer can merge it with \`/merge\`, ` +
       `or enable auto-merge with \`/auto-merge\`.`
     );
     core.info(`PR #${pr.number} is ready to merge`);
@@ -652,9 +668,15 @@ async function cmdAutoMerge(api, config, core, pr, actor, maintainer, commentId)
   await api.addLabel(pr.number, LABELS.AUTO_MERGE);
   await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.addReaction(commentId, '+1');
+
+  const approved = isApproved(await api.getReviews(pr.number));
+  const reviewSkipped = hasLabel(pr, LABELS.REVIEW_SKIPPED);
+  const needsReview = !approved && !reviewSkipped;
+
   await api.postComment(pr.number,
     `Auto-merge enabled by @${actor}. This PR will be merged automatically ` +
-    `when it reaches \`lifecycle/ready-to-merge\` state. Use \`/auto-merge\` again to disable.`
+    `when it reaches \`lifecycle/ready-to-merge\` state. Use \`/auto-merge\` again to disable.` +
+    (needsReview ? `\n\n**Note:** A review or \`/skip-review\` is still required before auto-merge can proceed.` : '')
   );
 
   if (state === LABELS.READY_TO_MERGE) {
@@ -927,6 +949,162 @@ async function handleTestResult({ github, context, core }) {
       );
       core.info(`PR #${pr.number} tests failed`);
     }
+
+    // Post or update the decision summary comment
+    await postDecisionSummary(github, owner, repo, workflowRun, pr.number, core);
+  }
+}
+
+async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, core) {
+  const DECISION_KEYS = new Set([
+    'lifecycle-ready', 'run-build', 'run-unit-tests',
+    'run-integration', 'run-extras', 'run-sdk', 'run-cli',
+  ]);
+  const CHANGES_KEYS = new Set(['java', 'ui', 'integration', 'sdk', 'cli', 'ci']);
+  const ALLOWED_VALUES = new Set(['true', 'false', 'skip']);
+  const EXPECTED_FILES = new Set(['verify-decisions.json', 'verify-changes.json']);
+  const MAX_ARTIFACT_BYTES = 10240;
+
+  try {
+    // ── Load decisions from artifact (hardened) ───────────────────────
+    const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
+      owner, repo, run_id: workflowRun.id,
+    });
+    const artifact = artifacts.find(a => a.name === 'verify-decisions');
+    if (!artifact) {
+      core.info(`No verify-decisions artifact found for run ${workflowRun.id}, skipping summary`);
+      return;
+    }
+    if (artifact.size_in_bytes > MAX_ARTIFACT_BYTES) {
+      core.warning(`Decision artifact too large (${artifact.size_in_bytes} bytes), skipping`);
+      return;
+    }
+
+    const { data: zip } = await github.rest.actions.downloadArtifact({
+      owner, repo, artifact_id: artifact.id, archive_format: 'zip',
+    });
+
+    const os = require('os');
+    const { execSync } = require('child_process');
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-decisions-'));
+    const zipPath = path.join(tmpDir, 'artifact.zip');
+    fs.writeFileSync(zipPath, Buffer.from(zip));
+
+    // Validate zip entries before extracting
+    const listing = execSync(`unzip -l "${zipPath}"`, { encoding: 'utf8' });
+    const entryLines = listing.split('\n').filter(l => l.includes('.json'));
+    for (const line of entryLines) {
+      const entry = line.trim().split(/\s+/).pop();
+      if (entry.includes('..') || path.isAbsolute(entry)) {
+        core.warning(`Suspicious path in artifact: ${entry}, skipping`);
+        return;
+      }
+    }
+
+    execSync(`unzip -o "${zipPath}" -d "${tmpDir}"`, { stdio: 'ignore' });
+
+    // Validate extracted files
+    const jsonFiles = fs.readdirSync(tmpDir).filter(f => f.endsWith('.json') && f !== 'artifact.zip');
+    for (const f of jsonFiles) {
+      if (!EXPECTED_FILES.has(f)) {
+        core.warning(`Unexpected file in artifact: ${f}, skipping`);
+        return;
+      }
+    }
+
+    function parseAndValidate(filePath, allowedKeys) {
+      if (!fs.existsSync(filePath)) return null;
+      const raw = fs.readFileSync(filePath, 'utf8');
+      if (raw.length > 1024) return null;
+      const obj = JSON.parse(raw);
+      if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return null;
+      for (const [key, value] of Object.entries(obj)) {
+        if (!allowedKeys.has(key) || !ALLOWED_VALUES.has(String(value))) return null;
+      }
+      return obj;
+    }
+
+    const decisions = parseAndValidate(path.join(tmpDir, 'verify-decisions.json'), DECISION_KEYS);
+    const changes = parseAndValidate(path.join(tmpDir, 'verify-changes.json'), CHANGES_KEYS);
+    if (!decisions) {
+      core.warning('Decision JSON missing or invalid, skipping summary');
+      return;
+    }
+
+    // ── Fetch actual job results ──────────────────────────────────────
+    const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
+      owner, repo, run_id: workflowRun.id, per_page: 100,
+    });
+
+    const jobResult = (namePrefix) => {
+      const matching = jobs.filter(j => j.name.startsWith(namePrefix));
+      if (!matching.length) return 'skipped';
+      if (matching.some(j => j.conclusion === 'failure')) return 'failure';
+      if (matching.every(j => j.conclusion === 'success')) return 'success';
+      if (matching.every(j => j.conclusion === 'skipped')) return 'skipped';
+      return 'mixed';
+    };
+
+    const icon = (planned, result) => {
+      if (planned !== 'true') return '➖';
+      if (result === 'success') return '🟢';
+      if (result === 'failure') return '🔴';
+      return '🟡';
+    };
+
+    const conclusion = workflowRun.conclusion === 'success' ? '✅ passed' : '❌ failed';
+
+    const phases = [
+      ['Lint and Validate', 'lifecycle-ready', 'Lint and Validate'],
+      ['Build', 'run-build', 'Build /'],
+      ['Unit Tests', 'run-unit-tests', 'Unit Tests /'],
+      ['Integration Tests', 'run-integration', 'Integration Tests /'],
+      ['Extra Tests', 'run-extras', 'Extra Tests /'],
+      ['SDK Verification', 'run-sdk', 'SDK Verification /'],
+      ['CLI Verification', 'run-cli', 'CLI Verification'],
+    ];
+
+    const rows = phases.map(([label, key, jobPrefix]) =>
+      `| ${label} | ${icon(decisions[key], jobResult(jobPrefix))} |`
+    );
+
+    const bodyParts = [
+      '<!-- verify-decide-summary -->',
+      `**Verify — ${conclusion}** ([run](${workflowRun.html_url}))`,
+      '',
+      '| Phase | Status |',
+      '|-------|--------|',
+      ...rows,
+    ];
+
+    if (changes) {
+      bodyParts.push(
+        '',
+        '<details><summary>Change detection</summary>',
+        '',
+        Object.entries(changes)
+          .map(([k, v]) => `${k}: \`${v}\``)
+          .join(', '),
+        '</details>',
+      );
+    }
+
+    const body = bodyParts.join('\n');
+
+    // ── Post or update comment (paginated lookup) ────────────────────
+    const comments = await github.paginate(github.rest.issues.listComments, {
+      owner, repo, issue_number: prNumber, per_page: 100,
+    });
+    const existing = comments.find(c => c.body?.includes('<!-- verify-decide-summary -->'));
+
+    if (existing) {
+      await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+    } else {
+      await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+    }
+    core.info(`PR #${prNumber} decision summary posted`);
+  } catch (err) {
+    core.warning(`Failed to post decision summary: ${err.message}`);
   }
 }
 

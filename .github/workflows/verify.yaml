@@ -168,6 +168,41 @@ jobs:
           decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_full"  "$CLI"
 
+      - name: Save decision summary
+        if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
+        run: |
+          cat > /tmp/verify-decisions.json << 'ARTIFACT_EOF'
+          {
+            "lifecycle-ready": "${{ steps.decide.outputs.lifecycle-ready }}",
+            "run-build": "${{ steps.decide.outputs.run-build }}",
+            "run-unit-tests": "${{ steps.decide.outputs.run-unit-tests }}",
+            "run-integration": "${{ steps.decide.outputs.run-integration }}",
+            "run-extras": "${{ steps.decide.outputs.run-extras }}",
+            "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
+            "run-cli": "${{ steps.decide.outputs.run-cli }}"
+          }
+          ARTIFACT_EOF
+          cat > /tmp/verify-changes.json << 'ARTIFACT_EOF'
+          {
+            "java": "${{ steps.filter.outputs.java }}",
+            "ui": "${{ steps.filter.outputs.ui }}",
+            "integration": "${{ steps.filter.outputs.integration }}",
+            "sdk": "${{ steps.filter.outputs.sdk }}",
+            "cli": "${{ steps.filter.outputs.cli }}",
+            "ci": "${{ steps.filter.outputs.ci }}"
+          }
+          ARTIFACT_EOF
+
+      - name: Upload decision summary
+        if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-decisions
+          retention-days: 1
+          path: |
+            /tmp/verify-decisions.json
+            /tmp/verify-changes.json
+
   # ============================================================================
   # PHASE 1: Fast Checks (fail early)
   # ============================================================================

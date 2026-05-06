@@ -20,7 +20,7 @@
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
-            <source>${project.basedir}/src/main/scripts/common/config.json</source>
+            <source>${project.build.directory}/filtered-scripts/config.json</source>
             <outputDirectory>/</outputDirectory>
         </file>
     </files>

@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.common;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
+import io.apicurio.registry.cli.services.UpdateNotifier;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -29,6 +30,9 @@ public abstract class AbstractCommand implements Callable<Integer> {
     @Inject
     protected Client client;
 
+    @Inject
+    UpdateNotifier updateNotifier;
+
     @Override
     public Integer call() {
         configureVerboseLogging();
@@ -54,11 +58,30 @@ public abstract class AbstractCommand implements Callable<Integer> {
             return APPLICATION_ERROR_RETURN_CODE;
         } finally {
             output.print();
+            checkForUpdates();
         }
         // TODO: Move handling of `ProblemDetails` exceptions here.
     }
 
     public abstract void run(OutputBuffer output) throws Exception;
+
+    private void checkForUpdates() {
+        try {
+            var commandName = getTopLevelCommandName();
+            log.debugf("Update check hook: command=%s (spec=%s)", commandName, spec.name());
+            updateNotifier.checkAndNotify(commandName);
+        } catch (Exception e) {
+            log.debugf("Update notification failed: %s", e.getMessage());
+        }
+    }
+
+    private String getTopLevelCommandName() {
+        var current = spec;
+        while (current.parent() != null && current.parent().parent() != null) {
+            current = current.parent();
+        }
+        return current.name();
+    }
 
     private void configureVerboseLogging() {
         var root = spec.root().userObject();

@@ -295,30 +295,10 @@ function isApproved(reviews) {
   return hasApproval && !hasChangesRequested;
 }
 
-function isForkPr(pr) {
-  return pr.head?.repo?.full_name !== pr.base?.repo?.full_name;
-}
-
-function mergeHint(pr) {
-  return isForkPr(pr)
-    ? 'This is a fork PR — a maintainer must merge manually via the GitHub UI.'
-    : 'A maintainer can use `/merge` to merge, or `/auto-merge` to merge automatically once approved and tested.';
-}
-
 async function performMerge(api, config, pr, core) {
   const freshPr = await api.getPr(pr.number);
   if (!hasLabel(freshPr, LABELS.TESTED) || !hasLabel(freshPr, LABELS.READY_TO_MERGE)) {
     core.warning(`PR #${pr.number} merge aborted: state changed since merge was initiated`);
-    return false;
-  }
-
-  if (isForkPr(freshPr)) {
-    await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-    await api.postComment(pr.number,
-      `This PR is from a fork and cannot be auto-merged due to GitHub token restrictions. ` +
-      `A maintainer must merge it manually.`
-    );
-    core.info(`PR #${pr.number} is from a fork, skipping auto-merge`);
     return false;
   }
 
@@ -331,13 +311,16 @@ async function performMerge(api, config, pr, core) {
     core.info(`PR #${pr.number} merged using ${strategy}`);
     return true;
   } catch (e) {
+    const workflowHint = e.message?.includes('workflow')
+      ? ' This PR modifies workflow files and requires manual merge via the GitHub UI (the `workflow` token scope is not available to GitHub Actions).'
+      : '';
     await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
     await api.removeLabel(pr.number, LABELS.TESTED);
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
     await api.postComment(pr.number,
       `Merge failed: ${e.message}\n\n` +
-      `Reverted to \`lifecycle/ready-for-review\`. The branch may need to be rebased. ` +
-      `Use \`/auto-merge\` to merge automatically once approved and tested.`
+      `Reverted to \`lifecycle/ready-for-review\`.${workflowHint}` +
+      (workflowHint ? '' : ` The branch may need to be rebased. Use \`/auto-merge\` to merge automatically once approved and tested.`)
     );
     core.error(`PR #${pr.number} merge failed: ${e.message}`);
     return false;
@@ -356,9 +339,7 @@ async function checkAndTransitionToReady(api, pr, core) {
     await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
 
-    const fork = isForkPr(pr);
-
-    if (!fork && hasLabel(pr, LABELS.AUTO_MERGE)) {
+    if (hasLabel(pr, LABELS.AUTO_MERGE)) {
       core.info(`PR #${pr.number} auto-merge enabled, will merge`);
       return 'auto-merge';
     }
@@ -375,7 +356,8 @@ async function checkAndTransitionToReady(api, pr, core) {
     const mentionSuffix = mentions ? ` ${mentions}` : '';
 
     await api.postComment(pr.number,
-      `This PR is approved and tested.${mentionSuffix} ${mergeHint(pr)}`
+      `This PR is approved and tested.${mentionSuffix} A maintainer can merge it with \`/merge\`, ` +
+      `or enable auto-merge with \`/auto-merge\`.`
     );
     core.info(`PR #${pr.number} is ready to merge`);
     return 'ready-to-merge';
@@ -397,8 +379,8 @@ async function handlePrOpened({ github, context, core }) {
     const initialState = pr.draft ? LABELS.WIP : LABELS.READY_FOR_REVIEW;
     await api.addLabel(pr.number, initialState);
     const maintainerHint = isMaintainer(config, pr.user.login)
-      ? `\n\nA maintainer can use \`/skip-review\` to skip the review requirement for small changes. ` +
-        mergeHint(pr)
+      ? `\n\nA maintainer can use \`/skip-review\` to skip the review requirement for small changes, ` +
+        `or \`/auto-merge\` to merge automatically once approved and tested.`
       : '';
     if (pr.draft) {
       await api.postComment(pr.number,
@@ -499,7 +481,7 @@ async function handlePrReadyForReview({ github, context, core }) {
   await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.postComment(pr.number,
     `PR is now ready for review. The full test suite will run.\n\n` +
-    mergeHint(pr)
+    `A maintainer can use \`/auto-merge\` to merge automatically once approved and tested.`
   );
   core.info(`PR #${pr.number} transitioned to ready-for-review (draft->ready)`);
   await retriggerVerify(api, pr, core);
@@ -632,7 +614,7 @@ async function cmdReady(api, config, core, pr, actor, isAuthor, maintainer, comm
   await api.addReaction(commentId, '+1');
   await api.postComment(pr.number,
     `PR marked as ready for review. The full test suite will run.\n\n` +
-    mergeHint(pr)
+    `A maintainer can use \`/auto-merge\` to merge automatically once approved and tested.`
   );
   core.info(`PR #${pr.number} marked ready by ${actor}`);
   await retriggerVerify(api, pr, core);
@@ -642,15 +624,6 @@ async function cmdMerge(api, config, core, pr, actor, maintainer, commentId) {
   if (!maintainer) {
     await api.addReaction(commentId, '-1');
     await api.postComment(pr.number, `@${actor} Only maintainers can merge PRs.`);
-    return;
-  }
-
-  if (isForkPr(pr)) {
-    await api.addReaction(commentId, 'confused');
-    await api.postComment(pr.number,
-      `@${actor} The \`/merge\` command is not available for fork PRs due to GitHub token restrictions. ` +
-      `Please merge manually via the GitHub UI.`
-    );
     return;
   }
 
@@ -680,15 +653,6 @@ async function cmdAutoMerge(api, config, core, pr, actor, maintainer, commentId)
     await api.addReaction(commentId, 'confused');
     await api.postComment(pr.number,
       `@${actor} Cannot enable auto-merge: PR must be accepted first.`
-    );
-    return;
-  }
-
-  if (isForkPr(pr)) {
-    await api.addReaction(commentId, 'confused');
-    await api.postComment(pr.number,
-      `@${actor} Auto-merge is not available for fork PRs due to GitHub token restrictions. ` +
-      `A maintainer must merge manually via the GitHub UI once the PR reaches \`lifecycle/ready-to-merge\`.`
     );
     return;
   }

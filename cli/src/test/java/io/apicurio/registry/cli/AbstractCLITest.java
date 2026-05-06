@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.services.Client;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -56,6 +57,7 @@ public abstract class AbstractCLITest {
                         .forStatusCode(200)
                         .withStartupTimeout(ofSeconds(60)));
 
+        Client.reset();
         registryContainer.start();
 
         // Get the dynamically mapped port and construct the URL
@@ -96,7 +98,7 @@ public abstract class AbstractCLITest {
 
         // Then
         assertThat(exitCode)
-                .as(withCliOutput("Group help command should exit with code 0."))
+                .as(withCliOutput("Help command should exit with code 0."))
                 .isEqualTo(0);
         String output = out.toString();
         var usage = "Usage: acr " + String.join(" ", command);

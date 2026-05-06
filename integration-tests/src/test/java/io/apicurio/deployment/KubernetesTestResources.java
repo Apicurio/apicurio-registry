@@ -17,6 +17,8 @@ public class KubernetesTestResources {
     protected static final String DEBEZIUM_MYSQL_RESOURCES = "/infra/debezium/mysql-debezium.yml";
     protected static final String DEBEZIUM_CONNECT_RESOURCES = "/infra/debezium/debezium-connect.yml";
     protected static final String DEBEZIUM_CONNECT_LOCAL_RESOURCES = "/infra/debezium/debezium-connect-local.yml";
+    protected static final String APPLICATION_KUBERNETESOPS_RESOURCES = "/infra/kubernetesops/registry-kubernetesops.yml";
+    protected static final String KUBERNETESOPS_CONFIGMAPS = "/infra/kubernetesops/kubernetesops-configmaps.yml";
     public static final String TEST_NAMESPACE = "apicurio-registry-e2e";
     public static final String APPLICATION_SERVICE = "apicurio-registry-service";
     protected static final String APPLICATION_DEPLOYMENT = "apicurio-registry-deployment";

@@ -137,6 +137,10 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-kubernetes-client</artifactId>
+    </dependency>
 
     <!-- Persistence -->
     <dependency>
@@ -396,6 +400,11 @@
       <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-test-kubernetes-client</artifactId>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 
@@ -652,6 +661,21 @@
                 <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/ccompat/v8/openapi.json</inputSpec>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-api-iceberg-v1</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <projectSettings>
+                <javaPackage>io.apicurio.registry.iceberg.rest.v1</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
+              </projectSettings>
+              <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/iceberg/v1/openapi.json</inputSpec>
             </configuration>
           </execution>
         </executions>

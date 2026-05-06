@@ -1,8 +1,14 @@
 services:
 
   # Varnish Cache pointing to host machine (quarkus:dev on port 8080)
+  # Do not forget to pass:
+  #
+  # `-Dapicurio.http-caching.enabled=true` and
+  # `-Dapicurio.rest.mutability.artifact-version-content.enabled=true`
+  #
+  # to quarkus:dev
   varnish:
-    container_name: varnish-cache-dev
+    container_name: varnish-cache
     image: varnish:7.4
     volumes:
       - ./varnish/default-dev.vcl:/etc/varnish/default.vcl:ro
@@ -25,7 +31,9 @@ services:
           -S /tmp/varnish-secret \
           -s malloc,256M \
           -p default_ttl=3600 \
-          -p default_grace=3600
+          -p default_grace=3600 &
+        sleep 2 &&
+        varnishlog -g request -i ReqMethod,ReqURL,ReqHeader,BerespStatus,BerespHeader,ObjStatus,RespHeader -q 'ReqURL ~ "^/apis/registry"'
     healthcheck:
       test: [ "CMD", "sh", "-c", "varnishadm -T localhost:6080 -S /tmp/varnish-secret ping" ]
       interval: 5s
@@ -35,15 +43,14 @@ services:
 
   # Apicurio Registry UI
   ui:
-    container_name: registry-ui-dev
+    container_name: registry-ui
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
     environment:
       # Connect to Varnish on host machine (port 8081)
-      REGISTRY_API_URL: http://host.docker.internal:8081/apis/registry/v3
+      # Use localhost since the browser runs on the host, not in the container
+      REGISTRY_API_URL: http://localhost:8081/apis/registry/v3
     ports:
       - "8888:8080"  # UI web interface
     depends_on:
       varnish:
         condition: service_healthy
-    extra_hosts:
-      - "host.docker.internal:host-gateway"

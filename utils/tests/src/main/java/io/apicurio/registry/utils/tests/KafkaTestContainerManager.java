@@ -1,11 +1,9 @@
 package io.apicurio.registry.utils.tests;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import io.strimzi.test.container.StrimziKafkaContainer;
+import io.strimzi.test.container.StrimziKafkaCluster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import java.util.Collections;
 import java.util.Map;
@@ -13,7 +11,7 @@ import java.util.Map;
 public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleManager {
     private static final Logger log = LoggerFactory.getLogger(KafkaTestContainerManager.class);
 
-    private StrimziKafkaContainer kafka;
+    private StrimziKafkaCluster kafka;
 
     @Override
     public int order() {
@@ -25,12 +23,14 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
         if (!Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
             log.info("Starting the Kafka Test Container");
-            kafka = new StrimziKafkaContainer();
-
-            kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
-            kafka.addEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1");
-            kafka.withNetwork(Network.SHARED);
-            kafka.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("kafka-testcontainer")));
+            kafka = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                    .withNumberOfBrokers(1)
+                    .withAdditionalKafkaConfiguration(Map.of(
+                            "transaction.state.log.replication.factor", "1",
+                            "transaction.state.log.min.isr", "1"))
+                    .withSharedNetwork()
+                    .withLogCollection()
+                    .build();
             kafka.start();
 
             String externalBootstrapServers = kafka.getBootstrapServers();
@@ -48,7 +48,6 @@ public class KafkaTestContainerManager implements QuarkusTestResourceLifecycleMa
     public void stop() {
         if (kafka != null) {
             log.info("Stopping the Kafka Test Container");
-            kafka.close();
             kafka.stop();
         }
     }

@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.decorator;
 
+import io.apicurio.registry.a2a.A2AConfig;
 import io.apicurio.registry.a2a.AgentCardLabelExtractor;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -25,11 +26,14 @@ public class AgentCardLabelsStorageDecorator extends RegistryStorageDecoratorBas
         implements RegistryStorageDecorator {
 
     @Inject
+    A2AConfig a2aConfig;
+
+    @Inject
     AgentCardLabelExtractor labelExtractor;
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return a2aConfig.isEnabled();
     }
 
     @Override

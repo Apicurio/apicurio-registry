@@ -9,6 +9,7 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -25,6 +26,7 @@ import static org.hamcrest.Matchers.notNullValue;
  * Tests for the A2A well-known endpoint.
  */
 @QuarkusTest
+@TestProfile(ExperimentalFeaturesEnabledProfile.class)
 public class WellKnownResourceTest extends AbstractResourceTestBase {
 
     private String serverRootUrl;

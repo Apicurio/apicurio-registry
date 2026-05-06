@@ -4,6 +4,7 @@ import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.client.RegistryArtifactReference;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
+import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
@@ -77,7 +78,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         ParsedSchema<S> parsedSchema;
 
         // Check if an explicit schema is provided in the metadata (e.g., from headers)
-        String explicitSchemaContent = data.metadata().explicitSchemaContent();
+        Metadata metadata = data.metadata();
+        String explicitSchemaContent = metadata != null ? metadata.explicitSchemaContent() : null;
         if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
             // Use the explicit schema from headers instead of inferring from data
             parsedSchema = parseExplicitSchema(explicitSchemaContent);
@@ -134,7 +136,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
                 if (parsedSchema == null) {
                     // Check for explicit schema from headers first
-                    String explicitSchemaContent = data.metadata().explicitSchemaContent();
+                    Metadata md = data.metadata();
+                    String explicitSchemaContent = md != null ? md.explicitSchemaContent() : null;
                     if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
                         parsedSchema = parseExplicitSchema(explicitSchemaContent);
                     } else {
@@ -164,7 +167,8 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
         if (parsedSchema != null || schemaParser.supportsExtractSchemaFromData()) {
             if (parsedSchema == null) {
                 // Check for explicit schema from headers first
-                String explicitSchemaContent = data.metadata().explicitSchemaContent();
+                Metadata md = data.metadata();
+                String explicitSchemaContent = md != null ? md.explicitSchemaContent() : null;
                 if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
                     parsedSchema = parseExplicitSchema(explicitSchemaContent);
                 } else {
@@ -332,7 +336,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             RegistryVersionCoordinates versionCoordinates = this.clientFacade.createSchema(artifactType, groupId, artifactId,
                     version, autoCreate, canonicalize, rawSchemaString, clientReferences);
 
-            return loadFromVersionCoordinates(versionCoordinates, parsedSchema);
+            return loadFromVersionCoordinates(versionCoordinates, parsedSchema, references);
         });
     }
 

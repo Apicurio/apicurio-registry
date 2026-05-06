@@ -25,6 +25,11 @@ public final class Client {
         return instance;
     }
 
+    // Resets the cached client so a new connection is established on next use.
+    public static synchronized void reset() {
+        instance = null;
+    }
+
     private final Vertx vertx;
 
     private RegistryClient registryClient;

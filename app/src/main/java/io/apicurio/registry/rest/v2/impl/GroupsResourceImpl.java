@@ -19,7 +19,6 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
-import io.apicurio.registry.rest.HeadersHack;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
@@ -81,10 +80,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.*;
+import static io.apicurio.registry.rest.headers.Headers.checkIfDeprecated;
 import static io.apicurio.registry.rest.v2.impl.V2ApiUtil.defaultGroupIdToNull;
 
 /**
@@ -1324,20 +1323,6 @@ public class GroupsResourceImpl implements GroupsResource {
 
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType,
                 vmdDto);
-    }
-
-    /**
-     * Check to see if the artifact version is deprecated.
-     *
-     * @param stateSupplier
-     * @param groupId
-     * @param artifactId
-     * @param version
-     * @param builder
-     */
-    private void checkIfDeprecated(Supplier<VersionState> stateSupplier, String groupId, String artifactId,
-            String version, Response.ResponseBuilder builder) {
-        HeadersHack.checkIfDeprecated(stateSupplier, groupId, artifactId, version, builder);
     }
 
     /**

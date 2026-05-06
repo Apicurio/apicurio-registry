@@ -599,15 +599,6 @@ async function cmdReady(api, config, core, pr, actor, isAuthor, maintainer, comm
   }
 
   const freshPr = await api.getPr(pr.number);
-  if (!freshPr.requested_reviewers?.length && !freshPr.requested_teams?.length) {
-    await api.addReaction(commentId, '-1');
-    await api.postComment(pr.number,
-      `@${actor} Cannot mark as ready: no reviewer is assigned. ` +
-      `Please ask a maintainer to assign a reviewer first.`
-    );
-    return;
-  }
-
   await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
   await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
   await api.removeLabel(pr.number, LABELS.TESTS_DISABLED);

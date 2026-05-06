@@ -26,6 +26,15 @@ public class AgentSkill {
     @JsonProperty("examples")
     private List<String> examples;
 
+    @JsonProperty("inputModes")
+    private List<String> inputModes;
+
+    @JsonProperty("outputModes")
+    private List<String> outputModes;
+
+    @JsonProperty("securityRequirements")
+    private List<SecurityRequirement> securityRequirements;
+
     public AgentSkill() {
     }
 
@@ -75,6 +84,30 @@ public class AgentSkill {
         this.examples = examples;
     }
 
+    public List<String> getInputModes() {
+        return inputModes;
+    }
+
+    public void setInputModes(List<String> inputModes) {
+        this.inputModes = inputModes;
+    }
+
+    public List<String> getOutputModes() {
+        return outputModes;
+    }
+
+    public void setOutputModes(List<String> outputModes) {
+        this.outputModes = outputModes;
+    }
+
+    public List<SecurityRequirement> getSecurityRequirements() {
+        return securityRequirements;
+    }
+
+    public void setSecurityRequirements(List<SecurityRequirement> securityRequirements) {
+        this.securityRequirements = securityRequirements;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -104,6 +137,21 @@ public class AgentSkill {
 
         public Builder examples(List<String> examples) {
             skill.setExamples(examples);
+            return this;
+        }
+
+        public Builder inputModes(List<String> inputModes) {
+            skill.setInputModes(inputModes);
+            return this;
+        }
+
+        public Builder outputModes(List<String> outputModes) {
+            skill.setOutputModes(outputModes);
+            return this;
+        }
+
+        public Builder securityRequirements(List<SecurityRequirement> securityRequirements) {
+            skill.setSecurityRequirements(securityRequirements);
             return this;
         }
 

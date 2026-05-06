@@ -12,7 +12,7 @@ public class AgentSearchResult {
     private String name;
     private String description;
     private String version;
-    private String url;
+    private List<AgentInterface> supportedInterfaces;
     private List<String> skills;
     private AgentCapabilities capabilities;
     private long createdOn;
@@ -61,12 +61,12 @@ public class AgentSearchResult {
         this.version = version;
     }
 
-    public String getUrl() {
-        return url;
+    public List<AgentInterface> getSupportedInterfaces() {
+        return supportedInterfaces;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public void setSupportedInterfaces(List<AgentInterface> supportedInterfaces) {
+        this.supportedInterfaces = supportedInterfaces;
     }
 
     public List<String> getSkills() {
@@ -133,8 +133,8 @@ public class AgentSearchResult {
             return this;
         }
 
-        public Builder url(String url) {
-            result.url = url;
+        public Builder supportedInterfaces(List<AgentInterface> supportedInterfaces) {
+            result.supportedInterfaces = supportedInterfaces;
             return this;
         }
 

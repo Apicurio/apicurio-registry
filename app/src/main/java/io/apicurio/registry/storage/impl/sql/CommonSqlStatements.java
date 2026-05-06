@@ -201,6 +201,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? FOR UPDATE";
     }
 
+    @Override
+    public String selectMaxVersionOrderForUpdate() {
+        return "SELECT v.versionOrder FROM versions v "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "ORDER BY v.versionOrder DESC FOR UPDATE";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectArtifactVersionMetaDataByContentHash()
      */
@@ -827,6 +834,71 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportContentByGroup()
+     */
+    @Override
+    public String exportContentByGroup() {
+        return "SELECT DISTINCT c.contentId, c.canonicalHash, c.contentHash, c.contentType, c.content, c.refs "
+                + "FROM content c JOIN versions v ON v.contentId = c.contentId WHERE v.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroupsByGroupId()
+     */
+    @Override
+    public String exportGroupsByGroupId() {
+        return "SELECT * FROM " + groupsTable() + " g WHERE g.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportGroupRulesByGroupId()
+     */
+    @Override
+    public String exportGroupRulesByGroupId() {
+        return "SELECT * FROM group_rules r WHERE r.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactsByGroupId()
+     */
+    @Override
+    public String exportArtifactsByGroupId() {
+        return "SELECT * FROM artifacts WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactVersionsByGroupId()
+     */
+    @Override
+    public String exportArtifactVersionsByGroupId() {
+        return "SELECT * FROM versions WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportVersionCommentsByGroupId()
+     */
+    @Override
+    public String exportVersionCommentsByGroupId() {
+        return "SELECT c.* FROM version_comments c JOIN versions v ON v.globalId = c.globalId WHERE v.groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportBranchesByGroupId()
+     */
+    @Override
+    public String exportBranchesByGroupId() {
+        return "SELECT * FROM branches WHERE groupId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#exportArtifactRulesByGroupId()
+     */
+    @Override
+    public String exportArtifactRulesByGroupId() {
+        return "SELECT * FROM artifact_rules r WHERE r.groupId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#importArtifactRule()
      */
     @Override
@@ -1283,5 +1355,109 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     protected String groupsTable() {
         return "groups";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectVersionsModifiedSince()
+     */
+    @Override
+    public String selectVersionsModifiedSince() {
+        return "SELECT v.*, a.type FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.modifiedOn >= ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#countVersionsModifiedSince()
+     */
+    @Override
+    public String countVersionsModifiedSince() {
+        return "SELECT COUNT(*) FROM versions v WHERE v.modifiedOn >= ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectLatestVersionTimestamp()
+     */
+    @Override
+    public String selectLatestVersionTimestamp() {
+        return "SELECT MAX(modifiedOn) FROM versions";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllVersionGlobalIds()
+     */
+    @Override
+    public String selectAllVersionGlobalIds() {
+        return "SELECT globalId FROM versions";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectAllVersionsWithContent()
+     */
+    @Override
+    public String selectAllVersionsWithContent() {
+        return "SELECT v.*, a.type, c.content FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "ORDER BY v.globalId ASC";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectVersionsWithContentModifiedSince()
+     */
+    @Override
+    public String selectVersionsWithContentModifiedSince() {
+        return "SELECT v.*, a.type, c.content FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "JOIN content c ON v.contentId = c.contentId "
+                + "WHERE v.modifiedOn >= ? "
+                + "ORDER BY v.globalId ASC";
+    }
+
+    // ========== Contract Rules ==========
+
+    @Override
+    public String selectContractRulesByArtifact() {
+        return "SELECT r.* FROM contract_rules r WHERE r.groupId = ? AND r.artifactId = ? AND r.globalId IS NULL ORDER BY r.ruleCategory, r.orderIndex";
+    }
+
+    @Override
+    public String selectContractRulesByGlobalId() {
+        return "SELECT r.* FROM contract_rules r WHERE r.globalId = ? ORDER BY r.ruleCategory, r.orderIndex";
+    }
+
+    @Override
+    public String insertContractRule() {
+        return "INSERT INTO contract_rules (groupId, artifactId, globalId, ruleCategory, orderIndex, ruleName, kind, ruleType, mode, expr, params, tags, onSuccess, onFailure, disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    @Override
+    public String deleteContractRulesByArtifact() {
+        return "DELETE FROM contract_rules WHERE groupId = ? AND artifactId = ? AND globalId IS NULL";
+    }
+
+    @Override
+    public String deleteContractRulesByGlobalId() {
+        return "DELETE FROM contract_rules WHERE globalId = ?";
+    }
+
+    @Override
+    public String exportContractRules() {
+        return "SELECT * FROM contract_rules r";
+    }
+
+    @Override
+    public String exportContractRulesByGroupId() {
+        return "SELECT * FROM contract_rules r WHERE r.groupId = ?";
+    }
+
+    @Override
+    public String importContractRule() {
+        return "INSERT INTO contract_rules (groupId, artifactId, globalId, ruleCategory, orderIndex, ruleName, kind, ruleType, mode, expr, params, tags, onSuccess, onFailure, disabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    @Override
+    public String selectContractRulesByTag() {
+        return "SELECT r.* FROM contract_rules r WHERE r.tags LIKE ?";
     }
 }

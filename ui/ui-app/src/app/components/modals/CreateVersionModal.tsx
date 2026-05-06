@@ -12,6 +12,8 @@ import {
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 import { detectContentType } from "@utils/content.utils.ts";
 import { CreateVersion } from "@sdk/lib/generated-client/models";
+import { ArtifactReferenceFormItem, ReferencesFormGroup, formItemsToReferences, isReferencesValid } from "@app/components";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 
 
 /**
@@ -33,6 +35,10 @@ export const CreateVersionModal: FunctionComponent<CreateVersionModalProps> = (p
     const [contentFilename] = useState("");
     const [contentIsLoading, setContentIsLoading] = useState(false);
     const [isFormValid, setFormValid] = useState(false);
+    const [references, setReferences] = useState<ArtifactReferenceFormItem[]>([]);
+    const [isDetectingRefs, setIsDetectingRefs] = useState(false);
+
+    const groupsService: GroupsService = useGroupsService();
 
     const onContentChange = (_event: any, value: any): void => {
         setContent(value);
@@ -47,12 +53,8 @@ export const CreateVersionModal: FunctionComponent<CreateVersionModalProps> = (p
     };
 
     const checkValid = (): void => {
-        const newValid: boolean = isValid(content);
+        const newValid: boolean = !!content && isReferencesValid(references);
         setFormValid(newValid);
-    };
-
-    const isValid = (data: string): boolean => {
-        return !!data;
     };
 
     const onCreate = (): void => {
@@ -60,15 +62,46 @@ export const CreateVersionModal: FunctionComponent<CreateVersionModalProps> = (p
             version: isStringEmptyOrUndefined(version) ? undefined : version,
             content: {
                 contentType: detectContentType(props.artifactType, content),
-                content: content
+                content: content,
+                references: formItemsToReferences(references)
             }
         };
         props.onCreate(data);
     };
 
+    const onDetectReferences = (): void => {
+        if (!content) {
+            return;
+        }
+        const contentType = detectContentType(props.artifactType, content);
+        const artifactType = props.artifactType || undefined;
+        setIsDetectingRefs(true);
+        groupsService.detectContentReferences(content, contentType, artifactType).then(refs => {
+            const formItems: ArtifactReferenceFormItem[] = refs.map(ref => ({
+                name: ref.name || "",
+                groupId: ref.groupId || "",
+                artifactId: ref.artifactId || "",
+                version: ref.version || ""
+            }));
+            setReferences(formItems);
+        }).catch(error => {
+            console.error("[CreateVersionModal] Failed to detect references:", error);
+        }).finally(() => {
+            setIsDetectingRefs(false);
+        });
+    };
+
+    useEffect(() => {
+        if (props.isOpen) {
+            setVersion("");
+            setContent("");
+            setReferences([]);
+        }
+    }, [props.isOpen]);
+
     useEffect(() => {
         checkValid();
-    }, [content]);
+    }, [content, references]);
 
     return (
         <Modal
@@ -132,6 +165,12 @@ export const CreateVersionModal: FunctionComponent<CreateVersionModalProps> = (p
                         isLoading={contentIsLoading}
                     />
                 </FormGroup>
+                <ReferencesFormGroup
+                    references={references}
+                    onChange={setReferences}
+                    onDetect={onDetectReferences}
+                    isDetecting={isDetectingRefs}
+                />
             </Form>
         </Modal>
     );

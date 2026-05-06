@@ -30,7 +30,7 @@ import {
 } from "@apicurio/data-models";
 import {ModelUtils} from "../_util/model.util";
 import {DocumentService} from "./document.service";
-import {Topic} from "apicurio-ts-core";
+import {Topic} from "../_messaging/topic";
 
 
 class MainSelectionVisitor extends CombinedAllNodeVisitor {

@@ -4,13 +4,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-utils-converter</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-utils-converter</name>
+  <name>Registry :: Utils :: Converter</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

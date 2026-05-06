@@ -1,5 +1,7 @@
 package io.apicurio.tests.smokeTests.apicurio;
 
+import static io.apicurio.deployment.Constants.*;
+
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
@@ -22,7 +24,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static io.apicurio.tests.utils.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -147,6 +148,24 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
     void testAsyncApi() throws Exception {
         doTest("asyncapi/2.0-streetlights_v1.json", "asyncapi/2.0-streetlights_v2.json",
                 ArtifactType.ASYNCAPI, ContentTypes.APPLICATION_JSON);
+    }
+
+    @Test
+    void testOpenApi32() throws Exception {
+        doTest("openapi/3.2-petstore_v1.json", "openapi/3.2-petstore_v2.json", ArtifactType.OPENAPI,
+                ContentTypes.APPLICATION_JSON);
+    }
+
+    @Test
+    void testAsyncApi31() throws Exception {
+        doTest("asyncapi/3.1-streetlights_v1.json", "asyncapi/3.1-streetlights_v2.json",
+                ArtifactType.ASYNCAPI, ContentTypes.APPLICATION_JSON);
+    }
+
+    @Test
+    void testOpenRpc() throws Exception {
+        doTest("openrpc/petstore_v1.json", "openrpc/petstore_v2.json", ArtifactType.OPENRPC,
+                ContentTypes.APPLICATION_JSON);
     }
 
     @Test

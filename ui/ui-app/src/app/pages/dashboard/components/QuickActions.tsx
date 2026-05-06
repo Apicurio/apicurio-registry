@@ -34,17 +34,21 @@ export const QuickActions: FunctionComponent<QuickActionsProps> = ({
             <CardTitle>Quick Actions</CardTitle>
             <CardBody>
                 <Flex direction={{ default: "column" }} spaceItems={{ default: "spaceItemsMd" }}>
-                    <FlexItem>
-                        <Button
-                            variant="primary"
-                            icon={<PlusCircleIcon />}
-                            onClick={onCreateArtifact}
-                            isBlock
-                            data-testid="quick-action-create"
-                        >
-                            Create Artifact
-                        </Button>
-                    </FlexItem>
+                    <IfFeature feature="readOnly" isNot={true}>
+                        <IfAuth isDeveloper={true}>
+                            <FlexItem>
+                                <Button
+                                    variant="primary"
+                                    icon={<PlusCircleIcon />}
+                                    onClick={onCreateArtifact}
+                                    isBlock
+                                    data-testid="quick-action-create"
+                                >
+                                    Create Artifact
+                                </Button>
+                            </FlexItem>
+                        </IfAuth>
+                    </IfFeature>
                     <FlexItem>
                         <Button
                             variant="secondary"
@@ -67,7 +71,7 @@ export const QuickActions: FunctionComponent<QuickActionsProps> = ({
                             Explore Groups
                         </Button>
                     </FlexItem>
-                    <IfFeature feature="settings">
+                    <IfFeature feature="settings" is={true}>
                         <IfAuth isAdmin={true}>
                             <FlexItem>
                                 <Button

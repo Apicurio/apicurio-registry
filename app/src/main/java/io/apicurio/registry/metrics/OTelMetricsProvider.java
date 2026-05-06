@@ -22,10 +22,14 @@ public class OTelMetricsProvider {
     private static final String INSTRUMENTATION_NAME = "io.apicurio.registry";
     private static final String METRIC_PREFIX = "apicurio.";
 
+    private static final String ICEBERG_PREFIX = METRIC_PREFIX + "iceberg.";
+
     private static final AttributeKey<String> GROUP_ID_KEY = AttributeKey.stringKey("groupId");
     private static final AttributeKey<String> ARTIFACT_TYPE_KEY = AttributeKey.stringKey("artifactType");
     private static final AttributeKey<String> OPERATION_KEY = AttributeKey.stringKey("operation");
     private static final AttributeKey<String> RESULT_KEY = AttributeKey.stringKey("result");
+    private static final AttributeKey<String> ENTITY_TYPE_KEY = AttributeKey.stringKey("entity_type");
+    private static final AttributeKey<String> ERROR_TYPE_KEY = AttributeKey.stringKey("error_type");
 
     private LongCounter artifactCreatedCounter;
     private LongCounter artifactDeletedCounter;
@@ -33,6 +37,13 @@ public class OTelMetricsProvider {
     private LongCounter schemaValidationCounter;
     private LongCounter ruleEvaluationCounter;
     private LongCounter searchRequestCounter;
+
+    // Iceberg counters
+    private LongCounter icebergNamespaceOpsCounter;
+    private LongCounter icebergTableOpsCounter;
+    private LongCounter icebergViewOpsCounter;
+    private LongCounter icebergCommitConflictsCounter;
+    private LongCounter icebergErrorsCounter;
 
     @PostConstruct
     public void init() {
@@ -65,6 +76,32 @@ public class OTelMetricsProvider {
 
         searchRequestCounter = meter.counterBuilder(METRIC_PREFIX + "search.requests")
                 .setDescription("Total number of search requests")
+                .setUnit("1")
+                .build();
+
+        // Iceberg counters
+        icebergNamespaceOpsCounter = meter.counterBuilder(ICEBERG_PREFIX + "namespace.operations")
+                .setDescription("Iceberg namespace lifecycle operations")
+                .setUnit("1")
+                .build();
+
+        icebergTableOpsCounter = meter.counterBuilder(ICEBERG_PREFIX + "table.operations")
+                .setDescription("Iceberg table lifecycle operations")
+                .setUnit("1")
+                .build();
+
+        icebergViewOpsCounter = meter.counterBuilder(ICEBERG_PREFIX + "view.operations")
+                .setDescription("Iceberg view lifecycle operations")
+                .setUnit("1")
+                .build();
+
+        icebergCommitConflictsCounter = meter.counterBuilder(ICEBERG_PREFIX + "commit.conflicts")
+                .setDescription("Iceberg commit conflicts due to optimistic concurrency")
+                .setUnit("1")
+                .build();
+
+        icebergErrorsCounter = meter.counterBuilder(ICEBERG_PREFIX + "errors")
+                .setDescription("Iceberg-specific errors by type")
                 .setUnit("1")
                 .build();
     }
@@ -142,6 +179,64 @@ public class OTelMetricsProvider {
     public void recordSearchRequest(String searchType) {
         searchRequestCounter.add(1, Attributes.of(
                 OPERATION_KEY, searchType != null ? searchType : "unknown"
+        ));
+    }
+
+    /**
+     * Record an Iceberg namespace operation.
+     *
+     * @param operation the operation type (e.g., "created", "deleted", "updated")
+     */
+    public void recordIcebergNamespaceOperation(String operation) {
+        icebergNamespaceOpsCounter.add(1, Attributes.of(
+                OPERATION_KEY, operation,
+                RESULT_KEY, "success"
+        ));
+    }
+
+    /**
+     * Record an Iceberg table operation.
+     *
+     * @param operation the operation type (e.g., "created", "deleted", "renamed", "committed")
+     */
+    public void recordIcebergTableOperation(String operation) {
+        icebergTableOpsCounter.add(1, Attributes.of(
+                OPERATION_KEY, operation,
+                RESULT_KEY, "success"
+        ));
+    }
+
+    /**
+     * Record an Iceberg view operation.
+     *
+     * @param operation the operation type (e.g., "created", "deleted", "renamed", "replaced")
+     */
+    public void recordIcebergViewOperation(String operation) {
+        icebergViewOpsCounter.add(1, Attributes.of(
+                OPERATION_KEY, operation,
+                RESULT_KEY, "success"
+        ));
+    }
+
+    /**
+     * Record an Iceberg commit conflict.
+     *
+     * @param entityType the entity type ("table" or "view")
+     */
+    public void recordIcebergCommitConflict(String entityType) {
+        icebergCommitConflictsCounter.add(1, Attributes.of(
+                ENTITY_TYPE_KEY, entityType
+        ));
+    }
+
+    /**
+     * Record an Iceberg-specific error.
+     *
+     * @param errorType the Iceberg error type (e.g., "NoSuchNamespaceException")
+     */
+    public void recordIcebergError(String errorType) {
+        icebergErrorsCounter.add(1, Attributes.of(
+                ERROR_TYPE_KEY, errorType
         ));
     }
 }

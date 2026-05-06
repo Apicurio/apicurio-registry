@@ -3,6 +3,7 @@ package io.apicurio.registry.serde.protobuf;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import com.squareup.wire.schema.SchemaException;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.ParsedSchemaImpl;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -267,5 +269,84 @@ public class ProtobufSchemaParserTest {
         assertNotNull(result.getFileDescriptor());
         assertEquals("test", result.getFileDescriptor().getPackage());
         assertNotNull(result.getFileDescriptor().findMessageTypeByName("Document"));
+    }
+
+    /**
+     * Test that schemas importing custom (non-well-known) proto files that are not in
+     * resolvedReferences do not crash with SchemaException. Instead, the parser should
+     * fall back to binary descriptor parsing.
+     * <p>
+     * This reproduces the real-world scenario where a Kafka consumer deserializes a message
+     * whose proto schema references transitive imports (e.g. pipeline_core_types.proto) that
+     * are not registered in the schema registry.
+     * </p>
+     */
+    @Test
+    void testParseSchemaWithUnresolvableCustomImportFallsBackToDescriptor() {
+        // Provide the schema as a binary descriptor (which parseDescriptor can handle) that
+        // also declares an import not present in resolvedReferences. The successful fallback
+        // path requires the dependency to be declared but not actually used by message fields.
+        DescriptorProtos.FileDescriptorProto fdp = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("wrapper.proto")
+                .setPackage("test")
+                .setSyntax("proto3")
+                .addDependency("custom/missing_types.proto")
+                .addMessageType(DescriptorProtos.DescriptorProto.newBuilder()
+                        .setName("Wrapper")
+                        .addField(DescriptorProtos.FieldDescriptorProto.newBuilder()
+                                .setName("id")
+                                .setNumber(1)
+                                .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+                                .build())
+                        .build())
+                .build();
+        byte[] binarySchema = fdp.toByteArray();
+
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        // Binary descriptor with unresolved dependency should still parse (the dependency
+        // is declared but not required for the message fields we're using)
+        ProtobufSchema result = parser.parseSchema(binarySchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Wrapper"));
+    }
+
+    /**
+     * Test that SchemaException from wire-schema parsing is caught and falls back
+     * rather than propagating to the caller as an uncaught RuntimeException.
+     * <p>
+     * When text-format parsing triggers SchemaException and the content is not valid
+     * binary descriptor either, the parser should throw a clean RuntimeException from
+     * parseDescriptor (not the original SchemaException from wire-schema).
+     * </p>
+     */
+    @Test
+    void testParseSchemaWithUnresolvableImportTextOnlyThrowsCleanError() {
+        // Text proto that USES a type from an unresolvable import - this is what actually
+        // triggers wire-schema's SchemaException (just declaring an unused import does not).
+        // The bytes are also NOT valid binary, so parseDescriptor also fails.
+        // The key assertion: the propagated error must come from the binary fallback, not be the
+        // raw SchemaException from wire-schema (which is what the typed catch is there to absorb).
+        String schemaWithCustomImport = """
+                syntax = "proto3";
+                package test;
+                import "totally/missing.proto";
+                message Broken {
+                  totally.MissingType name = 1;
+                }
+                """;
+        byte[] textSchema = schemaWithCustomImport.getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+                () -> parser.parseSchema(textSchema, resolvedReferences));
+
+        assertFalse(thrown instanceof SchemaException,
+                "wire-schema's SchemaException must be absorbed by the typed catch, "
+                        + "not propagated to the caller");
+        assertNotNull(thrown.getCause(), "Wrapped error from parseDescriptor should expose a cause");
     }
 }

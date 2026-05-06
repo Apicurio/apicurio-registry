@@ -1,9 +1,10 @@
 package io.apicurio.registry.cli.services;
 
 import io.vertx.core.http.HttpMethod;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.jboss.logging.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
@@ -19,21 +20,13 @@ import java.util.concurrent.TimeUnit;
  * Service for checking and managing CLI updates.
  * Uses MicroProfile Config for configuration management.
  */
+@ApplicationScoped
 public class Update {
 
-    private static final Logger log = LogManager.getRootLogger();
+    private static final Logger log = Logger.getLogger(Update.class);
 
-    private static Update instance;
-
-    public static synchronized Update getInstance() {
-        if (instance == null) {
-            instance = new Update();
-        }
-        return instance;
-    }
-
-    private Update() {
-    }
+    @Inject
+    Client client;
 
     public String getLatestVersion() {
         try {
@@ -49,10 +42,10 @@ public class Update {
             int port = uri.getPort() != -1 ? uri.getPort() : (uri.getScheme().equals("https") ? 443 : 80);
             String path = uri.getPath() + (uri.getQuery() != null ? "?" + uri.getQuery() : "");
 
-            log.debug("Downloading metadata from: {}", metadataUri);
+            log.debugf("Downloading metadata from: %s", metadataUri);
 
             // Use Vertx HttpClient to download the metadata XML file
-            var httpClient = Client.getInstance().getHttpClient();
+            var httpClient = client.getHttpClient();
             CompletableFuture<String> future = new CompletableFuture<>();
 
             var requestOptions = new io.vertx.core.http.RequestOptions()
@@ -67,7 +60,7 @@ public class Update {
                         clientReq.send()
                                 .onSuccess(response -> {
                                     if (response.statusCode() != 200) {
-                                        log.warn("Failed to fetch metadata. Status code: {}", response.statusCode());
+                                        log.warnf("Failed to fetch metadata. Status code: %s", response.statusCode());
                                         future.complete(null);
                                         return;
                                     }
@@ -87,7 +80,7 @@ public class Update {
                                                     NodeList latestNodes = doc.getElementsByTagName("latest");
                                                     if (latestNodes.getLength() > 0) {
                                                         String latestVersion = latestNodes.item(0).getTextContent();
-                                                        log.debug("Latest version available: {}", latestVersion);
+                                                        log.debugf("Latest version available: %s", latestVersion);
                                                         future.complete(latestVersion);
                                                     } else {
                                                         log.warn("No <latest> tag found in metadata XML");
@@ -137,7 +130,7 @@ public class Update {
             int port = uri.getPort() != -1 ? uri.getPort() : (uri.getScheme().equals("https") ? 443 : 80);
             String uriPath = uri.getPath() + (uri.getQuery() != null ? "?" + uri.getQuery() : "");
 
-            log.info("Downloading version {} from: {}", version, fileUri);
+            log.infof("Downloading version %s from: %s", version, fileUri);
 
             // Ensure target directory exists
             if (!targetDir.toFile().exists()) {
@@ -148,7 +141,7 @@ public class Update {
             Path targetFile = targetDir.resolve("apicurio-registry-cli-" + version + ".zip");
 
             // Use Vertx HttpClient to download the file
-            var httpClient = Client.getInstance().getHttpClient();
+            var httpClient = client.getHttpClient();
             CompletableFuture<Path> future = new CompletableFuture<>();
 
             var requestOptions = new io.vertx.core.http.RequestOptions()
@@ -163,7 +156,7 @@ public class Update {
                         clientReq.send()
                                 .onSuccess(response -> {
                                     if (response.statusCode() != 200) {
-                                        log.error("Failed to download file. Status code: {}", response.statusCode());
+                                        log.errorf("Failed to download file. Status code: %s", response.statusCode());
                                         future.completeExceptionally(new RuntimeException("HTTP " + response.statusCode()));
                                         return;
                                     }
@@ -173,7 +166,7 @@ public class Update {
                                                 try {
                                                     // Write the buffer to the target file
                                                     java.nio.file.Files.write(targetFile, buffer.getBytes());
-                                                    log.info("Successfully downloaded file to: {}", targetFile);
+                                                    log.infof("Successfully downloaded file to: %s", targetFile);
                                                     future.complete(targetFile);
                                                 } catch (Exception e) {
                                                     log.error("Error writing file to disk", e);

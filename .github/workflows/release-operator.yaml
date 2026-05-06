@@ -11,7 +11,7 @@ on:
         default: true
 
   release:
-    types: [ released, prereleased ] # TODO: What to do with pre-release?
+    types: [ released ]
 
 env:
   RELEASE_VERSION: ${{ github.event.release.name }}
@@ -33,20 +33,23 @@ jobs:
           echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
           echo "RUN_TESTS=${{ github.event.inputs.run_tests }}" >> $GITHUB_ENV
 
-      - name: Check release type
-        if: contains(env.RELEASE_VERSION, 'RC')
-        run: |
-          # TODO: Figure out what pre-release operator looks like. Maybe just skip OperatorHub?
-          # We we would have to remove the pre-release version from standard-release catalog.
-          echo "Operator cannot be released as part of a pre-release version yet."
-          exit 1
-
       - name: Download Source Code
         run: |
           git config --global user.name apicurio-ci
           git config --global user.email apicurio.ci@gmail.com
           git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
           cd registry && git checkout "$RELEASE_VERSION"
+          # Resolve BRANCH if it's a commit SHA (happens when releasing from non-default branches)
+          if [[ "$BRANCH" =~ ^[0-9a-f]{40}$ ]]; then
+            RESOLVED=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ' | head -1)
+            if [ -n "$RESOLVED" ]; then
+              echo "Resolved branch SHA $BRANCH to $RESOLVED"
+              echo "BRANCH=$RESOLVED" >> $GITHUB_ENV
+            else
+              echo "ERROR: Could not resolve commit $BRANCH to a branch name"
+              exit 1
+            fi
+          fi
 
       - name: Verify Project Version
         working-directory: registry
@@ -80,10 +83,10 @@ jobs:
           source "$CUSTOM_ENV"
           make config-show
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: temurin
           cache: maven
 
@@ -213,7 +216,11 @@ jobs:
       - name: Prepare post-release changes
         working-directory: registry/operator
         run: |
+          # Switch to the branch and pull latest to pick up the snapshot version update by release.yaml .
+          # It could have been pushed after the initial clone.
+          git fetch origin
           git checkout "$BRANCH"
+          git pull origin "$BRANCH"
 
       - name: Update Makefile
         working-directory: registry/operator
@@ -231,16 +238,6 @@ jobs:
         working-directory: registry/operator
         run: |
           source "$CUSTOM_ENV"
-          # Debug: Release version is used in the install.yaml instead of snapshot version:
-          cat "$GITHUB_ENV"
-          cat "$CUSTOM_ENV"
-          echo "(1) VERSION=$VERSION"
-          echo "(2) VERSION=$(make VAR=VERSION variable-get)"
-          echo "(3) PLACEHOLDER_VERSION=$PLACEHOLDER_VERSION"
-          echo "(4) PLACEHOLDER_VERSION=$(make VAR=PLACEHOLDER_VERSION variable-get)"
-          export VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "(5) VERSION=$VERSION"
-          echo "(6) VERSION=$(make VAR=VERSION variable-get)"
           make SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
           git add install/*
 
@@ -252,6 +249,32 @@ jobs:
           git fetch origin
           git rebase "origin/$BRANCH"
           git push origin "$BRANCH"
+
+      - name: Sync post-release changes to main
+        if: env.BRANCH != 'main'
+        working-directory: registry
+        run: |
+          # Save the versioned install file before switching branches
+          INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
+          cp "$INSTALL_FILE" /tmp/install-file.yaml
+
+          # Switch to main
+          git checkout main
+          git pull origin main
+
+          # Copy the versioned install file
+          cp /tmp/install-file.yaml "$INSTALL_FILE"
+
+          # Reuse the same make targets as the post-release steps
+          cd operator
+          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+          make release-catalog-template-update
+
+          cd ..
+          git add .
+          git commit -m "ci(operator): sync $RELEASE_VERSION post-release changes from $BRANCH to main"
+          git rebase origin/main
+          git push origin main
 
       - name: Slack Notification (Always)
         if: always()

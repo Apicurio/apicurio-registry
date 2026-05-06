@@ -16,7 +16,7 @@
 # oc process -f registry-certmanager-letsencrypt-edge.yaml \
 #   -p NAMESPACE=test \
 #   -p INGRESS_ROUTER_CANONICAL_HOSTNAME=router-default.apps.apicur.eastus.aroapp.io \
-#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry registry-certmanager-letsencrypt-edge --timeout=120s
+#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry3 registry-certmanager-letsencrypt-edge --timeout=120s
 #
 # It may take a few minutes until the certificate has been issued.
 #
@@ -135,28 +135,39 @@ objects:
       type: ClusterIP
       selector:
         app: registry-certmanager-letsencrypt-edge-postgres
+  # PostgreSQL credentials
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: registry-certmanager-letsencrypt-edge-db-credentials
+      namespace: ${NAMESPACE}
+    type: Opaque
+    stringData:
+      password: ${POSTGRESQL_PASSWORD}
   # Registry
   - apiVersion: registry.apicur.io/v1
-    kind: ApicurioRegistry
+    kind: ApicurioRegistry3
     metadata:
       name: registry-certmanager-letsencrypt-edge
       namespace: ${NAMESPACE}
     spec:
-      configuration:
-        persistence: sql
-        sql:
-          dataSource:
-            url: jdbc:postgresql://registry-certmanager-letsencrypt-edge-postgres.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
-            userName: ${POSTGRESQL_USER}
-            password: ${POSTGRESQL_PASSWORD}
+      app:
+        storage:
+          type: postgresql
+          sql:
+            dataSource:
+              url: jdbc:postgresql://registry-certmanager-letsencrypt-edge-postgres.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
+              username: ${POSTGRESQL_USER}
+              password:
+                name: registry-certmanager-letsencrypt-edge-db-credentials
+                key: password
         env:
           - name: CORS_ALLOWED_ORIGINS
             value: >-
               http://registry-http.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME},
               https://registry-https.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}
-      deployment:
-        managedResources:
-          disableIngress: true
+        ingress:
+          enabled: false
   # cert-manager
   - apiVersion: cert-manager.io/v1
     kind: ClusterIssuer

@@ -11,15 +11,21 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
+import io.apicurio.registry.rest.v3.beans.ContractRule;
+import io.apicurio.registry.rest.v3.beans.ContractRuleSearchResult;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSortBy;
+import io.apicurio.registry.rest.v3.beans.Params;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.apicurio.registry.rest.v3.beans.VersionSortBy;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ContractRuleDto;
+import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -38,9 +44,11 @@ import jakarta.ws.rs.core.Context;
 
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
@@ -240,7 +248,7 @@ public class SearchResourceImpl implements SearchResource {
     public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit,
             SortOrder order, VersionSortBy orderby, List<String> labels, String description, String groupId,
             Long globalId, Long contentId, String artifactId, String name, VersionState state,
-            String artifactType) {
+            String artifactType, String content, String structure) {
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
         }
@@ -307,6 +315,12 @@ public class SearchResourceImpl implements SearchResource {
         if (state != null) {
             filters.add(SearchFilter.ofState(state));
         }
+        if (!StringUtil.isEmpty(content)) {
+            filters.add(SearchFilter.ofContent(content));
+        }
+        if (!StringUtil.isEmpty(structure)) {
+            filters.add(SearchFilter.ofStructure(structure));
+        }
 
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
@@ -365,6 +379,58 @@ public class SearchResourceImpl implements SearchResource {
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public List<ContractRuleSearchResult> searchContractRulesByTag(String tag) {
+        if (tag == null || tag.isBlank()) {
+            throw new MissingRequiredParameterException("tag");
+        }
+        List<ContractRuleWithCoordinatesDto> results = storage.getContractRulesByTag(tag);
+        return results.stream()
+                .map(this::toContractRuleSearchResult)
+                .collect(Collectors.toList());
+    }
+
+    private ContractRuleSearchResult toContractRuleSearchResult(
+            ContractRuleWithCoordinatesDto dto) {
+        ContractRuleSearchResult result = new ContractRuleSearchResult();
+        result.setGroupId(dto.getGroupId());
+        result.setArtifactId(dto.getArtifactId());
+        result.setGlobalId(dto.getGlobalId());
+        if (dto.getRuleCategory() != null) {
+            result.setRuleCategory(
+                    ContractRuleSearchResult.RuleCategory.fromValue(dto.getRuleCategory()));
+        }
+        ContractRuleDto ruleDto = dto.getRule();
+        ContractRule rule = new ContractRule();
+        rule.setName(ruleDto.getName());
+        if (ruleDto.getKind() != null) {
+            rule.setKind(ContractRule.Kind.fromValue(ruleDto.getKind().name()));
+        }
+        rule.setType(ruleDto.getType());
+        if (ruleDto.getMode() != null) {
+            rule.setMode(ContractRule.Mode.fromValue(ruleDto.getMode().name()));
+        }
+        rule.setExpr(ruleDto.getExpr());
+        if (ruleDto.getParams() != null) {
+            Params params = new Params();
+            ruleDto.getParams().forEach(params::setAdditionalProperty);
+            rule.setParams(params);
+        }
+        if (ruleDto.getTags() != null) {
+            rule.setTags(new ArrayList<>(ruleDto.getTags()));
+        }
+        if (ruleDto.getOnSuccess() != null) {
+            rule.setOnSuccess(ContractRule.OnSuccess.fromValue(ruleDto.getOnSuccess().name()));
+        }
+        if (ruleDto.getOnFailure() != null) {
+            rule.setOnFailure(ContractRule.OnFailure.fromValue(ruleDto.getOnFailure().name()));
+        }
+        rule.setDisabled(ruleDto.isDisabled());
+        result.setRule(rule);
+        return result;
     }
 
     /**

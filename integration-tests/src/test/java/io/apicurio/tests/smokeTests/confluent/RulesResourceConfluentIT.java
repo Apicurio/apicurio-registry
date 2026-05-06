@@ -1,5 +1,7 @@
 package io.apicurio.tests.smokeTests.confluent;
 
+import static io.apicurio.deployment.Constants.*;
+
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
@@ -14,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static io.apicurio.tests.utils.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Tag(SMOKE)

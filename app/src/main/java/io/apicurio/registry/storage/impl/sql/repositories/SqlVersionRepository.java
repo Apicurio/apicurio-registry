@@ -5,6 +5,7 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -19,6 +20,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.VersionContentDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
@@ -32,9 +34,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.VersionState;
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.util.Date;
@@ -42,8 +42,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
@@ -53,7 +55,6 @@ import static io.apicurio.registry.utils.StringUtil.asLowerCase;
  * Repository handling artifact version operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlVersionRepository {
 
     public static final int MAX_VERSION_NAME_LENGTH = 512;
@@ -61,43 +62,33 @@ public class SqlVersionRepository {
     public static final int MAX_LABEL_KEY_LENGTH = 256;
     public static final int MAX_LABEL_VALUE_LENGTH = 512;
 
-    @Inject
-    Logger log;
+    private final Logger log;
+    private final SqlStatements sqlStatements;
+    private final HandleFactory handles;
+    private final SecurityIdentity securityIdentity;
+    private final Event<SqlOutboxEvent> outboxEvent;
+    private final SqlBranchRepository branchRepository;
+    private final SqlArtifactRepository artifactRepository;
+    private final SqlContentRepository contentRepository;
+    private final SqlSequenceRepository sequenceRepository;
+    private final RegistryStorageContentUtils utils;
 
-    @Inject
-    SqlStatements sqlStatements;
-
-    @Inject
-    HandleFactory handles;
-
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlVersionRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            SecurityIdentity securityIdentity, Event<SqlOutboxEvent> outboxEvent,
+            SqlBranchRepository branchRepository, SqlArtifactRepository artifactRepository,
+            SqlContentRepository contentRepository, SqlSequenceRepository sequenceRepository,
+            RegistryStorageContentUtils utils) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.securityIdentity = securityIdentity;
+        this.outboxEvent = outboxEvent;
+        this.branchRepository = branchRepository;
+        this.artifactRepository = artifactRepository;
+        this.contentRepository = contentRepository;
+        this.sequenceRepository = sequenceRepository;
+        this.utils = utils;
     }
-
-    @Inject
-    SecurityIdentity securityIdentity;
-
-    @Inject
-    Event<SqlOutboxEvent> outboxEvent;
-
-    @Inject
-    SqlBranchRepository branchRepository;
-
-    @Inject
-    SqlArtifactRepository artifactRepository;
-
-    @Inject
-    SqlContentRepository contentRepository;
-
-    @Inject
-    SqlSequenceRepository sequenceRepository;
-
-    @Inject
-    RegistryStorageContentUtils utils;
 
     /**
      * Get artifact version metadata by globalId.
@@ -402,28 +393,6 @@ public class SqlVersionRepository {
         }
     }
 
-    /**
-     * Create artifact version using an existing handle.
-     * This is the core method for version creation, used by AbstractSqlRegistryStorage.
-     */
-    public ArtifactVersionMetaDataDto createArtifactVersionRaw(Handle handle, boolean firstVersion,
-            String groupId, String artifactId, String version, EditableVersionMetaDataDto metaData,
-            String owner, Date createdOn, Long contentId, List<String> branches, boolean isDraft,
-            SqlBranchRepository branchRepo) {
-
-        if (metaData == null) {
-            metaData = EditableVersionMetaDataDto.builder().build();
-        }
-
-        VersionState state = isDraft ? VersionState.DRAFT : VersionState.ENABLED;
-        String labelsStr = RegistryContentUtils.serializeLabels(metaData.getLabels());
-
-        // This would typically get the next globalId from the parent class
-        // For now, we'll leave this to be coordinated by AbstractSqlRegistryStorage
-        throw new UnsupportedOperationException(
-                "createArtifactVersionRaw requires globalId generation from parent storage class");
-    }
-
     // ==================== IMPORT OPERATIONS ====================
 
     /**
@@ -675,5 +644,101 @@ public class SqlVersionRepository {
         } else {
             return utils.getContentHash(content, references);
         }
+    }
+
+    /**
+     * Get all versions modified since the given timestamp. Used for asynchronous search index polling.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return List of version metadata for modified versions
+     */
+    public List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectVersionsModifiedSince())
+                    .bind(0, new java.sql.Timestamp(sinceTimestamp))
+                    .map(ArtifactVersionMetaDataDtoMapper.instance).list();
+        });
+    }
+
+    /**
+     * Count versions modified since the given timestamp. Used to cheaply determine whether to do
+     * an incremental update or a full rebuild.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return count of modified versions
+     */
+    public long countVersionsModifiedSince(long sinceTimestamp) {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.countVersionsModifiedSince())
+                    .bind(0, new java.sql.Timestamp(sinceTimestamp))
+                    .mapTo(Long.class).one();
+        });
+    }
+
+    /**
+     * Get the timestamp of the most recently modified version.
+     *
+     * @return Timestamp in milliseconds since epoch, or 0 if no versions exist
+     */
+    public long getLatestVersionTimestamp() {
+        return handles.withHandle(handle -> {
+            java.sql.Timestamp ts = handle.createQuery(sqlStatements.selectLatestVersionTimestamp())
+                    .mapTo(java.sql.Timestamp.class).findOne().orElse(null);
+            return ts != null ? ts.getTime() : 0L;
+        });
+    }
+
+    /**
+     * Get all version globalIds. Used for periodic reconciliation in asynchronous search indexing.
+     *
+     * @return List of all globalIds
+     */
+    public List<Long> getAllVersionGlobalIds() {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectAllVersionGlobalIds())
+                    .mapTo(Long.class).list();
+        });
+    }
+
+    /**
+     * Streams all versions with their content through a single cursor-based SQL query. Used by the
+     * startup reindexer to populate the search index from scratch.
+     *
+     * @param consumer receives each version's metadata and content
+     */
+    public void forEachVersion(Consumer<VersionContentDto> consumer) {
+        handles.withHandle(handle -> {
+            Stream<VersionContentDto> stream = handle
+                    .createQuery(sqlStatements.selectAllVersionsWithContent())
+                    .setFetchSize(50)
+                    .map(VersionContentDtoMapper.instance)
+                    .stream();
+            try (stream) {
+                stream.forEach(consumer);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Streams versions modified since the given timestamp, with their content, through a single
+     * cursor-based SQL query. Used for incremental search index updates.
+     *
+     * @param sinceTimestamp only include versions with modifiedOn >= this value (millis since epoch)
+     * @param consumer receives each version's metadata and content
+     */
+    public void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer) {
+        handles.withHandle(handle -> {
+            Stream<VersionContentDto> stream = handle
+                    .createQuery(sqlStatements.selectVersionsWithContentModifiedSince())
+                    .bind(0, new java.sql.Timestamp(sinceTimestamp))
+                    .setFetchSize(50)
+                    .map(VersionContentDtoMapper.instance)
+                    .stream();
+            try (stream) {
+                stream.forEach(consumer);
+            }
+            return null;
+        });
     }
 }

@@ -136,6 +136,13 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String selectMaxVersionOrderForUpdate() {
+        return "SELECT v.versionOrder FROM versions v WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "ORDER BY v.versionOrder DESC";
+    }
+
+    @Override
     public String createDataSnapshot() {
         throw new IllegalStateException("Snapshot creation is not supported for Sqlserver storage");
     }

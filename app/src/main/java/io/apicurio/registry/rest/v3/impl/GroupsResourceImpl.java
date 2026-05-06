@@ -53,14 +53,13 @@ import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
-import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.BufferedInputStream;
-import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.URI;
+import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -115,7 +114,19 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     io.apicurio.registry.services.PromptRenderingService promptRenderingService;
 
     @Inject
+    io.apicurio.registry.services.EmbeddedSchemaService embeddedSchemaService;
+
+    @Inject
     ProtobufExporter protobufExporter;
+
+    @Inject
+    io.apicurio.registry.contracts.DataContractsConfig dataContractsConfig;
+
+    @Inject
+    io.apicurio.registry.contracts.ContractMetadataMapper contractMetadataMapper;
+
+    @Inject
+    io.apicurio.registry.contracts.ContractMetadataValidator contractMetadataValidator;
 
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
@@ -910,7 +921,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String artifactType = vmd.getArtifactType();
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
         boolean isEmptyContent = artifactTypeProvider.getContentTypes().isEmpty();
-        ContentHandle content = ContentHandle.create(data.getContent());
+        ContentHandle content = ContentHandle.create(resolveContent(data));
 
         if (isEmptyContent) {
             // TODO fail the request if content is sent to an artifact that requires empty content??
@@ -1298,6 +1309,30 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             final String owner = securityIdentity.getPrincipal().getName();
 
+            // Auto-extract embedded schemas for LLM artifact types
+            ContentHandle effectiveContent = content;
+            String effectiveContentType = contentType;
+            List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
+            if ("MODEL_SCHEMA".equals(artifactType)) {
+                var extraction = embeddedSchemaService.extractModelSchemaEmbeddedSchemas(
+                        storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                        content, contentType, owner);
+                if (extraction != null) {
+                    effectiveContent = extraction.getModifiedContent();
+                    effectiveContentType = extraction.getContentType();
+                    autoReferences.addAll(extraction.getReferences());
+                }
+            } else if ("PROMPT_TEMPLATE".equals(artifactType)) {
+                var extraction = embeddedSchemaService.extractPromptTemplateEmbeddedSchemas(
+                        storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                        content, contentType, owner);
+                if (extraction != null) {
+                    effectiveContent = extraction.getModifiedContent();
+                    effectiveContentType = extraction.getContentType();
+                    autoReferences.addAll(extraction.getReferences());
+                }
+            }
+
             // Create the artifact (with optional first version)
             EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
                     .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
@@ -1307,11 +1342,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             List<String> firstVersionBranches = null;
             boolean firstVersionIsDraft = false;
             if (data.getFirstVersion() != null) {
-                // Convert references to DTOs
+                // Convert references to DTOs and merge with auto-extracted references
                 final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
+                referencesAsDtos.addAll(autoReferences);
 
                 firstVersion = data.getFirstVersion().getVersion();
-                firstVersionContent = ContentWrapperDto.builder().content(content).contentType(contentType)
+                firstVersionContent = ContentWrapperDto.builder().content(effectiveContent).contentType(effectiveContentType)
                         .references(referencesAsDtos).build();
                 firstVersionMetaData = EditableVersionMetaDataDto.builder()
                         .description(data.getFirstVersion().getDescription())
@@ -1327,8 +1363,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
                 if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
+                    TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
                     rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
-                            artifactType, typedContent, RuleApplicationType.CREATE, references,
+                            artifactType, effectiveTypedContent, RuleApplicationType.CREATE, references,
                             resolvedReferences);
                 }
             }
@@ -1408,16 +1445,43 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             data.getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
         }
 
-        ContentHandle content = ContentHandle.create(data.getContent().getContent());
+        ContentHandle content = ContentHandle.create(resolveContent(data.getContent()));
         if (!isEmptyContent && content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
         }
         String ct = data.getContent().getContentType();
         boolean isDraft = data.getIsDraft() != null && data.getIsDraft();
 
-        // Transform the given references into dtos
+        final String owner = securityIdentity.getPrincipal().getName();
+
+        // Auto-extract embedded schemas for LLM artifact types
+        ContentHandle effectiveContent = content;
+        String effectiveContentType = ct;
+        List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
+        if ("MODEL_SCHEMA".equals(artifactType)) {
+            var extraction = embeddedSchemaService.extractModelSchemaEmbeddedSchemas(
+                    storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                    content, ct, owner);
+            if (extraction != null) {
+                effectiveContent = extraction.getModifiedContent();
+                effectiveContentType = extraction.getContentType();
+                autoReferences.addAll(extraction.getReferences());
+            }
+        } else if ("PROMPT_TEMPLATE".equals(artifactType)) {
+            var extraction = embeddedSchemaService.extractPromptTemplateEmbeddedSchemas(
+                    storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                    content, ct, owner);
+            if (extraction != null) {
+                effectiveContent = extraction.getModifiedContent();
+                effectiveContentType = extraction.getContentType();
+                autoReferences.addAll(extraction.getReferences());
+            }
+        }
+
+        // Transform the given references into dtos and merge with auto-extracted references
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(
                 data.getContent().getReferences());
+        referencesAsDtos.addAll(autoReferences);
 
         // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
@@ -1425,17 +1489,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
-            TypedContent typedContent = TypedContent.create(content, ct);
+            TypedContent typedContent = TypedContent.create(effectiveContent, effectiveContentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
                     typedContent, RuleApplicationType.UPDATE, data.getContent().getReferences(),
                     resolvedReferences);
         }
 
-        final String owner = securityIdentity.getPrincipal().getName();
-
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
                 .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
-        ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(ct).content(content)
+        ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(effectiveContentType).content(effectiveContent)
                 .references(referencesAsDtos).build();
 
         ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(
@@ -1603,9 +1665,29 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return null;
     }
 
+    /**
+     * Resolves the content from a {@link VersionContent}, decoding from base64 if the encoding
+     * property is set to "base64".
+     *
+     * @param vc the version content
+     * @return the resolved content string
+     */
+    private String resolveContent(VersionContent vc) {
+        String content = vc.getContent();
+        if (VersionContent.Encoding.base64.equals(vc.getEncoding())) {
+            try {
+                byte[] decoded = Base64.getDecoder().decode(content);
+                content = new String(decoded, StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Invalid base64-encoded content");
+            }
+        }
+        return content;
+    }
+
     private ContentHandle getContent(CreateArtifact data) {
         if (data.getFirstVersion() != null && data.getFirstVersion().getContent() != null) {
-            return ContentHandle.create(data.getFirstVersion().getContent().getContent());
+            return ContentHandle.create(resolveContent(data.getFirstVersion().getContent()));
         }
         return null;
     }
@@ -1638,7 +1720,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         try {
             // Find the version
             TypedContent content = TypedContent.create(
-                    ContentHandle.create(theVersion.getContent().getContent()),
+                    ContentHandle.create(resolveContent(theVersion.getContent())),
                     theVersion.getContent().getContentType());
             List<ArtifactReferenceDto> referenceDtos = toReferenceDtos(
                     theVersion.getContent().getReferences());
@@ -1668,7 +1750,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Map<String, String> labels = theVersion.getLabels();
         List<ArtifactReference> references = theVersion.getContent().getReferences();
         String contentType = theVersion.getContent().getContentType();
-        ContentHandle content = ContentHandle.create(theVersion.getContent().getContent());
+        ContentHandle content = ContentHandle.create(resolveContent(theVersion.getContent()));
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
 
         String artifactType = lookupArtifactType(groupId, artifactId);
@@ -1710,47 +1792,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return references.stream()
                 .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
                 .map(V3ApiUtil::referenceToDto).collect(toList());
-    }
-
-    /**
-     * Return an InputStream for the resource to be downloaded
-     *
-     * @param url
-     */
-    private InputStream fetchContentFromURL(Client client, URI url) {
-        try {
-            // 1. Registry issues HTTP HEAD request to the target URL.
-            List<Object> contentLengthHeaders = client.target(url).request().head().getHeaders()
-                    .get("Content-Length");
-
-            if (contentLengthHeaders == null || contentLengthHeaders.size() < 1) {
-                throw new BadRequestException(
-                        "Requested resource URL does not provide 'Content-Length' in the headers");
-            }
-
-            // 2. According to HTTP specification, target server must return Content-Length header.
-            int contentLength = Integer.parseInt(contentLengthHeaders.get(0).toString());
-
-            // 3. Registry analyzes value of Content-Length to check if file with declared size could be
-            // processed securely.
-            if (contentLength > restConfig.getDownloadMaxSize()) {
-                throw new BadRequestException("Requested resource is bigger than "
-                        + restConfig.getDownloadMaxSize() + " and cannot be downloaded.");
-            }
-
-            if (contentLength <= 0) {
-                throw new BadRequestException("Requested resource URL is providing 'Content-Length' <= 0.");
-            }
-
-            // 4. Finally, registry issues HTTP GET to the target URL and fetches only amount of bytes
-            // specified by HTTP HEAD from step 1.
-            return new BufferedInputStream(client.target(url).request().get().readEntity(InputStream.class),
-                    contentLength);
-        } catch (BadRequestException bre) {
-            throw bre;
-        } catch (Exception e) {
-            throw new BadRequestException("Errors downloading the artifact content.", e);
-        }
     }
 
     /**
@@ -1824,5 +1865,318 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         return protobufExporter.exportVersionAsZip(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+    }
+
+    private void checkContractsEnabled() {
+        if (!dataContractsConfig.isEnabled()) {
+            throw new NotAllowedException("Data contracts feature is not enabled.", HttpMethod.GET,
+                    (String[]) null);
+        }
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public ContractMetadata getContractMetadata(String groupId, String artifactId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(
+                new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        ContractMetadataDto contractDto = contractMetadataMapper.fromLabels(dto.getLabels());
+        return toContractMetadataBean(contractDto);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ContractMetadata updateContractMetadata(String groupId, String artifactId,
+            EditableContractMetadata data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+
+        // Build the editable DTO from the REST bean
+        EditableContractMetadataDto editableDto = EditableContractMetadataDto.builder()
+                .status(data.getStatus() != null
+                        ? ContractStatus.valueOf(data.getStatus().value()) : null)
+                .ownerTeam(data.getOwnerTeam())
+                .ownerDomain(data.getOwnerDomain())
+                .supportContact(data.getSupportContact())
+                .classification(data.getClassification() != null
+                        ? DataClassification.valueOf(data.getClassification().value()) : null)
+                .stage(data.getStage() != null
+                        ? PromotionStage.valueOf(data.getStage().value()) : null)
+                .build();
+
+        // Convert to labels and merge with existing artifact labels
+        Map<String, String> contractLabels = contractMetadataMapper.toLabels(editableDto);
+
+        ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
+        Map<String, String> mergedLabels = new java.util.HashMap<>(
+                existing.getLabels() != null ? existing.getLabels() : Collections.emptyMap());
+
+        // Remove existing contract labels first
+        mergedLabels.entrySet().removeIf(
+                e -> e.getKey().startsWith(io.apicurio.registry.contracts.ContractLabels.PREFIX));
+        // Add new contract labels
+        mergedLabels.putAll(contractLabels);
+
+        EditableArtifactMetaDataDto metaDto = new EditableArtifactMetaDataDto();
+        metaDto.setName(existing.getName());
+        metaDto.setDescription(existing.getDescription());
+        metaDto.setOwner(existing.getOwner());
+        metaDto.setLabels(mergedLabels);
+        storage.updateArtifactMetaData(rawGroupId, artifactId, metaDto);
+
+        // Return the updated contract metadata
+        ContractMetadataDto result = contractMetadataMapper.fromLabels(mergedLabels);
+        return toContractMetadataBean(result);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public ContractRuleSet getArtifactContractRuleset(String groupId, String artifactId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        ContractRuleSetDto dto = storage.getArtifactContractRuleset(
+                new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        return toContractRuleSetBean(dto);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ContractRuleSet setArtifactContractRuleset(String groupId, String artifactId,
+            ContractRuleSet data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        ContractRuleSetDto dto = toContractRuleSetDto(data);
+        storage.setArtifactContractRuleset(
+                new GroupId(groupId).getRawGroupIdWithNull(), artifactId, dto);
+        return data;
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void deleteArtifactContractRuleset(String groupId, String artifactId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        storage.deleteArtifactContractRuleset(
+                new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public ContractRuleSet getVersionContractRuleset(String groupId, String artifactId,
+            String versionExpression) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        ContractRuleSetDto dto = storage.getVersionContractRuleset(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+        return toContractRuleSetBean(dto);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ContractRuleSet setVersionContractRuleset(String groupId, String artifactId,
+            String versionExpression, ContractRuleSet data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        ContractRuleSetDto dto = toContractRuleSetDto(data);
+        storage.setVersionContractRuleset(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), dto);
+        return data;
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void deleteVersionContractRuleset(String groupId, String artifactId,
+            String versionExpression) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        storage.deleteVersionContractRuleset(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ContractMetadata transitionContractStatus(String groupId, String artifactId,
+            ContractStatusTransition data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        ContractStatus targetStatus = ContractStatus.valueOf(data.getStatus().value());
+
+        // Get current metadata to check current status
+        ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
+        ContractMetadataDto currentMetadata = contractMetadataMapper.fromLabels(existing.getLabels());
+
+        // Validate transition
+        contractMetadataValidator.validateStatusTransition(currentMetadata.getStatus(), targetStatus);
+
+        // Build updated labels
+        Map<String, String> mergedLabels = new java.util.HashMap<>(
+                existing.getLabels() != null ? existing.getLabels() : Collections.emptyMap());
+
+        // Update the status label
+        mergedLabels.put(io.apicurio.registry.contracts.ContractLabels.PREFIX + "status",
+                targetStatus.name());
+
+        // If transitioning to STABLE, set the stableDate if not already set
+        if (targetStatus == ContractStatus.STABLE
+                && !mergedLabels.containsKey(
+                        io.apicurio.registry.contracts.ContractLabels.PREFIX + "stableDate")) {
+            mergedLabels.put(io.apicurio.registry.contracts.ContractLabels.PREFIX + "stableDate",
+                    java.time.LocalDate.now().toString());
+        }
+
+        // If transitioning to DEPRECATED, set the deprecatedDate if not already set
+        if (targetStatus == ContractStatus.DEPRECATED
+                && !mergedLabels.containsKey(
+                        io.apicurio.registry.contracts.ContractLabels.PREFIX + "deprecatedDate")) {
+            mergedLabels.put(
+                    io.apicurio.registry.contracts.ContractLabels.PREFIX + "deprecatedDate",
+                    java.time.LocalDate.now().toString());
+        }
+
+        EditableArtifactMetaDataDto metaDto = new EditableArtifactMetaDataDto();
+        metaDto.setName(existing.getName());
+        metaDto.setDescription(existing.getDescription());
+        metaDto.setOwner(existing.getOwner());
+        metaDto.setLabels(mergedLabels);
+        storage.updateArtifactMetaData(rawGroupId, artifactId, metaDto);
+
+        ContractMetadataDto result = contractMetadataMapper.fromLabels(mergedLabels);
+        return toContractMetadataBean(result);
+    }
+
+    // -- Contract mapping helpers --
+
+    private ContractMetadata toContractMetadataBean(ContractMetadataDto dto) {
+        ContractMetadata bean = new ContractMetadata();
+        if (dto.getStatus() != null) {
+            bean.setStatus(ContractMetadata.Status.fromValue(dto.getStatus().name()));
+        }
+        bean.setOwnerTeam(dto.getOwnerTeam());
+        bean.setOwnerDomain(dto.getOwnerDomain());
+        bean.setSupportContact(dto.getSupportContact());
+        if (dto.getClassification() != null) {
+            bean.setClassification(
+                    ContractMetadata.Classification.fromValue(dto.getClassification().name()));
+        }
+        if (dto.getStage() != null) {
+            bean.setStage(ContractMetadata.Stage.fromValue(dto.getStage().name()));
+        }
+        bean.setStableDate(dto.getStableDate());
+        bean.setDeprecatedDate(dto.getDeprecatedDate());
+        bean.setDeprecationReason(dto.getDeprecationReason());
+        return bean;
+    }
+
+    private ContractRuleSet toContractRuleSetBean(ContractRuleSetDto dto) {
+        ContractRuleSet bean = new ContractRuleSet();
+        bean.setDomainRules(dto.getDomainRules() != null
+                ? dto.getDomainRules().stream().map(this::toContractRuleBean).collect(toList())
+                : Collections.emptyList());
+        bean.setMigrationRules(dto.getMigrationRules() != null
+                ? dto.getMigrationRules().stream().map(this::toContractRuleBean).collect(toList())
+                : Collections.emptyList());
+        return bean;
+    }
+
+    private ContractRule toContractRuleBean(ContractRuleDto dto) {
+        ContractRule bean = new ContractRule();
+        bean.setName(dto.getName());
+        if (dto.getKind() != null) {
+            bean.setKind(ContractRule.Kind.fromValue(dto.getKind().name()));
+        }
+        bean.setType(dto.getType());
+        if (dto.getMode() != null) {
+            bean.setMode(ContractRule.Mode.fromValue(dto.getMode().name()));
+        }
+        bean.setExpr(dto.getExpr());
+        if (dto.getParams() != null) {
+            Params params = new Params();
+            dto.getParams().forEach((k, v) -> params.setAdditionalProperty(k, v));
+            bean.setParams(params);
+        }
+        if (dto.getTags() != null) {
+            bean.setTags(new ArrayList<>(dto.getTags()));
+        }
+        if (dto.getOnSuccess() != null) {
+            bean.setOnSuccess(ContractRule.OnSuccess.fromValue(dto.getOnSuccess().name()));
+        }
+        if (dto.getOnFailure() != null) {
+            bean.setOnFailure(ContractRule.OnFailure.fromValue(dto.getOnFailure().name()));
+        }
+        bean.setDisabled(dto.isDisabled());
+        return bean;
+    }
+
+    private ContractRuleSetDto toContractRuleSetDto(ContractRuleSet bean) {
+        return ContractRuleSetDto.builder()
+                .domainRules(bean.getDomainRules() != null
+                        ? bean.getDomainRules().stream().map(this::toContractRuleDto).collect(toList())
+                        : Collections.emptyList())
+                .migrationRules(bean.getMigrationRules() != null
+                        ? bean.getMigrationRules().stream().map(this::toContractRuleDto).collect(toList())
+                        : Collections.emptyList())
+                .build();
+    }
+
+    private Map<String, String> toStringMap(Map<String, Object> objectMap) {
+        Map<String, String> result = new java.util.HashMap<>();
+        objectMap.forEach((k, v) -> result.put(k, v != null ? v.toString() : null));
+        return result;
+    }
+
+    private ContractRuleDto toContractRuleDto(ContractRule bean) {
+        return ContractRuleDto.builder()
+                .name(bean.getName())
+                .kind(bean.getKind() != null ? RuleKind.valueOf(bean.getKind().value()) : null)
+                .type(bean.getType())
+                .mode(bean.getMode() != null ? RuleMode.valueOf(bean.getMode().value()) : null)
+                .expr(bean.getExpr())
+                .params(bean.getParams() != null ? toStringMap(bean.getParams().getAdditionalProperties()) : null)
+                .tags(bean.getTags() != null ? new HashSet<>(bean.getTags()) : null)
+                .onSuccess(bean.getOnSuccess() != null
+                        ? RuleAction.valueOf(bean.getOnSuccess().value()) : null)
+                .onFailure(bean.getOnFailure() != null
+                        ? RuleAction.valueOf(bean.getOnFailure().value()) : null)
+                .disabled(bean.getDisabled() != null && bean.getDisabled())
+                .build();
     }
 }

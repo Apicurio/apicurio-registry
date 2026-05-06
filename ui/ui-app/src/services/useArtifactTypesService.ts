@@ -12,6 +12,9 @@ export class ArtifactTypes {
     public static XSD = "XSD";
     public static XML = "XML";
     public static AGENT_CARD = "AGENT_CARD";
+    public static MCP_TOOL = "MCP_TOOL";
+    public static MODEL_SCHEMA = "MODEL_SCHEMA";
+    public static PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
 
     public static getTitle(type: string): string {
         let title: string = type;
@@ -48,6 +51,15 @@ export class ArtifactTypes {
                 break;
             case "AGENT_CARD":
                 title = "A2A Agent Card";
+                break;
+            case "MCP_TOOL":
+                title = "MCP Tool Definition";
+                break;
+            case "MODEL_SCHEMA":
+                title = "AI Model Schema";
+                break;
+            case "PROMPT_TEMPLATE":
+                title = "Prompt Template";
                 break;
         }
         return title;
@@ -89,6 +101,15 @@ export class ArtifactTypes {
             case "AGENT_CARD":
                 title = "Agent Card";
                 break;
+            case "MCP_TOOL":
+                title = "MCP Tool";
+                break;
+            case "MODEL_SCHEMA":
+                title = "Model Schema";
+                break;
+            case "PROMPT_TEMPLATE":
+                title = "Prompt Template";
+                break;
         }
         return title;
     }
@@ -128,6 +149,15 @@ export class ArtifactTypes {
                 break;
             case "AGENT_CARD":
                 classes += " agentcard-icon24";
+                break;
+            case "MCP_TOOL":
+                classes += " mcptool-icon24";
+                break;
+            case "MODEL_SCHEMA":
+                classes += " modelschema-icon24";
+                break;
+            case "PROMPT_TEMPLATE":
+                classes += " prompttemplate-icon24";
                 break;
             default:
                 classes += " questionmark-icon24";

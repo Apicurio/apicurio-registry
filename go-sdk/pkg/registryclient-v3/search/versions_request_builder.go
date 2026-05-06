@@ -17,6 +17,8 @@ type VersionsRequestBuilderGetQueryParameters struct {
 	ArtifactId *string `uriparametername:"artifactId"`
 	// Filter by artifact type (`AVRO`, `JSON`, etc).
 	ArtifactType *string `uriparametername:"artifactType"`
+	// Full-text search of artifact content.  Requires the Lucene search index to be enabled.
+	Content *string `uriparametername:"content"`
 	// Filter by contentId.
 	ContentId *int64 `uriparametername:"contentId"`
 	// Filter by description.
@@ -48,6 +50,8 @@ type VersionsRequestBuilderGetQueryParameters struct {
 	State *string `uriparametername:"state"`
 	// Filter by version state.
 	StateAsVersionState *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionState `uriparametername:"state"`
+	// Search by structured content elements (schemas, paths, fields, etc.) using a faceted format. Supports three formats: `type:kind:name` for exact match (e.g. `openapi:schema:Pet`), `kind:name` for cross-type match (e.g. `schema:Pet`), or just `name` for plain text search. Requires the Lucene search index to be enabled.
+	Structure *string `uriparametername:"structure"`
 	// Filter by version number.
 	Version *string `uriparametername:"version"`
 }
@@ -101,7 +105,7 @@ type VersionsRequestBuilderPostRequestConfiguration struct {
 // NewVersionsRequestBuilderInternal instantiates a new VersionsRequestBuilder and sets the default values.
 func NewVersionsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *VersionsRequestBuilder {
 	m := &VersionsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/versions{?artifactId*,artifactType*,canonical*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*,state*,version*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/versions{?artifactId*,artifactType*,canonical*,content*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*,state*,structure*,version*}", pathParameters),
 	}
 	return m
 }

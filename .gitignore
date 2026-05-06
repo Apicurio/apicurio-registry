@@ -23,6 +23,7 @@ website
 *~
 .work
 .notes
+.projects
 **/bin
 *.jar
 
@@ -35,6 +36,7 @@ python-sdk/apicurioregistrysdk/client
 python-sdk/openapi.json
 __pycache__
 
+# Secrets
 .env
 
 # Docker/Testcontainers workarounds
@@ -44,8 +46,12 @@ __pycache__
 PROJECT_INDEX.md
 PROJECT_INDEX.json
 
-# Claude
-.claude
+# Ignore .claude directories in subdirectories (e.g. module/.claude) but keep the root one
+**/.claude
+!/.claude
+# Local Claude files
+.claude/settings.local.json
+CLAUDE.local.md
 claudedocs
 
 # Serena MCP

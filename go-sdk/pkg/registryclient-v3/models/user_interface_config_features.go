@@ -23,6 +23,8 @@ type UserInterfaceConfigFeatures struct {
 	readOnly *bool
 	// The roleManagement property
 	roleManagement *bool
+	// The searchIndex property
+	searchIndex *bool
 	// The settings property
 	settings *bool
 }
@@ -166,6 +168,16 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 		}
 		return nil
 	}
+	res["searchIndex"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetSearchIndex(val)
+		}
+		return nil
+	}
 	res["settings"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetBoolValue()
 		if err != nil {
@@ -189,6 +201,12 @@ func (m *UserInterfaceConfigFeatures) GetReadOnly() *bool {
 // returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetRoleManagement() *bool {
 	return m.roleManagement
+}
+
+// GetSearchIndex gets the searchIndex property value. The searchIndex property
+// returns a *bool when successful
+func (m *UserInterfaceConfigFeatures) GetSearchIndex() *bool {
+	return m.searchIndex
 }
 
 // GetSettings gets the settings property value. The settings property
@@ -243,6 +261,12 @@ func (m *UserInterfaceConfigFeatures) Serialize(writer i878a80d2330e89d26896388a
 	}
 	{
 		err := writer.WriteBoolValue("roleManagement", m.GetRoleManagement())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteBoolValue("searchIndex", m.GetSearchIndex())
 		if err != nil {
 			return err
 		}
@@ -307,6 +331,11 @@ func (m *UserInterfaceConfigFeatures) SetRoleManagement(value *bool) {
 	m.roleManagement = value
 }
 
+// SetSearchIndex sets the searchIndex property value. The searchIndex property
+func (m *UserInterfaceConfigFeatures) SetSearchIndex(value *bool) {
+	m.searchIndex = value
+}
+
 // SetSettings sets the settings property value. The settings property
 func (m *UserInterfaceConfigFeatures) SetSettings(value *bool) {
 	m.settings = value
@@ -323,6 +352,7 @@ type UserInterfaceConfigFeaturesable interface {
 	GetDraftMutability() *bool
 	GetReadOnly() *bool
 	GetRoleManagement() *bool
+	GetSearchIndex() *bool
 	GetSettings() *bool
 	SetAgents(value *bool)
 	SetBreadcrumbs(value *bool)
@@ -332,5 +362,6 @@ type UserInterfaceConfigFeaturesable interface {
 	SetDraftMutability(value *bool)
 	SetReadOnly(value *bool)
 	SetRoleManagement(value *bool)
+	SetSearchIndex(value *bool)
 	SetSettings(value *bool)
 }

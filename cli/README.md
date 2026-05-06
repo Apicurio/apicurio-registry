@@ -1,17 +1,27 @@
 # CLI for Apicurio Registry
 
-> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet. The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet.
+> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet. Apicurio Registry CLI is currently unstable; its arguments and behavior are subject to backwards-incompatible changes.
+
+### Supported Platforms
+
+The CLI is distributed as a native executable. A separate ZIP is provided for each platform:
+
+| Platform | Architecture | ZIP Classifier | Shell |
+|----------|-------------|----------------|-------|
+| Linux    | x86_64      | `linux-x86_64` | bash  |
+| macOS    | aarch64 (Apple Silicon) | `osx-aarch64` | zsh |
+
+Windows is not supported.
 
 ## Installation
 
 Prerequisites:
 
- - Linux with bash or macOS with zsh
- - Java 11 or higher
+ - Linux (x86_64) with bash, or macOS (Apple Silicon) with zsh
 
 To install the Apicurio Registry CLI:
 
-1. Download the zip file from the [GitHub Releases]() page or the [Maven Central repository]().
+1. Download the ZIP for your platform from [GitHub Releases]() or [Maven Central]().
 2. Unzip the downloaded file to a location of your choice.
 3. You can run the CLI directly using `./acr`, or install it for the local user first (recommended):
 
@@ -34,7 +44,49 @@ To install the Apicurio Registry CLI:
 
 ## Build
 
-Run `mvn clean install -pl cli -am` to build the CLI locally. The built zip file will be located in `cli/target` directory.
+The CLI is distributed as a native executable. The build produces an architecture-specific ZIP
+containing the native binary, shell scripts, and completions. **Native build is the default** —
+this is what you need to test or install the CLI locally.
+
+```bash
+mvn clean package -pl cli -am -DskipTests
+```
+
+The output ZIP will be at `cli/target/apicurio-registry-cli-*-<os>-<arch>.zip`.
+
+By default, the native build uses a Mandrel container image. To use a local GraalVM installation instead:
+
+```bash
+GRAALVM_HOME=/path/to/graalvm mvn clean package -pl cli -am -DskipTests -Dquarkus.native.container-build=false
+```
+
+When building locally (without a container), the system must have the `zlib` static library installed:
+
+```bash
+# Fedora/RHEL/CentOS
+sudo dnf install zlib-static
+
+# Debian/Ubuntu
+sudo apt install zlib1g-dev
+```
+
+#### Skipping Native Build (Development Only)
+
+During development and testing of CLI code (not the binary itself), you can skip the native
+compilation to speed up the build. This produces a JVM-mode Quarkus application only —
+**no installable ZIP is created**:
+
+```bash
+mvn clean package -pl cli -am -DskipTests -DcliSkipNative
+```
+
+#### GraalVM Version Compatibility
+
+The **container-based build** (default) uses a Mandrel image and works out of the box — no GraalVM version management needed.
+
+For **local builds** (`-Dquarkus.native.container-build=false`), GraalVM CE or Mandrel for JDK 17 or later is required. Set `GRAALVM_HOME` to point to the installation.
+
+### Installation from Build
 
 If you have not already installed the CLI, run:
 

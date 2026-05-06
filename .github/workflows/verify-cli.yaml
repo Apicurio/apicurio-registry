@@ -1,0 +1,85 @@
+name: CLI Verification
+
+on:
+  workflow_call:
+    inputs:
+      image-tag:
+        type: string
+        required: true
+        description: 'Build artifact identifier (commit SHA)'
+
+jobs:
+  cli-verify:
+    name: CLI (${{ matrix.os-name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            os-name: linux-x86_64
+            test-args: '-Dtest.app.image=quay.io/apicurio/apicurio-registry:latest-release'
+          - runner: macos-14
+            os-name: osx-aarch_64
+            # Docker is not available on macOS runners (see https://github.com/douglascamata/setup-docker-macos-action/issues/35),
+            # skip @DockerRequired tests
+            test-args: '-Dgroups=!docker-required'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Use JDK 25 (latest) instead of JDK 23 (release default) to catch
+      # forward-compatibility issues with GraalVM/native-image early in PRs.
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ inputs.image-tag }}
+          path: .
+
+      - name: Install Pre-built Artifacts to Maven Repository
+        run: |
+          VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+
+          # Install parent POM
+          ./mvnw install:install-file -B -Dfile=pom.xml -DpomFile=pom.xml
+
+          # Install each dependency module
+          for module_path in \
+            config-index/definitions:apicurio-registry-config-definitions \
+            common:apicurio-registry-common \
+            schema-util/common:apicurio-registry-schema-util-common \
+            java-sdk/common:apicurio-registry-java-sdk-common \
+            java-sdk/adapter-vertx:apicurio-registry-java-sdk-adapter-vertx \
+            java-sdk/adapter-jdk:apicurio-registry-java-sdk-adapter-jdk \
+            java-sdk/client:apicurio-registry-java-sdk; do
+
+            dir="${module_path%%:*}"
+            artifact="${module_path##*:}"
+
+            ./mvnw install:install-file -B \
+              -Dfile="${dir}/target/${artifact}-${VERSION}.jar" \
+              -DpomFile="${dir}/pom.xml"
+          done
+
+      - name: Build and Test CLI
+        run: |
+          ./mvnw verify -pl cli \
+            --no-transfer-progress \
+            -Dquarkus.native.container-build=false \
+            ${{ matrix.test-args }} \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Verify Native Binary
+        run: |
+          cli/target/apicurio-registry-cli-*-runner --help
+          cli/target/apicurio-registry-cli-*-runner version

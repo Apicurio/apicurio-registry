@@ -7,41 +7,29 @@ import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.net.URI;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
-public final class Client {
+@ApplicationScoped
+public class Client {
 
-    private static Client instance;
+    @Inject
+    Vertx vertx;
 
-    public static synchronized Client getInstance() {
-        if (instance == null) {
-            var vertx = VertxInstance.getVertx();
-            instance = new Client(vertx);
-        }
-        return instance;
-    }
-
-    // Resets the cached client so a new connection is established on next use.
-    public static synchronized void reset() {
-        instance = null;
-    }
-
-    private final Vertx vertx;
+    @Inject
+    Config config;
 
     private RegistryClient registryClient;
 
     private HttpClient httpClient;
 
-    private Client(Vertx vertx) {
-        this.vertx = vertx;
-    }
-
     public RegistryClient getRegistryClient() {
-        var currentContext = Config.getInstance().read();
+        var currentContext = config.read();
         if (isBlank(currentContext.getCurrentContext())) {
             throw new CliException("No current context is set. " +
                     "Run `acr context set <context>` " +
@@ -75,5 +63,13 @@ public final class Client {
             }
         }
         return httpClient;
+    }
+
+    /**
+     * Resets cached clients. Should be called between tests to avoid state leaking.
+     */
+    public void reset() {
+        registryClient = null;
+        httpClient = null;
     }
 }

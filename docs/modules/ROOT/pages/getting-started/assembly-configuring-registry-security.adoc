@@ -4,10 +4,11 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Configuring {registry} security options
 
 [role="_abstract"]
-This chapter explains how to set configuration options for {registry} security. For example, this includes authentication in {keycloak} or Microsoft Azure Active Directory and role-based authorization in {registry}.
+This chapter explains how to set configuration options for {registry} security. For example, this includes authentication in {keycloak}, Microsoft Azure Active Directory, or Dex, and role-based authorization in {registry}.
 
 * xref:registry-security-keycloak_{context}[]
 * xref:registry-security-azure_{context}[]
+* xref:registry-security-dex_{context}[]
 * xref:registry-security-settings_{context}[]
 * xref:registry-cors-configuration_{context}[]
 
@@ -331,6 +332,644 @@ NOTE: Multiple scopes can be specified using comma separation. They will be conv
 * For more details on using Azure AD, see the link:https://learn.microsoft.com/en-us/azure[Microsoft Azure AD user documentation].
 
 
+
+[id="registry-security-dex_{context}"]
+
+== Configuring {registry} authentication and authorization with Dex
+
+[role="_abstract"]
+This section explains how to configure authentication and authorization for {registry} by using link:https://dexidp.io/[Dex] as a federated OpenID Connect (OIDC) identity provider.
+
+Dex acts as an OIDC-compliant bridge in front of identity providers that do not fully implement the OIDC specification. This is useful when your platform uses an OAuth server that does not expose standard OIDC endpoints, such as OpenShift's built-in OAuth server, LDAP directories, or SAML-based providers. Dex has link:https://dexidp.io/docs/connectors/[connectors] for 15+ identity providers including OpenShift, LDAP, SAML, GitHub, GitLab, Google, and Microsoft.
+
+Without an OIDC-compliant provider, the following {registry} features do not work:
+
+.Features requiring OIDC compliance
+[.table-expandable,width="100%",cols="3,3,6",options="header"]
+|===
+|Feature
+|Without OIDC bridge
+|Why it breaks
+
+|UI login flow
+|Not available
+|The {registry} web console uses `oidc-client-ts`, which requires OIDC discovery (`/.well-known/openid-configuration`).
+
+|Principal identity
+|Not available
+|The username cannot be extracted because it may be nested in a non-standard location in the token. {registry} expects flat top-level claims.
+
+|Owner-based authorization
+|Not available
+|Depends on principal identity, which is empty when the provider does not expose standard claims.
+|===
+
+By deploying Dex between {registry} and your identity provider, all three features work because Dex exposes standard OIDC discovery, issues JWTs with standard claims (`sub`, `name`, `email`, `groups`), and provides a standard JWKS endpoint.
+
+.Prerequisites
+* A {kubernetes} cluster with Helm 3.x installed.
+* {registry} is installed and running.
+* Access to the upstream identity provider you want to integrate (for example, OpenShift, LDAP, or GitHub).
+
+.Procedure
+
+. Deploy Dex on your cluster by using Helm:
++
+[source,bash]
+----
+helm repo add dex https://charts.dexidp.io
+helm repo update
+{kubernetes-client} create namespace dex
+----
+
+. Create a Helm values file named `dex-values.yaml` with the following content. Replace the placeholder values with your actual configuration.
++
+{registry} needs two OAuth clients: a public client for the browser-based UI (which cannot hold a secret) and a confidential client for the backend and CLI. You must also configure `allowedOrigins` so the UI can fetch the Dex OIDC discovery endpoint via CORS.
++
+[source,yaml]
+----
+config:
+  issuer: https://dex.<cluster-domain>
+
+  storage:
+    type: kubernetes
+    config:
+      inCluster: true
+
+  web:
+    http: 0.0.0.0:5556
+    # CORS: Required so the Apicurio UI (oidc-client-ts) can fetch
+    # /.well-known/openid-configuration from a different origin.
+    allowedOrigins:
+      - "https://<registry-ui-route>"
+
+  oauth2:
+    skipApprovalScreen: true
+    responseTypes: [code, token, id_token]
+
+  # Two clients are needed:
+  # - A PUBLIC client for the browser UI (oidc-client-ts cannot hold secrets)
+  # - A CONFIDENTIAL client for CLI/API token exchange
+  staticClients:
+    - id: apicurio-registry-ui
+      name: Apicurio Registry UI
+      public: true
+      redirectURIs:
+        - "https://<registry-ui-route>/"
+        - "https://<registry-ui-route>/dashboard"
+    - id: apicurio-registry
+      name: Apicurio Registry API
+      secret: <GENERATE_A_SECURE_SECRET>
+      redirectURIs:
+        - "https://<registry-ui-route>/"
+        - "https://<registry-app-route>/"
+
+  connectors: []  # Configure in the next step
+
+ingress:
+  enabled: true
+  hosts:
+    - host: dex.<cluster-domain>
+      paths:
+        - path: /
+          pathType: Prefix
+----
++
+IMPORTANT: The UI client must be `public: true` because the browser-based authorization code flow with PKCE cannot securely store a client secret. If you use a single confidential client for both UI and backend, the UI login will fail with `invalid_client` errors. The `/dashboard` redirect URI is needed because the {registry} UI redirects there after login.
++
+NOTE: When generating the client secret, avoid special characters such as `+`, `/`, or `=` that may cause URL encoding mismatches. Use `openssl rand -base64 32 | tr -d '+/=' | head -c 32` to generate a safe secret.
++
+ifdef::apicurio-registry[]
+On OpenShift, create a Route instead of using Ingress:
++
+[source,bash]
+----
+oc create route edge dex --service=dex --port=5556 --hostname=dex.<cluster-domain> --namespace=dex
+----
+endif::[]
+
+. Install Dex by using Helm:
++
+[source,bash]
+----
+helm install dex dex/dex -n dex -f dex-values.yaml
+----
+
+. Verify that OIDC discovery is available:
++
+[source,bash]
+----
+curl -sk https://dex.<cluster-domain>/.well-known/openid-configuration | jq .issuer
+# Expected: "https://dex.<cluster-domain>"
+----
+
+. Configure a connector for your upstream identity provider. Add the connector configuration to the `connectors` section in your `dex-values.yaml` file. See xref:registry-security-dex-connectors[Dex connector examples] for configuration examples.
+
+. After updating the connector configuration, upgrade the Dex Helm release:
++
+[source,bash]
+----
+helm upgrade dex dex/dex -n dex -f dex-values.yaml
+----
+
+. In your {registry} deployment, set the following environment variables to configure authentication using Dex:
++
+.Configuration for {registry} authentication with Dex
+[.table-expandable,width="100%",cols="5,6,2,4",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+
+|`QUARKUS_OIDC_TENANT_ENABLED`
+|Enables authentication for {registry}. When set to `true`, the environment variables that follow are required.
+|String
+|`false`
+
+|`QUARKUS_OIDC_AUTH_SERVER_URL`
+|The URL of the Dex OIDC server. For example, `\https://dex.example.com`.
+|String
+|-
+
+|`QUARKUS_OIDC_CLIENT_ID`
+|The client ID for the {registry} REST API. Must match the public client ID (`apicurio-registry-ui`) so the backend accepts tokens issued by Dex for the UI.
+|String
+|`registry-api`
+
+|`APICURIO_UI_AUTH_OIDC_CLIENT_ID`
+|The client ID for the {registry} web console. Must match the public Dex static client.
+|String
+|`apicurio-registry`
+
+|`QUARKUS_OIDC_AUTHENTICATION_SCOPES`
+|The OIDC scopes to request. Must include `groups` so that Dex includes group membership in the token.
+|String
+|`openid`
+
+|`QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH`
+|The JWT claim path where roles are stored. Dex passes upstream group membership in the `groups` claim.
+|String
+|-
+
+|`QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM`
+|The JWT claim to use as the principal identity for artifact ownership. Set to `email` because Dex populates this as a flat top-level claim.
+|String
+|`sub`
+
+|`APICURIO_UI_AUTH_OIDC_SCOPE`
+|The OIDC scopes requested by the {registry} web console. Must include `groups` so that the UI token contains group membership for role-based authorization.
+|String
+|`openid profile email`
+|===
++
+For example, when using Dex, set these values:
++
+[source,properties]
+----
+QUARKUS_OIDC_TENANT_ENABLED=true
+QUARKUS_OIDC_AUTH_SERVER_URL=https://dex.example.com
+QUARKUS_OIDC_CLIENT_ID=apicurio-registry-ui
+APICURIO_UI_AUTH_OIDC_CLIENT_ID=apicurio-registry-ui
+QUARKUS_OIDC_AUTHENTICATION_SCOPES=openid,email,profile,groups
+QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH=groups
+QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM=email
+APICURIO_UI_AUTH_OIDC_SCOPE=openid profile email groups
+----
++
+IMPORTANT: Both `QUARKUS_OIDC_CLIENT_ID` and `APICURIO_UI_AUTH_OIDC_CLIENT_ID` must be set to the public client ID (`apicurio-registry-ui`). If they do not match, the backend will reject tokens issued for a different audience with `InvalidJwtSignatureException` errors.
+
+. Configure role-based authorization. Dex passes upstream group membership in the `groups` claim. Map your upstream groups to {registry} roles:
++
+.Configuration for {registry} role-based authorization with Dex
+[.table-expandable,width="100%",cols="5,6,2,4",options="header"]
+|===
+|Environment variable
+|Description
+|Type
+|Default
+
+|`APICURIO_AUTH_ROLE_BASED_AUTHORIZATION`
+|Enables role-based authorization in {registry}.
+|Boolean
+|`false`
+
+|`APICURIO_AUTH_ROLE_SOURCE`
+|Where to get user roles. Set to `token` to read from the JWT.
+|String
+|`token`
+
+|`APICURIO_AUTH_ROLES_ADMIN`
+|The upstream group name that grants admin access.
+|String
+|`sr-admin`
+
+|`APICURIO_AUTH_ROLES_DEVELOPER`
+|The upstream group name that grants developer access.
+|String
+|`sr-developer`
+
+|`APICURIO_AUTH_ROLES_READONLY`
+|The upstream group name that grants read-only access.
+|String
+|`sr-readonly`
+|===
++
+The mapping between upstream provider groups and {registry} roles works as follows:
++
+.Group-to-role mapping example
+[.table-expandable,width="100%",cols="3,3,3,3",options="header"]
+|===
+|Upstream group
+|Dex passes as
+|CR role config
+|{registry} role
+
+|`registry-admins`
+|`registry-admins`
+|`admin: registry-admins`
+|Admin
+
+|`registry-developers`
+|`registry-developers`
+|`developer: registry-developers`
+|Developer
+
+|`registry-readers`
+|`registry-readers`
+|`readOnly: registry-readers`
+|Read-Only
+|===
+
+. Enable owner-based authorization. Because Dex provides proper principal identity through the `email` claim, owner-based authorization works correctly:
++
+[source,properties]
+----
+APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION=true
+----
++
+With this setting, only the user who created an artifact can modify or delete it. For more details on owner-only authorization, see xref:registry-security-obac-enabled[].
+
+. If you are using the {registry} Operator on {kubernetes}, you can configure all of the above in the `ApicurioRegistry3` custom resource. The `spec.app.auth` section covers the standard OIDC settings, and Dex-specific properties must be set using `spec.app.env`. Use `spec.app.ingress` with TLS annotations instead of the bare `host` field:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: apicurio-registry
+  namespace: apicurio-registry
+spec:
+  app:
+    ingress:
+      host: apicurio-registry-app-apicurio-registry.apps.<cluster-domain>
+      # On OpenShift, this annotation enables edge TLS termination on the Route,
+      # so the app is served over HTTPS with automatic HTTP -> HTTPS redirect.
+      annotations:
+        route.openshift.io/termination: edge
+    auth:
+      enabled: true
+      # Both must point to the PUBLIC Dex client so the backend accepts
+      # tokens with aud=apicurio-registry-ui issued by the browser flow.
+      appClientId: apicurio-registry-ui
+      uiClientId: apicurio-registry-ui
+      authServerUrl: "https://dex.<cluster-domain>"
+      # Explicit redirect URI prevents oidc-client-ts from using the current
+      # page URL (which may contain stale ?code=...&state=... query params),
+      # fixing silent token refresh failures.
+      redirectUri: "https://<registry-ui-route>/"
+      anonymousReadsEnabled: true
+      tls:
+        tlsVerificationType: "none"
+      authz:
+        enabled: true
+        readAccessEnabled: true
+        ownerOnlyEnabled: true
+        groupAccessEnabled: false
+        roles:
+          source: token
+          admin: "registry-admins"
+          developer: "registry-developers"
+          readOnly: "registry-readers"
+        adminOverride:
+          enabled: true
+          from: token
+          type: role
+          role: "registry-admins"
+    env:
+      - name: QUARKUS_OIDC_AUTHENTICATION_SCOPES
+        value: "openid,email,profile,groups"
+      - name: QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH
+        value: "groups"
+      - name: QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM
+        value: "email"
+      # The UI scope defaults to "openid profile email" which does NOT include
+      # groups. Without this, Dex won't include group membership in the token
+      # and RBAC will deny all write operations.
+      - name: APICURIO_UI_AUTH_OIDC_SCOPE
+        value: "openid profile email groups"
+  ui:
+    ingress:
+      host: apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>
+      annotations:
+        route.openshift.io/termination: edge
+    env:
+      # The operator hardcodes http:// for REGISTRY_API_URL.
+      # Override it to use HTTPS since we enabled edge TLS on the app route.
+      - name: REGISTRY_API_URL
+        value: "https://apicurio-registry-app-apicurio-registry.apps.<cluster-domain>/apis/registry/v3"
+----
++
+There are a few important details in this CR:
++
+*Two-client architecture* — Both `appClientId` and `uiClientId` are set to `apicurio-registry-ui` (the public Dex client). The browser-based UI uses `oidc-client-ts`, which cannot securely hold a client secret. If you use a confidential client for the UI, the token exchange will fail with `Invalid client credentials`. The backend validates JWT signatures via the JWKS endpoint and does not need a client secret. The separate confidential client (`apicurio-registry`) is kept for CLI/API token exchange via curl or scripts.
++
+*UI scope with `groups`* — The `APICURIO_UI_AUTH_OIDC_SCOPE` env var adds `groups` to the scope the UI requests from Dex. Without this, the default scope (`openid profile email`) does not include groups, and Dex will not put group membership in the token. RBAC then denies all write operations because it cannot determine the user's role. This has been verified on a live cluster with Dex v2.45.1 and the OpenShift connector: tokens include the `groups` claim with the user's OpenShift group memberships, and {registry} successfully resolves roles for RBAC authorization.
++
+*Explicit `redirectUri`* — Without this, `oidc-client-ts` uses `window.location.href` as the redirect URI for silent token refresh. After the initial login, the URL may still contain `?code=...&state=...` query parameters, which do not match any registered redirect URI in Dex, causing a 400 error.
++
+NOTE: A complete example CR is available in the link:{attachmentsdir}/apicurio-registry-dex-cr.yaml[Dex example CR].
+
+. Verify that all features work correctly:
++
+[source,bash]
+----
+# Verify OIDC discovery
+curl -sk https://dex.<cluster-domain>/.well-known/openid-configuration | jq .issuer
+
+# Verify anonymous read access (if enabled)
+curl -sk https://<registry-app-route>/apis/registry/v3/system/info
+
+# Verify UI login — open in browser and authenticate via your upstream provider
+# https://<registry-ui-route>
+
+# Verify principal identity — artifacts should have an owner
+curl -sk https://<registry-app-route>/apis/registry/v3/groups/my-group \
+  -H "Authorization: Bearer $TOKEN" | jq .owner
+# Expected: the user's email address, NOT empty
+----
+
+[discrete]
+[id="registry-security-dex-connectors"]
+=== Dex connector examples
+
+Dex supports many upstream identity providers via pluggable connectors. The following examples show how to configure the most common connectors.
+
+ifdef::apicurio-registry[]
+[discrete]
+==== OpenShift connector
+
+First, create an OAuthClient for Dex on your OpenShift cluster:
+
+[source,bash]
+----
+CLIENT_SECRET=$(openssl rand -base64 32 | tr -d '=' | head -c 32)
+
+cat <<EOF | oc apply -f -
+apiVersion: oauth.openshift.io/v1
+kind: OAuthClient
+metadata:
+  name: dex
+grantMethod: auto
+secret: "$CLIENT_SECRET"
+redirectURIs:
+  - "https://dex.<cluster-domain>/callback"
+EOF
+----
+
+Then add the connector to your `dex-values.yaml`:
+
+[source,yaml]
+----
+connectors:
+  - type: openshift
+    id: openshift
+    name: OpenShift
+    config:
+      issuer: https://api.<cluster-domain>:6443
+      clientID: dex
+      clientSecret: "<CLIENT_SECRET>"
+      redirectURI: https://dex.<cluster-domain>/callback
+      groups:
+        - registry-admins
+        - registry-developers
+        - registry-readers
+      insecureCA: true  # Set to false in production and configure proper CA
+----
+endif::[]
+
+[discrete]
+==== LDAP connector
+
+[source,yaml]
+----
+connectors:
+  - type: ldap
+    id: ldap
+    name: LDAP
+    config:
+      host: ldap.example.com:636
+      bindDN: cn=admin,dc=example,dc=com
+      bindPW: <bind-password>
+      userSearch:
+        baseDN: ou=users,dc=example,dc=com
+        filter: "(objectClass=person)"
+        username: uid
+        idAttr: uid
+        emailAttr: mail
+        nameAttr: cn
+      groupSearch:
+        baseDN: ou=groups,dc=example,dc=com
+        filter: "(objectClass=groupOfNames)"
+        userMatchers:
+          - userAttr: DN
+            groupAttr: member
+        nameAttr: cn
+----
+
+[discrete]
+==== GitHub connector
+
+[source,yaml]
+----
+connectors:
+  - type: github
+    id: github
+    name: GitHub
+    config:
+      clientID: <github-oauth-app-client-id>
+      clientSecret: <github-oauth-app-client-secret>
+      redirectURI: https://dex.<cluster-domain>/callback
+      orgs:
+        - name: your-organization
+          teams:
+            - registry-admins
+            - registry-developers
+----
+
+[discrete]
+==== Microsoft Azure AD connector
+
+[source,yaml]
+----
+connectors:
+  - type: microsoft
+    id: microsoft
+    name: Microsoft
+    config:
+      clientID: <azure-app-client-id>
+      clientSecret: <azure-app-client-secret>
+      redirectURI: https://dex.<cluster-domain>/callback
+      tenant: <azure-tenant-id>
+      groups:
+        - <registry-admins-group-uuid>
+        - <registry-developers-group-uuid>
+----
+
+[discrete]
+==== SAML 2.0 connector
+
+[source,yaml]
+----
+connectors:
+  - type: saml
+    id: saml
+    name: Corporate SSO
+    config:
+      ssoURL: https://idp.example.com/sso
+      ca: /etc/dex/saml-ca.crt
+      redirectURI: https://dex.<cluster-domain>/callback
+      usernameAttr: name
+      emailAttr: email
+      groupsAttr: groups
+----
+
+NOTE: Dex supports using multiple connectors simultaneously. This enables federation across multiple identity providers, allowing users from different organizations or systems to authenticate to {registry} through a single Dex instance.
+
+[discrete]
+[id="registry-security-dex-m2m"]
+=== Machine-to-machine (M2M) access and Kafka SerDes
+
+The configuration above covers the browser-based UI flow. For CI/CD pipelines, Kafka SerDes, and services that need to interact with the {registry} API without a browser, additional considerations apply.
+
+[discrete]
+==== Dex `client_credentials` support (unreleased as of v2.45.1)
+
+Dex added `client_credentials` support via link:https://github.com/dexidp/dex/pull/4583[PR #4583] (merged March 3, 2026), but this feature is *not included in Dex v2.45.1* — the latest stable release at time of writing. It will ship in v2.46.0 or later.
+
+NOTE: To test before a stable release, use the `dexidp/dex:master` image from Docker Hub (rebuilt daily by Dex CI). For production, wait for v2.46.0+.
+
+Enable it by setting an environment variable on the Dex deployment:
+
+[source,yaml]
+----
+# In the Dex Deployment spec (requires Dex master or >= v2.46.0)
+env:
+  - name: DEX_CLIENT_CREDENTIAL_GRANT_ENABLED_BY_DEFAULT
+    value: "true"
+----
+
+Then use the confidential client to obtain a token:
+
+[source,bash]
+----
+TOKEN_RESPONSE=$(curl -s -X POST "https://dex.<cluster-domain>/token" \
+  --data-urlencode "grant_type=client_credentials" \
+  --data-urlencode "client_id=apicurio-registry" \
+  --data-urlencode "client_secret=<CLIENT_SECRET>" \
+  --data-urlencode "scope=openid profile")
+
+ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r .access_token)
+----
+
+IMPORTANT: Even with `client_credentials` working, the tokens *do not include the `groups` claim*. The `groups` scope is accepted but no groups are populated because there is no upstream connector or user in the `client_credentials` flow — the token is built solely from the static client definition, which has no group membership. Since {registry} uses `groups` for RBAC, M2M clients authenticating via `client_credentials` will have no assigned role.
+
+.M2M access with Dex `client_credentials`
+[.table-expandable,width="100%",cols="4,2,6",options="header"]
+|===
+|Scenario
+|Works?
+|Why
+
+|SerDes reading schemas (with `anonymousReadsEnabled: true`)
+|Yes
+|Anonymous reads bypass authentication entirely.
+
+|SerDes registering schemas
+|No
+|No role in token means write access is denied.
+
+|CI/CD creating artifacts
+|No
+|No role in token means write access is denied.
+|===
+
+[discrete]
+==== Recommended approach for Kafka SerDes
+
+For the most common Kafka use case — *consumers fetching schemas* — you do not need `client_credentials` at all. Set `anonymousReadsEnabled: true` in the {registry} CR and the SerDes can read schemas without any token. This is the recommended approach for read-heavy workloads.
+
+For *schema registration* (typically done by developers or CI/CD, not by Kafka producers at runtime), use the authorization code flow with the confidential client and a service user that has the right groups.
+
+[discrete]
+==== Upcoming fix: groups on static clients
+
+The lack of groups in `client_credentials` tokens has been reported in link:https://github.com/dexidp/dex/issues/4690[dexidp/dex#4690], and a fix has been submitted in link:https://github.com/dexidp/dex/pull/4691[dexidp/dex#4691]. The fix adds a `clientCredentialsClaims` sub-struct to static client definitions, keeping identity attributes separate from core client fields:
+
+[source,yaml]
+----
+staticClients:
+  - id: apicurio-registry
+    secret: "..."
+    clientCredentialsClaims:
+      groups: ["registry-admins"]   # included in client_credentials tokens
+----
+
+Track the PR for when this lands in a stable Dex release.
+
+[discrete]
+==== When to use {keycloak} instead
+
+If your deployment requires M2M *write access* with proper RBAC — for example, if Kafka producers register schemas at runtime, or if you have many CI/CD pipelines that need different permission levels — use {keycloak} (or Auth0, Azure AD) instead of Dex. These providers support service account roles natively, so `client_credentials` tokens include all the claims {registry} needs.
+
+Dex is the right choice when:
+
+* Your upstream IdP is non-OIDC-compliant (OpenShift OAuth, LDAP, SAML)
+* You primarily need user-facing auth (UI login, principal identity, owner-based authz)
+* M2M workloads are read-only (SerDes consumers with anonymous reads)
+
+[discrete]
+=== Dex production considerations
+
+When running Dex in production, consider the following:
+
+* *TLS*: Configure Dex with proper TLS via Ingress termination or its own certificate. In the {registry} CR, set `spec.app.auth.tls.tlsVerificationType` to `certificate` and provide a truststore if using a private CA.
+* *High availability*: Run multiple Dex replicas. For better HA, switch Dex's storage backend from Kubernetes CRDs to PostgreSQL.
+* *Network policies*: Restrict access so that only {registry} pods and the ingress controller can reach Dex. Ensure Dex can reach your upstream identity providers.
+* *Secret management*: Store the Dex client secret securely using {kubernetes} Secrets or a secrets manager such as HashiCorp Vault.
+
+[discrete]
+=== Dex troubleshooting
+
+* *"Invalid client credentials" on UI login*: The UI (`oidc-client-ts`) runs in the browser and cannot send a client secret. Use a *public* Dex client (`public: true`, no secret) for the UI. A confidential client will always fail.
+* *403 Forbidden on API calls after UI login*: Two common causes: (1) *Audience mismatch* — the UI gets tokens with `aud: "apicurio-registry-ui"` but the backend expects `aud: "apicurio-registry"`. Fix: set both `appClientId` and `uiClientId` to the same public client ID. (2) *Missing `groups` scope* — the default UI scope does not include `groups`. Fix: set `APICURIO_UI_AUTH_OIDC_SCOPE` to `openid profile email groups`.
+* *Groups not appearing in the token*: Verify that both `QUARKUS_OIDC_AUTHENTICATION_SCOPES` (backend) and `APICURIO_UI_AUTH_OIDC_SCOPE` (UI) include `groups`. Decode the JWT to inspect: `echo $TOKEN | cut -d. -f2 | base64 -d | jq .`
+* *"Unregistered redirect_uri" on page refresh*: The UI redirects to `/dashboard` after login. Add `\https://<registry-ui-route>/dashboard` to the Dex client's redirect URIs.
+* *Silent token refresh returns 400*: `oidc-client-ts` uses the current page URL (with stale `?code=...&state=...` params) as the redirect URI. Fix: set `redirectUri` explicitly in the {registry} CR auth config.
+* *"No end session endpoint" on logout*: Dex does not implement OIDC RP-Initiated Logout. The local session is still cleared, but `signoutRedirect` fails. This is a known Dex limitation — the error is non-blocking.
+* *CORS errors in browser console*: The UI cannot fetch `/.well-known/openid-configuration` from Dex. Add the UI route origin to `web.allowedOrigins` in the Dex config.
+* *`InvalidJwtSignatureException` after Dex restart*: Dex generates new signing keys on restart. Old tokens become invalid. Users must re-authenticate. For production, configure persistent signing keys.
+* *`invalid_client` when exchanging authorization code*: If the client secret contains special characters (`+`, `/`, `=`), use `--data-urlencode` instead of `-d` in curl.
+* *Owner field is empty*: Check that `QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM` is set to a claim that Dex populates, such as `email`, `name`, or `sub`.
+* *UI redirects to Dex but gets an error*: Check Dex logs (`{kubernetes-client} logs -n dex deploy/dex`). This is usually a redirect URI mismatch or connector misconfiguration.
+* *`client_credentials` returns `unsupported_grant_type`*: This grant type was added in link:https://github.com/dexidp/dex/pull/4583[Dex PR #4583] (merged March 3, 2026) but is not included in v2.45.1 or earlier. You need Dex >= v2.46.0 or a build from `master`.
+* *"OIDC Server is not available"*: The {registry} pod cannot reach Dex. Check DNS resolution, network policies, and TLS trust configuration.
+
+[role="_additional-resources"]
+.Additional resources
+* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].
+* For a complete list of supported connectors, see the link:https://dexidp.io/docs/connectors/[Dex connectors documentation].
+* For details on Dex deployment and configuration, see the link:https://dexidp.io/docs/[Dex documentation].
 
 
 

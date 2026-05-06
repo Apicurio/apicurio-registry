@@ -8,7 +8,7 @@ To create your {registry} instance deployment, use the SQL database storage opti
 * You have a PostgreSQL database that is reachable from your OpenShift cluster.  
 
 .Procedure
-. Open the `examples/apicurioregistry_sql_cr.yaml` file in an editor and view the `ApicurioRegistry` custom resource (CR):
+. Open the `examples/apicurioregistry_sql_cr.yaml` file in an editor and view the `ApicurioRegistry3` custom resource (CR):
 +
 .Example CR for SQL storage
 [source,yaml]
@@ -22,11 +22,13 @@ include::example$/apicurioregistry_sql_cr.yaml[]
 ----
 dataSource:
     url: "jdbc:postgresql://postgresql.apicurio-registry.svc:5432/registry"
-    userName: "pgadmin"
-    password: "pgpass"
+    username: "pgadmin"
+    password:
+      name: db-credentials
+      key: password
 ----
 
-. Enter the following commands to apply the updated `ApicurioRegistry` CR in the namespace with the {registry} Operator, and wait for the {registry} instance to deploy:
+. Enter the following commands to apply the updated `ApicurioRegistry3` CR in the namespace with the {registry} Operator, and wait for the {registry} instance to deploy:
 +
 [source,bash]
 ----

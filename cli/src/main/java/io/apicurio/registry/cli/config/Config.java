@@ -3,6 +3,9 @@ package io.apicurio.registry.cli.config;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.Output;
+import io.quarkus.runtime.StartupEvent;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,16 +20,14 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static java.lang.System.err;
 import static java.lang.System.out;
 
-public final class Config {
+@ApplicationScoped
+public class Config {
 
-    private static Config instance;
-
-    public static synchronized Config getInstance() {
-        if (instance == null) {
-            instance = new Config();
-        }
-        return instance;
-    }
+    /**
+     * Static reference for use by {@link AcrHomeConfigSource}, which is loaded via SPI
+     * before CDI is available. Commands should use {@code @Inject Config} instead.
+     */
+    static Config instance;
 
     private ConfigModel cachedConfig;
 
@@ -43,7 +44,8 @@ public final class Config {
 
     private final Map<String, String> envOverrides = new HashMap<>();
 
-    private Config() {
+    void onStart(@Observes StartupEvent ev) {
+        instance = this;
     }
 
     /**
@@ -116,5 +118,16 @@ public final class Config {
         } catch (IOException ex) {
             throw new CliException("Could not write config file '%s'.".formatted(configPath), ex, APPLICATION_ERROR_RETURN_CODE);
         }
+    }
+
+    /**
+     * Resets cached state. Should be called between tests to avoid interference.
+     */
+    public void reset() {
+        cachedConfig = null;
+        stdOut = out::print;
+        stdErr = err::print;
+        acrCurrentHomePath = null;
+        envOverrides.clear();
     }
 }

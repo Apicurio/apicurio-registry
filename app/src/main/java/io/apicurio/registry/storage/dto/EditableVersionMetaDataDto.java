@@ -11,6 +11,10 @@ import lombok.ToString;
 
 import java.util.Map;
 
+/**
+ * Data transfer object representing the user-editable subset of artifact version metadata. This includes
+ * fields that can be modified after version creation, such as name, description, labels, and state.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

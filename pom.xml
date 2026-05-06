@@ -226,7 +226,7 @@
     <netty.version>4.1.132.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
-    <debezium.version>2.7.4.Final</debezium.version>
+    <debezium.version>3.5.0.Final</debezium.version>
     <pulsar-clients.version>4.2.1</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 

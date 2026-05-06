@@ -1,6 +1,6 @@
 package models
 
-// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
+// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET
 type VersionState int
 
 const (
@@ -8,10 +8,11 @@ const (
 	DISABLED_VERSIONSTATE
 	DEPRECATED_VERSIONSTATE
 	DRAFT_VERSIONSTATE
+	SUNSET_VERSIONSTATE
 )
 
 func (i VersionState) String() string {
-	return []string{"ENABLED", "DISABLED", "DEPRECATED", "DRAFT"}[i]
+	return []string{"ENABLED", "DISABLED", "DEPRECATED", "DRAFT", "SUNSET"}[i]
 }
 func ParseVersionState(v string) (any, error) {
 	result := ENABLED_VERSIONSTATE
@@ -24,6 +25,8 @@ func ParseVersionState(v string) (any, error) {
 		result = DEPRECATED_VERSIONSTATE
 	case "DRAFT":
 		result = DRAFT_VERSIONSTATE
+	case "SUNSET":
+		result = SUNSET_VERSIONSTATE
 	default:
 		return nil, nil
 	}

@@ -326,6 +326,31 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String OTEL_ENABLED = "apicurio.registry.otel.enabled";
     public static final boolean OTEL_ENABLED_DEFAULT = false;
 
+    /**
+     * If {@code true}, enables opt-in usage telemetry. On each schema resolution cache miss, a
+     * lightweight event is sent to the registry recording schema coordinates and client identity.
+     */
+    public static final String USAGE_TELEMETRY_ENABLED = "apicurio.registry.usage-telemetry.enabled";
+    public static final boolean USAGE_TELEMETRY_ENABLED_DEFAULT = false;
+
+    /**
+     * Identifier for the client application reporting usage telemetry. Required when
+     * {@link #USAGE_TELEMETRY_ENABLED} is true.
+     */
+    public static final String USAGE_TELEMETRY_CLIENT_ID = "apicurio.registry.usage-telemetry.client-id";
+
+    /**
+     * Interval in milliseconds between automatic flushes of buffered usage telemetry events.
+     */
+    public static final String USAGE_TELEMETRY_FLUSH_INTERVAL_MS = "apicurio.registry.usage-telemetry.flush-interval-ms";
+    public static final long USAGE_TELEMETRY_FLUSH_INTERVAL_MS_DEFAULT = 60000;
+
+    /**
+     * Maximum number of events to buffer before triggering an early flush.
+     */
+    public static final String USAGE_TELEMETRY_BUFFER_SIZE = "apicurio.registry.usage-telemetry.buffer-size";
+    public static final int USAGE_TELEMETRY_BUFFER_SIZE_DEFAULT = 50;
+
     public String getRegistryUrl() {
         String registryUrl = getString(REGISTRY_URL);
         if (registryUrl != null) {
@@ -541,6 +566,28 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getBoolean(OTEL_ENABLED);
     }
 
+    public boolean isUsageTelemetryEnabled() {
+        return getBooleanOrFalse(USAGE_TELEMETRY_ENABLED);
+    }
+
+    public String getUsageTelemetryClientId() {
+        return getString(USAGE_TELEMETRY_CLIENT_ID);
+    }
+
+    public long getUsageTelemetryFlushIntervalMs() {
+        return getLongNonNegative(USAGE_TELEMETRY_FLUSH_INTERVAL_MS);
+    }
+
+    public int getUsageTelemetryBufferSize() {
+        Object value = getObject(USAGE_TELEMETRY_BUFFER_SIZE);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        } else if (value instanceof String) {
+            return Integer.parseInt((String) value);
+        }
+        return USAGE_TELEMETRY_BUFFER_SIZE_DEFAULT;
+    }
+
     @Override
     protected Map<String, ?> getDefaults() {
         return DEFAULTS;
@@ -564,5 +611,8 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(TLS_TRUST_ALL, TLS_TRUST_ALL_DEFAULT),
             entry(TLS_VERIFY_HOST, TLS_VERIFY_HOST_DEFAULT),
             entry(HTTP_ADAPTER, HTTP_ADAPTER_DEFAULT),
-            entry(OTEL_ENABLED, OTEL_ENABLED_DEFAULT));
+            entry(OTEL_ENABLED, OTEL_ENABLED_DEFAULT),
+            entry(USAGE_TELEMETRY_ENABLED, USAGE_TELEMETRY_ENABLED_DEFAULT),
+            entry(USAGE_TELEMETRY_FLUSH_INTERVAL_MS, USAGE_TELEMETRY_FLUSH_INTERVAL_MS_DEFAULT),
+            entry(USAGE_TELEMETRY_BUFFER_SIZE, USAGE_TELEMETRY_BUFFER_SIZE_DEFAULT));
 }

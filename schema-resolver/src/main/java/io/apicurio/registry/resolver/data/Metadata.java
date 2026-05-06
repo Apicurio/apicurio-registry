@@ -27,4 +27,13 @@ public interface Metadata {
         return null;
     }
 
+    /**
+     * Returns the operation type for usage telemetry (e.g., "SERIALIZE" or "DESERIALIZE").
+     *
+     * @return the operation type, or null if not applicable
+     */
+    default String operation() {
+        return null;
+    }
+
 }

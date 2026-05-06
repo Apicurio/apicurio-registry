@@ -482,7 +482,7 @@
         <configuration>
           <groups>${groups}</groups>
           <forkCount>1</forkCount>
-          <argLine>@{argLine} -Xmx4g</argLine>
+          <argLine>@{argLine} -Xmx5g</argLine>
           <forkedProcessExitTimeoutInSeconds>1800</forkedProcessExitTimeoutInSeconds>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>

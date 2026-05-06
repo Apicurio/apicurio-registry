@@ -170,7 +170,7 @@ public class RegistryClientFacadeFactory {
     private static RegistryClientFacade create_v3(SchemaResolverConfig config, Vertx vertx) {
         RegistryClientOptions clientOptions = buildClientOptions(config, vertx);
         var client = RegistryClientFactory.create(clientOptions);
-        return new RegistryClientFacadeImpl(client);
+        return new RegistryClientFacadeImpl(client, config.getRegistryUrl());
     }
 
     private static RegistryClientFacade create_v2(SchemaResolverConfig config, Vertx vertx) {

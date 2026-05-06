@@ -13,13 +13,20 @@ import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionSortBy;
+import io.apicurio.registry.resolver.telemetry.UsageTelemetryEvent;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
 
@@ -29,10 +36,18 @@ import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
  */
 public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
+    private static final Logger logger = Logger.getLogger(RegistryClientFacadeImpl.class.getName());
+
     private final RegistryClient client;
+    private final String baseUrl;
+
+    public RegistryClientFacadeImpl(RegistryClient client, String baseUrl) {
+        this.client = client;
+        this.baseUrl = baseUrl;
+    }
 
     public RegistryClientFacadeImpl(RegistryClient client) {
-        this.client = client;
+        this(client, null);
     }
 
     @Override
@@ -161,6 +176,53 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
+    }
+
+    @Override
+    public void reportUsageEvents(List<UsageTelemetryEvent> events) {
+        if (baseUrl == null) {
+            logger.warning("Cannot report usage telemetry: registry base URL not configured");
+            return;
+        }
+        try {
+            StringBuilder json = new StringBuilder("{\"events\":[");
+            for (int i = 0; i < events.size(); i++) {
+                if (i > 0) {
+                    json.append(",");
+                }
+                UsageTelemetryEvent e = events.get(i);
+                json.append("{\"clientId\":\"").append(escapeJson(e.getClientId())).append("\"");
+                json.append(",\"groupId\":\"").append(escapeJson(e.getGroupId())).append("\"");
+                json.append(",\"artifactId\":\"").append(escapeJson(e.getArtifactId())).append("\"");
+                json.append(",\"version\":\"").append(escapeJson(e.getVersion())).append("\"");
+                json.append(",\"globalId\":").append(e.getGlobalId());
+                json.append(",\"operation\":\"").append(e.getOperation()).append("\"");
+                json.append(",\"timestamp\":").append(e.getTimestamp());
+                json.append("}");
+            }
+            json.append("]}");
+
+            String url = baseUrl.endsWith("/") ? baseUrl + "admin/usage/events"
+                    : baseUrl + "/admin/usage/events";
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
+                    .build();
+            HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.discarding());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.log(Level.WARNING, "Interrupted while reporting usage telemetry events", e);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to report usage telemetry events to registry", e);
+        }
+    }
+
+    private static String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static List<ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {

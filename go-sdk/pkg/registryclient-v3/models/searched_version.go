@@ -33,7 +33,7 @@ type SearchedVersion struct {
 	name *string
 	// The owner property
 	owner *string
-	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
+	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET
 	state *VersionState
 	// A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
 	version *string
@@ -277,7 +277,7 @@ func (m *SearchedVersion) GetOwner() *string {
 	return m.owner
 }
 
-// GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
+// GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET
 // returns a *VersionState when successful
 func (m *SearchedVersion) GetState() *VersionState {
 	return m.state
@@ -450,7 +450,7 @@ func (m *SearchedVersion) SetOwner(value *string) {
 	m.owner = value
 }
 
-// SetState sets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
+// SetState sets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET
 func (m *SearchedVersion) SetState(value *VersionState) {
 	m.state = value
 }

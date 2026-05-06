@@ -22,6 +22,9 @@ export const VersionStateBadge: FunctionComponent<VersionStateBadgeProps> = (pro
             <If condition={props.version?.state === "DISABLED"}>
                 <Label color="red">Disabled</Label>
             </If>
+            <If condition={props.version?.state === "SUNSET"}>
+                <Label color="purple">Sunset</Label>
+            </If>
             <If condition={props.showEnabled === true && props.version?.state === "ENABLED"}>
                 <Label color="green">Enabled</Label>
             </If>

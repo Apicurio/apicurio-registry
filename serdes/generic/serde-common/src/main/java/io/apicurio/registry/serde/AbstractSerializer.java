@@ -117,7 +117,7 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
 
             if (schema == null) {
                 // Slow path: full resolution
-                SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
+                SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey(), "SERIALIZE");
                 schema = baseSerde.getSchemaResolver()
                         .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
 

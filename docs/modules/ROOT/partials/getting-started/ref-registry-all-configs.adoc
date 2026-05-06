@@ -1666,5 +1666,46 @@ The following {registry} configuration options are available for each component 
 |`${apicurio.config.dynamic.allow-all}`
 |
 |
+|`apicurio.usage.aggregation.every`
+|`unknown`
+|`1h`
+|
+|
+|===
+
+== usage
+.usage configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.usage.active-threshold-days`
+|`int`
+|`7`
+|`3.1.0`
+|Number of days within which a schema is classified as ACTIVE
+|`apicurio.usage.dead-threshold-days`
+|`int`
+|`90`
+|`3.1.0`
+|Number of days after which a schema is classified as DEAD
+|`apicurio.usage.drift-alert-threshold`
+|`int`
+|`2`
+|`3.1.0`
+|Number of versions behind latest before triggering a drift alert
+|`apicurio.usage.stale-threshold-days`
+|`int`
+|`30`
+|`3.1.0`
+|Number of days after which a schema is classified as STALE
+|`apicurio.usage.telemetry.enabled`
+|`boolean`
+|`false`
+|`3.1.0`
+|Enable usage telemetry collection from SerDes clients
 |===
 

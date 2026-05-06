@@ -940,9 +940,17 @@ async function handleTestResult({ github, context, core }) {
 }
 
 async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, core) {
+  const DECISION_KEYS = new Set([
+    'lifecycle-ready', 'run-build', 'run-unit-tests',
+    'run-integration', 'run-extras', 'run-sdk', 'run-cli',
+  ]);
+  const CHANGES_KEYS = new Set(['java', 'ui', 'integration', 'sdk', 'cli', 'ci']);
+  const ALLOWED_VALUES = new Set(['true', 'false', 'skip']);
+  const EXPECTED_FILES = new Set(['verify-decisions.json', 'verify-changes.json']);
+  const MAX_ARTIFACT_BYTES = 10240;
 
   try {
-    // Find the decisions artifact from the workflow run
+    // ── Load decisions from artifact (hardened) ───────────────────────
     const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
       owner, repo, run_id: workflowRun.id,
     });
@@ -951,31 +959,63 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
       core.info(`No verify-decisions artifact found for run ${workflowRun.id}, skipping summary`);
       return;
     }
+    if (artifact.size_in_bytes > MAX_ARTIFACT_BYTES) {
+      core.warning(`Decision artifact too large (${artifact.size_in_bytes} bytes), skipping`);
+      return;
+    }
 
-    // Download and extract artifact
     const { data: zip } = await github.rest.actions.downloadArtifact({
       owner, repo, artifact_id: artifact.id, archive_format: 'zip',
     });
 
-    // Extract zip using Node built-ins
     const os = require('os');
     const { execSync } = require('child_process');
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-decisions-'));
     const zipPath = path.join(tmpDir, 'artifact.zip');
     fs.writeFileSync(zipPath, Buffer.from(zip));
+
+    // Validate zip entries before extracting
+    const listing = execSync(`unzip -l "${zipPath}"`, { encoding: 'utf8' });
+    const entryLines = listing.split('\n').filter(l => l.includes('.json'));
+    for (const line of entryLines) {
+      const entry = line.trim().split(/\s+/).pop();
+      if (entry.includes('..') || path.isAbsolute(entry)) {
+        core.warning(`Suspicious path in artifact: ${entry}, skipping`);
+        return;
+      }
+    }
+
     execSync(`unzip -o "${zipPath}" -d "${tmpDir}"`, { stdio: 'ignore' });
 
-    const decisionsPath = path.join(tmpDir, 'verify-decisions.json');
-    const changesPath = path.join(tmpDir, 'verify-changes.json');
-    if (!fs.existsSync(decisionsPath) || !fs.existsSync(changesPath)) {
-      core.info('Decision artifact missing expected files, skipping summary');
+    // Validate extracted files
+    const jsonFiles = fs.readdirSync(tmpDir).filter(f => f.endsWith('.json') && f !== 'artifact.zip');
+    for (const f of jsonFiles) {
+      if (!EXPECTED_FILES.has(f)) {
+        core.warning(`Unexpected file in artifact: ${f}, skipping`);
+        return;
+      }
+    }
+
+    function parseAndValidate(filePath, allowedKeys) {
+      if (!fs.existsSync(filePath)) return null;
+      const raw = fs.readFileSync(filePath, 'utf8');
+      if (raw.length > 1024) return null;
+      const obj = JSON.parse(raw);
+      if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return null;
+      for (const [key, value] of Object.entries(obj)) {
+        if (!allowedKeys.has(key) || !ALLOWED_VALUES.has(String(value))) return null;
+      }
+      return obj;
+    }
+
+    const decisions = parseAndValidate(path.join(tmpDir, 'verify-decisions.json'), DECISION_KEYS);
+    const changes = parseAndValidate(path.join(tmpDir, 'verify-changes.json'), CHANGES_KEYS);
+    if (!decisions) {
+      core.warning('Decision JSON missing or invalid, skipping summary');
       return;
     }
 
-    const decisions = JSON.parse(fs.readFileSync(decisionsPath, 'utf8'));
-    const changes = JSON.parse(fs.readFileSync(changesPath, 'utf8'));
-
-    // Fetch actual job results from the workflow run
+    // ── Fetch actual job results ──────────────────────────────────────
     const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
       owner, repo, run_id: workflowRun.id, per_page: 100,
     });
@@ -1012,25 +1052,31 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
       `| ${label} | ${icon(decisions[key], jobResult(jobPrefix))} |`
     );
 
-    const body = [
+    const bodyParts = [
       '<!-- verify-decide-summary -->',
       `**Verify — ${conclusion}** ([run](${workflowRun.html_url}))`,
       '',
       '| Phase | Status |',
       '|-------|--------|',
       ...rows,
-      '',
-      '<details><summary>Change detection</summary>',
-      '',
-      Object.entries(changes)
-        .filter(([k]) => ['java', 'ui', 'integration', 'sdk', 'cli', 'ci'].includes(k))
-        .map(([k, v]) => `${k}: \`${v}\``)
-        .join(', '),
-      '</details>',
-    ].join('\n');
+    ];
 
-    // Update existing comment or create new one
-    const { data: comments } = await github.rest.issues.listComments({
+    if (changes) {
+      bodyParts.push(
+        '',
+        '<details><summary>Change detection</summary>',
+        '',
+        Object.entries(changes)
+          .map(([k, v]) => `${k}: \`${v}\``)
+          .join(', '),
+        '</details>',
+      );
+    }
+
+    const body = bodyParts.join('\n');
+
+    // ── Post or update comment (paginated lookup) ────────────────────
+    const comments = await github.paginate(github.rest.issues.listComments, {
       owner, repo, issue_number: prNumber, per_page: 100,
     });
     const existing = comments.find(c => c.body?.includes('<!-- verify-decide-summary -->'));

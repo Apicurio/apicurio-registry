@@ -169,7 +169,7 @@ jobs:
           decide run-cli         "$run_full"  "$CLI"
 
       - name: Save decision summary
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
         run: |
           cat > /tmp/verify-decisions.json <<'DECISIONS_EOF'
           ${{ toJSON(steps.decide.outputs) }}
@@ -179,7 +179,7 @@ jobs:
           CHANGES_EOF
 
       - name: Upload decision summary
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
         uses: actions/upload-artifact@v4
         with:
           name: verify-decisions

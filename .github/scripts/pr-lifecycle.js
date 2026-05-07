@@ -240,6 +240,13 @@ function createApi(github, owner, repo) {
         if (e.status !== 409) throw e;
       }
     },
+
+    getWorkflowRun: async (runId) => {
+      const { data } = await github.rest.actions.getWorkflowRun({
+        owner, repo, run_id: runId,
+      });
+      return data;
+    },
   };
 }
 
@@ -264,7 +271,14 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
   if (run.status === 'in_progress' || run.status === 'queued') {
     core.info(`PR #${pr.number} cancelling in-progress Verify run ${run.id}`);
     await api.cancelWorkflowRun(run.id);
-    await new Promise(r => setTimeout(r, 3000));
+
+    // Wait for the run to fully complete — the Verification Gate job
+    // has `if: always()` and keeps the run alive after cancellation.
+    for (let attempt = 0; attempt < 10; attempt++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const fresh = await api.getWorkflowRun(run.id);
+      if (fresh.status === 'completed') break;
+    }
   }
 
   // Allow label changes to propagate through GitHub's eventually-consistent API

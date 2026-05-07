@@ -38,15 +38,13 @@ import io.apicurio.registry.storage.error.InvalidArtifactStateException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.util.ArtifactTypeUtil;
-import io.apicurio.registry.utils.VersionUtil;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.InternalServerErrorException;
-
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
@@ -62,7 +60,7 @@ import java.util.stream.Collectors;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_VERSION;
 
-@Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
+@Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class SubjectsResourceImpl extends AbstractResource implements SubjectsResource {
 
@@ -70,14 +68,14 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     SchemaFormatService formatService;
 
     private final Cache<GA, Lock> subjectLocks = CacheBuilder.newBuilder()
-            .expireAfterAccess(1, TimeUnit.HOURS) // Evict locks after 1 hour of inactivity
-            .maximumSize(10000) // Limit the cache size to 10,000 locks
-            .build();
+        .expireAfterAccess(1, TimeUnit.HOURS) // Evict locks after 1 hour of inactivity
+        .maximumSize(10000) // Limit the cache size to 10,000 locks
+        .build();
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> getSubjects(String subjectPrefix, Boolean deleted, Boolean deletedOnly,
-            BigInteger offset, BigInteger limit, String groupId) {
+                                    BigInteger offset, BigInteger limit, String groupId) {
         // Since contexts are not supported, subjectPrefix is not used
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
         final boolean fdeletedOnly = deletedOnly == null ? Boolean.FALSE : deletedOnly;
@@ -95,18 +93,18 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         // Handle pagination
         int effectiveOffset = offset != null ? offset.intValue() : 0;
         int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
-                : cconfig.maxSubjects.get();
+            : cconfig.maxSubjects.get();
 
         ArtifactSearchResultsDto searchResults = storage.searchArtifacts(filters, OrderBy.createdOn,
-                OrderDirection.asc, effectiveOffset, effectiveLimit);
+            OrderDirection.asc, effectiveOffset, effectiveLimit);
         Function<SearchedArtifactDto, String> toSubject = SearchedArtifactDto::getArtifactId;
         if (cconfig.groupConcatEnabled) {
             toSubject = (dto) -> toSubjectWithGroupConcat(dto);
         }
 
         return searchResults.getArtifacts().stream()
-                .filter(saDto -> isCcompatManagedType(saDto.getArtifactType())).map(toSubject)
-                .collect(Collectors.toList());
+            .filter(saDto -> isCcompatManagedType(saDto.getArtifactType())).map(toSubject)
+            .collect(Collectors.toList());
     }
 
     @Override
@@ -122,20 +120,20 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             try {
                 ArtifactVersionMetaDataDto amd;
                 amd = lookupSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), request.getSchema(),
-                        request.getReferences(), request.getSchemaType(), fnormalize);
+                    request.getReferences(), request.getSchemaType(), fnormalize);
                 if (amd.getState() != VersionState.DISABLED || fdeleted) {
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
-                            ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
+                        ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
 
                     // Apply default format if configured and no format was explicitly provided
                     String effectiveFormat = format;
                     if (effectiveFormat == null || effectiveFormat.isBlank()) {
                         java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
                         if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                            && "DEREFERENCE".equals(configuredDefault.get())) {
                             // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
                             if (ArtifactType.AVRO.equals(amd.getArtifactType())
-                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
+                                || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
                                 effectiveFormat = "RESOLVED";
                             }
                         }
@@ -144,41 +142,38 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     // Apply format transformation if requested
                     if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
-                                storedArtifact.getReferences());
+                            storedArtifact.getReferences());
                         ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
-                                resolvedReferences);
+                            storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
+                            resolvedReferences);
 
                         StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
-                                .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
-                                .versionOrder(storedArtifact.getVersionOrder())
-                                .contentId(storedArtifact.getContentId()).content(formattedContent)
-                                .references(storedArtifact.getReferences()).build();
+                            .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
+                            .versionOrder(storedArtifact.getVersionOrder())
+                            .contentId(storedArtifact.getContentId()).content(formattedContent)
+                            .references(storedArtifact.getReferences()).build();
                         return converter.convert(ga.getRawArtifactId(), formattedArtifact);
                     }
 
                     return converter.convert(ga.getRawArtifactId(), storedArtifact);
-                }
-                else {
+                } else {
                     throw new SchemaNotFoundException(
-                            String.format("The given schema does not match any schema under the subject %s",
-                                    ga.getRawArtifactId()));
-                }
-            }
-            catch (ArtifactNotFoundException anf) {
-                throw new SchemaNotFoundException(
                         String.format("The given schema does not match any schema under the subject %s",
-                                ga.getRawArtifactId()));
+                            ga.getRawArtifactId()));
+                }
+            } catch (ArtifactNotFoundException anf) {
+                throw new SchemaNotFoundException(
+                    String.format("The given schema does not match any schema under the subject %s",
+                        ga.getRawArtifactId()));
             }
-        }
-        else {
+        } else {
             // If the artifact does not exist there is no need for looking up the schema, just fail.
             throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
         }
     }
 
     @Override
-    @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_ARTIFACT_ID})
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public List<BigInteger> deleteSubject(String subject, Boolean permanent, String groupId) {
@@ -191,28 +186,26 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         List<Long> globalIdsReferencingSubject = storage.getGlobalIdsReferencingArtifact(ga.getRawGroupIdWithDefaultString(), ga.getRawArtifactId());
         if (!globalIdsReferencingSubject.isEmpty()) {
             throw new ReferenceExistsException(String
-                    .format("There are subjects referencing %s", ga.getRawArtifactId()));
+                .format("There are subjects referencing %s", ga.getRawArtifactId()));
         }
 
         final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
         if (fpermanent) {
             return deleteSubjectPermanent(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
-        }
-        else if (isArtifactActive(ga.getRawArtifactId(), ga.getRawGroupIdWithNull())) {
+        } else if (isArtifactActive(ga.getRawArtifactId(), ga.getRawGroupIdWithNull())) {
             return deleteSubjectVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
-        }
-        else {
+        } else {
             // The artifact exist, it's in DISABLED state but the delete request is set to not permanent,
             // throw ex.
             throw new SubjectSoftDeletedException(
-                    String.format("Subject %s is in soft deleted state.", ga.getRawArtifactId()));
+                String.format("Subject %s is in soft deleted state.", ga.getRawArtifactId()));
         }
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public List<BigInteger> getSubjectVersions(String subject, String groupId, Boolean deleted,
-            Boolean deletedOnly, BigInteger offset, BigInteger limit) {
+                                               Boolean deletedOnly, BigInteger offset, BigInteger limit) {
         final GA ga = getGA(groupId, subject);
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
         final boolean fdeletedOnly = deletedOnly == null ? Boolean.FALSE : deletedOnly;
@@ -230,8 +223,12 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         }
 
         rval = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), statesFilter)
-                .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
-                .collect(Collectors.toList());
+            .stream()
+            .map(v -> storage.getArtifactVersionMetaData(ga.getRawGroupIdWithNull(),
+                ga.getRawArtifactId(), v).getVersionOrder())
+            .map(versionOrder -> converter.convertUnsigned((long) versionOrder))
+            .sorted()
+            .collect(Collectors.toList());
 
         // Apply pagination
         int effectiveOffset = offset != null ? offset.intValue() : 0;
@@ -253,7 +250,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
-    @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID })
+    @MethodMetadata(extractParameters = {"0", MPK_ARTIFACT_ID})
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public SchemaId registerSchemaUnderSubject(String subject, Boolean normalize, String format, String groupId, RegisterSchemaRequest request) {
@@ -284,7 +281,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             try {
                 // Try to find an existing, active version with the same content
                 ArtifactVersionMetaDataDto existingDto = lookupSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                        request.getSchema(), request.getReferences(), request.getSchemaType(), fnormalize);
+                    request.getSchema(), request.getReferences(), request.getSchemaType(), fnormalize);
                 if (existingDto.getState().equals(VersionState.DISABLED)) {
                     throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
                 }
@@ -317,15 +314,15 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
             // We validate the schema at creation time by inferring the type from the content
             final String artifactType = ArtifactTypeUtil.determineArtifactType(typedSchemaContent, null,
-                    resolvedReferences, factory);
+                resolvedReferences, factory);
             if (request.getSchemaType() != null && !artifactType.equals(request.getSchemaType())) {
                 throw new UnprocessableEntityException(
-                        String.format("Given schema is not from type: %s", request.getSchemaType()));
+                    String.format("Given schema is not from type: %s", request.getSchemaType()));
             }
 
             return createOrUpdateArtifact(ga.getRawArtifactId(),
-                    request.getSchema(), artifactType, request.getReferences(),
-                    ga.getRawGroupIdWithNull(), fnormalize);
+                request.getSchema(), artifactType, request.getReferences(),
+                ga.getRawGroupIdWithNull(), fnormalize);
         } catch (InvalidArtifactTypeException ex) {
             // If no artifact type can be inferred, throw invalid schema ex
             throw new UnprocessableEntityException(ex.getMessage());
@@ -341,37 +338,36 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
-    @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID, "1", MPK_VERSION })
+    @MethodMetadata(extractParameters = {"0", MPK_ARTIFACT_ID, "1", MPK_VERSION})
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public BigInteger deleteSchemaVersion(String subject, String versionString, Boolean permanent, String groupId) {
         final GA ga = getGA(groupId, subject);
         try {
             if (doesArtifactExist(ga.getRawArtifactId(), ga.getRawGroupIdWithNull())) {
-                return BigInteger.valueOf(VersionUtil.toLong(parseVersionString(ga.getRawArtifactId(), versionString,
-                        ga.getRawGroupIdWithNull(), version -> {
-                            final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
-                            List<Long> globalIdsReferencingSchema = storage
-                                    .getGlobalIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),
-                                            ga.getRawArtifactId(), version);
-                            ArtifactVersionMetaDataDto avmd = storage.getArtifactVersionMetaData(
-                                    ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
-                            if (globalIdsReferencingSchema.isEmpty()
-                                    || areAllSchemasDisabled(globalIdsReferencingSchema)) {
-                                return processDeleteVersion(ga.getRawArtifactId(), versionString,
-                                        ga.getRawGroupIdWithNull(), version, fpermanent, avmd);
-                            } else {
-                                // There are other schemas referencing this one, it cannot be deleted.
-                                throw new ReferenceExistsException(String
-                                        .format("There are subjects referencing %s", ga.getRawArtifactId()));
-                            }
-                        })));
-            }
-            else {
+                return parseVersionString(ga.getRawArtifactId(), versionString,
+                    ga.getRawGroupIdWithNull(), version -> {
+                        final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
+                        List<Long> globalIdsReferencingSchema = storage
+                            .getGlobalIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),
+                                ga.getRawArtifactId(), version);
+                        ArtifactVersionMetaDataDto avmd = storage.getArtifactVersionMetaData(
+                            ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
+                        if (globalIdsReferencingSchema.isEmpty()
+                            || areAllSchemasDisabled(globalIdsReferencingSchema)) {
+                            processDeleteVersion(ga.getRawArtifactId(), versionString,
+                                ga.getRawGroupIdWithNull(), version, fpermanent, avmd);
+                        } else {
+                            // There are other schemas referencing this one, it cannot be deleted.
+                            throw new ReferenceExistsException(String
+                                .format("There are subjects referencing %s", ga.getRawArtifactId()));
+                        }
+                        return BigInteger.valueOf(avmd.getVersionOrder());
+                    });
+            } else {
                 throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
             }
-        }
-        catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException ex) {
             throw new BadRequestException(ex);
         }
     }
@@ -380,21 +376,18 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                                         String version, boolean fpermanent, ArtifactVersionMetaDataDto avmd) {
         if (fpermanent) {
             if (avmd.getState().equals(VersionState.ENABLED)
-                    || avmd.getState().equals(VersionState.DEPRECATED)) {
+                || avmd.getState().equals(VersionState.DEPRECATED)) {
                 throw new SchemaNotSoftDeletedException(String.format(
-                        "Subject %s version %s must be soft deleted first", artifactId, versionString));
-            }
-            else if (avmd.getState().equals(VersionState.DISABLED)) {
+                    "Subject %s version %s must be soft deleted first", artifactId, versionString));
+            } else if (avmd.getState().equals(VersionState.DISABLED)) {
                 storage.deleteArtifactVersion(groupId, artifactId, version);
             }
-        }
-        else {
+        } else {
             if (avmd.getState().equals(VersionState.DISABLED)) {
                 throw new SchemaSoftDeletedException("Schema is already soft deleted");
-            }
-            else {
+            } else {
                 storage.updateArtifactVersionState(groupId, artifactId, version, VersionState.DISABLED,
-                        false);
+                    false);
             }
         }
         return version;
@@ -414,13 +407,13 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         final GA ga = getGA(groupId, subject);
         if (cconfig.legacyIdModeEnabled.get()) {
             return parseVersionString(ga.getRawArtifactId(), versionString, ga.getRawGroupIdWithNull(),
-                    version -> storage.getGlobalIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),
-                            ga.getRawArtifactId(), version)).stream().map(BigInteger::valueOf).collect(Collectors.toList());
+                version -> storage.getGlobalIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),
+                    ga.getRawArtifactId(), version)).stream().map(BigInteger::valueOf).collect(Collectors.toList());
         }
 
         return parseVersionString(ga.getRawArtifactId(), versionString, ga.getRawGroupIdWithNull(),
-                version -> storage.getContentIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),
-                        ga.getRawArtifactId(), version)).stream().map(BigInteger::valueOf).collect(Collectors.toList());
+            version -> storage.getContentIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),
+                ga.getRawArtifactId(), version)).stream().map(BigInteger::valueOf).collect(Collectors.toList());
     }
 
     @Override
@@ -436,11 +429,11 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     /**
      * Gets a schema with optional format transformation.
      *
-     * @param groupId the group ID
-     * @param artifactId the artifact ID
+     * @param groupId       the group ID
+     * @param artifactId    the artifact ID
      * @param versionString the version string
-     * @param deleted whether to include deleted versions
-     * @param format the optional format transformation to apply
+     * @param deleted       whether to include deleted versions
+     * @param format        the optional format transformation to apply
      * @return the schema
      */
     protected Schema getSchema(String groupId, String artifactId, String versionString, boolean deleted,
@@ -448,20 +441,20 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         if (doesArtifactExist(artifactId, groupId) && isArtifactActive(artifactId, groupId)) {
             return parseVersionString(artifactId, versionString, groupId, version -> {
                 ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(groupId, artifactId,
-                        version);
+                    version);
                 if (amd.getState() != VersionState.DISABLED || deleted) {
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(groupId,
-                            artifactId, amd.getVersion());
+                        artifactId, amd.getVersion());
 
                     // Apply default format if configured and no format was explicitly provided
                     String effectiveFormat = format;
                     if (effectiveFormat == null || effectiveFormat.isBlank()) {
                         java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
                         if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                            && "DEREFERENCE".equals(configuredDefault.get())) {
                             // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
                             if (ArtifactType.AVRO.equals(amd.getArtifactType())
-                                    || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
+                                || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
                                 effectiveFormat = "RESOLVED";
                             }
                         }
@@ -470,17 +463,17 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     // Apply format transformation if requested
                     if (effectiveFormat != null && !effectiveFormat.trim().isEmpty()) {
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
-                                storedArtifact.getReferences());
+                            storedArtifact.getReferences());
                         ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
-                                resolvedReferences);
+                            storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
+                            resolvedReferences);
 
                         // Create a new StoredArtifactVersionDto with the formatted content
                         StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
-                                .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
-                                .versionOrder(storedArtifact.getVersionOrder())
-                                .contentId(storedArtifact.getContentId()).content(formattedContent)
-                                .references(storedArtifact.getReferences()).build();
+                            .globalId(storedArtifact.getGlobalId()).version(storedArtifact.getVersion())
+                            .versionOrder(storedArtifact.getVersionOrder())
+                            .contentId(storedArtifact.getContentId()).content(formattedContent)
+                            .references(storedArtifact.getReferences()).build();
                         return converter.convert(artifactId, formattedArtifact, amd.getArtifactType());
                     }
 
@@ -497,11 +490,17 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     private List<BigInteger> deleteSubjectPermanent(String groupId, String artifactId) {
         if (isArtifactActive(artifactId, groupId)) {
             throw new SubjectNotSoftDeletedException(
-                    String.format("Subject %s must be soft deleted first", artifactId));
-        }
-        else {
-            return storage.deleteArtifact(groupId, artifactId).stream().map(VersionUtil::toInteger)
-                    .map(converter::convertUnsigned).collect(Collectors.toList());
+                String.format("Subject %s must be soft deleted first", artifactId));
+        } else {
+            // Collect versionOrder values before hard-deleting — metadata is gone after deleteArtifact.
+            List<BigInteger> result = storage
+                .getArtifactVersions(groupId, artifactId, RegistryStorage.RetrievalBehavior.NON_DRAFT_STATES)
+                .stream()
+                .map(v -> storage.getArtifactVersionMetaData(groupId, artifactId, v).getVersionOrder())
+                .map(converter::convertUnsigned)
+                .collect(Collectors.toList());
+            storage.deleteArtifact(groupId, artifactId);
+            return result;
         }
     }
 
@@ -510,12 +509,14 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         List<String> deletedVersions = storage.getArtifactVersions(groupId, artifactId);
         try {
             deletedVersions.forEach(version -> storage.updateArtifactVersionState(groupId, artifactId,
-                    version, VersionState.DISABLED, false));
-        }
-        catch (InvalidArtifactStateException | InvalidVersionStateException ignored) {
+                version, VersionState.DISABLED, false));
+        } catch (InvalidArtifactStateException | InvalidVersionStateException ignored) {
             log.warn("Invalid artifact state transition", ignored);
         }
-        return deletedVersions.stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
-                .collect(Collectors.toList());
+        return deletedVersions.stream()
+            .map(v -> storage.getArtifactVersionMetaData(groupId, artifactId, v).getVersionOrder())
+            .map(converter::convertUnsigned)
+            .sorted()
+            .collect(Collectors.toList());
     }
 }

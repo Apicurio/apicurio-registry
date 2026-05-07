@@ -271,7 +271,9 @@ public abstract class AbstractResource {
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream().map(schemaReference -> {
                 final ArtifactReferenceDto artifactReferenceDto = new ArtifactReferenceDto();
                 artifactReferenceDto.setArtifactId(schemaReference.getSubject());
-                artifactReferenceDto.setVersion(String.valueOf(schemaReference.getVersion()));
+                String versionString = String.valueOf(schemaReference.getVersion());
+                artifactReferenceDto.setVersion(resolveVersionBySequenceNumber(null,
+                        schemaReference.getSubject(), schemaReference.getVersion(), versionString));
                 artifactReferenceDto.setName(schemaReference.getName());
                 artifactReferenceDto.setGroupId(null);
                 return artifactReferenceDto;
@@ -352,16 +354,18 @@ public abstract class AbstractResource {
     }
 
     // Parse references and resolve the contentId. This will fail with ArtifactNotFound if a reference cannot
-    // be found.
+    // be found. Reference versions are ccompat integer sequence numbers and are resolved to actual version
+    // strings (including artifacts registered with semantic versioning like "v5.1.1").
     protected List<ArtifactReferenceDto> parseReferences(List<SchemaReference> references, String groupId) {
         if (references != null) {
             return references.stream().map(schemaReference -> {
                 // Try to get the artifact version. This will fail if not found with ArtifactNotFound or
                 // VersionNotFound
-                storage.getArtifactVersionMetaData(groupId, schemaReference.getSubject(),
-                        String.valueOf(schemaReference.getVersion()));
-                return new ArtifactReferenceDto(groupId, schemaReference.getSubject(),
-                        String.valueOf(schemaReference.getVersion()), schemaReference.getName());
+                String versionString = String.valueOf(schemaReference.getVersion());
+                String resolvedVersion = resolveVersionBySequenceNumber(groupId,
+                        schemaReference.getSubject(), schemaReference.getVersion(), versionString);
+                return new ArtifactReferenceDto(groupId, schemaReference.getSubject(), resolvedVersion,
+                        schemaReference.getName());
             }).collect(Collectors.toList());
         } else {
             return Collections.emptyList();
@@ -374,9 +378,9 @@ public abstract class AbstractResource {
     }
 
     /**
-     * Given a version string: - if it's a <b>non-negative integer</b>, use that; - if it's a string "latest",
-     * find out and use the subject's (artifact's) latest version; - if it's <b>-1</b>, do the same as
-     * "latest", even though this behavior is undocumented. See
+     * Given a version string: - if it's a <b>non-negative integer</b>, resolve it as a ccompat sequence
+     * number (versionOrder); - if it's a string "latest", find out and use the subject's (artifact's) latest
+     * version; - if it's <b>-1</b>, do the same as "latest", even though this behavior is undocumented. See
      * https://github.com/Apicurio/apicurio-registry/issues/2851 - otherwise throw an
      * IllegalArgumentException. On success, call the "then" function with the parsed version (MUST NOT be
      * null) and return it's result. Optionally provide an "else" function that will receive the exception
@@ -391,7 +395,11 @@ public abstract class AbstractResource {
             try {
                 var numericVersion = Integer.parseInt(versionString);
                 if (numericVersion >= 0) {
-                    version = versionString;
+                    // The ccompat API exposes integer sequence numbers (versionOrder). First try a direct
+                    // version string match (artifacts registered via ccompat with numeric IDs), then fall
+                    // back to resolving by versionOrder (artifacts registered with semantic versioning,
+                    // e.g., "v5.1.1"). See https://github.com/Apicurio/apicurio-registry/issues/7886
+                    version = resolveVersionBySequenceNumber(groupId, subject, numericVersion, versionString);
                 } else if (numericVersion == -1) {
                     version = getLatestArtifactVersionForSubject(subject, groupId);
                 } else {
@@ -402,5 +410,22 @@ public abstract class AbstractResource {
             }
         }
         return then.apply(version);
+    }
+
+    // Resolves a ccompat integer sequence number to the actual stored version string. First checks for a
+    // direct version ID match (numeric versions registered via ccompat), then scans by versionOrder
+    // (artifacts registered with semantic versioning like "v5.1.1").
+    private String resolveVersionBySequenceNumber(String groupId, String artifactId, int sequenceNumber,
+            String versionString) {
+        List<String> versions = storage.getArtifactVersions(groupId, artifactId,
+                RetrievalBehavior.NON_DRAFT_STATES);
+        if (versions.contains(versionString)) {
+            return versionString;
+        }
+        return versions.stream()
+                .filter(v -> storage.getArtifactVersionMetaData(groupId, artifactId, v)
+                        .getVersionOrder() == sequenceNumber)
+                .findFirst()
+                .orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, versionString));
     }
 }

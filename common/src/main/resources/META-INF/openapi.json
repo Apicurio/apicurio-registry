@@ -3006,7 +3006,7 @@
         },
         "operationId": "triggerGitOpsSync",
         "summary": "Trigger GitOps synchronization",
-        "description": "**Experimental.** Requests an immediate synchronization of the GitOps storage. This resets the poll timer so the next scheduler cycle will poll the Git repository without waiting for the configured poll period.\n\nThe synchronization happens asynchronously — this endpoint returns immediately and the actual sync occurs on the next scheduler cycle.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "**Experimental.** Requests an immediate synchronization of the GitOps storage. This resets the poll timer so the next scheduler cycle will poll the Git repository without waiting for the configured poll period.\n\nThe synchronization happens asynchronously \u2014 this endpoint returns immediately and the actual sync occurs on the next scheduler cycle.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
     "/groups/{groupId}/artifacts/{artifactId}": {
@@ -5006,7 +5006,9 @@
             "type": "string"
           }
         },
-        "required": ["detail"]
+        "required": [
+          "detail"
+        ]
       },
       "SystemInfo": {
         "title": "Root Type for SystemInfo",
@@ -5266,6 +5268,13 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "description": "List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "example": {
@@ -5277,7 +5286,11 @@
           "owner": "user1",
           "createdOn": "2019-03-22T12:51:19Z",
           "modifiedBy": "user2",
-          "modifiedOn": "2019-04-01T12:51:19Z"
+          "modifiedOn": "2019-04-01T12:51:19Z",
+          "permissions": [
+            "read",
+            "write"
+          ]
         }
       },
       "VersionMetaData": {
@@ -5440,6 +5453,13 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "description": "List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "example": {
@@ -5453,7 +5473,11 @@
           "owner": "some text",
           "globalId": 37,
           "version": "1.0.7",
-          "contentId": 62
+          "contentId": 62,
+          "permissions": [
+            "read",
+            "write"
+          ]
         }
       },
       "RuleViolationProblemDetails": {
@@ -5621,6 +5645,13 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "description": "List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "example": {
@@ -5630,7 +5661,11 @@
           "owner": "user1",
           "createdOn": "2019-03-22T12:51:19Z",
           "modifiedBy": "user1",
-          "modifiedOn": "2019-03-22T12:51:19Z"
+          "modifiedOn": "2019-03-22T12:51:19Z",
+          "permissions": [
+            "read",
+            "write"
+          ]
         }
       },
       "GroupMetaData": {
@@ -5762,7 +5797,9 @@
           "encoding": {
             "description": "Optional encoding for the content property. When set to 'base64', the content value will be base64-decoded by the server before processing.",
             "type": "string",
-            "enum": ["base64"]
+            "enum": [
+              "base64"
+            ]
           }
         }
       },

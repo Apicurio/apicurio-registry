@@ -1,5 +1,7 @@
 package io.apicurio.registry.storage.dto;
 
+import java.util.Set;
+
 import io.apicurio.registry.types.VersionState;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -56,6 +58,44 @@ public class SearchFilter {
 
     public static SearchFilter ofGroupId(String value) {
         return new SearchFilter(SearchFilterType.groupId, value);
+    }
+
+    public static SearchFilter ofGroupIdIn(Set<String> values) {
+        return new SearchFilter(SearchFilterType.groupIdIn, values);
+    }
+
+    public static SearchFilter ofGroupIdInOrArtifactExact(Set<String> allowedGroups,
+            Set<String> exactResources) {
+        return new SearchFilter(SearchFilterType.groupIdInOrArtifactExact,
+                new Object[]{allowedGroups, exactResources});
+    }
+
+    public static SearchFilter ofArtifactExactDeny(Set<String> deniedResources) {
+        return new SearchFilter(SearchFilterType.artifactExactDeny, deniedResources);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Set<String> getSetValue() {
+        if (value instanceof Set) {
+            return (Set<String>) value;
+        }
+        throw new IllegalStateException("value is not of type Set");
+    }
+
+    @SuppressWarnings("unchecked")
+    public Set<String> getGroupIdInValue() {
+        if (value instanceof Object[] arr) {
+            return (Set<String>) arr[0];
+        }
+        throw new IllegalStateException("value is not a compound filter");
+    }
+
+    @SuppressWarnings("unchecked")
+    public Set<String> getExactResourcesValue() {
+        if (value instanceof Object[] arr) {
+            return (Set<String>) arr[1];
+        }
+        throw new IllegalStateException("value is not a compound filter");
     }
 
     public static SearchFilter ofArtifactId(String value) {

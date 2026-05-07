@@ -179,7 +179,7 @@
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.34.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.70.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.71.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -282,7 +282,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
-    <flink.version>1.20.3</flink.version>
+    <flink.version>1.20.4</flink.version>
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.2</kiota.libs.version>
@@ -293,7 +293,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.0.5</groovy.version>
+    <groovy.version>5.0.6</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>

@@ -20,8 +20,13 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
+import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import com.google.protobuf.DescriptorProtos;
@@ -48,8 +53,10 @@ import org.slf4j.Logger;
 
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -271,7 +278,8 @@ public abstract class AbstractResource {
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream().map(schemaReference -> {
                 final ArtifactReferenceDto artifactReferenceDto = new ArtifactReferenceDto();
                 artifactReferenceDto.setArtifactId(schemaReference.getSubject());
-                artifactReferenceDto.setVersion(String.valueOf(schemaReference.getVersion()));
+                artifactReferenceDto.setVersion(resolveVersionBySequenceNumber(null,
+                        schemaReference.getSubject(), schemaReference.getVersion()));
                 artifactReferenceDto.setName(schemaReference.getName());
                 artifactReferenceDto.setGroupId(null);
                 return artifactReferenceDto;
@@ -351,17 +359,15 @@ public abstract class AbstractResource {
         }
     }
 
-    // Parse references and resolve the contentId. This will fail with ArtifactNotFound if a reference cannot
-    // be found.
+    // Parse references and resolve the contentId. Reference versions are ccompat integer sequence numbers
+    // and are resolved to actual version strings (including artifacts registered with semantic versioning).
     protected List<ArtifactReferenceDto> parseReferences(List<SchemaReference> references, String groupId) {
         if (references != null) {
             return references.stream().map(schemaReference -> {
-                // Try to get the artifact version. This will fail if not found with ArtifactNotFound or
-                // VersionNotFound
-                storage.getArtifactVersionMetaData(groupId, schemaReference.getSubject(),
-                        String.valueOf(schemaReference.getVersion()));
+                String resolvedVersion = resolveVersionBySequenceNumber(groupId,
+                        schemaReference.getSubject(), schemaReference.getVersion());
                 return new ArtifactReferenceDto(groupId, schemaReference.getSubject(),
-                        String.valueOf(schemaReference.getVersion()), schemaReference.getName());
+                        resolvedVersion, schemaReference.getName());
             }).collect(Collectors.toList());
         } else {
             return Collections.emptyList();
@@ -374,9 +380,9 @@ public abstract class AbstractResource {
     }
 
     /**
-     * Given a version string: - if it's a <b>non-negative integer</b>, use that; - if it's a string "latest",
-     * find out and use the subject's (artifact's) latest version; - if it's <b>-1</b>, do the same as
-     * "latest", even though this behavior is undocumented. See
+     * Given a version string: - if it's a <b>non-negative integer</b>, resolve it as a ccompat sequence
+     * number (versionOrder); - if it's a string "latest", find out and use the subject's (artifact's) latest
+     * version; - if it's <b>-1</b>, do the same as "latest", even though this behavior is undocumented. See
      * https://github.com/Apicurio/apicurio-registry/issues/2851 - otherwise throw an
      * IllegalArgumentException. On success, call the "then" function with the parsed version (MUST NOT be
      * null) and return it's result. Optionally provide an "else" function that will receive the exception
@@ -391,7 +397,7 @@ public abstract class AbstractResource {
             try {
                 var numericVersion = Integer.parseInt(versionString);
                 if (numericVersion >= 0) {
-                    version = versionString;
+                    version = resolveVersionBySequenceNumber(groupId, subject, numericVersion);
                 } else if (numericVersion == -1) {
                     version = getLatestArtifactVersionForSubject(subject, groupId);
                 } else {
@@ -402,5 +408,37 @@ public abstract class AbstractResource {
             }
         }
         return then.apply(version);
+    }
+
+    /**
+     * Resolves a ccompat integer sequence number (versionOrder) to the actual stored version string. First
+     * tries a direct version string match (artifacts registered via ccompat with numeric IDs), then falls
+     * back to searching by versionOrder (artifacts registered with semantic versioning like "v5.1.1").
+     *
+     * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/7886">Issue #7886</a>
+     */
+    protected String resolveVersionBySequenceNumber(String groupId, String artifactId,
+            int sequenceNumber) {
+        String versionString = String.valueOf(sequenceNumber);
+
+        // Fast path: try direct version string match (works for ccompat-registered artifacts)
+        try {
+            storage.getArtifactVersionMetaData(groupId, artifactId, versionString);
+            return versionString;
+        } catch (VersionNotFoundException e) {
+            // Fall through to versionOrder lookup
+        }
+
+        // Fallback: search all versions of this artifact and find the one with matching versionOrder
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofGroupId(groupId));
+        filters.add(SearchFilter.ofArtifactId(artifactId));
+        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
+                OrderDirection.asc, 0, 500);
+        return searchResults.getVersions().stream()
+                .filter(v -> v.getVersionOrder() == sequenceNumber)
+                .map(SearchedVersionDto::getVersion)
+                .findFirst()
+                .orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, versionString));
     }
 }

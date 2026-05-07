@@ -18,8 +18,6 @@ import io.apicurio.registry.operator.resource.ui.UIServiceResource;
 import io.apicurio.registry.operator.status.OperatorErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
-import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
-import io.apicurio.registry.operator.updater.SqlCRUpdater;
 import io.javaoperatorsdk.operator.api.reconciler.Cleaner;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -154,8 +152,6 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
         // Operator will attempt to update the CR to use the newer fields if possible.
         // This has to be done first, so subsequent functionality can deal with new fields only.
         var update = IngressCRUpdater.update(primary);
-        update = SqlCRUpdater.update(primary, context) || update;
-        update = KafkaSqlCRUpdater.update(primary) || update;
         if (update) {
             return UpdateControl.patchResource(primary);
         }

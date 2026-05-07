@@ -262,6 +262,11 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 
 IMPORTANT: The default embedded H2 configuration is not suitable for production environments. Specify a storage type for production use.
 
+Migration note:
+
+* Legacy `spec.app.sql`, `spec.app.kafkasql`, and `spec.app.sql.dataSource` compatibility fields were removed in 3.0.7. Use `spec.app.storage.sql` or `spec.app.storage.kafkasql` instead.
+* The operator no longer preserves the deprecated `Deprecated*` model classes. Existing manifests should be updated before upgrading the operator.
+
 === SqlSpec
 
 Configure SQL database storage (PostgreSQL or MySQL):

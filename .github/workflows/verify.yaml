@@ -208,7 +208,7 @@ jobs:
   # ============================================================================
   lint-and-validate:
     name: Lint and Validate
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: decide
     if: needs.decide.outputs.lifecycle-ready == 'true'
     steps:

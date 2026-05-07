@@ -941,6 +941,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
+            String artifactId, int versionOrder) {
+
+        return versionRepository.getArtifactVersionMetaDataByVersionOrder(groupId, artifactId, versionOrder);
+    }
+
+    @Override
     public List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
         return versionRepository.getVersionsModifiedSince(sinceTimestamp);
     }

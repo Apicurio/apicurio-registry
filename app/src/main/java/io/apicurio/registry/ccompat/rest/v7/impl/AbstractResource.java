@@ -20,13 +20,8 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.OrderBy;
-import io.apicurio.registry.storage.dto.OrderDirection;
-import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
-import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import com.google.protobuf.DescriptorProtos;
@@ -53,10 +48,8 @@ import org.slf4j.Logger;
 
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -413,7 +406,8 @@ public abstract class AbstractResource {
     /**
      * Resolves a ccompat integer sequence number (versionOrder) to the actual stored version string. First
      * tries a direct version string match (artifacts registered via ccompat with numeric IDs), then falls
-     * back to searching by versionOrder (artifacts registered with semantic versioning like "v5.1.1").
+     * back to a single-query lookup by versionOrder (artifacts registered with semantic versioning like
+     * "v5.1.1").
      *
      * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/7886">Issue #7886</a>
      */
@@ -429,16 +423,9 @@ public abstract class AbstractResource {
             // Fall through to versionOrder lookup
         }
 
-        // Fallback: search all versions of this artifact and find the one with matching versionOrder
-        Set<SearchFilter> filters = new HashSet<>();
-        filters.add(SearchFilter.ofGroupId(groupId));
-        filters.add(SearchFilter.ofArtifactId(artifactId));
-        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
-                OrderDirection.asc, 0, 500);
-        return searchResults.getVersions().stream()
-                .filter(v -> v.getVersionOrder() == sequenceNumber)
-                .map(SearchedVersionDto::getVersion)
-                .findFirst()
-                .orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, versionString));
+        // Fallback: look up by versionOrder directly
+        ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaDataByVersionOrder(groupId,
+                artifactId, sequenceNumber);
+        return dto.getVersion();
     }
 }

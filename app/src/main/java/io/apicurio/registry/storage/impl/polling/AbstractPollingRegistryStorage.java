@@ -455,6 +455,14 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     }
 
     @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
+            String artifactId, int versionOrder)
+            throws VersionNotFoundException, RegistryStorageException {
+        return proxy(storage -> storage.getArtifactVersionMetaDataByVersionOrder(groupId, artifactId,
+                versionOrder));
+    }
+
+    @Override
     public List<RuleType> getGlobalRules() {
         return proxy(RegistryStorage::getGlobalRules);
     }

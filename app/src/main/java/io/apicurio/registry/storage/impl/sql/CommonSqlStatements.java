@@ -190,6 +190,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String selectArtifactVersionMetaDataByVersionOrder() {
+        return "SELECT v.*, a.type FROM versions v "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.versionOrder = ?";
+    }
+
+    @Override
     public String selectArtifactVersionState() {
         return "SELECT v.state FROM versions v "
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ?";

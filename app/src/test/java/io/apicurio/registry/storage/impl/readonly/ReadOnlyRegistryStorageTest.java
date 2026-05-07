@@ -110,6 +110,8 @@ public class ReadOnlyRegistryStorageTest {
                         new State(false, s -> s.getArtifactVersionMetaData(null))),
                 entry("getArtifactVersionMetaData3",
                         new State(false, s -> s.getArtifactVersionMetaData(null, null, null))),
+                entry("getArtifactVersionMetaDataByVersionOrder3",
+                        new State(false, s -> s.getArtifactVersionMetaDataByVersionOrder(null, null, 0))),
                 entry("getArtifactVersionMetaDataByContent5",
                         new State(false,
                                 s -> s.getArtifactVersionMetaDataByContent(null, null, false, null, null))),

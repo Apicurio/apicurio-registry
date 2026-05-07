@@ -419,7 +419,7 @@ public abstract class AbstractResource {
         try {
             storage.getArtifactVersionMetaData(groupId, artifactId, versionString);
             return versionString;
-        } catch (VersionNotFoundException e) {
+        } catch (ArtifactNotFoundException | VersionNotFoundException e) {
             // Fall through to versionOrder lookup
         }
 

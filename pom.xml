@@ -289,7 +289,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>4.0.31</groovy.version>
+    <groovy.version>4.0.32</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>1.21.4</pulsar.testcontainers.version>

@@ -1079,6 +1079,13 @@ retention.bytes=-1
 
 IMPORTANT: Configure the journal topic with `cleanup.policy=delete` and infinite retention (`retention.ms=-1`). Do not use log compaction. You must preserve all journal events for proper registry operation.
 
+== Operator upgrade notes
+
+[role="_abstract"]
+Older operator manifests that still use the deprecated `spec.app.sql`, `spec.app.kafkasql`, or `apicurio.apis.date-format*` settings must be updated before upgrading to versions that remove those compatibility shims.
+
+Use the storage configuration fields under `spec.app.storage` and keep API date formatting at the default ISO-8601 format.
+
 *Creating the topic:*
 
 [source,bash]

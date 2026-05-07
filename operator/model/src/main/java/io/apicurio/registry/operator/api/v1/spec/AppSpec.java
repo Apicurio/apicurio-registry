@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
@@ -95,29 +94,6 @@ public class AppSpec extends ComponentSpec {
             full-text content and structure searches.""")
     @JsonSetter(nulls = SKIP)
     private SearchIndexSpec searchIndex;
-
-    /**
-     * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt
-     * to update the fields automatically.
-     */
-    @Deprecated(since = "3.0.7")
-    @JsonProperty("sql")
-    @JsonPropertyDescription("""
-            DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead.
-            The operator will attempt to update the fields automatically.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private DeprecatedSqlSpec sql;
-
-    /**
-     * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt
-     * to update the fields automatically.
-     */
-    @JsonProperty("kafkasql")
-    @JsonPropertyDescription("""
-            DEPRECATED: Use the `app.storage.type` and `app.storage.kafkasql` fields instead.
-             The operator will attempt to update the fields automatically.""")
-    @JsonSetter(nulls = Nulls.SKIP)
-    private DeprecatedKafkasqlSpec kafkasql;
 
     public StorageSpec withStorage() {
         if (storage == null) {

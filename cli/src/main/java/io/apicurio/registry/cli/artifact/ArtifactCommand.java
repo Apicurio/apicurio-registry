@@ -1,18 +1,17 @@
 package io.apicurio.registry.cli.artifact;
 
-import io.apicurio.registry.cli.common.IdUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
-import io.apicurio.registry.cli.version.VersionCommand;
+import io.apicurio.registry.cli.common.ArtifactOrderMixin;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
+import io.apicurio.registry.cli.version.VersionCommand;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
-import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
-import io.apicurio.registry.rest.client.models.SortOrder;
 import lombok.Getter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -59,6 +58,9 @@ public class ArtifactCommand extends AbstractCommand {
     private String groupId;
 
     @Mixin
+    private ArtifactOrderMixin ordering;
+
+    @Mixin
     private PaginationMixin pagination;
 
     @Mixin
@@ -80,8 +82,8 @@ public class ArtifactCommand extends AbstractCommand {
                         //noinspection ConstantConditions
                         r.queryParameters.offset = (pagination.getPage() - 1) * pagination.getSize();
                         r.queryParameters.limit = pagination.getSize();
-                        r.queryParameters.orderby = ArtifactSortBy.ArtifactId;
-                        r.queryParameters.order = SortOrder.Asc;
+                        r.queryParameters.orderby = ordering.getOrderBy();
+                        r.queryParameters.order = ordering.getOrder();
                     }));
             output.writeStdOutChunkWithException(out -> {
                 switch (outputType.getOutputType()) {

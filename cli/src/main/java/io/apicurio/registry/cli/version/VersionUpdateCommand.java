@@ -1,8 +1,9 @@
 package io.apicurio.registry.cli.version;
 
-import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
@@ -16,7 +17,6 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.util.List;
-import java.util.Map;
 
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 
@@ -69,10 +69,9 @@ public class VersionUpdateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--sl", "--set-label"},
-            description = "Add or update a version label.",
-            mapFallbackValue = ""
+            description = "Add or update a version label (format: key=value or key). Use \\= to include = in a key."
     )
-    private Map<String, String> setLabels;
+    private List<String> setLabels;
 
     @Option(
             names = {"--dl", "--delete-label"},
@@ -128,7 +127,7 @@ public class VersionUpdateCommand extends AbstractCommand {
                     if (updatedVersion.getLabels() == null) {
                         updatedVersion.setLabels(new Labels());
                     }
-                    updatedVersion.getLabels().getAdditionalData().putAll(setLabels);
+                    updatedVersion.getLabels().getAdditionalData().putAll(Conversions.parseLabels(setLabels));
                 }
                 if (deleteLabels != null) {
                     if (updatedVersion.getLabels() != null) {

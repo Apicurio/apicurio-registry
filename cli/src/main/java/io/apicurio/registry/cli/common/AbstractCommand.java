@@ -22,7 +22,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private static final Logger log = Logger.getLogger(AbstractCommand.class);
 
     @Spec
-    CommandSpec spec;
+    protected CommandSpec spec;
 
     @Inject
     protected Config config;

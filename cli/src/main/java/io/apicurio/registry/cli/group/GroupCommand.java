@@ -3,13 +3,12 @@ package io.apicurio.registry.cli.group;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.GroupOrderMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
-import io.apicurio.registry.rest.client.models.GroupSortBy;
-import io.apicurio.registry.rest.client.models.SortOrder;
 import lombok.Getter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -40,6 +39,9 @@ import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 public class GroupCommand extends AbstractCommand {
 
     @Mixin
+    private GroupOrderMixin ordering;
+
+    @Mixin
     private PaginationMixin pagination;
 
     @Mixin
@@ -56,8 +58,8 @@ public class GroupCommand extends AbstractCommand {
             //noinspection ConstantConditions
             r.queryParameters.offset = (pagination.getPage() - 1) * pagination.getSize();
             r.queryParameters.limit = pagination.getSize();
-            r.queryParameters.orderby = GroupSortBy.GroupId;
-            r.queryParameters.order = SortOrder.Asc;
+            r.queryParameters.orderby = ordering.getOrderBy();
+            r.queryParameters.order = ordering.getOrder();
         }));
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {

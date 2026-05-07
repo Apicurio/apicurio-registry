@@ -1,14 +1,15 @@
 package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
+import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
 import java.util.List;
-import java.util.Map;
 
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
@@ -21,7 +22,8 @@ import static picocli.CommandLine.Option;
 public class GroupUpdateCommand extends AbstractCommand {
 
     @Parameters(
-            index = "0"
+            index = "0",
+            description = "The group ID."
     )
     private String groupId;
 
@@ -33,10 +35,9 @@ public class GroupUpdateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--sl", "--set-label"},
-            description = "Add or update a group label.",
-            mapFallbackValue = ""
+            description = "Add or update a group label (format: key=value or key). Use \\= to include = in a key."
     )
-    private Map<String, String> setLabels;
+    private List<String> setLabels;
 
     @Option(
             names = {"--dl", "--delete-label"},
@@ -55,9 +56,12 @@ public class GroupUpdateCommand extends AbstractCommand {
                 updatedGroup.setDescription(description);
             }
             if (setLabels != null) {
-                updatedGroup.getLabels().getAdditionalData().putAll(setLabels);
+                if (updatedGroup.getLabels() == null) {
+                    updatedGroup.setLabels(new Labels());
+                }
+                updatedGroup.getLabels().getAdditionalData().putAll(Conversions.parseLabels(setLabels));
             }
-            if (deleteLabels != null) {
+            if (deleteLabels != null && updatedGroup.getLabels() != null) {
                 deleteLabels.forEach(key -> {
                     updatedGroup.getLabels().getAdditionalData().remove(key);
                 });

@@ -826,7 +826,7 @@
       }
     },
     "/subjects/{subject}": {
-      "summary": "The subjects resource provides a list of all registered subjects across all contexts in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a “<topic>-value” or “<topic>-key” depending on whether you are registering the value schema for that topic or the key schema.",
+      "summary": "The subjects resource provides a list of all registered subjects across all contexts in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a \u201c<topic>-value\u201d or \u201c<topic>-key\u201d depending on whether you are registering the value schema for that topic or the key schema.",
       "post": {
         "operationId": "lookupSchemaByContent",
         "description": "Returns the schema string along with its global ID and version if already registered under the given subject.",
@@ -2085,20 +2085,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 },
                 "example": {
-                  "compatibilityLevel": "FULL"
+                  "compatibility": "FULL"
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 }
               },
               "application/vnd.schemaregistry+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 }
               }
             }
@@ -2248,20 +2248,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 },
                 "example": {
-                  "compatibilityLevel": "FULL"
+                  "compatibility": "FULL"
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 }
               },
               "application/vnd.schemaregistry+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 }
               }
             }
@@ -3387,11 +3387,6 @@
         "properties": {
           "mode": {
             "type": "string",
-            "enum": [
-              "READWRITE",
-              "READONLY",
-              "IMPORT"
-            ],
             "description": "The new global mode to set."
           }
         },
@@ -3680,6 +3675,18 @@
             "type": "string",
             "description": "Error trace or message, if any."
           }
+        }
+      },
+      "ConfigUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "compatibility": {
+            "type": "string",
+            "description": "The compatibility level that was set."
+          }
+        },
+        "example": {
+          "compatibility": "FULL"
         }
       }
     },

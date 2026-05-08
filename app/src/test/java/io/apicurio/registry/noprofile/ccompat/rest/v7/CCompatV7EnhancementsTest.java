@@ -44,7 +44,7 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateGlobalMode() {
         ModeUpdateRequest request = new ModeUpdateRequest();
-        request.setMode(ModeUpdateRequest.Mode.READONLY);
+        request.setMode("READONLY");
 
         // Set global mode to READONLY
         given().when().contentType(ContentTypes.JSON).body(request).put("/ccompat/v7/mode").then()
@@ -54,7 +54,7 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
         given().when().get("/ccompat/v7/mode").then().statusCode(200).body("mode", equalTo("READONLY"));
 
         // Reset back to READWRITE
-        request.setMode(ModeUpdateRequest.Mode.READWRITE);
+        request.setMode("READWRITE");
         given().when().contentType(ContentTypes.JSON).body(request).put("/ccompat/v7/mode").then()
                 .statusCode(200).body("mode", equalTo("READWRITE"));
     }
@@ -77,7 +77,7 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
 
         // Set subject-specific mode
         ModeUpdateRequest request = new ModeUpdateRequest();
-        request.setMode(ModeUpdateRequest.Mode.READONLY);
+        request.setMode("READONLY");
         given().when().contentType(ContentTypes.JSON).body(request)
                 .put("/ccompat/v7/mode/{subject}", subject).then().statusCode(200)
                 .body("mode", equalTo("READONLY"));

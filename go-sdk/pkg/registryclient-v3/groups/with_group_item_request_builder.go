@@ -56,6 +56,12 @@ func NewWithGroupItemRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee
 	return NewWithGroupItemRequestBuilderInternal(urlParams, requestAdapter)
 }
 
+// Contracts manage ODCS data contracts within a group.
+// returns a *ItemContractsRequestBuilder when successful
+func (m *WithGroupItemRequestBuilder) Contracts() *ItemContractsRequestBuilder {
+	return NewItemContractsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Delete deletes a group by identifier.  This operation also deletes all artifacts withinthe group, so should be used very carefully.This operation can fail for the following reasons:* A server error occurred (HTTP error `500`)* The group does not exist (HTTP error `404`)
 // returns a ProblemDetails error when the service returns a 401 status code
 // returns a ProblemDetails error when the service returns a 403 status code

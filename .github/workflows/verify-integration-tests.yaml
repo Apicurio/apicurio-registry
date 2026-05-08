@@ -14,7 +14,7 @@ on:
 jobs:
   integration-tests:
     name: Integration Tests (${{ matrix.storage }}-${{ matrix.name || matrix.groups }})
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:

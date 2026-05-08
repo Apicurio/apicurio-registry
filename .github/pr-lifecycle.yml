@@ -38,3 +38,12 @@ welcome_message: |
   | `/disable-tests` | Disable smoke tests during development |
   | `/enable-tests` | Re-enable smoke tests |
   | `/unstale` | Remove the stale label |
+
+  **Maintainer commands:**
+  | Command | Description |
+  |---------|-------------|
+  | `/accept` | Accept the PR and transition to WIP |
+  | `/reject [reason]` | Reject and close the PR |
+  | `/skip-review` | Skip review requirement for small changes (tests still required) |
+  | `/auto-merge` | Toggle auto-merge |
+  | `/merge` | Merge the PR |

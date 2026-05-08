@@ -24,7 +24,9 @@ Opened --> new --> wip --> ready-for-review --> ready-to-merge --> merged
 
 | Label | Meaning |
 |-------|---------|
+| `lifecycle/smoke-tested` | Smoke tests passed for the current HEAD commit. Removed on new pushes or when superseded by `lifecycle/tested`. |
 | `lifecycle/tested` | Full test suite passed for the current HEAD commit. Removed on new pushes. |
+| `lifecycle/review-approved` | PR has an approved review. Removed on new pushes or when changes are requested. |
 | `lifecycle/waiting-on-author` | PR needs action from the author (failed tests or changes requested). |
 | `lifecycle/waiting-on-maintainer` | PR needs maintainer attention (ready to review or merge). |
 | `lifecycle/stale` | No activity for 7 days. PR will be closed after 7 more days of inactivity. |
@@ -87,6 +89,7 @@ When a new PR arrives (`lifecycle/new`):
 | `/accept` | Accept a new PR, transition to WIP |
 | `/reject [reason]` | Reject and close a new PR |
 | `/ready` | Mark a WIP PR as ready for review (can also be done by the author) |
+| `/skip-review` | Skip the review requirement for small changes (tests still required) |
 | `/merge` | Merge a PR that is in `ready-to-merge` state |
 | `/auto-merge` | Toggle auto-merge (PR merges automatically when ready-to-merge is reached) |
 | `/disable-tests` | Disable smoke tests for a WIP PR |

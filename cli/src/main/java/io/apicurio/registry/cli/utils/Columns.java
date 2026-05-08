@@ -33,4 +33,7 @@ public final class Columns {
 
     public static final String RULE_TYPE = "Rule Type";
     public static final String CONFIG = "Config";
+
+    public static final String COMMENT_ID = "Comment ID";
+    public static final String COMMENT = "Comment";
 }

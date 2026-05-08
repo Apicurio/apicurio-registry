@@ -35,10 +35,11 @@ import static io.apicurio.registry.cli.utils.Conversions.convertToString;
         aliases = {"versions"},
         description = "Work with artifact versions",
         subcommands = {
+                CommentCommand.class,
                 VersionCreateCommand.class,
+                VersionDeleteCommand.class,
                 VersionGetCommand.class,
-                VersionUpdateCommand.class,
-                VersionDeleteCommand.class
+                VersionUpdateCommand.class
         }
 )
 public class VersionCommand extends AbstractCommand {

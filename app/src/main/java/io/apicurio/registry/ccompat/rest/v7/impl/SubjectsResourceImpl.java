@@ -25,14 +25,15 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.rest.MethodMetadata;
-import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
+import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactStateException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
@@ -41,7 +42,6 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.util.ArtifactTypeUtil;
-import io.apicurio.registry.utils.VersionUtil;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
@@ -218,19 +218,23 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         final boolean fdeletedOnly = deletedOnly == null ? Boolean.FALSE : deletedOnly;
 
         List<BigInteger> rval;
-        Set<VersionState> statesFilter;
 
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofGroupId(ga.getRawGroupIdWithNull()));
+        filters.add(SearchFilter.ofArtifactId(ga.getRawArtifactId()));
+        filters.add(SearchFilter.ofState(VersionState.DRAFT).negated());
         if (fdeletedOnly) {
-            // Only return deleted versions
-            statesFilter = Set.of(VersionState.DISABLED);
-        } else if (fdeleted) {
-            statesFilter = RegistryStorage.RetrievalBehavior.NON_DRAFT_STATES;
-        } else {
-            statesFilter = RegistryStorage.RetrievalBehavior.ACTIVE_STATES;
+            filters.add(SearchFilter.ofState(VersionState.DISABLED));
+        } else if (!fdeleted) {
+            filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
 
-        rval = storage.getArtifactVersions(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), statesFilter)
-                .stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
+        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
+                OrderDirection.asc, 0, 500);
+        rval = searchResults.getVersions().stream()
+                .map(SearchedVersionDto::getVersionOrder)
+                .map(versionOrder -> converter.convertUnsigned((long) versionOrder))
+                .sorted()
                 .collect(Collectors.toList());
 
         // Apply pagination
@@ -348,7 +352,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         final GA ga = getGA(groupId, subject);
         try {
             if (doesArtifactExist(ga.getRawArtifactId(), ga.getRawGroupIdWithNull())) {
-                return BigInteger.valueOf(VersionUtil.toLong(parseVersionString(ga.getRawArtifactId(), versionString,
+                return parseVersionString(ga.getRawArtifactId(), versionString,
                         ga.getRawGroupIdWithNull(), version -> {
                             final boolean fpermanent = permanent == null ? Boolean.FALSE : permanent;
                             List<Long> globalIdsReferencingSchema = storage
@@ -358,16 +362,15 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                                     ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
                             if (globalIdsReferencingSchema.isEmpty()
                                     || areAllSchemasDisabled(globalIdsReferencingSchema)) {
-                                return processDeleteVersion(ga.getRawArtifactId(), versionString,
+                                processDeleteVersion(ga.getRawArtifactId(), versionString,
                                         ga.getRawGroupIdWithNull(), version, fpermanent, avmd);
                             } else {
-                                // There are other schemas referencing this one, it cannot be deleted.
                                 throw new ReferenceExistsException(String
                                         .format("There are subjects referencing %s", ga.getRawArtifactId()));
                             }
-                        })));
-            }
-            else {
+                            return BigInteger.valueOf(avmd.getVersionOrder());
+                        });
+            } else {
                 throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
             }
         }
@@ -498,24 +501,40 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         if (isArtifactActive(artifactId, groupId)) {
             throw new SubjectNotSoftDeletedException(
                     String.format("Subject %s must be soft deleted first", artifactId));
-        }
-        else {
-            return storage.deleteArtifact(groupId, artifactId).stream().map(VersionUtil::toInteger)
-                    .map(converter::convertUnsigned).collect(Collectors.toList());
+        } else {
+            // Collect versionOrder values before deleting — metadata is gone after deleteArtifact.
+            Set<SearchFilter> filters = new HashSet<>();
+            filters.add(SearchFilter.ofGroupId(groupId));
+            filters.add(SearchFilter.ofArtifactId(artifactId));
+            VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
+                    OrderDirection.asc, 0, 500);
+            List<BigInteger> result = searchResults.getVersions().stream()
+                    .map(SearchedVersionDto::getVersionOrder)
+                    .map(versionOrder -> converter.convertUnsigned((long) versionOrder))
+                    .collect(Collectors.toList());
+            storage.deleteArtifact(groupId, artifactId);
+            return result;
         }
     }
 
     // Deleting artifact versions means updating all the versions status to DISABLED.
     private List<BigInteger> deleteSubjectVersions(String groupId, String artifactId) {
-        List<String> deletedVersions = storage.getArtifactVersions(groupId, artifactId);
+        // Fetch all versions with metadata in a single query to get versionOrder values
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofGroupId(groupId));
+        filters.add(SearchFilter.ofArtifactId(artifactId));
+        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
+                OrderDirection.asc, 0, 500);
         try {
-            deletedVersions.forEach(version -> storage.updateArtifactVersionState(groupId, artifactId,
-                    version, VersionState.DISABLED, false));
-        }
-        catch (InvalidArtifactStateException | InvalidVersionStateException ignored) {
+            searchResults.getVersions().forEach(v -> storage.updateArtifactVersionState(groupId,
+                    artifactId, v.getVersion(), VersionState.DISABLED, false));
+        } catch (InvalidArtifactStateException | InvalidVersionStateException ignored) {
             log.warn("Invalid artifact state transition", ignored);
         }
-        return deletedVersions.stream().map(VersionUtil::toLong).map(converter::convertUnsigned).sorted()
+        return searchResults.getVersions().stream()
+                .map(SearchedVersionDto::getVersionOrder)
+                .map(versionOrder -> converter.convertUnsigned((long) versionOrder))
+                .sorted()
                 .collect(Collectors.toList());
     }
 }

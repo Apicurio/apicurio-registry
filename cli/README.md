@@ -1,6 +1,6 @@
 # CLI for Apicurio Registry
 
-> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet.
+> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet. Apicurio Registry CLI is currently unstable; its arguments and behavior are subject to backwards-incompatible changes.
 
 ### Supported Platforms
 

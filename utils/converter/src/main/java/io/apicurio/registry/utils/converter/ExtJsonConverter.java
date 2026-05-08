@@ -142,8 +142,7 @@ public class ExtJsonConverter extends BaseSerde<JsonNode, Object>
     }
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map<String,
-     *      ParsedSchema<JsonNode>>)
+     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map)
      */
     @Override
     public JsonNode parseSchema(byte[] rawSchema, Map<String, ParsedSchema<JsonNode>> resolvedReferences) {

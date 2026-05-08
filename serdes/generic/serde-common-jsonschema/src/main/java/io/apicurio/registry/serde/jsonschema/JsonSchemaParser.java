@@ -24,8 +24,7 @@ public class JsonSchemaParser<T> implements SchemaParser<JsonSchema, T> {
     }
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map<String,
-     *      ParsedSchema<JsonSchema>>)
+     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map)
      */
     @Override
     public JsonSchema parseSchema(byte[] rawSchema,

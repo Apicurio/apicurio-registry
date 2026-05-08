@@ -1,5 +1,6 @@
 package io.apicurio.registry.contracts.odcs;
 
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -22,6 +23,7 @@ public class OdcsExporter {
     private static final String ODCS_RULE_PREFIX = OdcsRuleProjector.ODCS_RULE_PREFIX;
 
     @Inject
+    @Current
     RegistryStorage storage;
 
     @Inject

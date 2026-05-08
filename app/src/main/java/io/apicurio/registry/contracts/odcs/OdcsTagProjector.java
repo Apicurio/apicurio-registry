@@ -1,5 +1,6 @@
 package io.apicurio.registry.contracts.odcs;
 
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,6 +20,7 @@ public class OdcsTagProjector {
     static final String FIELD_TAG_PREFIX = "field-tag.";
 
     @Inject
+    @Current
     RegistryStorage storage;
 
     public int project(OdcsContract contract, String groupId, String artifactId,

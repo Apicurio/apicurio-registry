@@ -1,5 +1,6 @@
 package io.apicurio.registry.contracts.odcs;
 
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
@@ -14,6 +15,7 @@ import java.util.Map;
 public class OdcsLabelProjector {
 
     @Inject
+    @Current
     RegistryStorage storage;
 
     public int project(OdcsContract contract, String groupId, String artifactId) {

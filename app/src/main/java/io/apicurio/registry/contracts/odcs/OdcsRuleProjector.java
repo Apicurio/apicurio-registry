@@ -1,5 +1,6 @@
 package io.apicurio.registry.contracts.odcs;
 
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ContractRuleDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
@@ -19,6 +20,7 @@ public class OdcsRuleProjector {
     static final String ODCS_RULE_PREFIX = "odcs:";
 
     @Inject
+    @Current
     RegistryStorage storage;
 
     public int project(OdcsContract contract, String groupId, String artifactId) {

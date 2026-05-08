@@ -431,6 +431,48 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
+    public Schema lookupSchemaByVersion(String subject, String versionString, Boolean normalize,
+                                        String format, String groupId, Boolean deleted,
+                                        RegisterSchemaRequest request) {
+        final GA ga = getGA(groupId, subject);
+        final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        final boolean fnormalize = normalize == null ? Boolean.FALSE : normalize;
+
+        if (!doesArtifactExist(ga.getRawArtifactId(), ga.getRawGroupIdWithNull())) {
+            throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+        }
+
+        return parseVersionString(ga.getRawArtifactId(), versionString, ga.getRawGroupIdWithNull(),
+                version -> {
+                    ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(
+                            ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
+                    if (amd.getState() == VersionState.DISABLED && !fdeleted) {
+                        throw new VersionNotFoundException(ga.getRawGroupIdWithNull(),
+                                ga.getRawArtifactId(), version);
+                    }
+
+                    try {
+                        ArtifactVersionMetaDataDto matched = lookupSchema(
+                                ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
+                                request.getSchema(), request.getReferences(),
+                                request.getSchemaType(), fnormalize);
+                        if (matched.getVersionOrder() != amd.getVersionOrder()) {
+                            throw new SchemaNotFoundException(
+                                    "Schema not found at version " + versionString);
+                        }
+                    } catch (ArtifactNotFoundException e) {
+                        throw new SchemaNotFoundException(
+                                "Schema not found under subject " + ga.getRawArtifactId());
+                    }
+
+                    StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
+                            ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
+                    return converter.convert(ga.getRawArtifactId(), storedArtifact, amd.getArtifactType());
+                });
+    }
+
+    @Override
     public Schema getSubjectMetadata(String subject, String key, String value, String format, Boolean deleted, String xRegistryGroupId) {
         //TODO not implemented
         return null;

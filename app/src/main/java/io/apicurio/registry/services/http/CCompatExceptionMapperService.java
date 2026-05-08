@@ -133,6 +133,12 @@ public class CCompatExceptionMapperService {
             }
             return "Subject not found";
         }
+        if (t instanceof VersionNotFoundException vnfe) {
+            if (vnfe.getVersion() != null) {
+                return "Version " + vnfe.getVersion() + " not found.";
+            }
+            return "Version not found.";
+        }
         if (t instanceof ContentNotFoundException cnfe) {
             if (cnfe.getContentId() != null) {
                 return "Schema " + cnfe.getContentId() + " not found";
@@ -141,6 +147,12 @@ public class CCompatExceptionMapperService {
         }
         if (t instanceof RuleNotFoundException) {
             return "Subject does not have subject-level compatibility configured";
+        }
+        if (t instanceof UnprocessableEntityException) {
+            return t.getMessage();
+        }
+        if (t instanceof SchemaNotFoundException) {
+            return t.getMessage();
         }
         return t.getLocalizedMessage();
     }

@@ -95,6 +95,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
         ConfigUpdateResponse response = new ConfigUpdateResponse();
         response.setCompatibility(request.getCompatibility());
+        response.setNormalize(request.getNormalize() != null ? request.getNormalize() : false);
         return response;
     }
 
@@ -133,6 +134,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
 
         ConfigUpdateResponse response = new ConfigUpdateResponse();
         response.setCompatibility(request.getCompatibility());
+        response.setNormalize(request.getNormalize() != null ? request.getNormalize() : false);
         return response;
     }
 

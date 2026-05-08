@@ -1,6 +1,5 @@
 package io.apicurio.registry.rest.config;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.apicurio.common.apps.config.Info;
@@ -82,7 +81,6 @@ public class JacksonDateTimeCustomizer implements ObjectMapperCustomizer {
      */
     @Override
     public void customize(ObjectMapper mapper) {
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         try {
             configureDateFormat(mapper, dateFormat, timezone);
         } catch (Exception e) {

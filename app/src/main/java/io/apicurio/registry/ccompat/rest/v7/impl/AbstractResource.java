@@ -271,8 +271,14 @@ public abstract class AbstractResource {
             final List<ArtifactReferenceDto> referencesAsDtos = references.stream().map(schemaReference -> {
                 final ArtifactReferenceDto artifactReferenceDto = new ArtifactReferenceDto();
                 artifactReferenceDto.setArtifactId(schemaReference.getSubject());
-                artifactReferenceDto.setVersion(resolveVersionBySequenceNumber(null,
-                        schemaReference.getSubject(), schemaReference.getVersion()));
+                String version;
+                try {
+                    version = resolveVersionBySequenceNumber(null,
+                            schemaReference.getSubject(), schemaReference.getVersion());
+                } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+                    version = String.valueOf(schemaReference.getVersion());
+                }
+                artifactReferenceDto.setVersion(version);
                 artifactReferenceDto.setName(schemaReference.getName());
                 artifactReferenceDto.setGroupId(null);
                 return artifactReferenceDto;
@@ -354,11 +360,18 @@ public abstract class AbstractResource {
 
     // Parse references and resolve the contentId. Reference versions are ccompat integer sequence numbers
     // and are resolved to actual version strings (including artifacts registered with semantic versioning).
+    // If resolution fails (e.g. nonexistent subject), the raw version string is preserved so that downstream
+    // validation can report the appropriate error.
     protected List<ArtifactReferenceDto> parseReferences(List<SchemaReference> references, String groupId) {
         if (references != null) {
             return references.stream().map(schemaReference -> {
-                String resolvedVersion = resolveVersionBySequenceNumber(groupId,
-                        schemaReference.getSubject(), schemaReference.getVersion());
+                String resolvedVersion;
+                try {
+                    resolvedVersion = resolveVersionBySequenceNumber(groupId,
+                            schemaReference.getSubject(), schemaReference.getVersion());
+                } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+                    resolvedVersion = String.valueOf(schemaReference.getVersion());
+                }
                 return new ArtifactReferenceDto(groupId, schemaReference.getSubject(),
                         resolvedVersion, schemaReference.getName());
             }).collect(Collectors.toList());

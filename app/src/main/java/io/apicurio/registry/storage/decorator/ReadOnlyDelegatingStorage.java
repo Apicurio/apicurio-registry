@@ -206,6 +206,13 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     }
 
     @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
+            String artifactId, int versionOrder)
+            throws VersionNotFoundException, RegistryStorageException {
+        return delegate.getArtifactVersionMetaDataByVersionOrder(groupId, artifactId, versionOrder);
+    }
+
+    @Override
     public List<RuleType> getGlobalRules() throws RegistryStorageException {
         return delegate.getGlobalRules();
     }

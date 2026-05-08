@@ -124,6 +124,23 @@ public class SqlVersionRepository {
     }
 
     /**
+     * Get artifact version metadata by groupId, artifactId, and versionOrder.
+     */
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
+            String artifactId, int versionOrder) {
+        return handles.withHandle(handle -> {
+            Optional<ArtifactVersionMetaDataDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionMetaDataByVersionOrder())
+                    .bind(0, normalizeGroupId(groupId))
+                    .bind(1, artifactId).bind(2, versionOrder)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance)
+                    .findOne();
+            return res.orElseThrow(
+                    () -> new VersionNotFoundException(groupId, artifactId, String.valueOf(versionOrder)));
+        });
+    }
+
+    /**
      * Get artifact version content by globalId.
      */
     public StoredArtifactVersionDto getArtifactVersionContent(long globalId)

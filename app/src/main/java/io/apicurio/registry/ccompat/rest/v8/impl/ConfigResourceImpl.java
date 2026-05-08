@@ -71,6 +71,7 @@ public class ConfigResourceImpl implements ConfigResource {
         io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest v7Request =
                 new io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest();
         v7Request.setCompatibility(data.getCompatibility());
+        v7Request.setNormalize(data.getNormalize());
         return v7Request;
     }
 
@@ -83,6 +84,7 @@ public class ConfigResourceImpl implements ConfigResource {
     private ConfigUpdateResponse convertConfigUpdateResponse(io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateResponse v7Response) {
         ConfigUpdateResponse response = new ConfigUpdateResponse();
         response.setCompatibility(v7Response.getCompatibility());
+        response.setNormalize(v7Response.getNormalize());
         return response;
     }
 

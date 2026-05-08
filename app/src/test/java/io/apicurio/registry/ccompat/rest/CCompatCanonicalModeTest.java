@@ -85,7 +85,9 @@ public class CCompatCanonicalModeTest extends AbstractResourceTestBase {
                 .get("/ccompat/v7/subjects/{subject}/versions/latest", subject1).then().statusCode(200)
                 .extract().as(Schema.class);
 
-        assertEquals(schemaString1, schema1R.getSchema());
+        // Avro schemas are compacted to canonical JSON in ccompat responses
+        org.apache.avro.Schema expectedSchema = new org.apache.avro.Schema.Parser().parse(schemaString1);
+        assertEquals(expectedSchema.toString(), schema1R.getSchema());
         assertEquals(schemaId1.getId(), schema1R.getId());
     }
 }

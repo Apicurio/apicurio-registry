@@ -4,6 +4,15 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.contracts.odcs.OdcsContract;
+import io.apicurio.registry.contracts.odcs.OdcsParser;
+import io.apicurio.registry.contracts.odcs.OdcsExporter;
+import io.apicurio.registry.contracts.odcs.OdcsParseException;
+import io.apicurio.registry.contracts.odcs.OdcsProjectionEngine;
+import io.apicurio.registry.contracts.odcs.OdcsProjectionResult;
+import io.apicurio.registry.rest.v3.beans.OdcsContractResult;
+import io.apicurio.registry.rest.v3.beans.OdcsContractSummary;
+import io.apicurio.registry.rest.v3.beans.OdcsProjectionSummary;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
@@ -36,6 +45,9 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceGraphDirection;
 import io.apicurio.registry.types.ReferenceType;
@@ -127,6 +139,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     io.apicurio.registry.contracts.ContractMetadataValidator contractMetadataValidator;
+
+    @Inject
+    OdcsParser odcsParser;
+
+    @Inject
+    OdcsProjectionEngine odcsProjectionEngine;
+
+    @Inject
+    OdcsExporter odcsExporter;
 
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
@@ -2178,5 +2199,192 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         ? RuleAction.valueOf(bean.getOnFailure().value()) : null)
                 .disabled(bean.getDisabled() != null && bean.getDisabled())
                 .build();
+    }
+
+    // ========== ODCS Contract Endpoints ==========
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
+    public OdcsContractResult submitContract(String groupId, String data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("data", data);
+
+        OdcsContract contract;
+        try {
+            contract = odcsParser.parse(data);
+        } catch (OdcsParseException e) {
+            throw new BadRequestException("Invalid ODCS contract: " + e.getMessage());
+        }
+
+        String contractId = contract.getId() != null ? contract.getId()
+                : contract.getInfo() != null && contract.getInfo().getTitle() != null
+                        ? contract.getInfo().getTitle().replaceAll("[^a-zA-Z0-9._\\-+]", "-")
+                        : "odcs-contract-" + System.currentTimeMillis();
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
+
+        try {
+            storage.createArtifact(rawGroupId, contractId, ArtifactType.ODCS_CONTRACT,
+                    EditableArtifactMetaDataDto.builder()
+                            .name(contract.getInfo() != null ? contract.getInfo().getTitle() : contractId)
+                            .description(
+                                    contract.getInfo() != null ? contract.getInfo().getDescription() : null)
+                            .build(),
+                    version,
+                    ContentWrapperDto.builder()
+                            .contentType(ContentTypes.APPLICATION_YAML)
+                            .content(ContentHandle.create(data))
+                            .build(),
+                    EditableVersionMetaDataDto.builder().build(),
+                    List.of(), false, false, null);
+        } catch (ArtifactAlreadyExistsException e) {
+            storage.createArtifactVersion(rawGroupId, contractId, version,
+                    ArtifactType.ODCS_CONTRACT,
+                    ContentWrapperDto.builder()
+                            .contentType(ContentTypes.APPLICATION_YAML)
+                            .content(ContentHandle.create(data))
+                            .build(),
+                    EditableVersionMetaDataDto.builder().build(),
+                    List.of(), false, false, null);
+        }
+
+        OdcsProjectionResult projection = projectOdcsContract(contract, rawGroupId);
+        return toOdcsContractResult(contractId, contract, projection);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
+    public List<OdcsContractSummary> listContracts(String groupId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        Set<SearchFilter> filters = Set.of(
+                SearchFilter.ofGroupId(rawGroupId),
+                SearchFilter.ofArtifactType(ArtifactType.ODCS_CONTRACT));
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
+                OrderBy.createdOn, OrderDirection.desc, 0, 500);
+
+        return results.getArtifacts().stream()
+                .map(meta -> {
+                    OdcsContractSummary s = new OdcsContractSummary();
+                    s.setContractId(meta.getArtifactId());
+                    s.setName(meta.getName() != null ? meta.getName() : meta.getArtifactId());
+                    return s;
+                })
+                .toList();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public String getContract(String groupId, String contractId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("contractId", contractId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        var content = storage.getArtifactVersionContent(rawGroupId, contractId, "latest");
+        return content.getContent().content();
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public OdcsContractResult updateContract(String groupId, String contractId, String data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("contractId", contractId);
+        ParameterValidationUtils.requireParameter("data", data);
+
+        OdcsContract contract;
+        try {
+            contract = odcsParser.parse(data);
+        } catch (OdcsParseException e) {
+            throw new BadRequestException("Invalid ODCS contract: " + e.getMessage());
+        }
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+
+        String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
+        storage.createArtifactVersion(rawGroupId, contractId, version,
+                ArtifactType.ODCS_CONTRACT,
+                ContentWrapperDto.builder()
+                        .contentType(ContentTypes.APPLICATION_YAML)
+                        .content(ContentHandle.create(data))
+                        .build(),
+                EditableVersionMetaDataDto.builder().build(),
+                List.of(), false, false, null);
+
+        OdcsProjectionResult projection = projectOdcsContract(contract, rawGroupId);
+        return toOdcsContractResult(contractId, contract, projection);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void deleteContract(String groupId, String contractId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("contractId", contractId);
+
+        storage.deleteArtifact(new GroupId(groupId).getRawGroupIdWithNull(), contractId);
+    }
+
+    private OdcsProjectionResult projectOdcsContract(OdcsContract contract, String groupId) {
+        if (contract.getSchemas() == null || contract.getSchemas().isEmpty()) {
+            return OdcsProjectionResult.builder().build();
+        }
+        var schema = contract.getSchemas().get(0);
+        if (schema.getLocation() == null) {
+            return OdcsProjectionResult.builder().build();
+        }
+        String loc = schema.getLocation();
+        String withoutVersion = loc.contains(":") ? loc.substring(0, loc.indexOf(':')) : loc;
+        String schemaGroupId = withoutVersion.contains("/")
+                ? withoutVersion.substring(0, withoutVersion.indexOf('/')) : groupId;
+        String schemaArtifactId = withoutVersion.contains("/")
+                ? withoutVersion.substring(withoutVersion.indexOf('/') + 1) : withoutVersion;
+        OdcsProjectionResult result;
+        try {
+            storage.getArtifactMetaData(schemaGroupId, schemaArtifactId);
+            result = odcsProjectionEngine.project(contract, schemaGroupId, schemaArtifactId);
+        } catch (Exception e) {
+            result = OdcsProjectionResult.builder().build();
+            result.addWarning("Schema artifact not found: " + schemaGroupId + "/"
+                    + schemaArtifactId + ". Projection skipped.");
+        }
+        if (contract.getSchemas().size() > 1) {
+            result.addWarning("Only the first schema is projected; "
+                    + (contract.getSchemas().size() - 1) + " additional schemas ignored.");
+        }
+        return result;
+    }
+
+    private OdcsContractResult toOdcsContractResult(String contractId, OdcsContract contract,
+            OdcsProjectionResult projection) {
+        OdcsProjectionSummary summary = new OdcsProjectionSummary();
+        summary.setRulesApplied(projection.getRulesApplied());
+        summary.setLabelsApplied(projection.getLabelsApplied());
+        summary.setTagsApplied(projection.getTagsApplied());
+        summary.setWarnings(projection.getWarnings());
+
+        OdcsContractResult result = new OdcsContractResult();
+        result.setContractId(contractId);
+        result.setVersion(contract.getInfo() != null ? contract.getInfo().getVersion() : null);
+        result.setProjection(summary);
+        return result;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public String exportContractAsOdcs(String groupId, String artifactId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        return odcsExporter.export(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
     }
 }

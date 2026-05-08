@@ -22,7 +22,7 @@ public class ConfluentCompatibilityConfigTest extends AbstractResourceTestBase {
         ConfigUpdateRequest backward = new ConfigUpdateRequest();
         backward.setCompatibility(CompatibilityLevel.BACKWARD.name());
         given().when().contentType(ContentTypes.JSON).body(backward).put("/ccompat/v7/config").then()
-                .statusCode(200).body("compatibilityLevel", equalTo(CompatibilityLevel.BACKWARD.toString()));
+                .statusCode(200).body("compatibility", equalTo(CompatibilityLevel.BACKWARD.toString()));
 
         given().when().get("/ccompat/v7/config").then().statusCode(200).body("compatibilityLevel",
                 equalTo(CompatibilityLevel.BACKWARD.toString()));
@@ -48,7 +48,7 @@ public class ConfluentCompatibilityConfigTest extends AbstractResourceTestBase {
 
         given().when().contentType(ContentTypes.JSON).body(backward)
                 .put("/ccompat/v7/config/{subject}", subject).then().statusCode(200)
-                .body("compatibilityLevel", equalTo(CompatibilityLevel.BACKWARD.toString()));
+                .body("compatibility", equalTo(CompatibilityLevel.BACKWARD.toString()));
 
         given().when().get("/ccompat/v7/config/{subject}", subject).then().statusCode(200)
                 .body("compatibilityLevel", equalTo(CompatibilityLevel.BACKWARD.toString()));
@@ -61,7 +61,7 @@ public class ConfluentCompatibilityConfigTest extends AbstractResourceTestBase {
 
         // Set global config to BACKWARD
         given().when().contentType(ContentTypes.JSON).body(backward).put("/ccompat/v7/config").then()
-                .statusCode(200).body("compatibilityLevel", equalTo(CompatibilityLevel.BACKWARD.toString()));
+                .statusCode(200).body("compatibility", equalTo(CompatibilityLevel.BACKWARD.toString()));
 
         // Create a subject
         var subject = TestUtils.generateSubject();

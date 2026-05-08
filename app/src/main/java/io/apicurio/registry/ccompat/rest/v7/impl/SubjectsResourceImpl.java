@@ -106,6 +106,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
         return searchResults.getArtifacts().stream()
                 .filter(saDto -> isCcompatManagedType(saDto.getArtifactType())).map(toSubject)
+                .sorted()
                 .collect(Collectors.toList());
     }
 
@@ -415,6 +416,9 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public List<BigInteger> getReferencedBy(String subject, String versionString, String groupId) {
         final GA ga = getGA(groupId, subject);
+        if (!doesArtifactExist(ga.getRawArtifactId(), ga.getRawGroupIdWithNull())) {
+            throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+        }
         if (cconfig.legacyIdModeEnabled.get()) {
             return parseVersionString(ga.getRawArtifactId(), versionString, ga.getRawGroupIdWithNull(),
                     version -> storage.getGlobalIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),

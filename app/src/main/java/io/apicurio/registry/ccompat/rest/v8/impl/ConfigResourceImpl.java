@@ -2,6 +2,7 @@ package io.apicurio.registry.ccompat.rest.v8.impl;
 
 import io.apicurio.registry.ccompat.rest.v8.ConfigResource;
 import io.apicurio.registry.ccompat.rest.v8.beans.ConfigUpdateRequest;
+import io.apicurio.registry.ccompat.rest.v8.beans.ConfigUpdateResponse;
 import io.apicurio.registry.ccompat.rest.v8.beans.GlobalConfigResponse;
 import io.apicurio.registry.ccompat.rest.v8.beans.SubjectConfigResponse;
 import io.apicurio.registry.logging.Logged;
@@ -28,11 +29,11 @@ public class ConfigResourceImpl implements ConfigResource {
     }
 
     @Override
-    public GlobalConfigResponse updateGlobalConfig(ConfigUpdateRequest data) {
+    public ConfigUpdateResponse updateGlobalConfig(ConfigUpdateRequest data) {
         io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest v7Request = convertToV7Request(data);
-        io.apicurio.registry.ccompat.rest.v7.beans.GlobalConfigResponse v7Response =
+        io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateResponse v7Response =
                 v7ConfigResource.updateGlobalConfig(v7Request);
-        return convertGlobalConfigResponse(v7Response);
+        return convertConfigUpdateResponse(v7Response);
     }
 
     @Override
@@ -43,12 +44,12 @@ public class ConfigResourceImpl implements ConfigResource {
     }
 
     @Override
-    public GlobalConfigResponse updateSubjectConfig(String subject, String xRegistryGroupId,
+    public ConfigUpdateResponse updateSubjectConfig(String subject, String xRegistryGroupId,
             ConfigUpdateRequest data) {
         io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest v7Request = convertToV7Request(data);
-        io.apicurio.registry.ccompat.rest.v7.beans.GlobalConfigResponse v7Response =
+        io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateResponse v7Response =
                 v7ConfigResource.updateSubjectConfig(subject, xRegistryGroupId, v7Request);
-        return convertGlobalConfigResponse(v7Response);
+        return convertConfigUpdateResponse(v7Response);
     }
 
     @Override
@@ -76,6 +77,12 @@ public class ConfigResourceImpl implements ConfigResource {
     private GlobalConfigResponse convertGlobalConfigResponse(io.apicurio.registry.ccompat.rest.v7.beans.GlobalConfigResponse v7Response) {
         GlobalConfigResponse response = new GlobalConfigResponse();
         response.setCompatibilityLevel(v7Response.getCompatibilityLevel());
+        return response;
+    }
+
+    private ConfigUpdateResponse convertConfigUpdateResponse(io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateResponse v7Response) {
+        ConfigUpdateResponse response = new ConfigUpdateResponse();
+        response.setCompatibility(v7Response.getCompatibility());
         return response;
     }
 

@@ -3,8 +3,10 @@ package io.apicurio.registry.ccompat.rest.v7.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.ccompat.rest.error.InvalidCompatibilityLevelException;
 import io.apicurio.registry.ccompat.rest.v7.ConfigResource;
 import io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateRequest;
+import io.apicurio.registry.ccompat.rest.v7.beans.ConfigUpdateResponse;
 import io.apicurio.registry.ccompat.rest.v7.beans.GlobalConfigResponse;
 import io.apicurio.registry.ccompat.rest.v7.beans.SubjectConfigResponse;
 import io.apicurio.registry.logging.Logged;
@@ -65,7 +67,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             CompatibilityLevel.valueOf(level);
         }
         catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Illegal compatibility level: " + level);
+            throw new InvalidCompatibilityLevelException("Invalid compatibility level: " + level);
         }
         updater.run(RuleConfigurationDto.builder().configuration(level).build());
         // TODO config should take CompatibilityLevel as param
@@ -81,7 +83,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @MethodMetadata(extractParameters = { "0", MPK_RULE })
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
-    public GlobalConfigResponse updateGlobalConfig(ConfigUpdateRequest request) {
+    public ConfigUpdateResponse updateGlobalConfig(ConfigUpdateRequest request) {
         updateCompatibilityLevel(request.getCompatibility(), dto -> {
             if (!doesGlobalRuleExist(RuleType.COMPATIBILITY)) {
                 storage.createGlobalRule(RuleType.COMPATIBILITY, dto);
@@ -91,8 +93,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             }
         });
 
-        GlobalConfigResponse response = new GlobalConfigResponse();
-        response.setCompatibilityLevel(request.getCompatibility());
+        ConfigUpdateResponse response = new ConfigUpdateResponse();
+        response.setCompatibility(request.getCompatibility());
         return response;
     }
 
@@ -114,7 +116,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
     @MethodMetadata(extractParameters = { "0", MPK_ARTIFACT_ID, "1", MPK_RULE })
     @Audited
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
-    public GlobalConfigResponse updateSubjectConfig(String subject, String groupId, ConfigUpdateRequest request) {
+    public ConfigUpdateResponse updateSubjectConfig(String subject, String groupId, ConfigUpdateRequest request) {
         final GA ga = getGA(groupId, subject);
 
         updateCompatibilityLevel(request.getCompatibility(), dto -> {
@@ -129,8 +131,8 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             }
         });
 
-        GlobalConfigResponse response = new GlobalConfigResponse();
-        response.setCompatibilityLevel(request.getCompatibility());
+        ConfigUpdateResponse response = new ConfigUpdateResponse();
+        response.setCompatibility(request.getCompatibility());
         return response;
     }
 

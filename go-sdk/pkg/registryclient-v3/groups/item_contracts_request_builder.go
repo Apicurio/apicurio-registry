@@ -11,12 +11,22 @@ type ItemContractsRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
+// ItemContractsRequestBuilderGetQueryParameters returns ODCS contracts in the specified group with pagination.
+type ItemContractsRequestBuilderGetQueryParameters struct {
+	// Maximum number of contracts to return (default 20, max 500).
+	Limit *int32 `uriparametername:"limit"`
+	// Number of contracts to skip (for pagination).
+	Offset *int32 `uriparametername:"offset"`
+}
+
 // ItemContractsRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
 type ItemContractsRequestBuilderGetRequestConfiguration struct {
 	// Request headers
 	Headers *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestHeaders
 	// Request options
 	Options []i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestOption
+	// Request query parameters
+	QueryParameters *ItemContractsRequestBuilderGetQueryParameters
 }
 
 // ItemContractsRequestBuilderPostRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -43,7 +53,7 @@ func (m *ItemContractsRequestBuilder) ByContractId(contractId string) *ItemContr
 // NewItemContractsRequestBuilderInternal instantiates a new ItemContractsRequestBuilder and sets the default values.
 func NewItemContractsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemContractsRequestBuilder {
 	m := &ItemContractsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/contracts", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/contracts{?limit*,offset*}", pathParameters),
 	}
 	return m
 }
@@ -55,7 +65,7 @@ func NewItemContractsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee
 	return NewItemContractsRequestBuilderInternal(urlParams, requestAdapter)
 }
 
-// Get returns all ODCS contracts in the specified group.
+// Get returns ODCS contracts in the specified group with pagination.
 // returns a []OdcsContractSummaryable when successful
 // returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemContractsRequestBuilder) Get(ctx context.Context, requestConfiguration *ItemContractsRequestBuilderGetRequestConfiguration) ([]iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.OdcsContractSummaryable, error) {
@@ -102,11 +112,14 @@ func (m *ItemContractsRequestBuilder) Post(ctx context.Context, body []byte, req
 	return res.(iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.OdcsContractResultable), nil
 }
 
-// ToGetRequestInformation returns all ODCS contracts in the specified group.
+// ToGetRequestInformation returns ODCS contracts in the specified group with pagination.
 // returns a *RequestInformation when successful
 func (m *ItemContractsRequestBuilder) ToGetRequestInformation(ctx context.Context, requestConfiguration *ItemContractsRequestBuilderGetRequestConfiguration) (*i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestInformation, error) {
 	requestInfo := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewRequestInformationWithMethodAndUrlTemplateAndPathParameters(i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.GET, m.BaseRequestBuilder.UrlTemplate, m.BaseRequestBuilder.PathParameters)
 	if requestConfiguration != nil {
+		if requestConfiguration.QueryParameters != nil {
+			requestInfo.AddQueryParameters(*(requestConfiguration.QueryParameters))
+		}
 		requestInfo.Headers.AddAll(requestConfiguration.Headers)
 		requestInfo.AddRequestOptions(requestConfiguration.Options)
 	}

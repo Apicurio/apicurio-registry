@@ -4818,7 +4818,27 @@
         },
         "operationId": "listContracts",
         "summary": "List ODCS contracts",
-        "description": "Returns all ODCS contracts in the specified group."
+        "description": "Returns ODCS contracts in the specified group with pagination.",
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "Maximum number of contracts to return (default 20, max 500).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "Number of contracts to skip (for pagination).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "in": "query"
+          }
+        ]
       },
       "parameters": [
         {

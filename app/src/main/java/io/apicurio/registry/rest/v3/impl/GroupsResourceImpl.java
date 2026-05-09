@@ -10,6 +10,7 @@ import io.apicurio.registry.contracts.odcs.OdcsExporter;
 import io.apicurio.registry.contracts.odcs.OdcsParseException;
 import io.apicurio.registry.contracts.odcs.OdcsProjectionEngine;
 import io.apicurio.registry.contracts.odcs.OdcsProjectionResult;
+import io.apicurio.registry.contracts.odcs.OdcsSchema;
 import io.apicurio.registry.rest.v3.beans.OdcsContractResult;
 import io.apicurio.registry.rest.v3.beans.OdcsContractSummary;
 import io.apicurio.registry.rest.v3.beans.OdcsProjectionSummary;
@@ -2256,9 +2257,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
-    public List<OdcsContractSummary> listContracts(String groupId) {
+    public List<OdcsContractSummary> listContracts(String groupId, Integer limit,
+            Integer offset) {
         checkContractsEnabled();
         ParameterValidationUtils.requireParameter("groupId", groupId);
+
+        int effectiveLimit = limit != null ? Math.min(limit, 500) : 20;
+        int effectiveOffset = offset != null ? offset : 0;
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         Set<SearchFilter> filters = Set.of(
@@ -2266,7 +2271,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 SearchFilter.ofArtifactType(ArtifactType.ODCS_CONTRACT));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
-                OrderBy.createdOn, OrderDirection.desc, 0, 100);
+                OrderBy.createdOn, OrderDirection.desc, effectiveOffset,
+                effectiveLimit);
 
         return results.getArtifacts().stream()
                 .map(meta -> {
@@ -2337,36 +2343,38 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (contract.getSchemas() == null || contract.getSchemas().isEmpty()) {
             return OdcsProjectionResult.builder().build();
         }
-        var schema = contract.getSchemas().get(0);
-        if (schema.getLocation() == null || schema.getLocation().isBlank()) {
-            return OdcsProjectionResult.builder().build();
-        }
 
-        String[] parsed = parseSchemaLocation(schema.getLocation(), groupId);
-        if (parsed == null) {
-            var result = OdcsProjectionResult.builder().build();
-            result.addWarning("Invalid schema location: " + schema.getLocation());
-            return result;
-        }
-        String schemaGroupId = parsed[0];
-        String schemaArtifactId = parsed[1];
+        OdcsProjectionResult combined = OdcsProjectionResult.builder().build();
+        for (OdcsSchema schema : contract.getSchemas()) {
+            if (schema.getLocation() == null || schema.getLocation().isBlank()) {
+                combined.addWarning("Schema without location: "
+                        + (schema.getName() != null ? schema.getName() : "unnamed"));
+                continue;
+            }
 
-        OdcsProjectionResult result;
-        try {
-            storage.getArtifactMetaData(schemaGroupId, schemaArtifactId);
-            result = odcsProjectionEngine.project(contract, schemaGroupId,
-                    schemaArtifactId);
-        } catch (Exception e) {
-            result = OdcsProjectionResult.builder().build();
-            result.addWarning("Schema artifact not found: " + schemaGroupId + "/"
-                    + schemaArtifactId + ". Projection skipped.");
+            String[] parsed = parseSchemaLocation(schema.getLocation(), groupId);
+            if (parsed == null) {
+                combined.addWarning("Invalid schema location: " + schema.getLocation());
+                continue;
+            }
+
+            try {
+                storage.getArtifactMetaData(parsed[0], parsed[1]);
+                OdcsProjectionResult r = odcsProjectionEngine.project(
+                        contract, parsed[0], parsed[1]);
+                combined.setRulesApplied(
+                        combined.getRulesApplied() + r.getRulesApplied());
+                combined.setLabelsApplied(
+                        combined.getLabelsApplied() + r.getLabelsApplied());
+                combined.setTagsApplied(
+                        combined.getTagsApplied() + r.getTagsApplied());
+                combined.getWarnings().addAll(r.getWarnings());
+            } catch (Exception e) {
+                combined.addWarning("Schema artifact not found: " + parsed[0]
+                        + "/" + parsed[1] + ". Projection skipped.");
+            }
         }
-        if (contract.getSchemas().size() > 1) {
-            result.addWarning("Only the first schema is projected; "
-                    + (contract.getSchemas().size() - 1)
-                    + " additional schemas ignored.");
-        }
-        return result;
+        return combined;
     }
 
     private String[] parseSchemaLocation(String location, String defaultGroupId) {

@@ -124,12 +124,26 @@ public class OdcsExporter {
                 ? OdcsFreshness.builder().maxStaleness(maxStaleness).build()
                 : null;
 
-        if (accuracy.isEmpty() && freshness == null) {
+        String completenessPrefix = ContractLabels.PREFIX + "quality.completeness.";
+        List<OdcsCompletenessRule> completeness = new ArrayList<>();
+        for (Map.Entry<String, String> entry : labels.entrySet()) {
+            if (entry.getKey().startsWith(completenessPrefix)) {
+                String field = entry.getKey().substring(completenessPrefix.length());
+                Double threshold = parseDoubleOrNull(entry.getValue());
+                if (threshold != null) {
+                    completeness.add(OdcsCompletenessRule.builder()
+                            .field(field).threshold(threshold).build());
+                }
+            }
+        }
+
+        if (accuracy.isEmpty() && freshness == null && completeness.isEmpty()) {
             return null;
         }
         return OdcsQuality.builder()
                 .accuracy(accuracy.isEmpty() ? null : accuracy)
                 .freshness(freshness)
+                .completeness(completeness.isEmpty() ? null : completeness)
                 .build();
     }
 

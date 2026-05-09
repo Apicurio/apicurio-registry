@@ -68,9 +68,19 @@ public class OdcsLabelProjector {
         }
 
         var q = contract.getQuality();
-        if (q != null && q.getFreshness() != null) {
-            put(labels, ContractLabels.QUALITY_FRESHNESS_MAX_STALENESS,
-                    q.getFreshness().getMaxStaleness());
+        if (q != null) {
+            if (q.getFreshness() != null) {
+                put(labels, ContractLabels.QUALITY_FRESHNESS_MAX_STALENESS,
+                        q.getFreshness().getMaxStaleness());
+            }
+            if (q.getCompleteness() != null) {
+                for (var rule : q.getCompleteness()) {
+                    if (rule.getField() != null && rule.getThreshold() != null) {
+                        labels.put(ContractLabels.PREFIX + "quality.completeness."
+                                + rule.getField(), String.valueOf(rule.getThreshold()));
+                    }
+                }
+            }
         }
 
         put(labels, ContractLabels.ODCS_CONTRACT_ID, contract.getId());

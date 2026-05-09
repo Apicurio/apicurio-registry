@@ -29,25 +29,29 @@ public class OdcsExporter {
     @Inject
     OdcsParser parser;
 
-    public String export(String groupId, String artifactId) {
-        OdcsContract contract = reconstruct(groupId, artifactId);
+    public String export(String groupId, String artifactId, String contractId) {
+        OdcsContract contract = reconstruct(groupId, artifactId, contractId);
         return parser.serialize(contract);
     }
 
-    public OdcsContract reconstruct(String groupId, String artifactId) {
+    public OdcsContract reconstruct(String groupId, String artifactId,
+            String contractId) {
         ArtifactMetaDataDto meta = storage.getArtifactMetaData(groupId, artifactId);
         Map<String, String> labels = meta.getLabels() != null ? meta.getLabels() : Map.of();
 
-        OdcsInfo info = buildInfo(labels, meta);
-        OdcsTeam team = buildTeam(labels);
-        OdcsServiceLevel serviceLevel = buildServiceLevel(labels);
-        OdcsQuality quality = buildQuality(groupId, artifactId, labels);
-        List<OdcsSchema> schemas = buildSchemas(groupId, artifactId, meta);
+        String prefix = ContractLabels.PREFIX + contractId + ".";
+
+        OdcsInfo info = buildInfo(labels, prefix, meta);
+        OdcsTeam team = buildTeam(labels, prefix);
+        OdcsServiceLevel serviceLevel = buildServiceLevel(labels, prefix);
+        OdcsQuality quality = buildQuality(groupId, artifactId, labels, prefix,
+                contractId);
+        List<OdcsSchema> schemas = buildSchemas(groupId, artifactId, meta, contractId);
 
         return OdcsContract.builder()
                 .apiVersion("v3.1.0")
                 .kind("DataContract")
-                .id(labels.get(ContractLabels.ODCS_CONTRACT_ID))
+                .id(contractId)
                 .info(info)
                 .team(team)
                 .serviceLevel(serviceLevel)
@@ -56,30 +60,32 @@ public class OdcsExporter {
                 .build();
     }
 
-    private OdcsInfo buildInfo(Map<String, String> labels, ArtifactMetaDataDto meta) {
+    private OdcsInfo buildInfo(Map<String, String> labels, String prefix,
+            ArtifactMetaDataDto meta) {
         return OdcsInfo.builder()
                 .title(meta.getName())
-                .version(labels.get(ContractLabels.ODCS_CONTRACT_VERSION))
+                .version(labels.get(prefix + "version"))
                 .description(meta.getDescription())
-                .status(reverseMapStatus(labels.get(ContractLabels.STATUS)))
-                .dataClassification(lowerOrNull(labels.get(ContractLabels.CLASSIFICATION)))
+                .status(reverseMapStatus(labels.get(prefix + "status")))
+                .dataClassification(lowerOrNull(labels.get(prefix + "classification")))
                 .build();
     }
 
-    private OdcsTeam buildTeam(Map<String, String> labels) {
-        String name = labels.get(ContractLabels.OWNER_TEAM);
-        String domain = labels.get(ContractLabels.OWNER_DOMAIN);
-        String contact = labels.get(ContractLabels.SUPPORT_CONTACT);
+    private OdcsTeam buildTeam(Map<String, String> labels, String prefix) {
+        String name = labels.get(prefix + "owner.team");
+        String domain = labels.get(prefix + "owner.domain");
+        String contact = labels.get(prefix + "support.contact");
         if (name == null && domain == null && contact == null) {
             return null;
         }
         return OdcsTeam.builder().name(name).domain(domain).contact(contact).build();
     }
 
-    private OdcsServiceLevel buildServiceLevel(Map<String, String> labels) {
-        String avail = labels.get(ContractLabels.SLA_AVAILABILITY);
-        String p50 = labels.get(ContractLabels.SLA_LATENCY_P50);
-        String p99 = labels.get(ContractLabels.SLA_LATENCY_P99);
+    private OdcsServiceLevel buildServiceLevel(Map<String, String> labels,
+            String prefix) {
+        String avail = labels.get(prefix + "sla.availability");
+        String p50 = labels.get(prefix + "sla.latency.p50");
+        String p99 = labels.get(prefix + "sla.latency.p99");
         if (avail == null && p50 == null && p99 == null) {
             return null;
         }
@@ -93,38 +99,42 @@ public class OdcsExporter {
     }
 
     private OdcsQuality buildQuality(String groupId, String artifactId,
-            Map<String, String> labels) {
-        ContractRuleSetDto ruleset = storage.getArtifactContractRuleset(groupId, artifactId);
-        if (ruleset == null || ruleset.getDomainRules() == null) {
-            return null;
-        }
+            Map<String, String> labels, String prefix, String contractId) {
+        String rulePrefix = ODCS_RULE_PREFIX + contractId + ":";
+
+        ContractRuleSetDto ruleset = storage.getArtifactContractRuleset(groupId,
+                artifactId);
 
         List<OdcsAccuracyRule> accuracy = new ArrayList<>();
-        for (ContractRuleDto rule : ruleset.getDomainRules()) {
-            if (!rule.getName().startsWith(ODCS_RULE_PREFIX)) {
-                continue;
-            }
-            String expr = rule.getExpr();
-            Double threshold = 1.0;
-            if (rule.getParams() != null && rule.getParams().containsKey("threshold")) {
-                Double parsed = parseDoubleOrNull(rule.getParams().get("threshold"));
-                if (parsed != null) {
-                    threshold = parsed;
+        if (ruleset != null && ruleset.getDomainRules() != null) {
+            for (ContractRuleDto rule : ruleset.getDomainRules()) {
+                if (!rule.getName().startsWith(rulePrefix)) {
+                    continue;
                 }
+                String expr = rule.getExpr();
+                Double threshold = 1.0;
+                if (rule.getParams() != null
+                        && rule.getParams().containsKey("threshold")) {
+                    Double parsed = parseDoubleOrNull(
+                            rule.getParams().get("threshold"));
+                    if (parsed != null) {
+                        threshold = parsed;
+                    }
+                }
+                accuracy.add(OdcsAccuracyRule.builder()
+                        .name(rule.getName().substring(rulePrefix.length()))
+                        .expression(expr)
+                        .threshold(threshold)
+                        .build());
             }
-            accuracy.add(OdcsAccuracyRule.builder()
-                    .name(rule.getName().substring(ODCS_RULE_PREFIX.length()))
-                    .expression(expr)
-                    .threshold(threshold)
-                    .build());
         }
 
-        String maxStaleness = labels.get(ContractLabels.QUALITY_FRESHNESS_MAX_STALENESS);
+        String maxStaleness = labels.get(prefix + "quality.freshness.maxStaleness");
         OdcsFreshness freshness = maxStaleness != null
                 ? OdcsFreshness.builder().maxStaleness(maxStaleness).build()
                 : null;
 
-        String completenessPrefix = ContractLabels.PREFIX + "quality.completeness.";
+        String completenessPrefix = prefix + "quality.completeness.";
         List<OdcsCompletenessRule> completeness = new ArrayList<>();
         for (Map.Entry<String, String> entry : labels.entrySet()) {
             if (entry.getKey().startsWith(completenessPrefix)) {
@@ -148,7 +158,7 @@ public class OdcsExporter {
     }
 
     private List<OdcsSchema> buildSchemas(String groupId, String artifactId,
-            ArtifactMetaDataDto meta) {
+            ArtifactMetaDataDto meta, String contractId) {
         List<String> versions = storage.getArtifactVersions(groupId, artifactId);
         if (versions == null || versions.isEmpty()) {
             return List.of();
@@ -157,14 +167,17 @@ public class OdcsExporter {
         String latest = versions.get(versions.size() - 1);
         ArtifactVersionMetaDataDto vMeta = storage.getArtifactVersionMetaData(
                 groupId, artifactId, latest);
-        Map<String, String> vLabels = vMeta.getLabels() != null ? vMeta.getLabels() : Map.of();
+        Map<String, String> vLabels = vMeta.getLabels() != null
+                ? vMeta.getLabels()
+                : Map.of();
 
+        String tagPrefix = FIELD_TAG_PREFIX + contractId + ":";
         Map<String, OdcsFieldMetadata> fields = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : vLabels.entrySet()) {
-            if (!entry.getKey().startsWith(FIELD_TAG_PREFIX)) {
+            if (!entry.getKey().startsWith(tagPrefix)) {
                 continue;
             }
-            String remainder = entry.getKey().substring(FIELD_TAG_PREFIX.length());
+            String remainder = entry.getKey().substring(tagPrefix.length());
             int separator = remainder.indexOf('|');
             if (separator <= 0) {
                 continue;
@@ -177,9 +190,8 @@ public class OdcsExporter {
             if ("PII".equals(tagName)) {
                 field.setPii(true);
             } else if (tagName.startsWith("CLASSIFICATION:")) {
-                field.setClassification(
-                        tagName.substring("CLASSIFICATION:".length())
-                                .toLowerCase(Locale.ROOT));
+                field.setClassification(tagName.substring("CLASSIFICATION:".length())
+                        .toLowerCase(Locale.ROOT));
             } else {
                 field.getTags().add(tagName);
             }

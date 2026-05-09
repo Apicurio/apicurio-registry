@@ -21,32 +21,34 @@ public class OdcsProjectionEngine {
     @Inject
     OdcsTagProjector tagProjector;
 
-    public OdcsProjectionResult project(OdcsContract contract, String groupId,
-            String artifactId) {
+    public OdcsProjectionResult project(OdcsContract contract, String contractId,
+            String groupId, String artifactId) {
         String lockKey = (groupId != null ? groupId : "") + "/" + artifactId;
         Object lock = locks.computeIfAbsent(lockKey, k -> new Object());
 
         synchronized (lock) {
             try {
-                return doProject(contract, groupId, artifactId);
+                return doProject(contract, contractId, groupId, artifactId);
             } finally {
                 locks.remove(lockKey);
             }
         }
     }
 
-    private OdcsProjectionResult doProject(OdcsContract contract, String groupId,
-            String artifactId) {
+    private OdcsProjectionResult doProject(OdcsContract contract, String contractId,
+            String groupId, String artifactId) {
         var result = OdcsProjectionResult.builder().build();
 
-        result.setLabelsApplied(labelProjector.project(contract, groupId, artifactId));
-        result.setRulesApplied(ruleProjector.project(contract, groupId, artifactId));
-        result.setTagsApplied(
-                tagProjector.project(contract, groupId, artifactId, result.getWarnings()));
+        result.setLabelsApplied(
+                labelProjector.project(contract, contractId, groupId, artifactId));
+        result.setRulesApplied(
+                ruleProjector.project(contract, contractId, groupId, artifactId));
+        result.setTagsApplied(tagProjector.project(contract, contractId, groupId,
+                artifactId, result.getWarnings()));
 
-        log.info("Projected ODCS contract onto {}/{}: {} rules, {} labels, {} tags",
-                groupId, artifactId, result.getRulesApplied(), result.getLabelsApplied(),
-                result.getTagsApplied());
+        log.info("Projected ODCS contract {} onto {}/{}: {} rules, {} labels, {} tags",
+                contractId, groupId, artifactId, result.getRulesApplied(),
+                result.getLabelsApplied(), result.getTagsApplied());
 
         return result;
     }

@@ -18,13 +18,14 @@ public class OdcsTagProjector {
 
     private static final Logger log = LoggerFactory.getLogger(OdcsTagProjector.class);
     static final String FIELD_TAG_PREFIX = "field-tag.";
+    private static final int MAX_LABEL_KEY_LENGTH = 512;
 
     @Inject
     @Current
     RegistryStorage storage;
 
-    public int project(OdcsContract contract, String groupId, String artifactId,
-            List<String> warnings) {
+    public int project(OdcsContract contract, String contractId, String groupId,
+            String artifactId, List<String> warnings) {
         if (contract.getSchemas() == null || contract.getSchemas().isEmpty()) {
             return 0;
         }
@@ -35,13 +36,15 @@ public class OdcsTagProjector {
                 return 0;
             }
 
+            String tagPrefix = FIELD_TAG_PREFIX + contractId + ":";
+
             var meta = storage.getArtifactVersionMetaData(groupId, artifactId,
                     targetVersion);
 
             var labels = new LinkedHashMap<String, String>();
             if (meta.getLabels() != null) {
                 meta.getLabels().forEach((k, v) -> {
-                    if (!k.startsWith(FIELD_TAG_PREFIX)) {
+                    if (!k.startsWith(tagPrefix)) {
                         labels.put(k, v);
                     }
                 });
@@ -53,7 +56,8 @@ public class OdcsTagProjector {
                     continue;
                 }
                 for (var entry : schema.getFields().entrySet()) {
-                    count += addTags(labels, entry.getKey(), entry.getValue());
+                    count += addTags(labels, tagPrefix, entry.getKey(),
+                            entry.getValue(), warnings);
                 }
             }
 
@@ -87,24 +91,34 @@ public class OdcsTagProjector {
                 : null;
     }
 
-    private int addTags(Map<String, String> labels, String fieldPath,
-            OdcsFieldMetadata field) {
+    private int addTags(Map<String, String> labels, String tagPrefix, String fieldPath,
+            OdcsFieldMetadata field, List<String> warnings) {
         int count = 0;
         if (Boolean.TRUE.equals(field.getPii())) {
-            labels.put(FIELD_TAG_PREFIX + fieldPath + "|PII", "EXTERNAL");
-            count++;
+            count += putTag(labels, tagPrefix, fieldPath, "PII", warnings);
         }
         if (field.getClassification() != null) {
-            labels.put(FIELD_TAG_PREFIX + fieldPath + "|CLASSIFICATION:"
-                    + field.getClassification().toUpperCase(Locale.ROOT), "EXTERNAL");
-            count++;
+            count += putTag(labels, tagPrefix, fieldPath,
+                    "CLASSIFICATION:" + field.getClassification().toUpperCase(Locale.ROOT),
+                    warnings);
         }
         if (field.getTags() != null) {
             for (String tag : field.getTags()) {
-                labels.put(FIELD_TAG_PREFIX + fieldPath + "|" + tag, "EXTERNAL");
-                count++;
+                count += putTag(labels, tagPrefix, fieldPath, tag, warnings);
             }
         }
         return count;
+    }
+
+    private int putTag(Map<String, String> labels, String tagPrefix, String fieldPath,
+            String tagName, List<String> warnings) {
+        String key = tagPrefix + fieldPath + "|" + tagName;
+        if (key.length() > MAX_LABEL_KEY_LENGTH) {
+            warnings.add("Tag label key too long (max " + MAX_LABEL_KEY_LENGTH
+                    + "): " + fieldPath + "|" + tagName);
+            return 0;
+        }
+        labels.put(key, "EXTERNAL");
+        return 1;
     }
 }

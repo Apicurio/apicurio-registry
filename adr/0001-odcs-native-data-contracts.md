@@ -121,13 +121,16 @@ Extract the contract rule execution engine to a separate `contracts-rules` modul
 
 ## Known Limitations
 
-### L1: One contract per schema artifact (1:1 projection)
+### L1: Multiple contracts per schema — RESOLVED
 
-The projection model assumes a 1:1 relationship between contracts and schema artifacts. If two ODCS contracts reference the same schema artifact, the second projection overwrites the first — labels, rules, and tags from the first contract are silently replaced.
+~~The projection model assumes a 1:1 relationship between contracts and schema artifacts.~~
 
-**Impact:** Low for the common case (one contract per schema). Problematic for multi-team scenarios where different teams govern the same schema.
+**Resolution:** Namespaced projection implemented. All projected labels, rules, and tags are prefixed with the contract ID:
+- Labels: `contract.{contractId}.owner` instead of `contract.owner`
+- Rules: `odcs:{contractId}:ruleName` instead of `odcs:ruleName`
+- Tags: `field-tag.{contractId}:fieldPath|tagName` instead of `field-tag.fieldPath|tagName`
 
-**Mitigation path:** Namespaced projection (`contract.{contractId}.owner` instead of `contract.owner`) can be added in a follow-up without breaking the API. Existing contracts would get their ID as the namespace prefix.
+Multiple contracts can now coexist on the same schema artifact without overwriting each other. Each projection only strips/replaces its own namespaced data.
 
 ### L2: Multi-node KafkaSQL eventual consistency
 
@@ -137,23 +140,25 @@ The projection engine performs read-modify-write on schema artifact labels. The 
 
 **Mitigation:** The ODCS contract YAML (stored as an artifact) is the source of truth. Re-submitting the contract corrects the projected state. For strict consistency, use the SQL storage variant.
 
-### L3: Dual storage divergence
+### L3: Dual storage divergence — PARTIALLY RESOLVED
 
-The ODCS YAML exists as an artifact AND its contents are projected as labels/rules on the schema artifact. These two representations can diverge if:
+The ODCS YAML exists as an artifact AND its contents are projected as labels/rules on the schema artifact.
 
-- Projection fails after artifact creation (partial state)
-- Someone modifies schema artifact labels directly (bypassing the contract)
-- The ODCS artifact is deleted but projected labels remain
+**Resolution:** If projection fails after contract artifact creation, the contract artifact is automatically rolled back (deleted). This prevents the "contract exists but projection is missing" state.
 
-**Mitigation:** The ODCS artifact is the authoritative source. Projected labels can be re-derived by re-submitting the contract. A future "reconcile" endpoint could detect and fix divergence.
+**Remaining risk:** Someone modifying schema artifact labels directly (bypassing the contract) can still cause divergence. The ODCS artifact remains the authoritative source — re-submitting the contract corrects the projected state.
 
-### L4: ODCS model coverage
+### L4: ODCS model coverage — PARTIALLY RESOLVED
 
-The ODCS model covers the core sections (info, schemas, quality, serviceLevel, team) but does not model every ODCS v3.1 field (e.g., `servers`, `terms`, `roles`, `notifications`). Unknown fields are preserved via `@JsonAnySetter` for round-trip fidelity but are not projected as labels or used for governance.
+~~The ODCS model covers the core sections but does not model every ODCS v3.1 field.~~
 
-### L5: Label key size limits
+**Resolution:** Added explicit fields for `terms`, `roles`, `servers`, `links`, and `tags` to `OdcsContract`. Combined with `@JsonAnySetter`/`@JsonAnyGetter`, all ODCS v3.1 fields are now preserved on round-trip. Fields not in the model are captured in `additionalProperties`.
 
-Field tag labels (`field-tag.{fieldPath}|{tagName}`) can produce long keys for deeply nested schemas with long field paths. Storage backends may have key length limits. No truncation or validation is currently applied.
+### L5: Label key size limits — RESOLVED
+
+~~Field tag labels can produce long keys. No validation is currently applied.~~
+
+**Resolution:** `OdcsTagProjector` now validates label key length against a `MAX_LABEL_KEY_LENGTH` (512 chars). Tags that would exceed this limit are skipped with a warning in the projection result instead of causing storage errors.
 
 ## Consequences
 

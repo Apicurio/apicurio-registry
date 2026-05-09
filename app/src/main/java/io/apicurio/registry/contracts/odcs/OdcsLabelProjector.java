@@ -18,72 +18,75 @@ public class OdcsLabelProjector {
     @Current
     RegistryStorage storage;
 
-    public int project(OdcsContract contract, String groupId, String artifactId) {
+    public int project(OdcsContract contract, String contractId, String groupId,
+            String artifactId) {
+        String prefix = ContractLabels.PREFIX + contractId + ".";
+
         var existing = storage.getArtifactMetaData(groupId, artifactId);
         var labels = new LinkedHashMap<String, String>();
 
         if (existing.getLabels() != null) {
             existing.getLabels().forEach((k, v) -> {
-                if (!k.startsWith(ContractLabels.PREFIX)) {
+                if (!k.startsWith(prefix)) {
                     labels.put(k, v);
                 }
             });
         }
 
-        collectLabels(contract, labels);
+        collectLabels(contract, contractId, prefix, labels);
 
         storage.updateArtifactMetaData(groupId, artifactId,
                 EditableArtifactMetaDataDto.builder().labels(labels).build());
 
-        return (int) labels.keySet().stream()
-                .filter(k -> k.startsWith(ContractLabels.PREFIX)).count();
+        return (int) labels.keySet().stream().filter(k -> k.startsWith(prefix)).count();
     }
 
-    private void collectLabels(OdcsContract contract, Map<String, String> labels) {
+    private void collectLabels(OdcsContract contract, String contractId, String prefix,
+            Map<String, String> labels) {
         var info = contract.getInfo();
         if (info != null) {
-            put(labels, ContractLabels.STATUS, mapStatus(info.getStatus()));
-            putUpper(labels, ContractLabels.CLASSIFICATION, info.getDataClassification());
-            put(labels, ContractLabels.ODCS_CONTRACT_VERSION, info.getVersion());
+            put(labels, prefix + "status", mapStatus(info.getStatus()));
+            putUpper(labels, prefix + "classification", info.getDataClassification());
+            put(labels, prefix + "version", info.getVersion());
         }
 
         var team = contract.getTeam();
         if (team != null) {
-            put(labels, ContractLabels.OWNER_TEAM, team.getName());
-            put(labels, ContractLabels.OWNER_DOMAIN, team.getDomain());
-            put(labels, ContractLabels.SUPPORT_CONTACT, team.getContact());
+            put(labels, prefix + "owner.team", team.getName());
+            put(labels, prefix + "owner.domain", team.getDomain());
+            put(labels, prefix + "support.contact", team.getContact());
         }
 
         var sl = contract.getServiceLevel();
         if (sl != null) {
             if (sl.getAvailability() != null) {
-                labels.put(ContractLabels.SLA_AVAILABILITY,
+                labels.put(prefix + "sla.availability",
                         String.valueOf(sl.getAvailability()));
             }
             var lat = sl.getLatency();
             if (lat != null) {
-                put(labels, ContractLabels.SLA_LATENCY_P50, lat.getP50());
-                put(labels, ContractLabels.SLA_LATENCY_P99, lat.getP99());
+                put(labels, prefix + "sla.latency.p50", lat.getP50());
+                put(labels, prefix + "sla.latency.p99", lat.getP99());
             }
         }
 
         var q = contract.getQuality();
         if (q != null) {
             if (q.getFreshness() != null) {
-                put(labels, ContractLabels.QUALITY_FRESHNESS_MAX_STALENESS,
+                put(labels, prefix + "quality.freshness.maxStaleness",
                         q.getFreshness().getMaxStaleness());
             }
             if (q.getCompleteness() != null) {
                 for (var rule : q.getCompleteness()) {
                     if (rule.getField() != null && rule.getThreshold() != null) {
-                        labels.put(ContractLabels.PREFIX + "quality.completeness."
-                                + rule.getField(), String.valueOf(rule.getThreshold()));
+                        labels.put(prefix + "quality.completeness." + rule.getField(),
+                                String.valueOf(rule.getThreshold()));
                     }
                 }
             }
         }
 
-        put(labels, ContractLabels.ODCS_CONTRACT_ID, contract.getId());
+        labels.put(prefix + "id", contractId);
     }
 
     static String mapStatus(String odcsStatus) {

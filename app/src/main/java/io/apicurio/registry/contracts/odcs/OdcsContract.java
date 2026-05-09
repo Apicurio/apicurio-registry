@@ -28,6 +28,11 @@ public class OdcsContract {
     private OdcsQuality quality;
     private OdcsServiceLevel serviceLevel;
     private OdcsTeam team;
+    private Map<String, Object> terms;
+    private List<Map<String, Object>> roles;
+    private List<Map<String, Object>> servers;
+    private Map<String, Object> links;
+    private List<String> tags;
 
     @Builder.Default
     private Map<String, Object> additionalProperties = new LinkedHashMap<>();

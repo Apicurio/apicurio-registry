@@ -4,6 +4,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.contracts.odcs.OdcsContract;
 import io.apicurio.registry.contracts.odcs.OdcsParser;
 import io.apicurio.registry.contracts.odcs.OdcsExporter;
@@ -2251,7 +2252,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     List.of(), false, false, null);
         }
 
-        OdcsProjectionResult projection = projectOdcsContract(contract, rawGroupId);
+        OdcsProjectionResult projection;
+        try {
+            projection = projectOdcsContract(contract, contractId, rawGroupId);
+        } catch (Exception e) {
+            storage.deleteArtifact(rawGroupId, contractId);
+            throw new BadRequestException(
+                    "Contract created but projection failed — rolled back: "
+                            + e.getMessage());
+        }
         return toOdcsContractResult(contractId, contract, projection);
     }
 
@@ -2323,7 +2332,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 EditableVersionMetaDataDto.builder().build(),
                 List.of(), false, false, null);
 
-        OdcsProjectionResult projection = projectOdcsContract(contract, rawGroupId);
+        OdcsProjectionResult projection = projectOdcsContract(contract, contractId, rawGroupId);
         return toOdcsContractResult(contractId, contract, projection);
     }
 
@@ -2339,7 +2348,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     private OdcsProjectionResult projectOdcsContract(OdcsContract contract,
-            String groupId) {
+            String contractId, String groupId) {
         if (contract.getSchemas() == null || contract.getSchemas().isEmpty()) {
             return OdcsProjectionResult.builder().build();
         }
@@ -2361,7 +2370,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             try {
                 storage.getArtifactMetaData(parsed[0], parsed[1]);
                 OdcsProjectionResult r = odcsProjectionEngine.project(
-                        contract, parsed[0], parsed[1]);
+                        contract, contractId, parsed[0], parsed[1]);
                 combined.setRulesApplied(
                         combined.getRulesApplied() + r.getRulesApplied());
                 combined.setLabelsApplied(
@@ -2431,6 +2440,31 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
-        return odcsExporter.export(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        var meta = storage.getArtifactMetaData(rawGroupId, artifactId);
+        String contractId = findContractId(meta.getLabels());
+        if (contractId == null) {
+            throw new jakarta.ws.rs.NotFoundException(
+                    "No ODCS contract projected onto this artifact");
+        }
+        return odcsExporter.export(rawGroupId, artifactId, contractId);
+    }
+
+    private String findContractId(Map<String, String> labels) {
+        if (labels == null) {
+            return null;
+        }
+        String suffix = ".id";
+        for (Map.Entry<String, String> entry : labels.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
+                String middle = key.substring(ContractLabels.PREFIX.length(),
+                        key.length() - suffix.length());
+                if (!middle.contains(".")) {
+                    return entry.getValue();
+                }
+            }
+        }
+        return null;
     }
 }

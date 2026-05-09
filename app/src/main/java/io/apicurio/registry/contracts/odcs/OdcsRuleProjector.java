@@ -23,28 +23,51 @@ public class OdcsRuleProjector {
     @Current
     RegistryStorage storage;
 
-    public int project(OdcsContract contract, String groupId, String artifactId) {
+    public int project(OdcsContract contract, String contractId, String groupId,
+            String artifactId) {
         if (contract.getQuality() == null || contract.getQuality().getAccuracy() == null) {
             return 0;
         }
 
+        String rulePrefix = ODCS_RULE_PREFIX + contractId + ":";
         var existing = storage.getArtifactContractRuleset(groupId, artifactId);
-        List<ContractRuleDto> manual = filterManualRules(existing);
-        String source = buildSourceId(contract);
+
+        List<ContractRuleDto> otherRules = new ArrayList<>();
+        if (existing != null && existing.getDomainRules() != null) {
+            for (ContractRuleDto rule : existing.getDomainRules()) {
+                if (!rule.getName().startsWith(rulePrefix)) {
+                    otherRules.add(rule);
+                }
+            }
+        }
+
+        String source = "odcs:" + contractId + ":"
+                + (contract.getInfo() != null && contract.getInfo().getVersion() != null
+                        ? contract.getInfo().getVersion()
+                        : "unknown");
 
         List<ContractRuleDto> odcsRules = new ArrayList<>();
         int index = 0;
         for (OdcsAccuracyRule rule : contract.getQuality().getAccuracy()) {
-            odcsRules.add(toContractRule(rule, source, index++));
+            double threshold = rule.getThreshold() != null ? rule.getThreshold() : 1.0;
+            odcsRules.add(ContractRuleDto.builder()
+                    .name(rulePrefix + rule.getName())
+                    .kind(RuleKind.CONDITION).type("CEL").mode(RuleMode.WRITE)
+                    .expr(rule.getExpression())
+                    .params(Map.of("source", source, "threshold",
+                            String.valueOf(threshold)))
+                    .onFailure(mapThresholdToAction(threshold))
+                    .onSuccess(RuleAction.NONE).disabled(false).orderIndex(index++)
+                    .build());
         }
 
         List<ContractRuleDto> merged = new ArrayList<>(odcsRules);
-        for (ContractRuleDto m : manual) {
+        for (ContractRuleDto other : otherRules) {
             ContractRuleDto copy = ContractRuleDto.builder()
-                    .name(m.getName()).kind(m.getKind()).type(m.getType())
-                    .mode(m.getMode()).expr(m.getExpr()).params(m.getParams())
-                    .tags(m.getTags()).onSuccess(m.getOnSuccess())
-                    .onFailure(m.getOnFailure()).disabled(m.isDisabled())
+                    .name(other.getName()).kind(other.getKind()).type(other.getType())
+                    .mode(other.getMode()).expr(other.getExpr()).params(other.getParams())
+                    .tags(other.getTags()).onSuccess(other.getOnSuccess())
+                    .onFailure(other.getOnFailure()).disabled(other.isDisabled())
                     .orderIndex(index++).build();
             merged.add(copy);
         }
@@ -57,35 +80,6 @@ public class OdcsRuleProjector {
                         .migrationRules(migration).build());
 
         return odcsRules.size();
-    }
-
-    private ContractRuleDto toContractRule(OdcsAccuracyRule rule, String source, int index) {
-        double threshold = rule.getThreshold() != null ? rule.getThreshold() : 1.0;
-        String expr = rule.getExpression();
-        return ContractRuleDto.builder()
-                .name(ODCS_RULE_PREFIX + rule.getName())
-                .kind(RuleKind.CONDITION).type("CEL").mode(RuleMode.WRITE)
-                .expr(expr)
-                .params(Map.of("source", source, "threshold",
-                        String.valueOf(threshold)))
-                .onFailure(mapThresholdToAction(threshold))
-                .onSuccess(RuleAction.NONE).disabled(false).orderIndex(index)
-                .build();
-    }
-
-    private List<ContractRuleDto> filterManualRules(ContractRuleSetDto existing) {
-        if (existing == null || existing.getDomainRules() == null) {
-            return List.of();
-        }
-        return existing.getDomainRules().stream()
-                .filter(r -> !r.getName().startsWith(ODCS_RULE_PREFIX)).toList();
-    }
-
-    private String buildSourceId(OdcsContract contract) {
-        String id = contract.getId() != null ? contract.getId() : "unknown";
-        String version = contract.getInfo() != null && contract.getInfo().getVersion() != null
-                ? contract.getInfo().getVersion() : "unknown";
-        return "odcs:" + id + ":" + version;
     }
 
     static RuleAction mapThresholdToAction(double threshold) {

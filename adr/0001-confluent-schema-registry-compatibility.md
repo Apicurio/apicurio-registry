@@ -74,7 +74,7 @@ Schema registration uses per-subject locking via a Guava `Cache<GA, ReentrantLoc
 
 ### Compatibility Checking
 
-When a client calls the compatibility check endpoint and no compatibility rule is configured at any level (artifact, group, global, default), the implementation defaults to `BACKWARD` — matching Confluent's default behavior.
+When a client calls the compatibility check endpoint and no compatibility rule is configured at any level (artifact, group, global, default), the implementation defaults to `BACKWARD` -- matching Confluent's default behavior.
 
 ### JSON Serialization
 
@@ -143,7 +143,7 @@ Read/write mode is stored as a `DynamicConfigProperty` string (`apicurio.ccompat
 
 ### 2. Default BACKWARD inconsistency between check and registration
 
-The compatibility *check* endpoint defaults to BACKWARD when no rule is configured. But schema *registration* does NOT enforce BACKWARD — it only applies rules if explicitly configured. A client could check compatibility (passes with BACKWARD default), then register an incompatible schema (no enforcement).
+The compatibility *check* endpoint defaults to BACKWARD when no rule is configured. But schema *registration* does NOT enforce BACKWARD -- it only applies rules if explicitly configured. A client could check compatibility (passes with BACKWARD default), then register an incompatible schema (no enforcement).
 
 **Mitigation:** Make BACKWARD the global default in `RulesProperties` so both code paths use it, or remove the hardcoded default from the check endpoint.
 
@@ -155,13 +155,13 @@ The `Cache<GA, ReentrantLock>` in `SubjectsResourceImpl` only serializes writes 
 
 ### 4. Jackson mixins applied to global ObjectMapper
 
-The `CCompatJacksonCustomizer` applies `@JsonInclude(NON_NULL)` mixins to the global ObjectMapper. While the target bean classes are only used in ccompat contexts today, the pattern is fragile — if these bean types are ever used in non-ccompat responses, null fields will be silently omitted.
+The `CCompatJacksonCustomizer` applies `@JsonInclude(NON_NULL)` mixins to the global ObjectMapper. While the target bean classes are only used in ccompat contexts today, the pattern is fragile -- if these bean types are ever used in non-ccompat responses, null fields will be silently omitted.
 
 **Mitigation:** Replace with a JAX-RS `WriterInterceptor` scoped to `/apis/ccompat/*` paths, or add integration tests that verify the mixin scope.
 
 ### 5. v8 bean conversion is manual and brittle
 
-Every v8 implementation manually copies fields between v7 and v8 bean types. There is no compile-time safety — adding a field to v7 beans without updating the v8 converters will silently drop the field.
+Every v8 implementation manually copies fields between v7 and v8 bean types. There is no compile-time safety -- adding a field to v7 beans without updating the v8 converters will silently drop the field.
 
 **Mitigation:** Share bean classes between v7 and v8 (if schemas are identical), or use a compile-time mapping library like MapStruct.
 

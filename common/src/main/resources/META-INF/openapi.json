@@ -4773,7 +4773,7 @@
           "Contracts"
         ],
         "responses": {
-          "201": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -4781,7 +4781,7 @@
                 }
               }
             },
-            "description": "The contract was created and projected onto the referenced schema artifact."
+            "description": "The contract was created (or updated if it already exists) and projected onto the referenced schema artifact."
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"

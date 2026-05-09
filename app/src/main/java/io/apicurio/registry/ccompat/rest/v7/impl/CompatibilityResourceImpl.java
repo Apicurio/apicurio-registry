@@ -19,6 +19,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -40,7 +41,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
         try {
             storage.getArtifactRule(groupId, artifactId, RuleType.COMPATIBILITY);
             return true;
-        } catch (Exception e) {
+        } catch (RuleNotFoundException e) {
             // No artifact-level rule
         }
         try {
@@ -48,19 +49,22 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                 storage.getGroupRule(groupId, RuleType.COMPATIBILITY);
                 return true;
             }
-        } catch (Exception e) {
+        } catch (RuleNotFoundException e) {
             // No group-level rule
         }
         try {
             storage.getGlobalRule(RuleType.COMPATIBILITY);
             return true;
-        } catch (Exception e) {
+        } catch (RuleNotFoundException e) {
             // No global rule
         }
         return rulesProperties.isDefaultGlobalRuleConfigured(RuleType.COMPATIBILITY);
     }
 
     private void validateSchemaContent(String schema, String artifactType) {
+        if (schema == null || artifactType == null) {
+            throw new UnprocessableEntityException("Schema and artifact type must not be null");
+        }
         String contentType = artifactType.equals(ArtifactType.PROTOBUF)
                 ? ContentTypes.APPLICATION_PROTOBUF : ContentTypes.APPLICATION_JSON;
         TypedContent typedContent = TypedContent.create(ContentHandle.create(schema), contentType);

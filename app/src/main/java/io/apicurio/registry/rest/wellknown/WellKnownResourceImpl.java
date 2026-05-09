@@ -180,7 +180,11 @@ public class WellKnownResourceImpl implements WellKnownResource {
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
 
         if (!StringUtil.isEmpty(request.getQuery())) {
-            filters.add(SearchFilter.ofName(request.getQuery()));
+            String q = request.getQuery().trim();
+            if (!q.contains("*")) {
+                q = "*" + q + "*";
+            }
+            filters.add(SearchFilter.ofName(q));
         }
 
         AgentSearchFilters f = request.getFilters();

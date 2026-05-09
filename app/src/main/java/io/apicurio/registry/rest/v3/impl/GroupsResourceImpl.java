@@ -76,6 +76,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_CANONICAL;
@@ -2219,7 +2220,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String contractId = contract.getId() != null ? contract.getId()
                 : contract.getInfo() != null && contract.getInfo().getTitle() != null
                         ? contract.getInfo().getTitle().replaceAll("[^a-zA-Z0-9._\\-+]", "-")
-                        : "odcs-contract-" + java.util.UUID.randomUUID();
+                        : "odcs-contract-" + UUID.randomUUID();
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
@@ -2264,7 +2265,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 SearchFilter.ofGroupId(rawGroupId),
                 SearchFilter.ofArtifactType(ArtifactType.ODCS_CONTRACT));
 
-        // TODO: add limit/offset query params to OpenAPI spec for pagination
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
                 OrderBy.createdOn, OrderDirection.desc, 0, 100);
 

@@ -13,7 +13,7 @@ public class AvroReferenceFinderTest extends ArtifactUtilProviderTestBase {
 
     /**
      * Test method for
-     * {@link AsyncApiReferenceFinder#findExternalReferences(io.apicurio.registry.content.ContentHandle)}.
+     * {@link AsyncApiReferenceFinder#findExternalReferences(io.apicurio.registry.content.TypedContent)}.
      */
     @Test
     public void testFindExternalReferences() {
@@ -57,6 +57,21 @@ public class AvroReferenceFinderTest extends ArtifactUtilProviderTestBase {
         Assertions.assertEquals(2, foundReferences.size());
         Assertions.assertEquals(Set.of(new ExternalReference("com.kubetrade.schema.trade.TradeKey"),
                 new ExternalReference("com.kubetrade.schema.trade.TradeValue")), foundReferences);
+    }
+
+    /**
+     * Test that inline enum, fixed, and record types with their own namespace are correctly
+     * identified as internal references when reused by fully qualified name.
+     * This addresses issue #7970.
+     */
+    @Test
+    public void testNamespacedEnumFixedRefsAreNotReturnedAsExternal() {
+        TypedContent content = resourceToTypedContentHandle("avro-with-namespaced-enum-refs.avsc");
+        AvroReferenceFinder finder = new AvroReferenceFinder();
+        Set<ExternalReference> foundReferences = finder.findExternalReferences(content);
+        Assertions.assertNotNull(foundReferences);
+        Assertions.assertEquals(1, foundReferences.size());
+        Assertions.assertEquals(Set.of(new ExternalReference("com.example.TradeKey")), foundReferences);
     }
 
 }

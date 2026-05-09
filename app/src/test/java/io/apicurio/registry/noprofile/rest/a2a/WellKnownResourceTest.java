@@ -385,6 +385,64 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchAgentsAdvancedWithQuery() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "query-agent", AGENT_CARD_CONTENT);
+
+        String requestBody = """
+                {
+                    "query": "TestAgent",
+                    "limit": 10,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("query-agent"));
+    }
+
+    @Test
+    public void testSearchAgentsAdvancedEmptyBody() {
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testGetPublicAgentsWithPagination() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        for (int i = 0; i < 3; i++) {
+            createAgentCard(groupId, "pub-page-" + i, AGENT_CARD_CONTENT);
+            setVisibility(groupId, "pub-page-" + i, "public");
+        }
+
+        givenAtRoot()
+                .when()
+                .queryParam("offset", 0)
+                .queryParam("limit", 2)
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(3))
+                .body("agents", hasSize(2));
+    }
+
+    @Test
     public void testExistingSearchAgentsStillWorks() throws Exception {
         givenAtRoot()
                 .when()

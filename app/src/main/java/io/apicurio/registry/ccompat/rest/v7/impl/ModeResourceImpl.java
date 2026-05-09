@@ -133,7 +133,8 @@ public class ModeResourceImpl extends AbstractResource implements ModeResource {
 
     private String validateMode(String mode) {
         if (mode == null || mode.isEmpty()) {
-            throw new UnprocessableEntityException("Invalid mode: null");
+            throw new UnprocessableEntityException(
+                    "Invalid mode: " + (mode == null ? "null" : "empty"));
         }
         try {
             ModeUpdateResponse.Mode.valueOf(mode);

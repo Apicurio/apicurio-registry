@@ -1,4 +1,4 @@
-# ADR-0001: ODCS-Native Data Contracts
+# ADR-0002: ODCS-Native Data Contracts
 
 **Date:** 2026-05-08  
 **Status:** Accepted  

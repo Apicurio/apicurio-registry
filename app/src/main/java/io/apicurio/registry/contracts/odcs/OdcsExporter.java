@@ -41,7 +41,7 @@ public class OdcsExporter {
         OdcsInfo info = buildInfo(labels, meta);
         OdcsTeam team = buildTeam(labels);
         OdcsServiceLevel serviceLevel = buildServiceLevel(labels);
-        OdcsQuality quality = buildQuality(groupId, artifactId);
+        OdcsQuality quality = buildQuality(groupId, artifactId, labels);
         List<OdcsSchema> schemas = buildSchemas(groupId, artifactId, meta);
 
         return OdcsContract.builder()
@@ -92,7 +92,8 @@ public class OdcsExporter {
                 .build();
     }
 
-    private OdcsQuality buildQuality(String groupId, String artifactId) {
+    private OdcsQuality buildQuality(String groupId, String artifactId,
+            Map<String, String> labels) {
         ContractRuleSetDto ruleset = storage.getArtifactContractRuleset(groupId, artifactId);
         if (ruleset == null || ruleset.getDomainRules() == null) {
             return null;
@@ -104,9 +105,6 @@ public class OdcsExporter {
                 continue;
             }
             String expr = rule.getExpr();
-            if (expr != null && expr.startsWith("message.")) {
-                expr = expr.substring("message.".length());
-            }
             Double threshold = 1.0;
             if (rule.getParams() != null && rule.getParams().containsKey("threshold")) {
                 Double parsed = parseDoubleOrNull(rule.getParams().get("threshold"));
@@ -121,8 +119,18 @@ public class OdcsExporter {
                     .build());
         }
 
-        return accuracy.isEmpty() ? null
-                : OdcsQuality.builder().accuracy(accuracy).build();
+        String maxStaleness = labels.get(ContractLabels.QUALITY_FRESHNESS_MAX_STALENESS);
+        OdcsFreshness freshness = maxStaleness != null
+                ? OdcsFreshness.builder().maxStaleness(maxStaleness).build()
+                : null;
+
+        if (accuracy.isEmpty() && freshness == null) {
+            return null;
+        }
+        return OdcsQuality.builder()
+                .accuracy(accuracy.isEmpty() ? null : accuracy)
+                .freshness(freshness)
+                .build();
     }
 
     private List<OdcsSchema> buildSchemas(String groupId, String artifactId,
@@ -143,12 +151,12 @@ public class OdcsExporter {
                 continue;
             }
             String remainder = entry.getKey().substring(FIELD_TAG_PREFIX.length());
-            int lastDot = remainder.lastIndexOf('.');
-            if (lastDot <= 0) {
+            int separator = remainder.indexOf('|');
+            if (separator <= 0) {
                 continue;
             }
-            String fieldPath = remainder.substring(0, lastDot);
-            String tagName = remainder.substring(lastDot + 1);
+            String fieldPath = remainder.substring(0, separator);
+            String tagName = remainder.substring(separator + 1);
 
             OdcsFieldMetadata field = fields.computeIfAbsent(fieldPath,
                     k -> OdcsFieldMetadata.builder().tags(new ArrayList<>()).build());

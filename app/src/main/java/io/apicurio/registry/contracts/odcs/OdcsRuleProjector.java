@@ -62,9 +62,6 @@ public class OdcsRuleProjector {
     private ContractRuleDto toContractRule(OdcsAccuracyRule rule, String source, int index) {
         double threshold = rule.getThreshold() != null ? rule.getThreshold() : 1.0;
         String expr = rule.getExpression();
-        if (expr != null && !expr.startsWith("message.")) {
-            expr = "message." + expr;
-        }
         return ContractRuleDto.builder()
                 .name(ODCS_RULE_PREFIX + rule.getName())
                 .kind(RuleKind.CONDITION).type("CEL").mode(RuleMode.WRITE)

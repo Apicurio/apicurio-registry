@@ -22,7 +22,9 @@ public class OdcsContractContentAccepter implements ContentAccepter {
                 return false;
             }
 
-            if (!tree.has("apiVersion") || !tree.get("apiVersion").isTextual()) {
+            JsonNode apiVersion = tree.get("apiVersion");
+            if (apiVersion == null || !apiVersion.isTextual()
+                    || !apiVersion.asText().startsWith("v3")) {
                 return false;
             }
 

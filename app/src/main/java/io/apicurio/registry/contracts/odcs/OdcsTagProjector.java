@@ -29,14 +29,14 @@ public class OdcsTagProjector {
             return 0;
         }
         try {
-            var versions = storage.getArtifactVersions(groupId, artifactId);
-            if (versions == null || versions.isEmpty()) {
+            String targetVersion = resolveTargetVersion(contract, groupId, artifactId);
+            if (targetVersion == null) {
                 warnings.add("No versions found for " + groupId + "/" + artifactId);
                 return 0;
             }
 
-            String latest = versions.get(versions.size() - 1);
-            var meta = storage.getArtifactVersionMetaData(groupId, artifactId, latest);
+            var meta = storage.getArtifactVersionMetaData(groupId, artifactId,
+                    targetVersion);
 
             var labels = new LinkedHashMap<String, String>();
             if (meta.getLabels() != null) {
@@ -58,7 +58,8 @@ public class OdcsTagProjector {
             }
 
             if (count > 0) {
-                storage.updateArtifactVersionMetaData(groupId, artifactId, latest,
+                storage.updateArtifactVersionMetaData(groupId, artifactId,
+                        targetVersion,
                         EditableVersionMetaDataDto.builder().labels(labels).build());
             }
             return count;
@@ -69,21 +70,38 @@ public class OdcsTagProjector {
         }
     }
 
+    private String resolveTargetVersion(OdcsContract contract, String groupId,
+            String artifactId) {
+        if (contract.getSchemas() != null && !contract.getSchemas().isEmpty()) {
+            String location = contract.getSchemas().get(0).getLocation();
+            if (location != null && location.contains(":")) {
+                String version = location.substring(location.indexOf(':') + 1);
+                if (!version.isBlank()) {
+                    return version;
+                }
+            }
+        }
+        var versions = storage.getArtifactVersions(groupId, artifactId);
+        return (versions != null && !versions.isEmpty())
+                ? versions.get(versions.size() - 1)
+                : null;
+    }
+
     private int addTags(Map<String, String> labels, String fieldPath,
             OdcsFieldMetadata field) {
         int count = 0;
         if (Boolean.TRUE.equals(field.getPii())) {
-            labels.put(FIELD_TAG_PREFIX + fieldPath + ".PII", "EXTERNAL");
+            labels.put(FIELD_TAG_PREFIX + fieldPath + "|PII", "EXTERNAL");
             count++;
         }
         if (field.getClassification() != null) {
-            labels.put(FIELD_TAG_PREFIX + fieldPath + ".CLASSIFICATION:"
+            labels.put(FIELD_TAG_PREFIX + fieldPath + "|CLASSIFICATION:"
                     + field.getClassification().toUpperCase(Locale.ROOT), "EXTERNAL");
             count++;
         }
         if (field.getTags() != null) {
             for (String tag : field.getTags()) {
-                labels.put(FIELD_TAG_PREFIX + fieldPath + "." + tag, "EXTERNAL");
+                labels.put(FIELD_TAG_PREFIX + fieldPath + "|" + tag, "EXTERNAL");
                 count++;
             }
         }

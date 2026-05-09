@@ -2221,7 +2221,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String contractId = contract.getId() != null ? contract.getId()
                 : contract.getInfo() != null && contract.getInfo().getTitle() != null
                         ? contract.getInfo().getTitle().replaceAll("[^a-zA-Z0-9._\\-+]", "-")
-                        : "odcs-contract-" + System.currentTimeMillis();
+                        : "odcs-contract-" + java.util.UUID.randomUUID();
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
@@ -2266,8 +2266,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 SearchFilter.ofGroupId(rawGroupId),
                 SearchFilter.ofArtifactType(ArtifactType.ODCS_CONTRACT));
 
+        // TODO: add limit/offset query params to OpenAPI spec for pagination
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
-                OrderBy.createdOn, OrderDirection.desc, 0, 500);
+                OrderBy.createdOn, OrderDirection.desc, 0, 100);
 
         return results.getArtifacts().stream()
                 .map(meta -> {
@@ -2333,24 +2334,30 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         storage.deleteArtifact(new GroupId(groupId).getRawGroupIdWithNull(), contractId);
     }
 
-    private OdcsProjectionResult projectOdcsContract(OdcsContract contract, String groupId) {
+    private OdcsProjectionResult projectOdcsContract(OdcsContract contract,
+            String groupId) {
         if (contract.getSchemas() == null || contract.getSchemas().isEmpty()) {
             return OdcsProjectionResult.builder().build();
         }
         var schema = contract.getSchemas().get(0);
-        if (schema.getLocation() == null) {
+        if (schema.getLocation() == null || schema.getLocation().isBlank()) {
             return OdcsProjectionResult.builder().build();
         }
-        String loc = schema.getLocation();
-        String withoutVersion = loc.contains(":") ? loc.substring(0, loc.indexOf(':')) : loc;
-        String schemaGroupId = withoutVersion.contains("/")
-                ? withoutVersion.substring(0, withoutVersion.indexOf('/')) : groupId;
-        String schemaArtifactId = withoutVersion.contains("/")
-                ? withoutVersion.substring(withoutVersion.indexOf('/') + 1) : withoutVersion;
+
+        String[] parsed = parseSchemaLocation(schema.getLocation(), groupId);
+        if (parsed == null) {
+            var result = OdcsProjectionResult.builder().build();
+            result.addWarning("Invalid schema location: " + schema.getLocation());
+            return result;
+        }
+        String schemaGroupId = parsed[0];
+        String schemaArtifactId = parsed[1];
+
         OdcsProjectionResult result;
         try {
             storage.getArtifactMetaData(schemaGroupId, schemaArtifactId);
-            result = odcsProjectionEngine.project(contract, schemaGroupId, schemaArtifactId);
+            result = odcsProjectionEngine.project(contract, schemaGroupId,
+                    schemaArtifactId);
         } catch (Exception e) {
             result = OdcsProjectionResult.builder().build();
             result.addWarning("Schema artifact not found: " + schemaGroupId + "/"
@@ -2358,9 +2365,42 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
         if (contract.getSchemas().size() > 1) {
             result.addWarning("Only the first schema is projected; "
-                    + (contract.getSchemas().size() - 1) + " additional schemas ignored.");
+                    + (contract.getSchemas().size() - 1)
+                    + " additional schemas ignored.");
         }
         return result;
+    }
+
+    private String[] parseSchemaLocation(String location, String defaultGroupId) {
+        if (location == null || location.isBlank()) {
+            return null;
+        }
+        String withoutVersion = location.contains(":")
+                ? location.substring(0, location.indexOf(':'))
+                : location;
+        if (withoutVersion.isBlank()) {
+            return null;
+        }
+
+        String schemaGroupId;
+        String schemaArtifactId;
+        int slashIdx = withoutVersion.indexOf('/');
+        if (slashIdx >= 0) {
+            schemaGroupId = withoutVersion.substring(0, slashIdx);
+            schemaArtifactId = withoutVersion.substring(slashIdx + 1);
+            if (schemaArtifactId.contains("/")) {
+                return null;
+            }
+        } else {
+            schemaGroupId = defaultGroupId;
+            schemaArtifactId = withoutVersion;
+        }
+
+        if (schemaGroupId == null || schemaGroupId.isBlank()
+                || schemaArtifactId.isBlank()) {
+            return null;
+        }
+        return new String[] { schemaGroupId, schemaArtifactId };
     }
 
     private OdcsContractResult toOdcsContractResult(String contractId, OdcsContract contract,

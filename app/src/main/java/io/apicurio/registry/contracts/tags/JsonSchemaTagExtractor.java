@@ -50,12 +50,13 @@ public class JsonSchemaTagExtractor implements TagExtractor {
         }
 
         String id = nodeIdentity(node);
-        if (id != null && visited.contains(id)) {
+        if (id == null) {
+            id = "node@" + System.identityHashCode(node);
+        }
+        if (visited.contains(id)) {
             return;
         }
-        if (id != null) {
-            visited.add(id);
-        }
+        visited.add(id);
 
         JsonNode properties = node.get("properties");
         if (properties != null && properties.isObject()) {

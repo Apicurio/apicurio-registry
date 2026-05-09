@@ -79,11 +79,11 @@ When an ODCS contract is submitted to {registry}, the following projections are 
 |Schema artifact contract_rules table
 
 |`schemas[].fields[].pii`
-|`field-tag.{field}.PII` version label
+|`field-tag.{field}|PII` version label
 |Schema artifact latest version
 
 |`schemas[].fields[].tags`
-|`field-tag.{field}.{tag}` version labels
+|`field-tag.{field}|{tag}` version labels
 |Schema artifact latest version
 
 |`serviceLevel.*`
@@ -144,7 +144,7 @@ When submitted, this contract:
 
 1. Sets `contract.status=STABLE`, `contract.owner.team=orders-team`, `contract.classification=CONFIDENTIAL` labels on the `orders/OrderEvent` artifact
 2. Creates two CEL contract rules (`odcs:positive-amount` with onFailure=ERROR, `odcs:valid-email` with onFailure=DLQ) on the artifact
-3. Sets `field-tag.customerEmail.PII=EXTERNAL` and `field-tag.customerEmail.EMAIL=EXTERNAL` version labels
+3. Sets `field-tag.customerEmail|PII=EXTERNAL` and `field-tag.customerEmail|EMAIL=EXTERNAL` version labels
 4. Stores SLA labels for external monitoring tools
 
 === Quality rule threshold mapping
@@ -275,7 +275,7 @@ DEV ──────► STAGE ──────► PROD
 == Field-level tags
 
 [role="_abstract"]
-Field tags provide semantic annotation of schema fields, enabling you to identify sensitive data and apply tag-based governance. Tags are stored as version-level labels using the convention `field-tag.{fieldPath}.{tagName}`.
+Field tags provide semantic annotation of schema fields, enabling you to identify sensitive data and apply tag-based governance. Tags are stored as version-level labels using the convention `field-tag.{fieldPath}|{tagName}`.
 
 === Tag sources
 
@@ -343,14 +343,14 @@ Also supports Confluent `confluent.field_meta` field options.
 Tags are stored as version-level labels with the following format:
 
 ----
-field-tag.{fieldPath}.{tagName} = {source}
+field-tag.{fieldPath}|{tagName} = {source}
 ----
 
 Examples:
 
-* `field-tag.ssn.PII = INLINE` - PII tag extracted from schema
-* `field-tag.customerEmail.EMAIL = EXTERNAL` - EMAIL tag projected from ODCS contract
-* `field-tag.profile.address.zipCode.INTERNAL = INLINE` - Tag on nested field
+* `field-tag.ssn|PII = INLINE` - PII tag extracted from schema
+* `field-tag.customerEmail|EMAIL = EXTERNAL` - EMAIL tag projected from ODCS contract
+* `field-tag.profile.address.zipCode|INTERNAL = INLINE` - Tag on nested field
 
 === Common tags
 

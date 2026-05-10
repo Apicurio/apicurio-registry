@@ -231,6 +231,61 @@ public class A2AAuthTest extends AbstractResourceTestBase {
                 .body("agents.artifactId", not(hasItem(artifactId)));
     }
 
+    // --- Admin can see private agents owned by other users ---
+
+    @Test
+    public void testAdminCanSeePrivateAgentOwnedByOtherUser() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "other-user-private-agent";
+
+        // Developer creates a private agent
+        createAgentCard(developerClient(), groupId, artifactId, AGENT_CARD_CONTENT);
+        setVisibility(adminClient(), groupId, artifactId, "private");
+
+        // Admin (not the owner) can still see it
+        givenAsAdmin()
+                .when()
+                .get("/.well-known/agents/entitled")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem(artifactId));
+
+        // Readonly user (not owner, not admin) cannot see it
+        givenAsReadonly()
+                .when()
+                .get("/.well-known/agents/entitled")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", not(hasItem(artifactId)));
+    }
+
+    // --- Default visibility fallback ---
+
+    @Test
+    public void testDefaultVisibilityFallback() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "no-label-agent";
+
+        // Create agent without visibility label
+        createAgentCard(adminClient(), groupId, artifactId, AGENT_CARD_CONTENT);
+
+        // Should be visible to authenticated users (default = "entitled")
+        givenAsReadonly()
+                .when()
+                .get("/.well-known/agents/entitled")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem(artifactId));
+
+        // Should NOT be visible on public endpoint
+        givenAtRoot()
+                .when()
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", not(hasItem(artifactId)));
+    }
+
     // --- Advanced search respects visibility ---
 
     @Test

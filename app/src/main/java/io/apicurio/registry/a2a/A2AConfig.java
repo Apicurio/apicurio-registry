@@ -1,10 +1,13 @@
 package io.apicurio.registry.a2a;
 
 import io.apicurio.common.apps.config.Info;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_A2A;
 
@@ -13,6 +16,17 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_A2A
  */
 @Singleton
 public class A2AConfig {
+
+    private static final Set<String> VALID_VISIBILITIES = Set.of("public", "entitled", "private");
+
+    @PostConstruct
+    void validate() {
+        if (!VALID_VISIBILITIES.contains(defaultVisibility.toLowerCase(Locale.ROOT))) {
+            throw new IllegalArgumentException(
+                    "Invalid value for apicurio.a2a.default-visibility: '" + defaultVisibility
+                            + "'. Must be one of: " + VALID_VISIBILITIES);
+        }
+    }
 
     @ConfigProperty(name = "apicurio.a2a.enabled", defaultValue = "false")
     @Info(category = CATEGORY_A2A, description = "Enable A2A protocol support", availableSince = "3.0.0", experimental = true)

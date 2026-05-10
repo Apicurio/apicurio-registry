@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 /**
@@ -440,6 +441,78 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("count", greaterThanOrEqualTo(3))
                 .body("agents", hasSize(2));
+    }
+
+    @Test
+    public void testSearchAgentsAdvancedWithQueryWildcard() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createAgentCard(groupId, "wildcard-agent", AGENT_CARD_CONTENT);
+
+        // User-supplied wildcard should not be double-wrapped
+        String requestBody = """
+                {
+                    "query": "*Test*",
+                    "limit": 10,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("wildcard-agent"));
+    }
+
+    @Test
+    public void testSearchAgentsAdvancedNegativeOffsetLimit() {
+        String requestBody = """
+                {
+                    "limit": -5,
+                    "offset": -10
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testSearchAgentsAdvancedMalformedJson() {
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body("{broken json")
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    public void testDefaultVisibilityExcludesFromPublic() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create agent without visibility label — defaults to "entitled"
+        createAgentCard(groupId, "default-vis-agent", AGENT_CARD_CONTENT);
+
+        // Should NOT appear on public endpoint (default is "entitled", not "public")
+        givenAtRoot()
+                .when()
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", not(hasItem("default-vis-agent")));
     }
 
     @Test

@@ -41,6 +41,8 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.StringUtil;
 import io.quarkus.security.identity.SecurityIdentity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -68,6 +70,10 @@ import java.util.Set;
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
 public class WellKnownResourceImpl implements WellKnownResource {
+
+    private static final Logger log = LoggerFactory.getLogger(WellKnownResourceImpl.class);
+
+    private static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
 
     @Inject
     A2AConfig a2aConfig;
@@ -147,7 +153,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, 0, Integer.MAX_VALUE);
+                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS);
 
         // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
         List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -231,7 +237,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         if (a2aConfig.isEntitlementsEnabled()) {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
-                    filters, OrderBy.createdOn, OrderDirection.desc, 0, Integer.MAX_VALUE);
+                    filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS);
 
             // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
             List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -424,7 +430,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 pushNotifications = capabilitiesNode.path("pushNotifications").asBoolean(false);
             }
         } catch (Exception e) {
-            // If content parsing fails, return result with empty skills/capabilities
+            log.warn("Failed to parse Agent Card content for {}/{}: {}",
+                    artifact.getGroupId(), artifact.getArtifactId(), e.getMessage());
         }
 
         return AgentSearchResult.builder()
@@ -544,7 +551,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 }
             }
         } catch (Exception e) {
-            // If content parsing fails, return result with empty metadata
+            log.warn("Failed to parse MCP tool content for {}/{}: {}",
+                    artifact.getGroupId(), artifact.getArtifactId(), e.getMessage());
         }
 
         return McpToolSearchResult.builder()
@@ -617,8 +625,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
             return new ArrayList<>(artifacts);
         }
 
-        boolean isAuthenticated = securityIdentity != null && !securityIdentity.isAnonymous();
-        boolean isAdmin = adminOverride.isAdmin();
+        boolean isAuthenticated = !securityIdentity.isAnonymous();
+        boolean isAdmin = isAuthenticated && adminOverride.isAdmin();
         String currentUser = isAuthenticated
                 ? securityIdentity.getPrincipal().getName() : null;
 

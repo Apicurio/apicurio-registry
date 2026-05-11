@@ -450,6 +450,12 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
+            String artifactId, int versionOrder) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
             EditableVersionMetaDataDto metaData) {
         throw new UnsupportedOperationException();

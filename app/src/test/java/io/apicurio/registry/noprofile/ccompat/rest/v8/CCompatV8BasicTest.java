@@ -111,7 +111,7 @@ public class CCompatV8BasicTest extends AbstractResourceTestBase {
     @Test
     public void testUpdateGlobalMode() {
         ModeUpdateRequest request = new ModeUpdateRequest();
-        request.setMode(ModeUpdateRequest.Mode.READONLY);
+        request.setMode("READONLY");
 
         // Set global mode to READONLY
         given().when()
@@ -130,7 +130,7 @@ public class CCompatV8BasicTest extends AbstractResourceTestBase {
                 .body("mode", equalTo("READONLY"));
 
         // Reset back to READWRITE
-        request.setMode(ModeUpdateRequest.Mode.READWRITE);
+        request.setMode("READWRITE");
         given().when()
                 .contentType(ContentTypes.JSON)
                 .body(request)
@@ -160,7 +160,7 @@ public class CCompatV8BasicTest extends AbstractResourceTestBase {
                 .put("/ccompat/v8/config")
                 .then()
                 .statusCode(200)
-                .body("compatibilityLevel", equalTo(CompatibilityLevel.BACKWARD.name()));
+                .body("compatibility", equalTo(CompatibilityLevel.BACKWARD.name()));
 
         // Delete global config
         given().when()

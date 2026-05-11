@@ -24,6 +24,12 @@ func NewItemArtifactsItemContractRequestBuilder(rawUrl string, requestAdapter i2
 	return NewItemArtifactsItemContractRequestBuilderInternal(urlParams, requestAdapter)
 }
 
+// Export export contract metadata, rules, and field tags as ODCS YAML.
+// returns a *ItemArtifactsItemContractExportRequestBuilder when successful
+func (m *ItemArtifactsItemContractRequestBuilder) Export() *ItemArtifactsItemContractExportRequestBuilder {
+	return NewItemArtifactsItemContractExportRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Metadata manage contract metadata for an artifact.
 // returns a *ItemArtifactsItemContractMetadataRequestBuilder when successful
 func (m *ItemArtifactsItemContractRequestBuilder) Metadata() *ItemArtifactsItemContractMetadataRequestBuilder {

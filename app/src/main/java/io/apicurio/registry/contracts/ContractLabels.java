@@ -22,6 +22,18 @@ public final class ContractLabels {
     public static final String DEPRECATED_DATE = "contract.lifecycle.deprecated-date";
     public static final String DEPRECATION_REASON = "contract.lifecycle.deprecation-reason";
 
+    // SLA labels (stored, not enforced by registry)
+    public static final String SLA_AVAILABILITY = "contract.sla.availability";
+    public static final String SLA_LATENCY_P50 = "contract.sla.latency.p50";
+    public static final String SLA_LATENCY_P99 = "contract.sla.latency.p99";
+
+    // Quality labels (stored, not enforced by registry)
+    public static final String QUALITY_FRESHNESS_MAX_STALENESS = "contract.quality.freshness.maxStaleness";
+
+    // ODCS source tracking
+    public static final String ODCS_CONTRACT_ID = "contract.odcs.contractId";
+    public static final String ODCS_CONTRACT_VERSION = "contract.odcs.contractVersion";
+
     private ContractLabels() {
         // Prevent instantiation
     }

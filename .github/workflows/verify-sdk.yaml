@@ -14,7 +14,7 @@ on:
 jobs:
   verify-python-sdk:
     name: Verify Python SDK
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -57,7 +57,7 @@ jobs:
 
   verify-go-sdk:
     name: Verify Go SDK
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

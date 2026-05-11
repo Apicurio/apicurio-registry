@@ -4756,6 +4756,258 @@
         }
       ]
     },
+    "/groups/{groupId}/contracts": {
+      "summary": "Manage ODCS data contracts within a group.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/x-yaml": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OdcsContractResult"
+                }
+              }
+            },
+            "description": "The contract was created (or updated if it already exists) and projected onto the referenced schema artifact."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "submitContract",
+        "summary": "Submit an ODCS contract",
+        "description": "Submits an ODCS v3.1 YAML contract. The contract is parsed, stored as an ODCS_CONTRACT artifact, and its contents are projected onto the referenced schema artifact (labels, rules, field tags)."
+      },
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OdcsContractSummary"
+                  }
+                }
+              }
+            },
+            "description": "List of ODCS contracts in the group."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "listContracts",
+        "summary": "List ODCS contracts",
+        "description": "Returns ODCS contracts in the specified group with pagination.",
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "Maximum number of contracts to return (default 20, max 500).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "Number of contracts to skip (for pagination).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "in": "query"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/contracts/{contractId}": {
+      "summary": "Manage a specific ODCS contract.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-yaml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The ODCS contract YAML."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getContract",
+        "summary": "Get an ODCS contract",
+        "description": "Returns the ODCS contract YAML for the specified contract."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/x-yaml": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OdcsContractResult"
+                }
+              }
+            },
+            "description": "The contract was updated and re-projected."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updateContract",
+        "summary": "Update an ODCS contract",
+        "description": "Updates an ODCS contract (creates a new version) and re-projects onto the referenced schema artifact."
+      },
+      "delete": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "204": {
+            "description": "The contract was deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteContract",
+        "summary": "Delete an ODCS contract",
+        "description": "Deletes the ODCS contract artifact."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "contractId",
+          "description": "The contract ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/export": {
+      "summary": "Export contract metadata, rules, and field tags as ODCS YAML.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-yaml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The reconstructed ODCS contract YAML."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "exportContractAsOdcs",
+        "summary": "Export as ODCS",
+        "description": "Reconstructs an ODCS v3.1 YAML contract from the artifact's current contract.* labels, contract rules, and field-tag.* version labels."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "x-codegen-contextRoot": "/apis/registry/v3"
   },
   "components": {
@@ -6906,6 +7158,68 @@
             "totalEdges": 1,
             "maxDepth": 1,
             "hasCycles": false
+          }
+        }
+      },
+      "OdcsContractResult": {
+        "title": "OdcsContractResult",
+        "description": "Result of submitting or updating an ODCS contract.",
+        "type": "object",
+        "properties": {
+          "contractId": {
+            "description": "The contract artifact ID.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The ODCS contract version.",
+            "type": "string"
+          },
+          "projection": {
+            "$ref": "#/components/schemas/OdcsProjectionSummary"
+          }
+        }
+      },
+      "OdcsProjectionSummary": {
+        "title": "OdcsProjectionSummary",
+        "description": "Summary of the projection performed when an ODCS contract is applied.",
+        "type": "object",
+        "properties": {
+          "rulesApplied": {
+            "description": "Number of CEL quality rules projected onto the schema artifact.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "labelsApplied": {
+            "description": "Number of contract.* labels set on the schema artifact.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "tagsApplied": {
+            "description": "Number of field-tag.* labels set on the schema artifact version.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "description": "Any warnings encountered during projection.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "OdcsContractSummary": {
+        "title": "OdcsContractSummary",
+        "description": "Summary of an ODCS contract.",
+        "type": "object",
+        "properties": {
+          "contractId": {
+            "description": "The contract artifact ID.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The contract display name.",
+            "type": "string"
           }
         }
       },

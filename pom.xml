@@ -80,6 +80,7 @@
 
   <modules>
     <!-- Essential modules (always built) -->
+    <module>authz</module>
     <module>app</module>
     <module>common</module>
     <module>config-index/definitions</module>

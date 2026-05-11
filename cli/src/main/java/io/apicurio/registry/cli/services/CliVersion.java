@@ -79,7 +79,8 @@ public final class CliVersion implements Comparable<CliVersion> {
                         Integer.parseInt(parts[2]),
                         0, true, version
                 );
-            } catch (NumberFormatException ignored) {
+            } catch (NumberFormatException e) {
+                // Non-numeric segments — fall through to unparsed
             }
         }
 

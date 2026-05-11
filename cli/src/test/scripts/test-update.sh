@@ -25,9 +25,9 @@ YELLOW='\033[0;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-pass() { echo -e "${GREEN}PASS${NC}: $1"; }
-fail() { echo -e "${RED}FAIL${NC}: $1"; FAILURES=$((FAILURES + 1)); }
-info() { echo -e "${YELLOW}INFO${NC}: $1"; }
+pass() { local msg="$1"; echo -e "${GREEN}PASS${NC}: ${msg}"; }
+fail() { local msg="$1"; echo -e "${RED}FAIL${NC}: ${msg}"; FAILURES=$((FAILURES + 1)); }
+info() { local msg="$1"; echo -e "${YELLOW}INFO${NC}: ${msg}"; }
 
 # Runs acr_runner, prints the command and its output, and stores combined output in $ACR_OUTPUT.
 # Usage: run_acr [ENV_VAR=value...] <args...>
@@ -45,7 +45,7 @@ run_acr() {
     echo -e "  ${CYAN}\$${NC}${env_prefix:+ $env_prefix} acr ${args[*]}"
     local rc=0
     ACR_OUTPUT=$(eval $env_prefix '"$INSTALL_HOME/acr_runner"' '"${args[@]}"' 2>&1) || rc=$?
-    if [ -n "$ACR_OUTPUT" ]; then
+    if [[ -n "$ACR_OUTPUT" ]]; then
         echo "$ACR_OUTPUT" | sed 's/^/    /'
     fi
     return $rc
@@ -56,10 +56,10 @@ CONTAINER_NAME="acr-test-repo-$$"
 WORK_DIR=""
 
 cleanup() {
-    if [ -n "$CONTAINER_NAME" ]; then
+    if [[ -n "$CONTAINER_NAME" ]]; then
         docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
     fi
-    if [ -n "$WORK_DIR" ] && [ -d "$WORK_DIR" ]; then
+    if [[ -n "$WORK_DIR" ]] && [[ -d "$WORK_DIR" ]]; then
         rm -rf "$WORK_DIR"
     fi
 }
@@ -88,7 +88,7 @@ info "Detected platform: $PLATFORM"
 # --- Find CLI ZIP ---
 
 CLI_ZIP=$(find "$CLI_TARGET" -maxdepth 1 -name "apicurio-registry-cli-*-${PLATFORM}.zip" | head -1)
-if [ -z "$CLI_ZIP" ] || [ ! -f "$CLI_ZIP" ]; then
+if [[ -z "$CLI_ZIP" ]] || [[ ! -f "$CLI_ZIP" ]]; then
     echo "CLI ZIP not found in $CLI_TARGET for platform $PLATFORM."
     echo "Build first: mvn package -pl cli -am -DskipTests"
     exit 1
@@ -174,12 +174,12 @@ export ACR_CURRENT_HOME="$UNZIP_DIR"
 
 echo -e "  ${CYAN}\$${NC} acr install"
 INSTALL_OUTPUT=$("$UNZIP_DIR/acr" install 2>&1) || true
-if [ -n "$INSTALL_OUTPUT" ]; then
+if [[ -n "$INSTALL_OUTPUT" ]]; then
     echo "$INSTALL_OUTPUT" | sed 's/^/    /'
 fi
 
 # Verify install
-if [ ! -f "$INSTALL_HOME/acr_runner" ]; then
+if [[ ! -f "$INSTALL_HOME/acr_runner" ]]; then
     fail "CLI binary not installed"
     exit 1
 fi
@@ -240,7 +240,7 @@ run_acr VERSION="$FAKE_OLD_VERSION" update "$FAKE_NEW_VERSION" || true
 
 AFTER_MTIME=$(stat -c %Y "$INSTALL_HOME/acr_runner" 2>/dev/null || stat -f %m "$INSTALL_HOME/acr_runner")
 
-if [ "$AFTER_MTIME" != "$BEFORE_MTIME" ]; then
+if [[ "$AFTER_MTIME" != "$BEFORE_MTIME" ]]; then
     pass "Binary was updated (mtime changed)"
 else
     fail "Binary was NOT updated (mtime unchanged)"
@@ -254,7 +254,7 @@ info "--- Test 4: Config preserved after update ---"
 
 run_acr config get "internal.update.repo-url" || true
 
-if [ "$ACR_OUTPUT" = "$REPO_URL" ]; then
+if [[ "$ACR_OUTPUT" = "$REPO_URL" ]]; then
     pass "Config preserved after update (repo URL intact)"
 else
     fail "Config not preserved after update. Expected '$REPO_URL', got '$ACR_OUTPUT'"
@@ -268,7 +268,7 @@ info "--- Test 5: Last-check timestamp recorded ---"
 
 run_acr config get "internal.update.last-check" || true
 
-if [ -n "$ACR_OUTPUT" ]; then
+if [[ -n "$ACR_OUTPUT" ]]; then
     pass "Last-check timestamp recorded: $ACR_OUTPUT"
 else
     fail "Last-check timestamp not found in config"
@@ -321,7 +321,7 @@ run_acr VERSION="$FAKE_NEW_VERSION" update || true
 
 AFTER_MTIME=$(stat -c %Y "$INSTALL_HOME/acr_runner" 2>/dev/null || stat -f %m "$INSTALL_HOME/acr_runner")
 
-if [ "$AFTER_MTIME" != "$BEFORE_MTIME" ]; then
+if [[ "$AFTER_MTIME" != "$BEFORE_MTIME" ]]; then
     pass "Single candidate auto-update succeeded (binary updated)"
 else
     fail "Single candidate auto-update failed (binary unchanged)"
@@ -481,7 +481,7 @@ else
     fail "Expected patch version 3.2.5 to be auto-selected. Output: $ACR_OUTPUT"
 fi
 
-if [ "$AFTER_MTIME" != "$BEFORE_MTIME" ]; then
+if [[ "$AFTER_MTIME" != "$BEFORE_MTIME" ]]; then
     pass "Binary was updated with patch version"
 else
     fail "Binary was NOT updated"
@@ -492,7 +492,7 @@ fi
 # ============================================================
 
 echo ""
-if [ "$FAILURES" -eq 0 ]; then
+if [[ "$FAILURES" -eq 0 ]]; then
     echo -e "${GREEN}All tests passed.${NC}"
 else
     echo -e "${RED}${FAILURES} test(s) failed.${NC}"

@@ -88,6 +88,16 @@ public class SubjectsResourceImpl implements SubjectsResource {
     }
 
     @Override
+    public Schema lookupSchemaByVersion(String subject, String version, Boolean normalize,
+            String format, String xRegistryGroupId, Boolean deleted, RegisterSchemaRequest data) {
+        io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest v7Request = convertToV7Request(data);
+        io.apicurio.registry.ccompat.rest.v7.beans.Schema v7Schema =
+                v7SubjectsResource.lookupSchemaByVersion(subject, version, normalize, format,
+                        xRegistryGroupId, deleted, v7Request);
+        return convertSchema(v7Schema);
+    }
+
+    @Override
     public Schema getSubjectMetadata(String subject, String key, String value, String format,
             Boolean deleted, String xRegistryGroupId) {
         io.apicurio.registry.ccompat.rest.v7.beans.Schema v7Schema =

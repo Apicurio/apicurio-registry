@@ -10,6 +10,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.types.ArtifactType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -42,16 +43,13 @@ public class ApiConverter {
         Schema schema = new Schema();
         schema.setId(convertUnsigned(cconfig.legacyIdModeEnabled.get() ? storedArtifact.getGlobalId()
                 : storedArtifact.getContentId()).intValue());
-        // Only set schemaType if it's not AVRO (AVRO is the default, so omit it for Confluent compatibility)
         if (artifactType != null && !artifactType.equalsIgnoreCase("AVRO")) {
             schema.setSchemaType(artifactType);
         }
         schema.setSubject(subject);
         schema.setVersion(convertUnsigned(storedArtifact.getVersionOrder()).intValue());
-        schema.setSchema(storedArtifact.getContent().content());
+        schema.setSchema(compactIfAvro(storedArtifact.getContent().content(), artifactType));
         List<SchemaReference> refs = storedArtifact.getReferences().stream().map(this::convert).collect(Collectors.toList());
-        // Only set refs if there are some - if not then set to "null" so the 'references' property
-        // is not included in the JSON response
         schema.setReferences(refs.isEmpty() ? null : refs);
         return schema;
     }
@@ -59,16 +57,25 @@ public class ApiConverter {
     public Schema convert(ContentHandle content, String artifactType,
                           List<ArtifactReferenceDto> references) {
         Schema schema = new Schema();
-        schema.setSchema(content.content());
-        // Only set schemaType if it's not AVRO (AVRO is the default, so omit it for Confluent compatibility)
+        schema.setSchema(compactIfAvro(content.content(), artifactType));
         if (artifactType != null && !artifactType.equalsIgnoreCase("AVRO")) {
             schema.setSchemaType(artifactType);
         }
         List<SchemaReference> refs = references.stream().map(this::convert).collect(Collectors.toList());
-        // Only set refs if there are some - if not then set to "null" so the 'references' property
-        // is not included in the JSON response
         schema.setReferences(refs.isEmpty() ? null : refs);
         return schema;
+    }
+
+    private String compactIfAvro(String content, String artifactType) {
+        if (content == null || !ArtifactType.AVRO.equals(artifactType)) {
+            return content;
+        }
+        try {
+            org.apache.avro.Schema parsed = new org.apache.avro.Schema.Parser().parse(content);
+            return parsed.toString();
+        } catch (Exception e) {
+            return content;
+        }
     }
 
     public SubjectVersion convert(String artifactId, Number version) {

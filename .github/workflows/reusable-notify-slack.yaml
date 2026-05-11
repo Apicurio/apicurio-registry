@@ -24,7 +24,7 @@ on:
 jobs:
   notify:
     name: Send Slack Notification
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Slack Notification
         run: |

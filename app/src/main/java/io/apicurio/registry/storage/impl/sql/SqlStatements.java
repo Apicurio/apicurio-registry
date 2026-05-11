@@ -166,6 +166,11 @@ public interface SqlStatements {
     public String selectArtifactVersionMetaData();
 
     /**
+     * A statement used to select artifact version metadata by artifactId and versionOrder.
+     */
+    public String selectArtifactVersionMetaDataByVersionOrder();
+
+    /**
      * A statement to select the content of an artifact version from the versions table by artifactId +
      * version.
      */

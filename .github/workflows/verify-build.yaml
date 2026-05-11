@@ -17,7 +17,7 @@ on:
 jobs:
   build-java:
     name: Build Java Application (no tests)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ github.sha }}
     steps:
@@ -83,7 +83,7 @@ jobs:
 
   build-ui:
     name: Build UI Application
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

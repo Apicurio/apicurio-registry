@@ -826,7 +826,7 @@
       }
     },
     "/subjects/{subject}": {
-      "summary": "The subjects resource provides a list of all registered subjects across all contexts in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a “<topic>-value” or “<topic>-key” depending on whether you are registering the value schema for that topic or the key schema.",
+      "summary": "The subjects resource provides a list of all registered subjects across all contexts in your Schema Registry. A subject refers to the name under which the schema is registered. If you are using Schema Registry for Kafka, then a subject refers to either a \u201c<topic>-value\u201d or \u201c<topic>-key\u201d depending on whether you are registering the value schema for that topic or the key schema.",
       "post": {
         "operationId": "lookupSchemaByContent",
         "description": "Returns the schema string along with its global ID and version if already registered under the given subject.",
@@ -1192,6 +1192,126 @@
               "application/vnd.schemaregistry+json": {
                 "schema": {
                   "type": "integer"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "lookupSchemaByVersion",
+        "description": "Checks if a given schema matches the schema at the specified version. Returns the schema details if it matches, or 404 if it does not.",
+        "tags": [
+          "Subjects"
+        ],
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "path",
+            "required": true,
+            "description": "Name of the subject.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version of the schema to check against.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "normalize",
+            "in": "query",
+            "required": false,
+            "description": "Normalize the schema content before comparing.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Desired output format.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Registry-GroupId",
+            "in": "header",
+            "required": false,
+            "description": "Group id in Apicurio Registry.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleted",
+            "in": "query",
+            "required": false,
+            "description": "Lookup for soft-deleted values.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Schema to check against the version.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            },
+            "application/vnd.schemaregistry+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterSchemaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Schema version data if the given schema matches.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
+                }
+              },
+              "application/vnd.schemaregistry+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schema"
                 }
               }
             }
@@ -2085,20 +2205,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 },
                 "example": {
-                  "compatibilityLevel": "FULL"
+                  "compatibility": "FULL"
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 }
               },
               "application/vnd.schemaregistry+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 }
               }
             }
@@ -2248,20 +2368,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 },
                 "example": {
-                  "compatibilityLevel": "FULL"
+                  "compatibility": "FULL"
                 }
               },
               "application/vnd.schemaregistry.v1+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 }
               },
               "application/vnd.schemaregistry+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GlobalConfigResponse"
+                  "$ref": "#/components/schemas/ConfigUpdateResponse"
                 }
               }
             }
@@ -3375,11 +3495,6 @@
         "properties": {
           "mode": {
             "type": "string",
-            "enum": [
-              "READWRITE",
-              "READONLY",
-              "IMPORT"
-            ],
             "description": "The new global mode to set."
           }
         },
@@ -3668,6 +3783,22 @@
             "type": "string",
             "description": "Error trace or message, if any."
           }
+        }
+      },
+      "ConfigUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "compatibility": {
+            "type": "string",
+            "description": "The compatibility level that was set."
+          },
+          "normalize": {
+            "type": "boolean",
+            "description": "Whether schemas are normalized during registration and lookups."
+          }
+        },
+        "example": {
+          "compatibility": "FULL"
         }
       }
     },

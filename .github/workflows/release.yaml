@@ -20,7 +20,7 @@ on:
 jobs:
   # Phase 1: Bump version, commit, push. Fast job that gates all parallel builds.
   release-prepare:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio'
     outputs:
       release-sha: ${{ steps.release-commit.outputs.sha }}
@@ -186,7 +186,7 @@ jobs:
     name: Build Registry App
     needs: release-prepare
     if: github.repository_owner == 'Apicurio'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Apicurio Registry Checkout
         uses: actions/checkout@v4
@@ -228,7 +228,7 @@ jobs:
     name: Build Registry UI
     needs: release-prepare
     if: github.repository_owner == 'Apicurio'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Apicurio Registry Checkout
         uses: actions/checkout@v4
@@ -258,7 +258,7 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - runner: ubuntu-22.04
+          - runner: ubuntu-latest
             os-name: linux-x86_64
           - runner: macos-14
             os-name: osx-aarch_64
@@ -303,7 +303,7 @@ jobs:
     name: Publish Release
     needs: [release-prepare, release-build-app, release-build-ui, release-build-cli]
     if: github.repository_owner == 'Apicurio'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Download Release Artifacts
         uses: actions/download-artifact@v4

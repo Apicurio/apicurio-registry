@@ -622,6 +622,19 @@ public interface RegistryStorage extends DynamicConfigStorage {
             throws VersionNotFoundException, RegistryStorageException;
 
     /**
+     * Gets the stored meta-data for a single version of an artifact, looked up by its versionOrder (the
+     * ccompat integer sequence number) rather than the version string.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param versionOrder
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId, String artifactId,
+            int versionOrder) throws VersionNotFoundException, RegistryStorageException;
+
+    /**
      * Updates the user-editable meta-data for a single version of a given artifact. Only the client-editable
      * meta-data can be updated. Client editable meta-data includes e.g. name and description.
      *

@@ -35,9 +35,10 @@ public abstract class AbstractCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        configureVerboseLogging();
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
         try {
+            configureVerboseLogging();
+            updateNotifier.checkAndNotify(getTopLevelCommandName());
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {
@@ -54,26 +55,16 @@ public abstract class AbstractCommand implements Callable<Integer> {
             }
             return ex.getCode();
         } catch (Exception ex) {
-            log.error("Unexpected error", ex); // Force printing of stack trace.
+            log.error("Unexpected error", ex);
+            output.writeStdErrChunk(out -> out.append("Unexpected error: ").append(ex.getMessage()).append("\n"));
             return APPLICATION_ERROR_RETURN_CODE;
         } finally {
             output.print();
-            checkForUpdates();
         }
         // TODO: Move handling of `ProblemDetails` exceptions here.
     }
 
     public abstract void run(OutputBuffer output) throws Exception;
-
-    private void checkForUpdates() {
-        try {
-            var commandName = getTopLevelCommandName();
-            log.debugf("Update check hook: command=%s (spec=%s)", commandName, spec.name());
-            updateNotifier.checkAndNotify(commandName);
-        } catch (Exception e) {
-            log.debugf("Update notification failed: %s", e.getMessage());
-        }
-    }
 
     private String getTopLevelCommandName() {
         var current = spec;

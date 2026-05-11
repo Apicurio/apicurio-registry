@@ -3,21 +3,17 @@ package io.apicurio.registry.cli.services;
 import io.apicurio.registry.cli.config.Config;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.logging.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 @ApplicationScoped
 public class UpdateNotifier {
 
     private static final Logger log = Logger.getLogger(UpdateNotifier.class);
     private static final Duration CHECK_INTERVAL = Duration.ofDays(1);
-    private static final int CHECK_TIMEOUT_SECONDS = 5;
 
     private static final Set<String> SKIP_COMMANDS = Set.of("install", "update", "version", "config");
 
@@ -28,6 +24,7 @@ public class UpdateNotifier {
     Update update;
 
     public void checkAndNotify(String commandName) {
+        log.debugf("Update check hook: command=%s", commandName);
         try {
             if (SKIP_COMMANDS.contains(commandName)) {
                 log.debugf("Update check skipped: command '%s' is in skip list", commandName);
@@ -37,27 +34,20 @@ public class UpdateNotifier {
                 return;
             }
 
-            var versionStr = ConfigProvider.getConfig().getValue("version", String.class);
-            var currentVersion = CliVersion.parse(versionStr);
-            if (currentVersion == null) {
-                log.debugf("Update check skipped: could not parse current version '%s'", versionStr);
-                return;
-            }
-
+            var currentVersion = config.getCliVersion();
+            config.getStdErr().print("Checking for updates...\n");
             log.debugf("Checking for updates (current version: %s)", currentVersion);
-            var future = CompletableFuture.supplyAsync(() -> update.checkForUpdates(currentVersion));
-            var result = future.get(CHECK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            recordCheckTimestamp();
+            var result = update.checkForUpdates(currentVersion);
 
             if (result.hasUpdates()) {
                 log.debugf("Updates available: %s", result.candidates());
                 printNotification(result);
             } else {
-                log.debugf("No updates available");
+                config.getStdErr().print("No updates available.\n");
             }
         } catch (Exception e) {
             log.debugf("Update check failed: %s", e.getMessage());
+            config.getStdErr().print("Warning: Could not check for updates. Run 'acr update --check' to retry.\n");
         }
     }
 
@@ -94,16 +84,6 @@ public class UpdateNotifier {
         } catch (Exception e) {
             log.debugf("Update check skipped: could not read config: %s", e.getMessage());
             return false;
-        }
-    }
-
-    private void recordCheckTimestamp() {
-        try {
-            var configModel = config.read();
-            configModel.getConfig().put("internal.update.last-check", Instant.now().toString());
-            config.write(configModel);
-        } catch (Exception e) {
-            log.debugf("Could not record update check timestamp: %s", e.getMessage());
         }
     }
 

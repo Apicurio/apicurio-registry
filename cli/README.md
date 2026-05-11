@@ -180,6 +180,7 @@ acr config delete my.custom.property
 | Property | Default | Description |
 |---|---|---|
 | `update.check-enabled` | `true` | Enable automatic update checks |
+| `update.timeout-seconds` | `60` | Timeout for update network requests |
 
 ### Context Management
 

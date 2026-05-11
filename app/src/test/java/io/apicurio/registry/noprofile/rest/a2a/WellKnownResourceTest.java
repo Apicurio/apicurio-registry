@@ -386,14 +386,14 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSearchAgentsAdvancedWithQuery() throws Exception {
+    public void testSearchAgentsAdvancedWithQueryByArtifactId() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
-        createAgentCard(groupId, "query-agent", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "my-search-target", AGENT_CARD_CONTENT);
 
         String requestBody = """
                 {
-                    "query": "TestAgent",
+                    "query": "my-search-target",
                     "limit": 10,
                     "offset": 0
                 }
@@ -407,7 +407,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("count", greaterThanOrEqualTo(1))
-                .body("agents.artifactId", hasItem("query-agent"));
+                .body("agents.artifactId", hasItem("my-search-target"));
     }
 
     @Test
@@ -446,12 +446,11 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     @Test
     public void testSearchAgentsAdvancedWithQueryWildcard() throws Exception {
         String groupId = TestUtils.generateGroupId();
-        createAgentCard(groupId, "wildcard-agent", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "wildcard-target-agent", AGENT_CARD_CONTENT);
 
-        // User-supplied wildcard should not be double-wrapped
         String requestBody = """
                 {
-                    "query": "*Test*",
+                    "query": "*wildcard-target*",
                     "limit": 10,
                     "offset": 0
                 }
@@ -465,7 +464,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("count", greaterThanOrEqualTo(1))
-                .body("agents.artifactId", hasItem("wildcard-agent"));
+                .body("agents.artifactId", hasItem("wildcard-target-agent"));
     }
 
     @Test

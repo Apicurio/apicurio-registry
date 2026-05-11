@@ -130,7 +130,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         filters.add(SearchFilter.ofLabel("apicurio.agent.visibility", "public"));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, offset, limit);
+                filters, OrderBy.createdOn, OrderDirection.desc, offset, limit, false);
 
         List<AgentSearchResult> agents = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
@@ -154,7 +154,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS);
+                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
 
         // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
         List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -240,7 +240,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         if (a2aConfig.isEntitlementsEnabled()) {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
-                    filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS);
+                    filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
 
             // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
             List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -262,7 +262,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit);
+                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
 
         List<AgentSearchResult> agents = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
@@ -365,11 +365,35 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
         }
 
-        // Execute search
-        ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, offset, limit, false);
+        int safeOffset = Math.max(0, offset);
+        int safeLimit = Math.max(1, Math.min(limit, 500));
 
-        // Convert to agent search results
+        if (isAuthEnabled() && a2aConfig.isEntitlementsEnabled()) {
+            ArtifactSearchResultsDto results = storage.searchArtifacts(
+                    filters, OrderBy.createdOn, OrderDirection.desc,
+                    0, MAX_VISIBILITY_FILTER_RESULTS, false);
+
+            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
+
+            int total = visible.size();
+            int fromIndex = Math.min(safeOffset, total);
+            int toIndex = Math.min(fromIndex + safeLimit, total);
+            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
+
+            List<AgentSearchResult> agents = new ArrayList<>();
+            for (SearchedArtifactDto artifact : page) {
+                agents.add(convertToAgentSearchResult(artifact));
+            }
+
+            return AgentSearchResults.builder()
+                    .count((long) total)
+                    .agents(agents)
+                    .build();
+        }
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
+
         List<AgentSearchResult> agents = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
             agents.add(convertToAgentSearchResult(artifact));
@@ -592,6 +616,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
     }
 
+    private boolean isAuthEnabled() {
+        return authConfig.isOidcAuthEnabled() || authConfig.isBasicAuthEnabled();
+    }
+
     private String getSchemaResourcePath(String type, String version) {
         // Only allow known schema types and versions
         if ("prompt-template".equals(type) && "v1".equals(version)) {
@@ -619,10 +647,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
      * by the {@code apicurio.agent.visibility} label (falling back to the configured default).
      */
     private List<SearchedArtifactDto> filterDtosByVisibility(List<SearchedArtifactDto> artifacts) {
-        boolean authEnabled = authConfig.isOidcAuthEnabled()
-                || authConfig.isBasicAuthEnabled();
-
-        if (!authEnabled) {
+        if (!isAuthEnabled()) {
             return new ArrayList<>(artifacts);
         }
 

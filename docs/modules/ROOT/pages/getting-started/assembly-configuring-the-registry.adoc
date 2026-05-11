@@ -185,6 +185,7 @@ OpenTelemetry instrumentation adds a small performance overhead. The following t
 * With the recommended 10% sampling ratio (`QUARKUS_OTEL_TRACES_SAMPLER_ARG=0.1`), the overhead drops to less than 1%.
 * OpenTelemetry signals are disabled by default to avoid any overhead for users who do not require observability features.
 
+ifndef::service-registry-downstream[]
 To reproduce these benchmarks, run the following commands from the project root:
 
 [source,shell]
@@ -200,6 +201,7 @@ To reproduce these benchmarks, run the following commands from the project root:
 ./mvnw test -pl app -Dtest=OpenTelemetryPerformanceEnabledTest \
     -DOpenTelemetryPerformanceTest=enabled
 ----
+endif::[]
 
 [role="_additional-resources"]
 .Additional resources

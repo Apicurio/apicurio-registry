@@ -72,6 +72,7 @@ import java.util.Set;
 public class WellKnownResourceImpl implements WellKnownResource {
 
     private static final Logger log = LoggerFactory.getLogger(WellKnownResourceImpl.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
 
@@ -399,7 +400,6 @@ public class WellKnownResourceImpl implements WellKnownResource {
             StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
                     gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-            ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(stored.getContent().content());
 
             // Extract skills
@@ -536,7 +536,6 @@ public class WellKnownResourceImpl implements WellKnownResource {
             StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
                     gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-            ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(stored.getContent().content());
 
             // Extract title
@@ -640,7 +639,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
             } else if (!isAuthenticated) {
                 continue;
             } else if ("private".equals(visibility)) {
-                if (isAdmin || currentUser.equals(artifact.getOwner())) {
+                String owner = artifact.getOwner();
+                if (isAdmin || (owner != null && owner.equals(currentUser))) {
                     result.add(artifact);
                 }
             } else {

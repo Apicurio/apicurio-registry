@@ -198,9 +198,13 @@ public class Update {
             return future.get(timeoutSeconds, TimeUnit.SECONDS);
         } catch (TimeoutException _ignored) {
             log.errorf("Request timed out after %ds: %s", timeoutSeconds, url);
-            config.getStdErr().print(
-                    "Request timed out. If you have a slow connection, increase the timeout:\n" +
-                            "  acr config set update.timeout-seconds=120\n");
+            config.getStdErr().print("""
+                    Request timed out. If you have a slow connection, increase the timeout:
+                      acr config set update.timeout-seconds=120
+                    """);
+            return null;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             return null;
         } catch (Exception ex) {
             log.errorf("Error fetching %s: %s", url, ex.getMessage());

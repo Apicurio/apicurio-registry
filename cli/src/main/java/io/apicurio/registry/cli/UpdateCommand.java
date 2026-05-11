@@ -67,6 +67,10 @@ public class UpdateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
+        if (postponeHours >= 0 && check) {
+            throw new CliException("Cannot use --postpone and --check together.");
+        }
+
         if (postponeHours >= 0) {
             handlePostpone(output);
             return;
@@ -87,9 +91,12 @@ public class UpdateCommand extends AbstractCommand {
         handleAutoUpdate(output, currentVersion);
     }
 
+    private static final int MAX_POSTPONE_HOURS = 8760; // 1 year
+
     private void handlePostpone(OutputBuffer output) {
+        var hours = Math.min(postponeHours, MAX_POSTPONE_HOURS);
         var configModel = config.read();
-        var until = Instant.now().plusSeconds(postponeHours * 3600L);
+        var until = Instant.now().plusSeconds(hours * 3600L);
         configModel.getConfig().put("internal.update.postponed-until", until.toString());
         config.write(configModel);
         output.writeStdOutLine("Update notifications postponed for %d hours.".formatted(postponeHours));

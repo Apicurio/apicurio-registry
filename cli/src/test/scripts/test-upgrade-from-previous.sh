@@ -160,7 +160,7 @@ export ACR_CURRENT_HOME="$INSTALL_HOME"
 
 # --- Prepare mock repo with current version as upgrade ---
 
-UPGRADE_VERSION="${PREVIOUS_VERSION}.1"
+UPGRADE_VERSION="$CURRENT_BASE"
 ARTIFACT_DIR="$REPO_DIR/$UPGRADE_VERSION"
 mkdir -p "$ARTIFACT_DIR"
 cp "$CLI_ZIP" "$ARTIFACT_DIR/apicurio-registry-cli-${UPGRADE_VERSION}-${PLATFORM}.zip"

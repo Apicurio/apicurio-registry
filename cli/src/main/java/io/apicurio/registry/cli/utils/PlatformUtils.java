@@ -9,10 +9,13 @@ public final class PlatformUtils {
 
     public static String detectOsClassifier() {
         var osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+        if (osName.contains("linux")) {
+            return "linux";
+        }
         if (osName.contains("mac") || osName.contains("darwin")) {
             return "osx";
         }
-        return "linux";
+        throw new UnsupportedOperationException("Unsupported OS: " + System.getProperty("os.name"));
     }
 
     public static String detectArchClassifier() {
@@ -20,7 +23,7 @@ public final class PlatformUtils {
         return switch (arch) {
             case "amd64", "x86_64" -> "x86_64";
             case "aarch64", "arm64" -> "aarch_64";
-            default -> arch;
+            default -> throw new UnsupportedOperationException("Unsupported architecture: " + arch);
         };
     }
 

@@ -166,6 +166,11 @@ public class InstallCommand extends AbstractCommand {
                                 .formatted(existing.getInstallationVersion(), ConfigModel.CURRENT_INSTALLATION_VERSION),
                         VALIDATION_ERROR_RETURN_CODE);
             }
+            if (existing.getInstallationVersion() < ConfigModel.CURRENT_INSTALLATION_VERSION) {
+                existing.setInstallationVersion(ConfigModel.CURRENT_INSTALLATION_VERSION);
+                Mapper.MAPPER.writeValue(targetConfig.toFile(), existing);
+                log.debugf("Updated installation version to %d", ConfigModel.CURRENT_INSTALLATION_VERSION);
+            }
         }
     }
 

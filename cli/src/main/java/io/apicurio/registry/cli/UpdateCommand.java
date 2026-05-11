@@ -129,18 +129,17 @@ public class UpdateCommand extends AbstractCommand {
     private void handleAutoUpdate(OutputBuffer output, CliVersion currentVersion) throws Exception {
         validateAcrHome();
 
-        var result = update.checkForUpdates(currentVersion);
-        recordCheckTimestamp();
-
-        if (!result.hasUpdates()) {
-            output.writeStdOutLine("You are running the latest version (%s).".formatted(currentVersion));
-            return;
-        }
-
         String versionToDownload;
         if (targetVersion != null) {
             versionToDownload = targetVersion;
         } else {
+            var result = update.checkForUpdates(currentVersion);
+            recordCheckTimestamp();
+
+            if (!result.hasUpdates()) {
+                output.writeStdOutLine("You are running the latest version (%s).".formatted(currentVersion));
+                return;
+            }
             var unambiguous = result.unambiguousUpdate();
             if (unambiguous == null) {
                 output.writeStdOutChunk(out -> {

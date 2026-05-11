@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -161,12 +160,14 @@ public class Update {
             var httpClient = client.getHttpClient();
             CompletableFuture<byte[]> future = new CompletableFuture<>();
 
+            boolean ssl = "https".equals(uri.getScheme());
+            int port = uri.getPort() != -1 ? uri.getPort() : (ssl ? 443 : 80);
             var requestOptions = new io.vertx.core.http.RequestOptions()
                     .setMethod(HttpMethod.GET)
-                    .setPort(uri.getPort() != -1 ? uri.getPort() : (Objects.equals(uri.getScheme(), "https") ? 443 : 80))
+                    .setPort(port)
                     .setHost(uri.getHost())
                     .setURI(uri.getPath() + (uri.getQuery() != null ? "?" + uri.getQuery() : ""))
-                    .setSsl(Objects.equals(uri.getScheme(), "https"));
+                    .setSsl(ssl);
 
             log.debugf("Fetching: %s", url);
 

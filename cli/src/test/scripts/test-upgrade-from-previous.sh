@@ -27,20 +27,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
-pass() { echo -e "${GREEN}PASS${NC}: $1"; }
-fail() { echo -e "${RED}FAIL${NC}: $1"; FAILURES=$((FAILURES + 1)); }
-info() { echo -e "${YELLOW}INFO${NC}: $1"; }
-skip() { echo -e "${YELLOW}SKIP${NC}: $1"; exit 0; }
+pass() { local msg="$1"; echo -e "${GREEN}PASS${NC}: ${msg}"; }
+fail() { local msg="$1"; echo -e "${RED}FAIL${NC}: ${msg}"; FAILURES=$((FAILURES + 1)); }
+info() { local msg="$1"; echo -e "${YELLOW}INFO${NC}: ${msg}"; }
+skip() { local msg="$1"; echo -e "${YELLOW}SKIP${NC}: ${msg}"; exit 0; }
 
 FAILURES=0
 CONTAINER_NAME="acr-test-upgrade-$$"
 WORK_DIR=""
 
 cleanup() {
-    if [ -n "$CONTAINER_NAME" ]; then
+    if [[ -n "$CONTAINER_NAME" ]]; then
         docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
     fi
-    if [ -n "$WORK_DIR" ] && [ -d "$WORK_DIR" ]; then
+    if [[ -n "$WORK_DIR" ]] && [[ -d "$WORK_DIR" ]]; then
         rm -rf "$WORK_DIR"
     fi
 }
@@ -86,14 +86,14 @@ PREVIOUS_VERSION=$(echo "$METADATA_XML" \
     | sort -t. -k1,1n -k2,2n -k3,3n \
     | while IFS=. read -r maj min pat; do
         IFS=. read -r cmaj cmin cpat <<< "$CURRENT_BASE"
-        if [ "$maj" -lt "$cmaj" ] || \
+        if [ "$maj" -lt "$cmaj" ]] || \
            { [ "$maj" -eq "$cmaj" ] && [ "$min" -lt "$cmin" ]; } || \
            { [ "$maj" -eq "$cmaj" ] && [ "$min" -eq "$cmin" ] && [ "$pat" -lt "$cpat" ]; }; then
             echo "${maj}.${min}.${pat}"
         fi
     done | tail -1)
 
-if [ -z "$PREVIOUS_VERSION" ]; then
+if [[ -z "$PREVIOUS_VERSION" ]]; then
     skip "No previous release found on Maven Central that is older than $CURRENT_BASE"
 fi
 
@@ -102,7 +102,7 @@ fi
 MIN_UPGRADABLE="3.3.0"
 IFS=. read -r pMaj pMin pPat <<< "$PREVIOUS_VERSION"
 IFS=. read -r mMaj mMin mPat <<< "$MIN_UPGRADABLE"
-if [ "$pMaj" -lt "$mMaj" ] || \
+if [ "$pMaj" -lt "$mMaj" ]] || \
    { [ "$pMaj" -eq "$mMaj" ] && [ "$pMin" -lt "$mMin" ]; } || \
    { [ "$pMaj" -eq "$mMaj" ] && [ "$pMin" -eq "$mMin" ] && [ "$pPat" -lt "$mPat" ]; }; then
     skip "Previous version $PREVIOUS_VERSION is older than $MIN_UPGRADABLE (first native CLI release with auto-update)"
@@ -112,7 +112,7 @@ info "Previous release version to test: $PREVIOUS_VERSION"
 # --- Find current CLI ZIP ---
 
 CLI_ZIP=$(find "$CLI_TARGET" -maxdepth 1 -name "apicurio-registry-cli-*-${PLATFORM}.zip" | head -1)
-if [ -z "$CLI_ZIP" ] || [ ! -f "$CLI_ZIP" ]; then
+if [[ -z "$CLI_ZIP" ]] || [[ ! -f "$CLI_ZIP" ]]; then
     echo "CLI ZIP not found in $CLI_TARGET. Build first: mvn package -pl cli -am -DskipTests"
     exit 1
 fi
@@ -129,7 +129,7 @@ PREVIOUS_ZIP="$WORK_DIR/$PREVIOUS_ZIP_NAME"
 info "Downloading previous release from $PREVIOUS_URL"
 
 HTTP_CODE=$(curl -s -o "$PREVIOUS_ZIP" -w "%{http_code}" "$PREVIOUS_URL" || echo "000")
-if [ "$HTTP_CODE" != "200" ]; then
+if [[ "$HTTP_CODE" != "200" ]]; then
     skip "Previous release $PREVIOUS_VERSION not available on Maven Central (HTTP $HTTP_CODE). Test will be relevant after $PREVIOUS_VERSION is released."
 fi
 info "Downloaded previous release: $PREVIOUS_ZIP"
@@ -218,7 +218,7 @@ fi
 
 AFTER_MTIME=$(stat -c %Y "$INSTALL_HOME/acr_runner" 2>/dev/null || stat -f %m "$INSTALL_HOME/acr_runner")
 
-if [ "$AFTER_MTIME" != "$BEFORE_MTIME" ]; then
+if [[ "$AFTER_MTIME" != "$BEFORE_MTIME" ]]; then
     pass "Binary was updated"
 else
     fail "Binary was NOT updated"
@@ -253,7 +253,7 @@ fi
 # ============================================================
 
 echo ""
-if [ "$FAILURES" -eq 0 ]; then
+if [[ "$FAILURES" -eq 0 ]]; then
     echo -e "${GREEN}All tests passed.${NC}"
 else
     echo -e "${RED}${FAILURES} test(s) failed.${NC}"

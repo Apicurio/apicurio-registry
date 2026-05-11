@@ -52,11 +52,6 @@ public class Update {
                 .sorted(CliVersion.COMPARATOR)
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        // Include unparsed versions as ambiguous candidates
-        allVersions.stream()
-                .filter(v -> !v.isParsed())
-                .forEach(parsed::add);
-
         return new UpdateCheckResult(currentVersion, List.copyOf(parsed));
     }
 

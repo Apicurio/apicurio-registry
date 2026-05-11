@@ -168,7 +168,6 @@ acr config get update.repo.url
 **Set properties:**
 ```bash
 acr config set update.check-enabled=false
-acr config set update.repo.url=https://my-repo.example/maven2/io/apicurio/apicurio-registry-cli
 ```
 
 **Delete properties:**

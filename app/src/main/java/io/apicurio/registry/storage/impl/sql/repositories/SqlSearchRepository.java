@@ -220,6 +220,9 @@ public class SqlSearchRepository {
                                 dFirst = false;
                             }
                         }
+                        if (dFirst) {
+                            where.append("1 = 0");
+                        }
                         where.append(")");
                         break;
                     case artifactPrefixDeny:
@@ -247,6 +250,9 @@ public class SqlSearchRepository {
                                 });
                                 dpFirst = false;
                             }
+                        }
+                        if (dpFirst) {
+                            where.append("1 = 0");
                         }
                         where.append(")");
                         break;
@@ -512,6 +518,9 @@ public class SqlSearchRepository {
                                 vdFirst = false;
                             }
                         }
+                        if (vdFirst) {
+                            where.append("1 = 0");
+                        }
                         where.append(")");
                         break;
                     case artifactPrefixDeny:
@@ -539,6 +548,9 @@ public class SqlSearchRepository {
                                 });
                                 vdpFirst = false;
                             }
+                        }
+                        if (vdpFirst) {
+                            where.append("1 = 0");
                         }
                         where.append(")");
                         break;

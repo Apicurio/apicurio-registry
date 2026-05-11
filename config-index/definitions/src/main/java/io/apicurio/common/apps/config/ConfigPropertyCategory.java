@@ -28,6 +28,7 @@ public enum ConfigPropertyCategory {
     CATEGORY_STORAGE("storage"),
     CATEGORY_SYSTEM("system"),
     CATEGORY_TYPES("types"),
+    CATEGORY_USAGE("usage"),
     CATEGORY_SEARCH("search"),
     CATEGORY_UI("ui");
 

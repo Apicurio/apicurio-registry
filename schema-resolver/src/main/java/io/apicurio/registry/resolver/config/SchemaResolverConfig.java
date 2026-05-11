@@ -326,6 +326,12 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String OTEL_ENABLED = "apicurio.registry.otel.enabled";
     public static final boolean OTEL_ENABLED_DEFAULT = false;
 
+    /**
+     * Identifier for the client application, sent as X-Registry-Client-Id header on schema
+     * fetch requests. When set, the registry server records usage telemetry for this client.
+     */
+    public static final String USAGE_TELEMETRY_CLIENT_ID = "apicurio.registry.usage-telemetry.client-id";
+
     public String getRegistryUrl() {
         String registryUrl = getString(REGISTRY_URL);
         if (registryUrl != null) {
@@ -539,6 +545,10 @@ public class SchemaResolverConfig extends AbstractConfig {
      */
     public boolean isOtelEnabled() {
         return getBoolean(OTEL_ENABLED);
+    }
+
+    public String getUsageTelemetryClientId() {
+        return getString(USAGE_TELEMETRY_CLIENT_ID);
     }
 
     @Override

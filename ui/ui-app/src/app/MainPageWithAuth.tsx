@@ -92,6 +92,10 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                             path="/explore/:groupId/:artifactId/branches"
                             element={ <ArtifactPage /> }
                         />
+                        <Route
+                            path="/explore/:groupId/:artifactId/usage"
+                            element={ <ArtifactPage /> }
+                        />
 
                         <Route
                             path="/explore/:groupId/:artifactId/versions/:version"

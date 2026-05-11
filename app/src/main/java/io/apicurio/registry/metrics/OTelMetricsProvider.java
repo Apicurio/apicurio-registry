@@ -4,6 +4,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongUpDownCounter;
 import io.opentelemetry.api.metrics.Meter;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -27,6 +28,7 @@ public class OTelMetricsProvider {
     private static final AttributeKey<String> GROUP_ID_KEY = AttributeKey.stringKey("groupId");
     private static final AttributeKey<String> ARTIFACT_TYPE_KEY = AttributeKey.stringKey("artifactType");
     private static final AttributeKey<String> OPERATION_KEY = AttributeKey.stringKey("operation");
+    private static final AttributeKey<String> CLIENT_ID_KEY = AttributeKey.stringKey("clientId");
     private static final AttributeKey<String> RESULT_KEY = AttributeKey.stringKey("result");
     private static final AttributeKey<String> ENTITY_TYPE_KEY = AttributeKey.stringKey("entity_type");
     private static final AttributeKey<String> ERROR_TYPE_KEY = AttributeKey.stringKey("error_type");
@@ -37,6 +39,14 @@ public class OTelMetricsProvider {
     private LongCounter schemaValidationCounter;
     private LongCounter ruleEvaluationCounter;
     private LongCounter searchRequestCounter;
+
+    // Usage telemetry
+    private LongUpDownCounter activeSchemasGauge;
+    private LongUpDownCounter staleSchemasGauge;
+    private LongUpDownCounter deadSchemasGauge;
+    private long lastActive;
+    private long lastStale;
+    private long lastDead;
 
     // Iceberg counters
     private LongCounter icebergNamespaceOpsCounter;
@@ -76,6 +86,22 @@ public class OTelMetricsProvider {
 
         searchRequestCounter = meter.counterBuilder(METRIC_PREFIX + "search.requests")
                 .setDescription("Total number of search requests")
+                .setUnit("1")
+                .build();
+
+        // Usage telemetry
+        activeSchemasGauge = meter.upDownCounterBuilder(METRIC_PREFIX + MetricsConstants.USAGE_SCHEMAS_ACTIVE)
+                .setDescription(MetricsConstants.USAGE_SCHEMAS_ACTIVE_DESCRIPTION)
+                .setUnit("1")
+                .build();
+
+        staleSchemasGauge = meter.upDownCounterBuilder(METRIC_PREFIX + MetricsConstants.USAGE_SCHEMAS_STALE)
+                .setDescription(MetricsConstants.USAGE_SCHEMAS_STALE_DESCRIPTION)
+                .setUnit("1")
+                .build();
+
+        deadSchemasGauge = meter.upDownCounterBuilder(METRIC_PREFIX + MetricsConstants.USAGE_SCHEMAS_DEAD)
+                .setDescription(MetricsConstants.USAGE_SCHEMAS_DEAD_DESCRIPTION)
                 .setUnit("1")
                 .build();
 
@@ -238,5 +264,14 @@ public class OTelMetricsProvider {
         icebergErrorsCounter.add(1, Attributes.of(
                 ERROR_TYPE_KEY, errorType
         ));
+    }
+
+    public synchronized void updateUsageSummaryCounts(int active, int stale, int dead) {
+        activeSchemasGauge.add(active - lastActive);
+        staleSchemasGauge.add(stale - lastStale);
+        deadSchemasGauge.add(dead - lastDead);
+        lastActive = active;
+        lastStale = stale;
+        lastDead = dead;
     }
 }

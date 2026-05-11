@@ -5,6 +5,7 @@ import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
@@ -114,6 +115,15 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     }
 
     protected SchemaLookupResult<T> resolve(String topic, byte[] data, ArtifactReference artifactReference) {
+        DefaultSchemaResolver.currentOperation.set("DESERIALIZE");
+        try {
+            return doResolve(topic, data, artifactReference);
+        } finally {
+            DefaultSchemaResolver.currentOperation.remove();
+        }
+    }
+
+    private SchemaLookupResult<T> doResolve(String topic, byte[] data, ArtifactReference artifactReference) {
         // Fast path: check cache using contentId or globalId
         SchemaCacheKey cacheKey = getCacheKey(artifactReference);
         if (cacheKey != null) {

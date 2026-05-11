@@ -1228,4 +1228,15 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         return event.getId();
     }
 
+    @Override
+    public void recordUsageEvent(SchemaUsageEventDto event) {
+        submitter.submitMessage(new RecordUsageEvent1Message(
+                event.getGlobalId(), event.getContentId(), event.getClientId(), event.getOperation(), event.getEventTimestamp()));
+    }
+
+    @Override
+    public void deleteOldUsageEvents(long cutoffTimestamp) {
+        submitter.submitMessage(new DeleteOldUsageEvents1Message(cutoffTimestamp));
+    }
+
 }

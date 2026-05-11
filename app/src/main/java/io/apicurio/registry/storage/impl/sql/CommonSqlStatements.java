@@ -1348,6 +1348,64 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String insertSchemaUsage() {
+        return "INSERT INTO schema_usage (globalId, contentId, clientId, operation, eventTimestamp) VALUES (?, ?, ?, ?, ?)";
+    }
+
+    @Override
+    public String selectArtifactUsageMetrics() {
+        return "SELECT v.version, su.globalId, COUNT(*) AS totalFetches, "
+                + "COUNT(DISTINCT su.clientId) AS uniqueClients, "
+                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn, "
+                + "STRING_AGG(DISTINCT su.clientId, ',') AS clientList "
+                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "GROUP BY v.globalId, v.version, v.versionOrder ORDER BY v.versionOrder";
+    }
+
+    @Override
+    public String selectUsageSummaryCounts() {
+        return "SELECT "
+                + "SUM(CASE WHEN (? - maxTs) <= ? THEN 1 ELSE 0 END) AS active, "
+                + "SUM(CASE WHEN (? - maxTs) > ? AND (? - maxTs) <= ? THEN 1 ELSE 0 END) AS stale, "
+                + "SUM(CASE WHEN (? - maxTs) > ? THEN 1 ELSE 0 END) AS dead "
+                + "FROM ("
+                + "SELECT v.globalId, MAX(su.eventTimestamp) AS maxTs FROM schema_usage su "
+                + "JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+                + "GROUP BY v.globalId "
+                + "UNION "
+                + "SELECT rv.globalId, MAX(su.eventTimestamp) AS maxTs "
+                + "FROM schema_usage su "
+                + "JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+                + "JOIN content_references cr ON v.contentId = cr.contentId "
+                + "JOIN versions rv ON rv.groupId = cr.groupId AND rv.artifactId = cr.artifactId AND rv.version = cr.version "
+                + "GROUP BY rv.globalId"
+                + ") agg";
+    }
+
+    @Override
+    public String deleteOldSchemaUsageEvents() {
+        return "DELETE FROM schema_usage WHERE eventTimestamp < ?";
+    }
+
+    @Override
+    public String selectConsumerVersionHeatmap() {
+        return "SELECT su.clientId, v.globalId, v.version, v.versionOrder, COUNT(*) AS fetchCount "
+                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "GROUP BY su.clientId, v.globalId, v.version, v.versionOrder "
+                + "ORDER BY su.clientId, v.versionOrder";
+    }
+
+    @Override
+    public String selectDeprecationReadiness() {
+        return "SELECT su.clientId, MAX(su.eventTimestamp) AS lastFetched, COUNT(*) AS fetchCount "
+                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? "
+                + "GROUP BY su.clientId ORDER BY su.clientId";
+    }
+
+    @Override
     public String selectCountTableTemplate(String countBy, String tableName, String alias,
             String whereClause) {
         return "SELECT COUNT(%s) FROM %s %s %s".formatted(countBy, tableName, alias, whereClause);

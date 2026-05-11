@@ -32,6 +32,7 @@ public class GrantsAuthTestResourceManager extends KeycloakTestContainerManager 
             props.put("apicurio.auth.resource-based-authorization.grants.path",
                     grantsFile.toAbsolutePath().toString());
 
+            props.put("quarkus.oidc.credentials.secret", "test1");
             props.put("apicurio.rest.deletion.group.enabled", "true");
             props.put("apicurio.rest.deletion.artifact.enabled", "true");
             props.put("apicurio.rest.deletion.artifact-version.enabled", "true");

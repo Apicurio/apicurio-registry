@@ -91,6 +91,8 @@ public class Update {
             var factory = DocumentBuilderFactory.newInstance();
             factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
             var builder = factory.newDocumentBuilder();
             Document doc = builder.parse(new ByteArrayInputStream(bytes));
 

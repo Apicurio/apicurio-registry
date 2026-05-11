@@ -26,15 +26,13 @@ public class ConfigPropertyDeleteCommand extends AbstractCommand {
     @Override
     public void run(OutputBuffer output) throws Exception {
         var configModel = config.read();
-        int removed = 0;
         for (var key : keys) {
-            if (configModel.getConfig().remove(key) != null) {
-                removed++;
-            } else {
+            if (!configModel.getConfig().containsKey(key)) {
                 throw new CliException("Property '" + key + "' is not set.", VALIDATION_ERROR_RETURN_CODE);
             }
         }
+        keys.forEach(configModel.getConfig()::remove);
         config.write(configModel);
-        output.writeStdOutLine(removed == 1 ? "Property deleted." : removed + " properties deleted.");
+        output.writeStdOutLine(keys.size() == 1 ? "Property deleted." : keys.size() + " properties deleted.");
     }
 }

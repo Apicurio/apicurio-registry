@@ -12,6 +12,7 @@ This chapter explains how to set configuration options for {registry} security. 
 * xref:registry-security-dex_{context}[]
 * xref:registry-security-settings_{context}[]
 * xref:registry-cors-configuration_{context}[]
+* xref:configuring-resource-authorization_{context}[]
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 

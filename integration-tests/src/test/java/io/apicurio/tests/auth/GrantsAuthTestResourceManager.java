@@ -1,21 +1,22 @@
 package io.apicurio.tests.auth;
 
-import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.Map;
 
-public class GrantsAuthTestResourceManager extends KeycloakTestContainerManager {
+public class GrantsAuthTestResourceManager implements QuarkusTestResourceLifecycleManager {
 
     private Path tempDir;
 
     @Override
     public Map<String, String> start() {
-        Map<String, String> props = new java.util.HashMap<>(super.start());
+        Map<String, String> props = new HashMap<>();
 
         try {
             tempDir = Files.createTempDirectory("authz-test");
@@ -32,7 +33,6 @@ public class GrantsAuthTestResourceManager extends KeycloakTestContainerManager 
             props.put("apicurio.auth.resource-based-authorization.grants.path",
                     grantsFile.toAbsolutePath().toString());
 
-            props.put("quarkus.oidc.credentials.secret", "test1");
             props.put("apicurio.rest.deletion.group.enabled", "true");
             props.put("apicurio.rest.deletion.artifact.enabled", "true");
             props.put("apicurio.rest.deletion.artifact-version.enabled", "true");
@@ -44,8 +44,7 @@ public class GrantsAuthTestResourceManager extends KeycloakTestContainerManager 
     }
 
     @Override
-    public synchronized void stop() {
-        super.stop();
+    public void stop() {
         if (tempDir != null) {
             try {
                 Files.walk(tempDir)

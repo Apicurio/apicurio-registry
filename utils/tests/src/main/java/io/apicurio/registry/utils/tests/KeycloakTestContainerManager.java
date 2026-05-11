@@ -154,7 +154,6 @@ public class KeycloakTestContainerManager implements QuarkusTestResourceLifecycl
 
         props.put("quarkus.oidc.auth-server-url", authUrl);
         props.put("quarkus.oidc.token-path", tokenUrl);
-        props.put("quarkus.oidc.credentials.secret", "test1");
         props.put("quarkus.oidc.tenant-enabled", "true");
         props.put("apicurio.auth.role-based-authorization", "true");
         props.put("apicurio.auth.owner-only-authorization", "true");

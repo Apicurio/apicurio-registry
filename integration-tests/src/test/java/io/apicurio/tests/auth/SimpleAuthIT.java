@@ -21,7 +21,6 @@ import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import static io.apicurio.deployment.Constants.*;
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
@@ -37,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(AUTH)
 @QuarkusIntegrationTest
-@QuarkusTestResource(value = KeycloakTestContainerManager.class, restrictToAnnotatedClass = true)
 public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     final String groupId = "authTestGroupId";

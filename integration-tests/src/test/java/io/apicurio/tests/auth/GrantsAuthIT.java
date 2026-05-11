@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag(AUTH)
 @QuarkusIntegrationTest
-@QuarkusTestResource(GrantsAuthTestResourceManager.class)
+@QuarkusTestResource(value = GrantsAuthTestResourceManager.class, restrictToAnnotatedClass = true)
 public class GrantsAuthIT extends ApicurioRegistryBaseIT {
 
     private RegistryClient adminClient;

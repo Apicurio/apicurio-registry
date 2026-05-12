@@ -1,7 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="configuring-registry-security_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Configuring {registry} security options
 
 [role="_abstract"]
@@ -17,8 +17,8 @@ NOTE: For a list of all available configuration options, see {registry-config-re
 
 
 // proc-registry-security-keycloak
-:_mod-docs-content-type: PROCEDURE
 [id="registry-security-keycloak_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring {registry} authentication and authorization with {keycloak}
 
 [role="_abstract"]
@@ -178,8 +178,8 @@ endif::[]
 
 
 // proc-registry-security-azure
-:_mod-docs-content-type: PROCEDURE
 [id="registry-security-azure_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring {registry} authentication and authorization with Microsoft Azure Active Directory
 
 [role="_abstract"]
@@ -285,8 +285,8 @@ NOTE: When you enable roles in {registry}, you must also create the same roles i
 
 
 // ref-registry-security-azure-role-mappings
-:_mod-docs-content-type: REFERENCE
 [id="registry-security-azure-role-mappings_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Multiple role mappings for Azure Entra ID
 
 [role="_abstract"]
@@ -310,8 +310,8 @@ With this configuration, a user with any of the listed roles or group membership
 
 
 // ref-registry-security-azure-oauth-scopes
-:_mod-docs-content-type: REFERENCE
 [id="registry-security-azure-oauth-scopes_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Client-specific OAuth scopes for Azure Entra ID
 
 :_mod-docs-content-type: REFERENCE
@@ -341,8 +341,8 @@ NOTE: You can specify multiple scopes by using comma separation. The scopes are 
 
 
 // proc-registry-security-dex
-:_mod-docs-content-type: PROCEDURE
 [id="registry-security-dex_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring {registry} authentication and authorization with Dex
 
 [role="_abstract"]
@@ -718,8 +718,8 @@ curl -sk https://<registry-app-route>/apis/registry/v3/groups/my-group \
 ----
 
 // ref-registry-security-dex-connectors
-:_mod-docs-content-type: REFERENCE
 [id="registry-security-dex-connectors_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Dex connector examples
 
 [role="_abstract"]
@@ -852,8 +852,8 @@ connectors:
 NOTE: Dex supports multiple connectors simultaneously. You can federate across multiple identity providers so that users from different organizations or systems authenticate to {registry} through a single Dex instance.
 
 // ref-registry-security-dex-m2m
-:_mod-docs-content-type: REFERENCE
 [id="registry-security-dex-m2m_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Machine-to-machine access and Kafka SerDes with Dex
 
 [role="_abstract"]
@@ -942,8 +942,8 @@ Dex is the right choice when:
 * M2M workloads are read-only (SerDes consumers with anonymous reads)
 
 // ref-registry-security-dex-production
-:_mod-docs-content-type: REFERENCE
 [id="registry-security-dex-production_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Dex production considerations
 
 [role="_abstract"]
@@ -955,8 +955,8 @@ When running Dex in production, consider the following:
 * *Secret management*: Store the Dex client secret securely by using {kubernetes} Secrets or a secrets manager such as HashiCorp Vault.
 
 // ref-registry-security-dex-troubleshooting
-:_mod-docs-content-type: REFERENCE
 [id="registry-security-dex-troubleshooting_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Dex troubleshooting
 
 [role="_abstract"]
@@ -985,8 +985,8 @@ When running Dex in production, consider the following:
 
 
 // ref-registry-security-settings
-:_mod-docs-content-type: REFERENCE
 [id="registry-security-settings_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} authentication and authorization configuration options
 
 :_mod-docs-content-type: REFERENCE
@@ -1356,8 +1356,8 @@ calls to the REST API, set the following options to `true`:
 
 
 // con-registry-cors-configuration
-:_mod-docs-content-type: CONCEPT
 [id="registry-cors-configuration_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Configuring {registry} Cross-Origin Resource Sharing (CORS)
 
 [role="_abstract"]
@@ -1377,8 +1377,8 @@ Without the correct CORS configuration on the {registry} server, the browser blo
 
 
 // con-registry-cors-understanding
-:_mod-docs-content-type: CONCEPT
 [id="registry-cors-understanding_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Understanding CORS
 
 [role="_abstract"]
@@ -1410,8 +1410,8 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
 
 
 // ref-registry-cors-defaults
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-defaults_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} CORS defaults
 
 [role="_abstract"]
@@ -1443,8 +1443,8 @@ You must add your application's origin to the allowed list.
 
 
 // ref-registry-cors-env-vars
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-env-vars_{context}"]
+:_mod-docs-content-type: REFERENCE
 == CORS environment variables
 
 [role="_abstract"]
@@ -1482,8 +1482,8 @@ For the full set of Quarkus CORS options, see the link:https://quarkus.io/guides
 
 ifndef::service-registry-downstream[]
 // ref-registry-cors-local-dev
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-local-dev_{context}"]
+:_mod-docs-content-type: REFERENCE
 == CORS configuration for local development
 
 [role="_abstract"]
@@ -1534,8 +1534,8 @@ endif::[]
 
 
 // ref-registry-cors-production
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-production_{context}"]
+:_mod-docs-content-type: REFERENCE
 == CORS configuration for production
 
 [role="_abstract"]
@@ -1572,8 +1572,8 @@ services:
 
 
 // ref-registry-cors-authentication
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-authentication_{context}"]
+:_mod-docs-content-type: REFERENCE
 == CORS configuration with authentication
 
 [role="_abstract"]
@@ -1644,8 +1644,8 @@ NOTE: Authentication is a complex topic with many possible configurations ({keyc
 
 
 // ref-registry-cors-operator
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-operator_{context}"]
+:_mod-docs-content-type: REFERENCE
 == CORS configuration with the {kubernetes} Operator
 
 [role="_abstract"]
@@ -1678,8 +1678,8 @@ NOTE: This automatic CORS detection works whether your networking layer uses {ku
 
 
 // ref-registry-cors-troubleshooting
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-troubleshooting_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Troubleshooting CORS errors
 
 :_mod-docs-content-type: REFERENCE
@@ -1710,8 +1710,8 @@ NOTE: This automatic CORS detection works whether your networking layer uses {ku
 |===
 
 // proc-registry-cors-diagnosing
-:_mod-docs-content-type: PROCEDURE
 [id="registry-cors-diagnosing_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Diagnosing CORS errors with browser developer tools
 
 :_mod-docs-content-type: PROCEDURE

@@ -77,8 +77,9 @@ public class TlsITTest extends ITBase {
                     .withName(registry.getMetadata().getName() + "-app-service").get().getSpec();
 
             assertThat(service.getClusterIP()).isNotBlank();
-            Assertions.assertEquals(1, service.getPorts().size());
+            Assertions.assertEquals(2, service.getPorts().size());
             assertThat(service.getPorts().get(0).getPort()).isEqualTo(443);
+            assertThat(service.getPorts().get(1).getPort()).isEqualTo(9000);
             assertThat(service.getClusterIP()).isNotBlank();
             return true;
         });
@@ -324,8 +325,9 @@ public class TlsITTest extends ITBase {
             assertThat(service.getClusterIP()).isNotBlank();
             assertThat(service.getPorts().get(0).getPort()).isEqualTo(443);
             assertThat(service.getPorts().get(1).getPort()).isEqualTo(8080);
+            assertThat(service.getPorts().get(2).getPort()).isEqualTo(9000);
 
-            Assertions.assertEquals(2, service.getPorts().size());
+            Assertions.assertEquals(3, service.getPorts().size());
 
             assertThat(service.getClusterIP()).isNotBlank();
             return true;

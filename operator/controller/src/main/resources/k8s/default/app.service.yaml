@@ -7,4 +7,8 @@ spec:
       port: 8080
       protocol: TCP
       targetPort: http
+    - name: management
+      port: 9000
+      protocol: TCP
+      targetPort: management
   selector: { }

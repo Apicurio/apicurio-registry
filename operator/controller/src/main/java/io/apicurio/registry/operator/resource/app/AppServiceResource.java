@@ -48,10 +48,16 @@ public class AppServiceResource extends CRUDKubernetesDependentResource<Service,
                             .withTargetPort(new IntOrStringBuilder().withValue(8443).build())
                             .build();
 
+                    var managementPort = new ServicePortBuilder()
+                            .withName("management")
+                            .withPort(9000)
+                            .withTargetPort(new IntOrStringBuilder().withValue(9000).build())
+                            .build();
+
                     if (TLS.insecureRequestsEnabled(tls)) {
-                        s.getSpec().setPorts(List.of(httpsPort, httpPort));
+                        s.getSpec().setPorts(List.of(httpsPort, httpPort, managementPort));
                     } else {
-                        s.getSpec().setPorts(List.of(httpsPort));
+                        s.getSpec().setPorts(List.of(httpsPort, managementPort));
                     }
                 });
 

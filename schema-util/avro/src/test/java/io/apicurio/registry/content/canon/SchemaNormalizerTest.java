@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -643,6 +644,144 @@ class SchemaNormalizerTest {
 
         assertNotEquals(canonicalV1.getContent().content(), canonicalV2.getContent().content(),
                 "Schemas with different connect.parameters scale values must have different canonical forms");
+    }
+
+    @Test
+    void parseSchema_NullableUnionWithAndWithoutDefaultNull_Equal() {
+        // Schema without "default": null on a nullable union field
+        String schemaWithoutDefault = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Application\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n" + "    {\"name\": \"name\", \"type\": \"string\"},\n"
+                + "    {\"name\": \"version\", \"type\": [\"null\", \"string\"]}\n" + "  ]\n" + "}";
+
+        // Same schema WITH explicit "default": null
+        String schemaWithDefault = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Application\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n" + "    {\"name\": \"name\", \"type\": \"string\"},\n"
+                + "    {\"name\": \"version\", \"type\": [\"null\", \"string\"], \"default\": null}\n"
+                + "  ]\n" + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized1 = canonicalizer.canonicalize(toTypedContent(schemaWithoutDefault),
+                new HashMap<>());
+        TypedContent normalized2 = canonicalizer.canonicalize(toTypedContent(schemaWithDefault),
+                new HashMap<>());
+
+        assertEquals(normalized1.getContent().content(), normalized2.getContent().content());
+    }
+
+    @Test
+    void parseSchema_MapWithSelfReferencingRecord_NormalizesWithoutError() {
+        // Schema with a map whose value type references the enclosing record
+        String schema = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"TreeNode\",\n"
+                + "  \"namespace\": \"com.example\",\n" + "  \"fields\": [\n"
+                + "    {\"name\": \"value\", \"type\": \"string\"},\n"
+                + "    {\"name\": \"children\", \"type\": {\"type\": \"map\", \"values\": \"TreeNode\"}}\n"
+                + "  ]\n" + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized = canonicalizer.canonicalize(toTypedContent(schema), new HashMap<>());
+
+        assertNotNull(normalized);
+        // Verify it round-trips through Avro parser
+        Schema parsed = new Schema.Parser().parse(normalized.getContent().content());
+        assertEquals("TreeNode", parsed.getName());
+    }
+
+    @Test
+    void parseSchema_NullableUnionDifferentOrder_NotEqual() {
+        // ["null", "string"] no default — fix injects implicit "default": null
+        String schemaNullFirst = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Application\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n"
+                + "    {\"name\": \"version\", \"type\": [\"null\", \"string\"]}\n" + "  ]\n" + "}";
+
+        // ["string", "null"] no default — first type is not null, fix must NOT trigger
+        String schemaStringFirst = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Application\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n"
+                + "    {\"name\": \"version\", \"type\": [\"string\", \"null\"]}\n" + "  ]\n" + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonicalNullFirst = canonicalizer.canonicalize(toTypedContent(schemaNullFirst),
+                new HashMap<>());
+        TypedContent canonicalStringFirst = canonicalizer.canonicalize(toTypedContent(schemaStringFirst),
+                new HashMap<>());
+
+        assertNotEquals(canonicalNullFirst.getContent().content(),
+                canonicalStringFirst.getContent().content(),
+                "Unions with different member order must have different canonical forms");
+    }
+
+    @Test
+    void parseSchema_UnionStartingWithStringThenNull_NoDefaultInjected() {
+        // ["string", "null"] no default — fix's "first type is null" guard must prevent injection
+        String schema = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"Application\",\n"
+                + "  \"namespace\": \"nl.example.test\",\n" + "  \"fields\": [\n"
+                + "    {\"name\": \"version\", \"type\": [\"string\", \"null\"]}\n" + "  ]\n" + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonical = canonicalizer.canonicalize(toTypedContent(schema), new HashMap<>());
+
+        Schema parsed = new Schema.Parser().parse(canonical.getContent().content());
+        Schema.Field versionField = parsed.getField("version");
+        assertNotNull(versionField);
+        assertFalse(versionField.hasDefaultValue(),
+                "Field must not have a default injected when the union does not start with null");
+    }
+
+    @Test
+    void parseSchema_NestedRecordWithNullableUnion_Equal() {
+        // Outer record contains a nested record whose field uses ["null", "string"] with no default
+        String schemaWithoutDefault = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Outer\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n" + "    {\"name\": \"inner\", \"type\": {\n"
+                + "      \"type\": \"record\", \"name\": \"Inner\", \"fields\": [\n"
+                + "        {\"name\": \"version\", \"type\": [\"null\", \"string\"]}\n" + "      ]\n"
+                + "    }}\n" + "  ]\n" + "}";
+
+        // Same structure but the nested field has explicit "default": null
+        String schemaWithDefault = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Outer\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n" + "    {\"name\": \"inner\", \"type\": {\n"
+                + "      \"type\": \"record\", \"name\": \"Inner\", \"fields\": [\n"
+                + "        {\"name\": \"version\", \"type\": [\"null\", \"string\"], \"default\": null}\n"
+                + "      ]\n" + "    }}\n" + "  ]\n" + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized1 = canonicalizer.canonicalize(toTypedContent(schemaWithoutDefault),
+                new HashMap<>());
+        TypedContent normalized2 = canonicalizer.canonicalize(toTypedContent(schemaWithDefault),
+                new HashMap<>());
+
+        assertEquals(normalized1.getContent().content(), normalized2.getContent().content(),
+                "Nullable union default normalization must apply recursively to nested records");
+    }
+
+    @Test
+    void parseSchema_ThreeWayUnionStartingWithNull_Equal() {
+        // ["null", "string", "int"] no default
+        String schemaWithoutDefault = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Application\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n"
+                + "    {\"name\": \"value\", \"type\": [\"null\", \"string\", \"int\"]}\n" + "  ]\n"
+                + "}";
+
+        // ["null", "string", "int"] with explicit "default": null
+        String schemaWithDefault = "{\n" + "  \"type\": \"record\",\n"
+                + "  \"name\": \"Application\",\n" + "  \"namespace\": \"nl.example.test\",\n"
+                + "  \"fields\": [\n"
+                + "    {\"name\": \"value\", \"type\": [\"null\", \"string\", \"int\"], \"default\": null}\n"
+                + "  ]\n" + "}";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized1 = canonicalizer.canonicalize(toTypedContent(schemaWithoutDefault),
+                new HashMap<>());
+        TypedContent normalized2 = canonicalizer.canonicalize(toTypedContent(schemaWithDefault),
+                new HashMap<>());
+
+        assertEquals(normalized1.getContent().content(), normalized2.getContent().content(),
+                "Unions with more than two members starting with null must still be normalized");
     }
 
     private String getSchemaFromResource(String resourcePath) throws IOException {

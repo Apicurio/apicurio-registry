@@ -111,7 +111,7 @@ public class KubernetesTestResourceManager implements QuarkusTestResourceLifecyc
                                 .toURI());
 
                 Collection<File> files = FileUtils.listFiles(sourcePath.toFile(),
-                        new String[]{"yaml", "yml", "json"}, true);
+                        new String[]{"yaml", "yml", "json", "avsc", "proto", "graphql", "wsdl", "xsd", "xml"}, true);
 
                 // Create a single ConfigMap with all files using relative paths as keys
                 Map<String, String> configMapData = new HashMap<>();

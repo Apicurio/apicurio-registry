@@ -10,7 +10,7 @@ on:
         required: true
         default: 'all'
   release:
-    types: [released, prereleased]
+    types: [released]
 
 permissions:
   id-token: write
@@ -24,7 +24,7 @@ jobs:
   # Prepare release details
   prepare:
     name: Prepare Release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
     outputs:
       release-version: ${{ steps.version.outputs.version }}
@@ -66,7 +66,7 @@ jobs:
   # Python SDK Release
   release-python-sdk:
     name: Release Python SDK
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: prepare
     if: needs.prepare.outputs.release-python == 'true'
     timeout-minutes: 30
@@ -113,7 +113,7 @@ jobs:
   # Go SDK Release
   release-go-sdk:
     name: Release Go SDK
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: prepare
     if: needs.prepare.outputs.release-go == 'true'
     timeout-minutes: 30
@@ -182,7 +182,7 @@ jobs:
   # TypeScript SDK Release
   release-typescript-sdk:
     name: Release TypeScript SDK
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: prepare
     if: needs.prepare.outputs.release-typescript == 'true'
     timeout-minutes: 15

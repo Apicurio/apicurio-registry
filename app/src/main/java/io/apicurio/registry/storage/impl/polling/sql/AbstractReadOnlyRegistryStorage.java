@@ -7,6 +7,7 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
 import io.apicurio.registry.storage.dto.CommentDto;
@@ -28,6 +29,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -142,6 +144,30 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void setArtifactContractRuleset(String groupId, String artifactId,
+            ContractRuleSetDto ruleset) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void deleteArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void deleteVersionContractRuleset(String groupId, String artifactId, String version)
+            throws RegistryStorageException {
         readOnlyViolation();
     }
 
@@ -329,6 +355,11 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void importArtifactRule(ArtifactRuleEntity entity) {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void importContractRule(ContractRuleEntity entity) {
         readOnlyViolation();
     }
 

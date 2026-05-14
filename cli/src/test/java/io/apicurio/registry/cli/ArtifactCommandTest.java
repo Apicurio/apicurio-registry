@@ -61,6 +61,11 @@ public class ArtifactCommandTest extends AbstractCLITest {
     }
 
     @Test
+    public void testArtifactUpdateNoOptions() {
+        executeAndAssertFailure("artifact", "update", "--group", "default", "test-artifact");
+    }
+
+    @Test
     public void testArtifactListNonExistentGroup() {
         executeAndAssertFailure("artifact", "--group", "non-existent-group");
     }

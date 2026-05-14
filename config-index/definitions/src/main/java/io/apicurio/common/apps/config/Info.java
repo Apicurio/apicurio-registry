@@ -39,12 +39,6 @@ public @interface Info {
     @Nonbinding
     String availableSince() default "";
 
-    @Nonbinding
-    String registryAvailableSince() default "";
-
-    @Nonbinding
-    String studioAvailableSince() default "";
-
     /**
      * Lists related configuration properties. TODO: Not used in docs yet
      */

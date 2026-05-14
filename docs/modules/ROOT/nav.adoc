@@ -2,6 +2,7 @@
 ** xref:getting-started/assembly-intro-to-the-registry.adoc[]
 ** xref:getting-started/assembly-registry-concepts-glossary.adoc[]
 ** xref:getting-started/assembly-intro-to-registry-rules.adoc[]
+** xref:getting-started/assembly-registry-compatibility-modes.adoc[]
 ** xref:getting-started/assembly-data-contracts.adoc[]
 * Installation
 ** xref:getting-started/assembly-installing-registry-docker.adoc[]
@@ -36,6 +37,7 @@ ifndef::service-registry-downstream[]
 endif::[]
 * AI Agent Integration
 ** xref:getting-started/assembly-a2a-features.adoc[]
+** xref:getting-started/assembly-mcp-tool-features.adoc[]
 ** xref:getting-started/assembly-llm-artifact-types-implementation.adoc[]
 * Confluent Schema Registry Compatibility
 ** xref:getting-started/assembly-confluent-schema-registry-compatibility.adoc[]

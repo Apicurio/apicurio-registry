@@ -91,7 +91,9 @@ spec:
   partitions: 2
   replicas: 1
   config:
-    cleanup.policy: compact
+    cleanup.policy: delete
+    retention.ms: -1
+    retention.bytes: -1
 ----
 
 . Select the *{operator}*, and in the *ApicurioRegistry3* tab, click *Create ApicurioRegistry3*, using the following example, but replace your value in the `bootstrapServers` field.

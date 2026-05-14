@@ -1,4 +1,11 @@
 {
   "name": "TestAgent",
+  "description": "Test agent",
+  "version": "1.0.0",
+  "supportedInterfaces": [{ "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }],
+  "capabilities": {},
+  "skills": [{ "id": "s1", "name": "Skill", "description": "A skill", "tags": ["test"] }],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
   "provider": "not an object"
 }

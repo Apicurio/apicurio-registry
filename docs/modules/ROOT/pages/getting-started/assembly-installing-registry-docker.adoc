@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 This chapter explains how to install and run {registry} using Docker with the following storage options:
 
-* xref:installing-registry-in-memory-storage_{context}[]
+* xref:installing-registry-h2-storage_{context}[]
 * xref:installing-registry-sql-storage_{context}[]
 * xref:installing-registry-kafka-storage_{context}[]
 
@@ -25,13 +25,13 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-[id="installing-registry-in-memory-storage_{context}"]
-== Installing {registry} with in-memory storage
+[id="installing-registry-h2-storage_{context}"]
+== Installing {registry} with default configuration (embedded H2 database)
 
 [role="_abstract"]
-This section explains how to install and run {registry} with simple in-memory storage from a container image.
+You can install and run {registry} with the default storage configuration from a container image. When you do not configure storage explicitly, {registry} uses SQL storage with an embedded H2 database.
 
-NOTE: The in-memory storage option is suitable for development only. All data is lost when the container image is restarted.
+NOTE: The default embedded H2 configuration is suitable for development and testing only. {registry} stores all data in memory and loses it when you restart the container. For production, configure PostgreSQL or Kafka storage.
 
 .Prerequisites
 
@@ -320,7 +320,7 @@ mypassword
 
 
 [role="_abstract"]
-This topic explains how to install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses a Kafka topic for storage, along with an in-memory H2 database. This storage option is suitable for production environments.
+You can install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses Kafka as the primary data store, with an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup. This storage option is suitable for production environments.
 
 .Prerequisites
 

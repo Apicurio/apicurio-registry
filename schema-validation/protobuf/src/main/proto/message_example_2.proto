@@ -1,0 +1,9 @@
+syntax = "proto3";
+package io.apicurio.schema.validation.protobuf.ref;
+
+message MessageExample2 {
+
+  string key2 = 1;
+  int32 value2 = 2;
+
+}

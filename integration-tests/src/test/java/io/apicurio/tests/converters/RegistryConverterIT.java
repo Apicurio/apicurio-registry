@@ -24,7 +24,7 @@ import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
@@ -50,8 +50,8 @@ import static org.apache.kafka.connect.data.SchemaBuilder.int16;
 import static org.apache.kafka.connect.data.SchemaBuilder.string;
 import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 
-@Tag(Constants.SERDES)
-@Tag(Constants.ACCEPTANCE)
+@Tag(SERDES)
+@Tag(ACCEPTANCE)
 @QuarkusIntegrationTest
 public class RegistryConverterIT extends ApicurioRegistryBaseIT {
 

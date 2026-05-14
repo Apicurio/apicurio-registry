@@ -1,9 +1,7 @@
 # Dockerfile for running the pre-built Quarkus consumer application
 # NOTE: Run 'mvn clean package -DskipTests' in this directory before building the image
 
-FROM registry.access.redhat.com/ubi10/ubi-minimal:latest
-
-RUN microdnf install -y java-21-openjdk-headless && microdnf clean all
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime:latest
 
 ENV LANGUAGE='en_US:en'
 

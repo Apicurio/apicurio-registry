@@ -1,6 +1,6 @@
 # CLI for Apicurio Registry
 
-> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet.
+> NOTE: The CLI is a dev-preview project, and some features of Apicurio Registry are not supported yet. Apicurio Registry CLI is currently unstable; its arguments and behavior are subject to backwards-incompatible changes.
 
 ### Supported Platforms
 
@@ -37,10 +37,40 @@ To install the Apicurio Registry CLI:
    ```
 
 
-[//]: # (### Update)
+### Update
 
-[//]: # ()
-[//]: # (To update the Apicurio Registry CLI to the latest version, run `acr update`, or remove the existing installation and re-install using the steps above.)
+The CLI checks for updates once per day and notifies you when a newer version is available.
+
+**Update to the latest version:**
+```bash
+acr update
+```
+
+If both a patch and minor update are available, you must specify the version:
+```bash
+acr update 3.3.0
+```
+
+**Check for updates without installing:**
+```bash
+acr update --check
+```
+
+**Postpone update notifications (default: 5 days):**
+```bash
+acr update --postpone
+acr update --postpone 240  # postpone for 240 hours
+```
+
+**Install from a local ZIP:**
+```bash
+acr update --path /path/to/apicurio-registry-cli-3.2.5-linux-x86_64.zip
+```
+
+**Disable automatic update checks:**
+```bash
+acr config set update.check-enabled=false
+```
 
 ## Build
 
@@ -77,7 +107,7 @@ compilation to speed up the build. This produces a JVM-mode Quarkus application 
 **no installable ZIP is created**:
 
 ```bash
-mvn clean package -pl cli -am -DskipTests -Dcli-skip-native
+mvn clean package -pl cli -am -DskipTests -DcliSkipNative
 ```
 
 #### GraalVM Version Compatibility
@@ -120,6 +150,37 @@ Get help for a specific command:
 acr <command> --help
 acr <command> <subcommand> --help
 ```
+
+### Configuration
+
+Manage CLI configuration properties stored in `config.json`.
+
+**List all properties:**
+```bash
+acr config
+```
+
+**Get a property:**
+```bash
+acr config get update.repo.url
+```
+
+**Set properties:**
+```bash
+acr config set update.check-enabled=false
+```
+
+**Delete properties:**
+```bash
+acr config delete my.custom.property
+```
+
+#### Configuration Properties
+
+| Property | Default | Description |
+|---|---|---|
+| `update.check-enabled` | `true` | Enable automatic update checks |
+| `update.timeout-seconds` | `60` | Timeout for update network requests |
 
 ### Context Management
 

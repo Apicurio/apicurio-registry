@@ -9,7 +9,9 @@ import java.util.Set;
 
 /**
  * Custom ConfigSource that loads properties from "$ACR_HOME/config.json".
- * Gracefully returns empty results when ACR_CURRENT_HOME is not set
+ * Uses the static bridge from {@link Config} because this class is loaded
+ * via SPI before CDI is available.
+ * Gracefully returns empty results when Config is not yet initialized
  * (e.g., during Quarkus build time).
  */
 public class AcrHomeConfigSource implements ConfigSource {
@@ -20,7 +22,10 @@ public class AcrHomeConfigSource implements ConfigSource {
     @Override
     public Map<String, String> getProperties() {
         try {
-            return Config.getInstance().read().getConfig();
+            if (Config.instance == null) {
+                return Collections.emptyMap();
+            }
+            return Config.instance.read().getConfig();
         } catch (CliException e) {
             return Collections.emptyMap();
         }
@@ -29,7 +34,10 @@ public class AcrHomeConfigSource implements ConfigSource {
     @Override
     public String getValue(String propertyName) {
         try {
-            return Config.getInstance().read().getConfig().get(propertyName);
+            if (Config.instance == null) {
+                return null;
+            }
+            return Config.instance.read().getConfig().get(propertyName);
         } catch (CliException e) {
             return null;
         }
@@ -38,7 +46,10 @@ public class AcrHomeConfigSource implements ConfigSource {
     @Override
     public String getName() {
         try {
-            return getClass().getSimpleName() + "[" + Config.getInstance().getConfigFilePath() + "]";
+            if (Config.instance == null) {
+                return getClass().getSimpleName() + "[not configured]";
+            }
+            return getClass().getSimpleName() + "[" + Config.instance.getConfigFilePath() + "]";
         } catch (CliException e) {
             return getClass().getSimpleName() + "[not configured]";
         }
@@ -47,7 +58,10 @@ public class AcrHomeConfigSource implements ConfigSource {
     @Override
     public Set<String> getPropertyNames() {
         try {
-            return Config.getInstance().read().getConfig().keySet();
+            if (Config.instance == null) {
+                return Collections.emptySet();
+            }
+            return Config.instance.read().getConfig().keySet();
         } catch (CliException e) {
             return Collections.emptySet();
         }

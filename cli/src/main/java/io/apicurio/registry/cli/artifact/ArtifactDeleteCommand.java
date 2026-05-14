@@ -1,7 +1,7 @@
 package io.apicurio.registry.cli.artifact;
 
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import picocli.CommandLine.Command;
@@ -14,7 +14,7 @@ import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 @Command(
         name = "delete",
         aliases = {"remove", "rm"},
-        description = "Delete an existing artifact. Apicurio Registry must be configured " +
+        description = "Delete an existing artifact. {{product-name}} must be configured " +
                 "with `apicurio.rest.deletion.artifact.enabled=true` to allow artifact deletions."
 )
 public class ArtifactDeleteCommand extends AbstractCommand {
@@ -33,11 +33,11 @@ public class ArtifactDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var resolvedGroupId = ArtifactUtil.resolveGroupId(groupId);
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         try {
-            final var client = Client.getInstance().getRegistryClient();
-            ArtifactUtil.validateGroup(client, resolvedGroupId);
-            client.groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).delete();
+            final var registryClient = client.getRegistryClient();
+            IdUtil.validateGroup(registryClient, resolvedGroupId);
+            registryClient.groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).delete();
             output.writeStdOutChunk(out -> {
                 out.append("Artifact '").append(artifactId).append("' in group '")
                         .append(resolvedGroupId).append("' deleted successfully.\n");

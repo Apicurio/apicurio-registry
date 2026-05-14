@@ -7,6 +7,8 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -148,6 +150,24 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     }
 
     @Override
+    public ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException {
+        return delegate.getArtifactContractRuleset(groupId, artifactId);
+    }
+
+    @Override
+    public ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId,
+            String version) throws VersionNotFoundException, RegistryStorageException {
+        return delegate.getVersionContractRuleset(groupId, artifactId, version);
+    }
+
+    @Override
+    public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
+            throws RegistryStorageException {
+        return delegate.getContractRulesByTag(tag);
+    }
+
+    @Override
     public List<String> getArtifactVersions(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersions(groupId, artifactId);
@@ -183,6 +203,13 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
             throws VersionNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersionMetaData(globalId);
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
+            String artifactId, int versionOrder)
+            throws VersionNotFoundException, RegistryStorageException {
+        return delegate.getArtifactVersionMetaDataByVersionOrder(groupId, artifactId, versionOrder);
     }
 
     @Override

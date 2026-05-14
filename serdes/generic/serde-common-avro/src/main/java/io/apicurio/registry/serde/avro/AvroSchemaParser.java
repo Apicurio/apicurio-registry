@@ -42,7 +42,7 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
     }
 
     /**
-     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map<String, ParsedSchema<Schema>>)
+     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map)
      */
     @Override
     public Schema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<Schema>> resolvedReferences) {

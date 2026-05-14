@@ -1,24 +1,46 @@
+# GitOps Local Volume Example - Docker Compose
+#
+# Clones the example repository into a local directory `examples/gitops/example-repo` and runs the registry
+# in GitOps mode. The local clone can be modified to test GitOps reload behavior.
+#
+# Steps:
+#
+#   1. (Optional) Build local images (if using local changes):
+#      pushd ../../..
+#      mvn clean install -pl distro/docker -am -DskipTests
+#      docker build -f distro/docker/target/docker/Dockerfile.jvm -t quay.io/apicurio/apicurio-registry:local distro/docker/target/docker
+#      docker build -t quay.io/apicurio/apicurio-registry-gitops-sync:local distro/gitops
+#      popd
+#
+#   2. Run:
+#      docker compose up
+#
+# To run with local images:
+#   REGISTRY_IMAGE=quay.io/apicurio/apicurio-registry:local SIDECAR_IMAGE=quay.io/apicurio/apicurio-registry-gitops-sync:local docker compose up
+#
+# To run as the staging registry (includes experimental schemas):
+#   APICURIO_POLLING_STORAGE_ID=staging docker compose up
+#
+# Endpoints:
+#   - Registry API: http://localhost:8080/apis/registry/v3
+#   - Registry UI:  http://localhost:8888
+
 services:
 
-  # Initialize the example repository
-  git-init:
-    container_name: git-init
+  # Clone the example repository into a local directory
+  gitops-init:
+    container_name: gitops-init
     image: alpine/git:latest
     volumes:
-      - git-repo:/repos/example
-      - ./example-repo:/example-repo:ro
+      - .:/work
     entrypoint: ["sh", "-c"]
     command:
       - |
-        if [ ! -d /repos/example/.git ]; then
-          echo "Initializing example Git repository..."
-          cd /repos/example
-          git init
-          git config user.email "gitops@example"
-          git config user.name "GitOps Init"
-          cp -r /example-repo/* .
-          git add -A
-          git commit -m "Initial commit with example schemas"
+        if [ ! -d /work/example-repo/.git ]; then
+          echo "Cloning example GitOps repository..."
+          git clone https://github.com/Apicurio/apicurio-registry-gitops-example.git /work/example-repo
+          # Match ownership to the bind-mounted parent directory so files are editable on the host
+          chown -R "$(stat -c '%u:%g' /work)" /work/example-repo
           echo "Example repository initialized."
         else
           echo "Repository already initialized, skipping."
@@ -26,33 +48,26 @@ services:
 
   # Apicurio Registry (GitOps mode)
   registry:
-    container_name: registry-gitops
+    container_name: registry
     image: ${REGISTRY_IMAGE:-quay.io/apicurio/apicurio-registry:latest-snapshot}
     environment:
       QUARKUS_PROFILE: "prod"
-      # GitOps storage
       APICURIO_STORAGE_KIND: "gitops"
       APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
       APICURIO_POLLING_STORAGE_ID: "${APICURIO_POLLING_STORAGE_ID:-prod}"
-      APICURIO_GITOPS_WORKSPACE: "/repos"
-      APICURIO_GITOPS_REPO_DIR: "example"
-      APICURIO_GITOPS_REPO_BRANCH: "main"
       # Faster startup for the example (lower debounce)
       APICURIO_POLLING_STORAGE_POLL_PERIOD: "PT5S"
       APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD: "PT5S"
       APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD: "PT30S"
-      # Logging
-      LOG_LEVEL: "INFO"
-      QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL: "DEBUG"
-      # CORS
+      APICURIO_LOG_LEVEL: "debug"
       QUARKUS_HTTP_CORS: "true"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     volumes:
-      - git-repo:/repos/example:ro
+      - ./example-repo:/repos/default:ro
     ports:
       - "8080:8080"
     depends_on:
-      git-init:
+      gitops-init:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
@@ -62,7 +77,7 @@ services:
       start_period: 30s
 
   # Apicurio Registry UI
-  ui:
+  registry-ui:
     container_name: registry-ui
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
     environment:
@@ -73,5 +88,3 @@ services:
       registry:
         condition: service_healthy
 
-volumes:
-  git-repo:

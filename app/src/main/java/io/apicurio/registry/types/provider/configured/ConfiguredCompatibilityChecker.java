@@ -2,15 +2,12 @@ package io.apicurio.registry.types.provider.configured;
 
 import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
 import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
-import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.http.HttpClientService;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-import io.apicurio.registry.script.ArtifactTypeScriptProvider;
-import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.CompatibilityCheckerRequest;
 import io.apicurio.registry.types.webhooks.beans.CompatibilityCheckerResponse;
 import io.apicurio.registry.types.webhooks.beans.IncompatibleDifference;
@@ -20,8 +17,8 @@ import java.util.Map;
 
 public class ConfiguredCompatibilityChecker extends AbstractConfiguredArtifactTypeUtil<CompatibilityChecker> implements CompatibilityChecker {
 
-    public ConfiguredCompatibilityChecker(HttpClientService httpClientService, ScriptingService scriptingService, ArtifactTypeConfiguration artifactType) {
-        super(httpClientService, scriptingService, artifactType, artifactType.getCompatibilityChecker());
+    public ConfiguredCompatibilityChecker(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getCompatibilityChecker());
     }
 
     @Override
@@ -73,43 +70,6 @@ public class ConfiguredCompatibilityChecker extends AbstractConfiguredArtifactTy
                 log.error("Error invoking webhook", e);
                 return CompatibilityExecutionResult.incompatible(
                         "Error invoking Compatibility Checker webhook for '" + this.artifactType.getArtifactType() + "': " + e.getMessage());
-            }
-        }
-
-    }
-
-    @Override
-    protected CompatibilityChecker createScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) throws Exception {
-        return new ConfiguredCompatibilityChecker.ScriptCompatibilityCheckerDelegate(artifactType, provider);
-    }
-
-    private class ScriptCompatibilityCheckerDelegate extends AbstractScriptDelegate implements CompatibilityChecker {
-
-        protected ScriptCompatibilityCheckerDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
-            super(artifactType, provider);
-        }
-
-        @Override
-        public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel, List<TypedContent> existingArtifacts,
-                                                              TypedContent proposedArtifact, Map<String, TypedContent> resolvedReferences) {
-            // Create the request payload object
-            CompatibilityCheckerRequest requestBody = createRequest(compatibilityLevel, existingArtifacts, proposedArtifact, resolvedReferences);
-            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
-
-            try {
-                CompatibilityCheckerResponse responseBody = scriptProvider.testCompatibility(requestBody);
-                List<IncompatibleDifference> incompatibleDifferences = responseBody.getIncompatibleDifferences();
-                if (incompatibleDifferences == null || incompatibleDifferences.isEmpty()) {
-                    return CompatibilityExecutionResult.compatible();
-                } else {
-                    return CompatibilityExecutionResult.incompatibleOrEmpty(WebhookBeanUtil.compatibilityDifferenceSetFromWebhookBean(incompatibleDifferences));
-                }
-            } catch (Throwable e) {
-                log.error("Error invoking script", e);
-                return CompatibilityExecutionResult.incompatible(
-                        "Error invoking Compatibility Checker webhook for '" + this.artifactType.getArtifactType() + "': " + e.getMessage());
-            } finally {
-                closeScriptProvider(scriptProvider);
             }
         }
 

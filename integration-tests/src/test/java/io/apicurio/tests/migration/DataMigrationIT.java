@@ -8,7 +8,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.utils.AbstractTestDataInitializer;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DataMigrationIT.MigrateTestInitializer.class, restrictToAnnotatedClass = true)
-@Tag(Constants.MIGRATION)
+@Tag(MIGRATION)
 public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
     private static final Logger log = LoggerFactory.getLogger(DataMigrationIT.class);

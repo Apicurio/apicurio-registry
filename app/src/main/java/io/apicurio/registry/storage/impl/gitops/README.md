@@ -140,10 +140,11 @@ Different registry instances point to different branches of the same repository:
 
 Schema promotion is done through Git merges.
 
-### Push Model for Restricted Networks *(planned)*
+### Push Model for Restricted Networks
 
 In environments where outbound network access is restricted, an external process pushes changes to a
 Git repository hosted inside the cluster. The sidecar exposes an SSH endpoint for receiving pushes.
+See [`distro/gitops/README.md`](../../../../distro/gitops/README.md) for push mode configuration.
 
 ### PR Verification with CI/CD *(planned)*
 
@@ -167,16 +168,136 @@ These properties are shared between GitOps and KubernetesOps storage implementat
 
 ### GitOps-Specific Properties (`apicurio.gitops.*`)
 
+#### Single-repo (shorthand)
+
 | Property | Default | Description |
 |----------|---------|-------------|
-| `apicurio.gitops.workspace` | `.` | Base directory where Git repositories are mounted. |
-| `apicurio.gitops.repo.dir` | *(required)* | Directory name of the Git repository, relative to the workspace. |
+| `apicurio.gitops.workspace` | `/repos` | Base directory where Git repositories are mounted. |
+| `apicurio.gitops.repo.dir` | `default` | Directory name of the Git repository, relative to the workspace. |
 | `apicurio.gitops.repo.branch` | `main` | Branch to read from. |
+
+#### Multi-repo (indexed)
+
+For multiple repositories, use indexed properties. If indexed repos are configured,
+the single-repo shorthand properties must not be set.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `apicurio.gitops.repos.N.dir` | *(required)* | Directory name for repo N. |
+| `apicurio.gitops.repos.N.branch` | `main` | Branch to read from for repo N. |
+| `apicurio.gitops.repos.N.id` | *(dir name)* | Optional identifier for repo N, used in status reporting. |
+
+Indexes must be dense (0, 1, 2, ... — no gaps). Example:
+
+```properties
+apicurio.gitops.repos.0.dir=platform
+apicurio.gitops.repos.1.dir=fulfillment
+apicurio.gitops.repos.1.branch=fulfillment
+```
+
+When using environment variables, use the standard underscore format:
+`APICURIO_GITOPS_REPOS_0_DIR`.
+
+**Conflict detection:** If the same `groupId:artifactId` appears in files from
+different repositories, the entire load is rejected. Each artifact must be defined
+in exactly one repository.
+
+## Management API
+
+The registry exposes management endpoints at `/apis/registry/v3/admin/gitops/` when running
+in GitOps mode. These return HTTP 409 if a different storage backend is active.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/admin/gitops/status` | GET | Returns current sync state, commit SHA, load stats, and errors |
+| `/admin/gitops/sync` | POST | Triggers an immediate sync (returns 204) |
+
+The status response includes:
+- `syncState` — one of `INITIALIZING`, `IDLE`, `LOADING`, `SWITCHING`, `ERROR`
+- `lastSuccessfulSync` / `lastSyncAttempt` — timestamps
+- `groupCount`, `artifactCount`, `versionCount` — load statistics
+- `errors` — structured errors from the last failed load, each with `detail`, optional `source` (repo ID), and optional `context` (file path)
+- `sources` — per-source identifiers (map of source ID → abbreviated commit SHA)
+
+## Timestamps
+
+Groups, artifacts, and versions support optional `createdOn` and `modifiedOn` fields.
+When omitted, the Git commit time is used as a fallback.
+
+Supported formats: ISO 8601 (`2024-03-04`, `2024-03-04T10:30:00Z`, `2024-03-04T10:30:00+01:00`),
+ISO 8601 without timezone (assumed UTC), or unix milliseconds.
+
+## Rule Enforcement
+
+Configured rules (validity, compatibility) are enforced during loading. After all data is imported
+into the inactive database, a validation pass checks artifact versions against the rules configured
+in that same data set. If any rule is violated, the load is rejected and the previous data continues
+being served.
+
+**How it works:**
+
+1. Data is loaded into the inactive database (groups, artifacts, versions, rules)
+2. The validator iterates artifacts and resolves the effective rules using the standard hierarchy:
+   artifact rules → group rules → global rules → default rules
+3. For each artifact, it determines which versions need validation and checks them
+
+**Why validate against the current data only:** The validator checks the loaded data against
+itself — not against previously served data. This means if version 2.0 was compatible with 1.0
+when it was originally added, but rules are later tightened, the validator won't retroactively
+fail old versions. This design avoids the need to track rule change history across loads.
+
+### `validatedUpTo`
+
+The `validatedUpTo` field on an artifact controls which versions are validated:
+
+- **Not set** (default) — only the last version is validated against its predecessor.
+  This is safe for the common case of adding new versions incrementally.
+- **Set to a version** (e.g., `"2.0"`) — versions up to and including that version are
+  skipped. Consecutive pairs after it are validated. Use this when adding multiple versions
+  at once, or after tightening rules to avoid re-validating historical data.
+- **Set to the latest version** — skips all validation for this artifact. Use as an explicit
+  opt-out, e.g., after a rule change that would break existing versions.
+
+Example:
+
+```yaml
+$type: artifact-v0
+groupId: orders
+artifactId: order-created
+artifactType: AVRO
+rules:
+  - ruleType: COMPATIBILITY
+    config: BACKWARD
+validatedUpTo: "2.0"      # v1→v2 was valid under old rules, skip re-check
+versions:
+  - version: "1.0"
+    content: ./v1.avsc
+  - version: "2.0"
+    content: ./v2.avsc
+  - version: "3.0"         # Only this is validated (against v2.0)
+    content: ./v3.avsc
+```
+
+### Supported rules
+
+| Rule | Supported | Notes |
+|------|-----------|-------|
+| VALIDITY | Yes | Validates content syntax against artifact type |
+| COMPATIBILITY | Yes | Checks consecutive version pairs |
+| INTEGRITY | Yes | Validates references exist via `content-v0` metadata files |
 
 ## Error Handling
 
 If any file fails to parse or validate, the **entire load is rejected**. The blue-green swap does not happen,
-and the last known good data continues being served. Errors are logged with file paths and details.
+and the last known good data continues being served. Errors are logged with file paths and details and
+are visible via the management API status endpoint.
+
+**Data errors** (invalid rules, missing files, parse failures, rule violations) mark the commit as
+processed — the same broken commit will not be retried. A new commit that fixes the issue will trigger
+a fresh load.
+
+**Transient errors** (database issues, out-of-memory) do not mark the commit — the next poll cycle will
+retry the same commit automatically.
 
 Error categories:
 - Malformed YAML/JSON syntax in metadata files
@@ -184,24 +305,29 @@ Error categories:
 - Missing required fields
 - Missing content files (broken relative path references)
 - Duplicate artifacts or groups
+- Rule violations (validity, compatibility)
+
+## GitOps Sync Container
+
+A pre-built container image (`quay.io/apicurio/apicurio-registry-gitops-sync`) is available
+for pulling from remote Git repositories. It runs as a sidecar alongside the registry,
+managing a shared volume. See [`distro/gitops/README.md`](../../../../distro/gitops/README.md)
+for configuration, security levels, and deployment details.
 
 ## Future Work
 
 The following features are planned but not yet implemented:
 
-- **Multi-repository aggregation** — load data from multiple Git repositories into a single registry
-- **Management API** — REST endpoints for sync status, errors, and manual sync triggers
-- **Sidecar containers** — pre-built sidecars for pull model (git-sync) and push model (SSH server)
 - **Dry-run validation** — validate schema changes from a branch without affecting live data
 - **CLI validator** — offline validation of `*.registry.yaml` files without a running registry
-- **Rule enforcement during loading** — validate compatibility and other rules at load time
+- **Per-file git history timestamps** — derive `createdOn`/`modifiedOn` from git log per file
 
 For the full design document and implementation plan, see the
 [GitOps design epic](https://github.com/Apicurio/apicurio-registry/issues/7480).
 
 ## Getting Started
 
-For a complete working example with Docker Compose, see `examples/gitops/`.
+For complete working examples with Docker Compose, see [`examples/gitops/`](../../../../examples/gitops/).
 
 <!--
 

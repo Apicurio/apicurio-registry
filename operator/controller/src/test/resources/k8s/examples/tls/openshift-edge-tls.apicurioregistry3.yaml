@@ -1,0 +1,20 @@
+# OpenShift edge-terminated TLS using the default router certificate.
+# This is the simplest HTTPS configuration for OpenShift (ROSA, ARO, GCP).
+# No TLS Secret is needed - the OpenShift router's default certificate is used.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple
+spec:
+  app:
+    env:
+    ingress:
+      host: simple-app.apps.cluster.example
+      tlsTermination: edge
+  ui:
+    ingress:
+      host: simple-ui.apps.cluster.example
+      tlsTermination: edge
+    env:
+      - name: REGISTRY_API_URL
+        value: https://simple-app.apps.cluster.example/apis/registry/v3

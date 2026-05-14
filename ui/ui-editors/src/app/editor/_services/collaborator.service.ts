@@ -17,7 +17,7 @@
 
 
 import {Injectable} from "@angular/core";
-import {Topic} from "apicurio-ts-core";
+import {Topic} from "../_messaging/topic";
 import {ApiEditorUser} from "../_models/editor-user.model";
 
 

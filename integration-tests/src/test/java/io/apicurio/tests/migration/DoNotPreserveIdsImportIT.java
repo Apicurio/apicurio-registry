@@ -10,7 +10,7 @@ import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.apicurio.tests.serdes.apicurio.AvroGenericRecordSchemaFactory;
 import io.apicurio.tests.serdes.apicurio.JsonSchemaMsgFactory;
 import io.apicurio.tests.utils.AbstractTestDataInitializer;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.kiota.http.vertx.VertXRequestAdapter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DoNotPreserveIdsImportIT.DoNotPreserveIdsInitializer.class, restrictToAnnotatedClass = true)
-@Tag(Constants.MIGRATION)
+@Tag(MIGRATION)
 @Disabled
 public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
     private static final Logger log = LoggerFactory.getLogger(DataMigrationIT.class);

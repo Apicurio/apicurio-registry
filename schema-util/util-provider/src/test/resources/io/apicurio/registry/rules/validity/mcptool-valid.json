@@ -1,0 +1,26 @@
+{
+  "name": "search_database",
+  "title": "Database Search Tool",
+  "description": "Search the product database with filters",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "description": "Search query" },
+      "limit": { "type": "integer", "default": 10 }
+    },
+    "required": ["query"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "results": { "type": "array", "description": "Search results" },
+      "total": { "type": "integer", "description": "Total count" }
+    },
+    "required": ["results", "total"]
+  },
+  "annotations": {
+    "title": "DB Search",
+    "audience": ["user", "assistant"],
+    "priority": 0.8
+  }
+}

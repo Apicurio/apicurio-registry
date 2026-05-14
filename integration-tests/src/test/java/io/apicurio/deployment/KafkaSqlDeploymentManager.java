@@ -38,9 +38,9 @@ public class KafkaSqlDeploymentManager {
     private static final String NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID = "SNAPSHOT_TEST_GROUP_ID";
 
     static void deployKafkaApp(String registryImage) throws Exception {
-        if (Constants.TEST_PROFILE.equals(Constants.AUTH)) {
+        if (Constants.isGroupActive(Constants.AUTH)) {
             prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_SECURED_RESOURCES, true, registryImage);
-        } else if (Constants.TEST_PROFILE.equals(Constants.KAFKA_SQL_SNAPSHOTTING)) {
+        } else if (Constants.isGroupActive(Constants.KAFKA_SQL_SNAPSHOTTING)) {
             prepareKafkaSqlSnapshottingTests(registryImage);
         } else {
             prepareTestsInfra(KAFKA_RESOURCES, APPLICATION_KAFKA_RESOURCES, false, registryImage);

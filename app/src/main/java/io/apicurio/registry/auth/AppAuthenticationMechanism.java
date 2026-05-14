@@ -16,10 +16,7 @@
 
 package io.apicurio.registry.auth;
 
-import io.apicurio.registry.logging.audit.AuditHttpRequestContext;
-import io.apicurio.registry.logging.audit.AuditHttpRequestInfo;
-import io.apicurio.registry.logging.audit.AuditLogService;
-import io.vertx.core.buffer.Buffer;
+import io.quarkus.vertx.http.runtime.security.BasicAuthenticationMechanism;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.quarkus.arc.Unremovable;
@@ -27,9 +24,10 @@ import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
-import io.quarkus.vertx.http.runtime.security.*;
+import io.quarkus.vertx.http.runtime.security.ChallengeData;
+import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
+import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.smallrye.jwt.auth.principal.DefaultJWTParser;
-import io.smallrye.jwt.auth.principal.ParseException;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
@@ -38,18 +36,23 @@ import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
 import jakarta.inject.Inject;
-import org.apache.commons.codec.digest.DigestUtils;
+import io.apicurio.registry.logging.audit.AuditLogService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.faulttolerance.Retry;
-import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Alternative
 @Priority(1)
@@ -81,216 +84,121 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Inject
     DefaultJWTParser jwtParser;
 
-    private String oidcTokenUrl;
-
-    private ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
-    private ConcurrentHashMap<String, WrappedValue<RuntimeException>> cachedAuthFailures;
+    private List<AuthenticationStrategy> authChain;
 
     @PostConstruct
     public void init() {
-        if (authConfig.oidcAuthEnabled) {
-            cachedAccessTokens = new ConcurrentHashMap<>();
-            cachedAuthFailures = new ConcurrentHashMap<>();
-            if (authConfig.oidcTokenPath.startsWith("http")) {
-                oidcTokenUrl = authConfig.oidcTokenPath;
-            } else {
-                oidcTokenUrl = authConfig.authServerUrl + authConfig.oidcTokenPath;
-            }
+        authChain = buildAuthChain();
+        if (authChain.isEmpty()) {
+            log.info("Authentication chain: [none] (no mechanisms enabled)");
+        } else {
+            log.info("Authentication chain: {}",
+                    authChain.stream().map(AuthenticationStrategy::name)
+                            .collect(Collectors.joining(" -> ")));
         }
     }
 
-    private HttpAuthenticationMechanism selectEnabledAuth() {
-        if (authConfig.basicAuthEnabled) {
-            return basicAuthenticationMechanism;
-        } else if (authConfig.oidcAuthEnabled) {
-            return oidcAuthenticationMechanism;
-        } else if (authConfig.proxyHeaderAuthEnabled) {
-            return proxyHeaderAuthenticationMechanism;
-        } else {
-            return null;
+    /**
+     * Builds the ordered authentication chain from the configured mechanism priority list.
+     * Each mechanism name in {@code apicurio.authn.mechanism.priority} is resolved to a
+     * strategy factory. Only mechanisms that are both listed in the priority and enabled via
+     * their respective config property are included. Unknown names are logged as warnings and
+     * skipped; disabled mechanisms are silently omitted.
+     *
+     * @return an unmodifiable, ordered list of enabled authentication strategies
+     */
+    List<AuthenticationStrategy> buildAuthChain() {
+        Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
+        strategyFactories.put("basic", () -> authConfig.basicAuthEnabled
+                ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism)
+                : null);
+        strategyFactories.put("proxy-header", () -> authConfig.proxyHeaderAuthEnabled
+                ? new DelegatingAuthenticationStrategy("proxy-header",
+                        proxyHeaderAuthenticationMechanism)
+                : null);
+        strategyFactories.put("oidc", () -> {
+            if (!authConfig.oidcAuthEnabled) {
+                return null;
+            }
+            return new OidcAuthenticationStrategy(oidcAuthenticationMechanism, authConfig,
+                    auditLog, webClient, log, this);
+        });
+
+        List<AuthenticationStrategy> chain = new ArrayList<>();
+        for (String name : authConfig.getMechanismPriorityList()) {
+            Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
+            if (factory == null) {
+                log.warn("Unknown authentication mechanism name in priority list: '{}'. "
+                        + "Valid values are: basic, proxy-header, oidc", name);
+                continue;
+            }
+            AuthenticationStrategy strategy = factory.get();
+            if (strategy != null) {
+                chain.add(strategy);
+            } else {
+                log.debug("Mechanism '{}' is in priority list but not enabled, skipping.",
+                        name);
+            }
         }
+        return Collections.unmodifiableList(chain);
     }
 
     @Override
     public Uni<SecurityIdentity> authenticate(RoutingContext context,
-                                              IdentityProviderManager identityProviderManager) {
-        if (authConfig.basicAuthEnabled) {
-            return basicAuthenticationMechanism.authenticate(context, identityProviderManager);
-        } else if (authConfig.proxyHeaderAuthEnabled) {
-            return proxyHeaderAuthenticationMechanism.authenticate(context, identityProviderManager);
-        } else if (authConfig.oidcAuthEnabled) {
-            setAuditLogger(context);
-            if (authConfig.basicClientCredentialsAuthEnabled.get()) {
-                final Pair<String, String> clientCredentials = CredentialsHelper
-                        .extractCredentialsFromContext(context);
-                if (null != clientCredentials) {
-                    try {
-                        return authenticateWithClientCredentials(clientCredentials, context,
-                                identityProviderManager);
-                    } catch (OidcAuthException | io.quarkus.security.UnauthorizedException ex) {
-                        log.warn(String.format(
-                                "Exception trying to get an access token with client credentials with client id: %s",
-                                clientCredentials.getLeft()), ex);
-                        return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-                    }
-                } else {
-                    return customAuthentication(context, identityProviderManager);
-                }
-            } else {
-                // Once we're done with it in the auth layer, the context must be cleared.
-                return customAuthentication(context, identityProviderManager);
-            }
-        } else {
-            return Uni.createFrom().nullItem();
+            IdentityProviderManager identityProviderManager) {
+        Uni<SecurityIdentity> chain = Uni.createFrom().nullItem();
+        for (AuthenticationStrategy strategy : authChain) {
+            chain = chain.onItem().ifNull()
+                    .switchTo(() -> strategy.authenticate(context, identityProviderManager));
         }
-    }
-
-    public Uni<SecurityIdentity> customAuthentication(RoutingContext context,
-                                                      IdentityProviderManager identityProviderManager) {
-        if (authConfig.clientSecret.isEmpty()) {
-            // if no secret is present, try to authenticate with oidc provider
-            return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-        } else {
-            final Pair<String, String> credentialsFromContext = CredentialsHelper
-                    .extractCredentialsFromContext(context);
-            if (credentialsFromContext != null) {
-                String jwtToken = obtainAccessTokenPasswordGrant(credentialsFromContext.getLeft(),
-                        credentialsFromContext.getRight());
-                if (jwtToken != null) {
-                    // If we manage to get a token from basic credentials, try to authenticate it using the
-                    // fetched token using the identity provider manager
-                    context.request().headers().set("Authorization", "Bearer " + jwtToken);
-                    return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-                }
-            } else {
-                // If we cannot get a token, then try to authenticate using oidc provider as last resource
-                return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-            }
-        }
-        return Uni.createFrom().nullItem();
-    }
-
-    private String obtainAccessTokenPasswordGrant(String username, String password) {
-        MultiMap form = MultiMap.caseInsensitiveMultiMap()
-                .add("grant_type", "password")
-                .add("client_id", authConfig.clientId)
-                .add("client_secret", authConfig.clientSecret.get())
-                .add("username", username)
-                .add("password", password);
-
-        Buffer responseBody = webClient.postAbs(oidcTokenUrl)
-                .sendForm(form)
-                .toCompletionStage()
-                .toCompletableFuture()
-                .join()
-                .bodyAsBuffer();
-
-        if (responseBody == null) {
-            return null;
-        }
-        JsonObject json = responseBody.toJsonObject();
-        return json.getString("access_token");
-    }
-
-    private void setAuditLogger(RoutingContext context) {
-        BiConsumer<RoutingContext, Throwable> failureHandler = context
-                .get(QuarkusHttpUser.AUTH_FAILURE_HANDLER);
-        BiConsumer<RoutingContext, Throwable> auditWrapper = (ctx, ex) -> {
-            // this sends the http response
-            if (failureHandler != null) {
-                failureHandler.accept(ctx, ex);
-            }
-            // if it was an error response log it
-            if (ctx.response().getStatusCode() >= 400) {
-                Map<String, String> metadata = new HashMap<>();
-                metadata.put("method", ctx.request().method().name());
-                metadata.put("path", ctx.request().path());
-                metadata.put("response_code", String.valueOf(ctx.response().getStatusCode()));
-                if (ex != null) {
-                    metadata.put("error_msg", ex.getMessage());
-                }
-
-                // request context for AuditHttpRequestContext does not exist at this point
-                auditLog.log(authConfig.auditLogPrefix, "authenticate", AuditHttpRequestContext.FAILURE, metadata,
-                        new AuditHttpRequestInfo() {
-                            @Override
-                            public String getSourceIp() {
-                                return ctx.request().remoteAddress().toString();
-                            }
-
-                            @Override
-                            public String getForwardedFor() {
-                                return ctx.request()
-                                        .getHeader(AuditHttpRequestContext.X_FORWARDED_FOR_HEADER);
-                            }
-                        });
-            }
-        };
-
-        context.put(QuarkusHttpUser.AUTH_FAILURE_HANDLER, auditWrapper);
+        return chain;
     }
 
     @Override
     public Uni<ChallengeData> getChallenge(RoutingContext context) {
-        var enabledAuth = selectEnabledAuth();
-        if (enabledAuth != null) {
-            return enabledAuth.getChallenge(context);
-        } else {
+        if (authChain.isEmpty()) {
             return Uni.createFrom().nullItem();
         }
+        return authChain.get(authChain.size() - 1).getChallenge(context);
     }
 
     @Override
     public Set<Class<? extends AuthenticationRequest>> getCredentialTypes() {
         Set<Class<? extends AuthenticationRequest>> credentialTypes = new HashSet<>();
-        credentialTypes.addAll(oidcAuthenticationMechanism.getCredentialTypes());
-        credentialTypes.addAll(basicAuthenticationMechanism.getCredentialTypes());
-        credentialTypes.addAll(proxyHeaderAuthenticationMechanism.getCredentialTypes());
+        for (AuthenticationStrategy strategy : authChain) {
+            credentialTypes.addAll(strategy.getCredentialTypes());
+        }
         return credentialTypes;
     }
 
     @Override
     public Uni<HttpCredentialTransport> getCredentialTransport(RoutingContext context) {
-        var enabledAuth = selectEnabledAuth();
-        if (enabledAuth != null) {
-            return enabledAuth.getCredentialTransport(context);
-        } else {
+        if (authChain.isEmpty()) {
             return Uni.createFrom().nullItem();
         }
+        return authChain.get(authChain.size() - 1).getCredentialTransport(context);
     }
 
-    private Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials,
-                                                                    RoutingContext context, IdentityProviderManager identityProviderManager) {
-        String jwtToken;
-        String credentialsHash = getCredentialsHash(
-                clientCredentials.getLeft() + clientCredentials.getRight());
-        if (authFailureIsCached(credentialsHash)) {
-            throw cachedAuthFailures.get(credentialsHash).getValue();
-        } else if (accessTokenIsCached(credentialsHash)) {
-            jwtToken = cachedAccessTokens.get(credentialsHash).getValue();
-        } else {
-            jwtToken = getAccessToken(clientCredentials, credentialsHash);
-        }
-        context.request().headers().set("Authorization", "Bearer " + jwtToken);
-        return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-    }
-
-    private boolean authFailureIsCached(String credentialsHash) {
-        return cachedAuthFailures.containsKey(credentialsHash)
-                && !cachedAuthFailures.get(credentialsHash).isExpired();
-    }
-
-    private boolean accessTokenIsCached(String credentialsHash) {
-        return cachedAccessTokens.containsKey(credentialsHash)
-                && !cachedAccessTokens.get(credentialsHash).isExpired();
-    }
-
-    @Retry(retryOn = OidcAuthException.class, maxRetries = 4, delay = 1, delayUnit = ChronoUnit.SECONDS)
-    public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash) {
+    /**
+     * Obtains an access token using client credentials grant. This method is hosted on this CDI
+     * bean (rather than on {@link OidcAuthenticationStrategy}) so that the MicroProfile
+     * {@link Retry} interceptor is applied.
+     *
+     * @param clientCredentials the client ID and secret
+     * @param credentialsHash hash key for the token cache
+     * @param cachedAccessTokens token cache (owned by the OIDC strategy)
+     * @param cachedAuthFailures failure cache (owned by the OIDC strategy)
+     * @param oidcTokenUrl the token endpoint URL (computed by the OIDC strategy at init)
+     */
+    @Retry(retryOn = OidcAuthException.class, maxRetries = 4, delay = 1,
+            delayUnit = ChronoUnit.SECONDS)
+    public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash,
+            ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens,
+            ConcurrentHashMap<String, WrappedValue<RuntimeException>> cachedAuthFailures,
+            String oidcTokenUrl) {
         String clientId = clientCredentials.getLeft();
         String clientSecret = clientCredentials.getRight();
 
-        // Use client-specific scope resolution for Azure Entra ID multi-scope support
         String scopeForClient = authConfig.getScopeForClient(clientId);
 
         MultiMap form = MultiMap.caseInsensitiveMultiMap()
@@ -310,59 +218,41 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
             int statusCode = response.statusCode();
             if (statusCode == 401) {
-                var ex = new io.quarkus.security.UnauthorizedException("OIDC token request returned 401");
+                var ex = new io.quarkus.security.UnauthorizedException(
+                        "OIDC token request returned 401");
                 cachedAuthFailures.put(credentialsHash,
-                        new WrappedValue<>(getAccessTokenExpiration(null), Instant.now(), ex));
+                        new WrappedValue<>(
+                                OidcAuthenticationStrategy.getAccessTokenExpiration(null,
+                                        authConfig, jwtParser, log),
+                                Instant.now(), ex));
                 throw ex;
             } else if (statusCode == 403) {
-                var ex = new io.quarkus.security.ForbiddenException("OIDC token request returned 403");
+                var ex = new io.quarkus.security.ForbiddenException(
+                        "OIDC token request returned 403");
                 cachedAuthFailures.put(credentialsHash,
-                        new WrappedValue<>(getAccessTokenExpiration(null), Instant.now(), ex));
+                        new WrappedValue<>(
+                                OidcAuthenticationStrategy.getAccessTokenExpiration(null,
+                                        authConfig, jwtParser, log),
+                                Instant.now(), ex));
                 throw ex;
             } else if (statusCode < 200 || statusCode >= 300) {
-                throw new OidcAuthException("OIDC token request failed with status " + statusCode);
+                throw new OidcAuthException(
+                        "OIDC token request failed with status " + statusCode);
             }
 
             JsonObject json = response.bodyAsJsonObject();
             String jwtToken = json.getString("access_token");
             cachedAccessTokens.put(credentialsHash,
-                    new WrappedValue<>(getAccessTokenExpiration(jwtToken), Instant.now(), jwtToken));
+                    new WrappedValue<>(
+                            OidcAuthenticationStrategy.getAccessTokenExpiration(jwtToken,
+                                    authConfig, jwtParser, log),
+                            Instant.now(), jwtToken));
             return jwtToken;
-        } catch (io.quarkus.security.UnauthorizedException | io.quarkus.security.ForbiddenException ex) {
+        } catch (io.quarkus.security.UnauthorizedException
+                | io.quarkus.security.ForbiddenException ex) {
             throw ex;
         } catch (RuntimeException e) {
             throw new OidcAuthException("Failed to obtain access token", e);
         }
-    }
-
-    /**
-     * Figure out how long to cache a given JWT. The token can be null (if authentication fails), in which
-     * case the configured default expiration time will be used.
-     */
-    protected Duration getAccessTokenExpiration(String jwtToken) {
-        if (jwtToken == null) {
-            return Duration.ofMinutes(authConfig.accessTokenExpiration);
-        }
-        try {
-            JsonWebToken parsedToken = jwtParser.parseOnly(jwtToken);
-
-            // Convert the expiration to an Instant, and subtract the offset (we want to stop using it N
-            // seconds before it expires).
-            Instant expirationInstant = Instant.ofEpochSecond(parsedToken.getExpirationTime())
-                    .minusSeconds(authConfig.accessTokenExpirationOffset);
-            Instant nowInstant = Instant.now();
-
-            // Convert the expiration instant to a duration
-            Duration timeUntilExpiration = Duration.between(nowInstant, expirationInstant);
-            return timeUntilExpiration;
-        } catch (ParseException e) {
-            // Could not parse the JWT, just return the default expiration.
-            log.error("Error parsing JWT from auth server (client credentials grant).", e);
-            return Duration.ofMinutes(authConfig.accessTokenExpiration);
-        }
-    }
-
-    private String getCredentialsHash(String credentials) {
-        return DigestUtils.sha256Hex(credentials);
     }
 }

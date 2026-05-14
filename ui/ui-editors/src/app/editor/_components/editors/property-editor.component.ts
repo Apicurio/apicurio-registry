@@ -36,7 +36,7 @@ import {
     FindAaiSchemaDefinitionsVisitor,
     FindSchemaDefinitionsVisitor
 } from "../../_visitors/schema-definitions.visitor";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../../_util/object.util";
 import Oas20PropertySchema = Oas20Schema.Oas20PropertySchema;
 import Oas30PropertySchema = Oas30Schema.Oas30PropertySchema;
 import Aai20PropertySchema = Aai20Schema.Aai20PropertySchema;

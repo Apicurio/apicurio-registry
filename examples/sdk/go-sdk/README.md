@@ -21,7 +21,7 @@ bin/example
 Results in:
 
 ```
-Server name: Apicurio Registry (In Memory)
+Server name: Apicurio Registry (SQL)
 Server version: 3.0.6
 Created version 1 of artifact e98c1564-06a9-47fb-b551-ec4ec0cdf235
 ```

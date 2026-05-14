@@ -13,9 +13,9 @@ import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiOperation;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServer;
 import io.apicurio.datamodels.models.asyncapi.AsyncApiServers;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Channel;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30MultiFormatSchema;
-import io.apicurio.datamodels.models.asyncapi.v30.AsyncApi30Operations;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiChannel;
+import io.apicurio.datamodels.models.asyncapi.AsyncApiMultiFormatSchema;
+import io.apicurio.datamodels.models.asyncapi.v3x.AsyncApi3xOperations;
 import io.apicurio.datamodels.models.openapi.OpenApiOperation;
 import io.apicurio.datamodels.models.openapi.OpenApiPathItem;
 import io.apicurio.datamodels.models.openapi.OpenApiServer;
@@ -102,7 +102,7 @@ public class StructuredContentVisitor extends CombinedVisitorAdapter {
                 elements.add(new StructuredElement("operation", opId));
             }
         } else if (node instanceof AsyncApiOperation) {
-            if (node.mapPropertyName() != null && node.parent() instanceof AsyncApi30Operations) {
+            if (node.mapPropertyName() != null && node.parent() instanceof AsyncApi3xOperations) {
                 // AsyncAPI 3.x: top-level operations use the map key as the name
                 elements.add(new StructuredElement("operation", node.mapPropertyName()));
             } else {
@@ -177,7 +177,7 @@ public class StructuredContentVisitor extends CombinedVisitorAdapter {
      * Extracts AsyncAPI 3.x channel names.
      */
     @Override
-    public void visitChannel(AsyncApi30Channel node) {
+    public void visitChannel(AsyncApiChannel node) {
         if (node.mapPropertyName() != null) {
             elements.add(new StructuredElement("channel", node.mapPropertyName()));
         }
@@ -195,11 +195,11 @@ public class StructuredContentVisitor extends CombinedVisitorAdapter {
 
     /**
      * Extracts component-level multi-format schema names (AsyncAPI 3.x). In AsyncAPI 3.x, component
-     * schemas may be represented as {@link AsyncApi30MultiFormatSchema} instead of plain
+     * schemas may be represented as {@link AsyncApiMultiFormatSchema} instead of plain
      * {@link Schema} nodes.
      */
     @Override
-    public void visitMultiFormatSchema(AsyncApi30MultiFormatSchema node) {
+    public void visitMultiFormatSchema(AsyncApiMultiFormatSchema node) {
         if (node.mapPropertyName() != null && node.parent() instanceof Components) {
             elements.add(new StructuredElement("schema", node.mapPropertyName()));
         }

@@ -100,7 +100,8 @@ public class ReferenceIndex {
             JsonNode tree = ContentTypeUtil.parseJsonOrYaml(typedContent);
 
             // OpenAPI
-            if (tree.has("openapi") || tree.has("swagger") || tree.has("asyncapi")) {
+            if (tree.has("openapi") || tree.has("swagger") || tree.has("asyncapi")
+                    || tree.has("openrpc")) {
                 indexDataModels(path, content);
             }
             // JSON Schema
@@ -161,12 +162,15 @@ public class ReferenceIndex {
             Document doc = Library.readDocument((ObjectNode) node);
 
             if (doc == null) {
-                throw new UnsupportedOperationException("Content is not OpenAPI or AsyncAPI.");
+                throw new UnsupportedOperationException(
+                        "Content is not OpenAPI, AsyncAPI, or OpenRPC.");
             }
 
             String type = ArtifactType.OPENAPI;
             if (ModelTypeUtil.isAsyncApiModel(doc)) {
                 type = ArtifactType.ASYNCAPI;
+            } else if (ModelTypeUtil.isOpenRpcModel(doc)) {
+                type = ArtifactType.OPENRPC;
             }
 
             IndexedResource resource = new IndexedResource(path, type, null, content);

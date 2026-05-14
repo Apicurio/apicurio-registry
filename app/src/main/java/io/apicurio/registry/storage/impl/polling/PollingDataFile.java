@@ -14,6 +14,12 @@ import java.util.Optional;
 public interface PollingDataFile {
 
     /**
+     * Returns the identifier of the source that provided this file.
+     * For GitOps, this is the repository ID. For KubernetesOps, a fixed value.
+     */
+    String getSourceId();
+
+    /**
      * Returns the logical path of this data file within the data source.
      * This is not a filesystem path — it is a data-source-specific identifier
      * (e.g., a Git tree path or a Kubernetes ConfigMap data key).

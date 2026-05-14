@@ -6,11 +6,15 @@ import io.apicurio.registry.a2a.A2AConfig;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
+import io.apicurio.registry.a2a.rest.beans.AgentInterface;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResult;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.mcptools.McpToolsConfig;
+import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResult;
+import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -49,9 +53,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Implementation of the A2A well-known endpoint resource.
+ * Implementation of the well-known endpoint resource for A2A agents and MCP tools.
  *
  * @see <a href="https://a2a-protocol.org/">A2A Protocol</a>
+ * @see <a href="https://spec.modelcontextprotocol.io/specification/server/tools/">MCP Tools</a>
  */
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
@@ -60,6 +65,9 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Inject
     A2AConfig a2aConfig;
+
+    @Inject
+    McpToolsConfig mcpToolsConfig;
 
     @Inject
     RegistryAgentCardBuilder agentCardBuilder;
@@ -80,6 +88,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         String baseUrl = getBaseUrl();
         return agentCardBuilder.build(baseUrl);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
+    public AgentCard getAgentCardV1() {
+        return getAgentCard();
     }
 
     @Override
@@ -194,6 +208,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
      */
     private AgentSearchResult convertToAgentSearchResult(SearchedArtifactDto artifact) {
         List<String> skills = new ArrayList<>();
+        List<AgentInterface> supportedInterfaces = new ArrayList<>();
         boolean streaming = false;
         boolean pushNotifications = false;
 
@@ -219,6 +234,19 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 }
             }
 
+            // Extract supportedInterfaces
+            JsonNode interfacesNode = root.path("supportedInterfaces");
+            if (interfacesNode.isArray()) {
+                for (JsonNode iface : interfacesNode) {
+                    AgentInterface agentInterface = AgentInterface.builder()
+                            .url(iface.has("url") ? iface.get("url").asText() : null)
+                            .protocolBinding(iface.has("protocolBinding") ? iface.get("protocolBinding").asText() : null)
+                            .protocolVersion(iface.has("protocolVersion") ? iface.get("protocolVersion").asText() : null)
+                            .build();
+                    supportedInterfaces.add(agentInterface);
+                }
+            }
+
             // Extract capabilities
             JsonNode capabilitiesNode = root.path("capabilities");
             if (capabilitiesNode.isObject()) {
@@ -236,6 +264,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .description(artifact.getDescription())
                 .owner(artifact.getOwner())
                 .createdOn(artifact.getCreatedOn().getTime())
+                .supportedInterfaces(supportedInterfaces)
                 .skills(skills)
                 .capabilities(AgentCapabilities.builder()
                         .streaming(streaming)
@@ -245,9 +274,125 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public Response getRegisteredMcpTool(String groupId, String artifactId, String version) {
+        if (!mcpToolsConfig.isEnabled()) {
+            throw new NotFoundException("MCP tools support is disabled");
+        }
+
+        GroupId gid = new GroupId(groupId);
+        String rawGroupId = gid.getRawGroupIdWithNull();
+        GA ga = new GA(rawGroupId, artifactId);
+
+        try {
+            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
+            GAV gav = VersionExpressionParser.parse(ga, versionExpression,
+                    (g, branchId) -> storage.getBranchTip(g, branchId,
+                            RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+            StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            if (!ArtifactType.MCP_TOOL.equals(metadata.getArtifactType())) {
+                throw new NotFoundException("Artifact is not an MCP tool definition");
+            }
+
+            return Response.ok(artifact.getContent().content(), "application/json").build();
+
+        } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+            throw new NotFoundException(
+                    "MCP tool not found: " + groupId + "/" + artifactId);
+        }
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public McpToolSearchResults searchMcpTools(String name, List<String> parameters,
+            Integer offset, Integer limit) {
+        if (!mcpToolsConfig.isEnabled()) {
+            throw new NotFoundException("MCP tools support is disabled");
+        }
+
+        Set<SearchFilter> filters = new HashSet<>();
+
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
+
+        if (!StringUtil.isEmpty(name)) {
+            filters.add(SearchFilter.ofName(name));
+        }
+
+        if (parameters != null && !parameters.isEmpty()) {
+            for (String parameter : parameters) {
+                filters.add(SearchFilter.ofStructure("mcp_tool:parameter:" + parameter));
+            }
+        }
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
+                OrderDirection.desc, offset, limit);
+
+        List<McpToolSearchResult> tools = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            tools.add(convertToMcpToolSearchResult(artifact));
+        }
+
+        return McpToolSearchResults.builder().count(results.getCount()).tools(tools).build();
+    }
+
+    /**
+     * Converts a searched artifact DTO into an MCP tool search result by fetching and parsing
+     * the latest version content to extract title and parameters.
+     */
+    private McpToolSearchResult convertToMcpToolSearchResult(SearchedArtifactDto artifact) {
+        String title = null;
+        List<String> parameters = new ArrayList<>();
+
+        try {
+            GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
+            GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
+                    (g, branchId) -> storage.getBranchTip(g, branchId,
+                            RetrievalBehavior.SKIP_DISABLED_LATEST));
+            StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(stored.getContent().content());
+
+            // Extract title
+            if (root.has("title") && root.get("title").isTextual()) {
+                title = root.get("title").asText();
+            }
+
+            // Extract parameter names from inputSchema
+            JsonNode inputSchema = root.path("inputSchema");
+            if (inputSchema.isObject()) {
+                JsonNode properties = inputSchema.path("properties");
+                if (properties.isObject()) {
+                    properties.fieldNames().forEachRemaining(parameters::add);
+                }
+            }
+        } catch (Exception e) {
+            // If content parsing fails, return result with empty metadata
+        }
+
+        return McpToolSearchResult.builder()
+                .groupId(artifact.getGroupId())
+                .artifactId(artifact.getArtifactId())
+                .name(artifact.getName())
+                .title(title)
+                .description(artifact.getDescription())
+                .owner(artifact.getOwner())
+                .createdOn(artifact.getCreatedOn().getTime())
+                .parameters(parameters)
+                .build();
+    }
+
+    @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public Response getSchema(String type, String version) {
-        if (!a2aConfig.isEnabled()) {
+        if (!a2aConfig.isEnabled() && !mcpToolsConfig.isEnabled()) {
             throw new NotFoundException("Schema not found: " + type + "/" + version);
         }
 
@@ -274,6 +419,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
             return "schemas/prompt-template-v1.json";
         } else if ("model-schema".equals(type) && "v1".equals(version)) {
             return "schemas/model-schema-v1.json";
+        } else if ("mcp-tool".equals(type) && "v1".equals(version)) {
+            return "schemas/mcp-tool-v1.json";
         }
         return null;
     }

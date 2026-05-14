@@ -2,8 +2,9 @@ package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
-import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.config.ConfigModel;
 import io.apicurio.registry.cli.utils.FileUtils;
+import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import org.jboss.logging.Logger;
 import picocli.CommandLine.Command;
@@ -60,7 +61,7 @@ public class InstallCommand extends AbstractCommand {
     @Override
     public void run(final OutputBuffer output) throws IOException {
         // Location of the directory where the current CLI binary is running from
-        final Path currentPath = Config.getInstance().getAcrCurrentHomePath();
+        final Path currentPath = config.getAcrCurrentHomePath();
         log.debugf("Current home path: %s", currentPath);
 
         final Path cliHomePath = determineCliHomePath();
@@ -81,7 +82,7 @@ public class InstallCommand extends AbstractCommand {
      */
     private Path determineCliHomePath() throws IOException {
         // Default home directory, where the CLI should be installed
-        final String installDir = Config.getInstance().getEnv(ENV_ACR_INSTALL_PATH);
+        final String installDir = config.getEnv(ENV_ACR_INSTALL_PATH);
         if (isBlank(installDir)) {
             throw new CliException("Environment variable " + ENV_ACR_INSTALL_PATH + " is not set.", VALIDATION_ERROR_RETURN_CODE);
         }
@@ -89,13 +90,14 @@ public class InstallCommand extends AbstractCommand {
         final Path installDirPath = Paths.get(installDir).normalize().toAbsolutePath();
 
         // Location of the CLI home directory, set only if the CLI is already installed
-        final String cliHome = Config.getInstance().getEnv(ENV_ACR_HOME);
+        final String cliHome = config.getEnv(ENV_ACR_HOME);
         log.debugf("%s=%s", ENV_ACR_HOME, cliHome);
         Path cliHomePath = null;
 
         if (!isBlank(cliHome)) {
             cliHomePath = Path.of(cliHome).normalize().toAbsolutePath();
             if (!Files.exists(cliHomePath)) {
+                log.debugf("ACR_HOME path does not exist, falling back to install dir: %s", cliHomePath);
                 cliHomePath = null;
             }
         }
@@ -151,8 +153,24 @@ public class InstallCommand extends AbstractCommand {
         FileUtils.replaceInFile(cliHomePath.resolve(ACR_ENV), ACR_HOME_PLACEHOLDER, cliHomePath.toAbsolutePath().toString());
 
         // Copy config.json only if it doesn't exist (preserve user settings)
-        if (!Files.exists(cliHomePath.resolve(CONFIG_JSON))) {
-            Files.copy(currentPath.resolve(CONFIG_JSON), cliHomePath.resolve(CONFIG_JSON));
+        var targetConfig = cliHomePath.resolve(CONFIG_JSON);
+        if (!Files.exists(targetConfig)) {
+            Files.copy(currentPath.resolve(CONFIG_JSON), targetConfig);
+        } else {
+            var existing = Mapper.MAPPER.readValue(targetConfig.toFile(), ConfigModel.class);
+            log.debugf("Existing installation version: %d, current: %d",
+                    existing.getInstallationVersion(), ConfigModel.CURRENT_INSTALLATION_VERSION);
+            if (existing.getInstallationVersion() > ConfigModel.CURRENT_INSTALLATION_VERSION) {
+                throw new CliException(
+                        "Existing installation (version %d) is newer than this CLI supports (version %d). Cannot downgrade."
+                                .formatted(existing.getInstallationVersion(), ConfigModel.CURRENT_INSTALLATION_VERSION),
+                        VALIDATION_ERROR_RETURN_CODE);
+            }
+            if (existing.getInstallationVersion() < ConfigModel.CURRENT_INSTALLATION_VERSION) {
+                existing.setInstallationVersion(ConfigModel.CURRENT_INSTALLATION_VERSION);
+                Mapper.MAPPER.writeValue(targetConfig.toFile(), existing);
+                log.debugf("Updated installation version to %d", ConfigModel.CURRENT_INSTALLATION_VERSION);
+            }
         }
     }
 
@@ -160,7 +178,7 @@ public class InstallCommand extends AbstractCommand {
      * Gets the user's home directory path.
      */
     private Path getUserHomePath() {
-        final String userHome = Config.getInstance().getEnv(ENV_HOME);
+        final String userHome = config.getEnv(ENV_HOME);
         if (isBlank(userHome)) {
             throw new CliException(ENV_HOME + " environment variable is not set.", VALIDATION_ERROR_RETURN_CODE);
         }

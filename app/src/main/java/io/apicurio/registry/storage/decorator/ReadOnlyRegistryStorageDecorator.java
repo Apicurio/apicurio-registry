@@ -14,6 +14,7 @@ import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
@@ -23,6 +24,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -158,6 +160,30 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
             throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException {
         checkReadOnly();
         delegate.deleteGroupRule(groupId, rule);
+    }
+
+    public void setArtifactContractRuleset(String groupId, String artifactId,
+            ContractRuleSetDto ruleset) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.setArtifactContractRuleset(groupId, artifactId, ruleset);
+    }
+
+    public void deleteArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException {
+        checkReadOnly();
+        delegate.deleteArtifactContractRuleset(groupId, artifactId);
+    }
+
+    public void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException {
+        checkReadOnly();
+        delegate.setVersionContractRuleset(groupId, artifactId, version, ruleset);
+    }
+
+    public void deleteVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException {
+        checkReadOnly();
+        delegate.deleteVersionContractRuleset(groupId, artifactId, version);
     }
 
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
@@ -355,6 +381,11 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
     public void importArtifactRule(ArtifactRuleEntity entity) {
         checkReadOnly();
         delegate.importArtifactRule(entity);
+    }
+
+    public void importContractRule(ContractRuleEntity entity) {
+        checkReadOnly();
+        delegate.importContractRule(entity);
     }
 
     public void importGroupRule(GroupRuleEntity entity) {

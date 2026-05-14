@@ -41,7 +41,7 @@ public abstract class AbstractPollingStorageConfig implements PollingStorageConf
     @Getter
     Duration pollPeriod;
 
-    @ConfigProperty(name = "apicurio.polling-storage.debounce.quiet-period", defaultValue = "PT30S")
+    @ConfigProperty(name = "apicurio.polling-storage.debounce.quiet-period", defaultValue = "PT3S")
     @Info(category = CATEGORY_STORAGE, experimental = true, description = """
             After detecting a change, wait until no new changes are seen for this duration \
             before loading data. Absorbs rapid successive pushes. \
@@ -75,4 +75,11 @@ public abstract class AbstractPollingStorageConfig implements PollingStorageConf
             registry configuration file (no artifacts), then remove it.""", availableSince = "3.2.0")
     @Getter
     boolean requireRegistryConfig;
+
+    @ConfigProperty(name = "apicurio.polling-storage.source-label-key", defaultValue = "system:source")
+    @Info(category = CATEGORY_STORAGE, experimental = true, description = """
+            Label key used to tag imported artifacts and groups with their source ID \
+            (e.g., repository ID). Set to empty string to disable.""", availableSince = "3.2.0")
+    @Getter
+    String sourceLabelKey;
 }

@@ -1,0 +1,8 @@
+# SSH keys — generated locally, never committed
+secrets/*
+!secrets/.gitkeep
+# Local repo clone
+default/
+
+# Sidecar-managed repos — created at runtime
+repos/

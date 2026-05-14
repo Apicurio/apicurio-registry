@@ -5,7 +5,7 @@ import com.github.dockerjava.api.model.ContainerConfig;
 import io.fabric8.kubernetes.api.model.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import static io.apicurio.deployment.KubernetesTestResources.TEST_NAMESPACE;
@@ -15,7 +15,7 @@ import static io.apicurio.deployment.RegistryDeploymentManager.kubernetesClient;
  * Wrapper for PostgreSQL that works in Kubernetes cluster mode.
  * Overrides container methods to return Kubernetes service connection details.
  */
-public class KubernetesPostgreSQLContainerWrapper extends PostgreSQLContainer<KubernetesPostgreSQLContainerWrapper> {
+public class KubernetesPostgreSQLContainerWrapper extends PostgreSQLContainer {
 
     private static final Logger log = LoggerFactory.getLogger(KubernetesPostgreSQLContainerWrapper.class);
 

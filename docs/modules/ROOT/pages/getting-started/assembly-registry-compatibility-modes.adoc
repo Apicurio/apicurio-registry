@@ -1,0 +1,521 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+:_mod-docs-content-type: ASSEMBLY
+[id="registry-compatibility-modes_{context}"]
+= {registry} schema compatibility modes
+
+[role="_abstract"]
+In {registry}, compatibility modes determine which changes are permitted when you upload a new version of an artifact. Because these rules vary depending on the data format (such as Avro, JSON Schema, Protobuf, OpenAPI, or XSD), each artifact type has its own specific criteria for what constitutes a compatible or incompatible change.
+
+* xref:registry-compatibility-overview_{context}[]
+* xref:registry-compatibility-mode-descriptions_{context}[]
+* xref:registry-compatibility-avro_{context}[]
+* xref:registry-compatibility-json-schema_{context}[]
+* xref:registry-compatibility-protobuf_{context}[]
+* xref:registry-compatibility-openapi_{context}[]
+* xref:registry-compatibility-xsd_{context}[]
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rule-reference}
+
+
+// ref-registry-compatibility-overview
+:_mod-docs-content-type: REFERENCE
+[id="registry-compatibility-overview_{context}"]
+== Overview of compatibility rules
+
+[role="_abstract"]
+When you add a new version of an artifact to {registry}, you can configure the `COMPATIBILITY` rule to check whether the new content is compatible with existing versions.
+Compatibility checking helps you ensure that producers and consumers can continue to work together without disruption when schemas evolve.
+
+You can configure the `COMPATIBILITY` rule at three levels. {registry} applies these rules in order of precedence, where the most specific level always overrides the broader levels:
+
+. **Artifact-specific rules**: Apply to a single artifact and have the highest priority.
+. **Group-specific rules**: Apply to all artifacts in a specific group.
+. **Global rules**: Apply to all artifacts across the registry unless a group or artifact rule is set.
+
+NOTE: To disable a rule inherited from a higher level, you must explicitly set the rule at the lower level to `NONE`.
+
+Not all artifact types support compatibility checking. The following sections cover the supported types: Avro, JSON Schema, Protobuf, OpenAPI, and XSD.
+For the full list of supported artifact types and rule maturity levels, see the content rule maturity matrix in {registry-rule-reference}.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rules}
+
+
+// ref-registry-compatibility-mode-descriptions
+:_mod-docs-content-type: REFERENCE
+[id="registry-compatibility-mode-descriptions_{context}"]
+== Compatibility mode descriptions
+
+[role="_abstract"]
+Compatibility modes act as a set of rules that determine whether a new schema version is allowed based on its ability to work with existing data and applications.
+
+.{registry} compatibility modes
+[%header,cols="1,3"]
+|===
+|Mode
+|Description
+
+|`NONE`
+|All compatibility checks are disabled.
+{registry} accepts any changes to the schema, regardless of whether they are backward or forward compatible.
+
+|`BACKWARD`
+|Clients using the new artifact can read data that the most recently added artifact wrote.
+Use `BACKWARD` when you want to ensure that updated consumers can process existing data.
+
+|`BACKWARD_TRANSITIVE`
+|Clients using the new artifact can read data that all previously added artifacts wrote.
+Unlike `BACKWARD`, which checks only against the latest version, `BACKWARD_TRANSITIVE` checks against every prior version.
+
+|`FORWARD`
+|Clients using the most recently added artifact can read data that the new artifact writes.
+Use `FORWARD` when you want to ensure that existing consumers can process data that the updated schema produces.
+
+|`FORWARD_TRANSITIVE`
+|Clients using all previously added artifacts can read data that the new artifact writes.
+Unlike `FORWARD`, which checks only against the latest version, `FORWARD_TRANSITIVE` checks against every prior version.
+
+|`FULL`
+|The new artifact is both forward and backward compatible with the most recently added artifact.
+Both old and new consumers can read data that either the old or new version of the schema produces.
+
+|`FULL_TRANSITIVE`
+|The new artifact is both forward and backward compatible with all previously added artifacts.
+`FULL_TRANSITIVE` is the strictest compatibility mode and enforces complete interoperability across all schema versions.
+|===
+
+NOTE: The `BACKWARD` and `FORWARD` modes compare the proposed schema only with the most recently added version.
+The transitive modes (`BACKWARD_TRANSITIVE`, `FORWARD_TRANSITIVE`, and `FULL_TRANSITIVE`) compare the proposed schema against all existing versions, which provides stricter validation but restricts the changes you can make.
+
+
+// ref-registry-compatibility-avro
+:_mod-docs-content-type: REFERENCE
+[id="registry-compatibility-avro_{context}"]
+== Avro schema compatibility
+
+[role="_abstract"]
+{registry} uses the Apache Avro library to check compatibility for Avro schemas.
+The following table describes common Avro schema changes and whether they maintain or break backward and forward compatibility.
+
+.Avro schema compatibility changes
+[%header,cols="3,1,1,5"]
+|===
+|Change type
+|Backward compatible?
+|Forward compatible?
+|Reason
+
+|Add a field with a default value
+|Yes
+|Yes
+|New consumers use the default for old data; old consumers ignore the new field.
+
+|Add a field without a default value
+|No
+|Yes
+|New consumers have no value for old data; old consumers ignore the new field.
+
+|Remove a field that has a default value
+|Yes
+|Yes
+|New consumers ignore the field; old consumers use their own default for new data.
+
+|Remove a field without a default value
+|Yes
+|No
+|New consumers ignore the field; old consumers have no value to fill the gap.
+
+|Add a type to a union
+|Yes
+|No
+|New consumers can handle the new type; old consumers fail if they encounter it.
+
+|Remove a type from a union
+|No
+|Yes
+|New consumers cannot parse the old type; old consumers only expect types they already know.
+
+|Rename a field without an alias
+|No
+|No
+|The field name mapping is broken for both parties.
+
+|Change a field type
+|No
+|No
+|Data types are fundamentally incompatible (for example, `string` to `int`).
+|===
+
+.Transitive compatibility example for Avro
+
+The following example demonstrates how transitive compatibility differs from non-transitive compatibility:
+
+* *Version 1*: `{fields: [name: string]}`
+* *Version 2*: `{fields: [name: string, email: string (default: "")]}`
+* *Version 3*: `{fields: [name: string, email: string]}` (default removed from `email`)
+
+In the example, Version 3 is backward compatible with Version 2 because the `email` field exists in Version 2 data.
+However, Version 3 is _not_ backward compatible with Version 1 because the `email` field is missing and there is no default value.
+As a result, Version 3 passes the `BACKWARD` check but fails the `BACKWARD_TRANSITIVE` check.
+
+
+// ref-registry-compatibility-json-schema
+:_mod-docs-content-type: REFERENCE
+[id="registry-compatibility-json-schema_{context}"]
+== JSON Schema compatibility
+
+[role="_abstract"]
+{registry} uses a custom library to analyze differences between JSON Schema versions.
+Because JSON Schema uses a constraint-based validation model, the following table describes common changes and whether they maintain or break backward compatibility. For JSON Schema, forward compatibility is the inverse of backward compatibility: a change that makes the schema more permissive is backward compatible but forward incompatible, and a change that makes the schema more restrictive is forward compatible but backward incompatible.
+
+.JSON Schema compatibility changes
+[%header,cols="3,1,5"]
+|===
+|Change type
+|Backward compatible?
+|Reason
+
+|Add a new optional property
+|Yes
+|Old data without the property remains valid under the new schema.
+
+|Remove a property from `required`
+|Yes
+|The new schema relaxes the constraint, so old data with or without the property remains valid.
+
+|Decrease `minProperties`, `minLength`, or `minItems`
+|Yes
+|The new schema relaxes the minimum constraint. Old data that met the stricter minimum still passes.
+
+|Increase `maxProperties`, `maxLength`, or `maxItems`
+|Yes
+|The new schema relaxes the maximum constraint. Old data that met the stricter maximum still passes.
+
+|Add a value to `enum`
+|Yes
+|The new schema expands the set of accepted values. Existing valid values remain valid.
+
+|Change `additionalProperties` from `false` to `true`
+|Yes
+|The new schema becomes more permissive by accepting additional properties.
+
+|Extend the `additionalProperties` schema
+|Yes
+|Making the additional properties schema more permissive accepts more data.
+
+|Increase the size of `oneOf` or `anyOf`
+|Yes
+|Adding alternatives to combined schemas accepts more data patterns.
+
+|Decrease `minimum` or `exclusiveMinimum`
+|Yes
+|The new schema relaxes the lower bound. Old data above the previous bound still passes.
+
+|Increase `maximum` or `exclusiveMaximum`
+|Yes
+|The new schema relaxes the upper bound. Old data below the previous bound still passes.
+
+|Remove a `format` constraint
+|Yes
+|The new schema removes a validation check, making it more permissive.
+
+|Change `uniqueItems` from `true` to `false`
+|Yes
+|The new schema relaxes the array constraint. Old data with unique items remains valid.
+
+|Add a property to `required`
+|No
+|Old data without the newly required property fails validation.
+
+|Increase `minProperties`, `minLength`, or `minItems`
+|No
+|The new schema tightens the minimum constraint. Old data that met the previous minimum might fail.
+
+|Decrease `maxProperties`, `maxLength`, or `maxItems`
+|No
+|The new schema tightens the maximum constraint. Old data that met the previous maximum might fail.
+
+|Remove a value from `enum`
+|No
+|Old data that contains the removed value fails validation.
+
+|Change `additionalProperties` from `true` to `false`
+|No
+|Old data with additional properties fails validation.
+
+|Change the `type` keyword
+|No
+|Old data of the previous type fails validation. For example, changing `string` to `integer` breaks compatibility.
+
+|Add a `pattern` or `format` constraint
+|No
+|Old data that does not match the new pattern or format fails validation.
+
+|Increase `minimum` or `exclusiveMinimum`
+|No
+|The new schema tightens the lower bound. Old data below the new bound fails validation.
+
+|Decrease `maximum` or `exclusiveMaximum`
+|No
+|The new schema tightens the upper bound. Old data above the new bound fails validation.
+
+|Decrease the size of `oneOf` or `anyOf`
+|No
+|Removing alternatives from combined schemas causes some previously valid data to fail validation.
+
+|Change `uniqueItems` from `false` to `true`
+|No
+|Old data with duplicate items fails validation.
+
+|Change a `const` value
+|No
+|Old data with the previous constant value fails validation.
+|===
+
+
+// ref-registry-compatibility-protobuf
+:_mod-docs-content-type: REFERENCE
+[id="registry-compatibility-protobuf_{context}"]
+== Protobuf schema compatibility
+
+[role="_abstract"]
+{registry} checks Protobuf schema compatibility based on the wire format contract.
+Because Protobuf uses numeric field tags to identify fields on the wire, the following table describes common changes and whether they maintain or break backward compatibility.
+
+.Protobuf schema compatibility changes
+[%header,cols="3,1,5"]
+|===
+|Change type
+|Backward compatible?
+|Reason
+
+|Add a new field with a new tag number
+|Yes
+|Old data does not contain the new tag, and the new consumer ignores the missing optional field.
+
+|Add a new message type
+|Yes
+|Old data is unaffected by the addition of new message definitions.
+
+|Add a new RPC method to a service
+|Yes
+|Old data and existing RPC calls are unaffected by the new method.
+
+|Change a field tag number
+|No
+|Old data uses the original tag number on the wire. The new consumer cannot match the field to its new tag.
+
+|Change a field type
+|No
+|The wire encoding differs between types. For example, changing `string` to `int64` causes parsing failures.
+
+|Rename a field
+|No*
+|On the binary wire format, renaming a field without changing its tag number is compatible. However, {registry} flags this as incompatible because it breaks JSON serialization and generated code. If you use only binary encoding, this change is safe in practice.
+
+|Remove a field without reserving its tag
+|No
+|Another field might reuse the tag number with a different type, which causes data corruption.
+
+|Change a field label (proto2)
+|No
+|In proto2, changing between `optional`, `required`, or `repeated` alters the wire format and parsing behavior. In proto3, `required` is not used, and changing between `optional` and `repeated` can still break compatibility.
+
+|Remove an RPC method from a service
+|No
+|Clients that use the removed RPC method can no longer communicate with the service.
+
+|Change an RPC method signature
+|No
+|Changing the input or output message type breaks the RPC contract.
+|===
+
+.Reserving fields in Protobuf
+
+When you remove a field from a Protobuf schema, reserve both the tag number and the field name to prevent reuse:
+
+----
+message Person {
+  reserved 2, 3;
+  reserved "email", "phone";
+  int32 id = 1;
+  string name = 4;
+}
+----
+
+Reserving fields is critical for maintaining forward and backward compatibility because it prevents accidental reuse of tag numbers or field names.
+
+
+// ref-registry-compatibility-openapi
+:_mod-docs-content-type: REFERENCE
+[id="registry-compatibility-openapi_{context}"]
+== OpenAPI compatibility
+
+[role="_abstract"]
+{registry} checks OpenAPI specification compatibility by comparing operations and schemas between versions.
+The following table describes common changes and whether they maintain or break backward compatibility.
+
+.OpenAPI compatibility changes
+[%header,cols="3,1,5"]
+|===
+|Change type
+|Backward compatible?
+|Reason
+
+|Add a new path or endpoint
+|Yes
+|Existing clients are not affected by new endpoints that they do not call.
+
+|Add a new optional query parameter
+|Yes
+|Existing clients can continue making requests without the new parameter.
+
+|Add a new optional response header
+|Yes
+|Existing clients can ignore the new header in responses.
+
+|Relax request body schema constraints
+|Yes
+|Existing requests that the old schema validated remain valid when you relax the constraints.
+
+|Add a new response status code
+|Yes*
+|Existing clients that follow HTTP conventions ignore unknown status codes. However, some clients might not handle unexpected codes correctly. Test client behavior before relying on this change.
+
+|Remove a path or endpoint
+|No
+|Existing clients that depend on the removed endpoint receive errors.
+
+|Remove an operation from a path
+|No
+|Existing clients that use the removed HTTP method (for example, `GET` or `POST`) receive errors.
+
+|Add a new required request parameter
+|No
+|Existing client requests that do not include the new parameter are rejected.
+
+|Tighten request body schema constraints
+|No
+|Existing client requests that the old schema validated might be rejected under the new schema.
+
+|Change a response body schema incompatibly
+|No
+|Existing clients that parse the response according to the old schema might fail.
+
+|Remove a response status code
+|No
+|Existing clients that handle the removed status code might not handle the replacement correctly.
+|===
+
+
+// ref-registry-compatibility-xsd
+:_mod-docs-content-type: REFERENCE
+[id="registry-compatibility-xsd_{context}"]
+== XSD compatibility
+
+[role="_abstract"]
+{registry} checks XML Schema Definition (XSD) compatibility by comparing elements, attributes, types, and constraints between versions.
+The following table describes common changes and whether they maintain or break backward and forward compatibility. Actual compatibility can depend on content model details, default values, namespace usage, element ordering, and extension or restriction semantics. Use this table as a general guide and test your specific schema changes.
+
+.XSD schema compatibility changes
+[%header,cols="3,1,1,5"]
+|===
+|Change type
+|Backward compatible?
+|Forward compatible?
+|Reason
+
+|Add an optional element (`minOccurs=0`)
+|Yes
+|No
+|Old data remains valid because the element is optional; old schema does not accept the new element.
+
+|Add a required element (`minOccurs > 0`)
+|No
+|Yes
+|Old data does not contain the required element; new data always provides what the old schema expects.
+
+|Remove an element
+|No
+|No
+|Old data contains the element, which the new schema does not expect; new data omits the element, which the old schema might require.
+
+|Add an optional attribute
+|Yes
+|No
+|Old data remains valid because the attribute is optional; old schema does not recognize the new attribute.
+
+|Add a required attribute
+|No
+|Yes
+|Old data does not contain the required attribute; new data always provides what the old schema expects.
+
+|Remove an attribute
+|No
+|No
+|Old data contains the attribute, which the new schema does not expect; new data omits it, which the old schema might require.
+
+|Decrease `minOccurs`
+|Yes
+|No
+|Old data that met the stricter requirement still passes; old schema rejects data that uses the relaxed requirement.
+
+|Increase `minOccurs`
+|No
+|Yes
+|Old data might not meet the new minimum; new data always meets the old minimum.
+
+|Increase `maxOccurs`
+|Yes
+|No
+|Old data within the previous limit still passes; old schema rejects data that uses the higher limit.
+
+|Decrease `maxOccurs`
+|No
+|Yes
+|Old data might exceed the new limit; new data stays within the old limit.
+
+|Loosen a numeric range (`minInclusive` or `maxInclusive`)
+|Yes
+|No
+|Old values still fall within the expanded range; new values might fall outside the old range.
+
+|Tighten a numeric range (`minInclusive` or `maxInclusive`)
+|No
+|Yes
+|Old values might fall outside the tightened range; new values stay within the old range.
+
+|Loosen string constraints (`minLength` or `maxLength`)
+|Yes
+|No
+|Old strings still meet the relaxed constraints; new strings might violate the old constraints.
+
+|Tighten string constraints (`minLength` or `maxLength`)
+|No
+|Yes
+|Old strings might violate the tightened constraints; new strings meet the old constraints.
+
+|Add an enumeration value
+|Yes
+|No
+|Old data uses existing values that remain valid; new data might use the new value, which the old schema rejects.
+
+|Remove an enumeration value
+|No
+|Yes
+|Old data might use the removed value; new data avoids it.
+
+|Change an element type
+|No
+|No
+|Data types are fundamentally incompatible between versions.
+
+|Remove `nillable` from an element
+|No
+|No
+|Old data with null values becomes invalid under the new schema.
+|===

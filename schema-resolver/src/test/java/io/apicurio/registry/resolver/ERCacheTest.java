@@ -449,6 +449,204 @@ public class ERCacheTest {
         assertDoesNotThrow(() -> cache.shutdown());
     }
 
+    /**
+     * Reproducer for Debezium regression (GH-7788): when two schemas share the same artifact
+     * coordinates (groupId + artifactId) but have different content (e.g. different
+     * connect.parameters), the GAV-index cache hit from the first schema prevents the second
+     * schema from ever being registered, because DefaultSchemaResolver.getSchemaFromCache()
+     * short-circuits before handleAutoCreateArtifact() is reached.
+     *
+     * This test simulates the DefaultSchemaResolver flow:
+     * 1. Schema V1 is registered via content lookup → reindex() populates the GAV index
+     * 2. Schema V2 arrives with same coordinates but different content
+     * 3. The resolver checks containsByArtifactCoordinates() → should NOT match since content changed
+     *
+     * The test asserts the CORRECT behavior: the GAV cache must not shadow different content.
+     * It will FAIL until the caching bug is fixed.
+     */
+    @Test
+    void testGavCacheDoesNotShadowDifferentContent() {
+        ERCache<TestSchemaResult> cache = new ERCache<>();
+        cache.configureLifetime(Duration.ofMinutes(10));
+        cache.configureRetryBackoff(Duration.ofMillis(100));
+        cache.configureRetryCount(0);
+        cache.configureCacheLatest(true);
+
+        cache.configureGlobalIdKeyExtractor(r -> r.globalId);
+        cache.configureContentIdKeyExtractor(r -> r.contentId);
+        cache.configureContentHashKeyExtractor(r -> r.contentHash);
+        cache.configureArtifactCoordinatesKeyExtractor(r -> r.coordinates);
+        cache.configureContentKeyExtractor(r -> ContentWithReferences.builder()
+                .content(r.schemaContent).build());
+
+        // Step 1: Register schema V1 via content lookup (handleAutoCreateArtifact path).
+        // reindex() will populate the GAV index under (default, my-topic-value, null).
+        ContentWithReferences v1ContentKey = ContentWithReferences.builder()
+                .content("{\"type\":\"string\",\"connect.parameters\":{\"allowed\":\"station,post_office\"}}")
+                .build();
+
+        TestSchemaResult v1Result = new TestSchemaResult(
+                1L, 100L, "hash-v1",
+                ArtifactCoordinates.builder().groupId("default").artifactId("my-topic-value").build(),
+                v1ContentKey.getContent());
+
+        cache.getByContent(v1ContentKey, key -> v1Result);
+
+        // Step 2: Schema V2 arrives — same artifact coordinates, different content.
+        // The resolver builds a lookup key with null version (no version specified).
+        ArtifactCoordinates lookupCoords = ArtifactCoordinates.builder()
+                .groupId("default").artifactId("my-topic-value").build();
+
+        ContentWithReferences v2ContentKey = ContentWithReferences.builder()
+                .content("{\"type\":\"string\",\"connect.parameters\":{\"allowed\":\"station,post_office,plane\"}}")
+                .build();
+        assertFalse(cache.containsByContentHash("hash-v2"),
+                "V2 content hash should not be in cache yet");
+
+        // Step 3: The content-aware GAV check must detect the mismatch.
+        // containsByArtifactCoordinatesMatchingContent returns false when content differs,
+        // so the resolver falls through to handleAutoCreateArtifact() which registers V2.
+        assertFalse(cache.containsByArtifactCoordinatesMatchingContent(lookupCoords, v2ContentKey),
+                "GAV cache must not match when the incoming schema content differs from the cached entry");
+
+        // The same check with V1 content should still return true (cache hit for same content).
+        assertTrue(cache.containsByArtifactCoordinatesMatchingContent(lookupCoords, v1ContentKey),
+                "GAV cache should match when the incoming schema content equals the cached entry");
+
+        // When no incoming content is available (parsedSchema is null), fall back to GAV-only check.
+        assertTrue(cache.containsByArtifactCoordinatesMatchingContent(lookupCoords, null),
+                "GAV cache should match when no incoming content is provided (findLatest path)");
+    }
+
+    @Test
+    void testDebeziumEnumSchemaEvolutionNotShadowedByGavCache() {
+        ERCache<TestSchemaResult> cache = new ERCache<>();
+        cache.configureLifetime(Duration.ofMinutes(10));
+        cache.configureRetryBackoff(Duration.ofMillis(100));
+        cache.configureRetryCount(0);
+        cache.configureCacheLatest(true);
+
+        cache.configureGlobalIdKeyExtractor(r -> r.globalId);
+        cache.configureContentIdKeyExtractor(r -> r.contentId);
+        cache.configureContentHashKeyExtractor(r -> r.contentHash);
+        cache.configureArtifactCoordinatesKeyExtractor(r -> r.coordinates);
+        cache.configureContentKeyExtractor(r -> ContentWithReferences.builder()
+                .content(r.schemaContent).build());
+
+        ArtifactCoordinates topicCoords = ArtifactCoordinates.builder()
+                .groupId("default").artifactId("dbserver1.inventory.orders-value").build();
+
+        String enumSchemaV1 = "{\"type\":\"record\",\"name\":\"Value\","
+                + "\"namespace\":\"dbserver1.inventory.orders\","
+                + "\"fields\":["
+                + "{\"name\":\"id\",\"type\":\"int\"},"
+                + "{\"name\":\"status\",\"type\":{\"type\":\"string\","
+                + "\"connect.parameters\":{\"allowed\":\"pending,shipped\"},"
+                + "\"connect.name\":\"io.debezium.data.Enum\"}}"
+                + "]}";
+
+        String enumSchemaV2 = "{\"type\":\"record\",\"name\":\"Value\","
+                + "\"namespace\":\"dbserver1.inventory.orders\","
+                + "\"fields\":["
+                + "{\"name\":\"id\",\"type\":\"int\"},"
+                + "{\"name\":\"status\",\"type\":{\"type\":\"string\","
+                + "\"connect.parameters\":{\"allowed\":\"pending,shipped,cancelled\"},"
+                + "\"connect.name\":\"io.debezium.data.Enum\"}}"
+                + "]}";
+
+        TestSchemaResult v1Result = new TestSchemaResult(
+                1L, 100L, "hash-enum-v1", topicCoords, enumSchemaV1);
+        cache.getByContent(
+                ContentWithReferences.builder().content(enumSchemaV1).build(),
+                key -> v1Result);
+
+        ContentWithReferences v2Content = ContentWithReferences.builder()
+                .content(enumSchemaV2).build();
+        assertFalse(cache.containsByArtifactCoordinatesMatchingContent(topicCoords, v2Content),
+                "Adding 'cancelled' to the enum must not be shadowed by the GAV cache");
+
+        ContentWithReferences v1Content = ContentWithReferences.builder()
+                .content(enumSchemaV1).build();
+        assertTrue(cache.containsByArtifactCoordinatesMatchingContent(topicCoords, v1Content),
+                "Original enum schema should still hit the GAV cache");
+    }
+
+    @Test
+    void testDebeziumMultipleDecimalColumnsDifferentPrecisionNotShadowed() {
+        ERCache<TestSchemaResult> cache = new ERCache<>();
+        cache.configureLifetime(Duration.ofMinutes(10));
+        cache.configureRetryBackoff(Duration.ofMillis(100));
+        cache.configureRetryCount(0);
+        cache.configureCacheLatest(true);
+
+        cache.configureGlobalIdKeyExtractor(r -> r.globalId);
+        cache.configureContentIdKeyExtractor(r -> r.contentId);
+        cache.configureContentHashKeyExtractor(r -> r.contentHash);
+        cache.configureArtifactCoordinatesKeyExtractor(r -> r.coordinates);
+        cache.configureContentKeyExtractor(r -> ContentWithReferences.builder()
+                .content(r.schemaContent).build());
+
+        ArtifactCoordinates topicCoords = ArtifactCoordinates.builder()
+                .groupId("default").artifactId("dbserver1.inventory.measurements-value").build();
+
+        String schemaWithPrecision10 = "{\"type\":\"record\",\"name\":\"Value\","
+                + "\"namespace\":\"dbserver1.inventory.measurements\","
+                + "\"fields\":["
+                + "{\"name\":\"id\",\"type\":\"int\"},"
+                + "{\"name\":\"amount\",\"type\":{\"type\":\"record\","
+                + "\"name\":\"VariableScaleDecimal\","
+                + "\"namespace\":\"io.debezium.data\","
+                + "\"connect.parameters\":{\"precision\":\"10\"}}}"
+                + "]}";
+
+        String schemaWithPrecision15 = "{\"type\":\"record\",\"name\":\"Value\","
+                + "\"namespace\":\"dbserver1.inventory.measurements\","
+                + "\"fields\":["
+                + "{\"name\":\"id\",\"type\":\"int\"},"
+                + "{\"name\":\"amount\",\"type\":{\"type\":\"record\","
+                + "\"name\":\"VariableScaleDecimal\","
+                + "\"namespace\":\"io.debezium.data\","
+                + "\"connect.parameters\":{\"precision\":\"15\"}}}"
+                + "]}";
+
+        TestSchemaResult result1 = new TestSchemaResult(
+                1L, 100L, "hash-p10", topicCoords, schemaWithPrecision10);
+        cache.getByContent(
+                ContentWithReferences.builder().content(schemaWithPrecision10).build(),
+                key -> result1);
+
+        ContentWithReferences p15Content = ContentWithReferences.builder()
+                .content(schemaWithPrecision15).build();
+        assertFalse(cache.containsByArtifactCoordinatesMatchingContent(topicCoords, p15Content),
+                "Schema with precision=15 must not be shadowed by cached precision=10 schema");
+
+        TestSchemaResult result2 = new TestSchemaResult(
+                2L, 101L, "hash-p15", topicCoords, schemaWithPrecision15);
+        cache.getByContent(
+                ContentWithReferences.builder().content(schemaWithPrecision15).build(),
+                key -> result2);
+
+        assertTrue(cache.containsByArtifactCoordinatesMatchingContent(topicCoords, p15Content),
+                "After registering precision=15, GAV cache should return it");
+    }
+
+    private static class TestSchemaResult {
+        final long globalId;
+        final long contentId;
+        final String contentHash;
+        final ArtifactCoordinates coordinates;
+        final String schemaContent;
+
+        TestSchemaResult(long globalId, long contentId, String contentHash,
+                         ArtifactCoordinates coordinates, String schemaContent) {
+            this.globalId = globalId;
+            this.contentId = contentId;
+            this.contentHash = contentHash;
+            this.coordinates = coordinates;
+            this.schemaContent = schemaContent;
+        }
+    }
+
     private ERCache<String> newCache(String contentHashKey) {
         ERCache<String> cache = new ERCache<>();
         cache.configureLifetime(Duration.ofDays(30));

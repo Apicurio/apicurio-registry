@@ -16,6 +16,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -183,6 +184,16 @@ public class SqlDataImporter extends AbstractDataImporter {
             log.debug("Branch imported successfully: {}", entity);
         } catch (Exception ex) {
             log.warn("Failed to import branch {}: {}", entity, ex.getMessage());
+        }
+    }
+
+    @Override
+    protected void importContractRule(ContractRuleEntity entity) {
+        try {
+            storage.importContractRule(entity);
+            log.debug("Contract rule imported successfully: {}", entity);
+        } catch (Exception ex) {
+            log.warn("Failed to import contract rule {}: {}", entity, ex.getMessage());
         }
     }
 

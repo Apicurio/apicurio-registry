@@ -1,6 +1,0 @@
-$type: group-v0
-registryIds: [staging]
-groupId: experimental
-description: Experimental schemas not yet promoted to production
-labels:
-  scope: experimental

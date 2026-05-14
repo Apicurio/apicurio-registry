@@ -11,7 +11,6 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
-import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
@@ -21,7 +20,7 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 @StorageMetricsApply
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "gitops")
-public class GitOpsRegistryStorage extends AbstractPollingRegistryStorage<RevCommit> {
+public class GitOpsRegistryStorage extends AbstractPollingRegistryStorage<GitOpsMarker> {
 
     @ConfigProperty(name = "apicurio.storage.kind")
     @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0")

@@ -1,0 +1,77 @@
+# Example ApicurioRegistry3 CR with Dex OIDC authentication
+#
+# This CR configures Apicurio Registry to use Dex as the OIDC provider.
+# Replace placeholder values (<...>) with your actual configuration.
+#
+# Important:
+# - Both appClientId and uiClientId must use the PUBLIC Dex client (apicurio-registry-ui)
+# - The redirectUri must be set for silent token refresh
+# - REGISTRY_API_URL must use https:// (the operator defaults to http://)
+#
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: apicurio-registry
+  namespace: apicurio-registry
+spec:
+  app:
+    ingress:
+      host: apicurio-registry-app-apicurio-registry.apps.<cluster-domain>
+      # On OpenShift, this annotation enables edge TLS termination on the Route,
+      # so the app is served over HTTPS with automatic HTTP -> HTTPS redirect.
+      annotations:
+        route.openshift.io/termination: edge
+    auth:
+      enabled: true
+      # Both must point to the PUBLIC Dex client so the backend accepts
+      # tokens with aud=apicurio-registry-ui issued by the browser flow.
+      appClientId: apicurio-registry-ui
+      uiClientId: apicurio-registry-ui
+      authServerUrl: "https://dex.<cluster-domain>"
+      # Explicit redirect URI prevents oidc-client-ts from using the current
+      # page URL (which may contain stale ?code=...&state=... query params),
+      # fixing silent token refresh failures.
+      redirectUri: "https://<registry-ui-route>/"
+      anonymousReadsEnabled: true
+      tls:
+        tlsVerificationType: "none"  # Set to "certificate" in production and provide a truststore
+      authz:
+        enabled: true
+        readAccessEnabled: true
+        ownerOnlyEnabled: true
+        groupAccessEnabled: false
+        roles:
+          source: token
+          admin: "registry-admins"
+          developer: "registry-developers"
+          readOnly: "registry-readers"
+        adminOverride:
+          enabled: true
+          from: token
+          type: role
+          role: "registry-admins"
+    env:
+      # Request the groups scope so Dex includes group membership in the token
+      - name: QUARKUS_OIDC_AUTHENTICATION_SCOPES
+        value: "openid,email,profile,groups"
+      # Dex passes group membership in the "groups" claim
+      - name: QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH
+        value: "groups"
+      # Use the email claim as the principal identity for artifact ownership
+      - name: QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM
+        value: "email"
+      # The UI scope defaults to "openid profile email" which does NOT include
+      # groups. Without this, Dex won't include group membership in the token
+      # and RBAC will deny all write operations.
+      - name: APICURIO_UI_AUTH_OIDC_SCOPE
+        value: "openid profile email groups"
+  ui:
+    ingress:
+      host: apicurio-registry-ui-apicurio-registry.apps.<cluster-domain>
+      annotations:
+        route.openshift.io/termination: edge
+    env:
+      # The operator hardcodes http:// for REGISTRY_API_URL.
+      # Override it to use HTTPS since we enabled edge TLS on the app route.
+      - name: REGISTRY_API_URL
+        value: "https://apicurio-registry-app-apicurio-registry.apps.<cluster-domain>/apis/registry/v3"

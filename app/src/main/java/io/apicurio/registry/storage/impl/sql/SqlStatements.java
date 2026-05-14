@@ -166,6 +166,11 @@ public interface SqlStatements {
     public String selectArtifactVersionMetaData();
 
     /**
+     * A statement used to select artifact version metadata by artifactId and versionOrder.
+     */
+    public String selectArtifactVersionMetaDataByVersionOrder();
+
+    /**
      * A statement to select the content of an artifact version from the versions table by artifactId +
      * version.
      */
@@ -781,4 +786,24 @@ public interface SqlStatements {
      * and content. Used for streaming incremental search index updates.
      */
     String selectVersionsWithContentModifiedSince();
+
+    // ========== Contract Rules ==========
+
+    String selectContractRulesByArtifact();
+
+    String selectContractRulesByGlobalId();
+
+    String insertContractRule();
+
+    String deleteContractRulesByArtifact();
+
+    String deleteContractRulesByGlobalId();
+
+    String exportContractRules();
+
+    String exportContractRulesByGroupId();
+
+    String importContractRule();
+
+    String selectContractRulesByTag();
 }

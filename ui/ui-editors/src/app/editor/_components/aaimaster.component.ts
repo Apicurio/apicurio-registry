@@ -56,7 +56,7 @@ import {AbstractBaseComponent} from "./common/base-component";
 import {DocumentService} from "../_services/document.service";
 import {RenameEntityDialogComponent, RenameEntityEvent} from "./dialogs/rename-entity.component";
 import {KeypressUtils} from "../_util/keypress.util";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../_util/object.util";
 import {FeaturesService} from "../_services/features.service";
 import {ComponentType} from "../_models/component-type.model";
 import { IOperationTraitEditorHandler, OperationTraitData, OperationTraitEditorComponent } from "./editors/operationtrait-editor.component";

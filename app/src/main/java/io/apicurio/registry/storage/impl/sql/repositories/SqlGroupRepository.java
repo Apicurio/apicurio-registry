@@ -381,10 +381,12 @@ public class SqlGroupRepository {
      * Ensure a group exists (create if not exists).
      */
     public void ensureGroup(GroupMetaDataDto group) {
-        try {
-            createGroup(group);
-        } catch (GroupAlreadyExistsException e) {
-            // This is OK - we're happy if the group already exists.
+        if (!isGroupExists(group.getGroupId())) {
+            try {
+                createGroup(group);
+            } catch (GroupAlreadyExistsException e) {
+                // Race condition: group created between check and insert. That's fine.
+            }
         }
     }
 

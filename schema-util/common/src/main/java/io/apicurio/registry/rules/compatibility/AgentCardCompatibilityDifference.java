@@ -10,10 +10,11 @@ import java.util.Objects;
 public class AgentCardCompatibilityDifference implements CompatibilityDifference {
 
     public enum Type {
-        URL_CHANGED("url"),
+        INTERFACE_REMOVED("supportedInterfaces"),
+        PROTOCOL_VERSION_CHANGED("supportedInterfaces"),
         SKILL_REMOVED("skills"),
         CAPABILITY_REMOVED("capabilities"),
-        AUTH_SCHEME_REMOVED("authentication"),
+        SECURITY_SCHEME_REMOVED("securitySchemes"),
         MODE_REMOVED("modes"),
         PARSE_ERROR("document");
 

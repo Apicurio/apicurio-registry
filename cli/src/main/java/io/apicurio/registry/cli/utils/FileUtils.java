@@ -4,6 +4,7 @@ import io.apicurio.registry.cli.common.CliException;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -86,6 +87,19 @@ public final class FileUtils {
                 }
                 zis.closeEntry();
             }
+        }
+    }
+
+    // Reads content from a file path or stdin (when path is "-").
+    public static String readContent(final String file) {
+        try {
+            if ("-".equals(file)) {
+                return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
+            } else {
+                return Files.readString(Path.of(file));
+            }
+        } catch (IOException ex) {
+            throw new CliException("Could not read content from: " + file, ex, APPLICATION_ERROR_RETURN_CODE);
         }
     }
 

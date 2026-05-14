@@ -17,7 +17,7 @@ on:
 jobs:
   build-java:
     name: Build Java Application (no tests)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ github.sha }}
     steps:
@@ -36,7 +36,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         run: |
           ./mvnw clean package -T 0.5C --no-transfer-progress \
-            -Pprod -DskipTests=true -DskipCommitIdPlugin=false -Dcli-skip-native \
+            -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
@@ -78,11 +78,12 @@ jobs:
             java-sdk/client-v2/target/
             config-index/definitions/target/
             common/target/
+            schema-util/common/target/
           retention-days: 1
 
   build-ui:
     name: Build UI Application
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

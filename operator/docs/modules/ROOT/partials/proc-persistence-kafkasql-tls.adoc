@@ -78,7 +78,9 @@ spec:
   partitions: 2
   replicas: 1
   config:
-    cleanup.policy: compact
+    cleanup.policy: delete
+    retention.ms: -1
+    retention.bytes: -1
 ----
 
 . Create a *Kafka User* resource to configure authentication and authorization for the {registry} user. You can specify a user name in the `metadata` section or use the default `my-user`.

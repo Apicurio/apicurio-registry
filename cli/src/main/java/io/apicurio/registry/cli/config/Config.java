@@ -1,10 +1,15 @@
 package io.apicurio.registry.cli.config;
 
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.services.CliVersion;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.Output;
+import io.quarkus.runtime.StartupEvent;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import lombok.Getter;
 import lombok.Setter;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -17,16 +22,14 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static java.lang.System.err;
 import static java.lang.System.out;
 
-public final class Config {
+@ApplicationScoped
+public class Config {
 
-    private static Config instance;
-
-    public static synchronized Config getInstance() {
-        if (instance == null) {
-            instance = new Config();
-        }
-        return instance;
-    }
+    /**
+     * Static reference for use by {@link AcrHomeConfigSource}, which is loaded via SPI
+     * before CDI is available. Commands should use {@code @Inject Config} instead.
+     */
+    static Config instance;
 
     private ConfigModel cachedConfig;
 
@@ -41,9 +44,21 @@ public final class Config {
     @Setter
     private Path acrCurrentHomePath;
 
+    @ConfigProperty(name = "version")
+    String cliVersion;
+
     private final Map<String, String> envOverrides = new HashMap<>();
 
-    private Config() {
+    void onStart(@Observes StartupEvent ev) {
+        instance = this;
+    }
+
+    public CliVersion getCliVersion() {
+        var version = CliVersion.parse(cliVersion);
+        if (version == null || !version.isParsed()) {
+            throw new CliException("Could not parse CLI version: " + cliVersion, APPLICATION_ERROR_RETURN_CODE);
+        }
+        return version;
     }
 
     /**
@@ -77,6 +92,19 @@ public final class Config {
      */
     public void clearEnvOverrides() {
         envOverrides.clear();
+    }
+
+    public Path getAcrHomePath() {
+        var home = getEnv("ACR_HOME");
+        if (isBlank(home)) {
+            throw new CliException("ACR_HOME is not set. Please run the 'install' command first.", APPLICATION_ERROR_RETURN_CODE);
+        }
+        var homePath = Path.of(home).normalize().toAbsolutePath();
+        if (!java.nio.file.Files.exists(homePath)) {
+            throw new CliException("ACR_HOME directory does not exist: " + homePath + ". Please run the 'install' command first.",
+                    APPLICATION_ERROR_RETURN_CODE);
+        }
+        return homePath;
     }
 
     public Path getAcrCurrentHomePath() {
@@ -116,5 +144,16 @@ public final class Config {
         } catch (IOException ex) {
             throw new CliException("Could not write config file '%s'.".formatted(configPath), ex, APPLICATION_ERROR_RETURN_CODE);
         }
+    }
+
+    /**
+     * Resets cached state. Should be called between tests to avoid interference.
+     */
+    public void reset() {
+        cachedConfig = null;
+        stdOut = out::print;
+        stdErr = err::print;
+        acrCurrentHomePath = null;
+        envOverrides.clear();
     }
 }

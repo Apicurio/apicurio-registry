@@ -18,6 +18,10 @@ public abstract class AbstractPollingDataFile implements PollingDataFile {
 
     @EqualsAndHashCode.Include
     @Getter
+    protected final String sourceId;
+
+    @EqualsAndHashCode.Include
+    @Getter
     protected final String path;
 
     @Getter
@@ -29,7 +33,8 @@ public abstract class AbstractPollingDataFile implements PollingDataFile {
     @Setter
     protected boolean processed;
 
-    protected AbstractPollingDataFile(String path, ContentHandle data, Optional<Any> any) {
+    protected AbstractPollingDataFile(String sourceId, String path, ContentHandle data, Optional<Any> any) {
+        this.sourceId = sourceId;
         this.path = path;
         this.data = data;
         this.any = any;

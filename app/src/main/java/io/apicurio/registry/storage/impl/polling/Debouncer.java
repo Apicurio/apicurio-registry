@@ -43,7 +43,7 @@ public class Debouncer<T> {
         Instant now = Instant.now();
         if (firstChangeAt == null) {
             firstChangeAt = now;
-            log.debug("Change detected, starting debounce (quiet={}, max={})", quietPeriod, maxWait);
+            log.info("Change detected, starting debounce (quiet={}, max={})", quietPeriod, maxWait);
         }
         lastChangeAt = now;
         pending = value;
@@ -72,12 +72,12 @@ public class Debouncer<T> {
         Duration sinceLast = Duration.between(lastChangeAt, now);
 
         if (isPositive(maxWait) && sinceFirst.compareTo(maxWait) >= 0) {
-            log.debug("Debounce max wait exceeded ({}), forcing processing", sinceFirst);
+            log.info("Debounce max wait exceeded ({}), forcing processing", sinceFirst);
             return true;
         }
 
         if (sinceLast.compareTo(quietPeriod) >= 0) {
-            log.debug("Debounce quiet period elapsed ({} since last change)", sinceLast);
+            log.info("Debounce quiet period elapsed ({} since last change)", sinceLast);
             return true;
         }
 

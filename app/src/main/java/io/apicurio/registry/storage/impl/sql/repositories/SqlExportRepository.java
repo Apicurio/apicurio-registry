@@ -10,6 +10,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper
 import io.apicurio.registry.storage.impl.sql.mappers.BranchEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.CommentEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentEntityMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ContractRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GlobalRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.GroupRuleEntityMapper;
@@ -22,6 +23,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -300,6 +302,36 @@ public class SqlExportRepository {
             Stream<ArtifactRuleEntity> stream = handle
                     .createQuery(sqlStatements.exportArtifactRulesByGroupId()).bind(0, groupId)
                     .setFetchSize(50).map(ArtifactRuleEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Export all contract rule entities.
+     */
+    public void exportContractRules(Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<ContractRuleEntity> stream = handle
+                    .createQuery(sqlStatements.exportContractRules()).setFetchSize(50)
+                    .map(ContractRuleEntityMapper.instance).stream();
+            try (stream) {
+                stream.forEach(handler::apply);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Export contract rule entities for the specified group.
+     */
+    public void exportContractRules(String groupId, Function<Entity, Void> handler) {
+        handles.withHandle(handle -> {
+            Stream<ContractRuleEntity> stream = handle
+                    .createQuery(sqlStatements.exportContractRulesByGroupId()).bind(0, groupId)
+                    .setFetchSize(50).map(ContractRuleEntityMapper.instance).stream();
             try (stream) {
                 stream.forEach(handler::apply);
             }

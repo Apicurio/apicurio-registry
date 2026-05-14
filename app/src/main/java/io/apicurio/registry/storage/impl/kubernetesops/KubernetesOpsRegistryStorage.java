@@ -28,7 +28,7 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 @StorageMetricsApply
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kubernetesops")
-public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage<String> {
+public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage<KubernetesOpsMarker> {
 
     @Inject
     Logger log;
@@ -60,6 +60,10 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
 
     private void triggerRefreshFromWatch() {
         log.debug("Watch triggered refresh");
+
+        // Always set the pending flag so that if the lock is held,
+        // the next refresh cycle will re-poll immediately
+        requestSync();
 
         try {
             // Activate request context since the watch callback runs in a background thread

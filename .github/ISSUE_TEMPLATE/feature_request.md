@@ -6,6 +6,12 @@ labels: Enhancement
 assignees: ''
 ---
 
+<!--
+Area labels and issue type are assigned automatically based on the title and description.
+You can skip setting them manually if the issue is specific enough.
+Please review the assigned labels afterwards and adjust if needed.
+-->
+
 ### Feature or Problem Description
 
 <!-- A clear and concise description of what the feature or problem is. -->

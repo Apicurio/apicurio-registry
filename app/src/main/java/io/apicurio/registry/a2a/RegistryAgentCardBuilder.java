@@ -1,20 +1,22 @@
 package io.apicurio.registry.a2a;
 
-import io.apicurio.registry.a2a.rest.beans.AgentAuthentication;
 import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
+import io.apicurio.registry.a2a.rest.beans.AgentInterface;
 import io.apicurio.registry.a2a.rest.beans.AgentProvider;
 import io.apicurio.registry.a2a.rest.beans.AgentSkill;
+import io.apicurio.registry.a2a.rest.beans.SecurityScheme;
 import io.apicurio.registry.auth.AuthConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Builds the Agent Card that represents Apicurio Registry as an A2A agent.
- * This agent card is served at /.well-known/agent.json per the A2A protocol.
+ * This agent card is served at /.well-known/a2a per the A2A v1.0 protocol.
  */
 @ApplicationScoped
 public class RegistryAgentCardBuilder {
@@ -28,26 +30,32 @@ public class RegistryAgentCardBuilder {
     @Inject
     AuthConfig authConfig;
 
-    /**
-     * Builds and returns the Agent Card for this Apicurio Registry instance.
-     *
-     * @param baseUrl the base URL of the registry (used if not configured)
-     * @return the Agent Card
-     */
     public AgentCard build(String baseUrl) {
-        return AgentCard.builder()
+        String agentUrl = a2aConfig.getAgentUrl().orElse(baseUrl);
+
+        AgentCard.Builder builder = AgentCard.builder()
                 .name(a2aConfig.getAgentName())
                 .description(a2aConfig.getAgentDescription())
                 .version(a2aConfig.getAgentVersion().orElse(system.getVersion()))
-                .url(a2aConfig.getAgentUrl().orElse(baseUrl))
+                .protocolVersion(a2aConfig.getProtocolVersion())
+                .supportedInterfaces(buildInterfaces(agentUrl))
                 .provider(buildProvider())
                 .capabilities(buildCapabilities())
                 .skills(buildSkills())
                 .defaultInputModes(List.of("text"))
                 .defaultOutputModes(List.of("text"))
-                .authentication(buildAuthentication())
-                .supportsExtendedAgentCard(false)
-                .build();
+                .securitySchemes(buildSecuritySchemes());
+
+        a2aConfig.getDocumentationUrl().ifPresent(builder::documentationUrl);
+        a2aConfig.getIconUrl().ifPresent(builder::iconUrl);
+
+        return builder.build();
+    }
+
+    private List<AgentInterface> buildInterfaces(String agentUrl) {
+        return List.of(
+                new AgentInterface(agentUrl, "http+json", a2aConfig.getProtocolVersion())
+        );
     }
 
     private AgentProvider buildProvider() {
@@ -61,6 +69,7 @@ public class RegistryAgentCardBuilder {
         return AgentCapabilities.builder()
                 .streaming(a2aConfig.isCapabilitiesStreaming())
                 .pushNotifications(a2aConfig.isCapabilitiesPushNotifications())
+                .extendedAgentCard(false)
                 .build();
     }
 
@@ -69,52 +78,52 @@ public class RegistryAgentCardBuilder {
                 AgentSkill.builder()
                         .id("schema-validation")
                         .name("Schema Validation")
-                        .description("Validate schemas against format specifications (Avro, JSON Schema, Protobuf, OpenAPI, etc.)")
-                        .tags(List.of("schema", "validation", "avro", "json-schema", "protobuf", "openapi"))
+                        .description("Validate schemas against format specifications"
+                                + " (Avro, JSON Schema, Protobuf, OpenAPI, etc.)")
+                        .tags(List.of("schema", "validation", "avro", "json-schema",
+                                "protobuf", "openapi"))
                         .build(),
                 AgentSkill.builder()
                         .id("schema-search")
                         .name("Schema Search")
-                        .description("Search for schemas and APIs in the registry by name, description, labels, or content")
+                        .description("Search for schemas and APIs in the registry"
+                                + " by name, description, labels, or content")
                         .tags(List.of("schema", "search", "discovery"))
                         .build(),
                 AgentSkill.builder()
                         .id("artifact-management")
                         .name("Artifact Management")
-                        .description("Create, update, and manage schema and API artifacts with full version history")
+                        .description("Create, update, and manage schema and API artifacts"
+                                + " with full version history")
                         .tags(List.of("artifact", "crud", "versioning"))
                         .build(),
                 AgentSkill.builder()
                         .id("compatibility-check")
                         .name("Compatibility Check")
-                        .description("Check schema compatibility between versions using configurable compatibility rules")
+                        .description("Check schema compatibility between versions"
+                                + " using configurable compatibility rules")
                         .tags(List.of("compatibility", "evolution", "breaking-changes"))
                         .build(),
                 AgentSkill.builder()
                         .id("agent-discovery")
                         .name("Agent Discovery")
-                        .description("Discover and manage A2A agent cards registered in the registry")
+                        .description("Discover and manage A2A agent cards"
+                                + " registered in the registry")
                         .tags(List.of("a2a", "agent", "discovery"))
                         .build()
         );
     }
 
-    private AgentAuthentication buildAuthentication() {
-        List<String> schemes = new ArrayList<>();
+    private Map<String, SecurityScheme> buildSecuritySchemes() {
+        Map<String, SecurityScheme> schemes = new LinkedHashMap<>();
 
         if (authConfig.isOidcAuthEnabled()) {
-            schemes.add("bearer");
+            schemes.put("bearer", SecurityScheme.httpAuth("Bearer"));
         }
         if (authConfig.isBasicAuthEnabled()) {
-            schemes.add("basic");
+            schemes.put("basic", SecurityScheme.httpAuth("Basic"));
         }
 
-        if (schemes.isEmpty()) {
-            schemes.add("none");
-        }
-
-        return AgentAuthentication.builder()
-                .schemes(schemes)
-                .build();
+        return schemes;
     }
 }

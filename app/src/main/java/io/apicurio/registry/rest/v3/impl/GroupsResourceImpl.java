@@ -4,6 +4,17 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.contracts.odcs.OdcsContract;
+import io.apicurio.registry.contracts.odcs.OdcsParser;
+import io.apicurio.registry.contracts.odcs.OdcsExporter;
+import io.apicurio.registry.contracts.odcs.OdcsParseException;
+import io.apicurio.registry.contracts.odcs.OdcsProjectionEngine;
+import io.apicurio.registry.contracts.odcs.OdcsProjectionResult;
+import io.apicurio.registry.contracts.odcs.OdcsSchema;
+import io.apicurio.registry.rest.v3.beans.OdcsContractResult;
+import io.apicurio.registry.rest.v3.beans.OdcsContractSummary;
+import io.apicurio.registry.rest.v3.beans.OdcsProjectionSummary;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
@@ -36,6 +47,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceGraphDirection;
 import io.apicurio.registry.types.ReferenceType;
@@ -66,6 +78,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_CANONICAL;
@@ -118,6 +131,24 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     ProtobufExporter protobufExporter;
+
+    @Inject
+    io.apicurio.registry.contracts.DataContractsConfig dataContractsConfig;
+
+    @Inject
+    io.apicurio.registry.contracts.ContractMetadataMapper contractMetadataMapper;
+
+    @Inject
+    io.apicurio.registry.contracts.ContractMetadataValidator contractMetadataValidator;
+
+    @Inject
+    OdcsParser odcsParser;
+
+    @Inject
+    OdcsProjectionEngine odcsProjectionEngine;
+
+    @Inject
+    OdcsExporter odcsExporter;
 
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
@@ -1856,5 +1887,584 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         return protobufExporter.exportVersionAsZip(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+    }
+
+    private void checkContractsEnabled() {
+        if (!dataContractsConfig.isEnabled()) {
+            throw new NotAllowedException("Data contracts feature is not enabled.", HttpMethod.GET,
+                    (String[]) null);
+        }
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public ContractMetadata getContractMetadata(String groupId, String artifactId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        ArtifactMetaDataDto dto = storage.getArtifactMetaData(
+                new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        ContractMetadataDto contractDto = contractMetadataMapper.fromLabels(dto.getLabels());
+        return toContractMetadataBean(contractDto);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ContractMetadata updateContractMetadata(String groupId, String artifactId,
+            EditableContractMetadata data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+
+        // Build the editable DTO from the REST bean
+        EditableContractMetadataDto editableDto = EditableContractMetadataDto.builder()
+                .status(data.getStatus() != null
+                        ? ContractStatus.valueOf(data.getStatus().value()) : null)
+                .ownerTeam(data.getOwnerTeam())
+                .ownerDomain(data.getOwnerDomain())
+                .supportContact(data.getSupportContact())
+                .classification(data.getClassification() != null
+                        ? DataClassification.valueOf(data.getClassification().value()) : null)
+                .stage(data.getStage() != null
+                        ? PromotionStage.valueOf(data.getStage().value()) : null)
+                .build();
+
+        // Convert to labels and merge with existing artifact labels
+        Map<String, String> contractLabels = contractMetadataMapper.toLabels(editableDto);
+
+        ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
+        Map<String, String> mergedLabels = new java.util.HashMap<>(
+                existing.getLabels() != null ? existing.getLabels() : Collections.emptyMap());
+
+        // Remove existing contract labels first
+        mergedLabels.entrySet().removeIf(
+                e -> e.getKey().startsWith(io.apicurio.registry.contracts.ContractLabels.PREFIX));
+        // Add new contract labels
+        mergedLabels.putAll(contractLabels);
+
+        EditableArtifactMetaDataDto metaDto = new EditableArtifactMetaDataDto();
+        metaDto.setName(existing.getName());
+        metaDto.setDescription(existing.getDescription());
+        metaDto.setOwner(existing.getOwner());
+        metaDto.setLabels(mergedLabels);
+        storage.updateArtifactMetaData(rawGroupId, artifactId, metaDto);
+
+        // Return the updated contract metadata
+        ContractMetadataDto result = contractMetadataMapper.fromLabels(mergedLabels);
+        return toContractMetadataBean(result);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public ContractRuleSet getArtifactContractRuleset(String groupId, String artifactId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        ContractRuleSetDto dto = storage.getArtifactContractRuleset(
+                new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        return toContractRuleSetBean(dto);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ContractRuleSet setArtifactContractRuleset(String groupId, String artifactId,
+            ContractRuleSet data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        ContractRuleSetDto dto = toContractRuleSetDto(data);
+        storage.setArtifactContractRuleset(
+                new GroupId(groupId).getRawGroupIdWithNull(), artifactId, dto);
+        return data;
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void deleteArtifactContractRuleset(String groupId, String artifactId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        storage.deleteArtifactContractRuleset(
+                new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public ContractRuleSet getVersionContractRuleset(String groupId, String artifactId,
+            String versionExpression) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        ContractRuleSetDto dto = storage.getVersionContractRuleset(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+        return toContractRuleSetBean(dto);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ContractRuleSet setVersionContractRuleset(String groupId, String artifactId,
+            String versionExpression, ContractRuleSet data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        ContractRuleSetDto dto = toContractRuleSetDto(data);
+        storage.setVersionContractRuleset(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), dto);
+        return data;
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void deleteVersionContractRuleset(String groupId, String artifactId,
+            String versionExpression) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+
+        var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+        storage.deleteVersionContractRuleset(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public ContractMetadata transitionContractStatus(String groupId, String artifactId,
+            ContractStatusTransition data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        ContractStatus targetStatus = ContractStatus.valueOf(data.getStatus().value());
+
+        // Get current metadata to check current status
+        ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
+        ContractMetadataDto currentMetadata = contractMetadataMapper.fromLabels(existing.getLabels());
+
+        // Validate transition
+        contractMetadataValidator.validateStatusTransition(currentMetadata.getStatus(), targetStatus);
+
+        // Build updated labels
+        Map<String, String> mergedLabels = new java.util.HashMap<>(
+                existing.getLabels() != null ? existing.getLabels() : Collections.emptyMap());
+
+        // Update the status label
+        mergedLabels.put(io.apicurio.registry.contracts.ContractLabels.PREFIX + "status",
+                targetStatus.name());
+
+        // If transitioning to STABLE, set the stableDate if not already set
+        if (targetStatus == ContractStatus.STABLE
+                && !mergedLabels.containsKey(
+                        io.apicurio.registry.contracts.ContractLabels.PREFIX + "stableDate")) {
+            mergedLabels.put(io.apicurio.registry.contracts.ContractLabels.PREFIX + "stableDate",
+                    java.time.LocalDate.now().toString());
+        }
+
+        // If transitioning to DEPRECATED, set the deprecatedDate if not already set
+        if (targetStatus == ContractStatus.DEPRECATED
+                && !mergedLabels.containsKey(
+                        io.apicurio.registry.contracts.ContractLabels.PREFIX + "deprecatedDate")) {
+            mergedLabels.put(
+                    io.apicurio.registry.contracts.ContractLabels.PREFIX + "deprecatedDate",
+                    java.time.LocalDate.now().toString());
+        }
+
+        EditableArtifactMetaDataDto metaDto = new EditableArtifactMetaDataDto();
+        metaDto.setName(existing.getName());
+        metaDto.setDescription(existing.getDescription());
+        metaDto.setOwner(existing.getOwner());
+        metaDto.setLabels(mergedLabels);
+        storage.updateArtifactMetaData(rawGroupId, artifactId, metaDto);
+
+        ContractMetadataDto result = contractMetadataMapper.fromLabels(mergedLabels);
+        return toContractMetadataBean(result);
+    }
+
+    // -- Contract mapping helpers --
+
+    private ContractMetadata toContractMetadataBean(ContractMetadataDto dto) {
+        ContractMetadata bean = new ContractMetadata();
+        if (dto.getStatus() != null) {
+            bean.setStatus(ContractMetadata.Status.fromValue(dto.getStatus().name()));
+        }
+        bean.setOwnerTeam(dto.getOwnerTeam());
+        bean.setOwnerDomain(dto.getOwnerDomain());
+        bean.setSupportContact(dto.getSupportContact());
+        if (dto.getClassification() != null) {
+            bean.setClassification(
+                    ContractMetadata.Classification.fromValue(dto.getClassification().name()));
+        }
+        if (dto.getStage() != null) {
+            bean.setStage(ContractMetadata.Stage.fromValue(dto.getStage().name()));
+        }
+        bean.setStableDate(dto.getStableDate());
+        bean.setDeprecatedDate(dto.getDeprecatedDate());
+        bean.setDeprecationReason(dto.getDeprecationReason());
+        return bean;
+    }
+
+    private ContractRuleSet toContractRuleSetBean(ContractRuleSetDto dto) {
+        ContractRuleSet bean = new ContractRuleSet();
+        bean.setDomainRules(dto.getDomainRules() != null
+                ? dto.getDomainRules().stream().map(this::toContractRuleBean).collect(toList())
+                : Collections.emptyList());
+        bean.setMigrationRules(dto.getMigrationRules() != null
+                ? dto.getMigrationRules().stream().map(this::toContractRuleBean).collect(toList())
+                : Collections.emptyList());
+        return bean;
+    }
+
+    private ContractRule toContractRuleBean(ContractRuleDto dto) {
+        ContractRule bean = new ContractRule();
+        bean.setName(dto.getName());
+        if (dto.getKind() != null) {
+            bean.setKind(ContractRule.Kind.fromValue(dto.getKind().name()));
+        }
+        bean.setType(dto.getType());
+        if (dto.getMode() != null) {
+            bean.setMode(ContractRule.Mode.fromValue(dto.getMode().name()));
+        }
+        bean.setExpr(dto.getExpr());
+        if (dto.getParams() != null) {
+            Params params = new Params();
+            dto.getParams().forEach((k, v) -> params.setAdditionalProperty(k, v));
+            bean.setParams(params);
+        }
+        if (dto.getTags() != null) {
+            bean.setTags(new ArrayList<>(dto.getTags()));
+        }
+        if (dto.getOnSuccess() != null) {
+            bean.setOnSuccess(ContractRule.OnSuccess.fromValue(dto.getOnSuccess().name()));
+        }
+        if (dto.getOnFailure() != null) {
+            bean.setOnFailure(ContractRule.OnFailure.fromValue(dto.getOnFailure().name()));
+        }
+        bean.setDisabled(dto.isDisabled());
+        return bean;
+    }
+
+    private ContractRuleSetDto toContractRuleSetDto(ContractRuleSet bean) {
+        return ContractRuleSetDto.builder()
+                .domainRules(bean.getDomainRules() != null
+                        ? bean.getDomainRules().stream().map(this::toContractRuleDto).collect(toList())
+                        : Collections.emptyList())
+                .migrationRules(bean.getMigrationRules() != null
+                        ? bean.getMigrationRules().stream().map(this::toContractRuleDto).collect(toList())
+                        : Collections.emptyList())
+                .build();
+    }
+
+    private Map<String, String> toStringMap(Map<String, Object> objectMap) {
+        Map<String, String> result = new java.util.HashMap<>();
+        objectMap.forEach((k, v) -> result.put(k, v != null ? v.toString() : null));
+        return result;
+    }
+
+    private ContractRuleDto toContractRuleDto(ContractRule bean) {
+        return ContractRuleDto.builder()
+                .name(bean.getName())
+                .kind(bean.getKind() != null ? RuleKind.valueOf(bean.getKind().value()) : null)
+                .type(bean.getType())
+                .mode(bean.getMode() != null ? RuleMode.valueOf(bean.getMode().value()) : null)
+                .expr(bean.getExpr())
+                .params(bean.getParams() != null ? toStringMap(bean.getParams().getAdditionalProperties()) : null)
+                .tags(bean.getTags() != null ? new HashSet<>(bean.getTags()) : null)
+                .onSuccess(bean.getOnSuccess() != null
+                        ? RuleAction.valueOf(bean.getOnSuccess().value()) : null)
+                .onFailure(bean.getOnFailure() != null
+                        ? RuleAction.valueOf(bean.getOnFailure().value()) : null)
+                .disabled(bean.getDisabled() != null && bean.getDisabled())
+                .build();
+    }
+
+    // ========== ODCS Contract Endpoints ==========
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
+    public OdcsContractResult submitContract(String groupId, String data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("data", data);
+
+        OdcsContract contract;
+        try {
+            contract = odcsParser.parse(data);
+        } catch (OdcsParseException e) {
+            throw new BadRequestException("Invalid ODCS contract: " + e.getMessage());
+        }
+
+        String contractId = contract.getId() != null ? contract.getId()
+                : contract.getInfo() != null && contract.getInfo().getTitle() != null
+                        ? contract.getInfo().getTitle().replaceAll("[^a-zA-Z0-9._\\-+]", "-")
+                        : "odcs-contract-" + UUID.randomUUID();
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
+
+        try {
+            storage.createArtifact(rawGroupId, contractId, ArtifactType.ODCS_CONTRACT,
+                    EditableArtifactMetaDataDto.builder()
+                            .name(contract.getInfo() != null ? contract.getInfo().getTitle() : contractId)
+                            .description(
+                                    contract.getInfo() != null ? contract.getInfo().getDescription() : null)
+                            .build(),
+                    version,
+                    ContentWrapperDto.builder()
+                            .contentType(ContentTypes.APPLICATION_YAML)
+                            .content(ContentHandle.create(data))
+                            .build(),
+                    EditableVersionMetaDataDto.builder().build(),
+                    List.of(), false, false, null);
+        } catch (ArtifactAlreadyExistsException e) {
+            storage.createArtifactVersion(rawGroupId, contractId, version,
+                    ArtifactType.ODCS_CONTRACT,
+                    ContentWrapperDto.builder()
+                            .contentType(ContentTypes.APPLICATION_YAML)
+                            .content(ContentHandle.create(data))
+                            .build(),
+                    EditableVersionMetaDataDto.builder().build(),
+                    List.of(), false, false, null);
+        }
+
+        OdcsProjectionResult projection;
+        try {
+            projection = projectOdcsContract(contract, contractId, rawGroupId);
+        } catch (Exception e) {
+            storage.deleteArtifact(rawGroupId, contractId);
+            throw new BadRequestException(
+                    "Contract created but projection failed — rolled back: "
+                            + e.getMessage());
+        }
+        return toOdcsContractResult(contractId, contract, projection);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
+    public List<OdcsContractSummary> listContracts(String groupId, Integer limit,
+            Integer offset) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+
+        int effectiveLimit = limit != null ? Math.min(limit, 500) : 20;
+        int effectiveOffset = offset != null ? offset : 0;
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        Set<SearchFilter> filters = Set.of(
+                SearchFilter.ofGroupId(rawGroupId),
+                SearchFilter.ofArtifactType(ArtifactType.ODCS_CONTRACT));
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
+                OrderBy.createdOn, OrderDirection.desc, effectiveOffset,
+                effectiveLimit);
+
+        return results.getArtifacts().stream()
+                .map(meta -> {
+                    OdcsContractSummary s = new OdcsContractSummary();
+                    s.setContractId(meta.getArtifactId());
+                    s.setName(meta.getName() != null ? meta.getName() : meta.getArtifactId());
+                    return s;
+                })
+                .toList();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public String getContract(String groupId, String contractId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("contractId", contractId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        var content = storage.getArtifactVersionContent(rawGroupId, contractId, "latest");
+        return content.getContent().content();
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public OdcsContractResult updateContract(String groupId, String contractId, String data) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("contractId", contractId);
+        ParameterValidationUtils.requireParameter("data", data);
+
+        OdcsContract contract;
+        try {
+            contract = odcsParser.parse(data);
+        } catch (OdcsParseException e) {
+            throw new BadRequestException("Invalid ODCS contract: " + e.getMessage());
+        }
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+
+        String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
+        storage.createArtifactVersion(rawGroupId, contractId, version,
+                ArtifactType.ODCS_CONTRACT,
+                ContentWrapperDto.builder()
+                        .contentType(ContentTypes.APPLICATION_YAML)
+                        .content(ContentHandle.create(data))
+                        .build(),
+                EditableVersionMetaDataDto.builder().build(),
+                List.of(), false, false, null);
+
+        OdcsProjectionResult projection = projectOdcsContract(contract, contractId, rawGroupId);
+        return toOdcsContractResult(contractId, contract, projection);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void deleteContract(String groupId, String contractId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("contractId", contractId);
+
+        storage.deleteArtifact(new GroupId(groupId).getRawGroupIdWithNull(), contractId);
+    }
+
+    private OdcsProjectionResult projectOdcsContract(OdcsContract contract,
+            String contractId, String groupId) {
+        if (contract.getSchemas() == null || contract.getSchemas().isEmpty()) {
+            return OdcsProjectionResult.builder().build();
+        }
+
+        OdcsProjectionResult combined = OdcsProjectionResult.builder().build();
+        for (OdcsSchema schema : contract.getSchemas()) {
+            if (schema.getLocation() == null || schema.getLocation().isBlank()) {
+                combined.addWarning("Schema without location: "
+                        + (schema.getName() != null ? schema.getName() : "unnamed"));
+                continue;
+            }
+
+            String[] parsed = parseSchemaLocation(schema.getLocation(), groupId);
+            if (parsed == null) {
+                combined.addWarning("Invalid schema location: " + schema.getLocation());
+                continue;
+            }
+
+            try {
+                storage.getArtifactMetaData(parsed[0], parsed[1]);
+                OdcsProjectionResult r = odcsProjectionEngine.project(
+                        contract, contractId, parsed[0], parsed[1]);
+                combined.setRulesApplied(
+                        combined.getRulesApplied() + r.getRulesApplied());
+                combined.setLabelsApplied(
+                        combined.getLabelsApplied() + r.getLabelsApplied());
+                combined.setTagsApplied(
+                        combined.getTagsApplied() + r.getTagsApplied());
+                combined.getWarnings().addAll(r.getWarnings());
+            } catch (Exception e) {
+                combined.addWarning("Schema artifact not found: " + parsed[0]
+                        + "/" + parsed[1] + ". Projection skipped.");
+            }
+        }
+        return combined;
+    }
+
+    private String[] parseSchemaLocation(String location, String defaultGroupId) {
+        if (location == null || location.isBlank()) {
+            return null;
+        }
+        String withoutVersion = location.contains(":")
+                ? location.substring(0, location.indexOf(':'))
+                : location;
+        if (withoutVersion.isBlank()) {
+            return null;
+        }
+
+        String schemaGroupId;
+        String schemaArtifactId;
+        int slashIdx = withoutVersion.indexOf('/');
+        if (slashIdx >= 0) {
+            schemaGroupId = withoutVersion.substring(0, slashIdx);
+            schemaArtifactId = withoutVersion.substring(slashIdx + 1);
+            if (schemaArtifactId.contains("/")) {
+                return null;
+            }
+        } else {
+            schemaGroupId = defaultGroupId;
+            schemaArtifactId = withoutVersion;
+        }
+
+        if (schemaGroupId == null || schemaGroupId.isBlank()
+                || schemaArtifactId.isBlank()) {
+            return null;
+        }
+        return new String[] { schemaGroupId, schemaArtifactId };
+    }
+
+    private OdcsContractResult toOdcsContractResult(String contractId, OdcsContract contract,
+            OdcsProjectionResult projection) {
+        OdcsProjectionSummary summary = new OdcsProjectionSummary();
+        summary.setRulesApplied(projection.getRulesApplied());
+        summary.setLabelsApplied(projection.getLabelsApplied());
+        summary.setTagsApplied(projection.getTagsApplied());
+        summary.setWarnings(projection.getWarnings());
+
+        OdcsContractResult result = new OdcsContractResult();
+        result.setContractId(contractId);
+        result.setVersion(contract.getInfo() != null ? contract.getInfo().getVersion() : null);
+        result.setProjection(summary);
+        return result;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public String exportContractAsOdcs(String groupId, String artifactId) {
+        checkContractsEnabled();
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        var meta = storage.getArtifactMetaData(rawGroupId, artifactId);
+        String contractId = findContractId(meta.getLabels());
+        if (contractId == null) {
+            throw new jakarta.ws.rs.NotFoundException(
+                    "No ODCS contract projected onto this artifact");
+        }
+        return odcsExporter.export(rawGroupId, artifactId, contractId);
+    }
+
+    private String findContractId(Map<String, String> labels) {
+        if (labels == null) {
+            return null;
+        }
+        String suffix = ".id";
+        for (Map.Entry<String, String> entry : labels.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
+                String middle = key.substring(ContractLabels.PREFIX.length(),
+                        key.length() - suffix.length());
+                if (!middle.contains(".")) {
+                    return entry.getValue();
+                }
+            }
+        }
+        return null;
     }
 }

@@ -763,7 +763,312 @@ public class IcebergApiTest extends AbstractResourceTestBase {
         cleanupTable(namespaceName, tableName);
     }
 
+    // --- View Tests ---
+
+    @Test
+    public void testViewLifecycle() {
+        String namespaceName = "test_view_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String viewName = "test_view";
+
+        // Create namespace first
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(Map.of("namespace", List.of(namespaceName), "properties", Map.of()))
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces")
+            .then()
+            .statusCode(200);
+
+        // Create view
+        Map<String, Object> createViewRequest = createViewRequestBody(viewName);
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(createViewRequest)
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views")
+            .then()
+            .statusCode(200)
+            .body("metadata.view-uuid", notNullValue())
+            .body("metadata.format-version", equalTo(1));
+
+        // List views
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .get(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views")
+            .then()
+            .statusCode(200)
+            .body("identifiers[0].name", equalTo(viewName));
+
+        // Check view exists
+        given()
+            .when()
+            .head(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(204);
+
+        // Load view
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .get(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(200)
+            .body("metadata.view-uuid", notNullValue())
+            .body("metadata.current-version-id", equalTo(1));
+
+        // Drop view
+        given()
+            .when()
+            .delete(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(204);
+
+        // Drop namespace
+        given()
+            .when()
+            .delete(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName)
+            .then()
+            .statusCode(204);
+    }
+
+    @Test
+    public void testRenameView() {
+        String namespaceName = "test_renameview_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String viewName = "original_view";
+        String newViewName = "renamed_view";
+
+        createNamespaceAndView(namespaceName, viewName);
+
+        // Rename view
+        Map<String, Object> renameRequest = Map.of(
+            "source", Map.of(
+                "namespace", List.of(namespaceName),
+                "name", viewName
+            ),
+            "destination", Map.of(
+                "namespace", List.of(namespaceName),
+                "name", newViewName
+            )
+        );
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(renameRequest)
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/views/rename")
+            .then()
+            .statusCode(204);
+
+        // Verify old view is gone
+        given()
+            .when()
+            .head(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(404);
+
+        // Verify new view exists
+        given()
+            .when()
+            .head(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + newViewName)
+            .then()
+            .statusCode(204);
+
+        cleanupView(namespaceName, newViewName);
+    }
+
+    @Test
+    public void testReplaceViewBasic() {
+        String namespaceName = "test_replaceview_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String viewName = "replace_view";
+
+        createNamespaceAndView(namespaceName, viewName);
+
+        // Replace view: add-view-version
+        Map<String, Object> newVersion = new HashMap<>();
+        newVersion.put("version-id", 2);
+        newVersion.put("schema-id", 0);
+        newVersion.put("timestamp-ms", System.currentTimeMillis());
+        newVersion.put("summary", Map.of("operation", "replace"));
+        newVersion.put("representations", List.of(
+            Map.of("type", "sql", "sql", "SELECT id, data FROM t1 WHERE id > 10", "dialect", "spark")
+        ));
+        newVersion.put("default-namespace", List.of(namespaceName));
+
+        Map<String, Object> commitRequest = Map.of(
+            "requirements", List.of(),
+            "updates", List.of(
+                Map.of("action", "add-view-version", "view-version", newVersion)
+            )
+        );
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(commitRequest)
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(200)
+            .body("metadata.current-version-id", equalTo(2));
+
+        // Verify by loading
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .get(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(200)
+            .body("metadata.current-version-id", equalTo(2));
+
+        cleanupView(namespaceName, viewName);
+    }
+
+    @Test
+    public void testReplaceViewRequirementSuccess() {
+        String namespaceName = "test_viewreqok_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String viewName = "viewreq_view";
+
+        createNamespaceAndView(namespaceName, viewName);
+
+        // Load the view to get the UUID
+        String viewUuid = given()
+            .when()
+            .contentType(CT_JSON)
+            .get(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(200)
+            .extract().path("metadata.view-uuid");
+
+        // Commit with assert-view-uuid requirement (should succeed)
+        Map<String, Object> commitRequest = Map.of(
+            "requirements", List.of(Map.of("type", "assert-view-uuid", "uuid", viewUuid)),
+            "updates", List.of(Map.of("action", "set-location", "location", "/new/view/location"))
+        );
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(commitRequest)
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(200)
+            .body("metadata.location", equalTo("/new/view/location"));
+
+        cleanupView(namespaceName, viewName);
+    }
+
+    @Test
+    public void testReplaceViewRequirementFailure() {
+        String namespaceName = "test_viewreqfail_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String viewName = "viewreqfail_view";
+
+        createNamespaceAndView(namespaceName, viewName);
+
+        // Commit with wrong UUID (should fail with 409)
+        Map<String, Object> commitRequest = Map.of(
+            "requirements", List.of(Map.of("type", "assert-view-uuid", "uuid", "wrong-uuid")),
+            "updates", List.of(Map.of("action", "set-location", "location", "/new/location"))
+        );
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(commitRequest)
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(409)
+            .body("error.type", equalTo("CommitFailedException"));
+
+        cleanupView(namespaceName, viewName);
+    }
+
+    @Test
+    public void testNamespaceNotEmptyWithView() {
+        String namespaceName = "test_notemptyview_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String viewName = "test_view";
+
+        createNamespaceAndView(namespaceName, viewName);
+
+        // Try to drop non-empty namespace (should fail)
+        given()
+            .when()
+            .delete(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName)
+            .then()
+            .statusCode(409);
+
+        // Drop view first
+        given()
+            .when()
+            .delete(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(204);
+
+        // Now drop namespace (should succeed)
+        given()
+            .when()
+            .delete(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName)
+            .then()
+            .statusCode(204);
+    }
+
     // --- Helper Methods ---
+
+    private Map<String, Object> createViewRequestBody(String viewName) {
+        Map<String, Object> viewVersion = new HashMap<>();
+        viewVersion.put("version-id", 1);
+        viewVersion.put("schema-id", 0);
+        viewVersion.put("timestamp-ms", System.currentTimeMillis());
+        viewVersion.put("representations", List.of(
+            Map.of("type", "sql", "sql", "SELECT * FROM t1", "dialect", "spark")
+        ));
+
+        Map<String, Object> request = new HashMap<>();
+        request.put("name", viewName);
+        request.put("schema", Map.of(
+            "type", "struct",
+            "schema-id", 0,
+            "fields", List.of(
+                Map.of("id", 1, "name", "id", "required", true, "type", "long"),
+                Map.of("id", 2, "name", "data", "required", false, "type", "string")
+            )
+        ));
+        request.put("view-version", viewVersion);
+        request.put("properties", Map.of());
+        return request;
+    }
+
+    private void createNamespaceAndView(String namespaceName, String viewName) {
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(Map.of("namespace", List.of(namespaceName), "properties", Map.of()))
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces")
+            .then()
+            .statusCode(200);
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(createViewRequestBody(viewName))
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views")
+            .then()
+            .statusCode(200);
+    }
+
+    private void cleanupView(String namespaceName, String viewName) {
+        given()
+            .when()
+            .delete(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/views/" + viewName)
+            .then()
+            .statusCode(204);
+
+        given()
+            .when()
+            .delete(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName)
+            .then()
+            .statusCode(204);
+    }
 
     private void createNamespaceAndTable(String namespaceName, String tableName) {
         given()

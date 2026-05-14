@@ -20,10 +20,18 @@ class AgentCardStructuredContentExtractorTest {
         String agentCard = """
                 {
                   "name": "Test Agent",
+                  "description": "Test",
+                  "version": "1.0.0",
+                  "supportedInterfaces": [
+                    { "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                  ],
+                  "capabilities": {},
                   "skills": [
-                    { "id": "schema-validation", "name": "Schema Validation" },
-                    { "id": "data-transformation", "name": "Data Transformation" }
-                  ]
+                    { "id": "schema-validation", "name": "Schema Validation", "description": "Validate schemas", "tags": ["validation"] },
+                    { "id": "data-transformation", "name": "Data Transformation", "description": "Transform data", "tags": ["data"] }
+                  ],
+                  "defaultInputModes": ["text"],
+                  "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -40,11 +48,21 @@ class AgentCardStructuredContentExtractorTest {
         String agentCard = """
                 {
                   "name": "Test Agent",
+                  "description": "Test",
+                  "version": "1.0.0",
+                  "supportedInterfaces": [
+                    { "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                  ],
                   "capabilities": {
                     "streaming": true,
                     "pushNotifications": false,
                     "stateTransitionHistory": true
-                  }
+                  },
+                  "skills": [
+                    { "id": "s1", "name": "Skill", "description": "A skill", "tags": ["test"] }
+                  ],
+                  "defaultInputModes": ["text"],
+                  "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -65,7 +83,17 @@ class AgentCardStructuredContentExtractorTest {
         String agentCard = """
                 {
                   "name": "Test Agent",
-                  "defaultInputModes": ["text", "audio", "image"]
+                  "description": "Test",
+                  "version": "1.0.0",
+                  "supportedInterfaces": [
+                    { "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                  ],
+                  "capabilities": {},
+                  "skills": [
+                    { "id": "s1", "name": "Skill", "description": "A skill", "tags": ["test"] }
+                  ],
+                  "defaultInputModes": ["text", "audio", "image"],
+                  "defaultOutputModes": ["text"]
                 }
                 """;
 
@@ -84,6 +112,16 @@ class AgentCardStructuredContentExtractorTest {
         String agentCard = """
                 {
                   "name": "Test Agent",
+                  "description": "Test",
+                  "version": "1.0.0",
+                  "supportedInterfaces": [
+                    { "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                  ],
+                  "capabilities": {},
+                  "skills": [
+                    { "id": "s1", "name": "Skill", "description": "A skill", "tags": ["test"] }
+                  ],
+                  "defaultInputModes": ["text"],
                   "defaultOutputModes": ["text", "video"]
                 }
                 """;
@@ -97,22 +135,120 @@ class AgentCardStructuredContentExtractorTest {
     }
 
     @Test
+    void testExtractProtocolBindings() {
+        String agentCard = """
+                {
+                  "name": "Test Agent",
+                  "description": "Test",
+                  "version": "1.0.0",
+                  "supportedInterfaces": [
+                    { "url": "https://example.com/jsonrpc", "protocolBinding": "jsonrpc", "protocolVersion": "1.0" },
+                    { "url": "https://example.com/rest", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                  ],
+                  "capabilities": {},
+                  "skills": [
+                    { "id": "s1", "name": "Skill", "description": "A skill", "tags": ["test"] }
+                  ],
+                  "defaultInputModes": ["text"],
+                  "defaultOutputModes": ["text"]
+                }
+                """;
+
+        List<StructuredElement> elements = extractor.extract(ContentHandle.create(agentCard));
+
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("protocolbinding") && e.name().equals("jsonrpc")));
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("protocolbinding") && e.name().equals("http+json")));
+    }
+
+    @Test
+    void testExtractSecuritySchemeNames() {
+        String agentCard = """
+                {
+                  "name": "Test Agent",
+                  "description": "Test",
+                  "version": "1.0.0",
+                  "supportedInterfaces": [
+                    { "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                  ],
+                  "capabilities": {},
+                  "skills": [
+                    { "id": "s1", "name": "Skill", "description": "A skill", "tags": ["test"] }
+                  ],
+                  "defaultInputModes": ["text"],
+                  "defaultOutputModes": ["text"],
+                  "securitySchemes": {
+                    "bearer": { "type": "httpAuth", "scheme": "Bearer" },
+                    "apikey": { "type": "apiKey", "name": "X-API-Key", "location": "header" }
+                  }
+                }
+                """;
+
+        List<StructuredElement> elements = extractor.extract(ContentHandle.create(agentCard));
+
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("securityscheme") && e.name().equals("bearer")));
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("securityscheme") && e.name().equals("apikey")));
+    }
+
+    @Test
+    void testExtractTags() {
+        String agentCard = """
+                {
+                  "name": "Test Agent",
+                  "description": "Test",
+                  "version": "1.0.0",
+                  "supportedInterfaces": [
+                    { "url": "https://example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                  ],
+                  "capabilities": {},
+                  "skills": [
+                    { "id": "s1", "name": "Skill 1", "description": "A skill", "tags": ["analytics", "data"] },
+                    { "id": "s2", "name": "Skill 2", "description": "Another skill", "tags": ["data", "reporting"] }
+                  ],
+                  "defaultInputModes": ["text"],
+                  "defaultOutputModes": ["text"]
+                }
+                """;
+
+        List<StructuredElement> elements = extractor.extract(ContentHandle.create(agentCard));
+
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("tag") && e.name().equals("analytics")));
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("tag") && e.name().equals("data")));
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("tag") && e.name().equals("reporting")));
+        // "data" appears in both skills but should only be extracted once
+        assertEquals(1, elements.stream()
+                .filter(e -> e.kind().equals("tag") && e.name().equals("data")).count());
+    }
+
+    @Test
     void testComprehensiveExtraction() {
         String agentCard = """
                 {
                   "name": "Comprehensive Agent",
-                  "url": "https://agent.example.com",
                   "description": "A fully-featured agent",
-                  "skills": [
-                    { "id": "summarization", "name": "Text Summarization" },
-                    { "id": "translation", "name": "Language Translation" }
+                  "version": "1.0.0",
+                  "supportedInterfaces": [
+                    { "url": "https://agent.example.com", "protocolBinding": "http+json", "protocolVersion": "1.0" }
                   ],
                   "capabilities": {
                     "streaming": true,
                     "pushNotifications": true
                   },
+                  "skills": [
+                    { "id": "summarization", "name": "Text Summarization", "description": "Summarize text", "tags": ["nlp", "text"] },
+                    { "id": "translation", "name": "Language Translation", "description": "Translate text", "tags": ["nlp", "translation"] }
+                  ],
                   "defaultInputModes": ["text", "audio"],
-                  "defaultOutputModes": ["text"]
+                  "defaultOutputModes": ["text"],
+                  "securitySchemes": {
+                    "bearer": { "type": "httpAuth", "scheme": "Bearer" }
+                  }
                 }
                 """;
 
@@ -123,6 +259,9 @@ class AgentCardStructuredContentExtractorTest {
         assertTrue(elements.stream().anyMatch(e -> e.kind().equals("capability")));
         assertTrue(elements.stream().anyMatch(e -> e.kind().equals("inputmode")));
         assertTrue(elements.stream().anyMatch(e -> e.kind().equals("outputmode")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("protocolbinding")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("securityscheme")));
+        assertTrue(elements.stream().anyMatch(e -> e.kind().equals("tag")));
 
         // Verify specific values
         assertTrue(elements.stream()
@@ -139,6 +278,12 @@ class AgentCardStructuredContentExtractorTest {
                 .anyMatch(e -> e.kind().equals("inputmode") && e.name().equals("audio")));
         assertTrue(elements.stream()
                 .anyMatch(e -> e.kind().equals("outputmode") && e.name().equals("text")));
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("protocolbinding") && e.name().equals("http+json")));
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("securityscheme") && e.name().equals("bearer")));
+        assertTrue(elements.stream()
+                .anyMatch(e -> e.kind().equals("tag") && e.name().equals("nlp")));
     }
 
     @Test

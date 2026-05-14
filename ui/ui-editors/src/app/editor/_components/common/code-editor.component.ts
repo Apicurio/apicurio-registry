@@ -17,7 +17,7 @@
 
 import {Component, EventEmitter, Input, Output, ViewChild, ViewEncapsulation} from "@angular/core";
 import {AceEditorComponent} from "./ace-editor.component";
-import {Debouncer} from "apicurio-ts-core";
+import {Debouncer} from "../../_messaging/debouncer";
 
 
 export enum CodeEditorTheme {

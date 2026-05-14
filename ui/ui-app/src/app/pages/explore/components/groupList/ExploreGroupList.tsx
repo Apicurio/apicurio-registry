@@ -14,6 +14,7 @@ import { SearchedGroup } from "@apicurio/apicurio-registry-sdk/dist/generated-cl
 import { ArtifactGroup } from "@app/components";
 import { If, ObjectDropdown } from "@apicurio/common-ui-components";
 import { UserService, useUserService } from "@services/useUserService.ts";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 /**
  * Properties
@@ -32,6 +33,7 @@ export type ExploreGroupListProps = {
 export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props: ExploreGroupListProps) => {
 
     const user: UserService = useUserService();
+    const config: ConfigService = useConfigService();
 
     const description = (group: SearchedGroup): string => {
         if (group.description) {
@@ -48,13 +50,13 @@ export const ExploreGroupList: FunctionComponent<ExploreGroupListProps> = (props
         },
         {
             divider: true,
-            isVisible: (group: SearchedGroup) => user.isUserDeveloper(group.owner)
+            isVisible: (group: SearchedGroup) => !config.featureReadOnly() && config.featureDeleteGroup() && user.isUserDeveloper(group.owner)
         },
         {
             id: "delete-group",
             label: "Delete group",
             action: (group: SearchedGroup) => props.onDelete(group),
-            isVisible: (group: SearchedGroup) => user.isUserDeveloper(group.owner)
+            isVisible: (group: SearchedGroup) => !config.featureReadOnly() && config.featureDeleteGroup() && user.isUserDeveloper(group.owner)
         }
     ];
 

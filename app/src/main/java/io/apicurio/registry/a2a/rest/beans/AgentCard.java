@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents an A2A Agent Card - a JSON metadata document describing an AI agent
@@ -23,8 +24,8 @@ public class AgentCard {
     @JsonProperty("version")
     private String version;
 
-    @JsonProperty("url")
-    private String url;
+    @JsonProperty("protocolVersion")
+    private String protocolVersion;
 
     @JsonProperty("provider")
     private AgentProvider provider;
@@ -41,11 +42,23 @@ public class AgentCard {
     @JsonProperty("defaultOutputModes")
     private List<String> defaultOutputModes;
 
-    @JsonProperty("authentication")
-    private AgentAuthentication authentication;
+    @JsonProperty("supportedInterfaces")
+    private List<AgentInterface> supportedInterfaces;
 
-    @JsonProperty("supportsExtendedAgentCard")
-    private Boolean supportsExtendedAgentCard;
+    @JsonProperty("securitySchemes")
+    private Map<String, SecurityScheme> securitySchemes;
+
+    @JsonProperty("securityRequirements")
+    private List<SecurityRequirement> securityRequirements;
+
+    @JsonProperty("iconUrl")
+    private String iconUrl;
+
+    @JsonProperty("documentationUrl")
+    private String documentationUrl;
+
+    @JsonProperty("signatures")
+    private List<AgentCardSignature> signatures;
 
     public AgentCard() {
     }
@@ -74,12 +87,12 @@ public class AgentCard {
         this.version = version;
     }
 
-    public String getUrl() {
-        return url;
+    public String getProtocolVersion() {
+        return protocolVersion;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public void setProtocolVersion(String protocolVersion) {
+        this.protocolVersion = protocolVersion;
     }
 
     public AgentProvider getProvider() {
@@ -122,20 +135,52 @@ public class AgentCard {
         this.defaultOutputModes = defaultOutputModes;
     }
 
-    public AgentAuthentication getAuthentication() {
-        return authentication;
+    public List<AgentInterface> getSupportedInterfaces() {
+        return supportedInterfaces;
     }
 
-    public void setAuthentication(AgentAuthentication authentication) {
-        this.authentication = authentication;
+    public void setSupportedInterfaces(List<AgentInterface> supportedInterfaces) {
+        this.supportedInterfaces = supportedInterfaces;
     }
 
-    public Boolean getSupportsExtendedAgentCard() {
-        return supportsExtendedAgentCard;
+    public Map<String, SecurityScheme> getSecuritySchemes() {
+        return securitySchemes;
     }
 
-    public void setSupportsExtendedAgentCard(Boolean supportsExtendedAgentCard) {
-        this.supportsExtendedAgentCard = supportsExtendedAgentCard;
+    public void setSecuritySchemes(Map<String, SecurityScheme> securitySchemes) {
+        this.securitySchemes = securitySchemes;
+    }
+
+    public List<SecurityRequirement> getSecurityRequirements() {
+        return securityRequirements;
+    }
+
+    public void setSecurityRequirements(List<SecurityRequirement> securityRequirements) {
+        this.securityRequirements = securityRequirements;
+    }
+
+    public String getIconUrl() {
+        return iconUrl;
+    }
+
+    public void setIconUrl(String iconUrl) {
+        this.iconUrl = iconUrl;
+    }
+
+    public String getDocumentationUrl() {
+        return documentationUrl;
+    }
+
+    public void setDocumentationUrl(String documentationUrl) {
+        this.documentationUrl = documentationUrl;
+    }
+
+    public List<AgentCardSignature> getSignatures() {
+        return signatures;
+    }
+
+    public void setSignatures(List<AgentCardSignature> signatures) {
+        this.signatures = signatures;
     }
 
     public static Builder builder() {
@@ -160,8 +205,8 @@ public class AgentCard {
             return this;
         }
 
-        public Builder url(String url) {
-            agentCard.setUrl(url);
+        public Builder protocolVersion(String protocolVersion) {
+            agentCard.setProtocolVersion(protocolVersion);
             return this;
         }
 
@@ -190,13 +235,33 @@ public class AgentCard {
             return this;
         }
 
-        public Builder authentication(AgentAuthentication authentication) {
-            agentCard.setAuthentication(authentication);
+        public Builder supportedInterfaces(List<AgentInterface> supportedInterfaces) {
+            agentCard.setSupportedInterfaces(supportedInterfaces);
             return this;
         }
 
-        public Builder supportsExtendedAgentCard(Boolean supportsExtendedAgentCard) {
-            agentCard.setSupportsExtendedAgentCard(supportsExtendedAgentCard);
+        public Builder securitySchemes(Map<String, SecurityScheme> securitySchemes) {
+            agentCard.setSecuritySchemes(securitySchemes);
+            return this;
+        }
+
+        public Builder securityRequirements(List<SecurityRequirement> securityRequirements) {
+            agentCard.setSecurityRequirements(securityRequirements);
+            return this;
+        }
+
+        public Builder iconUrl(String iconUrl) {
+            agentCard.setIconUrl(iconUrl);
+            return this;
+        }
+
+        public Builder documentationUrl(String documentationUrl) {
+            agentCard.setDocumentationUrl(documentationUrl);
+            return this;
+        }
+
+        public Builder signatures(List<AgentCardSignature> signatures) {
+            agentCard.setSignatures(signatures);
             return this;
         }
 

@@ -10,6 +10,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -56,6 +57,9 @@ public abstract class AbstractDataImporter implements DataImporter {
             case Branch:
                 importBranch((BranchEntity) entity);
                 break;
+            case ContractRule:
+                importContractRule((ContractRuleEntity) entity);
+                break;
             case Manifest:
                 ManifestEntity manifest = (ManifestEntity) entity;
                 log.info("---------- Import Info ----------");
@@ -89,4 +93,6 @@ public abstract class AbstractDataImporter implements DataImporter {
     protected abstract void importGroupRule(GroupRuleEntity entity);
 
     protected abstract void importBranch(BranchEntity entity);
+
+    protected abstract void importContractRule(ContractRuleEntity entity);
 }

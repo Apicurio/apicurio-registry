@@ -32,11 +32,6 @@ import static lombok.AccessLevel.PRIVATE;
 @ToString
 public class KubernetesOpsSpec {
 
-    /**
-     * Unique identifier for this registry instance. Only ConfigMaps with a matching label will be loaded.
-     * <p>
-     * Required if <code>app.storage.type</code> is <code>kubernetesops</code>.
-     */
     @JsonProperty("registryId")
     @JsonPropertyDescription("""
             Unique identifier for this registry instance. Only ConfigMaps with a matching label will be loaded.
@@ -45,37 +40,24 @@ public class KubernetesOpsSpec {
     @JsonSetter(nulls = SKIP)
     private String registryId;
 
-    /**
-     * Kubernetes namespace to watch for ConfigMaps. Defaults to the namespace of the registry deployment.
-     */
     @JsonProperty("namespace")
     @JsonPropertyDescription("""
             Kubernetes namespace to watch for ConfigMaps. Defaults to the namespace of the registry deployment.""")
     @JsonSetter(nulls = SKIP)
     private String namespace;
 
-    /**
-     * How often to poll for ConfigMap changes. Supports duration format (e.g., 10s, 1m). Defaults to 30s.
-     */
     @JsonProperty("refreshEvery")
     @JsonPropertyDescription("""
             How often to poll for ConfigMap changes. Supports duration format (e.g., `10s`, `1m`). Defaults to `30s`.""")
     @JsonSetter(nulls = SKIP)
     private String refreshEvery;
 
-    /**
-     * Label key used to identify ConfigMaps belonging to this registry. Defaults to
-     * <code>apicurio.io/registry-id</code>.
-     */
     @JsonProperty("labelRegistryId")
     @JsonPropertyDescription("""
             Label key used to identify ConfigMaps belonging to this registry. Defaults to `apicurio.io/registry-id`.""")
     @JsonSetter(nulls = SKIP)
     private String labelRegistryId;
 
-    /**
-     * Enable Watch API for real-time ConfigMap change detection. Defaults to true.
-     */
     @JsonProperty("watchEnabled")
     @JsonPropertyDescription("""
             Enable Watch API for real-time ConfigMap change detection. Set to `false` to use polling only. \
@@ -83,10 +65,6 @@ public class KubernetesOpsSpec {
     @JsonSetter(nulls = SKIP)
     private Boolean watchEnabled;
 
-    /**
-     * Base delay before reconnecting after watch failure. Uses exponential backoff up to 5 minutes.
-     * Defaults to 10s.
-     */
     @JsonProperty("watchReconnectDelay")
     @JsonPropertyDescription("""
             Base delay before reconnecting after watch failure. Uses exponential backoff up to 5 minutes. \

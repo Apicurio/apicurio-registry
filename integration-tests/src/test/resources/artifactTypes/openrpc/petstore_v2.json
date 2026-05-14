@@ -1,0 +1,135 @@
+{
+    "openrpc": "1.3.2",
+    "info": {
+        "title": "Petstore",
+        "description": "A sample Petstore API described using OpenRPC.",
+        "version": "2.0.0",
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+    },
+    "servers": [
+        {
+            "name": "default",
+            "url": "https://petstore.example.com/rpc"
+        }
+    ],
+    "methods": [
+        {
+            "name": "listPets",
+            "summary": "List all pets",
+            "description": "Returns all pets from the store.",
+            "params": [
+                {
+                    "name": "limit",
+                    "description": "Maximum number of pets to return",
+                    "required": false,
+                    "schema": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                    }
+                },
+                {
+                    "name": "offset",
+                    "description": "Number of pets to skip",
+                    "required": false,
+                    "schema": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                }
+            ],
+            "result": {
+                "name": "pets",
+                "description": "A list of pets",
+                "schema": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/components/schemas/Pet"
+                    }
+                }
+            }
+        },
+        {
+            "name": "getPet",
+            "summary": "Get a pet by ID",
+            "description": "Returns a single pet by its ID.",
+            "params": [
+                {
+                    "name": "petId",
+                    "description": "The ID of the pet to retrieve",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ],
+            "result": {
+                "name": "pet",
+                "description": "The requested pet",
+                "schema": {
+                    "$ref": "#/components/schemas/Pet"
+                }
+            }
+        },
+        {
+            "name": "createPet",
+            "summary": "Create a new pet",
+            "description": "Adds a new pet to the store.",
+            "params": [
+                {
+                    "name": "name",
+                    "description": "Name of the pet",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "tag",
+                    "description": "Optional tag for the pet",
+                    "required": false,
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "result": {
+                "name": "pet",
+                "description": "The created pet",
+                "schema": {
+                    "$ref": "#/components/schemas/Pet"
+                }
+            }
+        }
+    ],
+    "components": {
+        "schemas": {
+            "Pet": {
+                "type": "object",
+                "required": ["id", "name"],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "Unique identifier for the pet"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name of the pet"
+                    },
+                    "tag": {
+                        "type": "string",
+                        "description": "Optional tag for the pet"
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Current status of the pet",
+                        "enum": ["available", "pending", "sold"]
+                    }
+                }
+            }
+        }
+    }
+}

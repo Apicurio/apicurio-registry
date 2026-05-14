@@ -17,7 +17,7 @@ on:
 jobs:
   extra-tests:
     name: Extra Tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -38,8 +38,8 @@ jobs:
 
       - name: Run Extra Tests
         run: |
-          ./mvnw verify --no-transfer-progress -pl utils/extra-tests -am \
-            -DskipUTs -Pextra-tests \
+          ./mvnw verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
+            -Pextra-tests \
             -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -Dmaven.javadoc.skip=true
 
@@ -61,7 +61,7 @@ jobs:
 
   integration-tests-ui:
     name: Integration Tests UI
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -117,7 +117,7 @@ jobs:
 
   integration-tests-legacy-v2:
     name: Integration Tests Legacy V2
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Registry 2.6
         uses: actions/checkout@v4
@@ -142,9 +142,9 @@ jobs:
         run: |
           echo "Starting Registry App (In Memory)"
           docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d apicurio/apicurio-registry:${{ inputs.image-tag }}
-          ./mvnw -Pintegration-tests clean install -DskipTests=true -DskipUiBuild=true -Dmaven.javadoc.skip=true -Dcli-skip-native
+          ./mvnw -Pintegration-tests clean install -DskipTests -Dmaven.javadoc.skip=true -DcliSkipNative
           cd integration-tests
-          ../mvnw verify -Pregression -Dmaven.javadoc.skip=true -Dquarkus.http.test-host=localhost -Dquarkus.http.test-port=8181
+          ../mvnw verify -Dmaven.javadoc.skip=true -Dquarkus.http.test-host=localhost -Dquarkus.http.test-port=8181
 
       - name: Collect logs
         if: failure()
@@ -159,7 +159,7 @@ jobs:
 
   integration-tests-typescript-sdk:
     name: Integration Tests Typescript SDK
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -183,7 +183,7 @@ jobs:
 
   build-examples:
     name: Build and Run Application examples
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

@@ -26,7 +26,8 @@ import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
 import { ArtifactTypesService, useArtifactTypesService } from "@services/useArtifactTypesService.ts";
-import { ArtifactLabel, LabelsFormGroup } from "@app/components";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { ArtifactLabel, LabelsFormGroup, ArtifactReferenceFormItem, ReferencesFormGroup, formItemsToReferences, isReferencesValid } from "@app/components";
 import { listToLabels } from "@utils/labels.utils.ts";
 import { detectContentType } from "@utils/content.utils.ts";
 
@@ -116,9 +117,12 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     const [contentTabKey, setContentTabKey] = useState(0);
     const [contentIsLoading, setContentIsLoading] = useState(false);
     const [versionLabels, setVersionLabels] = useState<ArtifactLabel[]>([]);
+    const [versionReferences, setVersionReferences] = useState<ArtifactReferenceFormItem[]>([]);
+    const [isDetectingRefs, setIsDetectingRefs] = useState(false);
 
     const urlService: UrlService = useUrlService();
     const atService: ArtifactTypesService = useArtifactTypesService();
+    const groupsService: GroupsService = useGroupsService();
 
     const setArtifactId = (newArtifactId: string): void => {
         setData({
@@ -222,6 +226,43 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         });
     };
 
+    const _setVersionReferences = (newReferences: ArtifactReferenceFormItem[]): void => {
+        setVersionReferences(newReferences);
+        setData({
+            ...data,
+            firstVersion: {
+                ...data.firstVersion,
+                content: {
+                    ...data.firstVersion?.content,
+                    references: formItemsToReferences(newReferences)
+                }
+            }
+        });
+    };
+
+    const onDetectReferences = (): void => {
+        const content = data.firstVersion?.content?.content;
+        if (!content) {
+            return;
+        }
+        const contentType = detectContentType(data.artifactType, content);
+        const artifactType = data.artifactType || undefined;
+        setIsDetectingRefs(true);
+        groupsService.detectContentReferences(content, contentType, artifactType).then(refs => {
+            const formItems: ArtifactReferenceFormItem[] = refs.map(ref => ({
+                name: ref.name || "",
+                groupId: ref.groupId || "",
+                artifactId: ref.artifactId || "",
+                version: ref.version || ""
+            }));
+            _setVersionReferences(formItems);
+        }).catch(error => {
+            console.error("[CreateArtifactModal] Failed to detect references:", error);
+        }).finally(() => {
+            setIsDetectingRefs(false);
+        });
+    };
+
     const fireCloseEvent = (): void => {
         props.onClose();
     };
@@ -237,6 +278,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     useEffect(() => {
         if (props.isOpen) {
             setData(EMPTY_FORM_DATA);
+            setVersionReferences([]);
             if (props.groupId) {
                 setGroupId(props.groupId);
             } else {
@@ -275,7 +317,8 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     const isGroupIdValid: boolean = validities.groupId !== "error";
     const isArtifactIdValid: boolean = validities.artifactId !== "error";
     const isCoordinates1Valid: boolean = isGroupIdValid && isArtifactIdValid;
-    const isValid: boolean = isCoordinates1Valid;
+    const areReferencesValid: boolean = isReferencesValid(versionReferences);
+    const isValid: boolean = isCoordinates1Valid && areReferencesValid;
 
     const coordinatesStepFooter: Partial<WizardFooterProps> = {
         nextButtonProps: {
@@ -301,6 +344,13 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         versionContentStepFooter.nextButtonText = "Create";
         versionContentStepFooter.isNextDisabled = !isValid;
     }
+    const versionReferencesStepFooter: Partial<WizardFooterProps> = {
+        nextButtonProps: {
+            id: "next-wizard-page"
+        },
+        isNextDisabled: !areReferencesValid,
+        onClose: props.onClose
+    };
     const versionMetadataStepFooter: Partial<WizardFooterProps> = {
         nextButtonProps: {
             id: "next-wizard-page"
@@ -507,9 +557,25 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                     </Form>
                 </WizardStep>
                 <WizardStep
+                    name="Artifact References (optional)"
+                    id="version-references-step"
+                    key={3}
+                    isDisabled={!hasVersionContent}
+                    footer={versionReferencesStepFooter}
+                >
+                    <Form>
+                        <ReferencesFormGroup
+                            references={versionReferences}
+                            onChange={_setVersionReferences}
+                            onDetect={onDetectReferences}
+                            isDetecting={isDetectingRefs}
+                        />
+                    </Form>
+                </WizardStep>
+                <WizardStep
                     name="Version Metadata (optional)"
                     id="version-metadata-step"
-                    key={3}
+                    key={4}
                     isDisabled={!hasVersionContent}
                     footer={versionMetadataStepFooter}
                 >

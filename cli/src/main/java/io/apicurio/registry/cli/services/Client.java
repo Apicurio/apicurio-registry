@@ -18,38 +18,18 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
 @ApplicationScoped
 public class Client {
 
-    private static Client instance;
-
-    public static synchronized Client getInstance() {
-        if (instance == null) {
-            throw new CliException("Client not initialized.", APPLICATION_ERROR_RETURN_CODE);
-        }
-        return instance;
-    }
-
-    public static synchronized void reset() {
-        if (instance != null) {
-            instance.registryClient = null;
-            instance.httpClient = null;
-        }
-    }
-
     @Inject
     Vertx vertx;
+
+    @Inject
+    Config config;
 
     private RegistryClient registryClient;
 
     private HttpClient httpClient;
 
-    Client() {
-    }
-
-    void onStart(@jakarta.enterprise.event.Observes io.quarkus.runtime.StartupEvent ev) {
-        instance = this;
-    }
-
     public RegistryClient getRegistryClient() {
-        var currentContext = Config.getInstance().read();
+        var currentContext = config.read();
         if (isBlank(currentContext.getCurrentContext())) {
             throw new CliException("No current context is set. " +
                     "Run `acr context set <context>` " +
@@ -83,5 +63,13 @@ public class Client {
             }
         }
         return httpClient;
+    }
+
+    /**
+     * Resets cached clients. Should be called between tests to avoid state leaking.
+     */
+    public void reset() {
+        registryClient = null;
+        httpClient = null;
     }
 }

@@ -23,6 +23,10 @@ spec:
                   fieldPath: metadata.namespace
             - name: APICURIO_STORAGE_SQL_KIND
               value: "postgresql"
+            - name: QUARKUS_DATASOURCE_H2_ACTIVE
+              value: "false"
+            - name: QUARKUS_DATASOURCE_POSTGRESQL_ACTIVE
+              value: "true"
             - name: APICURIO_DATASOURCE_URL
               value: jdbc:postgresql://postgresql-service:5432/registry
             - name: APICURIO_DATASOURCE_USERNAME

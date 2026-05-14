@@ -46,6 +46,100 @@ public class IfExistsTest extends AbstractResourceTestBase {
             }
             """;
 
+    private static final String SCHEMA_DEBEZIUM_ENUM_V1 = """
+            {
+                "type": "record",
+                "name": "Value",
+                "namespace": "com.example.dbserver1.public.shipments",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "int"
+                    },
+                    {
+                        "name": "status",
+                        "type": [
+                            "null",
+                            {
+                                "type": "string",
+                                "connect.parameters": {
+                                    "allowed": "station,post_office"
+                                },
+                                "connect.name": "io.debezium.data.Enum",
+                                "connect.version": 1
+                            }
+                        ],
+                        "default": null
+                    }
+                ]
+            }
+            """;
+    private static final String SCHEMA_DEBEZIUM_ENUM_V2 = """
+            {
+                "type": "record",
+                "name": "Value",
+                "namespace": "com.example.dbserver1.public.shipments",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "int"
+                    },
+                    {
+                        "name": "status",
+                        "type": [
+                            "null",
+                            {
+                                "type": "string",
+                                "connect.parameters": {
+                                    "allowed": "station,post_office,plane"
+                                },
+                                "connect.name": "io.debezium.data.Enum",
+                                "connect.version": 1
+                            }
+                        ],
+                        "default": null
+                    }
+                ]
+            }
+            """;
+
+    private static final String SCHEMA_DEFAULT_VALUE_V1 = """
+            {
+                "type": "record",
+                "name": "Value",
+                "namespace": "com.example.dbserver1.public.config",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "int"
+                    },
+                    {
+                        "name": "shard",
+                        "type": "int",
+                        "default": 0
+                    }
+                ]
+            }
+            """;
+    private static final String SCHEMA_DEFAULT_VALUE_V2 = """
+            {
+                "type": "record",
+                "name": "Value",
+                "namespace": "com.example.dbserver1.public.config",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "int"
+                    },
+                    {
+                        "name": "shard",
+                        "type": "int",
+                        "default": 1
+                    }
+                ]
+            }
+            """;
+
     @Test
     public void testIfExistsFail() throws Exception {
         String groupId = "testIfExistsFail";
@@ -343,6 +437,149 @@ public class IfExistsTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(vsr);
         Assertions.assertEquals(1, vsr.getVersions().size());
         Assertions.assertEquals(1, vsr.getCount().intValue());
+    }
+
+    /**
+     * Reproducer for Debezium regression: when only connect.parameters values change
+     * (e.g. io.debezium.data.Enum "allowed" values), FIND_OR_CREATE_VERSION must create
+     * a new version, not return the existing one.
+     */
+    @Test
+    public void testIfExistsFindOrCreateVersion_DifferentConnectParameters() throws Exception {
+        String groupId = "testIfExistsFindOrCreateVersion_DifferentConnectParameters";
+        String artifactId = "shipments-value";
+
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
+
+        // Register v1 with allowed=station,post_office
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_DEBEZIUM_ENUM_V1, ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertEquals("1", car.getVersion().getVersion());
+
+        // Register v2 with allowed=station,post_office,plane using FIND_OR_CREATE_VERSION
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_DEBEZIUM_ENUM_V2, ContentTypes.APPLICATION_JSON);
+        car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
+                config -> config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION);
+        Assertions.assertNotNull(car);
+        Assertions.assertEquals("2", car.getVersion().getVersion(),
+                "A new version should be created when connect.parameters values change");
+
+        // Should have two versions
+        VersionSearchResults vsr = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+        Assertions.assertEquals(2, vsr.getCount().intValue());
+    }
+
+    /**
+     * Reproducer for Debezium regression: same as above but with canonical=true.
+     * Even with canonical hashing, different connect.parameters must produce different versions.
+     */
+    @Test
+    public void testIfExistsFindOrCreateVersion_DifferentConnectParameters_Canonical() throws Exception {
+        String groupId = "testIfExistsFindOrCreateVersion_DifferentConnectParameters_Canonical";
+        String artifactId = "shipments-value";
+
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
+
+        // Register v1 with allowed=station,post_office
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_DEBEZIUM_ENUM_V1, ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertEquals("1", car.getVersion().getVersion());
+
+        // Register v2 with allowed=station,post_office,plane using FIND_OR_CREATE_VERSION + canonical
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_DEBEZIUM_ENUM_V2, ContentTypes.APPLICATION_JSON);
+        car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
+                config -> {
+                    config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+                    config.queryParameters.canonical = true;
+                });
+        Assertions.assertNotNull(car);
+        Assertions.assertEquals("2", car.getVersion().getVersion(),
+                "A new version should be created when connect.parameters values change (canonical mode)");
+
+        // Should have two versions
+        VersionSearchResults vsr = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+        Assertions.assertEquals(2, vsr.getCount().intValue());
+    }
+
+    /**
+     * Reproducer for Debezium regression: when only a field's default value changes,
+     * FIND_OR_CREATE_VERSION must create a new version.
+     */
+    @Test
+    public void testIfExistsFindOrCreateVersion_DifferentDefaultValues() throws Exception {
+        String groupId = "testIfExistsFindOrCreateVersion_DifferentDefaultValues";
+        String artifactId = "config-value";
+
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
+
+        // Register v1 with default=0
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_DEFAULT_VALUE_V1, ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertEquals("1", car.getVersion().getVersion());
+
+        // Register v2 with default=1 using FIND_OR_CREATE_VERSION
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_DEFAULT_VALUE_V2, ContentTypes.APPLICATION_JSON);
+        car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
+                config -> config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION);
+        Assertions.assertNotNull(car);
+        Assertions.assertEquals("2", car.getVersion().getVersion(),
+                "A new version should be created when field default values change");
+
+        // Should have two versions
+        VersionSearchResults vsr = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+        Assertions.assertEquals(2, vsr.getCount().intValue());
+    }
+
+    /**
+     * Reproducer for Debezium regression: same as above but with canonical=true.
+     * Even with canonical hashing, different default values must produce different versions.
+     */
+    @Test
+    public void testIfExistsFindOrCreateVersion_DifferentDefaultValues_Canonical() throws Exception {
+        String groupId = "testIfExistsFindOrCreateVersion_DifferentDefaultValues_Canonical";
+        String artifactId = "config-value";
+
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
+
+        // Register v1 with default=0
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_DEFAULT_VALUE_V1, ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car = clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+        Assertions.assertNotNull(car);
+        Assertions.assertEquals("1", car.getVersion().getVersion());
+
+        // Register v2 with default=1 using FIND_OR_CREATE_VERSION + canonical
+        CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                SCHEMA_DEFAULT_VALUE_V2, ContentTypes.APPLICATION_JSON);
+        car = clientV3.groups().byGroupId(groupId).artifacts().post(ca,
+                config -> {
+                    config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
+                    config.queryParameters.canonical = true;
+                });
+        Assertions.assertNotNull(car);
+        Assertions.assertEquals("2", car.getVersion().getVersion(),
+                "A new version should be created when field default values change (canonical mode)");
+
+        // Should have two versions
+        VersionSearchResults vsr = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get();
+        Assertions.assertEquals(2, vsr.getCount().intValue());
     }
 
 }

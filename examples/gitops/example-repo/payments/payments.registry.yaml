@@ -1,7 +1,0 @@
-$type: group-v0
-registryIds: [prod, staging]
-groupId: payments
-description: Payment service schemas
-labels:
-  team: payments
-  domain: finance

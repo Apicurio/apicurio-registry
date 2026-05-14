@@ -33,13 +33,13 @@ public class GitDataFile extends AbstractPollingDataFile {
     private ObjectId objectId;
     private boolean loaded;
 
-    private GitDataFile(String path, ContentHandle data, ProcessingState state) {
-        super(path, data, Any.from(state, path, data));
+    private GitDataFile(String sourceId, String path, ContentHandle data, ProcessingState state) {
+        super(sourceId, path, data, Any.from(state, path, data));
         this.loaded = true;
     }
 
-    private GitDataFile(String path, ObjectDatabase objectDatabase, ObjectId objectId) {
-        super(path, null, Optional.empty());
+    private GitDataFile(String sourceId, String path, ObjectDatabase objectDatabase, ObjectId objectId) {
+        super(sourceId, path, null, Optional.empty());
         this.objectDatabase = objectDatabase;
         this.objectId = objectId;
         this.loaded = false;
@@ -49,8 +49,8 @@ public class GitDataFile extends AbstractPollingDataFile {
      * Creates a GitDataFile with eagerly loaded content. Used for registry metadata files
      * (*.registry.yaml/json) that need to be parsed immediately.
      */
-    public static GitDataFile create(ProcessingState state, String path, InputStream stream) {
-        return new GitDataFile(Path.of(path).normalize().toString(), ContentHandle.create(stream), state);
+    public static GitDataFile create(String sourceId, ProcessingState state, String path, InputStream stream) {
+        return new GitDataFile(sourceId, Path.of(path).normalize().toString(), ContentHandle.create(stream), state);
     }
 
     /**
@@ -58,8 +58,8 @@ public class GitDataFile extends AbstractPollingDataFile {
      * {@link #getData()} is called. Used for non-metadata files (content files, READMEs, etc.)
      * to avoid loading unnecessary data into memory.
      */
-    public static GitDataFile createLazy(String path, ObjectDatabase objectDatabase, ObjectId objectId) {
-        return new GitDataFile(Path.of(path).normalize().toString(), objectDatabase, objectId);
+    public static GitDataFile createLazy(String sourceId, String path, ObjectDatabase objectDatabase, ObjectId objectId) {
+        return new GitDataFile(sourceId, Path.of(path).normalize().toString(), objectDatabase, objectId);
     }
 
     @Override

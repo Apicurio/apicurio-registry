@@ -33,7 +33,7 @@ import {
     VisitorUtil
 } from "@apicurio/data-models";
 import {EntityEditor, EntityEditorEvent, IEntityEditorHandler} from "./entity-editor.component";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../../_util/object.util";
 import {FindSchemaDefinitionsVisitor} from "../../_visitors/schema-definitions.visitor";
 import {DIVIDER, DropDownOption, DropDownOptionValue} from "../common/drop-down.component";
 

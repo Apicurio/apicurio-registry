@@ -128,7 +128,11 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                     switch (storageType) {
                         case POSTGRESQL, MYSQL -> SqlStorage.configureDatasource(primary, envVars);
                         case KAFKASQL -> KafkaSql.configureKafkaSQL(primary, deployment, envVars);
-                        case KUBERNETESOPS -> KubernetesOps.configureKubernetesOps(primary, envVars);
+                        case KUBERNETESOPS -> {
+                            KubernetesOps.configureKubernetesOps(primary, envVars);
+                            deployment.getSpec().getTemplate().getSpec()
+                                    .setServiceAccountName(KubernetesOps.getServiceAccountName(primary));
+                        }
                     }
                 });
 

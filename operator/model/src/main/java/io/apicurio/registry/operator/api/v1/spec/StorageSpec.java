@@ -71,16 +71,6 @@ public class StorageSpec {
     @JsonSetter(nulls = SKIP)
     private KafkaSqlSpec kafkasql;
 
-    /**
-     * Configure KubernetesOps storage type (read-only, experimental).
-     */
-    @JsonProperty("kubernetesops")
-    @JsonPropertyDescription("""
-            Configure KubernetesOps storage type (read-only, experimental). \
-            Loads registry data from Kubernetes ConfigMaps.""")
-    @JsonSetter(nulls = SKIP)
-    private KubernetesOpsSpec kubernetesops;
-
     public SqlSpec withSql() {
         if (sql == null) {
             sql = new SqlSpec();
@@ -94,6 +84,16 @@ public class StorageSpec {
         }
         return kafkasql;
     }
+
+    /**
+     * Configure KubernetesOps storage type (read-only, experimental).
+     */
+    @JsonProperty("kubernetesops")
+    @JsonPropertyDescription("""
+            Configure KubernetesOps storage type (read-only, experimental). \
+            Loads registry data from Kubernetes ConfigMaps.""")
+    @JsonSetter(nulls = SKIP)
+    private KubernetesOpsSpec kubernetesops;
 
     public KubernetesOpsSpec withKubernetesops() {
         if (kubernetesops == null) {

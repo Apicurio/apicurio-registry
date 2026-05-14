@@ -1,15 +1,21 @@
 package io.apicurio.registry.rules.validity;
 
+import com.google.protobuf.DescriptorProtos;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.protobuf.rules.validity.ProtobufContentValidator;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Tests the Protobuf content validator.
@@ -104,6 +110,629 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         ProtobufContentValidator validator = new ProtobufContentValidator();
         // Should not throw - valid proto3 schema
         validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testRejectsUnsafeIdentifierInBinaryDescriptor() {
+        // Regression for GHSA-xq3m-2v4x-88gg style identifier injection: a binary
+        // FileDescriptorProto carrying an identifier outside the protobuf identifier
+        // grammar must be rejected during validation.
+        DescriptorProtos.DescriptorProto message = DescriptorProtos.DescriptorProto.newBuilder()
+                .setName("Data(){console}")
+                .build();
+        DescriptorProtos.FileDescriptorProto fileDescriptor = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("malicious.proto")
+                .setSyntax("proto3")
+                .setPackage("poison")
+                .addMessageType(message)
+                .build();
+
+        String base64Descriptor = Base64.getEncoder().encodeToString(fileDescriptor.toByteArray());
+        TypedContent content = TypedContent.create(ContentHandle.create(base64Descriptor),
+                ContentTypes.APPLICATION_PROTOBUF);
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        Map<String, TypedContent> noReferences = Collections.emptyMap();
+        Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, content, noReferences));
+    }
+
+    @Test
+    public void testRejectsConflictingFqnAcrossReferences() {
+        // GHSA-xq3m-2v4x-88gg threat model: a main artifact imports two references that
+        // both define the same fully qualified name with different fields. Each reference
+        // is individually valid (protobuf-java accepts the build), so the registry has to
+        // be the layer that rejects the upload.
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                message Token { string id = 1; }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                message Token { bool admin = 1; }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(refASchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(refBSchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        RuleViolationException exception = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs));
+        Assertions.assertTrue(exception.getMessage().contains("Conflicting Protobuf type definition"),
+                "Expected conflict message, got: " + exception.getMessage());
+        Assertions.assertTrue(exception.getMessage().contains("poison.Token"),
+                "Expected FQN poison.Token in message, got: " + exception.getMessage());
+    }
+
+    @Test
+    public void testAllowsIdenticalFqnAcrossReferences() throws Exception {
+        // Re-declaring the same FQN across files with byte-identical descriptors is a
+        // legitimate pattern (e.g. a schema and its own mirror) and must pass.
+        String sharedMessage = "message Token { string id = 1; }";
+        String sharedPreamble = """
+                syntax = "proto3";
+                package poison;
+                """;
+        String refASchema = sharedPreamble + sharedMessage + "\n";
+        String refBSchema = sharedPreamble + sharedMessage + "\n";
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                message Client { string id = 1; }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(refASchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(refBSchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs);
+    }
+
+    @Test
+    public void testAllowsIdenticalFqnWithOnlyCommentDifferences() throws Exception {
+        // DescriptorProto comparison ignores comments by construction. Two references
+        // declaring the same Token with identical wire shape but wildly different
+        // documentation (line comments, block comments, inline comments, different
+        // wording) must pass validation. This is a common real-world situation because
+        // schema registries and protobuf tooling often strip or regenerate comments.
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                // Token issued by service A
+                // multi-line
+                // header
+                message Token {
+                  string id = 1; // primary identifier
+                }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                /*
+                 * Token issued by service B.
+                 * This block comment is intentionally different from ref A.
+                 */
+                message Token {
+                  /* field doc */ string id = 1;
+                }
+                """;
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(refASchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(refBSchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs);
+    }
+
+    @Test
+    public void testAllowsIdenticalFqnWithOnlyWhitespaceDifferences() throws Exception {
+        // DescriptorProto comparison ignores whitespace by construction. One reference
+        // uses compact single-line form, the other uses expanded multi-line form with
+        // extra blank lines and mixed indentation. Both describe the same wire shape and
+        // must pass validation.
+        String refACompact = """
+                syntax = "proto3";
+                package poison;
+                message Token { string id = 1; int32 version = 2; }
+                """;
+        // Intentional irregular whitespace: tabs, multi-space gaps, blank lines. The
+        // JLS 3.10.6 incidental-whitespace algorithm strips the 16-space common prefix
+        // set by the closing delimiter without touching the interior whitespace; the
+        // `\t` escape stays non-whitespace for stripping purposes and only becomes a
+        // tab character during the subsequent escape-processing step.
+        String refBExpanded = """
+                syntax    =    "proto3";
+
+                package   poison;
+
+
+                message Token {
+                \t  string  id       = 1;
+
+                      int32     version = 2;
+
+                }
+                """;
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(refACompact),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(refBExpanded),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs);
+    }
+
+    @Test
+    public void testAllowsIdenticalFqnWithBothWhitespaceAndCommentDifferences() throws Exception {
+        // Combined regression: a registry round-trip that strips comments and one that
+        // reformats whitespace must both compare equal to the original, because the
+        // DescriptorProto form carries neither.
+        String original = """
+                syntax = "proto3";
+                package poison;
+                // Comprehensive token definition.
+                message Token {
+                  string id = 1;                 // primary key
+                  int32 version = 2;             // schema version
+                  repeated string scopes = 3;    // granted scopes
+                }
+                """;
+        String commentStrippedReformatted =
+                "syntax=\"proto3\";package poison;message Token{string id=1;int32 version=2;repeated string scopes=3;}\n";
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(original),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(commentStrippedReformatted),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs);
+    }
+
+    @Test
+    public void testRejectsConflictingEnumAcrossReferences() {
+        // Enum redefinitions must be caught just like message redefinitions, since the
+        // recursion in ProtobufFqnConflictDetector walks TypeElement uniformly.
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                enum Role { UNKNOWN = 0; ADMIN = 1; }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                enum Role { UNKNOWN = 0; GUEST = 1; }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(refASchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(refBSchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs));
+        Assertions.assertTrue(ex.getMessage().contains("poison.Role"),
+                "Expected FQN poison.Role in message, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void testRejectsConflictingNestedTypeAcrossReferences() {
+        // Nested types must also be covered. Outer.Inner is the same FQN across both refs
+        // but with different fields, which must be rejected.
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                message Outer { message Inner { string a = 1; } }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                message Outer { message Inner { bool admin = 1; } }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(refASchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(refBSchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs));
+        Assertions.assertTrue(ex.getMessage().contains("poison.Outer"),
+                "Expected FQN containing poison.Outer, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void testRejectsConflictingServiceAcrossReferences() {
+        // Services are also indexed by FQN and must be compared across refs.
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                message Req { string id = 1; }
+                message Resp { string id = 1; }
+                service Api { rpc One (Req) returns (Resp); }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                message Req { string id = 1; }
+                message Resp { string id = 1; }
+                service Api { rpc Two (Req) returns (Resp); }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(refASchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(refBSchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs));
+        Assertions.assertTrue(ex.getMessage().contains("poison.Api"),
+                "Expected FQN poison.Api in message, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void testRejectsUnsafeIdentifierInReference() {
+        // The identifier check must fire for malicious references too, not only main.
+        DescriptorProtos.DescriptorProto message = DescriptorProtos.DescriptorProto.newBuilder()
+                .setName("Data(){console}")
+                .build();
+        DescriptorProtos.FileDescriptorProto fd = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("refA.proto")
+                .setSyntax("proto3")
+                .setPackage("poison")
+                .addMessageType(message)
+                .build();
+        String base64Ref = Base64.getEncoder().encodeToString(fd.toByteArray());
+
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                message Client { string id = 1; }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(base64Ref),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs));
+        Assertions.assertTrue(ex.getMessage().contains("refA.proto"),
+                "Expected source name refA.proto in message, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void testRejectsMissingNameInBinaryDescriptor() {
+        // A descriptor whose message has an empty name triggers protobuf-java's
+        // "Missing name" DescriptorValidationException, which the detector rewrites into
+        // a RuleViolationException.
+        DescriptorProtos.DescriptorProto message = DescriptorProtos.DescriptorProto.newBuilder()
+                .setName("")
+                .build();
+        DescriptorProtos.FileDescriptorProto fd = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("empty-name.proto")
+                .setSyntax("proto3")
+                .setPackage("poison")
+                .addMessageType(message)
+                .build();
+        String base64Descriptor = Base64.getEncoder().encodeToString(fd.toByteArray());
+        TypedContent content = TypedContent.create(ContentHandle.create(base64Descriptor),
+                ContentTypes.APPLICATION_PROTOBUF);
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        Map<String, TypedContent> noReferences = Collections.emptyMap();
+        Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, content, noReferences));
+    }
+
+    @Test
+    public void testRejectsUnsafeFieldNameInBinaryDescriptor() {
+        // Field-name injection must also be rejected, not just message-name injection.
+        DescriptorProtos.FieldDescriptorProto field = DescriptorProtos.FieldDescriptorProto.newBuilder()
+                .setName("bad name with spaces")
+                .setNumber(1)
+                .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+                .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL)
+                .build();
+        DescriptorProtos.DescriptorProto message = DescriptorProtos.DescriptorProto.newBuilder()
+                .setName("Token")
+                .addField(field)
+                .build();
+        DescriptorProtos.FileDescriptorProto fd = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("bad-field.proto")
+                .setSyntax("proto3")
+                .setPackage("poison")
+                .addMessageType(message)
+                .build();
+        String base64Descriptor = Base64.getEncoder().encodeToString(fd.toByteArray());
+        TypedContent content = TypedContent.create(ContentHandle.create(base64Descriptor),
+                ContentTypes.APPLICATION_PROTOBUF);
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        Map<String, TypedContent> noReferences = Collections.emptyMap();
+        Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, content, noReferences));
+    }
+
+    @Test
+    public void testRejectsConflictingFqnAcrossReferencesAtFullLevel() {
+        // The detector must engage for ValidityLevel.FULL as well.
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+        String refASchema = """
+                syntax = "proto3";
+                package poison;
+                message Token { string id = 1; }
+                """;
+        String refBSchema = """
+                syntax = "proto3";
+                package poison;
+                message Token { bool admin = 1; }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(refASchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(refBSchema),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.FULL, main, refs));
+    }
+
+    @Test
+    public void testAllowsNullResolvedReferences() throws Exception {
+        // Passing null for the references map must not trip the detector's null guards.
+        TypedContent content = resourceToTypedContentHandle("protobuf-valid.proto");
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, null);
+    }
+
+    @Test
+    public void testWrapsMalformedReferenceAsRuleViolation() {
+        // Regression for PR 7784 review feedback: when a reference is neither a valid
+        // text-form proto nor a valid base64-encoded FileDescriptorProto, the detector's
+        // internal text-conversion step (ProtobufFile.toProtoFileElement) throws a raw
+        // RuntimeException (typically IllegalArgumentException from strict base64
+        // decoding). The detector's public contract is that only RuleViolationException
+        // escapes it, so this path must be caught and wrapped with a message that names
+        // the offending reference.
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                message Client { string id = 1; }
+                """;
+        // Contains characters outside the base64 alphabet (spaces, !@#$%) and is not
+        // parseable as a text-form proto, so both conversion paths inside
+        // ProtobufFile.toProtoFileElement fail.
+        String junkReference = "this is clearly not a proto !@#$%";
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(junkReference),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs));
+        Assertions.assertTrue(ex.getMessage().contains("refA.proto"),
+                "Expected the offending reference name in the error message, got: "
+                        + ex.getMessage());
+    }
+
+    @Test
+    public void testRejectsConflictMixedBinaryAndTextReferences() {
+        // One reference is text, the other is a base64 FileDescriptorProto defining the
+        // same FQN with a different field. Both code paths must cooperate and the conflict
+        // must still be rejected.
+        DescriptorProtos.FieldDescriptorProto adminField = DescriptorProtos.FieldDescriptorProto.newBuilder()
+                .setName("admin")
+                .setNumber(1)
+                .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL)
+                .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL)
+                .build();
+        DescriptorProtos.DescriptorProto binaryToken = DescriptorProtos.DescriptorProto.newBuilder()
+                .setName("Token")
+                .addField(adminField)
+                .build();
+        DescriptorProtos.FileDescriptorProto fd = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("refB.proto")
+                .setSyntax("proto3")
+                .setPackage("poison")
+                .addMessageType(binaryToken)
+                .build();
+        String refBBinary = Base64.getEncoder().encodeToString(fd.toByteArray());
+
+        String refAText = """
+                syntax = "proto3";
+                package poison;
+                message Token { string id = 1; }
+                """;
+        String mainSchema = """
+                syntax = "proto3";
+                package poison;
+                import "refA.proto";
+                import "refB.proto";
+                message Client { string id = 1; }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("refA.proto", TypedContent.create(ContentHandle.create(refAText),
+                ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("refB.proto", TypedContent.create(ContentHandle.create(refBBinary),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs));
+        Assertions.assertTrue(ex.getMessage().contains("poison.Token"),
+                "Expected FQN poison.Token in message, got: " + ex.getMessage());
+    }
+
+    @Test
+    public void testAllowsProto2Extensions() throws Exception {
+        // Validation frameworks like protoc-gen-validate extend google.protobuf.FieldOptions
+        // to add custom field annotations. Validation must not reject schemas that use this
+        // pattern: the binary check allows unknown deps, and the cross-file walk indexes
+        // messages/enums/services but not extend declarations.
+        String schema = """
+                syntax = "proto2";
+                package sample;
+                import "google/protobuf/descriptor.proto";
+                extend google.protobuf.FieldOptions {
+                  optional string validate_rule = 50000;
+                }
+                message User {
+                  optional string email = 1 [(validate_rule) = "email"];
+                }
+                """;
+
+        TypedContent content = TypedContent.create(ContentHandle.create(schema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testAllowsExtensionUsageWithReference() throws Exception {
+        // Real-world validation-framework pattern: a shared file defines a custom field
+        // option, and the main artifact imports it to annotate its own messages. The
+        // extension definition file imports google/protobuf/descriptor.proto, which is
+        // not in FileDescriptorUtils.WELL_KNOWN_DEPENDENCIES, so we supply it as a
+        // base64-encoded reference — this mirrors how a registry client would register
+        // descriptor.proto as a shared artifact.
+        String descriptorProtoBase64 = Base64.getEncoder().encodeToString(
+                DescriptorProtos.FileDescriptorProto.getDescriptor().getFile().toProto().toByteArray());
+
+        String validateProto = """
+                syntax = "proto2";
+                package sample;
+                import "google/protobuf/descriptor.proto";
+                extend google.protobuf.FieldOptions {
+                  optional string validate_rule = 50000;
+                }
+                """;
+        String mainSchema = """
+                syntax = "proto2";
+                package sample;
+                import "validate.proto";
+                message User {
+                  optional string email = 1 [(validate_rule) = "email"];
+                }
+                """;
+
+        TypedContent main = TypedContent.create(ContentHandle.create(mainSchema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        Map<String, TypedContent> refs = new LinkedHashMap<>();
+        refs.put("google/protobuf/descriptor.proto",
+                TypedContent.create(ContentHandle.create(descriptorProtoBase64),
+                        ContentTypes.APPLICATION_PROTOBUF));
+        refs.put("validate.proto", TypedContent.create(ContentHandle.create(validateProto),
+                ContentTypes.APPLICATION_PROTOBUF));
+
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, main, refs);
     }
 
     @Test

@@ -5,6 +5,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.types.ContentTypes;
 import org.apache.avro.AvroRuntimeException;
+import org.apache.avro.JsonProperties;
 import org.apache.avro.Schema;
 
 import java.util.ArrayList;
@@ -91,8 +92,15 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
     }
 
     private static Schema.Field normalizeField(Schema.Field field, Map<String, Boolean> alreadyNormalized) {
+        Object defaultVal = field.defaultVal();
+        if (defaultVal == null && field.schema().getType() == Schema.Type.UNION) {
+            List<Schema> unionTypes = field.schema().getTypes();
+            if (!unionTypes.isEmpty() && unionTypes.get(0).getType() == Schema.Type.NULL) {
+                defaultVal = JsonProperties.NULL_VALUE;
+            }
+        }
         final Schema.Field result = new Schema.Field(field.name(),
-                normalizeSchema(field.schema(), alreadyNormalized), EMPTY_DOC, field.defaultVal(),
+                normalizeSchema(field.schema(), alreadyNormalized), EMPTY_DOC, defaultVal,
                 field.order());
         field.getObjectProps().forEach(result::addProp);
         return result;

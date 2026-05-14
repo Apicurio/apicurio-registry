@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
 
@@ -69,8 +69,8 @@ public class ConfluentExporterTest {
         // Create network
         network = Network.newNetwork();
 
-        // Start Kafka
-        kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"))
+        // Start Kafka - use apache/kafka for testcontainers 2.x compatibility
+        kafka = new KafkaContainer(DockerImageName.parse("apache/kafka:3.8.1"))
                 .withNetwork(network)
                 .withNetworkAliases("kafka");
         kafka.start();
@@ -78,11 +78,12 @@ public class ConfluentExporterTest {
         log.info("Kafka started at: " + kafka.getBootstrapServers());
 
         // Start Confluent Schema Registry
+        // In testcontainers 2.x with apache/kafka, the internal broker listener is on port 9093
         schemaRegistry = new GenericContainer<>(DockerImageName.parse("confluentinc/cp-schema-registry:7.5.0"))
                 .withNetwork(network)
                 .withExposedPorts(8081)
                 .withEnv("SCHEMA_REGISTRY_HOST_NAME", "schema-registry")
-                .withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", "kafka:9092")
+                .withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", "kafka:9093")
                 .withEnv("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:8081");
         schemaRegistry.start();
 
@@ -121,17 +122,19 @@ public class ConfluentExporterTest {
     }
 
     /**
-     * Waits for Apicurio Registry to become ready by checking the health endpoint.
+     * Waits for Apicurio Registry to become ready by checking the system info endpoint.
+     * Note: The /health/ready endpoint is served on the management port (9000), not the main
+     * application port (8080), so we use the system info endpoint instead.
      */
     private static void waitForApicurioReady(String baseUrl) throws Exception {
-        String healthUrl = baseUrl.replace("/apis/registry/v3", "/health/ready");
+        String systemInfoUrl = baseUrl + "/system/info";
         log.info("Waiting for Apicurio Registry to be ready...");
 
         int maxAttempts = 30;
         for (int i = 0; i < maxAttempts; i++) {
             try {
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection)
-                    new java.net.URL(healthUrl).openConnection();
+                    new java.net.URL(systemInfoUrl).openConnection();
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(1000);
                 conn.setReadTimeout(1000);

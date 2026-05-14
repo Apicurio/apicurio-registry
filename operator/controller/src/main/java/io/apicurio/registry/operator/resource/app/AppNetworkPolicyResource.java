@@ -45,6 +45,13 @@ public class AppNetworkPolicyResource
                         .withPort(new IntOrString(8443))
                     .endPort()
                 .build();
+
+        var managementRule = new NetworkPolicyIngressRuleBuilder()
+                    .addNewPort()
+                        .withProtocol("TCP")
+                        .withPort(new IntOrString(9000))
+                    .endPort()
+                .build();
         // @formatter:on
 
         var tls = ofNullable(primary.getSpec())
@@ -60,6 +67,7 @@ public class AppNetworkPolicyResource
         if (tlsEnabled) {
             networkPolicy.getSpec().getIngress().add(httpsRule);
         }
+        networkPolicy.getSpec().getIngress().add(managementRule);
 
         log.trace("Desired {} is {}", APP_NETWORK_POLICY_KEY.getId(), toYAML(networkPolicy));
         return networkPolicy;

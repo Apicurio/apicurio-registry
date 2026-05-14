@@ -12,6 +12,11 @@ import lombok.ToString;
 
 import java.util.List;
 
+/**
+ * Data transfer object representing a stored artifact version together with its content. This combines
+ * version metadata (globalId, version, content ID) with the actual content payload and any artifact
+ * references.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

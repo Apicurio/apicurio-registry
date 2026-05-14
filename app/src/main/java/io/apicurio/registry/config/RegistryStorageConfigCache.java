@@ -55,19 +55,17 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#setConfigProperty(io.apicurio.common.apps.config.DynamicConfigPropertyDto)
      */
-    @Override
     public void setConfigProperty(DynamicConfigPropertyDto property) throws RegistryStorageException {
-        super.setConfigProperty(property);
+        delegate.setConfigProperty(property);
         invalidateCache();
     }
 
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#getConfigProperty(java.lang.String)
      */
-    @Override
     public DynamicConfigPropertyDto getConfigProperty(String propertyName) {
         DynamicConfigPropertyDto propertyDto = configCache.computeIfAbsent(propertyName, (key) -> {
-            DynamicConfigPropertyDto dto = super.getConfigProperty(key);
+            DynamicConfigPropertyDto dto = delegate.getConfigProperty(key);
             if (dto == null) {
                 dto = NULL_DTO;
             }
@@ -97,7 +95,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase
     private void refresh() {
         Instant now = Instant.now();
         if (lastRefresh != null && this.delegate != null && this.delegate.isReady()) {
-            List<DynamicConfigPropertyDto> staleConfigProperties = this.getStaleConfigProperties(lastRefresh);
+            List<DynamicConfigPropertyDto> staleConfigProperties = this.delegate.getStaleConfigProperties(lastRefresh);
             if (!staleConfigProperties.isEmpty()) {
                 invalidateCache();
             }

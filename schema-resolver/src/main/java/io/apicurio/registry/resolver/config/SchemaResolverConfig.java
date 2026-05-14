@@ -316,6 +316,16 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String HTTP_ADAPTER = "apicurio.registry.http.adapter";
     public static final String HTTP_ADAPTER_DEFAULT = "AUTO";
 
+    /**
+     * Whether to enable OpenTelemetry trace context propagation for HTTP requests
+     * to the Registry. When enabled, W3C trace context headers ({@code traceparent},
+     * {@code tracestate}) will be injected into all outgoing requests.
+     *
+     * <p>Requires the {@code opentelemetry-api} library to be on the classpath.</p>
+     */
+    public static final String OTEL_ENABLED = "apicurio.registry.otel.enabled";
+    public static final boolean OTEL_ENABLED_DEFAULT = false;
+
     public String getRegistryUrl() {
         String registryUrl = getString(REGISTRY_URL);
         if (registryUrl != null) {
@@ -522,6 +532,15 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getString(HTTP_ADAPTER);
     }
 
+    /**
+     * Returns whether OpenTelemetry trace context propagation is enabled.
+     *
+     * @return true if OTel trace context propagation is enabled
+     */
+    public boolean isOtelEnabled() {
+        return getBoolean(OTEL_ENABLED);
+    }
+
     @Override
     protected Map<String, ?> getDefaults() {
         return DEFAULTS;
@@ -544,5 +563,6 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(TLS_TRUSTSTORE_TYPE, TLS_TRUSTSTORE_TYPE_DEFAULT),
             entry(TLS_TRUST_ALL, TLS_TRUST_ALL_DEFAULT),
             entry(TLS_VERIFY_HOST, TLS_VERIFY_HOST_DEFAULT),
-            entry(HTTP_ADAPTER, HTTP_ADAPTER_DEFAULT));
+            entry(HTTP_ADAPTER, HTTP_ADAPTER_DEFAULT),
+            entry(OTEL_ENABLED, OTEL_ENABLED_DEFAULT));
 }

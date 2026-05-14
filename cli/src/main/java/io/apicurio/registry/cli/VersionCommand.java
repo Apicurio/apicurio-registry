@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
-import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -12,7 +11,7 @@ import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import lombok.Builder;
 import lombok.Getter;
-import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 
@@ -44,15 +43,18 @@ public class VersionCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @ConfigProperty(name = "version")
+    String cliVersion;
+
     @Override
     public void run(final OutputBuffer output) throws JsonProcessingException {
         final var builder = VersionOutput.builder()
-                .cliVersion(ConfigProvider.getConfig().getValue("version", String.class));
+                .cliVersion(cliVersion);
 
         try {
-            final var client = Client.getInstance().getRegistryClient();
-            fetchSystemInfo(client, builder, output);
-            fetchArtifactTypes(client, builder, output);
+            final var registryClient = client.getRegistryClient();
+            fetchSystemInfo(registryClient, builder, output);
+            fetchArtifactTypes(registryClient, builder, output);
         } catch (Exception ex) {
             output.writeStdErrChunk(err ->
                     err.append("Could not connect to server: ").append(ex.getMessage()).append('\n'));
@@ -108,7 +110,9 @@ public class VersionCommand extends AbstractCommand {
         });
     }
 
-    /** Output model for the version command, serialized as JSON or rendered as a table. */
+    /**
+     * Output model for the version command, serialized as JSON or rendered as a table.
+     */
     @Builder
     @Getter
     public static class VersionOutput {

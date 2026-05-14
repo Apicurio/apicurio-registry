@@ -1,151 +1,115 @@
 package io.apicurio.registry.storage.impl.gitops;
 
-import io.apicurio.registry.storage.impl.polling.AbstractDataSourceManager;
-import io.apicurio.registry.storage.impl.polling.DataFile;
-import io.apicurio.registry.storage.impl.polling.PollResult;
-import io.apicurio.registry.storage.impl.gitops.model.GitFile;
+import io.apicurio.registry.storage.impl.polling.AbstractPollingDataSourceManager;
+import io.apicurio.registry.storage.impl.polling.PollingDataFile;
+import io.apicurio.registry.storage.impl.polling.PollingResult;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.URIish;
-import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
+/**
+ * Reads data from one or more local Git repositories on mounted volumes.
+ * <p>
+ * This manager does NOT fetch or pull from remotes. It expects the Git repositories
+ * to be maintained externally (e.g., by a sidecar container or manual setup).
+ * <p>
+ * For multi-repo setups, files from all repositories are aggregated into a single
+ * poll result. Change detection is per-repo — if any repo has a new commit, all
+ * repos are re-read and the combined result is returned.
+ */
 @ApplicationScoped
-public class GitManager extends AbstractDataSourceManager {
+public class GitManager extends AbstractPollingDataSourceManager<GitOpsMarker> {
 
     @Inject
     Logger log;
 
     @Inject
-    GitOpsConfigProperties config;
+    GitOpsConfig config;
 
-    private Git git;
-
-    private String originRemoteName;
-
-    private RevCommit previousCommit;
+    private final Map<String, GitRepo> sources = new LinkedHashMap<>();
 
     @Override
-    protected String getRegistryId() {
-        return config.getRegistryId();
-    }
-
-    @Override
-    protected long getCommitTime(Object marker) {
-        return ((RevCommit) marker).getCommitTime();
-    }
-
-    public void start() throws IOException, URISyntaxException, GitAPIException {
-        initRepo();
-    }
-
-    private void initRepo() throws IOException, GitAPIException, URISyntaxException {
-
-        var workDirPath = Paths.get(config.getWorkDir());
-        var gitPath = workDirPath.resolve("repo").resolve(".git");
-
-        if (Files.exists(gitPath.resolve("config"))) {
-            git = Git.open(gitPath.toFile());
-        } else {
-            git = Git.init().setGitDir(gitPath.toFile()).setInitialBranch(UUID.randomUUID().toString())
-                    .call();
+    public void start() throws IOException {
+        start(config);
+        for (GitRepoConfig repoConfig : config.getRepos()) {
+            var source = new GitRepo(log, repoConfig, config.getWorkspace(), config);
+            sources.put(repoConfig.id(), source);
+            source.tryOpen();
         }
-
-        var previousOID = git.getRepository().resolve("refs/heads/empty");
-        if (previousOID == null) {
-
-            git.commit().setMessage("empty").setAllowEmpty(true).call();
-
-            git.checkout().setName("empty").setCreateBranch(true).setForced(true).setOrphan(true).call();
-
-            previousOID = git.getRepository().resolve("refs/heads/empty");
-        }
-
-        previousCommit = git.getRepository().parseCommit(previousOID);
-        originRemoteName = ensureRemote(config.getOriginRepoURI());
-    }
-
-    private String ensureRemote(String repoURI) throws GitAPIException, URISyntaxException {
-        var repoURIish = new URIish(repoURI);
-        var remote = git.remoteList().call().stream()
-                .filter(r -> r.getURIs().stream().allMatch(u -> u.equals(repoURIish))).findAny();
-        if (remote.isPresent()) {
-            return remote.get().getName();
-        } else {
-            var name = UUID.randomUUID().toString();
-            git.remoteAdd().setName(name).setUri(repoURIish).call();
-            return name;
-        }
+        log.info("GitOps configured with {} repo(s): {}", sources.size(), sources.keySet());
     }
 
     @Override
-    public PollResult poll() throws Exception {
-        var updatedRef = "refs/remotes/" + originRemoteName + "/" + config.getOriginRepoBranch();
-        var fetchRef = "refs/heads/" + config.getOriginRepoBranch() + ":" + updatedRef;
-
-        git.fetch().setRemote(originRemoteName).setRefSpecs(fetchRef).setDepth(1).setForceUpdate(true).call();
-
-        var updatedOID = git.getRepository().resolve(updatedRef);
-        if (updatedOID == null) {
-            throw new RuntimeException(String.format("Could not resolve %s", updatedRef));
-        }
-        RevCommit updatedCommit = git.getRepository().parseCommit(updatedOID);
-
-        if (updatedCommit.equals(previousCommit)) {
-            return PollResult.noChanges(updatedCommit);
-        }
-
-        log.debug("Detected change: {} -> {}", updatedCommit.name(),
-                previousCommit != null ? previousCommit.name() : "null");
-
-        List<DataFile> files = new ArrayList<>();
-        ProcessingState tempState = new ProcessingState(null);
-
-        try (TreeWalk treeWalk = new TreeWalk(git.getRepository())) {
-            treeWalk.addTree(updatedCommit.getTree());
-            treeWalk.setRecursive(true);
-
-            while (treeWalk.next()) {
-                var objectId = treeWalk.getObjectId(0);
-                try (InputStream data = git.getRepository().getObjectDatabase().open(objectId).openStream()) {
-                    var file = GitFile.create(tempState, treeWalk.getPathString(), data);
-                    files.add(file);
-                }
+    public PollingResult<GitOpsMarker> poll() throws Exception {
+        // Phase 1: Check each source for changes
+        Map<String, RevCommit> newCommits = new LinkedHashMap<>();
+        for (GitRepo source : sources.values()) {
+            RevCommit newCommit = source.checkForChanges();
+            if (newCommit != null) {
+                newCommits.put(source.getId(), newCommit);
             }
         }
 
-        return PollResult.withChanges(updatedCommit, files);
-    }
-
-    @Override
-    public void commitChange(Object marker) {
-        if (marker instanceof RevCommit) {
-            previousCommit = (RevCommit) marker;
+        if (newCommits.isEmpty()) {
+            return PollingResult.noChanges(currentMarker());
         }
+
+        // Phase 2: At least one repo changed — collect files from ALL repos
+        // (blue-green does full replacement, so we need the complete picture)
+        List<PollingDataFile> allFiles = new ArrayList<>();
+        List<Runnable> commitActions = new ArrayList<>();
+        Map<String, RevCommit> markerCommits = new LinkedHashMap<>();
+
+        for (GitRepo source : sources.values()) {
+            // Use the new commit if this source changed, otherwise re-read from last known.
+            // Note: during initial startup, repos that haven't loaded yet (previousCommit == null
+            // and no new commit) will return null and be skipped. This means the first load may
+            // contain data from only a subset of repos. Once all repos have loaded at least once,
+            // subsequent changes will always aggregate from all repos.
+            RevCommit commit = newCommits.get(source.getId());
+            var result = source.collectFiles(commit);
+            if (result == null) {
+                // Abort the entire poll — serving partial data would cause previously
+                // loaded artifacts from this source to disappear on the next switch.
+                log.warn("[{}] Could not collect files, aborting poll to preserve consistent state",
+                        source.getId());
+                return PollingResult.noChanges(currentMarker());
+            }
+            allFiles.addAll(result.files());
+
+            RevCommit resultCommit = result.commit();
+            markerCommits.put(source.getId(), resultCommit);
+            if (commit != null) {
+                // This source changed — register a commit action
+                commitActions.add(() -> source.commitMarker(resultCommit));
+            }
+        }
+
+        var marker = new GitOpsMarker(markerCommits);
+        return PollingResult.withChanges(marker, allFiles, () -> commitActions.forEach(Runnable::run));
     }
 
-    @Override
-    public Object getPreviousMarker() {
-        return previousCommit;
+    /**
+     * Builds a marker from the current state of all sources (last known commits).
+     */
+    private GitOpsMarker currentMarker() {
+        Map<String, RevCommit> commits = new LinkedHashMap<>();
+        for (GitRepo source : sources.values()) {
+            commits.put(source.getId(), source.getPreviousCommit());
+        }
+        return new GitOpsMarker(commits);
     }
 
     @PreDestroy
     public void close() {
-        if (git != null) {
-            git.close();
-        }
+        sources.values().forEach(GitRepo::close);
     }
 }

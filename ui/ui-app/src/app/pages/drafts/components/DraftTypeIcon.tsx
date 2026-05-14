@@ -15,6 +15,10 @@ const icon = (type: string | undefined): string => {
             return "type-openapi";
         case ArtifactTypes.ASYNCAPI:
             return "type-asyncapi";
+        case ArtifactTypes.MODEL_SCHEMA:
+            return "type-modelschema";
+        case ArtifactTypes.PROMPT_TEMPLATE:
+            return "type-prompttemplate";
     }
     return "";
 };
@@ -49,6 +53,12 @@ export const DraftTypeIcon: FunctionComponent<DraftTypeIconProps> = ({ className
             case ArtifactTypes.ASYNCAPI:
                 title = "AsyncAPI Definition";
                 break;
+            case ArtifactTypes.MODEL_SCHEMA:
+                title = "AI Model Schema";
+                break;
+            case ArtifactTypes.PROMPT_TEMPLATE:
+                title = "Prompt Template";
+                break;
         }
         return title;
     };
@@ -70,6 +80,12 @@ export const DraftTypeIcon: FunctionComponent<DraftTypeIconProps> = ({ className
                 break;
             case ArtifactTypes.ASYNCAPI:
                 title = "AsyncAPI";
+                break;
+            case ArtifactTypes.MODEL_SCHEMA:
+                title = "Model Schema";
+                break;
+            case ArtifactTypes.PROMPT_TEMPLATE:
+                title = "Prompt Template";
                 break;
         }
         return title;

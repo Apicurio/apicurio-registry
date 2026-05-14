@@ -164,7 +164,7 @@ public abstract class ITBase {
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get())
                     .isNull();
         };
-        await().during(ofSeconds(5)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
+        await().during(ofSeconds(10)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
         check.run();
     }
 
@@ -183,7 +183,7 @@ public abstract class ITBase {
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-service").get()).isNull();
         };
-        await().during(ofSeconds(5)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
+        await().during(ofSeconds(10)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
         check.run();
     }
 
@@ -202,7 +202,7 @@ public abstract class ITBase {
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get()).isNull();
         };
-        await().during(ofSeconds(5)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
+        await().during(ofSeconds(10)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
         check.run();
     }
 
@@ -297,7 +297,7 @@ public abstract class ITBase {
         // Wait until the operator pod name remains stable, we're occasionally having timeout when trying to access pod logs.
         // TODO: Handle pod restarts/redeployments.
         // TODO: Allow configuring wait time dilatation.
-        await().atMost(MEDIUM_DURATION.multipliedBy(2)).during(ofSeconds(10)).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(MEDIUM_DURATION.multipliedBy(2)).during(ofSeconds(15)).ignoreExceptions().untilAsserted(() -> {
             var operatorPods = client.pods()
                     .withLabels(Labels.getOperatorSelectorLabels())
                     .list().getItems();

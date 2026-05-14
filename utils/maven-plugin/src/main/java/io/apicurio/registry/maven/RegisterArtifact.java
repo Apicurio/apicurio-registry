@@ -20,6 +20,10 @@ public class RegisterArtifact {
         INHERIT_PARENT_GROUP, USE_AVRO_NAMESPACE
     }
 
+    public enum VersionStrategy {
+        EXPLICIT_ONLY, API_INFO_VERSION
+    }
+
     private String groupId;
     private String artifactId;
     private String version;
@@ -32,6 +36,7 @@ public class RegisterArtifact {
     private AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy;
     private Boolean isDraft;
     private String contentType;
+    private VersionStrategy versionStrategy;
     private List<RegisterArtifactReference> references;
     private List<ExistingReference> existingReferences;
     private List<File> protoPaths;
@@ -166,6 +171,14 @@ public class RegisterArtifact {
      */
     public void setContentType(String contentType) {
         this.contentType = contentType;
+    }
+
+    public VersionStrategy getVersionStrategy() {
+        return versionStrategy == null ? VersionStrategy.EXPLICIT_ONLY : versionStrategy;
+    }
+
+    public void setVersionStrategy(VersionStrategy versionStrategy) {
+        this.versionStrategy = versionStrategy;
     }
 
     /**

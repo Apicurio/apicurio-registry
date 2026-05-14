@@ -2,13 +2,10 @@ package io.apicurio.registry.types.provider.configured;
 
 import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
 import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
-import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.http.HttpClientService;
-import io.apicurio.registry.script.ArtifactTypeScriptProvider;
-import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ContentDereferencerRequest;
 import io.apicurio.registry.types.webhooks.beans.ContentDereferencerResponse;
 
@@ -16,8 +13,8 @@ import java.util.Map;
 
 public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTypeUtil<ContentDereferencer> implements ContentDereferencer {
 
-    public ConfiguredContentDereferencer(HttpClientService httpClientService, ScriptingService scriptingService, ArtifactTypeConfiguration artifactType) {
-        super(httpClientService, scriptingService, artifactType, artifactType.getContentDereferencer());
+    public ConfiguredContentDereferencer(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getContentDereferencer());
     }
 
     @Override
@@ -87,51 +84,6 @@ public class ConfiguredContentDereferencer extends AbstractConfiguredArtifactTyp
                 return content;
             }
         }
-    }
-
-    @Override
-    protected ContentDereferencer createScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) throws Exception {
-        return new ConfiguredContentDereferencer.ScriptContentDereferencerDelegate(artifactType, provider);
-    }
-
-    private class ScriptContentDereferencerDelegate extends AbstractScriptDelegate implements ContentDereferencer {
-
-        protected ScriptContentDereferencerDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
-            super(artifactType, provider);
-        }
-
-        @Override
-        public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-            ContentDereferencerRequest requestBody = createDereferenceRequest(content, resolvedReferences);
-            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
-
-            try {
-                ContentDereferencerResponse responseBody = scriptProvider.dereference(requestBody);
-                return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
-            } catch (Throwable e) {
-                log.error("Error invoking script", e);
-                return content;
-            } finally {
-                closeScriptProvider(scriptProvider);
-            }
-        }
-
-        @Override
-        public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
-            ContentDereferencerRequest requestBody = createRewriteRefsRequest(content, resolvedReferenceUrls);
-            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
-
-            try {
-                ContentDereferencerResponse responseBody = scriptProvider.rewriteReferences(requestBody);
-                return WebhookBeanUtil.typedContentFromWebhookBean(responseBody.getTypedContent());
-            } catch (Throwable e) {
-                log.error("Error invoking script", e);
-                return content;
-            } finally {
-                closeScriptProvider(scriptProvider);
-            }
-        }
-
     }
 
     private static ContentDereferencerRequest createRewriteRefsRequest(TypedContent content, Map<String, String> resolvedReferenceUrls) {

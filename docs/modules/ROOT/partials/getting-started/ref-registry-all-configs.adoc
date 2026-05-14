@@ -27,11 +27,26 @@ The following {registry} configuration options are available for each component 
 |`API and Schema Registry with A2A Agent support`
 |`3.0.0`
 |Description of the registry agent
+|`apicurio.a2a.agent.documentation-url`
+|`optional<string>`
+|
+|`3.0.0`
+|URL to the registry agent documentation
+|`apicurio.a2a.agent.icon-url`
+|`optional<string>`
+|
+|`3.0.0`
+|URL to the registry agent icon
 |`apicurio.a2a.agent.name`
 |`string`
 |`Apicurio Registry`
 |`3.0.0`
 |Name of the registry agent for A2A discovery
+|`apicurio.a2a.agent.protocol-version`
+|`string`
+|`1.0`
+|`3.0.0`
+|A2A protocol version supported by the registry agent
 |`apicurio.a2a.agent.provider.organization`
 |`string`
 |`Apicurio`
@@ -73,6 +88,16 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.4.Final`
 |Include stack trace in errors responses
+|`apicurio.apis.date-format`
+|`string`
+|`yyyy-MM-dd'T'HH:mm:ss'Z'`
+|`2.4.3.Final`
+|API date format (DEPRECATED - do not use)
+|`apicurio.apis.date-format-timezone`
+|`string`
+|`UTC`
+|`2.4.3.Final`
+|API date format timezone (DEPRECATED - do not use)
 |`apicurio.apis.v3.base-href`
 |`string`
 |`_`
@@ -204,6 +229,11 @@ The following {registry} configuration options are available for each component 
 |
 |`2.5.0.Final`
 |Client credentials scope.
+|`apicurio.authn.mechanism.priority`
+|`string`
+|`basic,proxy-header,oidc`
+|`3.2.3`
+|Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc.
 |`apicurio.authn.proxy-header.email`
 |`string`
 |`X-Forwarded-Email`
@@ -348,6 +378,22 @@ The following {registry} configuration options are available for each component 
 |Canonical hash mode (compatibility API)
 |===
 
+== contracts
+.contracts configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.contracts.enabled`
+|`boolean`
+|`false`
+|`3.2.0`
+|Enable data contracts support _(experimental)_
+|===
+
 == download
 .download configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -373,26 +419,21 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.gitops.id`
-|`string`
+|`apicurio.gitops.repo.branch`
+|`optional<string>`
 |
-|`3.0.0`
-|Identifier of this Registry instance. Only data that references this identifier will be loaded.
-|`apicurio.gitops.repo.origin.branch`
-|`string`
-|`main`
-|`3.0.0`
-|Name of the branch in the remote git repository containing data to be loaded.
-|`apicurio.gitops.repo.origin.uri`
-|`string`
+|`3.2.0`
+|Branch to read from. This is a shorthand for single-repo setups. For multiple repositories, use the indexed apicurio.gitops.repos.N.branch properties instead. _(experimental)_
+|`apicurio.gitops.repo.dir`
+|`optional<string>`
 |
-|`3.0.0`
-|URI of the remote git repository containing data to be loaded.
-|`apicurio.gitops.workdir`
+|`3.2.0`
+|Directory name of the Git repository, relative to the workspace. This is a shorthand for single-repo setups. For multiple repositories, use the indexed apicurio.gitops.repos.N.dir properties instead. _(experimental)_
+|`apicurio.gitops.workspace`
 |`string`
-|`/tmp/apicurio-registry-gitops`
-|`3.0.0`
-|Path to GitOps working directory, which is used to store the local git repository.
+|`/repos`
+|`3.2.0`
+|Base directory where Git repositories are mounted. Repository directories are resolved relative to this path. _(experimental)_
 |===
 
 == health
@@ -520,6 +561,11 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |Default warehouse location for Iceberg tables
+|`apicurio.metrics.iceberg.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable Iceberg-specific metrics collection
 |===
 
 == import
@@ -567,31 +613,26 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.kubernetesops.id`
-|`optional<string>`
-|
-|`3.0.0`
-|Identifier of this Registry instance. Only ConfigMaps with a label matching this identifier will be loaded.
 |`apicurio.kubernetesops.label.registry-id`
 |`string`
 |`apicurio.io/registry-id`
 |`3.0.0`
-|Label key used to identify ConfigMaps belonging to this registry instance.
+|Label key used to identify ConfigMaps belonging to this registry instance. The label value must match `apicurio.polling-storage.id`. _(experimental)_
 |`apicurio.kubernetesops.namespace`
 |`optional<string>`
 |
 |`3.0.0`
-|Kubernetes namespace to watch for ConfigMaps. If not specified, auto-detects the pod's namespace or falls back to "default".
+|Kubernetes namespace to watch for ConfigMaps. If not specified, auto-detects the pod's namespace or falls back to "default". _(experimental)_
 |`apicurio.kubernetesops.watch.enabled`
 |`boolean`
 |`true`
 |`3.0.0`
-|Enable Kubernetes Watch API for real-time ConfigMap change detection.
+|Enable Kubernetes Watch API for real-time ConfigMap change detection. When enabled, changes are detected immediately via watch events in addition to periodic polling. _(experimental)_
 |`apicurio.kubernetesops.watch.reconnect-delay`
 |`duration`
 |`PT10S`
 |`3.0.0`
-|Base delay before reconnecting after watch failure. Uses exponential backoff.
+|Base delay before reconnecting after watch failure. Uses exponential backoff with a maximum of 5 minutes. _(experimental)_
 |===
 
 == limits
@@ -684,6 +725,22 @@ The following {registry} configuration options are available for each component 
 |`INFO`
 |`3.1.0`
 |Dynamic log level for Apicurio Registry
+|===
+
+== mcp
+.mcp configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.mcp-tools.enabled`
+|`boolean`
+|`false`
+|`3.0.0`
+|Enable MCP tool definition discovery endpoints _(experimental)_
 |===
 
 == observability
@@ -832,16 +889,6 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.rest.artifact.download.max-size.bytes`
-|`int`
-|`1000000`
-|`2.2.6`
-|Max size of the artifact allowed to be downloaded from URL
-|`apicurio.rest.artifact.download.ssl-validation.disabled`
-|`boolean`
-|`false`
-|`2.2.6`
-|Skip SSL validation when downloading artifacts from URL
 |`apicurio.rest.artifact.references.default-handling`
 |`optional<string>`
 |
@@ -877,6 +924,42 @@ The following {registry} configuration options are available for each component 
 |`512`
 |`3.0.3`
 |Max size of the labels (in bytes) per item from within search results
+|===
+
+== search
+.search configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.search.index.content.max-size`
+|`int`
+|`1048576`
+|`3.2.0`
+|Maximum content size (in characters) to index
+|`apicurio.search.index.elasticsearch.index-name`
+|`string`
+|`apicurio-registry`
+|`3.2.0`
+|Elasticsearch index name
+|`apicurio.search.index.elasticsearch.number-of-replicas`
+|`int`
+|`1`
+|`3.2.0`
+|Number of Elasticsearch index replicas
+|`apicurio.search.index.elasticsearch.number-of-shards`
+|`int`
+|`1`
+|`3.2.0`
+|Number of Elasticsearch index shards
+|`apicurio.search.index.enabled`
+|`boolean`
+|`false`
+|`3.2.0`
+|Enable search indexing _(experimental)_
 |===
 
 == semver
@@ -936,7 +1019,7 @@ The following {registry} configuration options are available for each component 
 |Gitops blue datasource pool minimum size
 |`apicurio.datasource.blue.jdbc.url`
 |`string`
-|`jdbc:h2:mem:registry_db`
+|`jdbc:h2:mem:registry_blue`
 |`3.0.0`
 |Gitops blue datasource jdbc url
 |`apicurio.datasource.blue.password`
@@ -971,7 +1054,7 @@ The following {registry} configuration options are available for each component 
 |Gitops green datasource pool minimum size
 |`apicurio.datasource.green.jdbc.url`
 |`string`
-|`jdbc:h2:mem:registry_db`
+|`jdbc:h2:mem:registry_green`
 |`3.0.0`
 |Gitops green datasource jdbc url
 |`apicurio.datasource.green.password`
@@ -988,7 +1071,7 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`registry-events`
 |`3.0.1`
-|Kafka events topic for outbox pattern
+|Kafka sql storage events topic
 |`apicurio.events.kafka.topic.*`
 |`map<string, string>`
 |
@@ -1144,6 +1227,46 @@ The following {registry} configuration options are available for each component 
 |`true`
 |
 |Kafka sql storage topic auto create
+|`apicurio.polling-storage.debounce.max-wait-period`
+|`duration`
+|`PT90S`
+|`3.2.0`
+|Maximum time to wait for changes to settle before forcing a load. Prevents indefinite delay when changes keep arriving. Set to PT0S for no maximum. _(experimental)_
+|`apicurio.polling-storage.debounce.quiet-period`
+|`duration`
+|`PT3S`
+|`3.2.0`
+|After detecting a change, wait until no new changes are seen for this duration before loading data. Absorbs rapid successive pushes. Set to PT0S to disable debouncing. _(experimental)_
+|`apicurio.polling-storage.deterministic-ids-enabled`
+|`boolean`
+|`true`
+|`3.2.0`
+|When enabled, contentId and globalId are deterministically generated from content hashes and artifact coordinates if not explicitly specified. When disabled, missing IDs cause an error. Generated IDs use the upper half of positive longs (above Long.MAX_VALUE/2), leaving the lower half for user-specified IDs. _(experimental)_
+|`apicurio.polling-storage.file-suffixes`
+|`list<string>`
+|`registry,ar`
+|`3.2.0`
+|Comma-separated list of file suffixes that identify registry metadata files. Each suffix is combined with supported extensions (.yaml, .yml, .json) to form the full pattern. For example, suffix "registry" matches *.registry.yaml, *.registry.yml, and *.registry.json. _(experimental)_
+|`apicurio.polling-storage.id`
+|`string`
+|`main`
+|`3.2.0`
+|Identifier of this Registry instance. Only data that references this identifier will be loaded. _(experimental)_
+|`apicurio.polling-storage.poll-period`
+|`duration`
+|`PT10S`
+|`3.2.0`
+|Minimum period between data source polls. The actual poll (reading from Git or Kubernetes) only happens when at least this much time has passed since the last poll. _(experimental)_
+|`apicurio.polling-storage.require-registry-config`
+|`boolean`
+|`true`
+|`3.2.0`
+|When enabled, a load is rejected if the data source does not contain a registry configuration file matching the configured registry ID. This prevents accidental data loss from force-pushes or empty branches. To intentionally clear all data, first push a commit with only the registry configuration file (no artifacts), then remove it. _(experimental)_
+|`apicurio.polling-storage.source-label-key`
+|`string`
+|`system:source`
+|`3.2.0`
+|Label key used to tag imported artifacts and groups with their source ID (e.g., repository ID). Set to empty string to disable. _(experimental)_
 |`apicurio.sql.db-schema`
 |`string`
 |`*`
@@ -1358,16 +1481,6 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
-|`apicurio.apis.date-format`
-|`unknown`
-|`yyyy-MM-dd'T'HH:mm:ss'Z'`
-|
-|
-|`apicurio.apis.date-format-timezone`
-|`unknown`
-|`UTC`
-|
-|
 |`apicurio.app.id`
 |`unknown`
 |`apicurio-registry`
@@ -1456,16 +1569,6 @@ The following {registry} configuration options are available for each component 
 |`apicurio.downloads.reaper.every`
 |`unknown`
 |`60s`
-|
-|
-|`apicurio.gitops.refresh.every`
-|`unknown`
-|`30s`
-|
-|
-|`apicurio.kafkasql.consumer.group.id`
-|`unknown`
-|`${registry.id}-${quarkus.uuid}`
 |
 |
 |`apicurio.kafkasql.producer.client.id`

@@ -159,6 +159,11 @@ public class RegistryClientFacadeFactory {
             }
         }
 
+        // Configure OpenTelemetry trace context propagation
+        if (config.isOtelEnabled()) {
+            clientOptions.enableOpenTelemetry();
+        }
+
         return clientOptions;
     }
 

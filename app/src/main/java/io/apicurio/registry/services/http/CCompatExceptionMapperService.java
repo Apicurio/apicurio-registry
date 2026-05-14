@@ -2,6 +2,7 @@ package io.apicurio.registry.services.http;
 
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
 import io.apicurio.registry.ccompat.rest.error.ErrorCode;
+import io.apicurio.registry.ccompat.rest.error.InvalidCompatibilityLevelException;
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
@@ -20,6 +21,7 @@ import io.apicurio.registry.storage.error.AlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -49,6 +51,7 @@ public class CCompatExceptionMapperService {
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, ErrorCode.SUBJECT_NOT_FOUND.value());
         map.put(ContentNotFoundException.class, ErrorCode.SCHEMA_NOT_FOUND.value());
+        map.put(InvalidCompatibilityLevelException.class, ErrorCode.INVALID_COMPATIBILITY_LEVEL.value());
         map.put(RuleViolationException.class, ErrorCode.INVALID_COMPATIBILITY_LEVEL.value());
         map.put(VersionNotFoundException.class, ErrorCode.VERSION_NOT_FOUND.value());
         map.put(UnprocessableEntityException.class, ErrorCode.INVALID_SCHEMA.value());
@@ -58,6 +61,7 @@ public class CCompatExceptionMapperService {
         map.put(SchemaSoftDeletedException.class, ErrorCode.SCHEMA_VERSION_SOFT_DELETED.value());
         map.put(SubjectSoftDeletedException.class, ErrorCode.SUBJECT_SOFT_DELETED.value());
         map.put(ReferenceExistsException.class, ErrorCode.REFERENCE_EXISTS.value());
+        map.put(RuleNotFoundException.class, ErrorCode.SUBJECT_COMPATIBILITY_NOT_CONFIGURED.value());
         map.put(SchemaNotFoundException.class, ErrorCode.SCHEMA_NOT_FOUND.value());
         CONFLUENT_CODE_MAP = Collections.unmodifiableMap(map);
     }
@@ -117,8 +121,40 @@ public class CCompatExceptionMapperService {
         }
 
         error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), 0));
-        error.setMessage(t.getLocalizedMessage());
+        error.setMessage(toConfluentMessage(t));
         return error;
+    }
+
+    private String toConfluentMessage(Throwable t) {
+        if (t instanceof ArtifactNotFoundException anfe) {
+            String artifactId = anfe.getArtifactId();
+            if (artifactId != null) {
+                return "Subject '" + artifactId + "' not found.";
+            }
+            return "Subject not found.";
+        }
+        if (t instanceof VersionNotFoundException vnfe) {
+            if (vnfe.getVersion() != null) {
+                return "Version " + vnfe.getVersion() + " not found.";
+            }
+            return "Version not found.";
+        }
+        if (t instanceof ContentNotFoundException cnfe) {
+            if (cnfe.getContentId() != null) {
+                return "Schema " + cnfe.getContentId() + " not found.";
+            }
+            return "Schema not found.";
+        }
+        if (t instanceof RuleNotFoundException) {
+            return "Subject does not have subject-level compatibility configured.";
+        }
+        if (t instanceof UnprocessableEntityException) {
+            return t.getMessage();
+        }
+        if (t instanceof SchemaNotFoundException) {
+            return t.getMessage();
+        }
+        return t.getLocalizedMessage();
     }
 
     /**

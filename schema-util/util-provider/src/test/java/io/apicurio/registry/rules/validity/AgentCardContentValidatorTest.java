@@ -37,6 +37,7 @@ public class AgentCardContentValidatorTest extends ArtifactUtilProviderTestBase 
             validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
         Assertions.assertFalse(error.getCauses().isEmpty());
+        // Missing name is still one of the violations (along with other missing required fields)
         Assertions.assertTrue(
                 error.getCauses().stream().anyMatch(v -> v.getDescription().contains("name")));
     }
@@ -162,5 +163,41 @@ public class AgentCardContentValidatorTest extends ArtifactUtilProviderTestBase 
         AgentCardContentValidator validator = new AgentCardContentValidator();
         // Should not throw - NONE level skips validation
         validator.validate(ValidityLevel.NONE, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testAgentCardMissingInterfaces() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("agentcard-missing-interfaces.json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> v.getDescription().contains("supportedInterfaces")));
+    }
+
+    @Test
+    public void testAgentCardInvalidInterfaces() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("agentcard-invalid-interfaces.json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> v.getDescription().contains("protocolBinding")));
+    }
+
+    @Test
+    public void testAgentCardMissingSkillDescription() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("agentcard-missing-skill-description.json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> v.getDescription().contains("description")));
     }
 }

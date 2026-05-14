@@ -1,6 +1,5 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -20,12 +19,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoM
 import io.apicurio.registry.storage.impl.sql.mappers.ContentMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ContentWithIdMapper;
 import io.apicurio.registry.rest.ConflictException;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,35 +40,25 @@ import static io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils.
  * Repository handling content operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlContentRepository {
 
-    @Inject
-    Logger log;
+    private final Logger log;
+    private final SqlStatements sqlStatements;
+    private final HandleFactory handles;
+    private final SqlSequenceRepository sequenceRepository;
+    private final RegistryStorageContentUtils utils;
+    private final int maxReferenceDepth;
 
-    @Inject
-    SqlStatements sqlStatements;
-
-    @Inject
-    HandleFactory handles;
-
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlContentRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            SqlSequenceRepository sequenceRepository, RegistryStorageContentUtils utils,
+            int maxReferenceDepth) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.sequenceRepository = sequenceRepository;
+        this.utils = utils;
+        this.maxReferenceDepth = maxReferenceDepth;
     }
-
-    @Inject
-    SqlSequenceRepository sequenceRepository;
-
-    @Inject
-    RegistryStorageContentUtils utils;
-
-    @ConfigProperty(name = "apicurio.storage.references.max-depth", defaultValue = "100")
-    @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.", registryAvailableSince = "3.0.6")
-    int maxReferenceDepth;
 
     /**
      * Get content by contentId.

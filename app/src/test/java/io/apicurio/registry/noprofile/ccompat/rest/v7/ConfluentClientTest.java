@@ -293,8 +293,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         }
 
         retry(() -> {
-            HealthUtils.assertIsReady(testPort);
-            HealthUtils.assertIsLive(testPort);
+            HealthUtils.assertIsReady(managementTestPort);
+            HealthUtils.assertIsLive(managementTestPort);
         });
 
         String subject = generateArtifactId();
@@ -589,6 +589,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         String subject = "testSubject";
         int numRegisteredSchemas = 0;
         int numSchemas = 10;
+
+        confluentClient.updateCompatibility(CompatibilityLevel.NONE.name, subject);
 
         List<String> allSchemas = ConfluentTestUtils.getRandomCanonicalAvroString(numSchemas);
 

@@ -2,36 +2,26 @@ package io.apicurio.registry.storage.impl.sql.repositories;
 
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 /**
  * Repository handling cleanup and bulk delete operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlCleanupRepository {
 
-    @Inject
-    Logger log;
+    private final Logger log;
+    private final SqlStatements sqlStatements;
+    private final HandleFactory handles;
+    private final SqlRuleRepository ruleRepository;
 
-    @Inject
-    SqlStatements sqlStatements;
-
-    @Inject
-    HandleFactory handles;
-
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlCleanupRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            SqlRuleRepository ruleRepository) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.ruleRepository = ruleRepository;
     }
-
-    @Inject
-    SqlRuleRepository ruleRepository;
 
     /**
      * Delete all user data from the registry.

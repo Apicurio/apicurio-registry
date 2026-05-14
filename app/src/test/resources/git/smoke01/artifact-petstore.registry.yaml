@@ -1,0 +1,15 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: foo
+artifactId: petstore
+artifactType: OPENAPI
+name: Petstore API
+description: Sample Petstore OpenAPI specification
+rules:
+  - ruleType: COMPATIBILITY
+    config: BACKWARD
+versions:
+  - version: "1"
+    state: ENABLED
+    description: Initial version
+    content: ./content/petstore-1.0.0.yaml

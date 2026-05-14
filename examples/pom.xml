@@ -5,12 +5,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-examples</artifactId>
-  <version>3.2.0-SNAPSHOT</version>
+  <name>Registry :: Examples</name>
+  <version>3.3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <description>Open Source API &amp; Schema Registry</description>
 
@@ -84,16 +85,13 @@
     <maven.compiler.target>17</maven.compiler.target>
 
     <!-- Kafka -->
-    <kafka.version>3.5.0</kafka.version>
+    <kafka.version>3.9.2</kafka.version>
 
     <!-- RestEasy -->
     <resteasy.version>4.5.8.Final</resteasy.version>
 
     <!-- Vert.x version -->
     <vertx.version>3.9.5</vertx.version>
-
-    <!-- Apicurio REST client-->
-    <apicurio-common-rest-client.version>0.1.18.Final</apicurio-common-rest-client.version>
 
     <!-- Apicurio schema validation library -->
     <apicurio-registry-schema-validation.version>0.0.7</apicurio-registry-schema-validation.version>
@@ -114,8 +112,7 @@
     <version.avro>1.11.0</version.avro>
     <protobuf.version>4.30.2</protobuf.version>
     <!-- Proto -->
-    <proto-plugin.version>0.6.1</proto-plugin.version>
-    <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
+    <proto-plugin.version>5.0.1</proto-plugin.version>
   </properties>
 
   <build>

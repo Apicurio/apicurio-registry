@@ -34,7 +34,7 @@ import {DocumentService} from "../../../_services/document.service";
 import {ModelUtils} from "../../../_util/model.util";
 import {SelectionService} from "../../../_services/selection.service";
 import {AbstractBaseComponent} from "../../common/base-component";
-import {TopicSubscription} from "apicurio-ts-core";
+import {TopicSubscription} from "../../../_messaging/topic";
 
 
 @Component({

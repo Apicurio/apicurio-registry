@@ -1,44 +1,30 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
-
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 
 /**
  * Repository handling event/outbox operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlEventRepository {
 
-    @Inject
-    Logger log;
+    private final Logger log;
 
-    @Inject
-    SqlStatements sqlStatements;
+    private final SqlStatements sqlStatements;
 
-    @Inject
-    HandleFactory handles;
+    private final HandleFactory handles;
 
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    private final String eventsTopic;
+
+    public SqlEventRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log, String eventsTopic) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.eventsTopic = eventsTopic;
     }
-
-    @Inject
-    @ConfigProperty(name = "apicurio.events.kafka.topic", defaultValue = "registry-events")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka events topic for outbox pattern", registryAvailableSince = "3.0.1")
-    String eventsTopic;
 
     /**
      * Create an outbox event for database-driven event publishing.

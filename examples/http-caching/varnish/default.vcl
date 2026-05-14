@@ -21,9 +21,9 @@ backend registry {
     .first_byte_timeout = 60s;
     .between_bytes_timeout = 10s;
 
-    # Health check
+    # Health check (uses API endpoint since health is on management port 9000)
     .probe = {
-        .url = "/health/live";
+        .url = "/apis/registry/v3/system/info";
         .interval = 5s;
         .timeout = 2s;
         .window = 5;

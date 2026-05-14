@@ -1,0 +1,74 @@
+{
+    "asyncapi": "3.1.0",
+    "info": {
+        "title": "Streetlights Kafka API",
+        "version": "1.0.0",
+        "description": "The Smartylighting Streetlights API allows you to remotely manage the city lights using AsyncAPI 3.1."
+    },
+    "defaultContentType": "application/json",
+    "servers": {
+        "production": {
+            "host": "test.mykafkacluster.org:8092",
+            "protocol": "kafka-secure",
+            "description": "Production Kafka broker"
+        }
+    },
+    "channels": {
+        "lightingMeasured": {
+            "address": "smartylighting.streetlights.1.0.event.{streetlightId}.lighting.measured",
+            "messages": {
+                "lightMeasured": {
+                    "$ref": "#/components/messages/lightMeasured"
+                }
+            },
+            "parameters": {
+                "streetlightId": {
+                    "description": "The ID of the streetlight"
+                }
+            }
+        }
+    },
+    "operations": {
+        "receiveLightMeasurement": {
+            "action": "receive",
+            "channel": {
+                "$ref": "#/channels/lightingMeasured"
+            },
+            "summary": "Receive information about environmental lighting conditions of a particular streetlight.",
+            "messages": [
+                {
+                    "$ref": "#/channels/lightingMeasured/messages/lightMeasured"
+                }
+            ]
+        }
+    },
+    "components": {
+        "messages": {
+            "lightMeasured": {
+                "name": "lightMeasured",
+                "title": "Light measured",
+                "summary": "Inform about environmental lighting conditions for a particular streetlight.",
+                "payload": {
+                    "$ref": "#/components/schemas/lightMeasuredPayload"
+                }
+            }
+        },
+        "schemas": {
+            "lightMeasuredPayload": {
+                "type": "object",
+                "properties": {
+                    "lumens": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Light intensity measured in lumens."
+                    },
+                    "sentAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Date and time when the message was sent."
+                    }
+                }
+            }
+        }
+    }
+}

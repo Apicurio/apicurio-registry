@@ -22,7 +22,6 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.NoOpContentValidator;
-import io.apicurio.registry.script.ScriptingService;
 
 import java.util.Set;
 
@@ -36,11 +35,9 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
 
     private final ArtifactTypeConfiguration artifactType;
     private final HttpClientService httpClientService;
-    private final ScriptingService scriptingService;
 
-    public ConfiguredArtifactTypeUtilProvider(HttpClientService httpClientService, ScriptingService scriptingService, ArtifactTypeConfiguration artifactType) {
+    public ConfiguredArtifactTypeUtilProvider(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
         this.httpClientService = httpClientService;
-        this.scriptingService = scriptingService;
         this.artifactType = artifactType;
     }
 
@@ -69,7 +66,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentAccepter.INSTANCE;
         }
-        return new ConfiguredContentAccepter(this.httpClientService, this.scriptingService, this.artifactType);
+        return new ConfiguredContentAccepter(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -78,7 +75,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoopCompatibilityChecker.INSTANCE;
         }
-        return new ConfiguredCompatibilityChecker(this.httpClientService, this.scriptingService, this.artifactType);
+        return new ConfiguredCompatibilityChecker(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -87,7 +84,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentCanonicalizer.INSTANCE;
         }
-        return new ConfiguredContentCanonicalizer(this.httpClientService, this.scriptingService, this.artifactType);
+        return new ConfiguredContentCanonicalizer(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -96,7 +93,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpContentValidator.INSTANCE;
         }
-        return new ConfiguredContentValidator(this.httpClientService, this.scriptingService, this.artifactType);
+        return new ConfiguredContentValidator(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -110,7 +107,7 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoopContentDereferencer.INSTANCE;
         }
-        return new ConfiguredContentDereferencer(this.httpClientService, this.scriptingService, this.artifactType);
+        return new ConfiguredContentDereferencer(this.httpClientService, this.artifactType);
     }
 
     @Override
@@ -119,17 +116,11 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
         if (provider == null) {
             return NoOpReferenceFinder.INSTANCE;
         }
-        return new ConfiguredReferenceFinder(this.httpClientService, this.scriptingService, this.artifactType);
+        return new ConfiguredReferenceFinder(this.httpClientService, this.artifactType);
     }
 
     @Override
     protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
-        // FIXME !!properly implement this!!
-//        Provider provider = this.artifactType.getReferenceArtifactIdentifierExtractor();
-//        if (provider == null) {
-//            return DefaultReferenceArtifactIdentifierExtractor.INSTANCE;
-//        }
-//        return new ConfiguredReferenceArtifactIdentifierExtractor(this.httpClientService, this.scriptingService, this.artifactType);
         return DefaultReferenceArtifactIdentifierExtractor.INSTANCE;
     }
 }

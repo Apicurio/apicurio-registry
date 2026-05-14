@@ -1,0 +1,6 @@
+{
+  "description": "A tool without a name",
+  "inputSchema": {
+    "type": "object"
+  }
+}

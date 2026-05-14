@@ -2,15 +2,12 @@ package io.apicurio.registry.types.provider.configured;
 
 import io.apicurio.registry.config.artifactTypes.ArtifactTypeConfiguration;
 import io.apicurio.registry.config.artifactTypes.JavaClassProvider;
-import io.apicurio.registry.config.artifactTypes.ScriptProvider;
 import io.apicurio.registry.config.artifactTypes.WebhookProvider;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.http.HttpClientService;
-import io.apicurio.registry.script.ArtifactTypeScriptProvider;
-import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.types.webhooks.beans.ReferenceFinderRequest;
 import io.apicurio.registry.types.webhooks.beans.ReferenceFinderResponse;
 
@@ -18,8 +15,8 @@ import java.util.Set;
 
 public class ConfiguredReferenceFinder extends AbstractConfiguredArtifactTypeUtil<ReferenceFinder> implements ReferenceFinder {
 
-    public ConfiguredReferenceFinder(HttpClientService httpClientService, ScriptingService scriptingService, ArtifactTypeConfiguration artifactType) {
-        super(httpClientService, scriptingService, artifactType, artifactType.getReferenceFinder());
+    public ConfiguredReferenceFinder(HttpClientService httpClientService, ArtifactTypeConfiguration artifactType) {
+        super(httpClientService, artifactType, artifactType.getReferenceFinder());
     }
 
     @Override
@@ -65,34 +62,6 @@ public class ConfiguredReferenceFinder extends AbstractConfiguredArtifactTypeUti
                 throw new ReferenceFinderException("Error invoking webhook for reference finder.", e);
             }
         }
-    }
-
-    @Override
-    protected ReferenceFinder createScriptDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) throws Exception {
-        return new ConfiguredReferenceFinder.ScriptReferenceFinderDelegate(artifactType, provider);
-    }
-
-    private class ScriptReferenceFinderDelegate extends AbstractScriptDelegate implements ReferenceFinder {
-
-        protected ScriptReferenceFinderDelegate(ArtifactTypeConfiguration artifactType, ScriptProvider provider) {
-            super(artifactType, provider);
-        }
-
-        @Override
-        public Set<ExternalReference> findExternalReferences(TypedContent content) {
-            ReferenceFinderRequest requestBody = createRequest(content);
-            ArtifactTypeScriptProvider scriptProvider = createScriptProvider();
-
-            try {
-                ReferenceFinderResponse responseBody = scriptProvider.findExternalReferences(requestBody);
-                return WebhookBeanUtil.externalReferencesFromWebhookBean(responseBody.getExternalReferences());
-            } catch (Throwable e) {
-                throw new ReferenceFinderException("Error invoking script for reference finder.", e);
-            } finally {
-                closeScriptProvider(scriptProvider);
-            }
-        }
-
     }
 
     private static ReferenceFinderRequest createRequest(TypedContent content) {

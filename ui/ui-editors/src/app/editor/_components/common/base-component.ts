@@ -17,7 +17,7 @@
 import { ChangeDetectorRef, OnChanges, OnDestroy, OnInit, SimpleChanges, Directive } from "@angular/core";
 import {DocumentService} from "../../_services/document.service";
 import {SelectionService} from "../../_services/selection.service";
-import {TopicSubscription} from "apicurio-ts-core";
+import {TopicSubscription} from "../../_messaging/topic";
 
 @Directive()
 export abstract class AbstractBaseComponent implements OnInit, OnChanges, OnDestroy {

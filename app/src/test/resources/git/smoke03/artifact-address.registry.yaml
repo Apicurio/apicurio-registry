@@ -1,0 +1,19 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: com.example.refs
+artifactId: address
+artifactType: AVRO
+name: Address Schema
+description: Reusable address record
+owner: alice
+labels:
+  domain: common
+versions:
+  - version: "1"
+    state: ENABLED
+    name: Address v1
+    description: Initial address schema
+    owner: alice
+    labels:
+      status: stable
+    content: ./content/address.avsc

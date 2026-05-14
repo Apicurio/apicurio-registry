@@ -7,7 +7,9 @@ import io.apicurio.registry.json.content.canon.JsonContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.json.content.dereference.JsonSchemaDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.json.content.extract.JsonContentExtractor;
+import io.apicurio.registry.json.content.extract.JsonSchemaStructuredContentExtractor;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.json.content.refs.JsonSchemaReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
@@ -76,6 +78,11 @@ public class JsonArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvid
     @Override
     protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
         return new DefaultReferenceArtifactIdentifierExtractor();
+    }
+
+    @Override
+    protected StructuredContentExtractor createStructuredContentExtractor() {
+        return new JsonSchemaStructuredContentExtractor();
     }
 
 }

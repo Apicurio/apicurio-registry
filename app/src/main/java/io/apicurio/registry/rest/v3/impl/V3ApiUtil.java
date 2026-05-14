@@ -2,8 +2,10 @@ package io.apicurio.registry.rest.v3.impl;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rest.v3.beans.ContractMetadata;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.BranchMetaData;
 import io.apicurio.registry.rest.v3.beans.BranchSearchResults;
@@ -39,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public final class V3ApiUtil {
@@ -63,7 +66,52 @@ public final class V3ApiUtil {
         metaData.setName(dto.getName());
         metaData.setArtifactType(dto.getArtifactType());
         metaData.setLabels(dto.getLabels());
+        metaData.setContractMetadata(projectContractMetadata(dto.getLabels()));
         return metaData;
+    }
+
+    /**
+     * Projects contract metadata from artifact labels. Returns null if no contract labels are present.
+     */
+    private static ContractMetadata projectContractMetadata(Map<String, String> labels) {
+        if (labels == null || labels.isEmpty()) {
+            return null;
+        }
+        boolean hasContractLabels = labels.keySet().stream()
+                .anyMatch(k -> k.startsWith(ContractLabels.PREFIX));
+        if (!hasContractLabels) {
+            return null;
+        }
+
+        ContractMetadata cm = new ContractMetadata();
+        String status = labels.get(ContractLabels.STATUS);
+        if (status != null) {
+            try {
+                cm.setStatus(ContractMetadata.Status.fromValue(status));
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        cm.setOwnerTeam(labels.get(ContractLabels.OWNER_TEAM));
+        cm.setOwnerDomain(labels.get(ContractLabels.OWNER_DOMAIN));
+        cm.setSupportContact(labels.get(ContractLabels.SUPPORT_CONTACT));
+        String classification = labels.get(ContractLabels.CLASSIFICATION);
+        if (classification != null) {
+            try {
+                cm.setClassification(ContractMetadata.Classification.fromValue(classification));
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        String stage = labels.get(ContractLabels.STAGE);
+        if (stage != null) {
+            try {
+                cm.setStage(ContractMetadata.Stage.fromValue(stage));
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        cm.setStableDate(labels.get(ContractLabels.STABLE_DATE));
+        cm.setDeprecatedDate(labels.get(ContractLabels.DEPRECATED_DATE));
+        cm.setDeprecationReason(labels.get(ContractLabels.DEPRECATION_REASON));
+        return cm;
     }
 
     /**

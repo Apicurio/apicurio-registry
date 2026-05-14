@@ -32,8 +32,6 @@ import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.semver.SemVerConfigProperties;
 import io.apicurio.registry.types.VersionState;
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.validation.ValidationException;
 import org.semver4j.Semver;
 import org.slf4j.Logger;
@@ -51,37 +49,27 @@ import java.util.stream.Collectors;
  * Repository handling branch operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlBranchRepository {
 
-    @Inject
-    Logger log;
+    private final Logger log;
+    private final SqlStatements sqlStatements;
+    private final HandleFactory handles;
+    private final SecurityIdentity securityIdentity;
+    private final SqlArtifactRepository artifactRepository;
+    private final SemVerConfigProperties semVerConfigProps;
+    private final RestConfig restConfig;
 
-    @Inject
-    SqlStatements sqlStatements;
-
-    @Inject
-    HandleFactory handles;
-
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlBranchRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            SecurityIdentity securityIdentity, SqlArtifactRepository artifactRepository,
+            SemVerConfigProperties semVerConfigProps, RestConfig restConfig) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.securityIdentity = securityIdentity;
+        this.artifactRepository = artifactRepository;
+        this.semVerConfigProps = semVerConfigProps;
+        this.restConfig = restConfig;
     }
-
-    @Inject
-    SecurityIdentity securityIdentity;
-
-    @Inject
-    SqlArtifactRepository artifactRepository;
-
-    @Inject
-    SemVerConfigProperties semVerConfigProps;
-
-    @Inject
-    RestConfig restConfig;
 
     /**
      * Create a new branch.

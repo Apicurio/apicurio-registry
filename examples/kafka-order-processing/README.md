@@ -54,7 +54,7 @@ The example uses an Avro schema that defines a realistic order structure:
 
 ## Prerequisites
 
-- Java 17 or later
+- Java 21 or later
 - Maven 3.8+
 - Docker and Docker Compose
 - At least 4GB of available RAM for Docker containers

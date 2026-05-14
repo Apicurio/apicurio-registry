@@ -3,7 +3,7 @@
 
 The `status` is the section of the CR managed by the {operator} that contains a description of the current deployment and application state.
 
-.ApicurioRegistry CR status contents
+.ApicurioRegistry3 CR status contents
 The `status` section contains the following fields:
 [source,yaml]
 ----
@@ -22,7 +22,7 @@ status:
     name: <string>
 ----
 
-.ApicurioRegistry CR status fields
+.ApicurioRegistry3 CR status fields
 [%header,cols="2,1,3"]
 |===
 | Status field | Type | Description

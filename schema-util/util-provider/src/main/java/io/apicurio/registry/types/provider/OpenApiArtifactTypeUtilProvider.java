@@ -7,7 +7,9 @@ import io.apicurio.registry.openapi.content.canon.OpenApiContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.openapi.content.dereference.OpenApiDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.openapi.content.extract.OpenApiContentExtractor;
+import io.apicurio.registry.openapi.content.extract.OpenApiStructuredContentExtractor;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.openapi.content.refs.OpenApiReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
@@ -76,6 +78,11 @@ public class OpenApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
     @Override
     protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
         return new DefaultReferenceArtifactIdentifierExtractor();
+    }
+
+    @Override
+    protected StructuredContentExtractor createStructuredContentExtractor() {
+        return new OpenApiStructuredContentExtractor();
     }
 
 }

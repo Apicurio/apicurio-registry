@@ -4,6 +4,7 @@ import { AuthService } from "@apicurio/common-ui-components";
 import { Buffer } from "buffer";
 import { AuthenticationProvider, Headers, RequestInformation, type RequestOption } from "@microsoft/kiota-abstractions";
 import { ConfigService } from "@services/useConfigService";
+import { getReauthenticationService } from "@services/useReauthenticationService.ts";
 import { RegistryClientFactory } from "@sdk/lib/sdk";
 import { ApicurioRegistryClient } from "@sdk/lib/generated-client/apicurioRegistryClient.ts";
 import { Labels } from "@sdk/lib/generated-client/models";
@@ -11,6 +12,26 @@ import type { Middleware } from "@microsoft/kiota-http-fetchlibrary";
 
 const AUTH_HEADER_KEY = "Authorization";
 const BEARER_TOKEN_KEY = "Bearer";
+
+export function getErrorStatus(error: unknown): number | undefined {
+    if (!error || typeof error !== "object") {
+        return undefined;
+    }
+
+    if ("responseStatusCode" in error && typeof error.responseStatusCode === "number") {
+        return error.responseStatusCode;
+    }
+
+    if ("status" in error && typeof error.status === "number") {
+        return error.status;
+    }
+
+    return undefined;
+}
+
+export function isErrorStatus(error: unknown, status: number): boolean {
+    return getErrorStatus(error) === status;
+}
 
 export const labelsToAny = (labels: Labels | undefined | null): any => {
     const rval: any = {
@@ -72,6 +93,7 @@ class RefreshOn401Handler implements Middleware {
     public next: Middleware | undefined;
 
     private readonly auth: AuthService;
+    private readonly reauthentication = getReauthenticationService();
 
     constructor(auth: AuthService) {
         this.auth = auth;
@@ -98,6 +120,7 @@ class RefreshOn401Handler implements Middleware {
             await this.refreshTokens();
         } catch (e) {
             console.error("[RefreshOn401Handler] Token refresh failed", e);
+            await this.triggerReauthentication();
             // Refresh failed - return the original 401 response
             return response;
         }
@@ -116,7 +139,20 @@ class RefreshOn401Handler implements Middleware {
         console.debug("[RefreshOn401Handler] Retrying request after refresh");
 
         // Retry request with the new token
-        return await this.next.execute(url, { ...requestInit, headers }, requestOptions);
+        const retryResponse = await this.next.execute(url, { ...requestInit, headers }, requestOptions);
+        if (retryResponse.status === 401) {
+            console.warn("[RefreshOn401Handler] Request is still unauthorized after refresh");
+            await this.triggerReauthentication();
+        }
+        return retryResponse;
+    }
+
+    private async triggerReauthentication(): Promise<void> {
+        try {
+            await this.reauthentication.requestReauthentication(this.auth);
+        } catch (error) {
+            console.error("[RefreshOn401Handler] Failed to start re-authentication flow", error);
+        }
     }
 
     /**
@@ -348,4 +384,3 @@ export function createHref(baseHref: string, path: string): string {
     url += path;
     return url;
 }
-

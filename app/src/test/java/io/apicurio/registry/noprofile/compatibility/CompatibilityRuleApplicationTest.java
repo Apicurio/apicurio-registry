@@ -120,7 +120,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Assertions.assertThrows(RuleViolationException.class, () -> {
             RuleContext context = new RuleContext("TestGroup", "Test", "AVRO", "BACKWARD",
                     Collections.singletonList(toTypedContent(v1Schema)), toTypedContent(v2Schema),
-                    Collections.emptyList(), Collections.emptyMap());
+                    Collections.emptyList(), Collections.emptyMap(), null);
             compatibility.execute(context);
         });
     }
@@ -134,7 +134,8 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
                 () -> {
                     RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON,
                             "FORWARD_TRANSITIVE", Collections.singletonList(toTypedContent(v1Schema)),
-                            toTypedContent(v2Schema), Collections.emptyList(), Collections.emptyMap());
+                            toTypedContent(v2Schema), Collections.emptyList(), Collections.emptyMap(),
+                            null);
                     compatibility.execute(context);
                 });
 
@@ -467,7 +468,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         // With NONE, the executor should return early without checking compatibility
         RuleContext context = new RuleContext("TestGroup", "TestArtifact", ArtifactType.AVRO,
                 CompatibilityLevel.NONE.name(), Collections.singletonList(toTypedContent(v1Schema)),
-                toTypedContent(v2Schema), Collections.emptyList(), Collections.emptyMap());
+                toTypedContent(v2Schema), Collections.emptyList(), Collections.emptyMap(), null);
 
         // This should NOT throw an exception
         Assertions.assertDoesNotThrow(() -> {

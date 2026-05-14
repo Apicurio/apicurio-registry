@@ -9,6 +9,6 @@ scrape_configs:
       - targets: ['localhost:9090']
 
   - job_name: 'apicurio-registry'
-    metrics_path: '/q/metrics'
+    metrics_path: '/metrics'
     static_configs:
-      - targets: ['apicurio-registry:8080']
+      - targets: ['apicurio-registry:9000']

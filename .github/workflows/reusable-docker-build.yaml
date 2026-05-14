@@ -54,7 +54,7 @@ on:
         description: 'Java version for Maven build (if maven-build is true)'
         required: false
         type: string
-        default: '17'
+        default: '21'
       maven-build:
         description: 'Run Maven build before Docker build'
         required: false
@@ -93,7 +93,7 @@ on:
 jobs:
   docker-build:
     name: Build and Push Docker Image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - name: Checkout Code

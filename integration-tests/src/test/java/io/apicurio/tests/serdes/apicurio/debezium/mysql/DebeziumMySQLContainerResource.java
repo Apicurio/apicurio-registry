@@ -6,7 +6,7 @@ import io.apicurio.tests.serdes.apicurio.debezium.KubernetesDebeziumContainerWra
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 /**
  * Test resource for Debezium MySQL integration tests using published converters.
@@ -16,7 +16,7 @@ public class DebeziumMySQLContainerResource extends BaseDebeziumContainerResourc
 
     private static final Logger log = LoggerFactory.getLogger(DebeziumMySQLContainerResource.class);
 
-    public static MySQLContainer<?> mysqlContainer;
+    public static MySQLContainer mysqlContainer;
     public static DebeziumContainer debeziumContainer;
 
     @Override

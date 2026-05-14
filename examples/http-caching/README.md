@@ -11,7 +11,7 @@ behavior and configuration.
 ## Prerequisites
 
 - Docker and Docker Compose
-- For dev mode: Maven 3.8+ and Java 17+
+- For dev mode: Maven 3.8+ and Java 21+
 
 ## Quick Start
 

@@ -18,7 +18,7 @@
 # oc process -f registry-keycloak-certmanager-letsencrypt-edge.yaml \
 #   -p NAMESPACE=registry-keycloak-certmanager-letsencrypt-edge \
 #   -p INGRESS_ROUTER_CANONICAL_HOSTNAME=router-default.apps.apicur.eastus.aroapp.io \
-#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry registry-keycloak-certmanager-letsencrypt-edge --timeout=120s
+#  | oc apply -f - && oc wait --for=condition=ready apicurioregistry3 registry-keycloak-certmanager-letsencrypt-edge --timeout=120s
 #
 # 4. Registry will not be available, until you have created a truststore secret with the Keycloak certificate:
 #
@@ -216,20 +216,37 @@ objects:
             realmRoles:
               - sr-readonly
             username: registry-user
+  # PostgreSQL credentials
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: registry-keycloak-certmanager-letsencrypt-edge-db-credentials
+      namespace: ${NAMESPACE}
+    type: Opaque
+    stringData:
+      password: ${POSTGRESQL_PASSWORD}
   # Registry
   - apiVersion: registry.apicur.io/v1
-    kind: ApicurioRegistry
+    kind: ApicurioRegistry3
     metadata:
       name: registry-keycloak-certmanager-letsencrypt-edge
       namespace: ${NAMESPACE}
     spec:
-      configuration:
-        persistence: sql
-        sql:
-          dataSource:
-            url: jdbc:postgresql://registry-keycloak-certmanager-letsencrypt-edge-postgres.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
-            userName: ${POSTGRESQL_USER}
-            password: ${POSTGRESQL_PASSWORD}
+      app:
+        storage:
+          type: postgresql
+          sql:
+            dataSource:
+              url: jdbc:postgresql://registry-keycloak-certmanager-letsencrypt-edge-postgres.${NAMESPACE}.svc.cluster.local:5432/${POSTGRESQL_DATABASE}
+              username: ${POSTGRESQL_USER}
+              password:
+                name: registry-keycloak-certmanager-letsencrypt-edge-db-credentials
+                key: password
+        auth:
+          enabled: true
+          appClientId: registry-client-api
+          uiClientId: registry-client-ui
+          authServerUrl: https://keycloak.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}/auth/realms/registry
         env:
           - name: QUARKUS_OIDC_TLS_TRUST_STORE_FILE
             value: /mnt/truststore/tls.truststore
@@ -237,15 +254,10 @@ objects:
             value: password
           - name: ROLE_BASED_AUTHZ_ENABLED
             value: "true"
-        security:
-          keycloak:
-            url: https://keycloak.${NAMESPACE}.${INGRESS_ROUTER_CANONICAL_HOSTNAME}/auth
-            realm: registry
-      deployment:
-        podTemplateSpecPreview:
+        podTemplateSpec:
           spec:
             containers:
-              - name: registry
+              - name: apicurio-registry-app
                 volumeMounts:
                   - mountPath: /mnt/truststore
                     name: truststore

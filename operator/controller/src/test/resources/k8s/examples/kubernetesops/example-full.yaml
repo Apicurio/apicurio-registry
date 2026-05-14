@@ -1,0 +1,20 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-kubernetesops-full
+spec:
+  app:
+    storage:
+      type: kubernetesops
+      kubernetesops:
+        registryId: my-registry
+        namespace: apicurio
+        refreshEvery: 10s
+        labelRegistryId: custom.label/registry
+        watchEnabled: false
+        watchReconnectDelay: 5s
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com

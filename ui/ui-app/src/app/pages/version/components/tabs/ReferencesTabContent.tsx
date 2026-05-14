@@ -43,7 +43,7 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         if (urlView === "graph") {
             return "graph";
         }
-        const storedView = localStorage.getConfigProperty(REFERENCES_VIEW_MODE_KEY, undefined) as string | undefined;
+        const storedView = localStorage.getConfigProperty(REFERENCES_VIEW_MODE_KEY, undefined);
         if (storedView === "graph" || storedView === "list") {
             return storedView;
         }

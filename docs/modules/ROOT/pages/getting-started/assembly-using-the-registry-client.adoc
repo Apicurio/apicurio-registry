@@ -164,6 +164,44 @@ You can configure Transport Layer Security (TLS) authentication for the {registr
 * `apicurio.registry.request.ssl.key.password`
 
 
+[discrete]
+=== OpenTelemetry distributed tracing
+The {registry} Java SDK supports optional OpenTelemetry trace context propagation. When enabled,
+W3C trace context headers (`traceparent` and `tracestate`) are injected into every HTTP request
+made to {registry}, enabling end-to-end distributed tracing across your services and the registry.
+
+To enable this feature, call `enableOpenTelemetry()` when building the client options:
+
+[source,java]
+----
+RegistryClientOptions options = RegistryClientOptions.create()
+        .registryUrl("http://localhost:8080")
+        .enableOpenTelemetry();
+RegistryClient client = RegistryClientFactory.create(options);
+----
+
+The `opentelemetry-api` library must be on the classpath. Add it to your project if it is not
+already provided transitively:
+
+[source,xml,subs="+quotes,attributes"]
+----
+<dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-api</artifactId>
+    <version>${opentelemetry.version}</version>
+</dependency>
+----
+
+When an OpenTelemetry SDK is initialized in your application (for example, via the OpenTelemetry
+Java agent or the Quarkus OpenTelemetry extension), the {registry} SDK will participate in the
+active trace. If no OpenTelemetry SDK is configured, the behavior is a no-op and no trace headers
+are added.
+
+NOTE: This feature also applies to the {registry} Kafka client serializers/deserializers (SerDes),
+which use the SDK internally to communicate with {registry}. See
+{kafka-client-serdes} for SerDes-specific configuration.
+
+
 [role="_additional-resources"]
 .Additional resources
 * For details on how to configure authentication for {registry} Kafka client serializers/deserializers (SerDes), see

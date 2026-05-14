@@ -1,4 +1,4 @@
-import { FunctionComponent, useRef } from "react";
+import { FunctionComponent, useEffect, useRef } from "react";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 
@@ -11,7 +11,8 @@ export type OpenApiVisualizerProps = {
 export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (props: OpenApiVisualizerProps) => {
     const config: ConfigService = useConfigService();
     const logger: LoggerService = useLoggerService();
-    const ref = useRef<any>(null);
+    const ref = useRef<HTMLIFrameElement>(null);
+    const iframeLoaded = useRef<boolean>(false);
 
     const oaiDocsUrl = (): string => {
         let rval: string = config.uiOaiDocsUrl() || "/docs";
@@ -23,19 +24,32 @@ export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (pro
 
     logger.info("[OpenApiVisualizer] OAI docs URL: ", oaiDocsUrl());
 
-    const onIframeLoaded = (): void => {
-        // Now it's OK to post a message to iframe with the content to render.
-
-        const message: any = {
-            type: "apicurio-docs-render",
-            // tslint:disable-next-line:object-literal-sort-keys
-            data: {
-                contentType: "OPENAPI",
-                content: props.spec
-            }
-        };
-        ref.current.contentWindow.postMessage(message, "*");
+    const sendSpecToIframe = (spec: Record<string, unknown>): void => {
+        if (ref.current?.contentWindow) {
+            const message = {
+                type: "apicurio-docs-render",
+                data: {
+                    contentType: "OPENAPI",
+                    content: spec
+                }
+            };
+            ref.current.contentWindow.postMessage(message, "*");
+        }
     };
+
+    const onIframeLoaded = (): void => {
+        iframeLoaded.current = true;
+        sendSpecToIframe(props.spec);
+    };
+
+    // Re-send the spec when it changes after the iframe has already loaded.
+    // This handles the race condition where the parent fetches content asynchronously
+    // and the iframe onLoad fires before the spec is available.
+    useEffect(() => {
+        if (iframeLoaded.current && props.spec && Object.keys(props.spec).length > 0) {
+            sendSpecToIframe(props.spec);
+        }
+    }, [props.spec]);
 
     return (
         <iframe id="openapi-editor-frame"

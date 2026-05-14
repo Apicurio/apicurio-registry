@@ -46,7 +46,9 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 "name": "TestAgent",
                 "description": "A test AI agent",
                 "version": "1.0.0",
-                "url": "https://example.com/agent",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
                 "capabilities": {
                     "streaming": true,
                     "pushNotifications": false
@@ -55,7 +57,8 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                     {
                         "id": "test-skill",
                         "name": "Test Skill",
-                        "description": "A test skill"
+                        "description": "A test skill",
+                        "tags": ["testing"]
                     }
                 ],
                 "defaultInputModes": ["text"],
@@ -68,7 +71,9 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 "name": "StreamingAgent",
                 "description": "An agent with streaming capabilities",
                 "version": "2.0.0",
-                "url": "https://example.com/streaming-agent",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/streaming-agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
                 "capabilities": {
                     "streaming": true,
                     "pushNotifications": true
@@ -76,11 +81,15 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 "skills": [
                     {
                         "id": "data-processing",
-                        "name": "Data Processing"
+                        "name": "Data Processing",
+                        "description": "Process data streams",
+                        "tags": ["data"]
                     },
                     {
                         "id": "real-time-analysis",
-                        "name": "Real-time Analysis"
+                        "name": "Real-time Analysis",
+                        "description": "Analyze data in real time",
+                        "tags": ["analysis"]
                     }
                 ],
                 "defaultInputModes": ["text", "image"],
@@ -99,10 +108,14 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("name", equalTo("Apicurio Registry"))
                 .body("description", equalTo("API and Schema Registry with A2A Agent support"))
                 .body("version", notNullValue())
+                .body("protocolVersion", notNullValue())
                 .body("provider.organization", equalTo("Apicurio"))
                 .body("provider.url", equalTo("https://www.apicur.io"))
+                .body("supportedInterfaces", hasSize(1))
+                .body("supportedInterfaces[0].protocolBinding", equalTo("http+json"))
                 .body("capabilities.streaming", equalTo(false))
                 .body("capabilities.pushNotifications", equalTo(false))
+                .body("capabilities.extendedAgentCard", equalTo(false))
                 .body("skills", hasSize(5))
                 .body("skills.id", hasItem("schema-validation"))
                 .body("skills.id", hasItem("schema-search"))
@@ -111,8 +124,20 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("skills.id", hasItem("agent-discovery"))
                 .body("defaultInputModes", hasItem("text"))
                 .body("defaultOutputModes", hasItem("text"))
-                .body("authentication.schemes", notNullValue())
-                .body("supportsExtendedAgentCard", equalTo(false));
+                .body("securitySchemes", notNullValue());
+    }
+
+    @Test
+    public void testGetAgentCardViaA2APath() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/a2a")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Apicurio Registry"))
+                .body("supportedInterfaces", hasSize(1))
+                .body("capabilities.extendedAgentCard", equalTo(false));
     }
 
     @Test
@@ -146,7 +171,9 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("name", equalTo("TestAgent"))
                 .body("description", equalTo("A test AI agent"))
                 .body("version", equalTo("1.0.0"))
-                .body("url", equalTo("https://example.com/agent"))
+                .body("supportedInterfaces", hasSize(1))
+                .body("supportedInterfaces[0].url", equalTo("https://example.com/agent"))
+                .body("supportedInterfaces[0].protocolBinding", equalTo("http+json"))
                 .body("capabilities.streaming", equalTo(true))
                 .body("skills", hasSize(1))
                 .body("skills[0].id", equalTo("test-skill"));

@@ -1,0 +1,520 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="data-contracts_{context}"]
+= {registry} data contracts
+
+[role="_abstract"]
+This chapter introduces the Data Contracts framework in {registry}, which uses the Open Data Contract Standard (ODCS) v3.1 as the native contract format for managing schema contracts between data producers and consumers.
+
+* xref:data-contracts-overview_{context}[]
+* xref:data-contracts-odcs_{context}[]
+* xref:data-contracts-field-tags_{context}[]
+* xref:data-contracts-rules_{context}[]
+* xref:data-contracts-lifecycle_{context}[]
+* xref:data-contracts-api_{context}[]
+* xref:data-contracts-configuration_{context}[]
+
+[id="data-contracts-overview_{context}"]
+== Overview
+
+[role="_abstract"]
+The Data Contracts framework enables teams to define, enforce, and track formal agreements about schema structure, ownership, and quality using the industry-standard ODCS format.
+
+A data contract in {registry} combines:
+
+* *ODCS format* - Contracts are submitted as ODCS v3.1 YAML documents and projected onto schema artifacts
+* *Metadata* - Ownership, classification, SLA, and support information projected as labels
+* *Lifecycle* - Status tracking (DRAFT, STABLE, DEPRECATED) and promotion stages (DEV, STAGE, PROD)
+* *Quality rules* - Accuracy and completeness rules from ODCS projected as CEL contract rules
+* *Field tags* - PII and classification annotations stored as version labels, with automatic extraction from Avro, JSON Schema, and Protobuf schemas
+* *Multi-contract support* - Multiple contracts can reference the same schema artifact without overwriting each other
+
+NOTE: Data contracts is an experimental feature. You must set `apicurio.features.experimental.enabled=true` and `apicurio.contracts.enabled=true` to use contract endpoints.
+
+[id="data-contracts-odcs_{context}"]
+== ODCS native format
+
+[role="_abstract"]
+{registry} uses the Open Data Contract Standard (ODCS) v3.1 as its native contract format. ODCS is a Linux Foundation standard maintained by the Bitol project. When an ODCS contract is submitted, its contents are *projected* onto the referenced schema artifacts.
+
+=== Why ODCS
+
+* *Industry standard* - ODCS is the Linux Foundation standard for data contracts, with ecosystem tooling such as `datacontract-cli`
+* *Vendor neutral* - {registry} is the first schema registry to natively support ODCS
+* *Interoperable* - ODCS contracts can be imported/exported and used with external tools without translation
+
+=== Projection model
+
+When you submit an ODCS contract, {registry} parses the YAML, stores it as an `ODCS_CONTRACT` artifact, and projects its contents onto the referenced schema artifacts. Each projection is namespaced by the contract ID, so multiple contracts can coexist on the same schema.
+
+.ODCS projection mapping
+[cols="2,3", options="header"]
+|===
+|ODCS section |Projected to
+
+|`info.status`
+|`contract.{contractId}.status` label (draft->DRAFT, active->STABLE, deprecated->DEPRECATED)
+
+|`info.dataClassification`
+|`contract.{contractId}.classification` label
+
+|`team.name` / `team.domain` / `team.contact`
+|`contract.{contractId}.owner.team`, `.owner.domain`, `.support.contact` labels
+
+|`quality.accuracy` rules
+|CEL contract rules prefixed `odcs:{contractId}:` in the contract_rules table
+
+|`quality.completeness` rules
+|`contract.{contractId}.quality.completeness.{field}` labels
+
+|`quality.freshness`
+|`contract.{contractId}.quality.freshness.maxStaleness` label
+
+|`schemas[].fields[].pii` / `.tags`
+|`field-tag.{contractId}:{fieldPath}\|{tagName}` version labels
+
+|`serviceLevel.*`
+|`contract.{contractId}.sla.*` labels (stored, not enforced by registry)
+|===
+
+=== Multi-contract support
+
+Multiple ODCS contracts can reference the same schema artifact. Each contract's projections are namespaced by contract ID, so they do not interfere:
+
+----
+Contract "orders-contract" → contract.orders-contract.owner.team = orders-team
+Contract "billing-contract" → contract.billing-contract.owner.team = billing-team
+----
+
+Updating or deleting a contract only affects its own namespaced labels, rules, and tags.
+
+=== ODCS contract example
+
+.ODCS v3.1 contract
+[source,yaml]
+----
+apiVersion: v3.1.0
+kind: DataContract
+id: orders-contract
+info:
+  title: Orders Contract
+  version: 1.0.0
+  description: Data contract for order events
+  status: active
+  dataClassification: confidential
+team:
+  name: orders-team
+  domain: commerce
+  contact: orders@company.com
+schemas:
+  - name: OrderEvent
+    type: avro
+    location: orders/OrderEvent:3
+    fields:
+      customerEmail:
+        description: Customer email address
+        pii: true
+        tags:
+          - PII
+          - EMAIL
+      totalAmount:
+        description: Total order amount in cents
+quality:
+  accuracy:
+    - name: positive-amount
+      expression: totalAmount > 0
+      threshold: 1.0
+    - name: valid-email
+      expression: "customerEmail.matches('.*@.*\\\\..*')"
+      threshold: 0.99
+  completeness:
+    - field: orderId
+      threshold: 1.0
+    - field: customerEmail
+      threshold: 0.99
+  freshness:
+    maxStaleness: PT5M
+serviceLevel:
+  availability: 0.999
+  latency:
+    p99: PT1S
+----
+
+When submitted, this contract:
+
+1. Creates an `ODCS_CONTRACT` artifact storing the YAML
+2. Sets namespaced labels on the `orders/OrderEvent` artifact: `contract.orders-contract.status=STABLE`, `contract.orders-contract.owner.team=orders-team`, `contract.orders-contract.classification=CONFIDENTIAL`
+3. Creates two CEL contract rules (`odcs:orders-contract:positive-amount` with onFailure=ERROR, `odcs:orders-contract:valid-email` with onFailure=DLQ)
+4. Stores completeness thresholds as labels (`contract.orders-contract.quality.completeness.orderId=1.0`)
+5. Sets field tags: `field-tag.orders-contract:customerEmail|PII=EXTERNAL`, `field-tag.orders-contract:customerEmail|EMAIL=EXTERNAL`
+6. Stores SLA labels for external monitoring tools
+
+=== Quality rule threshold mapping
+
+ODCS accuracy rule thresholds determine what happens when a rule fails:
+
+* *1.0 (100%)* -> `ERROR` - Zero tolerance, reject non-compliant data
+* *0.95-0.99* -> `DLQ` - Near-100%, route violations to dead letter queue
+* *Below 0.95* -> `NONE` - Soft constraint, log only
+
+=== Manual rules are preserved
+
+When you update an ODCS contract, only rules prefixed with `odcs:{contractId}:` are replaced. Rules added manually through the contract ruleset API are preserved.
+
+=== Schema location format
+
+The `schemas[].location` field references an artifact in the registry:
+
+----
+groupId/artifactId:version
+----
+
+Examples:
+
+* `orders/OrderEvent:3` - group "orders", artifact "OrderEvent", version "3"
+* `OrderEvent:latest` - default group, artifact "OrderEvent", latest version
+* `OrderEvent` - default group, artifact "OrderEvent", latest version
+
+[id="data-contracts-field-tags_{context}"]
+== Field-level tags
+
+[role="_abstract"]
+Field tags provide semantic annotation of schema fields, enabling you to identify sensitive data and apply tag-based governance.
+
+=== Tag sources
+
+Tags come from two sources:
+
+* *Inline tags* - Extracted automatically from schema content during registration by tag extractors
+* *External tags* - Projected from ODCS contracts or set manually via the version labels API
+
+=== Supported schema formats
+
+Tag extractors are available for the following formats:
+
+==== Avro
+
+Tags are extracted from `tags` and `confluent:tags` field properties:
+
+[source,json]
+----
+{
+  "type": "record",
+  "name": "User",
+  "fields": [{
+    "name": "email",
+    "type": "string",
+    "tags": ["PII", "EMAIL"]
+  }]
+}
+----
+
+==== JSON Schema
+
+Tags are extracted from `x-tags` and `x-confluent-tags` extension properties:
+
+[source,json]
+----
+{
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "x-tags": ["PII", "EMAIL"]
+    }
+  }
+}
+----
+
+Supports nested objects, arrays, `additionalProperties`, and `allOf`/`oneOf`/`anyOf` compositions.
+
+==== Protobuf
+
+Tags are extracted from documentation comments using the `@tag:` annotation:
+
+[source,protobuf]
+----
+message User {
+  // @tag:PII,EMAIL
+  string email = 1;
+}
+----
+
+Also supports Confluent `confluent.field_meta` field options.
+
+=== Common tags
+
+* `PII` - Personally Identifiable Information
+* `SENSITIVE` - Sensitive data requiring special handling
+* `EMAIL` - Email address fields
+* `PHONE` - Phone number fields
+* `FINANCIAL` - Financial data
+* `HEALTH` - Health-related data (PHI)
+
+[id="data-contracts-rules_{context}"]
+== Contract rules
+
+[role="_abstract"]
+Contract rules define validation and transformation logic associated with artifacts or specific versions. Rules are organized into *domain rules* (business logic) and *migration rules* (schema evolution).
+
+When you submit an ODCS contract, its `quality.accuracy` rules are automatically projected as CEL domain rules on the referenced schema artifact.
+
+NOTE: Contract rules are currently stored and managed through the REST API. Runtime execution in SerDes (serializers/deserializers) is planned for a future release.
+
+=== Rule kinds
+
+* *CONDITION* - Validates a condition, passes or fails
+* *TRANSFORM* - Modifies data
+
+=== Rule modes
+
+* *WRITE* - Execute on serialize (producer-side)
+* *READ* - Execute on deserialize (consumer-side)
+* *WRITEREAD* - Execute on both
+* *UPGRADE* / *DOWNGRADE* - Execute during schema migration
+
+=== Rule actions
+
+* *NONE* - Continue processing (log only)
+* *ERROR* - Throw an exception and reject the operation
+* *DLQ* - Route the message to a dead letter queue
+
+[id="data-contracts-lifecycle_{context}"]
+== Contract lifecycle
+
+[role="_abstract"]
+The contract lifecycle tracks the maturity of a schema through defined status transitions.
+
+=== Statuses
+
+* *DRAFT* - The schema is being developed and is not ready for production
+* *STABLE* - The schema is production-ready
+* *DEPRECATED* - The schema is being phased out
+
+=== Status transitions
+
+----
+DRAFT ──────► STABLE ──────► DEPRECATED
+   │                              ▲
+   └──────────────────────────────┘
+         (skip stable)
+----
+
+NOTE: Reverse transitions are not allowed.
+
+=== Promotion stages
+
+----
+DEV ──────► STAGE ──────► PROD
+----
+
+NOTE: Automated promotion workflow enforcement is planned for a future release. The promotion stage can be set via the contract metadata API.
+
+[id="data-contracts-api_{context}"]
+== REST API
+
+[role="_abstract"]
+The Data Contracts REST API provides endpoints for managing ODCS contracts, contract metadata, and contract rulesets. All endpoints require the data contracts feature to be enabled.
+
+=== ODCS contract endpoints
+
+.ODCS contract REST API endpoints
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|POST
+|`/groups/{groupId}/contracts`
+|Submit an ODCS contract YAML. Creates the contract artifact and projects onto referenced schema artifacts.
+
+|GET
+|`/groups/{groupId}/contracts?limit=&offset=`
+|List ODCS contracts in a group (paginated, default 20, max 500)
+
+|GET
+|`/groups/{groupId}/contracts/{contractId}`
+|Retrieve the ODCS contract YAML
+
+|PUT
+|`/groups/{groupId}/contracts/{contractId}`
+|Update an ODCS contract (creates a new version and re-projects)
+
+|DELETE
+|`/groups/{groupId}/contracts/{contractId}`
+|Delete an ODCS contract artifact
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract/export`
+|Export an artifact's contract data as ODCS YAML
+|===
+
+=== Contract metadata endpoints
+
+.Contract metadata REST API endpoints
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract/metadata`
+|Get contract metadata for an artifact
+
+|PUT
+|`/groups/{groupId}/artifacts/{artifactId}/contract/metadata`
+|Create or update contract metadata
+|===
+
+=== Contract ruleset endpoints
+
+.Contract ruleset REST API endpoints
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract/ruleset`
+|Get the contract ruleset for an artifact
+
+|PUT
+|`/groups/{groupId}/artifacts/{artifactId}/contract/ruleset`
+|Create or replace the contract ruleset
+
+|DELETE
+|`/groups/{groupId}/artifacts/{artifactId}/contract/ruleset`
+|Delete the contract ruleset
+|===
+
+Version-level rulesets are also available at `.../versions/{version}/contract/ruleset`.
+
+=== Contract status transition endpoint
+
+.Contract status transition endpoint
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|POST
+|`/groups/{groupId}/artifacts/{artifactId}/contract/status`
+|Change lifecycle status with transition validation
+|===
+
+=== Planned endpoints
+
+.Planned REST API endpoints
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|POST
+|`/groups/{groupId}/artifacts/{artifactId}/contract/promote`
+|Promote to next stage (DEV -> STAGE -> PROD)
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract/quality`
+|Get quality score
+|===
+
+=== Example: Submitting an ODCS contract
+
+[source,bash]
+----
+curl -X POST \
+  http://localhost:8080/apis/registry/v3/groups/my-group/contracts \
+  -H 'Content-Type: application/x-yaml' \
+  --data-binary @my-contract.yaml
+----
+
+.Response
+[source,json]
+----
+{
+  "contractId": "orders-contract",
+  "version": "1.0.0",
+  "projection": {
+    "rulesApplied": 2,
+    "labelsApplied": 8,
+    "tagsApplied": 3,
+    "warnings": []
+  }
+}
+----
+
+=== Example: Listing contracts
+
+[source,bash]
+----
+curl "http://localhost:8080/apis/registry/v3/groups/my-group/contracts?limit=10&offset=0"
+----
+
+=== Example: Exporting as ODCS
+
+[source,bash]
+----
+curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/export
+----
+
+Returns the reconstructed ODCS v3.1 YAML from the artifact's current contract labels, rules, and field tags.
+
+=== Example: Setting contract metadata directly
+
+[source,bash]
+----
+curl -X PUT \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/metadata \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "status": "DRAFT",
+    "ownerTeam": "Platform Team",
+    "ownerDomain": "payments",
+    "supportContact": "platform@example.com",
+    "classification": "CONFIDENTIAL",
+    "stage": "DEV"
+  }'
+----
+
+=== Example: Transitioning contract status
+
+[source,bash]
+----
+curl -X POST \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/status \
+  -H 'Content-Type: application/json' \
+  -d '{ "status": "STABLE" }'
+----
+
+[id="data-contracts-configuration_{context}"]
+== Configuration
+
+[role="_abstract"]
+Configure the Data Contracts framework using {registry} application properties.
+
+=== Enabling data contracts
+
+.Required configuration properties
+[cols="2,1,2", options="header"]
+|===
+|Property |Default |Description
+
+|`apicurio.features.experimental.enabled`
+|`false`
+|Enable experimental features gate (required for data contracts)
+
+|`apicurio.contracts.enabled`
+|`false`
+|Enable the data contracts feature
+|===
+
+Both properties must be set to `true` for data contracts endpoints to be accessible.
+
+.Example: Enabling data contracts with environment variables
+[source,bash]
+----
+export APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
+export APICURIO_CONTRACTS_ENABLED=true
+----
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rules}
+* link:https://bitol.io/[Open Data Contract Standard (ODCS)]
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]

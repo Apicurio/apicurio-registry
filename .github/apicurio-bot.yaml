@@ -11,13 +11,6 @@ triage:
     - andreaTP
 
   rules:
-    # Dependabot
-    # TODO Do not notify?
-    - labels:
-        - area/dependencies
-      expressions:
-        - 'title.startsWith("build(deps)")'
-
     # Rules
     - labels:
         - area/rules

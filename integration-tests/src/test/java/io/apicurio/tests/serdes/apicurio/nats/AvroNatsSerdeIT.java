@@ -8,7 +8,7 @@ import io.apicurio.registry.serde.avro.nats.client.streaming.producers.NatsProdu
 import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.nats.client.Connection;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.JetStreamManagement;
@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 
-@Tag(Constants.SERDES)
+@Tag(SERDES)
 @QuarkusIntegrationTest
 public class AvroNatsSerdeIT extends ApicurioRegistryBaseIT {
 

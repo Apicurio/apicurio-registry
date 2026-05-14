@@ -1,0 +1,3 @@
+export OPERAND_IMAGE_TAG=3.2.3
+export IMAGE_TAG=latest-snapshot
+export OPERAND_IMAGE_TAG=latest-snapshot

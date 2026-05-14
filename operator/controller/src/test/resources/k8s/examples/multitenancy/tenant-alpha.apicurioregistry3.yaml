@@ -1,0 +1,16 @@
+# Pattern B: Namespace per Tenant - Tenant Alpha
+# Each tenant gets its own namespace and ApicurioRegistry3 CR.
+# A single operator instance watches all namespaces.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: tenant-alpha
+spec:
+  app:
+    replicas: 1
+    ingress:
+      host: tenant-alpha-app.apps.cluster.example
+  ui:
+    replicas: 1
+    ingress:
+      host: tenant-alpha-ui.apps.cluster.example

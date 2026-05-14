@@ -56,6 +56,12 @@ func NewItemArtifactsWithArtifactItemRequestBuilder(rawUrl string, requestAdapte
 	return NewItemArtifactsWithArtifactItemRequestBuilderInternal(urlParams, requestAdapter)
 }
 
+// Contract the contract property
+// returns a *ItemArtifactsItemContractRequestBuilder when successful
+func (m *ItemArtifactsWithArtifactItemRequestBuilder) Contract() *ItemArtifactsItemContractRequestBuilder {
+	return NewItemArtifactsItemContractRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Delete deletes an artifact completely, resulting in all versions of the artifact also beingdeleted.  This may fail for one of the following reasons:* No artifact with the `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 // returns a ProblemDetails error when the service returns a 401 status code
 // returns a ProblemDetails error when the service returns a 403 status code

@@ -88,7 +88,7 @@ public class VersionNumberingTest extends AbstractResourceTestBase {
             confluentClient.getByVersion(subject, 0, false);
         });
         Throwable rootCause = TestUtils.getRootCause(exception);
-        Assertions.assertTrue(rootCause.getMessage().contains("No version '0' found"));
+        Assertions.assertTrue(rootCause.getMessage().contains("Version 0 not found"));
     }
 
 }

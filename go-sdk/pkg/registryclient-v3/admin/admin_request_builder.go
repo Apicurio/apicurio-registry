@@ -36,6 +36,12 @@ func (m *AdminRequestBuilder) Export() *ExportRequestBuilder {
 	return NewExportRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
+// Gitops the gitops property
+// returns a *GitopsRequestBuilder when successful
+func (m *AdminRequestBuilder) Gitops() *GitopsRequestBuilder {
+	return NewGitopsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // ImportEscaped provides a way to import data into the registry.
 // returns a *ImportRequestBuilder when successful
 func (m *AdminRequestBuilder) ImportEscaped() *ImportRequestBuilder {

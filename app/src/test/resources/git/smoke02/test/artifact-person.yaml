@@ -1,8 +1,0 @@
-$type: artifact-v0
-registryId: test
-groupId: bar
-id: person
-versions:
-  - id: 1
-    globalId: 1
-    contentFile: content-42.yaml

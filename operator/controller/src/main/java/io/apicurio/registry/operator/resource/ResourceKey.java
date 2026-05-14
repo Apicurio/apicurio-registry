@@ -2,10 +2,13 @@ package io.apicurio.registry.operator.resource;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.Service;
+import io.fabric8.kubernetes.api.model.ServiceAccount;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
+import io.fabric8.kubernetes.api.model.rbac.Role;
+import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,6 +32,9 @@ public class ResourceKey<R> {
     public static final String APP_INGRESS_ID = "AppIngressResource";
     public static final String APP_POD_DISRUPTION_BUDGET_ID = "AppPodDisruptionBudgetResource";
     public static final String APP_NETWORK_POLICY_ID = "AppNetworkPolicyResource";
+    public static final String APP_SERVICE_ACCOUNT_ID = "AppServiceAccountResource";
+    public static final String APP_ROLE_ID = "AppRoleResource";
+    public static final String APP_ROLE_BINDING_ID = "AppRoleBindingResource";
 
     public static final String UI_DEPLOYMENT_ID = "UIDeploymentResource";
     public static final String UI_SERVICE_ID = "UIServiceResource";
@@ -49,6 +55,12 @@ public class ResourceKey<R> {
     public static final ResourceKey<NetworkPolicy> APP_NETWORK_POLICY_KEY = new ResourceKey<>(APP_NETWORK_POLICY_ID, NetworkPolicy.class, COMPONENT_APP, ResourceFactory.INSTANCE::getDefaultAppNetworkPolicy);
 
     public static final ResourceKey<PodDisruptionBudget> APP_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(APP_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class, COMPONENT_APP, ResourceFactory.INSTANCE::getDefaultAppPodDisruptionBudget);
+
+    public static final ResourceKey<ServiceAccount> APP_SERVICE_ACCOUNT_KEY = new ResourceKey<>(APP_SERVICE_ACCOUNT_ID, ServiceAccount.class, COMPONENT_APP, null);
+
+    public static final ResourceKey<Role> APP_ROLE_KEY = new ResourceKey<>(APP_ROLE_ID, Role.class, COMPONENT_APP, null);
+
+    public static final ResourceKey<RoleBinding> APP_ROLE_BINDING_KEY = new ResourceKey<>(APP_ROLE_BINDING_ID, RoleBinding.class, COMPONENT_APP, null);
 
     // ===== Registry UI
 

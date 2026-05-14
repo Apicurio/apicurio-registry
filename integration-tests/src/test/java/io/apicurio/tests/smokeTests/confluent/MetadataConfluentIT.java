@@ -1,5 +1,7 @@
 package io.apicurio.tests.smokeTests.confluent;
 
+import static io.apicurio.deployment.Constants.*;
+
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.apicurio.tests.ConfluentBaseIT;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -15,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-import static io.apicurio.tests.utils.Constants.SMOKE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 

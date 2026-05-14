@@ -1,0 +1,87 @@
+.json-schema-properties {
+    margin: 0;
+    padding: 0;
+}
+
+.json-schema-property {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.json-schema-property:last-child {
+    border-bottom: none;
+}
+
+.json-schema-property-header {
+    gap: 8px;
+    align-items: baseline;
+}
+
+.json-schema-property-name {
+    font-family: var(--pf-t--global--font--family--mono);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.json-schema-property-required {
+    color: var(--pf-t--global--color--status--danger--default);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.json-schema-property-description {
+    color: var(--pf-t--global--text--color--subtle);
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.json-schema-property-constraints {
+    margin-top: 6px;
+}
+
+.json-schema-property-default {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--pf-t--global--text--color--subtle);
+}
+
+.json-schema-property-default code {
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: 12px;
+    background: var(--pf-t--global--background--color--secondary--default);
+    padding: 1px 4px;
+    border-radius: 2px;
+}
+
+.json-schema-nested-properties {
+    margin-top: 8px;
+}
+
+.json-schema-nested-properties .json-schema-property {
+    padding-left: 24px;
+}
+
+.json-schema-combinator-group {
+    margin-top: 8px;
+}
+
+.json-schema-combinator-label {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+    color: var(--pf-t--global--text--color--subtle);
+}
+
+.json-schema-combinator-option {
+    border-left: 3px solid var(--pf-t--global--border--color--default);
+    padding-left: 12px;
+    margin-top: 8px;
+}
+
+.json-schema-enum-values {
+    margin-top: 6px;
+}
+
+.json-schema-array-items {
+    margin-top: 8px;
+}

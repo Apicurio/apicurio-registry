@@ -1,0 +1,12 @@
+openapi: "3.0.0"
+info:
+  title: Hello API
+  version: "1.0.0"
+  # This comment should be preserved
+paths:
+  /hello:
+    get:
+      summary: Say hello
+      responses:
+        "200":
+          description: Success

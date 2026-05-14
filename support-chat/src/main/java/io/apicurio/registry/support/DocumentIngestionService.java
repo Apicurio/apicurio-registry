@@ -1,18 +1,21 @@
 package io.apicurio.registry.support;
 
 import dev.langchain4j.data.document.Document;
+import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
+import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.context.ManagedExecutor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -20,7 +23,6 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Service that fetches Apicurio Registry documentation from the web at startup
@@ -31,20 +33,19 @@ public class DocumentIngestionService {
 
     private static final String DOCS_BASE_URL = "https://www.apicur.io/registry/docs/apicurio-registry/3.1.x/getting-started/";
 
+    // Reduced to essential pages to minimize embedding API calls
     private static final List<String> DOC_PAGES = List.of(
         "assembly-intro-to-the-registry.html",
-        "assembly-intro-to-registry-rules.html",
         "assembly-installing-registry-docker.html",
         "assembly-configuring-the-registry.html",
-        "assembly-configuring-registry-security.html",
-        "assembly-managing-registry-artifacts-ui.html",
         "assembly-managing-registry-artifacts-api.html",
         "assembly-using-the-registry-client.html",
-        "assembly-using-kafka-client-serdes.html",
-        "assembly-artifact-reference.html",
-        "assembly-rule-reference.html",
-        "assembly-config-reference.html"
+        "assembly-using-kafka-client-serdes.html"
     );
+
+    // Gemini free tier: 100 embedding requests per minute
+    private static final int BATCH_SIZE = 10;
+    private static final long BATCH_DELAY_MS = 65000; // 65 seconds between batches
 
     @Inject
     EmbeddingStore<TextSegment> embeddingStore;
@@ -52,16 +53,15 @@ public class DocumentIngestionService {
     @Inject
     EmbeddingModel embeddingModel;
 
-    private EmbeddingStoreIngestor ingestor;
+    @Inject
+    ManagedExecutor managedExecutor;
+
+    private DocumentSplitter splitter;
 
     @PostConstruct
     void init() {
-        // Create ingestor with document splitter for chunking
-        ingestor = EmbeddingStoreIngestor.builder()
-            .embeddingStore(embeddingStore)
-            .embeddingModel(embeddingModel)
-            .documentSplitter(DocumentSplitters.recursive(500, 50))
-            .build();
+        // Use larger chunks (2000 chars) to reduce total number of embedding calls
+        splitter = DocumentSplitters.recursive(2000, 100);
     }
 
     private volatile boolean ingestionComplete = false;
@@ -70,8 +70,8 @@ public class DocumentIngestionService {
     void onStartup(@Observes StartupEvent event) {
         Log.info("Starting Apicurio Registry documentation ingestion from web...");
 
-        // Run ingestion asynchronously to not block startup
-        CompletableFuture.runAsync(this::ingestDocumentation)
+        // Run ingestion asynchronously using Quarkus-managed executor to preserve classloader context
+        managedExecutor.runAsync(this::ingestDocumentation)
             .exceptionally(e -> {
                 Log.error("Failed to ingest documentation", e);
                 return null;
@@ -79,7 +79,8 @@ public class DocumentIngestionService {
     }
 
     private void ingestDocumentation() {
-        List<Document> documents = new ArrayList<>();
+        // First, fetch all documents and split into segments
+        List<TextSegment> allSegments = new ArrayList<>();
 
         for (String page : DOC_PAGES) {
             try {
@@ -91,7 +92,6 @@ public class DocumentIngestionService {
                     .timeout(30000)
                     .get();
 
-                // Extract main content
                 String title = htmlDoc.title();
                 Element content = htmlDoc.selectFirst("article, .content, main, #content");
 
@@ -99,15 +99,16 @@ public class DocumentIngestionService {
                     content = htmlDoc.body();
                 }
 
-                // Clean up the content
                 String textContent = extractCleanText(content);
 
                 if (textContent.length() > 100) {
                     Document doc = Document.from(textContent, Metadata.from("source", url)
                         .put("title", title)
                         .put("page", page));
-                    documents.add(doc);
-                    Log.infof("Extracted %d chars from: %s", textContent.length(), title);
+                    List<TextSegment> segments = splitter.split(doc);
+                    allSegments.addAll(segments);
+                    Log.infof("Extracted %d chars (%d segments) from: %s",
+                        textContent.length(), segments.size(), title);
                 }
 
             } catch (IOException e) {
@@ -115,16 +116,61 @@ public class DocumentIngestionService {
             }
         }
 
-        if (!documents.isEmpty()) {
-            Log.infof("Ingesting %d documents into embedding store...", documents.size());
-            ingestor.ingest(documents);
-            documentsIngested = documents.size();
-            Log.infof("Documentation ingestion complete: %d documents", documentsIngested);
-        } else {
+        if (allSegments.isEmpty()) {
             Log.warn("No documents were fetched for ingestion");
+            ingestionComplete = true;
+            return;
         }
 
+        Log.infof("Total segments to embed: %d (in batches of %d)", allSegments.size(), BATCH_SIZE);
+
+        // Embed in small batches with delays to respect Gemini free tier rate limits
+        for (int i = 0; i < allSegments.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, allSegments.size());
+            List<TextSegment> batch = allSegments.subList(i, end);
+
+            Log.infof("Embedding batch %d-%d of %d segments...", i + 1, end, allSegments.size());
+
+            try {
+                Response<List<Embedding>> embeddings = embeddingModel.embedAll(batch);
+                embeddingStore.addAll(embeddings.content(), batch);
+                documentsIngested = end;
+            } catch (Exception e) {
+                Log.warnf("Failed to embed batch %d-%d: %s. Waiting and retrying...", i + 1, end, e.getMessage());
+                // Wait longer on failure (likely rate limited)
+                sleep(BATCH_DELAY_MS);
+                try {
+                    Response<List<Embedding>> embeddings = embeddingModel.embedAll(batch);
+                    embeddingStore.addAll(embeddings.content(), batch);
+                    documentsIngested = end;
+                } catch (Exception retryEx) {
+                    Log.errorf("Retry failed for batch %d-%d, skipping: %s", i + 1, end, retryEx.getMessage());
+                    continue;
+                }
+            }
+
+            // Pause between batches to stay under rate limit
+            if (end < allSegments.size()) {
+                Log.infof("Rate limit pause (%ds) before next batch...", BATCH_DELAY_MS / 1000);
+                if (!sleep(BATCH_DELAY_MS)) {
+                    break;
+                }
+            }
+        }
+
+        Log.infof("Documentation ingestion complete: %d segments embedded", documentsIngested);
         ingestionComplete = true;
+    }
+
+    private boolean sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            Log.warn("Documentation ingestion interrupted");
+            return false;
+        }
     }
 
     private String extractCleanText(Element content) {

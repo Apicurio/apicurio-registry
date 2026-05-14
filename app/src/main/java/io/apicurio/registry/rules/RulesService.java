@@ -3,6 +3,7 @@ package io.apicurio.registry.rules;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.List;
@@ -64,4 +65,24 @@ public interface RulesService {
     public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType,
             TypedContent updatedContent, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException;
+
+    /**
+     * Applies all configured rules using the provided storage instance.
+     * This allows validation against a different storage (e.g., the inactive database
+     * during GitOps blue-green loading).
+     */
+    public void applyRules(RegistryStorage storage, String groupId, String artifactId, String artifactType,
+            TypedContent content, RuleApplicationType ruleApplicationType,
+            List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
+            throws RuleViolationException;
+
+    /**
+     * Applies all configured rules using the provided storage instance and explicit
+     * existing content for comparison (e.g., for compatibility checks during GitOps loading
+     * where all versions are already imported into the same storage).
+     */
+    public void applyRules(RegistryStorage storage, String groupId, String artifactId, String artifactType,
+            TypedContent content, List<TypedContent> existingContent,
+            List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
+            throws RuleViolationException;
 }

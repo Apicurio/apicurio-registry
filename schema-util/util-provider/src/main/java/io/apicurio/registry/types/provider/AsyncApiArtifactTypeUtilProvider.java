@@ -7,6 +7,8 @@ import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.asyncapi.content.dereference.AsyncApiDereferencer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.asyncapi.content.extract.AsyncApiContentExtractor;
+import io.apicurio.registry.asyncapi.content.extract.AsyncApiStructuredContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.asyncapi.content.refs.AsyncApiReferenceFinder;
 import io.apicurio.registry.content.refs.DefaultReferenceArtifactIdentifierExtractor;
@@ -66,6 +68,11 @@ public class AsyncApiArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPr
     @Override
     protected ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor() {
         return new DefaultReferenceArtifactIdentifierExtractor();
+    }
+
+    @Override
+    protected StructuredContentExtractor createStructuredContentExtractor() {
+        return new AsyncApiStructuredContentExtractor();
     }
 
     @Override

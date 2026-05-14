@@ -8,6 +8,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * Data transfer object representing the metadata of an artifact branch. A branch is a named, ordered sequence
+ * of artifact versions within an artifact, used to track parallel evolution paths (e.g. {@code latest},
+ * {@code 1.x}).
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

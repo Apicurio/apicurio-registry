@@ -1,0 +1,9 @@
+{
+  "installation-version": 1,
+  "config": {
+    "update.check-enabled": "true",
+    "internal.update.repo-url": "${update.repo.url}",
+    "internal.branding.product-name": "${branding.product-name}"
+  },
+  "context": {}
+}

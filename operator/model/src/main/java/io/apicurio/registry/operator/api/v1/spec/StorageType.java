@@ -10,7 +10,9 @@ public enum StorageType {
     @JsonProperty("mysql")
     MYSQL("mysql"),
     @JsonProperty("kafkasql")
-    KAFKASQL("kafkasql");
+    KAFKASQL("kafkasql"),
+    @JsonProperty("kubernetesops")
+    KUBERNETESOPS("kubernetesops");
 
     private final String value;
 

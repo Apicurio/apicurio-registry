@@ -1,29 +1,50 @@
 package io.apicurio.registry.cli.common;
 
+import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.services.Client;
+import io.apicurio.registry.cli.services.UpdateNotifier;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Spec;
 
 import java.util.concurrent.Callable;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.OK_RETURN_CODE;
 
+@Command
 public abstract class AbstractCommand implements Callable<Integer> {
 
-    private static final Logger log = LogManager.getRootLogger();
+    private static final Logger log = Logger.getLogger(AbstractCommand.class);
+
+    @Spec
+    CommandSpec spec;
+
+    @Inject
+    protected Config config;
+
+    @Inject
+    protected Client client;
+
+    @Inject
+    UpdateNotifier updateNotifier;
 
     @Override
     public Integer call() {
-        var output = new OutputBuffer(Config.getInstance().getStdOut(), Config.getInstance().getStdErr());
+        var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
         try {
+            configureVerboseLogging();
+            updateNotifier.checkAndNotify(getTopLevelCommandName());
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {
             if (!ex.isQuiet()) {
                 if (log.isDebugEnabled()) {
-                    log.error("", ex); // Force printing of stack trace.
+                    log.error("Error", ex); // Force printing of stack trace.
                 } else {
                     output.writeStdErrChunk(out -> {
                         out.append("Error: ")
@@ -34,7 +55,8 @@ public abstract class AbstractCommand implements Callable<Integer> {
             }
             return ex.getCode();
         } catch (Exception ex) {
-            log.error("", ex); // Force printing of stack trace.
+            log.error("Unexpected error", ex);
+            output.writeStdErrChunk(out -> out.append("Unexpected error: ").append(ex.getMessage()).append("\n"));
             return APPLICATION_ERROR_RETURN_CODE;
         } finally {
             output.print();
@@ -43,4 +65,27 @@ public abstract class AbstractCommand implements Callable<Integer> {
     }
 
     public abstract void run(OutputBuffer output) throws Exception;
+
+    private String getTopLevelCommandName() {
+        var current = spec;
+        while (current.parent() != null && current.parent().parent() != null) {
+            current = current.parent();
+        }
+        return current.name();
+    }
+
+    private void configureVerboseLogging() {
+        var root = spec.root().userObject();
+        if (root instanceof Acr acr && acr.isVerbose()) {
+            // Set the root logger level to FINE (DEBUG equivalent)
+            var rootLogger = java.util.logging.Logger.getLogger("");
+            rootLogger.setLevel(java.util.logging.Level.FINE);
+            // Also lower handler levels — Quarkus sets quarkus.log.level=WARN on the
+            // console handler, which filters debug messages even when the logger allows them.
+            for (var handler : rootLogger.getHandlers()) {
+                handler.setLevel(java.util.logging.Level.FINE);
+            }
+            log.debug("Verbose logging enabled.");
+        }
+    }
 }

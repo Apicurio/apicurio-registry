@@ -4,6 +4,8 @@ import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.NoopStructuredContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
@@ -38,4 +40,16 @@ public interface ArtifactTypeUtilProvider {
     boolean supportsReferencesWithContext();
 
     ReferenceArtifactIdentifierExtractor getReferenceArtifactIdentifierExtractor();
+
+    /**
+     * Returns the structured content extractor for this artifact type. The extractor identifies
+     * searchable structured elements within the artifact content (e.g., schema names, paths,
+     * fields). Returns a no-op extractor by default; override in providers that support
+     * structured extraction.
+     *
+     * @return a structured content extractor for this artifact type
+     */
+    default StructuredContentExtractor getStructuredContentExtractor() {
+        return NoopStructuredContentExtractor.INSTANCE;
+    }
 }

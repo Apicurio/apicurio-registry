@@ -64,11 +64,11 @@ public class SubjectVersionStringTest extends AbstractResourceTestBase {
         versions2.removeAll(versions1);
         var version2 = versions2.get(0);
 
-        // Get latest and compare
-        Assertions.assertEquals(schema1, getSubjectVersion(SUBJECT, String.valueOf(version1)).getSchema());
-        Assertions.assertEquals(schema2, getSubjectVersion(SUBJECT, String.valueOf(version2)).getSchema());
-        Assertions.assertEquals(schema2, getSubjectVersion(SUBJECT, "latest").getSchema());
-        Assertions.assertEquals(schema2, getSubjectVersion(SUBJECT, "-1").getSchema());
+        // Get latest and compare (Avro compacts primitive types: {"type":"string"} -> "string")
+        Assertions.assertEquals("\"string\"", getSubjectVersion(SUBJECT, String.valueOf(version1)).getSchema());
+        Assertions.assertEquals("\"int\"", getSubjectVersion(SUBJECT, String.valueOf(version2)).getSchema());
+        Assertions.assertEquals("\"int\"", getSubjectVersion(SUBJECT, "latest").getSchema());
+        Assertions.assertEquals("\"int\"", getSubjectVersion(SUBJECT, "-1").getSchema());
         getSubjectVersionFail(SUBJECT, "-2", 404);
         getSubjectVersionFail(SUBJECT, "foo", 404);
     }

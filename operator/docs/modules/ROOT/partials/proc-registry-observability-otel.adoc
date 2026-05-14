@@ -86,8 +86,8 @@ To reproduce these benchmarks, see the `OpenTelemetryPerformanceTest` and `OpenT
 .Backwards compatibility
 OpenTelemetry support is fully backwards compatible:
 
-* The existing Prometheus metrics endpoint (`/q/metrics`) remains available and unchanged.
-* Health check endpoints (`/q/health/*`) continue to work as before.
+* The existing Prometheus metrics endpoint (`/metrics`) remains available and unchanged.
+* Health check endpoints (`/health/*`) continue to work as before.
 * All existing Micrometer-based metrics continue to function.
 
 [role="_additional-resources"]

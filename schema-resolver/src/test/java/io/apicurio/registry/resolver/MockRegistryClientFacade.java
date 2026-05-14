@@ -5,7 +5,9 @@ import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryVersionCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,9 +21,31 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
     private final AtomicInteger createSchemaCallCount = new AtomicInteger(0);
     private final AtomicInteger searchVersionsCallCount = new AtomicInteger(0);
     private final AtomicInteger getSchemaByGlobalIdCallCount = new AtomicInteger(0);
+    private final AtomicInteger getSchemaByGAVCallCount = new AtomicInteger(0);
+    private final AtomicInteger getReferencesByGAVCallCount = new AtomicInteger(0);
+
+    /** Optional per-GAV reference responses for testing nested references. */
+    private Map<String, List<RegistryArtifactReference>> referencesByGAV = new HashMap<>();
 
     public MockRegistryClientFacade(String schemaContent) {
         this.schemaContent = schemaContent;
+    }
+
+    /**
+     * Configures the mock to return the given references when queried for a specific GAV.
+     *
+     * @param groupId the group ID
+     * @param artifactId the artifact ID
+     * @param version the version
+     * @param references the references to return
+     */
+    public void addReferencesByGAV(String groupId, String artifactId, String version,
+                                    List<RegistryArtifactReference> references) {
+        referencesByGAV.put(gavKey(groupId, artifactId, version), references);
+    }
+
+    private static String gavKey(String groupId, String artifactId, String version) {
+        return groupId + "/" + artifactId + "/" + version;
     }
 
     public int getCreateSchemaCallCount() {
@@ -34,6 +58,14 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
 
     public int getGetSchemaByGlobalIdCallCount() {
         return getSchemaByGlobalIdCallCount.get();
+    }
+
+    public int getGetSchemaByGAVCallCount() {
+        return getSchemaByGAVCallCount.get();
+    }
+
+    public int getGetReferencesByGAVCallCount() {
+        return getReferencesByGAVCallCount.get();
     }
 
     @Override
@@ -49,6 +81,7 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
 
     @Override
     public String getSchemaByGAV(String groupId, String artifactId, String version) {
+        getSchemaByGAVCallCount.incrementAndGet();
         return schemaContent;
     }
 
@@ -69,7 +102,9 @@ public class MockRegistryClientFacade implements RegistryClientFacade {
 
     @Override
     public List<RegistryArtifactReference> getReferencesByGAV(String groupId, String artifactId, String version) {
-        return List.of();
+        getReferencesByGAVCallCount.incrementAndGet();
+        List<RegistryArtifactReference> refs = referencesByGAV.get(gavKey(groupId, artifactId, version));
+        return refs != null ? refs : List.of();
     }
 
     @Override

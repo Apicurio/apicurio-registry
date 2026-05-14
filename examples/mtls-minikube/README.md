@@ -18,7 +18,7 @@ This example includes:
 
 - **Minikube**: Running Kubernetes cluster ([Installation guide](https://minikube.sigs.k8s.io/docs/start/))
 - **kubectl**: Kubernetes command-line tool
-- **Java 17+**: For running the client example
+- **Java 21+**: For running the client example
 - **Maven**: For building the client example
 - **OpenSSL**: For certificate generation
 - **keytool**: Part of the JDK, for managing keystores

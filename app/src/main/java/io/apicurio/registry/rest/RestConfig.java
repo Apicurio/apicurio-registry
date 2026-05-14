@@ -13,17 +13,9 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_RES
 @Singleton
 public class RestConfig {
 
-    @ConfigProperty(name = "apicurio.rest.artifact.download.max-size.bytes", defaultValue = "1000000")
-    @Info(category = CATEGORY_REST, description = "Max size of the artifact allowed to be downloaded from URL", availableSince = "2.2.6")
-    int downloadMaxSize;
-
     @ConfigProperty(name = "apicurio.rest.search-results.labels.max-size.bytes", defaultValue = "512")
     @Info(category = CATEGORY_REST, description = "Max size of the labels (in bytes) per item from within search results", availableSince = "3.0.3")
     int labelsInSearchResultsMaxSize;
-
-    @ConfigProperty(name = "apicurio.rest.artifact.download.ssl-validation.disabled", defaultValue = "false")
-    @Info(category = CATEGORY_REST, description = "Skip SSL validation when downloading artifacts from URL", availableSince = "2.2.6")
-    boolean downloadSkipSSLValidation;
 
     @Dynamic(label = "Delete group", description = "When selected, users are permitted to delete groups.")
     @ConfigProperty(name = "apicurio.rest.deletion.group.enabled", defaultValue = "false")
@@ -54,16 +46,8 @@ public class RestConfig {
     @Info(category = CATEGORY_REST, description = "Enables production-like behavior for draft versions", availableSince = "3.0.x")
     Supplier<Boolean> draftProductionModeEnabled;
 
-    public int getDownloadMaxSize() {
-        return this.downloadMaxSize;
-    }
-
     public int getLabelsInSearchResultsMaxSize() {
         return this.labelsInSearchResultsMaxSize;
-    }
-
-    public boolean getDownloadSkipSSLValidation() {
-        return this.downloadSkipSSLValidation;
     }
 
     public boolean isGroupDeletionEnabled() {

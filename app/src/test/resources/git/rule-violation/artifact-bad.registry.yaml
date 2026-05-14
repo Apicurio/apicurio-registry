@@ -1,0 +1,9 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: testgroup
+artifactId: bad-schema
+artifactType: AVRO
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/invalid.avsc

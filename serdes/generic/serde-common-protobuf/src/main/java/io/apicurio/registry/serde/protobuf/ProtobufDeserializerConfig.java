@@ -12,6 +12,12 @@ public class ProtobufDeserializerConfig extends SerdeConfig {
     public static final String DERIVE_CLASS_FROM_SCHEMA = "apicurio.protobuf.derive.class";
     public static final String DERIVE_CLASS_FROM_SCHEMA_DOC = "Whether to derive the class based on `java_outer_classname` and `java_multiple_files` from the Protobuf schema.";
 
+    public static final String FALLBACK_ON_SCHEMA_ERROR = "apicurio.protobuf.fallback.on-schema-error";
+    public static final String FALLBACK_ON_SCHEMA_ERROR_DOC = "When true and a specificReturnClass is configured, " +
+            "falls back to direct protobuf parsing (bypassing schema resolution) if schema lookup or parsing fails. " +
+            "This provides resilience against registry outages, missing transitive imports, and race conditions " +
+            "during rolling deployments.";
+
     private boolean isKey;
 
     /**
@@ -53,8 +59,19 @@ public class ProtobufDeserializerConfig extends SerdeConfig {
         return this.getBoolean(READ_INDEXES);
     }
 
+    /**
+     * Returns whether the deserializer should fall back to direct protobuf parsing
+     * when schema resolution fails and a {@code specificReturnClass} is configured.
+     *
+     * @return {@code true} if fallback is enabled, {@code false} by default
+     */
+    public boolean fallbackOnSchemaError() {
+        return this.getBoolean(FALLBACK_ON_SCHEMA_ERROR);
+    }
+
     private static final Map<String, ?> DEFAULTS = Map.of(
             READ_TYPE_REF, READ_TYPE_REF_DEFAULT,
-            READ_INDEXES, READ_INDEXES_DEFAULT
+            READ_INDEXES, READ_INDEXES_DEFAULT,
+            FALLBACK_ON_SCHEMA_ERROR, false
     );
 }

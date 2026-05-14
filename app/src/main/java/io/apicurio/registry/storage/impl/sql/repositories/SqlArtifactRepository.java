@@ -17,9 +17,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
 import io.apicurio.registry.events.ArtifactDeleted;
 import io.apicurio.registry.events.ArtifactMetadataUpdated;
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.util.Date;
@@ -37,7 +35,6 @@ import static io.apicurio.registry.utils.StringUtil.asLowerCase;
  * Repository handling artifact-level operations in the SQL storage layer.
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
-@ApplicationScoped
 public class SqlArtifactRepository {
 
     // Maximum length constants for artifact metadata fields
@@ -46,34 +43,25 @@ public class SqlArtifactRepository {
     public static final int MAX_LABEL_KEY_LENGTH = 256;
     public static final int MAX_LABEL_VALUE_LENGTH = 512;
 
-    @Inject
-    Logger log;
+    private final Logger log;
+    private final SqlStatements sqlStatements;
+    private final HandleFactory handles;
+    private final SecurityIdentity securityIdentity;
+    private final Event<SqlOutboxEvent> outboxEvent;
+    private final SqlGroupRepository groupRepository;
+    private final SqlContentRepository contentRepository;
 
-    @Inject
-    SqlStatements sqlStatements;
-
-    @Inject
-    HandleFactory handles;
-
-    /**
-     * Set the HandleFactory to use for database operations.
-     * This allows storage implementations to override the default injected HandleFactory.
-     */
-    public void setHandleFactory(HandleFactory handleFactory) {
-        this.handles = handleFactory;
+    public SqlArtifactRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            SecurityIdentity securityIdentity, Event<SqlOutboxEvent> outboxEvent,
+            SqlGroupRepository groupRepository, SqlContentRepository contentRepository) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.securityIdentity = securityIdentity;
+        this.outboxEvent = outboxEvent;
+        this.groupRepository = groupRepository;
+        this.contentRepository = contentRepository;
     }
-
-    @Inject
-    SecurityIdentity securityIdentity;
-
-    @Inject
-    Event<SqlOutboxEvent> outboxEvent;
-
-    @Inject
-    SqlGroupRepository groupRepository;
-
-    @Inject
-    SqlContentRepository contentRepository;
 
     /**
      * Get artifact metadata by groupId and artifactId.

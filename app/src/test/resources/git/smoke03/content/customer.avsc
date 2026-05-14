@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "Customer",
+  "namespace": "com.example.refs",
+  "fields": [
+    {"name": "name", "type": "string"},
+    {"name": "email", "type": "string"},
+    {"name": "address", "type": "com.example.refs.Address"}
+  ]
+}

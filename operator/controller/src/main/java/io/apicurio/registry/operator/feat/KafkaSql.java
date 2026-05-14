@@ -29,6 +29,17 @@ public class KafkaSql {
                                          Map<String, EnvVar> env) {
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
                 .map(StorageSpec::getKafkasql).ifPresent(kafkasql -> {
+                    // KafkaAccess secret takes precedence over manual configuration
+                    if (!isBlank(kafkasql.getKafkaAccessSecretName())) {
+                        if (!isBlank(kafkasql.getBootstrapServers())) {
+                            log.warn("Both 'kafkaAccessSecretName' and 'bootstrapServers' are set. "
+                                    + "'kafkaAccessSecretName' takes precedence.");
+                        }
+                        KafkaSqlAccess.configureKafkaSQLFromAccessSecret(env,
+                                kafkasql.getKafkaAccessSecretName());
+                        return;
+                    }
+
                     if (!isBlank(kafkasql.getBootstrapServers())) {
                         addEnvVar(env,
                                 new EnvVarBuilder().withName(ENV_STORAGE_KIND).withValue("kafkasql").build());

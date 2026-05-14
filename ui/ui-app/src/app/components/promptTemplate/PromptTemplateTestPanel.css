@@ -1,0 +1,23 @@
+.prompt-template-test-panel {
+    margin-top: 16px;
+}
+
+.prompt-template-test-panel .test-panel-form {
+    margin-bottom: 16px;
+}
+
+.prompt-template-test-panel .rendered-output {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    padding: 16px;
+    border-radius: 4px;
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 60px;
+    margin-top: 8px;
+}
+
+.prompt-template-test-panel .validation-errors {
+    margin-top: 8px;
+}

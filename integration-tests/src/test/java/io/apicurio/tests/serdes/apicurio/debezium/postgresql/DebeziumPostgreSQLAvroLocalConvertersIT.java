@@ -1,7 +1,7 @@
 package io.apicurio.tests.serdes.apicurio.debezium.postgresql;
 
 import io.apicurio.tests.serdes.apicurio.debezium.DebeziumAvroV3DeserializerMixin;
-import io.apicurio.tests.utils.Constants;
+import static io.apicurio.deployment.Constants.*;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Integration tests for Debezium PostgreSQL CDC with Apicurio Registry Avro
@@ -22,7 +22,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * Tests schema auto-registration, evolution, PostgreSQL data types, and CDC
  * operations.
  */
-@Tag(Constants.DEBEZIUM_SNAPSHOT)
+@Tag(DEBEZIUM_SNAPSHOT)
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DebeziumLocalConvertersResource.class, restrictToAnnotatedClass = true)
 public class DebeziumPostgreSQLAvroLocalConvertersIT extends DebeziumPostgreSQLAvroBaseIT
@@ -41,7 +41,7 @@ public class DebeziumPostgreSQLAvroLocalConvertersIT extends DebeziumPostgreSQLA
     }
 
     @Override
-    protected PostgreSQLContainer<?> getPostgresContainer() {
+    protected PostgreSQLContainer getPostgresContainer() {
         return DebeziumLocalConvertersResource.postgresContainer;
     }
 

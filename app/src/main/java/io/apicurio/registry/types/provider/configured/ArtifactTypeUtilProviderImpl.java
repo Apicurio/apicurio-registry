@@ -7,7 +7,6 @@ import io.apicurio.common.apps.config.ConfigPropertyCategory;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.config.artifactTypes.ArtifactTypesConfiguration;
 import io.apicurio.registry.http.HttpClientService;
-import io.apicurio.registry.script.ScriptingService;
 import io.apicurio.registry.utils.IoUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,7 +17,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.io.File;
-import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -33,35 +31,21 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     @Inject
     HttpClientService httpClientService;
 
-    @Inject
-    ScriptingService scriptingService;
-
     @ConfigProperty(name = "apicurio.artifact-types.config-file", defaultValue = "/tmp/apicurio-registry-artifact-types.json")
     @Info(category = ConfigPropertyCategory.CATEGORY_TYPES, description = "Path to a configuration file containing a list of supported artifact types.", availableSince = "3.1.0")
     @Getter
     private String configFile;
 
-    private static final String BUNDLED_CONFIG_PATH = "llm-artifact-types/default-artifact-types-config.json";
-
     @PostConstruct
     public void init() {
-        // First, try to load from external config file
+        // Try to load from external config file for user-defined custom types
         ArtifactTypesConfiguration config = loadArtifactTypeConfiguration();
         if (config != null) {
             loadConfiguredProviders(config);
             return;
         }
 
-        // If no external config, try loading bundled LLM artifact types from classpath
-        config = loadBundledConfiguration();
-        if (config != null) {
-            log.info("Loading bundled LLM artifact types from classpath");
-            loadConfiguredProviders(config);
-            return;
-        }
-
-        // Fallback to standard providers only
-        log.info("No artifact type configuration found, using standard types only.");
+        // No external config — use standard providers (includes all built-in types)
         loadStandardProviders();
     }
 
@@ -84,7 +68,6 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     }
 
     private void loadConfiguredProviders(ArtifactTypesConfiguration config) {
-        // The set of loaded artifact types.
         Set<String> artifactTypes = new HashSet<>();
 
         if (config.getIncludeStandardArtifactTypes()) {
@@ -95,42 +78,24 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
         }
 
         if (!config.getArtifactTypes().isEmpty()) {
-            // Process each configured artifact type.
             config.getArtifactTypes().forEach(artifactType -> {
-                // All artifact types must have a valid, non-null "name" property
                 if (Objects.isNull(artifactType.getName()) || artifactType.getName().trim().isEmpty()) {
                     throw new IllegalArgumentException("Invalid configuration: Artifact type '" + artifactType.getArtifactType() + "' found with missing or empty 'name'.");
                 }
 
-                // All artifact types must have a valid and unique "artifactType" property
                 String type = artifactType.getArtifactType();
                 if (Objects.isNull(type) || type.trim().isEmpty()) {
                     throw new IllegalArgumentException("Invalid configuration: Artifact type named '" + artifactType.getName() + "' has missing or empty 'artifactType' property.");
                 }
 
-                // Artifact types must be unique.
                 if (artifactTypes.contains(type)) {
                     throw new IllegalArgumentException("Invalid configuration: Duplicate artifactType '" + type + "' found.");
                 }
 
                 log.info("Adding artifact type {}", artifactType.getName());
-                providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, scriptingService, artifactType));
+                providers.add(new ConfiguredArtifactTypeUtilProvider(httpClientService, artifactType));
                 artifactTypes.add(type);
             });
-        }
-    }
-
-    private ArtifactTypesConfiguration loadBundledConfiguration() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream(BUNDLED_CONFIG_PATH)) {
-            if (is == null) {
-                return null;
-            }
-            String configSrc = IoUtil.toString(is);
-            ObjectMapper mapper = new ObjectMapper();
-            return mapper.readValue(configSrc, ArtifactTypesConfiguration.class);
-        } catch (Exception e) {
-            log.warn("Failed to load bundled artifact type configuration from classpath", e);
-            return null;
         }
     }
 

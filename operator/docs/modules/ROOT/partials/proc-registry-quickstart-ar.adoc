@@ -19,7 +19,7 @@ endif::[]
 export NAMESPACE="default"
 ----
 
-. Create an `ApicurioRegistry` custom resource (CR):
+. Create an `ApicurioRegistry3` custom resource (CR):
 +
 [source,bash,subs="attributes"]
 ----

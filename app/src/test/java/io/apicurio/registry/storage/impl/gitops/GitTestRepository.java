@@ -32,7 +32,7 @@ public class GitTestRepository implements AutoCloseable {
             Files.write(gitDir.resolve(".init"), "init".getBytes(StandardCharsets.UTF_8));
             git.add().addFilepattern(".").call();
             git.commit().setMessage("Initial commit").call();
-            gitRepoUrl = "file://" + git.getRepository().getWorkTree().getAbsolutePath();
+            gitRepoUrl = git.getRepository().getWorkTree().getAbsolutePath();
 
         } catch (IOException | GitAPIException e) {
             throw new RuntimeException(e);

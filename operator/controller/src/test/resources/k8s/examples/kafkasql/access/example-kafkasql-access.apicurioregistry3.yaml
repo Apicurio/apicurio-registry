@@ -1,0 +1,15 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-kafkasql-access
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        kafkaAccessSecretName: my-kafka-access
+    ingress:
+      host: example-kafkasql-access-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-kafkasql-access-ui.apps.cluster.example

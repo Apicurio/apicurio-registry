@@ -22,7 +22,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "bootstrapServers", "tls", "auth" })
+@JsonPropertyOrder({ "kafkaAccessSecretName", "bootstrapServers", "tls", "auth" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -31,6 +31,21 @@ import static lombok.AccessLevel.PRIVATE;
 @EqualsAndHashCode
 @ToString
 public class KafkaSqlSpec {
+
+    /**
+     * Name of a Kubernetes Secret produced by the Strimzi Kafka Access Operator
+     * (type <code>servicebinding.io/kafka</code>). When set, the operator reads connection details
+     * (bootstrap servers, TLS certificates, SASL credentials) from this secret instead of requiring
+     * manual configuration via <code>bootstrapServers</code>, <code>tls</code>, and <code>auth</code>.
+     */
+    @JsonProperty("kafkaAccessSecretName")
+    @JsonPropertyDescription("""
+            Name of a Kubernetes Secret produced by the Strimzi Kafka Access Operator \
+            (type `servicebinding.io/kafka`). When set, the operator reads connection details \
+            (bootstrap servers, TLS certificates, SASL credentials) from this secret instead of requiring \
+            manual configuration via `bootstrapServers`, `tls`, and `auth`.""")
+    @JsonSetter(nulls = SKIP)
+    private String kafkaAccessSecretName;
 
     /**
      * Configure Kafka bootstrap servers.

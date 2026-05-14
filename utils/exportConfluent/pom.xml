@@ -4,13 +4,13 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-utils-exportConfluent</artifactId>
   <packaging>jar</packaging>
-  <name>apicurio-registry-utils-exportConfluent</name>
+  <name>Registry :: Utils :: Export Confluent</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
@@ -60,7 +60,7 @@
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>kafka</artifactId>
+      <artifactId>testcontainers-kafka</artifactId>
       <scope>test</scope>
     </dependency>
 

@@ -1,0 +1,22 @@
+package io.apicurio.registry.storage.util;
+
+import io.apicurio.registry.storage.impl.gitops.GitMultiRepoTestManager;
+import io.quarkus.test.junit.QuarkusTestProfile;
+
+import java.util.List;
+import java.util.Map;
+
+public class GitopsMultiRepoTestProfile implements QuarkusTestProfile {
+
+    @Override
+    public Map<String, String> getConfigOverrides() {
+        return Map.of(
+                "apicurio.storage.kind", "gitops",
+                "apicurio.features.experimental.enabled", "true");
+    }
+
+    @Override
+    public List<TestResourceEntry> testResources() {
+        return List.of(new TestResourceEntry(GitMultiRepoTestManager.class));
+    }
+}

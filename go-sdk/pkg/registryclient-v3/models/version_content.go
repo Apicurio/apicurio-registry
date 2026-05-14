@@ -11,6 +11,8 @@ type VersionContent struct {
 	content *string
 	// The content-type, such as `application/json` or `text/xml`.
 	contentType *string
+	// Optional encoding for the content property. When set to 'base64', the content value will be base64-decoded by the server before processing.
+	encoding *VersionContent_encoding
 	// Collection of references to other artifacts.
 	references []ArtifactReferenceable
 }
@@ -46,6 +48,12 @@ func (m *VersionContent) GetContentType() *string {
 	return m.contentType
 }
 
+// GetEncoding gets the encoding property value. Optional encoding for the content property. When set to 'base64', the content value will be base64-decoded by the server before processing.
+// returns a *VersionContent_encoding when successful
+func (m *VersionContent) GetEncoding() *VersionContent_encoding {
+	return m.encoding
+}
+
 // GetFieldDeserializers the deserialization information for the current model
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *VersionContent) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -67,6 +75,16 @@ func (m *VersionContent) GetFieldDeserializers() map[string]func(i878a80d2330e89
 		}
 		if val != nil {
 			m.SetContentType(val)
+		}
+		return nil
+	}
+	res["encoding"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetEnumValue(ParseVersionContent_encoding)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetEncoding(val.(*VersionContent_encoding))
 		}
 		return nil
 	}
@@ -109,6 +127,13 @@ func (m *VersionContent) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a
 			return err
 		}
 	}
+	if m.GetEncoding() != nil {
+		cast := (*m.GetEncoding()).String()
+		err := writer.WriteStringValue("encoding", &cast)
+		if err != nil {
+			return err
+		}
+	}
 	if m.GetReferences() != nil {
 		cast := make([]i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, len(m.GetReferences()))
 		for i, v := range m.GetReferences() {
@@ -145,6 +170,11 @@ func (m *VersionContent) SetContentType(value *string) {
 	m.contentType = value
 }
 
+// SetEncoding sets the encoding property value. Optional encoding for the content property. When set to 'base64', the content value will be base64-decoded by the server before processing.
+func (m *VersionContent) SetEncoding(value *VersionContent_encoding) {
+	m.encoding = value
+}
+
 // SetReferences sets the references property value. Collection of references to other artifacts.
 func (m *VersionContent) SetReferences(value []ArtifactReferenceable) {
 	m.references = value
@@ -155,8 +185,10 @@ type VersionContentable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetContent() *string
 	GetContentType() *string
+	GetEncoding() *VersionContent_encoding
 	GetReferences() []ArtifactReferenceable
 	SetContent(value *string)
 	SetContentType(value *string)
+	SetEncoding(value *VersionContent_encoding)
 	SetReferences(value []ArtifactReferenceable)
 }

@@ -1,14 +1,18 @@
 package io.apicurio.registry.services.http;
 
+import io.apicurio.registry.iceberg.metrics.IcebergMetricsService;
 import io.apicurio.registry.iceberg.rest.v1.beans.ErrorModel;
 import io.apicurio.registry.iceberg.rest.v1.beans.IcebergErrorResponse;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.error.GroupNotEmptyException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -19,6 +23,9 @@ import jakarta.ws.rs.core.Response;
  */
 @ApplicationScoped
 public class IcebergExceptionMapperService {
+
+    @Inject
+    IcebergMetricsService metricsService;
 
     public Response mapException(Throwable t) {
         if (t instanceof NotFoundException) {
@@ -56,6 +63,17 @@ public class IcebergExceptionMapperService {
                     "Namespace is not empty: " + ((GroupNotEmptyException) t).getGroupId());
         }
 
+        if (t instanceof CommitFailedException) {
+            metricsService.recordCommitConflict("table");
+            return buildErrorResponse(409, "CommitFailedException", t.getMessage());
+        }
+
+        if (t instanceof VersionAlreadyExistsException) {
+            metricsService.recordCommitConflict("table");
+            return buildErrorResponse(409, "CommitFailedException",
+                    "Version already exists: " + ((VersionAlreadyExistsException) t).getVersion());
+        }
+
         if (t instanceof IllegalArgumentException) {
             return buildErrorResponse(400, "BadRequestException", t.getMessage());
         }
@@ -66,6 +84,8 @@ public class IcebergExceptionMapperService {
     }
 
     private Response buildErrorResponse(int code, String type, String message) {
+        metricsService.recordIcebergError(type);
+
         ErrorModel error = new ErrorModel();
         error.setCode(code);
         error.setType(type);

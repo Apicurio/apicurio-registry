@@ -8,63 +8,54 @@ AI-powered support assistant for [Apicurio Registry](https://www.apicur.io/regis
 |---------|-------------|
 | **PROMPT_TEMPLATE** | System and chat prompts stored in Apicurio Registry, rendered via /render endpoint |
 | **RAG** | Automatic ingestion of Apicurio Registry documentation from web |
+| **In-process Embeddings** | ONNX-based embeddings run inside the JVM — no external embedding service needed |
 | **Conversation Memory** | Session-based chat with context preservation |
+| **Embeddable Widget** | Chat widget that can be embedded on any website via a single `<script>` tag |
 | **Kubernetes Ready** | Health checks, ConfigMaps, and deployment manifests included |
 
 ## Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────┐
-│   Web Browser   │────▶│  Support Chat    │────▶│   Ollama    │
-│                 │     │  (Quarkus)       │     │   (LLM)     │
-└─────────────────┘     └────────┬─────────┘     └─────────────┘
-                                 │
-                    ┌────────────┼────────────┐
-                    ▼            ▼            ▼
-            ┌───────────┐ ┌───────────┐ ┌───────────┐
-            │ Registry  │ │    RAG    │ │   Docs    │
-            │ (Prompts) │ │ (Vectors) │ │   (Web)   │
-            └───────────┘ └───────────┘ └───────────┘
+┌─────────────────────┐        ┌──────────────────────┐        ┌──────────────┐
+│   www.apicur.io     │        │  Support Chat        │        │ Google AI    │
+│   (GitHub Pages)    │  REST  │  (Quarkus)           │  API   │ Gemini       │
+│ ┌─────────────────┐ │───────▶│  ├─ RAG (in-process) │───────▶│ (LLM)       │
+│ │ chat-widget.js  │ │        │  └─ ONNX embeddings  │        └──────────────┘
+│ └─────────────────┘ │        └──────────┬───────────┘
+└─────────────────────┘                   │
+                              ┌───────────┼───────────┐
+                              ▼           ▼           ▼
+                      ┌───────────┐ ┌──────────┐ ┌──────────┐
+                      │ Registry  │ │   RAG    │ │   Docs   │
+                      │ (Prompts) │ │ (ONNX)   │ │  (Web)   │
+                      └───────────┘ └──────────┘ └──────────┘
 ```
 
 ## Prerequisites
 
-- **Java 17+** and **Maven 3.8+**
+- **Java 21+** and **Maven 3.8+**
+- A **Google AI API key** ([get one free](https://aistudio.google.com/apikey))
 - **Docker** (for containerized deployment)
-- **Kubernetes** (optional, for k8s deployment)
 
 ## Quick Start
 
-### 1. Start Ollama (LLM)
+### 1. Start Apicurio Registry
 
 ```bash
-# macOS
-brew install ollama && brew services start ollama
-
-# Linux
-curl -fsSL https://ollama.com/install.sh | sh && ollama serve &
-
-# Pull required models
-ollama pull llama3.2
-ollama pull nomic-embed-text
+docker run -d --name apicurio-registry -p 8080:8080 quay.io/apicurio/apicurio-registry:3.2.0
 ```
 
-### 2. Start Apicurio Registry
-
-```bash
-docker run -d --name apicurio-registry -p 8080:8080 apicurio/apicurio-registry:3.0.6
-```
-
-### 3. Create Prompt Templates
+### 2. Create Prompt Templates
 
 ```bash
 ./scripts/create-prompts.sh
 ```
 
-### 4. Run the Application
+### 3. Run the Application
 
 ```bash
-mvn quarkus:dev
+export GOOGLE_AI_GEMINI_API_KEY=your-api-key
+mvn quarkus:dev -Dquarkus.http.port=8081
 ```
 
 Open http://localhost:8081 in your browser.
@@ -74,6 +65,9 @@ Open http://localhost:8081 in your browser.
 Run the complete stack with Docker Compose:
 
 ```bash
+# Set your API key
+export GOOGLE_AI_GEMINI_API_KEY=your-api-key
+
 # Build the application first
 mvn package -DskipTests
 
@@ -84,47 +78,62 @@ docker compose up -d
 Services:
 - **Support Chat**: http://localhost:8081
 - **Apicurio Registry**: http://localhost:8080
-- **Ollama API**: http://localhost:11434
 
-## Kubernetes Deployment
+## Deploying to Hugging Face Spaces (Free)
 
-### Build and Push Container Image
+### 1. Create a new Space
 
-```bash
-# Build container image
-mvn package -Dquarkus.container-image.build=true
+Go to [Hugging Face Spaces](https://huggingface.co/new-space) and create a new Space with **Docker** SDK.
 
-# Push to registry
-mvn package -Dquarkus.container-image.push=true \
-  -Dquarkus.container-image.registry=your-registry.io
-```
-
-### Deploy to Kubernetes
+### 2. Push the deployment files
 
 ```bash
-# Apply ConfigMap
-kubectl apply -f k8s/configmap.yaml
-
-# Deploy application
-kubectl apply -f k8s/deployment.yaml
+cd support-chat/huggingface
+git init
+git remote add space https://huggingface.co/spaces/<your-username>/apicurio-support-chat
+git add .
+git commit -m "Initial deployment"
+git push space main
 ```
 
-### Using Quarkus Kubernetes Extension
+### 3. Set the API key
+
+In your Space's **Settings > Secrets**, add:
+- `GOOGLE_AI_GEMINI_API_KEY` — your Google AI API key
+
+### 4. Create prompt templates
+
+Once the Space is running, create prompt templates against the registry running inside the Space:
 
 ```bash
-# Generate and apply Kubernetes manifests
-mvn package -Dquarkus.kubernetes.deploy=true
+REGISTRY_URL=https://<your-username>-apicurio-support-chat.hf.space:8080/apis/registry/v3 ./scripts/create-prompts.sh
 ```
+
+> **Note:** The registry runs on port 8080 internally. If it's not directly reachable, you can skip this step — the chat app falls back to hardcoded prompts.
+
+## Embedding the Chat Widget
+
+Add a single script tag to any website:
+
+```html
+<script src="https://carnalca-apicurio-support-chat.hf.space/chat-widget.js"></script>
+```
+
+This renders a floating chat button that opens an AI-powered support panel. The widget:
+- Creates sessions automatically on first use
+- Preserves conversation history across page navigations (via the session)
+- Is fully self-contained (CSS + JS in one file)
+- Is responsive and works on mobile
 
 ## Configuration
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
+| `GOOGLE_AI_GEMINI_API_KEY` | (required) | Google AI API key |
+| `GEMINI_MODEL` | `gemini-2.0-flash` | Gemini chat model ID |
 | `REGISTRY_URL` | `http://localhost:8080` | Apicurio Registry URL |
 | `REGISTRY_GROUP` | `default` | Registry group for prompts |
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama API URL |
-| `OLLAMA_MODEL` | `llama3.2` | Chat model ID |
-| `OLLAMA_EMBEDDING_MODEL` | `nomic-embed-text` | Embedding model for RAG |
+| `CORS_ORIGINS` | `*` | Allowed CORS origins |
 | `HTTP_PORT` | `8080` | Application HTTP port |
 
 ## API Endpoints
@@ -154,10 +163,6 @@ curl http://localhost:8081/support/health
 
 # RAG ingestion status
 curl http://localhost:8081/support/rag/status
-
-# Kubernetes health probes
-curl http://localhost:8081/q/health/live
-curl http://localhost:8081/q/health/ready
 ```
 
 ### Prompt Templates
@@ -165,9 +170,6 @@ curl http://localhost:8081/q/health/ready
 ```bash
 # Get raw system prompt template
 curl http://localhost:8081/support/prompts/system
-
-# Get a specific prompt template
-curl http://localhost:8081/support/prompts/{artifactId}
 
 # Preview rendered prompt (without calling LLM)
 curl -X POST http://localhost:8081/support/prompts/preview \
@@ -181,11 +183,13 @@ curl -X POST http://localhost:8081/support/prompts/preview \
 support-chat/
 ├── src/main/java/io/apicurio/registry/support/
 │   ├── ApicurioSupportService.java    # Core chat service with RAG and /render endpoint
+│   ├── SupportAiService.java          # LangChain4j AI service interface
 │   ├── DocumentIngestionService.java  # Web docs ingestion at startup
 │   └── SupportChatResource.java       # REST API endpoints
 ├── src/main/resources/
 │   ├── META-INF/resources/
-│   │   └── index.html                 # Web chat UI
+│   │   ├── index.html                 # Standalone web chat UI
+│   │   └── chat-widget.js             # Embeddable chat widget
 │   └── application.properties         # Configuration
 ├── src/main/docker/
 │   └── Dockerfile.jvm                 # Container image
@@ -194,57 +198,36 @@ support-chat/
 ├── k8s/
 │   ├── deployment.yaml                # Kubernetes Deployment + Service
 │   └── configmap.yaml                 # Environment configuration
+├── huggingface/
+│   ├── Dockerfile                     # HF Spaces multi-service container
+│   ├── supervisord.conf               # Process supervisor for Registry + Chat
+│   └── README.md                      # HF Space metadata and instructions
 ├── docker-compose.yaml                # Local development stack
 ├── pom.xml                            # Maven build configuration
 └── README.md
 ```
 
-## Development
+## Using with Ollama (Local Development)
 
-### Running in Dev Mode
+To use Ollama instead of Google AI Gemini for local development:
 
-```bash
-mvn quarkus:dev
-```
-
-Features:
-- Hot reload on code changes
-- Dev UI at http://localhost:8081/q/dev/
-
-### Building for Production
-
-```bash
-# JVM build
-mvn package -DskipTests
-
-# Native build (requires GraalVM)
-mvn package -Pnative -DskipTests
-```
-
-### Running Tests
-
-```bash
-mvn test
-```
-
-## Using with OpenAI
-
-To use OpenAI instead of Ollama:
-
-1. Add dependency in `pom.xml`:
+1. Replace the dependency in `pom.xml`:
    ```xml
    <dependency>
        <groupId>io.quarkiverse.langchain4j</groupId>
-       <artifactId>quarkus-langchain4j-openai</artifactId>
+       <artifactId>quarkus-langchain4j-ollama</artifactId>
        <version>${quarkus-langchain4j.version}</version>
    </dependency>
    ```
 
 2. Configure in `application.properties`:
    ```properties
-   quarkus.langchain4j.openai.api-key=${OPENAI_API_KEY}
-   quarkus.langchain4j.openai.chat-model.model-name=gpt-4o
+   quarkus.langchain4j.chat-model.provider=ollama
+   quarkus.langchain4j.ollama.base-url=http://localhost:11434
+   quarkus.langchain4j.ollama.chat-model.model-id=llama3.2
    ```
+
+3. Pull models: `ollama pull llama3.2`
 
 ## License
 
@@ -255,4 +238,4 @@ Apache License 2.0
 - [Apicurio Registry](https://www.apicur.io/registry/)
 - [Apicurio Registry Documentation](https://www.apicur.io/registry/docs/)
 - [Quarkus LangChain4j](https://docs.quarkiverse.io/quarkus-langchain4j/dev/)
-- [Ollama](https://ollama.com/)
+- [Google AI Studio](https://aistudio.google.com/)

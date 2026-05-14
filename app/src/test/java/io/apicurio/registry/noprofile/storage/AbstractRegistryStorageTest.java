@@ -1069,7 +1069,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     private int countStorageEntities() {
         // We don't need thread safety, but it's simpler to use this when effectively final counter is needed
         final AtomicInteger count = new AtomicInteger(0);
-        storage().exportData(e -> {
+        storage().exportData(null, e -> {
             if (e.getEntityType() != EntityType.Manifest) {
                 log.debug("Counting from export: {}", e);
                 count.incrementAndGet();

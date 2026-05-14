@@ -2,7 +2,7 @@ package io.apicurio.registry.utils.tests;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.Collections;
@@ -15,7 +15,7 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
     private static final DockerImageName IMAGE =DockerImageName.parse("mysql:8").asCompatibleSubstituteFor("mysql");
 
-    private MySQLContainer<?> database = new MySQLContainer<>(IMAGE).withPassword(DB_PASSWORD);
+    private MySQLContainer database = new MySQLContainer(IMAGE).withPassword(DB_PASSWORD);
 
     /**
      * Constructor.

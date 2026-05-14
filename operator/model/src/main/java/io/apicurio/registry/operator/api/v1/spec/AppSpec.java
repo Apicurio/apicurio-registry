@@ -86,6 +86,17 @@ public class AppSpec extends ComponentSpec {
     private OTelSpec otel;
 
     /**
+     * Configure Elasticsearch-based search indexing for Apicurio Registry.
+     */
+    @JsonProperty("searchIndex")
+    @JsonPropertyDescription("""
+            Configure Elasticsearch-based search indexing for Apicurio Registry.
+            When enabled, Registry indexes artifact content in Elasticsearch to support
+            full-text content and structure searches.""")
+    @JsonSetter(nulls = SKIP)
+    private SearchIndexSpec searchIndex;
+
+    /**
      * DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead. The operator will attempt
      * to update the fields automatically.
      */

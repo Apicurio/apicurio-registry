@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,7 +40,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     /**
      * Returns the PostgreSQL container to use for this test.
      */
-    protected abstract PostgreSQLContainer<?> getPostgresContainer();
+    protected abstract PostgreSQLContainer getPostgresContainer();
 
     @Override
     protected String getDatabaseType() {

@@ -11,7 +11,7 @@ Resources managed by the {operator} are usually labeled as follows:
 | Label | Description
 
 | `app`
-| Name of the {registry} deployment that the resource belongs to, based on the name of the specified `ApicurioRegistry` CR.
+| Name of the {registry} deployment that the resource belongs to, based on the name of the specified `ApicurioRegistry3` CR.
 
 | `apicur.io/type`
 | Type of the deployment: `apicurio-registry` or `operator`
@@ -32,23 +32,22 @@ endif::[]
 |===
 
 .Custom labels and annotations
-You can provide custom labels and annotation for the {registry} pod, using the `spec.deployment.metadata.labels` and `spec.deployment.metadata.annotations` fields, for example:
+You can provide custom labels and annotation for the {registry} pod, using the `spec.app.podTemplateSpec.metadata.labels` and `spec.app.podTemplateSpec.metadata.annotations` fields, for example:
 
 [source,yaml]
 ----
 apiVersion: registry.apicur.io/v1
-kind: ApicurioRegistry
+kind: ApicurioRegistry3
 metadata:
   name: example-apicurioregistry
 spec:
-  configuration:
-    # ...
-  deployment:
-    metadata:
-      labels:
-        example.com/environment: staging
-      annotations:
-        example.com/owner: my-team
+  app:
+    podTemplateSpec:
+      metadata:
+        labels:
+          example.com/environment: staging
+        annotations:
+          example.com/owner: my-team
 ----
 
 .Additional resources

@@ -76,7 +76,7 @@ suffix to the environment variable name (or `.file` suffix to the property name)
 1. Add `_FILE` suffix to any environment variable (e.g., `APICURIO_DATASOURCE_PASSWORD_FILE`)
 2. Set the value to a file path (e.g., `/run/secrets/db_password`)
 3. Quarkus converts the environment variable to a property (e.g., `apicurio.datasource.password.file`)
-4. FileBasedSecretsConfigSource reads the file contents and provides the actual value
+4. FileBasedSecretsInterceptor reads the file contents and provides the actual value
 
 **Common examples:**
 - `APICURIO_DATASOURCE_USERNAME_FILE` → Database username from file

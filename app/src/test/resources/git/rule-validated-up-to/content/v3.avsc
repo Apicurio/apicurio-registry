@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "TestRecord",
+  "namespace": "com.example",
+  "fields": [
+    {"name": "id", "type": "string"},
+    {"name": "email", "type": ["null", "string"], "default": null}
+  ]
+}

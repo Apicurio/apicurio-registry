@@ -10,8 +10,10 @@ public class GitopsTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("apicurio.storage.sql.kind", "h2", "apicurio.storage.kind", "gitops",
-                "apicurio.features.experimental.enabled", "true");
+        return Map.of(
+                "apicurio.storage.kind", "gitops",
+                "apicurio.features.experimental.enabled", "true"
+        );
     }
 
     @Override

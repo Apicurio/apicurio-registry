@@ -20,7 +20,7 @@ import {DocumentService} from "../../_services/document.service";
 import {AbstractBaseComponent} from "./base-component";
 import {SelectionService} from "../../_services/selection.service";
 import {CollaboratorService} from "../../_services/collaborator.service";
-import {TopicSubscription} from "apicurio-ts-core";
+import {TopicSubscription} from "../../_messaging/topic";
 import {ApiEditorUser} from "../../_models/editor-user.model";
 
 /**

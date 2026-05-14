@@ -8,17 +8,24 @@ import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
 import io.apicurio.registry.operator.api.v1.spec.NetworkPolicySpec;
 import io.apicurio.registry.operator.api.v1.spec.PodDisruptionSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
+import io.apicurio.registry.operator.feat.KubernetesOps;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
 import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
+import io.apicurio.registry.operator.resource.app.AppRoleBindingResource;
+import io.apicurio.registry.operator.resource.app.AppRoleResource;
+import io.apicurio.registry.operator.resource.app.AppServiceAccountResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
 import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
+import io.fabric8.kubernetes.api.model.ServiceAccount;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
+import io.fabric8.kubernetes.api.model.rbac.Role;
+import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.DependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.workflow.Condition;
@@ -81,6 +88,47 @@ public class ActivationConditions {
                     .orElse(Boolean.TRUE);
             if (!isManaged) {
                 ((AppNetworkPolicyResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    // ===== KubernetesOps RBAC
+
+    public static class KubernetesOpsServiceAccountActivationCondition
+            implements Condition<ServiceAccount, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<ServiceAccount, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            boolean isManaged = KubernetesOps.isEnabled(primary);
+            if (!isManaged) {
+                ((AppServiceAccountResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    public static class KubernetesOpsRoleActivationCondition
+            implements Condition<Role, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<Role, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            boolean isManaged = KubernetesOps.isEnabled(primary);
+            if (!isManaged) {
+                ((AppRoleResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    public static class KubernetesOpsRoleBindingActivationCondition
+            implements Condition<RoleBinding, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<RoleBinding, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            boolean isManaged = KubernetesOps.isEnabled(primary);
+            if (!isManaged) {
+                ((AppRoleBindingResource) resource).delete(primary, context);
             }
             return isManaged;
         }

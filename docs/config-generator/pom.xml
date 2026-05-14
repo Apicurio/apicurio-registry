@@ -5,14 +5,18 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-docs</artifactId>
-        <version>3.2.0-SNAPSHOT</version>
+        <version>3.3.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>apicurio-registry-config-generator</artifactId>
     <packaging>jar</packaging>
-    <name>apicurio-registry-config-generator</name>
+    <name>Registry :: Docs :: Config Generator</name>
     <description>Configuration documentation generator</description>
+
+    <properties>
+        <projectRoot>${project.basedir}/../..</projectRoot>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -27,40 +31,30 @@
         </dependency>
     </dependencies>
 
-    <profiles>
-        <profile>
-            <id>docs-generation</id>
-            <activation>
-                <property>
-                    <name>!skipDocsGen</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>generate-config-docs</id>
-                                <goals>
-                                    <goal>java</goal>
-                                </goals>
-                                <phase>process-classes</phase>
-                                <configuration>
-                                    <mainClass>io.apicurio.registry.docs.GenerateAllConfigPartial</mainClass>
-                                    <arguments>
-                                        <argument>${project.version}</argument>
-                                        <argument>${project.basedir}/..</argument>
-                                        <argument>${project.version}</argument>
-                                    </arguments>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-config-docs</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <phase>process-classes</phase>
+                        <configuration>
+                            <mainClass>io.apicurio.registry.docs.GenerateAllConfigPartial</mainClass>
+                            <arguments>
+                                <argument>${project.version}</argument>
+                                <argument>${project.basedir}/..</argument>
+                                <argument>${project.version}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

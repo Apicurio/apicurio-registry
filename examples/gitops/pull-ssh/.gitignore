@@ -1,0 +1,6 @@
+# SSH keys and known_hosts — generated locally, never committed
+secrets/*
+!secrets/.gitkeep
+
+# Sidecar-managed clone — created at runtime, never committed
+repos/

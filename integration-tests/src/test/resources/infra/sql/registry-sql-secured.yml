@@ -23,6 +23,10 @@ spec:
                   fieldPath: metadata.namespace
             - name: APICURIO_STORAGE_SQL_KIND
               value: "postgresql"
+            - name: QUARKUS_DATASOURCE_H2_ACTIVE
+              value: "false"
+            - name: QUARKUS_DATASOURCE_POSTGRESQL_ACTIVE
+              value: "true"
             - name: APICURIO_DATASOURCE_URL
               value: jdbc:postgresql://postgresql-service:5432/registry
             - name: APICURIO_DATASOURCE_USERNAME
@@ -63,7 +67,7 @@ spec:
             failureThreshold: 3
             httpGet:
               path: /health/live
-              port: 8080
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 10
@@ -74,11 +78,14 @@ spec:
             - containerPort: 8080
               name: http
               protocol: TCP
+            - containerPort: 9000
+              name: management
+              protocol: TCP
           readinessProbe:
             failureThreshold: 3
             httpGet:
               path: /health/ready
-              port: 8080
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 10
@@ -94,10 +101,15 @@ metadata:
   name: apicurio-registry-service
 spec:
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 8080
       targetPort: 8080
       nodePort: 32586
+    - name: management
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
   selector:
     app: apicurio-registry-sql
   type: LoadBalancer

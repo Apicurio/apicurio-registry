@@ -59,7 +59,7 @@ public class AvroDeserializer<U> extends AbstractDeserializer<Schema, U> {
         avroDatumProvider.configure(config);
 
         // important to instantiate the SchemaParser before calling super.configure
-        parser = new AvroSchemaParser<>(avroDatumProvider);
+        parser = new AvroSchemaParser<>(avroDatumProvider, config.getSchemaCacheSize());
 
         super.configure(config, isKey);
     }

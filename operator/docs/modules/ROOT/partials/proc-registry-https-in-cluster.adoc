@@ -40,20 +40,21 @@ oc create secret generic https-cert-secret --from-file=tls.key --from-file=tls.c
 ----
 --
 
-. Edit the `spec.configuration.security.https` section of the `ApicurioRegistry` CR for your {registry} deployment, for example:
+. Edit the `spec.app.tls` section of the `ApicurioRegistry3` CR for your {registry} deployment, for example:
 +
 [source,yaml]
 ----
 apiVersion: registry.apicur.io/v1
-kind: ApicurioRegistry
+kind: ApicurioRegistry3
 metadata:
   name: example-apicurioregistry
 spec:
-  configuration:
-    # ...
-    security:
-      https:
-        secretName: https-cert-secret
+  app:
+    tls:
+      keystoreSecretRef:
+        name: https-cert-secret
+      keystorePasswordSecretRef:
+        name: https-cert-secret
 ----
 
 . Verify that the connection is working:
@@ -61,7 +62,7 @@ spec:
 +
 [source,bash]
 ----
-oc rsh example-apicurioregistry-deployment-6f788db977-2wzpw
+oc rsh example-apicurioregistry-app-deployment-6f788db977-2wzpw
 ----
 
 .. Find the cluster IP of the {registry} pod from the *Service* resource (see the *Location* column in the web console).
@@ -76,7 +77,7 @@ NOTE: In the Kubernetes secret containing the HTTPS certificate and key, the nam
 This is currently not configurable.
 
 .Disabling HTTP
-If you enabled HTTPS using the procedure in this section, you can also disable the default HTTP connection by setting the `spec.security.https.disableHttp` to `true`. This removes the HTTP port 8080 from the {registry} pod container, `Service`, and the `NetworkPolicy`  (if present).
+If you enabled HTTPS using the procedure in this section, you can also disable the default HTTP connection. This removes the HTTP port 8080 from the {registry} pod container, `Service`, and the `NetworkPolicy` (if present).
 
 Importantly, `Ingress` is also removed because the {operator} currently does not support configuring HTTPS in `Ingress`.
 Users must create an `Ingress` for HTTPS connections manually.

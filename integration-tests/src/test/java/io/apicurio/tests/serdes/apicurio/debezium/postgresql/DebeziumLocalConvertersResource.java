@@ -6,7 +6,7 @@ import io.apicurio.tests.serdes.apicurio.debezium.SharedDebeziumInfrastructure;
 import io.debezium.testing.testcontainers.DebeziumContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.util.Collections;
 import java.util.Map;
@@ -21,7 +21,7 @@ public class DebeziumLocalConvertersResource extends DebeziumContainerResource {
     private static final Logger log = LoggerFactory.getLogger(DebeziumLocalConvertersResource.class);
 
     // Shadow parent's static fields to avoid pollution between regular and local-converter tests
-    public static PostgreSQLContainer<?> postgresContainer;
+    public static PostgreSQLContainer postgresContainer;
     public static DebeziumContainer debeziumContainer;
 
     @Override

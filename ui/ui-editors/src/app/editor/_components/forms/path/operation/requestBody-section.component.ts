@@ -53,7 +53,7 @@ import {DocumentService} from "../../../../_services/document.service";
 import {SelectionService} from "../../../../_services/selection.service";
 import {ModelUtils} from "../../../../_util/model.util";
 import {RenameEntityDialogComponent, RenameEntityEvent} from "../../../dialogs/rename-entity.component";
-import {ObjectUtils} from "apicurio-ts-core";
+import {ObjectUtils} from "../../../../_util/object.util";
 import {DropDownOption, DropDownOptionValue} from "../../../common/drop-down.component";
 
 

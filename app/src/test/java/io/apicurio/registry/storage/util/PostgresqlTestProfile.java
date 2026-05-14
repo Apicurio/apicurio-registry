@@ -11,7 +11,9 @@ public class PostgresqlTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("apicurio.storage.sql.kind", "postgresql");
+        return Map.of("apicurio.storage.sql.kind", "postgresql",
+                "quarkus.datasource.h2.active", "false",
+                "quarkus.datasource.postgresql.active", "true");
     }
 
     @Override

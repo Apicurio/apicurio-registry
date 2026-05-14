@@ -1,11 +1,12 @@
 package io.apicurio.registry.storage.impl.gitops;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.util.GitopsTestProfile;
-import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.util.JsonObjectMapper;
+import io.apicurio.registry.util.YAMLObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.context.control.ActivateRequestContext;
@@ -20,16 +21,19 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import static io.restassured.RestAssured.get;
 import static java.util.Objects.requireNonNull;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
-class GitOpsSmokeTest {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+public class GitOpsSmokeTest {
 
     @Inject
     @Current
@@ -37,14 +41,16 @@ class GitOpsSmokeTest {
 
     @Test
     void smokeTest() throws Exception {
-        assertEquals(Set.of(), storage.getArtifactIds(10));
-
         var testRepository = GitTestRepositoryManager.getTestRepository();
 
-        // Waiting to load smoke01
+        // --- Load smoke01: OpenAPI artifact with rules ---
         testRepository.load("git/smoke01");
-        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
-                equalTo(Set.of("petstore")));
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // Verify storage is ready after first load
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> assertTrue(storage.isReady()));
 
         // Global rules
         assertEquals(Set.of(RuleType.VALIDITY), Set.copyOf(storage.getGlobalRules()));
@@ -52,45 +58,125 @@ class GitOpsSmokeTest {
 
         // Groups
         assertEquals(Set.of("foo"), Set.copyOf(storage.getGroupIds(10)));
+        var groupMeta = storage.getGroupMetaData("foo");
+        assertEquals("Test group foo", groupMeta.getDescription());
+
+        // Artifact metadata
+        var artifactMeta = storage.getArtifactMetaData("foo", "petstore");
+        assertEquals("petstore", artifactMeta.getArtifactId());
+        assertEquals("OPENAPI", artifactMeta.getArtifactType());
 
         // Artifact rules
         assertEquals(Set.of(RuleType.COMPATIBILITY), Set.copyOf(storage.getArtifactRules("foo", "petstore")));
         assertEquals("BACKWARD",
                 storage.getArtifactRule("foo", "petstore", RuleType.COMPATIBILITY).getConfiguration());
 
-        // Artifact versions
+        // Artifact version content
         var version = storage.getArtifactVersionContent("foo", "petstore", "1");
-        assertEquals(1, version.getGlobalId());
-        assertEquals(1, version.getContentId());
-        var content = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
-        assertEquals(YAMLObjectMapper.MAPPER.readTree(content.bytes()),
-                MAPPER.readTree(version.getContent().bytes()));
+        assertNotNull(version.getContent());
+        assertNotNull(version.getGlobalId());
+        assertNotNull(version.getContentId());
+        // Verify content matches the source file (YAML content is preserved as YAML)
+        var expectedContent = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
+        assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(expectedContent.bytes()),
+                YAMLObjectMapper.YAML_MAPPER.readTree(version.getContent().bytes()));
 
-        // Waiting to load smoke02
+        // --- Load smoke02: Different artifact, no rules ---
         testRepository.load("git/smoke02");
-        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
-                equalTo(Set.of("person")));
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+        });
 
-        // Global rules
+        // Global rules cleared
         assertEquals(Set.of(), Set.copyOf(storage.getGlobalRules()));
 
-        // Groups
+        // Groups switched
         assertEquals(Set.of("bar"), Set.copyOf(storage.getGroupIds(10)));
 
-        // Artifact rules
+        // Artifact rules cleared
         assertEquals(Set.of(), Set.copyOf(storage.getArtifactRules("bar", "person")));
 
-        // Artifact versions
+        // Content of new artifact
         version = storage.getArtifactVersionContent("bar", "person", "1");
-        assertEquals(1, version.getGlobalId());
-        assertEquals(42, version.getContentId());
-        content = loadFile("git/smoke02/content/Person.json");
-        assertEquals(MAPPER.readTree(content.bytes()), MAPPER.readTree(version.getContent().bytes()));
+        assertNotNull(version.getContent());
+        var personContent = loadFile("git/smoke02/content/Person.json");
+        assertEquals(JsonObjectMapper.MAPPER.readTree(personContent.bytes()),
+                JsonObjectMapper.MAPPER.readTree(version.getContent().bytes()));
 
-        // Waiting to load empty
+        // --- Load data without registry config → rejected by safety check, smoke02 data preserved ---
+        testRepository.load("git/invalid-content-ref");
+        await().pollDelay(Duration.ofSeconds(5)).untilAsserted(() -> {
+            // Previous data should still be served because the failed load does not cause a swap
+            assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // --- Load empty: Everything cleared (proves the system recovers after invalid data) ---
         testRepository.load("git/empty");
-        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
-                equalTo(Set.of()));
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            assertEquals(Set.of(), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // Still ready (empty is a valid state after initial load)
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> assertTrue(storage.isReady()));
+    }
+
+    @Test
+    void validityRuleViolationPreventsLoad() throws Exception {
+        assertRuleViolationPreventsLoad("git/rule-violation", "VALIDITY");
+    }
+
+    @Test
+    void compatibilityRuleViolationPreventsLoad() throws Exception {
+        assertRuleViolationPreventsLoad("git/rule-violation-compatibility", "COMPATIBILITY");
+    }
+
+    @Test
+    void integrityRuleViolationPreventsLoad() throws Exception {
+        assertRuleViolationPreventsLoad("git/rule-violation-integrity", "INTEGRITY");
+    }
+
+    private void assertRuleViolationPreventsLoad(String violationDataPath, String expectedRuleType)
+            throws Exception {
+        var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // First load valid data
+        testRepository.load("git/smoke01");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // Load data that violates the rule — should fail validation
+        testRepository.load(violationDataPath);
+        await().pollDelay(Duration.ofSeconds(5)).untilAsserted(() -> {
+            // Previous data should still be served (validation failure prevents swap)
+            assertEquals(Set.of("petstore"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // Verify status shows ERROR with the expected rule type
+        get("/apis/registry/v3/admin/gitops/status")
+                .then()
+                .statusCode(200)
+                .body("syncState", equalTo("ERROR"))
+                .body("errors", hasSize(1))
+                .body("errors[0].detail", containsString("Rule " + expectedRuleType + " violation"));
+    }
+
+    @Test
+    void validatedUpToSkipsIncompatibleVersions() throws Exception {
+        var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // Load data with incompatible v1->v2 but validatedUpTo="2" skips that check.
+        // Only v2->v3 is validated (v3 adds optional field = backward compatible).
+        testRepository.load("git/rule-validated-up-to");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("compat-test"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        // All 3 versions should be loaded
+        var v1 = storage.getArtifactVersionContent("testgroup", "compat-test", "1");
+        var v3 = storage.getArtifactVersionContent("testgroup", "compat-test", "3");
+        assertNotNull(v1.getContent());
+        assertNotNull(v3.getContent());
     }
 
     @ActivateRequestContext

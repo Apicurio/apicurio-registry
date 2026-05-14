@@ -65,7 +65,8 @@ import {PropertyEditorComponent} from "./_components/editors/property-editor.com
 import {ApiEditorComponentFeatures} from "./_models/features.model";
 import {FeaturesService} from "./_services/features.service";
 import {CollaboratorService} from "./_services/collaborator.service";
-import {ArrayUtils, TopicSubscription} from "apicurio-ts-core";
+import {TopicSubscription} from "./_messaging/topic";
+import {ArrayUtils} from "./_util/array.util";
 import {ResponseEditorComponent} from "./_components/editors/response-editor.component";
 import {AbstractApiEditorComponent} from "./editor.base";
 import {ApiCatalogService} from "./_services/api-catalog.service";

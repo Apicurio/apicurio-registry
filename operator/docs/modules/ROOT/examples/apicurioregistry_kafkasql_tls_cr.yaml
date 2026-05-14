@@ -1,13 +1,28 @@
 apiVersion: registry.apicur.io/v1
-kind: ApicurioRegistry
+kind: ApicurioRegistry3
 metadata:
   name: example-apicurioregistry-kafkasql-tls
 spec:
-  configuration:
-    persistence: "kafkasql"
-    kafkasql:
-      bootstrapServers: "my-cluster-kafka-bootstrap.registry-example-kafkasql-tls.svc:9093"
-      security:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "my-cluster-kafka-bootstrap.registry-example-kafkasql-tls.svc:9093"
         tls:
-          keystoreSecretName: my-user
-          truststoreSecretName: my-cluster-cluster-ca-cert
+          keystoreSecretRef:
+            name: my-user
+            # key: user.p12 (default)
+          keystorePasswordSecretRef:
+            name: my-user
+            # key: user.password (default)
+          truststoreSecretRef:
+            name: my-cluster-cluster-ca-cert
+            # key: ca.p12 (default)
+          truststorePasswordSecretRef:
+            name: my-cluster-cluster-ca-cert
+            # key: ca.password (default)
+    ingress:
+      host: example-kafkasql-tls-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-kafkasql-tls-ui.apps.cluster.example

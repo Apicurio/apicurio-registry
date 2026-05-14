@@ -5,12 +5,12 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-operator</artifactId>
-    <version>3.2.0-SNAPSHOT</version>
+    <version>3.3.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>apicurio-registry-operator-controller</artifactId>
-  <name>Apicurio Registry Operator :: Controller</name>
+  <name>Registry :: Operator :: Controller</name>
 
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>

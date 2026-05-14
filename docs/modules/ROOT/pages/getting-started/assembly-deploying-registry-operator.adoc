@@ -12,6 +12,7 @@ This chapter explains how to deploy and configure {registry} instances using the
 * xref:deploying-registry-postgresql_{context}[]
 * xref:deploying-registry-mysql_{context}[]
 * xref:deploying-registry-kafkasql_{context}[]
+* xref:deploying-registry-kubernetesops_{context}[]
 * xref:configuring-registry-authentication_{context}[]
 * xref:configuring-registry-ingress_{context}[]
 * xref:configuring-registry-features_{context}[]
@@ -43,22 +44,21 @@ and pod specifications.
 
 === Storage options
 
-{registry} supports three storage options:
+{registry} supports the following storage options:
 
-* *In-memory* (default) - Stores data in memory. Suitable for development and testing only. Data is lost when
-the pod restarts.
+* *Embedded H2 database* (default) - When you do not specify a storage type, {registry} uses SQL storage with an embedded H2 database. Suitable for development and testing only. {registry} stores all data in memory and loses it when the pod restarts.
 * *PostgreSQL* - Stores data in a PostgreSQL database. Suitable for production deployments.
 * *MySQL* - Stores data in a MySQL database. Suitable for production deployments.
-* *KafkaSQL* - Stores data in Apache Kafka topics with an in-memory cache. Suitable for production deployments
-when configured with persistent Kafka storage.
+* *KafkaSQL* - Stores data in Apache Kafka topics, with an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup. Suitable for production deployments when you configure persistent Kafka storage.
+* *KubernetesOps* - Read-only storage that loads registry data from Kubernetes ConfigMaps. Suitable for
+Kubernetes-native and GitOps workflows. This is an experimental feature.
 
-IMPORTANT: The default in-memory storage is not suitable for production environments.
+IMPORTANT: The default embedded H2 configuration is not suitable for production environments. Configure a storage type (`postgresql`, `mysql`, `kafkasql`, or `kubernetesops`) for production use.
 
 [id="deploying-registry-inmemory_{context}"]
-== Deploying {registry} with in-memory storage
+== Deploying {registry} with default configuration (embedded H2 database)
 
-This section shows how to deploy a basic {registry} instance using in-memory storage. This configuration is
-suitable for development and testing environments only.
+You can deploy a basic {registry} instance by using the default storage configuration (SQL with an embedded H2 database). You do not need to specify a storage type in the CR. When omitted, {registry} defaults to an embedded H2 database. This configuration is suitable for development and testing environments only.
 
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.
@@ -243,9 +243,9 @@ the database.
 [id="deploying-registry-kafkasql_{context}"]
 == Deploying {registry} with KafkaSQL storage
 
-This section explains how to deploy {registry} with KafkaSQL storage. KafkaSQL uses Apache Kafka as the primary
-data store with an in-memory H2 database for caching. This configuration is suitable for production environments
-when using persistent Kafka storage.
+You can deploy {registry} with KafkaSQL storage. KafkaSQL uses Apache Kafka as the primary
+data store, with an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup. This configuration is suitable for production environments
+when you configure persistent Kafka storage.
 
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.
@@ -342,8 +342,9 @@ NOTE: The Secret containing the Kafka cluster CA certificate must be in PKCS12 f
 
 === Configuring KafkaSQL with SASL authentication
 
-When your Kafka cluster requires SASL authentication (such as SCRAM-SHA-512), you can configure {registry}
-accordingly:
+When your Kafka cluster requires SASL authentication (such as SCRAM-SHA-512), the recommended approach is to use
+the Strimzi Kafka Access Operator (available starting with {registry} version 3.2.0), which automatically provides
+all connection details in a single Kubernetes Secret:
 
 [source,yaml]
 ----
@@ -356,15 +357,41 @@ spec:
     storage:
       type: kafkasql
       kafkasql:
+        kafkaAccessSecretName: my-kafka-access
+    ingress:
+      host: registry.example.com
+----
+
+For OAuth (OAUTHBEARER) authentication, use the `auth` section instead:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-kafkasql-oauth
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
         bootstrapServers: my-cluster-kafka-bootstrap.my-project.svc:9093
+        tls:
+          truststoreSecretRef:
+            name: kafka-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: kafka-cluster-ca-cert
         auth:
-          mechanism: SCRAM-SHA-512
-          usernameSecretRef:
-            name: kafka-credentials
-            key: username
-          passwordSecretRef:
-            name: kafka-credentials
-            key: password
+          enabled: true
+          mechanism: OAUTHBEARER
+          clientIdRef:
+            name: kafka-oauth-credentials
+            key: clientId
+          clientSecretRef:
+            name: kafka-oauth-credentials
+            key: clientSecret
+          tokenEndpoint: https://identity-server.example.com/token
+          loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
     ingress:
       host: registry.example.com
 ----
@@ -374,6 +401,70 @@ spec:
 
 * For more information on Kafka storage configuration, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#setting-up-kafka-streams-storage_{context}[Configuring {registry} with Kafka storage on OpenShift]
 in {installing-the-registry-storage-openshift}.
+
+[id="deploying-registry-kubernetesops_{context}"]
+== Deploying {registry} with KubernetesOps storage
+
+This section explains how to deploy {registry} with KubernetesOps storage. KubernetesOps is a read-only storage
+variant that loads registry data from Kubernetes ConfigMaps, enabling Kubernetes-native and GitOps workflows for
+managing schemas and APIs.
+
+IMPORTANT: KubernetesOps storage is an *experimental* feature. You must enable the experimental features gate to use it.
+
+.Prerequisites
+* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
+* You must have access to create ConfigMaps and RBAC resources in your cluster.
+
+.Procedure
+
+. In the {kubernetes} web console, click *Installed Operators* > *{registry}* > *ApicurioRegistry3* >
+*Create ApicurioRegistry3*.
+
+. Paste in the following custom resource definition, adjusting the values for your environment:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-kubernetesops
+spec:
+  app:
+    storage:
+      type: kubernetesops
+      kubernetesops:
+        registryId: my-registry
+        namespace: apicurio
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
++
+NOTE: Replace `registryId` with a unique identifier for your registry instance, and
+`namespace` with the namespace containing your ConfigMaps. The operator automatically enables
+the experimental features gate required by KubernetesOps storage.
+
+. Create the required RBAC resources (ServiceAccount, Role, RoleBinding) to grant the registry read access
+to ConfigMaps. See xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-rbac-requirements_{context}[RBAC requirements] for details.
+
+. Create ConfigMaps containing your registry data. See
+xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-configmap-format_{context}[ConfigMap data format] for the required format.
+
+. Click *Create* and wait for the {registry} deployment to be created.
+
+.Verification
+
+* Access the {registry} web console and verify that artifacts from your ConfigMaps are visible.
+* Note that KubernetesOps storage is read-only. You cannot create, update, or delete artifacts through the
+REST API or web console.
+
+[role="_additional-resources"]
+.Additional resources
+
+* For detailed configuration options, see xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[].
 
 [id="configuring-registry-authentication_{context}"]
 == Configuring authentication and authorization

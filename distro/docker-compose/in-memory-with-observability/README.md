@@ -38,7 +38,7 @@ All REST API requests and storage operations are automatically traced. You can:
 
 ### Metrics (Prometheus)
 
-Metrics are exported via the `/q/metrics` endpoint and scraped by Prometheus:
+Metrics are exported via the `/metrics` endpoint (on management port 9000) and scraped by Prometheus:
 
 1. Open Prometheus at http://localhost:9090
 2. Query metrics like:

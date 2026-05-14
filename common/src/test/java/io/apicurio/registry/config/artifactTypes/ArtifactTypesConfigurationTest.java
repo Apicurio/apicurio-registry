@@ -50,26 +50,6 @@ public class ArtifactTypesConfigurationTest {
                 ]
             }
             """;
-    private static final String ARTIFACT_TYPES_CONFIG_SCRIPT = """
-            {
-                "includeStandardArtifactTypes": true,
-                "artifactTypes": [
-                    {
-                        "artifactType": "RAML",
-                        "name": "RAML",
-                        "description": "The simplest way to model APIs.  Write once, use many. Creative laziness encouraged.",
-                        "contentTypes": [
-                            "application/json",
-                            "application/x-yaml"
-                        ],
-                        "contentAccepter": {
-                            "type": "script",
-                            "scriptLocation": "LUA_SCRIPT_LOCATION"
-                        }
-                    }
-                ]
-            }
-            """;
     private static final String ARTIFACT_TYPES_CONFIG_WEBHOOK = """
             {
                 "includeStandardArtifactTypes": true,
@@ -141,17 +121,6 @@ public class ArtifactTypesConfigurationTest {
         Assertions.assertEquals(JavaClassProvider.class, config.getArtifactTypes().get(0).getContentAccepter().getClass());
         Assertions.assertEquals("java", config.getArtifactTypes().get(0).getContentAccepter().getType());
         Assertions.assertEquals("org.example.RAMLContentAccepter", ((JavaClassProvider) config.getArtifactTypes().get(0).getContentAccepter()).getClassname());
-    }
-
-    @Test
-    void testLoadArtifactTypesConfiguration_Script() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        ArtifactTypesConfiguration config = mapper.readValue(ARTIFACT_TYPES_CONFIG_SCRIPT, ArtifactTypesConfiguration.class);
-
-        Assertions.assertNotNull(config.getArtifactTypes().get(0).getContentAccepter());
-        Assertions.assertEquals(ScriptProvider.class, config.getArtifactTypes().get(0).getContentAccepter().getClass());
-        Assertions.assertEquals("script", config.getArtifactTypes().get(0).getContentAccepter().getType());
-        Assertions.assertEquals("LUA_SCRIPT_LOCATION", ((ScriptProvider) config.getArtifactTypes().get(0).getContentAccepter()).getScriptLocation());
     }
 
     @Test

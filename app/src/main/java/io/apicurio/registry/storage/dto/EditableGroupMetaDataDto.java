@@ -11,6 +11,10 @@ import lombok.ToString;
 
 import java.util.Map;
 
+/**
+ * Data transfer object representing the user-editable subset of group metadata. This includes fields that can
+ * be modified after group creation, such as description, labels, and owner.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

@@ -359,7 +359,7 @@ src/main/
 
 ## Requirements
 
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - Docker and Docker Compose
 - 8GB+ RAM (for Ollama)

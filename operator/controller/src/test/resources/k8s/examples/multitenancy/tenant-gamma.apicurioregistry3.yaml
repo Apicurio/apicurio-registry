@@ -1,0 +1,15 @@
+# Pattern B: Namespace per Tenant - Tenant Gamma
+# Uses yet another configuration to demonstrate full isolation.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: tenant-gamma
+spec:
+  app:
+    replicas: 1
+    ingress:
+      host: tenant-gamma-app.apps.cluster.example
+  ui:
+    replicas: 1
+    ingress:
+      host: tenant-gamma-ui.apps.cluster.example

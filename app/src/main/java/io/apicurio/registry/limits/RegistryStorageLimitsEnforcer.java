@@ -1,6 +1,5 @@
 package io.apicurio.registry.limits;
 
-import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorBase;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorOrderConstants;
@@ -56,7 +55,6 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
         return RegistryStorageDecoratorOrderConstants.LIMITS_ENFORCER_DECORATOR;
     }
 
-    @Override
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
             String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
@@ -64,21 +62,20 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
             throws RegistryStorageException {
         Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> rval = withLimitsCheck(
                 () -> limitsService.canCreateArtifact(artifactMetaData, versionContent, versionMetaData))
-                .execute(() -> super.createArtifact(groupId, artifactId, artifactType, artifactMetaData,
+                .execute(() -> delegate.createArtifact(groupId, artifactId, artifactType, artifactMetaData,
                         version, versionContent, versionMetaData, versionBranches, versionIsDraft, dryRun,
                         owner));
         limitsService.artifactCreated();
         return rval;
     }
 
-    @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
             String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
         ArtifactVersionMetaDataDto dto = withLimitsCheck(
                 () -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content.getContent()))
-                .execute(() -> super.createArtifactVersion(groupId, artifactId, version, artifactType,
+                .execute(() -> delegate.createArtifactVersion(groupId, artifactId, version, artifactType,
                         content, metaData, branches, isDraft, dryRun, owner));
         limitsService.artifactVersionCreated(groupId, artifactId);
         return dto;
@@ -88,11 +85,10 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#updateArtifactMetaData(java.lang.String,
      *      java.lang.String, io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto)
      */
-    @Override
     public void updateArtifactMetaData(String groupId, String artifactId,
             EditableArtifactMetaDataDto metaData) throws ArtifactNotFoundException, RegistryStorageException {
         withLimitsCheck(() -> limitsService.checkMetaData(metaData)).execute(() -> {
-            super.updateArtifactMetaData(groupId, artifactId, metaData);
+            delegate.updateArtifactMetaData(groupId, artifactId, metaData);
             return null;
         });
     }
@@ -101,13 +97,12 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecoratorBase#updateArtifactVersionMetaData(java.lang.String,
      *      java.lang.String, java.lang.String, io.apicurio.registry.storage.dto.EditableVersionMetaDataDto)
      */
-    @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
             EditableVersionMetaDataDto metaData)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
 
         withLimitsCheck(() -> limitsService.checkMetaData(metaData)).execute(() -> {
-            super.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
+            delegate.updateArtifactVersionMetaData(groupId, artifactId, version, metaData);
             return null;
         });
     }
@@ -116,10 +111,9 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#deleteArtifact(java.lang.String,
      *      java.lang.String)
      */
-    @Override
     public List<String> deleteArtifact(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
-        List<String> ids = super.deleteArtifact(groupId, artifactId);
+        List<String> ids = delegate.deleteArtifact(groupId, artifactId);
         limitsService.artifactDeleted();
         return ids;
     }
@@ -127,9 +121,8 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
     /**
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#deleteArtifacts(java.lang.String)
      */
-    @Override
     public void deleteArtifacts(String groupId) throws RegistryStorageException {
-        super.deleteArtifacts(groupId);
+        delegate.deleteArtifacts(groupId);
         limitsService.artifactDeleted();
     }
 
@@ -137,10 +130,9 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#deleteArtifactVersion(java.lang.String,
      *      java.lang.String, java.lang.String)
      */
-    @Override
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
-        super.deleteArtifactVersion(groupId, artifactId, version);
+        delegate.deleteArtifactVersion(groupId, artifactId, version);
         limitsService.artifactVersionDeleted(groupId, artifactId);
     }
 
@@ -155,7 +147,6 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
     public LimitedActionExecutor withLimitsCheck(LimitsChecker checker) {
         return new LimitedActionExecutor() {
             @SuppressWarnings({ "unchecked", "rawtypes" })
-            @Override
             public <T> T execute(LimitedAction<T> action) {
                 LimitsCheckResult r = checker.get();
                 if (r.isAllowed()) {

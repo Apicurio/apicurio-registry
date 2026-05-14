@@ -1,0 +1,21 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: com.example.refs
+artifactId: customer
+artifactType: AVRO
+name: Customer Schema
+description: Customer record referencing Address
+labels:
+  domain: crm
+versions:
+  - version: "1"
+    state: ENABLED
+    name: Customer v1
+    description: Customer with address reference
+    labels:
+      status: stable
+    content: ./content/customer.avsc
+    contentMetadata: ./content-customer.registry.yaml
+rules:
+  - ruleType: VALIDITY
+    config: FULL

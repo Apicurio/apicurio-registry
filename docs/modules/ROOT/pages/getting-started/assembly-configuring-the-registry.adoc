@@ -219,8 +219,8 @@ To reproduce these benchmarks, run the following commands from the project root:
 
 OpenTelemetry support is fully backwards compatible:
 
-* The existing Prometheus metrics endpoint (`/q/metrics`) remains available and unchanged.
-* Health check endpoints (`/q/health/*`) continue to work as before.
+* The Prometheus metrics endpoint is available at `/metrics` on the management port (default 9000).
+* Health check endpoints (`/health/ready`, `/health/live`) are served on the management port (default 9000).
 * All existing Micrometer-based metrics continue to function.
 
 [role="_additional-resources"]
@@ -235,6 +235,8 @@ OpenTelemetry support is fully backwards compatible:
 === Configuring {registry} health checks on OpenShift
 
 [role="_abstract"]
+Health check endpoints are served on the management interface (port 9000 by default), separate from the main application port (8080). Configure liveness and readiness probes to target port 9000.
+
 You can configure optional environment variables for liveness and readiness probes to monitor the health of the {registry} server on OpenShift:
 
 * _Liveness probes_ test if the application can make progress. If the application cannot make progress, OpenShift automatically restarts the failing Pod.

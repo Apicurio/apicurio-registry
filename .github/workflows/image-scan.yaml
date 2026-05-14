@@ -6,7 +6,24 @@ on:
     - cron: "0 6 * * *"
 
 jobs:
-  call-image-scan-registry:
-    uses: Apicurio/apicurio-gh-workflows/.github/workflows/image-scan.yaml@main
-    with:
-      image: quay.io/apicurio/apicurio-registry:latest-snapshot
+  vulnerability-scan:
+    name: Container vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: quay.io/apicurio/apicurio-registry:latest-snapshot
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          vuln-type: 'os,library'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'

@@ -1,0 +1,14 @@
+.ref-field-group {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.ref-field-group .pf-v5-c-form__group {
+    flex: 1;
+}
+
+.ref-field-group .pf-v5-c-button {
+    margin-top: 4px;
+}

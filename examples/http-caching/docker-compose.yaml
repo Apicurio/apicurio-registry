@@ -20,8 +20,9 @@ services:
       QUARKUS_HTTP_CORS_ORIGINS: "*"
     ports:
       - "8080:8080"  # Direct access to registry (bypass cache)
+      - "9000:9000"  # Management interface (health, metrics)
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/live" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/health/live" ]
       interval: 10s
       timeout: 3s
       retries: 5

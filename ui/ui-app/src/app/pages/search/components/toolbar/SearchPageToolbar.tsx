@@ -22,6 +22,7 @@ import { SearchType } from "@app/pages/search/SearchType.ts";
 import { plural } from "pluralize";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy, SearchFilter } from "@services/useSearchService.ts";
+import { useConfigService } from "@services/useConfigService.ts";
 import {
     ArtifactSearchResults,
     ArtifactSortBy,
@@ -66,6 +67,7 @@ const GROUP_FILTER_TYPES: ChipFilterType[] = [
 const VERSION_FILTER_TYPES: ChipFilterType[] = [
     { value: FilterBy.artifactId, label: "Artifact Id", testId: "artifact-id-filter-typegroup" },
     { value: FilterBy.artifactType, label: "Type", testId: "type-filter-typegroup" },
+    { value: FilterBy.content, label: "Content", testId: "content-filter-typegroup" },
     { value: FilterBy.contentId, label: "Content Id", testId: "content-id-filter-typegroup" },
     { value: FilterBy.description, label: "Description", testId: "description-filter-typegroup" },
     { value: FilterBy.globalId, label: "Global  Id", testId: "global-id-filter-typegroup" },
@@ -73,6 +75,7 @@ const VERSION_FILTER_TYPES: ChipFilterType[] = [
     { value: FilterBy.labels, label: "Label", testId: "label-filter-typegroup" },
     { value: FilterBy.name, label: "Name", testId: "name-filter-typegroup" },
     { value: FilterBy.state, label: "State", testId: "state-filter-typegroup" },
+    { value: FilterBy.structure, label: "Structure", testId: "structure-filter-typegroup" },
     { value: FilterBy.version, label: "Version", testId: "version-filter-typegroup" },
 ];
 const FILTER_TYPE_LOOKUP: any = {};
@@ -84,6 +87,8 @@ VERSION_FILTER_TYPES.forEach(filterType => {
  * Models the toolbar for the Search page.
  */
 export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (props: SearchPageToolbarProps) => {
+    const config = useConfigService();
+
     const filterCriteria: ChipFilterCriteria[] = props.filters.map(c => {
         return {
             filterBy: FILTER_TYPE_LOOKUP[c.by],
@@ -112,7 +117,9 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
             ];
             break;
         case SearchType.VERSION:
-            filterTypes = VERSION_FILTER_TYPES;
+            filterTypes = config.featureSearchIndex()
+                ? VERSION_FILTER_TYPES
+                : VERSION_FILTER_TYPES.filter(ft => ft.value !== FilterBy.content && ft.value !== FilterBy.structure);
             sortItems = [
                 VersionSortByObject.GroupId,
                 VersionSortByObject.ArtifactId,

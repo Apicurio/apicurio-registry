@@ -37,13 +37,15 @@ For example:
 [source,yaml]
 ----
 apiVersion: registry.apicur.io/v1
-kind: ApicurioRegistry
+kind: ApicurioRegistry3
 metadata:
   name: example-apicurioregistry
 spec:
-  deployment:
-    managedResources:
-      disableIngress: true
-      disableNetworkPolicy: true
-      disablePodDisruptionBudget: false # Can be omitted
+  app:
+    ingress:
+      enabled: false
+    networkPolicy:
+      enabled: false
+    podDisruptionBudget:
+      enabled: false
 ----

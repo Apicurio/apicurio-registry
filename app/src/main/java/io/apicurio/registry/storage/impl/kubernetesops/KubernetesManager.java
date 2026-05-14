@@ -1,9 +1,9 @@
 package io.apicurio.registry.storage.impl.kubernetesops;
 
-import io.apicurio.registry.storage.impl.gitops.ProcessingState;
-import io.apicurio.registry.storage.impl.polling.AbstractDataSourceManager;
-import io.apicurio.registry.storage.impl.polling.DataFile;
-import io.apicurio.registry.storage.impl.polling.PollResult;
+import io.apicurio.registry.storage.impl.polling.AbstractPollingDataSourceManager;
+import io.apicurio.registry.storage.impl.polling.PollingDataFile;
+import io.apicurio.registry.storage.impl.polling.PollingResult;
+import io.apicurio.registry.storage.impl.polling.ProcessingState;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
@@ -24,18 +24,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @ApplicationScoped
-public class KubernetesManager extends AbstractDataSourceManager {
+public class KubernetesManager extends AbstractPollingDataSourceManager<KubernetesOpsMarker> {
 
     @Inject
     Logger log;
 
     @Inject
-    KubernetesOpsConfigProperties config;
+    KubernetesOpsConfig config;
 
     @Inject
     KubernetesClient kubernetesClient;
 
     private volatile String previousResourceVersion = "";
+    private String sourceId;
 
     private Watch configMapWatch;
     private volatile boolean watchActive = false;
@@ -48,24 +49,18 @@ public class KubernetesManager extends AbstractDataSourceManager {
     });
 
     @Override
-    protected String getRegistryId() {
-        return config.getRegistryId();
-    }
-
-    @Override
-    protected long getCommitTime(Object marker) {
-        return Instant.now().getEpochSecond();
-    }
-
-    @Override
     public void start() throws Exception {
+        start(config);
+        String host = kubernetesClient.getMasterUrl().getHost();
+        String namespace = config.getEffectiveNamespace();
+        sourceId = host + "/" + namespace;
         log.info("Initializing KubernetesOps manager with registry ID: {}", config.getRegistryId());
         log.info("Watching namespace: {} for ConfigMaps with selector {}",
-                config.getEffectiveNamespace(), config.getLabelSelector());
+                namespace, config.getLabelSelector());
     }
 
     @Override
-    public PollResult poll() throws Exception {
+    public PollingResult<KubernetesOpsMarker> poll() throws Exception {
         String namespace = config.getEffectiveNamespace();
         String labelSelector = config.getLabelSelector();
 
@@ -77,21 +72,37 @@ public class KubernetesManager extends AbstractDataSourceManager {
         String currentResourceVersion = configMapList.getMetadata().getResourceVersion();
 
         if (currentResourceVersion.equals(previousResourceVersion)) {
-            return PollResult.noChanges(currentResourceVersion);
+            return PollingResult.noChanges(new KubernetesOpsMarker(sourceId, currentResourceVersion, Instant.now()));
         }
 
         log.debug("Detected change in ConfigMaps: resourceVersion {} -> {}",
                 previousResourceVersion, currentResourceVersion);
 
-        List<DataFile> files = new ArrayList<>();
-        ProcessingState tempState = new ProcessingState(null);
+        List<PollingDataFile> files = new ArrayList<>();
+        ProcessingState tempState = new ProcessingState(config, null);
 
+        // Track the most recent ConfigMap modification time for stable timestamps
+        long maxTimestamp = 0;
         for (ConfigMap configMap : configMapList.getItems()) {
+            var creationTimestamp = configMap.getMetadata().getCreationTimestamp();
+            if (creationTimestamp != null) {
+                try {
+                    long ts = Instant.parse(creationTimestamp).toEpochMilli();
+                    if (ts > maxTimestamp) {
+                        maxTimestamp = ts;
+                    }
+                } catch (Exception e) {
+                    log.debug("Could not parse ConfigMap timestamp: {}", creationTimestamp);
+                }
+            }
+
             Map<String, String> data = configMap.getData();
+            String configMapName = configMap.getMetadata().getName();
 
             if (data != null) {
                 for (Map.Entry<String, String> entry : data.entrySet()) {
-                    String dataKey = entry.getKey();
+                    // Prefix data key with ConfigMap name to ensure uniqueness across ConfigMaps
+                    String dataKey = configMapName + "/" + entry.getKey();
                     String content = entry.getValue();
 
                     ConfigMapDataFile file = ConfigMapDataFile.create(tempState, dataKey, content);
@@ -100,28 +111,22 @@ public class KubernetesManager extends AbstractDataSourceManager {
             }
         }
 
+        // Use the most recent ConfigMap timestamp for stable createdOn/modifiedOn values
+        // that survive pod restarts, falling back to current time if no timestamps available
+        Instant commitTime = maxTimestamp > 0 ? Instant.ofEpochMilli(maxTimestamp) : Instant.now();
+
         log.debug("Found {} data files across {} ConfigMaps",
                 files.size(), configMapList.getItems().size());
 
         if (!tempState.isSuccessful()) {
-            for (String error : tempState.getErrors()) {
+            for (var error : tempState.getErrors()) {
                 log.warn("ConfigMap parse error: {}", error);
             }
         }
 
-        return PollResult.withChanges(currentResourceVersion, files);
-    }
-
-    @Override
-    public void commitChange(Object marker) {
-        if (marker instanceof String) {
-            previousResourceVersion = (String) marker;
-        }
-    }
-
-    @Override
-    public Object getPreviousMarker() {
-        return previousResourceVersion;
+        var marker = new KubernetesOpsMarker(sourceId, currentResourceVersion, commitTime);
+        return PollingResult.withChanges(marker, files,
+                () -> previousResourceVersion = currentResourceVersion);
     }
 
     /**

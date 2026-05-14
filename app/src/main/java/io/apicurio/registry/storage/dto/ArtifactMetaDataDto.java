@@ -10,6 +10,11 @@ import lombok.ToString;
 
 import java.util.Map;
 
+/**
+ * Data transfer object representing the metadata of an artifact. This includes identifying information
+ * (groupId, artifactId), descriptive metadata (name, description), the artifact type, labels, and
+ * timestamps. This is the non-version-specific metadata for the artifact as a whole.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

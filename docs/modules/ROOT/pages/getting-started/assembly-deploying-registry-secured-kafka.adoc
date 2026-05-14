@@ -1,7 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="deploying-registry-secured-kafka_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Deploying {registry} with a secured Kafka instance
 
 [role="_abstract"]
@@ -22,8 +22,8 @@ endif::[]
 
 
 // con-secured-kafka-overview
-:_mod-docs-content-type: CONCEPT
 [id="secured-kafka-overview_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Secured Kafka overview
 
 [role="_abstract"]
@@ -66,8 +66,8 @@ The security protocol that {registry} uses depends on which combination of TLS a
 
 
 // ref-secured-kafka-prerequisites
-:_mod-docs-content-type: REFERENCE
 [id="secured-kafka-prerequisites_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Prerequisites for secured Kafka deployment
 
 [role="_abstract"]
@@ -84,8 +84,8 @@ endif::[]
 
 
 // proc-secured-kafka-tls
-:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-tls_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring KafkaSQL with TLS encryption
 
 [role="_abstract"]
@@ -157,8 +157,8 @@ tls:
 
 
 // proc-secured-kafka-scram
-:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-scram_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring KafkaSQL with SCRAM-SHA-512 authentication
 
 [role="_abstract"]
@@ -239,8 +239,8 @@ NOTE: This example uses `SASL_SSL` because TLS is also configured via the `tls` 
 
 
 // proc-secured-kafka-oauth
-:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-oauth_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring KafkaSQL with OAUTHBEARER authentication
 
 [role="_abstract"]
@@ -315,8 +315,8 @@ NOTE: When you configure both TLS and OAUTHBEARER authentication, the operator s
 
 ifndef::service-registry-downstream[]
 // proc-secured-kafka-access-operator
-:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-access-operator_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring KafkaSQL with the {kafka-streams} Kafka Access Operator
 
 [role="_abstract"]
@@ -422,8 +422,8 @@ endif::[]
 
 
 // ref-secured-kafka-security-protocols
-:_mod-docs-content-type: REFERENCE
 [id="secured-kafka-security-protocols_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Kafka security protocol reference
 
 [role="_abstract"]
@@ -453,8 +453,8 @@ When you configure security manually by using environment variables, you must se
 
 
 // proc-secured-kafka-topic-config
-:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-topic-config_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring Kafka topics for {registry}
 
 [role="_abstract"]
@@ -509,8 +509,8 @@ WARNING: You must configure the Kafka topics used by {registry} with `cleanup.po
 
 
 // ref-secured-kafka-troubleshooting
-:_mod-docs-content-type: REFERENCE
 [id="secured-kafka-troubleshooting_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Troubleshooting secured Kafka connections
 
 [role="_abstract"]

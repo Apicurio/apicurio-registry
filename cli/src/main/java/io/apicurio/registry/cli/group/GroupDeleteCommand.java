@@ -18,7 +18,7 @@ import static java.util.Optional.ofNullable;
 @Command(
         name = "delete",
         aliases = {"remove", "rm"},
-        description = "Delete an existing group. Apicurio Registry must be configured " +
+        description = "Delete an existing group. {{product-name}} must be configured " +
                 "with `apicurio.rest.deletion.group.enabled=true` to allow group deletions."
 )
 public class GroupDeleteCommand extends AbstractCommand {

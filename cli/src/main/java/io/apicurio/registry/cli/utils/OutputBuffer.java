@@ -17,6 +17,7 @@ public class OutputBuffer {
     private final StringBuilder buffer = new StringBuilder();
 
     private final List<Chunk> chunks = new ArrayList<>();
+    private int printedUpTo = 0;
 
     public OutputBuffer(Output stdOut, Output stdErr) {
         this.stdOut = stdOut;
@@ -57,12 +58,14 @@ public class OutputBuffer {
     }
 
     public void print() {
-        for (Chunk chunk : chunks) {
+        for (int i = printedUpTo; i < chunks.size(); i++) {
+            var chunk = chunks.get(i);
             switch (chunk.getTarget()) {
                 case STDOUT -> stdOut.print(chunk.getOutput());
                 case STDERR -> stdErr.print(chunk.getOutput());
             }
         }
+        printedUpTo = chunks.size();
     }
 
     @AllArgsConstructor

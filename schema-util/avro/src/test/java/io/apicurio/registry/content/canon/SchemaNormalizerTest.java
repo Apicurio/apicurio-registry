@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -28,11 +29,21 @@ class SchemaNormalizerTest {
     @Test
     void parseSchema_SchemasWithOptionalAttributesInRoot_Equal() {
         // prepare
-        String schemaStr = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"schemaName\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": []\n" + "}";
-        String schemaWithOptionalStr = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"schemaName\",\n"
-                + "  \"doc\": \"some description\",\n" + // optional attribute
-                "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": []\n" + "}";
+        String schemaStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": []
+                }""";
+        String schemaWithOptionalStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "doc": "some description",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": []
+                }"""; // optional attribute "doc"
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
@@ -49,12 +60,21 @@ class SchemaNormalizerTest {
     @Test
     void parseSchema_SchemaWithNamespaceInNameAndInNamespaceField_Equal() {
         // prepare
-        String schemaStr = "{\n" + "  \"type\": \"record\",\n"
-                + "  \"name\": \"com.example.client.example.schema.schemaName\",\n"
-                + "  \"doc\": \"some description\",\n" + "  \"fields\": []\n" + "}";
-        String schemaWithNamespaceFieldStr = "{\n" + "  \"type\": \"record\",\n"
-                + "  \"name\": \"schemaName\",\n" + "  \"doc\": \"some description\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": []\n" + "}";
+        String schemaStr = """
+                {
+                  "type": "record",
+                  "name": "com.example.client.example.schema.schemaName",
+                  "doc": "some description",
+                  "fields": []
+                }""";
+        String schemaWithNamespaceFieldStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "doc": "some description",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": []
+                }""";
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
@@ -71,12 +91,21 @@ class SchemaNormalizerTest {
     @Test
     void parseSchema_SchemaWithDifferentNamespaceInNameAndInNamespaceField_NotEqual() {
         // prepare
-        String schemaStr = "{\n" + "  \"type\": \"record\",\n"
-                + "  \"name\": \"com.different.client.example.schema.schemaName\",\n"
-                + "  \"doc\": \"some description\",\n" + "  \"fields\": []\n" + "}";
-        String schemaWithNamespaceFieldStr = "{\n" + "  \"type\": \"record\",\n"
-                + "  \"name\": \"schemaName\",\n" + "  \"doc\": \"some description\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": []\n" + "}";
+        String schemaStr = """
+                {
+                  "type": "record",
+                  "name": "com.different.client.example.schema.schemaName",
+                  "doc": "some description",
+                  "fields": []
+                }""";
+        String schemaWithNamespaceFieldStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "doc": "some description",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": []
+                }""";
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
@@ -93,13 +122,23 @@ class SchemaNormalizerTest {
     @Test
     void parseSchema_SchemasWithDifferenceAttributesOrderInRoot_Equal() {
         // prepare
-        String schemaStr = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"schemaName\",\n"
-                + "  \"doc\": \"some description\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": []\n" + "}";
-        String schemaWithDifferenceAttributesOrderStr = "{\n" + // reverse order of keys
-                "  \"fields\": [],\n" + "  \"namespace\": \"com.example.client.example.schema\",\n"
-                + "  \"doc\": \"some description\",\n" + "  \"name\": \"schemaName\",\n"
-                + "  \"type\": \"record\"\n" + "}";
+        String schemaStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "doc": "some description",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": []
+                }""";
+        // reverse order of keys
+        String schemaWithDifferenceAttributesOrderStr = """
+                {
+                  "fields": [],
+                  "namespace": "com.example.client.example.schema",
+                  "doc": "some description",
+                  "name": "schemaName",
+                  "type": "record"
+                }""";
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
@@ -116,20 +155,32 @@ class SchemaNormalizerTest {
 
     @Test
     void parseSchema_SchemasWithOptionalAttributesInField_Equal() {
-        // prepare
-        String schemaStr = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"schemaName\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": [\n"
-                + "    {\n" + "      \"name\": \"timestamp\",\n" + "      \"type\": \"long\"\n" + // without
-                                                                                                  // 'doc'
-                                                                                                  // attribute
-                "    }]\n" + "}";
+        // prepare — without 'doc' attribute
+        String schemaStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": [
+                    {
+                      "name": "timestamp",
+                      "type": "long"
+                    }]
+                }""";
 
-        String schemaWithOptionalAttributesInFieldStr = "{\n" + "  \"type\": \"record\",\n"
-                + "  \"name\": \"schemaName\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": [\n"
-                + "    {\n" + "      \"name\": \"timestamp\",\n" + "      \"type\": \"long\",\n"
-                + "      \"doc\": \"Timestamp of the event\"\n" + // added optional field
-                "    }]\n" + "}";
+        // added optional 'doc' field
+        String schemaWithOptionalAttributesInFieldStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": [
+                    {
+                      "name": "timestamp",
+                      "type": "long",
+                      "doc": "Timestamp of the event"
+                    }]
+                }""";
 
         // act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
@@ -146,17 +197,31 @@ class SchemaNormalizerTest {
 
     @Test
     void parseSchema_SchemasWithDifferenceAttributesOrderInField_Equal() {
-        // prepare
-        String schemaStr = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"schemaName\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": [\n"
-                + "    {\n" + "      \"name\": \"message\",\n" + // `name` 1st `type` 2nd
-                "      \"type\": \"string\"\n" + "    }]\n" + "}";
+        // prepare — `name` 1st `type` 2nd
+        String schemaStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": [
+                    {
+                      "name": "message",
+                      "type": "string"
+                    }]
+                }""";
 
-        String schemasWithDifferenceAttributesOrderInFieldStr = "{\n" + "  \"type\": \"record\",\n"
-                + "  \"name\": \"schemaName\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": [\n"
-                + "    {\n" + "      \"type\": \"string\",\n" + // `type` 1st `name` 2nd
-                "      \"name\": \"message\"\n" + "    }]\n" + "}";
+        // `type` 1st `name` 2nd
+        String schemasWithDifferenceAttributesOrderInFieldStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": [
+                    {
+                      "type": "string",
+                      "name": "message"
+                    }]
+                }""";
 
         // Act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
@@ -174,18 +239,37 @@ class SchemaNormalizerTest {
     @Test
     void parseSchema_SchemasWithFieldsInDifferentOrder_NotEqual() {
         // prepare
-        String schemaStr = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"schemaName\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": [\n"
-                + "    {\n" + "      \"name\": \"message\",\n" + "      \"type\": \"string\"\n" + "    },\n"
-                + "    {\n" + "      \"name\": \"sender\",\n" + "      \"type\": \"string\"\n" + "    }]\n"
-                + "}";
+        String schemaStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": [
+                    {
+                      "name": "message",
+                      "type": "string"
+                    },
+                    {
+                      "name": "sender",
+                      "type": "string"
+                    }]
+                }""";
 
-        String schemaWithFieldsInDifferentOrderStr = "{\n" + "  \"type\": \"record\",\n"
-                + "  \"name\": \"schemaName\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": [\n"
-                + "    {\n" + "      \"name\": \"sender\",\n" + "      \"type\": \"string\"\n" + "    },\n"
-                + "    {\n" + "      \"name\": \"message\",\n" + "      \"type\": \"string\"\n" + "    }]\n"
-                + "}";
+        String schemaWithFieldsInDifferentOrderStr = """
+                {
+                  "type": "record",
+                  "name": "schemaName",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": [
+                    {
+                      "name": "sender",
+                      "type": "string"
+                    },
+                    {
+                      "name": "message",
+                      "type": "string"
+                    }]
+                }""";
 
         // Act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
@@ -202,32 +286,61 @@ class SchemaNormalizerTest {
 
     @Test
     void parseSchema_NestedSchemasWithDifferenceAttributesOrderInField_Equal() {
-        String nestedSchemaStr = "{\n" + "  \"type\": \"record\",\n" + "  \"name\": \"Schema\",\n"
-                + "  \"namespace\": \"com.example.client.example.schema\",\n" + "  \"fields\": [\n"
-                + "    {\n" + "      \"name\": \"name\",\n" + "      \"type\": \"string\"\n" + "    },\n"
-                + "    {\n" + "      \"name\": \"innerSchema\",\n" + "      \"type\": {\n"
-                + "        \"type\": \"record\",\n" + "        \"name\": \"NestedSchema\",\n"
-                + "        \"namespace\": \"com.example.client.example.schema\",\n"
-                + "        \"fields\": [\n" + "          {\n" + "            \"name\": \"innerName\",\n" + // `name`
-                                                                                                           // 1st
-                                                                                                           // `type`
-                                                                                                           // 2nd
-                "            \"type\": \"string\"\n" + "          }\n" + "        ]\n" + "      }\n"
-                + "    }\n" + "  ]\n" + "}";
+        // nested field: `name` 1st `type` 2nd
+        String nestedSchemaStr = """
+                {
+                  "type": "record",
+                  "name": "Schema",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": [
+                    {
+                      "name": "name",
+                      "type": "string"
+                    },
+                    {
+                      "name": "innerSchema",
+                      "type": {
+                        "type": "record",
+                        "name": "NestedSchema",
+                        "namespace": "com.example.client.example.schema",
+                        "fields": [
+                          {
+                            "name": "innerName",
+                            "type": "string"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }""";
 
-        String schemaWithDifferenceAttributesOrderInNestedSchemaStr = "{\n" + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Schema\",\n" + "  \"namespace\": \"com.example.client.example.schema\",\n"
-                + "  \"fields\": [\n" + "    {\n" + "      \"name\": \"name\",\n"
-                + "      \"type\": \"string\"\n" + "    },\n" + "    {\n"
-                + "      \"name\": \"innerSchema\",\n" + "      \"type\": {\n"
-                + "        \"type\": \"record\",\n" + "        \"name\": \"NestedSchema\",\n"
-                + "        \"namespace\": \"com.example.client.example.schema\",\n"
-                + "        \"fields\": [\n" + "          {\n" + "            \"type\": \"string\",\n" + // `type`
-                                                                                                        // 1st
-                                                                                                        // `name`
-                                                                                                        // 2nd
-                "            \"name\": \"innerName\"\n" + "          }\n" + "        ]\n" + "      }\n"
-                + "    }\n" + "  ]\n" + "}";
+        // nested field: `type` 1st `name` 2nd
+        String schemaWithDifferenceAttributesOrderInNestedSchemaStr = """
+                {
+                  "type": "record",
+                  "name": "Schema",
+                  "namespace": "com.example.client.example.schema",
+                  "fields": [
+                    {
+                      "name": "name",
+                      "type": "string"
+                    },
+                    {
+                      "name": "innerSchema",
+                      "type": {
+                        "type": "record",
+                        "name": "NestedSchema",
+                        "namespace": "com.example.client.example.schema",
+                        "fields": [
+                          {
+                            "type": "string",
+                            "name": "innerName"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }""";
 
         // Act
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
@@ -356,41 +469,43 @@ class SchemaNormalizerTest {
      */
     @Test
     void parseSchema_SchemasWithDifferentConnectParameters_NotEqual() {
-        String schemaV1 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example.dbserver1.public.shipments\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"status\",\n"
-                + "      \"type\": {\n"
-                + "        \"type\": \"string\",\n"
-                + "        \"connect.parameters\": {\n"
-                + "          \"allowed\": \"station,post_office\"\n"
-                + "        },\n"
-                + "        \"connect.name\": \"io.debezium.data.Enum\"\n"
-                + "      }\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV1 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example.dbserver1.public.shipments",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "type": {
+                        "type": "string",
+                        "connect.parameters": {
+                          "allowed": "station,post_office"
+                        },
+                        "connect.name": "io.debezium.data.Enum"
+                      }
+                    }
+                  ]
+                }""";
 
-        String schemaV2 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example.dbserver1.public.shipments\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"status\",\n"
-                + "      \"type\": {\n"
-                + "        \"type\": \"string\",\n"
-                + "        \"connect.parameters\": {\n"
-                + "          \"allowed\": \"station,post_office,plane\"\n"
-                + "        },\n"
-                + "        \"connect.name\": \"io.debezium.data.Enum\"\n"
-                + "      }\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV2 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example.dbserver1.public.shipments",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "type": {
+                        "type": "string",
+                        "connect.parameters": {
+                          "allowed": "station,post_office,plane"
+                        },
+                        "connect.name": "io.debezium.data.Enum"
+                      }
+                    }
+                  ]
+                }""";
 
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
         TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
@@ -406,31 +521,33 @@ class SchemaNormalizerTest {
      */
     @Test
     void parseSchema_SchemasWithDifferentFieldLevelCustomProperties_NotEqual() {
-        String schemaV1 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"status\",\n"
-                + "      \"type\": \"string\",\n"
-                + "      \"custom.property\": \"value1\"\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV1 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "type": "string",
+                      "custom.property": "value1"
+                    }
+                  ]
+                }""";
 
-        String schemaV2 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"status\",\n"
-                + "      \"type\": \"string\",\n"
-                + "      \"custom.property\": \"value2\"\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV2 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "type": "string",
+                      "custom.property": "value2"
+                    }
+                  ]
+                }""";
 
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
         TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
@@ -446,31 +563,33 @@ class SchemaNormalizerTest {
      */
     @Test
     void parseSchema_SchemasWithDifferentDefaultValues_NotEqual() {
-        String schemaV1 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"shard\",\n"
-                + "      \"type\": \"int\",\n"
-                + "      \"default\": 0\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV1 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "shard",
+                      "type": "int",
+                      "default": 0
+                    }
+                  ]
+                }""";
 
-        String schemaV2 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"shard\",\n"
-                + "      \"type\": \"int\",\n"
-                + "      \"default\": 1\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV2 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "shard",
+                      "type": "int",
+                      "default": 1
+                    }
+                  ]
+                }""";
 
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
         TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
@@ -486,31 +605,33 @@ class SchemaNormalizerTest {
      */
     @Test
     void parseSchema_SchemasWithDifferentStringDefaultValues_NotEqual() {
-        String schemaV1 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"region\",\n"
-                + "      \"type\": \"string\",\n"
-                + "      \"default\": \"us-east-1\"\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV1 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "region",
+                      "type": "string",
+                      "default": "us-east-1"
+                    }
+                  ]
+                }""";
 
-        String schemaV2 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"region\",\n"
-                + "      \"type\": \"string\",\n"
-                + "      \"default\": \"eu-west-1\"\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV2 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "region",
+                      "type": "string",
+                      "default": "eu-west-1"
+                    }
+                  ]
+                }""";
 
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
         TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
@@ -526,59 +647,61 @@ class SchemaNormalizerTest {
      */
     @Test
     void parseSchema_DebeziumNullableEnumWithDifferentAllowedValues_NotEqual() {
-        String schemaV1 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example.dbserver1.public.shipments\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"id\",\n"
-                + "      \"type\": \"int\"\n"
-                + "    },\n"
-                + "    {\n"
-                + "      \"name\": \"status\",\n"
-                + "      \"type\": [\n"
-                + "        \"null\",\n"
-                + "        {\n"
-                + "          \"type\": \"string\",\n"
-                + "          \"connect.parameters\": {\n"
-                + "            \"allowed\": \"station,post_office\"\n"
-                + "          },\n"
-                + "          \"connect.name\": \"io.debezium.data.Enum\",\n"
-                + "          \"connect.version\": 1\n"
-                + "        }\n"
-                + "      ],\n"
-                + "      \"default\": null\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV1 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example.dbserver1.public.shipments",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "int"
+                    },
+                    {
+                      "name": "status",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.parameters": {
+                            "allowed": "station,post_office"
+                          },
+                          "connect.name": "io.debezium.data.Enum",
+                          "connect.version": 1
+                        }
+                      ],
+                      "default": null
+                    }
+                  ]
+                }""";
 
-        String schemaV2 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example.dbserver1.public.shipments\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"id\",\n"
-                + "      \"type\": \"int\"\n"
-                + "    },\n"
-                + "    {\n"
-                + "      \"name\": \"status\",\n"
-                + "      \"type\": [\n"
-                + "        \"null\",\n"
-                + "        {\n"
-                + "          \"type\": \"string\",\n"
-                + "          \"connect.parameters\": {\n"
-                + "            \"allowed\": \"station,post_office,plane\"\n"
-                + "          },\n"
-                + "          \"connect.name\": \"io.debezium.data.Enum\",\n"
-                + "          \"connect.version\": 1\n"
-                + "        }\n"
-                + "      ],\n"
-                + "      \"default\": null\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV2 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example.dbserver1.public.shipments",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "int"
+                    },
+                    {
+                      "name": "status",
+                      "type": [
+                        "null",
+                        {
+                          "type": "string",
+                          "connect.parameters": {
+                            "allowed": "station,post_office,plane"
+                          },
+                          "connect.name": "io.debezium.data.Enum",
+                          "connect.version": 1
+                        }
+                      ],
+                      "default": null
+                    }
+                  ]
+                }""";
 
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
         TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
@@ -593,49 +716,51 @@ class SchemaNormalizerTest {
      */
     @Test
     void parseSchema_SchemasWithDifferentConnectParameterSubset_NotEqual() {
-        String schemaV1 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"amount\",\n"
-                + "      \"type\": {\n"
-                + "        \"type\": \"bytes\",\n"
-                + "        \"connect.parameters\": {\n"
-                + "          \"scale\": \"2\",\n"
-                + "          \"connect.decimal.precision\": \"10\"\n"
-                + "        },\n"
-                + "        \"connect.name\": \"org.apache.kafka.connect.data.Decimal\",\n"
-                + "        \"logicalType\": \"decimal\",\n"
-                + "        \"precision\": 10,\n"
-                + "        \"scale\": 2\n"
-                + "      }\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV1 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "amount",
+                      "type": {
+                        "type": "bytes",
+                        "connect.parameters": {
+                          "scale": "2",
+                          "connect.decimal.precision": "10"
+                        },
+                        "connect.name": "org.apache.kafka.connect.data.Decimal",
+                        "logicalType": "decimal",
+                        "precision": 10,
+                        "scale": 2
+                      }
+                    }
+                  ]
+                }""";
 
-        String schemaV2 = "{\n"
-                + "  \"type\": \"record\",\n"
-                + "  \"name\": \"Value\",\n"
-                + "  \"namespace\": \"com.example\",\n"
-                + "  \"fields\": [\n"
-                + "    {\n"
-                + "      \"name\": \"amount\",\n"
-                + "      \"type\": {\n"
-                + "        \"type\": \"bytes\",\n"
-                + "        \"connect.parameters\": {\n"
-                + "          \"scale\": \"4\",\n"
-                + "          \"connect.decimal.precision\": \"10\"\n"
-                + "        },\n"
-                + "        \"connect.name\": \"org.apache.kafka.connect.data.Decimal\",\n"
-                + "        \"logicalType\": \"decimal\",\n"
-                + "        \"precision\": 10,\n"
-                + "        \"scale\": 4\n"
-                + "      }\n"
-                + "    }\n"
-                + "  ]\n"
-                + "}";
+        String schemaV2 = """
+                {
+                  "type": "record",
+                  "name": "Value",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "amount",
+                      "type": {
+                        "type": "bytes",
+                        "connect.parameters": {
+                          "scale": "4",
+                          "connect.decimal.precision": "10"
+                        },
+                        "connect.name": "org.apache.kafka.connect.data.Decimal",
+                        "logicalType": "decimal",
+                        "precision": 10,
+                        "scale": 4
+                      }
+                    }
+                  ]
+                }""";
 
         EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
         TypedContent canonicalV1 = canonicalizer.canonicalize(toTypedContent(schemaV1), new HashMap<>());
@@ -643,6 +768,198 @@ class SchemaNormalizerTest {
 
         assertNotEquals(canonicalV1.getContent().content(), canonicalV2.getContent().content(),
                 "Schemas with different connect.parameters scale values must have different canonical forms");
+    }
+
+    @Test
+    void parseSchema_NullableUnionWithAndWithoutDefaultNull_Equal() {
+        // Schema without "default": null on a nullable union field
+        String schemaWithoutDefault = """
+                {
+                  "type": "record",
+                  "name": "Application",
+                  "namespace": "nl.example.test",
+                  "fields": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": ["null", "string"]}
+                  ]
+                }""";
+
+        // Same schema WITH explicit "default": null
+        String schemaWithDefault = """
+                {
+                  "type": "record",
+                  "name": "Application",
+                  "namespace": "nl.example.test",
+                  "fields": [
+                    {"name": "name", "type": "string"},
+                    {"name": "version", "type": ["null", "string"], "default": null}
+                  ]
+                }""";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized1 = canonicalizer.canonicalize(toTypedContent(schemaWithoutDefault),
+                new HashMap<>());
+        TypedContent normalized2 = canonicalizer.canonicalize(toTypedContent(schemaWithDefault),
+                new HashMap<>());
+
+        assertEquals(normalized1.getContent().content(), normalized2.getContent().content());
+    }
+
+    @Test
+    void parseSchema_MapWithSelfReferencingRecord_NormalizesWithoutError() {
+        // Schema with a map whose value type references the enclosing record
+        String schema = """
+                {
+                  "type": "record",
+                  "name": "TreeNode",
+                  "namespace": "com.example",
+                  "fields": [
+                    {"name": "value", "type": "string"},
+                    {"name": "children", "type": {"type": "map", "values": "TreeNode"}}
+                  ]
+                }""";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized = canonicalizer.canonicalize(toTypedContent(schema), new HashMap<>());
+
+        assertNotNull(normalized);
+        // Verify it round-trips through Avro parser
+        Schema parsed = new Schema.Parser().parse(normalized.getContent().content());
+        assertEquals("TreeNode", parsed.getName());
+    }
+
+    @Test
+    void parseSchema_NullableUnionDifferentOrder_NotEqual() {
+        // ["null", "string"] no default — fix injects implicit "default": null
+        String schemaNullFirst = """
+                {
+                  "type": "record",
+                  "name": "Application",
+                  "namespace": "nl.example.test",
+                  "fields": [
+                    {"name": "version", "type": ["null", "string"]}
+                  ]
+                }""";
+
+        // ["string", "null"] no default — first type is not null, fix must NOT trigger
+        String schemaStringFirst = """
+                {
+                  "type": "record",
+                  "name": "Application",
+                  "namespace": "nl.example.test",
+                  "fields": [
+                    {"name": "version", "type": ["string", "null"]}
+                  ]
+                }""";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonicalNullFirst = canonicalizer.canonicalize(toTypedContent(schemaNullFirst),
+                new HashMap<>());
+        TypedContent canonicalStringFirst = canonicalizer.canonicalize(toTypedContent(schemaStringFirst),
+                new HashMap<>());
+
+        assertNotEquals(canonicalNullFirst.getContent().content(),
+                canonicalStringFirst.getContent().content(),
+                "Unions with different member order must have different canonical forms");
+    }
+
+    @Test
+    void parseSchema_UnionStartingWithStringThenNull_NoDefaultInjected() {
+        // ["string", "null"] no default — fix's "first type is null" guard must prevent injection
+        String schema = """
+                {
+                  "type": "record",
+                  "name": "Application",
+                  "namespace": "nl.example.test",
+                  "fields": [
+                    {"name": "version", "type": ["string", "null"]}
+                  ]
+                }""";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent canonical = canonicalizer.canonicalize(toTypedContent(schema), new HashMap<>());
+
+        Schema parsed = new Schema.Parser().parse(canonical.getContent().content());
+        Schema.Field versionField = parsed.getField("version");
+        assertNotNull(versionField);
+        assertFalse(versionField.hasDefaultValue(),
+                "Field must not have a default injected when the union does not start with null");
+    }
+
+    @Test
+    void parseSchema_NestedRecordWithNullableUnion_Equal() {
+        // Outer record contains a nested record whose field uses ["null", "string"] with no default
+        String schemaWithoutDefault = """
+                {
+                  "type": "record",
+                  "name": "Outer",
+                  "namespace": "nl.example.test",
+                  "fields": [
+                    {"name": "inner", "type": {
+                      "type": "record", "name": "Inner", "fields": [
+                        {"name": "version", "type": ["null", "string"]}
+                      ]
+                    }}
+                  ]
+                }""";
+
+        // Same structure but the nested field has explicit "default": null
+        String schemaWithDefault = """
+                {
+                  "type": "record",
+                  "name": "Outer",
+                  "namespace": "nl.example.test",
+                  "fields": [
+                    {"name": "inner", "type": {
+                      "type": "record", "name": "Inner", "fields": [
+                        {"name": "version", "type": ["null", "string"], "default": null}
+                      ]
+                    }}
+                  ]
+                }""";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized1 = canonicalizer.canonicalize(toTypedContent(schemaWithoutDefault),
+                new HashMap<>());
+        TypedContent normalized2 = canonicalizer.canonicalize(toTypedContent(schemaWithDefault),
+                new HashMap<>());
+
+        assertEquals(normalized1.getContent().content(), normalized2.getContent().content(),
+                "Nullable union default normalization must apply recursively to nested records");
+    }
+
+    @Test
+    void parseSchema_ThreeWayUnionStartingWithNull_Equal() {
+        // ["null", "string", "int"] no default
+        String schemaWithoutDefault = """
+                {
+                  "type": "record",
+                  "name": "Application",
+                  "namespace": "nl.example.test",
+                  "fields": [
+                    {"name": "value", "type": ["null", "string", "int"]}
+                  ]
+                }""";
+
+        // ["null", "string", "int"] with explicit "default": null
+        String schemaWithDefault = """
+                {
+                  "type": "record",
+                  "name": "Application",
+                  "namespace": "nl.example.test",
+                  "fields": [
+                    {"name": "value", "type": ["null", "string", "int"], "default": null}
+                  ]
+                }""";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized1 = canonicalizer.canonicalize(toTypedContent(schemaWithoutDefault),
+                new HashMap<>());
+        TypedContent normalized2 = canonicalizer.canonicalize(toTypedContent(schemaWithDefault),
+                new HashMap<>());
+
+        assertEquals(normalized1.getContent().content(), normalized2.getContent().content(),
+                "Unions with more than two members starting with null must still be normalized");
     }
 
     private String getSchemaFromResource(String resourcePath) throws IOException {

@@ -1,5 +1,6 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+:_mod-docs-content-type: ASSEMBLY
 [id="deploying-registry-secured-kafka_{context}"]
 = Deploying {registry} with a secured Kafka instance
 
@@ -20,6 +21,8 @@ endif::[]
 * xref:secured-kafka-troubleshooting_{context}[]
 
 
+// con-secured-kafka-overview
+:_mod-docs-content-type: CONCEPT
 [id="secured-kafka-overview_{context}"]
 == Secured Kafka overview
 
@@ -62,6 +65,8 @@ The security protocol that {registry} uses depends on which combination of TLS a
 |===
 
 
+// ref-secured-kafka-prerequisites
+:_mod-docs-content-type: REFERENCE
 [id="secured-kafka-prerequisites_{context}"]
 == Prerequisites for secured Kafka deployment
 
@@ -78,6 +83,8 @@ endif::[]
 * If your Kafka cluster uses SASL authentication, you have the required credentials (SCRAM-SHA-512 username and password, or OAUTHBEARER client ID, client secret, and token endpoint URL).
 
 
+// proc-secured-kafka-tls
+:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-tls_{context}"]
 == Configuring KafkaSQL with TLS encryption
 
@@ -126,11 +133,11 @@ spec:
 ----
 {kubernetes-client} apply -f my-registry.yaml
 ----
-
++
 NOTE: The operator sets the security protocol to `SSL` when you configure TLS without authentication.
 
-For mutual TLS (mTLS), where the Kafka cluster also verifies the {registry} client certificate, add the keystore configuration:
-
+. Optional: For mutual TLS (mTLS), where the Kafka cluster also verifies the {registry} client certificate, add the keystore configuration to the `tls` section:
++
 [source,yaml]
 ----
 tls:
@@ -149,6 +156,8 @@ tls:
 ----
 
 
+// proc-secured-kafka-scram
+:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-scram_{context}"]
 == Configuring KafkaSQL with SCRAM-SHA-512 authentication
 
@@ -225,10 +234,12 @@ spec:
 ----
 {kubernetes-client} get pods -l app=example-apicurioregistry-kafkasql-scram
 ----
-
++
 NOTE: This example uses `SASL_SSL` because TLS is also configured via the `tls` section. If you use SCRAM-SHA-512 without TLS, set `APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL` to `SASL_PLAINTEXT` instead.
 
 
+// proc-secured-kafka-oauth
+:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-oauth_{context}"]
 == Configuring KafkaSQL with OAUTHBEARER authentication
 
@@ -296,11 +307,15 @@ spec:
 ----
 {kubernetes-client} apply -f my-registry.yaml
 ----
-
++
+NOTE: The `loginHandlerClass` value is from the {kafka-streams} OAuth library. If you use a different OAuth provider, replace this value with the login handler class for your provider.
++
 NOTE: When you configure both TLS and OAUTHBEARER authentication, the operator sets the security protocol to `SASL_SSL`.
 
 
 ifndef::service-registry-downstream[]
+// proc-secured-kafka-access-operator
+:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-access-operator_{context}"]
 == Configuring KafkaSQL with the {kafka-streams} Kafka Access Operator
 
@@ -346,10 +361,13 @@ spec:
           - All
       - resource:
           type: group
-          name: '*'
+          name: apicurio-registry
+          patternType: prefix
         operations:
-          - All
+          - Read
 ----
++
+NOTE: This example scopes consumer group access to groups that start with `apicurio-registry`. In production deployments, avoid granting `All` operations on all consumer groups (`name: '*'`). Adjust the group name prefix to match your {registry} consumer group configuration.
 
 . Create a `KafkaAccess` resource that references your Kafka cluster and user:
 +
@@ -368,6 +386,8 @@ spec:
     apiGroup: kafka.strimzi.io
     name: apicurio-registry
 ----
++
+NOTE: The `KafkaAccess` resource uses the `access.strimzi.io/v1alpha1` API version, which is an alpha API that might change in future {kafka-streams} releases. Check the {kafka-streams} Kafka Access Operator documentation for the current API version.
 
 . Create the `ApicurioRegistry3` custom resource that references the `KafkaAccess` Secret:
 +
@@ -396,11 +416,13 @@ spec:
 ----
 {kubernetes-client} apply -f kafkauser.yaml -f kafkaaccess.yaml -f my-registry.yaml
 ----
-
++
 NOTE: When you specify `kafkaAccessSecretName`, it takes precedence over `bootstrapServers`. The Kafka Access Operator provides all connection details automatically, including bootstrap servers, security protocol, TLS certificates, and SASL credentials.
 endif::[]
 
 
+// ref-secured-kafka-security-protocols
+:_mod-docs-content-type: REFERENCE
 [id="secured-kafka-security-protocols_{context}"]
 == Kafka security protocol reference
 
@@ -430,6 +452,8 @@ When you configure security manually by using environment variables, you must se
 |===
 
 
+// proc-secured-kafka-topic-config
+:_mod-docs-content-type: PROCEDURE
 [id="secured-kafka-topic-config_{context}"]
 == Configuring Kafka topics for {registry}
 
@@ -438,8 +462,9 @@ When you configure security manually by using environment variables, you must se
 
 By default, {registry} auto-creates the required topics. If your Kafka cluster does not allow auto-creation, or if you want to control topic settings, create the topics manually.
 
-You can create topics by using the `KafkaTopic` custom resource:
-
+.Procedure
+. Create the Kafka topics by using the `KafkaTopic` custom resource:
++
 [source,yaml]
 ----
 apiVersion: kafka.strimzi.io/v1beta2
@@ -470,10 +495,21 @@ spec:
     retention.ms: "-1"
     retention.bytes: "-1"
 ----
++
+NOTE: This example uses `partitions: 3` and `replicas: 3`, which requires at least 3 Kafka brokers. The replica count must not exceed the number of brokers in your cluster. Adjust partition and replica counts based on your deployment size.
++
+WARNING: You must configure the Kafka topics used by {registry} with `cleanup.policy: delete` and infinite retention (`retention.ms: -1` and `retention.bytes: -1`). Do not use `cleanup.policy: compact` or `cleanup.policy: compact,delete`, because both policies can result in data loss.
 
-WARNING: You must configure the Kafka topic used by {registry} with `cleanup.policy: delete` and infinite retention (`retention.ms: -1` and `retention.bytes: -1`). Using `cleanup.policy: compact` can result in data loss.
+. Apply the topic resources:
++
+[source,bash]
+----
+{kubernetes-client} apply -f kafkatopics.yaml
+----
 
 
+// ref-secured-kafka-troubleshooting
+:_mod-docs-content-type: REFERENCE
 [id="secured-kafka-troubleshooting_{context}"]
 == Troubleshooting secured Kafka connections
 

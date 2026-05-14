@@ -1,7 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="schema-lifecycle-best-practices_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Schema lifecycle best practices
 
 [role="_abstract"]
@@ -19,8 +19,8 @@ Sections in this guide cover the schema lifecycle from initial design to retirem
 * xref:schema-lifecycle-checklist_{context}[]
 
 // con-schema-lifecycle-overview
-:_mod-docs-content-type: CONCEPT
 [id="schema-lifecycle-overview_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Schema lifecycle overview
 
 [role="_abstract"]
@@ -68,8 +68,8 @@ Every schema moves through four phases. The following table summarizes each phas
 After you understand these four phases, decide how to structure shared types so that you do not duplicate definitions across schemas.
 
 // con-schema-references-shared-types
-:_mod-docs-content-type: CONCEPT
 [id="schema-references-shared-types_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Schema references for shared types
 
 [role="_abstract"]
@@ -183,8 +183,8 @@ After you establish shared types, choose strategies for evolving schemas safely 
 * https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[SerDes with references demonstration]
 
 // ref-schema-evolution-strategies
-:_mod-docs-content-type: REFERENCE
 [id="schema-evolution-strategies_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Schema evolution strategies
 
 [role="_abstract"]
@@ -339,8 +339,8 @@ With these evolution strategies, you can identify which changes are safe. To enc
 * xref:registry-rule-reference_{context}[]
 
 // ref-schema-data-structure-recommendations
-:_mod-docs-content-type: REFERENCE
 [id="schema-data-structure-recommendations_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Data structure recommendations for evolvability
 
 [role="_abstract"]
@@ -428,8 +428,8 @@ With shared types, evolution strategies, and data structures in place, you can c
 * xref:registry-rule-reference_{context}[]
 
 // proc-managing-schema-lifecycle-states
-:_mod-docs-content-type: PROCEDURE
 [id="managing-schema-lifecycle-states_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Managing schema lifecycle states
 
 [role="_abstract"]
@@ -524,8 +524,8 @@ The response body contains the current state, for example `{"state": "DEPRECATED
 State management controls access to schema versions. To catch invalid data before the data reaches consumers, add runtime validation at multiple points in the pipeline.
 
 // proc-validating-data-avro-generated-classes
-:_mod-docs-content-type: PROCEDURE
 [id="validating-data-avro-generated-classes_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Validating data with Avro generated classes
 
 [role="_abstract"]
@@ -646,8 +646,8 @@ A successful build confirms that the schema is compatible with the version regis
 These validation layers apply to any Kafka producer. If your architecture includes CDC or the outbox pattern, you can extend schema lifecycle management to cover those integration points.
 
 // con-schema-event-driven-integration
-:_mod-docs-content-type: CONCEPT
 [id="schema-event-driven-integration_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Schema management in event-driven architectures
 
 [role="_abstract"]
@@ -727,8 +727,8 @@ For a working example that demonstrates Debezium, Kafka, and {registry} working 
 * xref:registry-rule-reference_{context}[]
 
 // ref-schema-lifecycle-checklist
-:_mod-docs-content-type: REFERENCE
 [id="schema-lifecycle-checklist_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Schema lifecycle best practices checklist
 
 [role="_abstract"]

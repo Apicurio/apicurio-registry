@@ -325,8 +325,8 @@ async function performMerge(api, config, pr, core) {
     core.info(`PR #${pr.number} merged using ${strategy}`);
     return true;
   } catch (e) {
-    const workflowHint = e.message?.includes('workflow')
-      ? ' This PR modifies workflow files and requires manual merge via the GitHub UI (the `workflow` token scope is not available to GitHub Actions).'
+    const workflowHint = e.message?.includes('Resource not accessible')
+      ? ' This may be because the PR modifies workflow files, which requires manual merge via the GitHub UI (the `workflow` token scope is not available to GitHub Actions).'
       : '';
     await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
     await api.removeLabel(pr.number, LABELS.TESTED);

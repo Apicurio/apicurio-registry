@@ -582,6 +582,7 @@ async function handleComment({ github, context, core }) {
     'disable-tests': () => cmdDisableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
     'enable-tests': () => cmdEnableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
     'unstale': () => cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, comment.id),
+    'retry': () => cmdRetry(github, api, config, core, pr, actor, isAuthor, maintainer, comment.id),
   };
 
   const handler = handlers[parsed.command];
@@ -843,6 +844,43 @@ async function cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, co
   await api.removeLabel(pr.number, LABELS.STALE);
   await api.addReaction(commentId, '+1');
   core.info(`PR #${pr.number} unstaled by ${actor}`);
+}
+
+async function cmdRetry(github, api, config, core, pr, actor, isAuthor, maintainer, commentId) {
+  if (!isAuthor && !maintainer) {
+    await api.addReaction(commentId, '-1');
+    await api.postComment(pr.number,
+      `@${actor} Only the PR author or a maintainer can retry.`
+    );
+    return;
+  }
+
+  await api.addReaction(commentId, '+1');
+
+  // Run the reconciler to fix any label inconsistencies
+  const freshPr = await api.getPr(pr.number);
+  await reconcile(github, api, freshPr, core);
+
+  // Check if the latest Verify run failed or was cancelled, and rerun if so
+  const latestRun = await api.findLatestVerifyRun(freshPr.head.sha);
+  if (latestRun && (latestRun.conclusion === 'failure' || latestRun.conclusion === 'cancelled')) {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state and re-triggering the Verify workflow ` +
+      `(previous run [${latestRun.conclusion}](${latestRun.html_url})).`
+    );
+    await retriggerVerify(api, freshPr, core);
+    core.info(`PR #${pr.number} retry: reconciled + re-triggered Verify by ${actor}`);
+  } else if (latestRun && latestRun.status !== 'completed') {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state. The Verify workflow is already running.`
+    );
+    core.info(`PR #${pr.number} retry: reconciled (Verify already running) by ${actor}`);
+  } else {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state. No failed Verify run to re-trigger.`
+    );
+    core.info(`PR #${pr.number} retry: reconciled (no failed run) by ${actor}`);
+  }
 }
 
 // ---------------------------------------------------------------------------

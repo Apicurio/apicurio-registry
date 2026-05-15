@@ -196,6 +196,33 @@ jobs:
             await handler.handleTestResult({ github, context, core });
 
   # ==========================================================================
+  # Failure Notification
+  # ==========================================================================
+  failure-notify:
+    name: Failure Notification
+    runs-on: ubuntu-latest
+    if: >-
+      failure() &&
+      github.event_name != 'schedule' &&
+      (github.event.pull_request.number || github.event.issue.number)
+    needs: [pr-opened, pr-synchronize, pr-ready-for-review, command, review, label-guard, test-result]
+    steps:
+      - name: Post warning comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request?.number || context.payload.issue?.number;
+            if (!prNumber) return;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `**Warning:** The PR lifecycle orchestrator encountered an error while processing ` +
+                `an event for this PR. Some labels or state transitions may be incorrect.\n\n` +
+                `A maintainer or the PR author can use \`/retry\` to re-run the orchestrator.`
+            });
+
+  # ==========================================================================
   # Stale Detection (daily cron)
   # ==========================================================================
   stale:

@@ -1,0 +1,371 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="configuring-resource-authorization_{context}"]
+= Configuring per-resource authorization
+
+[role="_abstract"]
+This chapter explains how to configure fine-grained, per-resource authorization in {registry} using a grants-based evaluator. This feature enables policies like "Alice can read artifacts in group team-a but not team-b," independent of her global RBAC role.
+
+NOTE: Per-resource authorization is an *experimental feature*. You must set `apicurio.features.experimental.enabled=true` to use it. The grants file format and behavior may change in future releases.
+
+* xref:resource-authorization-overview_{context}[]
+* xref:resource-authorization-configuration_{context}[]
+* xref:resource-authorization-grants_{context}[]
+* xref:resource-authorization-use-cases_{context}[]
+* xref:resource-authorization-interactions_{context}[]
+* xref:resource-authorization-monitoring_{context}[]
+* xref:resource-authorization-troubleshooting_{context}[]
+
+[id="resource-authorization-overview_{context}"]
+== Overview
+
+{registry} supports two layers of authorization:
+
+* **RBAC (role-based access control):** Coarse-grained global roles (`sr-readonly`, `sr-developer`, `sr-admin`) applied via an IdP such as {keycloak}. This is the existing authorization model.
+* **Per-resource authorization:** Fine-grained access control at the artifact and group level using a grants-based evaluator. This is an additional layer applied after RBAC.
+
+Both layers work together. A request must pass both RBAC and per-resource authorization to be allowed. The IdP handles authentication and role assignment. {registry} handles per-resource grants.
+
+=== How it works
+
+Per-resource authorization uses a grants file — a JSON file containing allow and deny rules that define who can access which resources.
+
+* **Point-access checks** (reading, writing, or deleting a specific artifact): The grants evaluator matches the user's identity and roles against the grants for the requested resource. Only the current user's matching grants are evaluated.
+* **Search and list filtering** (what artifacts a user sees in search results): The user's allowed and denied resource patterns are translated into database query filters. The database handles filtering and pagination natively, so page sizes and total counts are always correct.
+
+Both paths use the same grants data.
+
+[id="resource-authorization-configuration_{context}"]
+== Configuration
+
+To enable per-resource authorization, set the following configuration properties:
+
+[cols="2,1,3"]
+|===
+|Property |Default |Description
+
+|`apicurio.auth.resource-based-authorization.enabled`
+|`false`
+|Enable per-resource authorization using the grants evaluator.
+
+|`apicurio.auth.resource-based-authorization.grants.path`
+|_(none)_
+|Path to the JSON grants data file. Can be mounted as a volume or Kubernetes ConfigMap.
+
+|`apicurio.auth.resource-based-authorization.grants.reload-every`
+|`5s`
+|How often to check the grants file for changes. Set to `off` to disable hot-reload.
+
+|`apicurio.features.experimental.enabled`
+|`false`
+|Must be set to `true` to enable experimental features including per-resource authorization.
+|===
+
+=== Example configuration
+
+In a Docker Compose or Kubernetes deployment:
+
+[source,yaml]
+----
+environment:
+  apicurio.features.experimental.enabled: "true"
+  apicurio.auth.resource-based-authorization.enabled: "true"
+  apicurio.auth.resource-based-authorization.grants.path: "/opt/apicurio/authz/grants.json"
+----
+
+In Kubernetes, mount the grants file as a ConfigMap volume. A working Docker Compose example with {keycloak} is available at `distro/docker-compose/in-memory-with-authz-grants/`.
+
+[id="resource-authorization-grants_{context}"]
+== Grants file format
+
+The grants file is a JSON file defining who can access what. It supports per-user and per-role grants with prefix, exact, and wildcard resource patterns.
+
+=== Structure
+
+[source,json]
+----
+{
+  "config": {
+    "admin_roles": ["sr-admin"]
+  },
+  "grants": [
+    {
+      "principal": "alice",
+      "operation": "write",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "team-a/"
+    },
+    {
+      "principal_role": "sr-developer",
+      "operation": "read",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "public/"
+    }
+  ]
+}
+----
+
+The `config.admin_roles` array lists IdP roles that bypass all per-resource checks. Users with any of these roles have full access to all resources — no grants are evaluated for them.
+
+=== Grant fields
+
+[cols="2,1,3"]
+|===
+|Field |Required |Description
+
+|`principal`
+|One of `principal` or `principal_role`
+|Username to match (from the authenticated identity).
+
+|`principal_role`
+|One of `principal` or `principal_role`
+|IdP role to match. Any user with this role gets the grant.
+
+|`operation`
+|Yes
+|Permission level: `read`, `write`, or `admin`.
+
+|`resource_type`
+|Yes
+|The type of resource: `artifact` or `group`.
+
+|`resource_pattern_type`
+|No
+|How to match the resource name: `prefix` (starts with), `exact` (equals). Omit for wildcard.
+
+|`resource_pattern`
+|Yes
+|The pattern to match. Use `*` for wildcard (all resources).
+
+|`deny`
+|No
+|When set to `true`, this grant denies the matched access instead of allowing it. Deny rules take precedence over allow rules. Default is `false`.
+|===
+
+=== Resource naming
+
+For **artifact** grants, the resource name follows the format `{groupId}/{artifactId}`. For artifacts in the default group (null or "default"), use `default/{artifactId}`.
+
+For **group** grants, the resource name is just the group ID (for example, `team-a`).
+
+Examples:
+
+* `team-a/my-schema` — artifact `my-schema` in group `team-a`
+* `default/my-schema` — artifact `my-schema` in the default group
+* `team-a` — the group `team-a` itself
+
+=== Operation hierarchy
+
+The `admin` operation implies `write`, which implies `read`. A user granted `write` on a resource can also `read` it. A user granted `admin` can perform any operation.
+
+=== When you need group grants vs artifact grants
+
+* **Artifact grants** (`resource_type: "artifact"`) control access to individual artifacts — reading content, creating versions, deleting artifacts.
+* **Group grants** (`resource_type: "group"`) control access to the group itself — creating the group, deleting the group, listing artifacts within the group.
+
+In most cases, you need both. For example, to give a user full access to `team-a`, grant `write` on both the group and its artifacts:
+
+[source,json]
+----
+{"principal": "alice", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "team-a"},
+{"principal": "alice", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"}
+----
+
+=== Hot-reload
+
+The grants file is checked for changes at the interval configured by `apicurio.auth.resource-based-authorization.grants.reload-every` (default: every 5 seconds). When the file is modified (for example, when a Kubernetes ConfigMap is updated), {registry} reloads the grants data automatically without restart.
+
+Set the interval to `off` to disable hot-reload.
+
+=== Deny rules
+
+Deny rules use the same fields as allow rules, with the addition of `"deny": true`. When the grants evaluator processes a request, deny rules are evaluated first. If any deny rule matches, access is denied regardless of any allow rules that also match.
+
+Deny a user access to a specific artifact while allowing the rest of the group:
+[source,json]
+----
+{"principal": "alice", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
+{"principal": "alice", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "exact", "resource_pattern": "team-a/secret-schema", "deny": true}
+----
+
+In this example, Alice can read and write all artifacts under `team-a/` except `team-a/secret-schema`, which is explicitly denied.
+
+Deny rules also support prefix patterns to deny a range of artifacts:
+[source,json]
+----
+{"principal": "alice", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/internal-", "deny": true}
+----
+
+This denies Alice read access to all artifacts whose ID starts with `internal-` in group `team-a`, such as `team-a/internal-api` or `team-a/internal-config`.
+
+Deny rules apply to both direct access and search results. Denied artifacts never appear in search results, even if the user has a matching allow rule.
+
+[id="resource-authorization-use-cases_{context}"]
+== Common use cases
+
+=== Multi-team isolation
+
+Two teams share a Registry instance. Each team can only see and modify their own schemas:
+
+[source,json]
+----
+{
+  "config": { "admin_roles": ["sr-admin"] },
+  "grants": [
+    {"principal_role": "team-a-developers", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
+    {"principal_role": "team-a-developers", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "team-a"},
+    {"principal_role": "team-b-developers", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-b/"},
+    {"principal_role": "team-b-developers", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "team-b"}
+  ]
+}
+----
+
+Team-a developers cannot see team-b's artifacts in search results, and vice versa. Admins (users with `sr-admin` role) can see and modify everything.
+
+=== Shared schemas with selective write access
+
+All developers can read shared schemas, but only the platform team can modify them:
+
+[source,json]
+----
+{"principal_role": "sr-developer", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "shared/"},
+{"principal_role": "sr-developer", "operation": "read", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "shared"},
+{"principal_role": "platform-team", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "shared/"},
+{"principal_role": "platform-team", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "shared"}
+----
+
+=== Read-only monitoring service
+
+A monitoring service account that can read all artifacts but cannot modify anything:
+
+[source,json]
+----
+{"principal": "monitoring-service", "operation": "read", "resource_type": "artifact", "resource_pattern": "*"},
+{"principal": "monitoring-service", "operation": "read", "resource_type": "group", "resource_pattern": "*"}
+----
+
+=== CI/CD pipeline with scoped write access
+
+A CI/CD service account that can write schemas to a specific group:
+
+[source,json]
+----
+{"principal": "ci-pipeline", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "production/"},
+{"principal": "ci-pipeline", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "production"}
+----
+
+=== Allow a group but deny specific artifacts
+
+A user can access everything in `team-a/` except internal schemas:
+
+[source,json]
+----
+{"principal": "contractor", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
+{"principal": "contractor", "operation": "read", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "team-a"},
+{"principal": "contractor", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/internal-", "deny": true}
+----
+
+[id="resource-authorization-interactions_{context}"]
+== Interaction with other authorization features
+
+Per-resource authorization is the final gate in the authorization chain. Understanding how it interacts with other features is important for correct configuration.
+
+=== Authorization flow
+
+[source]
+----
+Request → Authentication (Keycloak/IdP)
+        → Admin Override
+        → RBAC (coarse-grained role check)
+        → OBAC (owner bypass)
+        → Per-resource grants check
+----
+
+=== RBAC
+
+Grants restrict within what RBAC allows. A user with `sr-readonly` role can never write, regardless of grants — RBAC denies the write before grants are evaluated.
+
+To use grants for fine-grained write control, assign users the `sr-developer` role at the RBAC level and use grants to control which specific resources they can access.
+
+=== Owner-based access control (OBAC)
+
+When `apicurio.auth.owner-only-authorization` is enabled, artifact and group owners bypass the grants check. If a user created an artifact, they always have access to it regardless of grants. This prevents a user from creating an artifact and immediately losing access because they have no matching grant.
+
+=== Authenticated read access
+
+When `apicurio.auth.authenticated-read-access.enabled` is set to `true`, all authenticated users can read all resources regardless of grants. This effectively disables read grants. A startup warning is logged when both features are enabled.
+
+=== Anonymous read access
+
+When `apicurio.auth.anonymous-read-access.enabled` is set to `true`, anonymous (unauthenticated) users can read all resources regardless of grants. A startup warning is logged when both features are enabled.
+
+=== Proxy authorization
+
+When `apicurio.authn.trust-proxy-authorization` is set to `true`, all local authorization (including grants) is bypassed. The proxy is trusted to have already performed authorization.
+
+[id="resource-authorization-monitoring_{context}"]
+== Monitoring and audit logging
+
+=== Metrics
+
+When per-resource authorization is enabled, the following OpenTelemetry metric is exported:
+
+[cols="2,3"]
+|===
+|Metric |Description
+
+|`apicurio.authz.decisions`
+|Counter of authorization decisions, with attributes `decision` (`allow` or `deny`), `resource_type` (`artifact` or `group`), and `operation` (`read`, `write`, or `admin`).
+|===
+
+This metric is available via the Prometheus endpoint at `/q/metrics` when OpenTelemetry is enabled.
+
+=== Audit logging
+
+Authorization denials are logged at INFO level to the `io.apicurio.registry.audit.authz` logger with structured fields:
+
+[source]
+----
+authz.denied user="alice" operation="write" resource_type="artifact" resource="team-b/secret-schema"
+----
+
+Configure the logger in `application.properties` or via environment variable:
+[source,properties]
+----
+quarkus.log.category."io.apicurio.registry.audit.authz".level=INFO
+----
+
+Set to `DEBUG` to also log allowed decisions, or `OFF` to disable authorization audit logging.
+
+[id="resource-authorization-troubleshooting_{context}"]
+== Troubleshooting
+
+=== User is denied access but has a matching grant
+
+Check the authorization chain in order:
+
+1. **RBAC:** Does the user have the correct IdP role? A `sr-readonly` user cannot write regardless of grants.
+2. **Admin override:** Is the user's role listed in `config.admin_roles`? Admins bypass all grants.
+3. **Owner bypass:** If OBAC is enabled, did the user create the artifact? Owners bypass grants.
+4. **Authenticated/anonymous read:** Are these settings overriding grants? Check for startup warnings in the logs.
+5. **Deny rules:** Is there a deny rule that matches the resource? Deny rules take precedence over allow rules.
+6. **Resource naming:** Is the resource name in the grant correct? Artifact names use the format `{groupId}/{artifactId}`. Default group artifacts use `default/{artifactId}`.
+
+=== User can see artifacts in search but is denied direct access
+
+This can happen if the user has a group-level prefix grant that includes the artifact in search results, but a deny rule blocks direct access. Check for deny rules that match the specific artifact.
+
+=== Grants file changes are not taking effect
+
+1. Verify the file path in `apicurio.auth.resource-based-authorization.grants.path` is correct.
+2. Check that the file was actually modified (the reload check uses the file's last-modified timestamp).
+3. Verify that `apicurio.auth.resource-based-authorization.grants.reload-every` is not set to `off`.
+4. Check the logs for "Grants data reloaded successfully" or error messages about file parsing.
+
+=== Grants file has errors
+
+The grants evaluator validates each grant on load. Invalid grants (missing required fields) are skipped with a warning in the logs. Check the logs for messages like "Grant at index N has no operation, skipping."
+
+If the entire file is malformed JSON, all access is denied and an error is logged: "Failed to parse grants data, authorization will deny all access."

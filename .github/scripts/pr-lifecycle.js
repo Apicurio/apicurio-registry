@@ -380,6 +380,54 @@ async function checkAndTransitionToReady(api, pr, core) {
 }
 
 // ---------------------------------------------------------------------------
+// Reconciler
+// ---------------------------------------------------------------------------
+
+async function reconcile(github, api, pr, core) {
+  const config = loadConfig();
+  const state = getLifecycleState(pr);
+
+  // 1. No lifecycle label at all → initialize as new PR
+  if (!state) {
+    if (hasLabel(pr, LABELS.DISABLED)) return;
+
+    if (isAutoAccepted(config, pr.user.login)) {
+      const initialState = pr.draft ? LABELS.WIP : LABELS.READY_FOR_REVIEW;
+      await api.addLabel(pr.number, initialState);
+      if (!pr.draft) {
+        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      }
+      core.warning(`PR #${pr.number} had no lifecycle label — initialized as ${initialState} (auto-accepted)`);
+    } else {
+      await api.addLabel(pr.number, LABELS.NEW);
+      if (!pr.draft) {
+        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      }
+      core.warning(`PR #${pr.number} had no lifecycle label — initialized as lifecycle/new`);
+    }
+
+    await api.postComment(pr.number,
+      `**Warning:** This PR was missing a lifecycle label, which indicates the ` +
+      `PR lifecycle orchestrator may have failed during initial processing. ` +
+      `The label has been restored automatically. If this PR was already accepted, ` +
+      `a maintainer may need to re-run the appropriate command (e.g. \`/accept\`).`
+    );
+    return;
+  }
+
+  // 2. Ready-for-review with all conditions met but not transitioned
+  if (state === LABELS.READY_FOR_REVIEW) {
+    const freshPr = await api.getPr(pr.number);
+    const result = await checkAndTransitionToReady(api, freshPr, core);
+    if (result === 'auto-merge') {
+      await performMerge(api, config, freshPr, core);
+    } else if (result === 'ready-to-merge') {
+      core.info(`PR #${pr.number} reconciler transitioned to ready-to-merge`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Event Handlers
 // ---------------------------------------------------------------------------
 
@@ -468,6 +516,9 @@ async function handlePrSynchronize({ github, context, core }) {
       rerunHints.map(h => `- ${h}`).join('\n')
     );
   }
+
+  const freshPr = await api.getPr(pr.number);
+  await reconcile(github, api, freshPr, core);
 }
 
 async function handlePrReadyForReview({ github, context, core }) {
@@ -499,6 +550,9 @@ async function handlePrReadyForReview({ github, context, core }) {
   );
   core.info(`PR #${pr.number} transitioned to ready-for-review (draft->ready)`);
   await retriggerVerify(api, pr, core);
+
+  const reconPr = await api.getPr(pr.number);
+  await reconcile(github, api, reconPr, core);
 }
 
 async function handleComment({ github, context, core }) {
@@ -825,6 +879,9 @@ async function handleReview({ github, context, core }) {
       await performMerge(api, config, freshPr, core);
     }
   }
+
+  const freshPr = await api.getPr(pr.number);
+  await reconcile(github, api, freshPr, core);
 }
 
 // ---------------------------------------------------------------------------
@@ -962,6 +1019,9 @@ async function handleTestResult({ github, context, core }) {
 
     // Post or update the decision summary comment
     await postDecisionSummary(github, owner, repo, workflowRun, pr.number, core);
+
+    const reconPr = await api.getPr(pr.number);
+    await reconcile(github, api, reconPr, core);
   }
 }
 
@@ -1198,5 +1258,6 @@ module.exports = {
   handleLabelChange,
   handleTestResult,
   handleStale,
+  reconcile,
   LABELS,
 };

@@ -12,7 +12,7 @@ on:
     workflows: ["Verify"]
     types: [completed]
   schedule:
-    - cron: '17 8 * * *'
+    - cron: '17 */4 * * *'
 
 permissions:
   actions: write

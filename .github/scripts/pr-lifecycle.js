@@ -1281,6 +1281,18 @@ async function handleStale({ github, context, core }) {
       core.info(`PR #${pr.number} marked as stale`);
     }
   }
+
+  // Reconcile all open PRs targeting main to catch any with missing/inconsistent state
+  core.info('Running reconciler on all open PRs...');
+  for (const pr of prs) {
+    if (hasLabel(pr, LABELS.DISABLED)) continue;
+    if (pr.base?.ref !== 'main') continue;
+    try {
+      await reconcile(github, api, pr, core);
+    } catch (err) {
+      core.warning(`PR #${pr.number} reconcile failed: ${err.message}`);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

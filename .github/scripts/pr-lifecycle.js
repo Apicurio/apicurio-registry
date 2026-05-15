@@ -397,6 +397,7 @@ async function reconcile(github, api, pr, core) {
       if (!pr.draft) {
         await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
       }
+      await retriggerVerify(api, pr, core);
       core.warning(`PR #${pr.number} had no lifecycle label — initialized as ${initialState} (auto-accepted)`);
     } else {
       await api.addLabel(pr.number, LABELS.NEW);
@@ -417,10 +418,9 @@ async function reconcile(github, api, pr, core) {
 
   // 2. Ready-for-review with all conditions met but not transitioned
   if (state === LABELS.READY_FOR_REVIEW) {
-    const freshPr = await api.getPr(pr.number);
-    const result = await checkAndTransitionToReady(api, freshPr, core);
+    const result = await checkAndTransitionToReady(api, pr, core);
     if (result === 'auto-merge') {
-      await performMerge(api, config, freshPr, core);
+      await performMerge(api, config, pr, core);
     } else if (result === 'ready-to-merge') {
       core.info(`PR #${pr.number} reconciler transitioned to ready-to-merge`);
     }
@@ -582,7 +582,7 @@ async function handleComment({ github, context, core }) {
     'disable-tests': () => cmdDisableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
     'enable-tests': () => cmdEnableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
     'unstale': () => cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, comment.id),
-    'retry': () => cmdRetry(github, api, config, core, pr, actor, isAuthor, maintainer, comment.id),
+    'retry': () => cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comment.id),
   };
 
   const handler = handlers[parsed.command];
@@ -846,7 +846,7 @@ async function cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, co
   core.info(`PR #${pr.number} unstaled by ${actor}`);
 }
 
-async function cmdRetry(github, api, config, core, pr, actor, isAuthor, maintainer, commentId) {
+async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, commentId) {
   if (!isAuthor && !maintainer) {
     await api.addReaction(commentId, '-1');
     await api.postComment(pr.number,
@@ -1235,6 +1235,15 @@ async function handleStale({ github, context, core }) {
   for (const pr of prs) {
     if (hasLabel(pr, LABELS.DISABLED)) continue;
 
+    // Reconcile all PRs targeting main
+    if (pr.base?.ref === 'main') {
+      try {
+        await reconcile(github, api, pr, core);
+      } catch (err) {
+        core.warning(`PR #${pr.number} reconcile failed: ${err.message}`);
+      }
+    }
+
     const state = getLifecycleState(pr);
     if (!state) continue;
     if (state === LABELS.READY_TO_MERGE) continue;
@@ -1282,17 +1291,6 @@ async function handleStale({ github, context, core }) {
     }
   }
 
-  // Reconcile all open PRs targeting main to catch any with missing/inconsistent state
-  core.info('Running reconciler on all open PRs...');
-  for (const pr of prs) {
-    if (hasLabel(pr, LABELS.DISABLED)) continue;
-    if (pr.base?.ref !== 'main') continue;
-    try {
-      await reconcile(github, api, pr, core);
-    } catch (err) {
-      core.warning(`PR #${pr.number} reconcile failed: ${err.message}`);
-    }
-  }
 }
 
 // ---------------------------------------------------------------------------

@@ -38,6 +38,7 @@ welcome_message: |
   | `/disable-tests` | Disable smoke tests during development |
   | `/enable-tests` | Re-enable smoke tests |
   | `/unstale` | Remove the stale label |
+  | `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
 
   **Maintainer commands:**
   | Command | Description |

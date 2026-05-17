@@ -1,112 +1,177 @@
-// Metadata created by nebel
-include::./attributes.adoc[]
+include::{mod-loc}shared/all-attributes.adoc[]
 
-[id="registry-concepts-glossary"]
-= Registry Concepts and Glossary
+[id="registry-concepts-glossary_{context}"]
+:_mod-docs-content-type: ASSEMBLY
+= {registry} concepts and glossary
 
-This section provides definitions for the core concepts used throughout {registry}.
+[role="_abstract"]
+You can use these definitions to understand the core concepts of {registry}.
 
-[id="concept-group"]
+// con-concept-group
+[id="concept-group_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Group
+
+[role="_abstract"]
 A *group* is a named namespace for organizing related artifacts.
+
 Every artifact belongs to a group.
-If no group is specified when creating an artifact, it is placed in the `default` group.
+If you do not specify a group when creating an artifact, {registry} places it in the `default` group.
 Groups can carry their own metadata (description, labels) and can have group-level rules that apply to all artifacts within the group.
 
-[id="concept-artifact"]
+// con-concept-artifact
+[id="concept-artifact_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Artifact
+
+[role="_abstract"]
 An *artifact* is a named schema or API definition within a group, uniquely identified by the combination of `groupId` and `artifactId`.
+
 An artifact acts as a container for zero or more artifact versions.
 Examples of artifacts include an Avro schema, a Protobuf definition, an OpenAPI specification, or an AsyncAPI definition.
 
-[id="concept-artifact-version"]
-== Artifact Version
-An *artifact version* is an immutable snapshot of an artifact's content.
-Each version is identified within its artifact by a `version` string and is also assigned a globally unique numeric `globalId`.
-Once created, the content of a version cannot be changed.
-Versions have a lifecycle state (see <<concept-version-state>>) and can carry user-defined metadata and labels.
+// con-concept-artifact-version
+[id="concept-artifact-version_{context}"]
+:_mod-docs-content-type: CONCEPT
+== Artifact version
 
-[id="concept-content"]
+[role="_abstract"]
+An *artifact version* is an immutable snapshot of an artifact's content.
+
+Each version is identified within its artifact by a `version` string and is also assigned a globally unique numeric `globalId`.
+After you create a version, you cannot change its content.
+Versions have a lifecycle state (see xref:concept-version-state_{context}[]) and can carry user-defined metadata and labels.
+
+// con-concept-content
+[id="concept-content_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Content
+
+[role="_abstract"]
 *Content* is the actual schema or API payload stored in the registry (for example, an Avro JSON schema, a Protobuf `.proto` definition, or an OpenAPI YAML specification).
+
 Content is deduplicated: if two artifact versions have identical content, they share the same `contentId`.
 
-[id="concept-global-id"]
-== GlobalId
-A *globalId* is a globally unique numeric identifier assigned to each artifact version in the registry.
-It is auto-generated when a version is created and can be used to retrieve a specific version directly, regardless of group or artifact.
+// con-concept-global-id
+[id="concept-global-id_{context}"]
+:_mod-docs-content-type: CONCEPT
+== Global ID
 
-[id="concept-content-id"]
-== ContentId
-A *contentId* is a unique numeric identifier for a piece of content.
+[role="_abstract"]
+A *global ID* is a globally unique numeric identifier for each artifact version in the registry.
+
+{registry} auto-generates the global ID when you create a version. You can use the global ID to retrieve a specific version directly, regardless of group or artifact.
+
+// con-concept-content-id
+[id="concept-content-id_{context}"]
+:_mod-docs-content-type: CONCEPT
+== Content ID
+
+[role="_abstract"]
+A *content ID* is a unique numeric identifier for a piece of content.
+
 Because content is deduplicated, multiple artifact versions with identical content share the same `contentId`.
 This is useful when different artifacts or versions reference the same schema payload.
 
-[id="concept-branch"]
+// con-concept-branch
+[id="concept-branch_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Branch
+
+[role="_abstract"]
 A *branch* is a named, ordered sequence of artifact versions within an artifact.
-Branches are used to track parallel evolution paths for an artifact.
+
+Branches track parallel evolution paths for an artifact.
 For example, an artifact might have a `latest` branch (the default) and a `1.x` branch for maintenance releases.
 
-[id="concept-artifact-reference"]
-== Artifact Reference
+// con-concept-artifact-reference
+[id="concept-artifact-reference_{context}"]
+:_mod-docs-content-type: CONCEPT
+== Artifact reference
+
+[role="_abstract"]
 An *artifact reference* is a reference from one artifact to another.
+
 References model relationships such as `$ref` in JSON Schema, `import` in Protobuf, or type references in Avro.
-When an artifact version contains references, the registry tracks them to support referential integrity validation.
+When an artifact version contains references, {registry} stores them to support referential integrity validation.
 
-[id="concept-labels"]
+// con-concept-labels
+[id="concept-labels_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Labels
-*Labels* are user-defined key-value string pairs that can be attached to groups, artifacts, or artifact versions.
-Labels are used for organization, categorization, and filtering when searching.
 
-[id="concept-rule"]
+[role="_abstract"]
+*Labels* are user-defined key-value string pairs that you can attach to groups, artifacts, or artifact versions.
+
+You can use labels for organization, categorization, and filtering when searching.
+
+// con-concept-rule
+[id="concept-rule_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Rule
-A *rule* is a validation constraint that is applied when new content is added to the registry.
+
+[role="_abstract"]
+A *rule* is a validation constraint that {registry} applies when you add new content.
+
 Rules operate at three levels:
 
 * *Global rules* apply to all artifacts in the registry.
 * *Group rules* apply to all artifacts within a specific group.
 * *Artifact rules* apply to a specific artifact.
 
-When a rule is configured at multiple levels, the most specific level takes precedence (artifact > group > global).
+When you configure a rule at multiple levels, the most specific level takes precedence (artifact > group > global).
 
 The available rule types are:
 
-* *Validity rule* -- validates that the content is syntactically and/or semantically correct for its artifact type.
-* *Compatibility rule* -- validates that new content is compatible with previous versions according to a specified compatibility level.
-* *Integrity rule* -- validates referential integrity of artifact references.
+* *Validity rule*: validates that the content is syntactically and semantically correct for its artifact type.
+* *Compatibility rule*: validates that new content is compatible with previous versions according to a specified compatibility level.
+* *Integrity rule*: validates referential integrity of artifact references.
 
-For more information, see xref:getting-started/assembly-rule-reference.adoc[].
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-rule-reference.adoc[]
 
-[id="concept-version-state"]
-== Version State
+// con-concept-version-state
+[id="concept-version-state_{context}"]
+:_mod-docs-content-type: CONCEPT
+== Version state
+
+[role="_abstract"]
 The *version state* represents the lifecycle state of an artifact version.
+
 The possible states are:
 
-* `ENABLED` -- the version is fully available. Content and metadata can be retrieved normally.
-* `DEPRECATED` -- the version is still available, but the registry returns a warning header to signal that consumers should migrate to a newer version.
-* `DISABLED` -- the version metadata is visible, but the version content cannot be fetched.
+* `ENABLED`: the version is fully available. You can retrieve content and metadata normally.
+* `DEPRECATED`: the version is still available, but {registry} returns a warning header to signal that consumers must migrate to a newer version.
+* `DISABLED`: the version metadata is visible, but you cannot fetch the version content.
 
-State transitions are allowed between any of these three states.
+You can transition between any of these three states.
 
-[id="concept-artifact-type"]
-== Artifact Type
+// con-concept-artifact-type
+[id="concept-artifact-type_{context}"]
+:_mod-docs-content-type: CONCEPT
+== Artifact type
+
+[role="_abstract"]
 The *artifact type* identifies the format or schema language of an artifact's content.
-The registry uses the artifact type to determine how to parse, validate, and check compatibility of the content.
+
+{registry} uses the artifact type to parse, validate, and check compatibility of the content.
 Supported artifact types include:
 
-* `AVRO` -- Apache Avro schema
-* `PROTOBUF` -- Google Protocol Buffers definition
-* `JSON` -- JSON Schema
-* `OPENAPI` -- OpenAPI specification
-* `ASYNCAPI` -- AsyncAPI specification
-* `GRAPHQL` -- GraphQL schema definition
-* `KCONNECT` -- Apache Kafka Connect schema
-* `WSDL` -- Web Services Description Language definition
-* `XSD` -- XML Schema Definition
-* `XML` -- XML document
-* `AGENT_CARD` -- AI Agent Card (A2A protocol)
-* `ICEBERG_TABLE` -- Apache Iceberg table metadata
-* `ICEBERG_VIEW` -- Apache Iceberg view metadata
+* `AVRO`: Apache Avro schema
+* `PROTOBUF`: Google Protocol Buffers definition
+* `JSON`: JSON Schema
+* `OPENAPI`: OpenAPI specification
+* `ASYNCAPI`: AsyncAPI specification
+* `GRAPHQL`: GraphQL schema definition
+* `KCONNECT`: Apache Kafka Connect schema
+* `WSDL`: Web Services Description Language definition
+* `XSD`: XML Schema Definition
+* `XML`: XML document
+* `AGENT_CARD`: AI Agent Card (A2A protocol)
+* `ICEBERG_TABLE`: Apache Iceberg table metadata
+* `ICEBERG_VIEW`: Apache Iceberg view metadata
 
-For more information, see xref:getting-started/assembly-artifact-reference.adoc[].
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-artifact-reference.adoc[]

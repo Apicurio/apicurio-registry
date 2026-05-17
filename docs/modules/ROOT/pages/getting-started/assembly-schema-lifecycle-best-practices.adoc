@@ -605,7 +605,7 @@ The `AvroKafkaSerializer` resolves the writer schema from {registry} and seriali
 * `artifact-resolver-strategy`: determines how the serializer maps each Kafka message to an artifact in {registry}. The default `TopicIdStrategy` uses the topic name as the artifact ID.
 * `auto-register`: when enabled, the serializer registers new schemas automatically, and {registry} applies the configured compatibility rules.
 +
-WARNING: When you set `apicurio.registry.auto-register` to `true`, any producer can register new schemas in {registry}. In production, pre-register schemas during your CI/CD pipeline and set `apicurio.registry.auto-register` to `false`. If you must use auto-registration, configure authentication and role-based access control (RBAC) to restrict write access. For details, see xref:configuring-registry-security_{context}[].
+IMPORTANT: When you set `apicurio.registry.auto-register` to `true`, any producer can register new schemas in {registry}. In production, pre-register schemas during your CI/CD pipeline and set `apicurio.registry.auto-register` to `false`. If you must use auto-registration, configure authentication and role-based access control (RBAC) to restrict write access. For details, see xref:configuring-registry-security_{context}[].
 +
 IMPORTANT: The `apicurio.registry.url` property is required. The serializer throws an `IllegalArgumentException` at startup if you omit the property. The serializer caches schemas and retries failed registry requests with a backoff interval. For default values and tuning options, see {registry-client-serdes-config}. To handle registry unavailability, set `apicurio.registry.fault-tolerant-refresh` to `true`.
 

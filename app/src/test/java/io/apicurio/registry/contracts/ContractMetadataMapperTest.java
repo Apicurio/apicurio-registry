@@ -43,15 +43,15 @@ public class ContractMetadataMapperTest {
     @Test
     public void testFromLabels_Complete() {
         Map<String, String> labels = new HashMap<>();
-        labels.put(ContractLabels.STATUS, "STABLE");
-        labels.put(ContractLabels.OWNER_TEAM, "Platform Team");
-        labels.put(ContractLabels.OWNER_DOMAIN, "payments");
-        labels.put(ContractLabels.SUPPORT_CONTACT, "support@example.com");
-        labels.put(ContractLabels.CLASSIFICATION, "CONFIDENTIAL");
-        labels.put(ContractLabels.STAGE, "PROD");
-        labels.put(ContractLabels.STABLE_DATE, "2024-01-15");
-        labels.put(ContractLabels.DEPRECATED_DATE, "2024-06-01");
-        labels.put(ContractLabels.DEPRECATION_REASON, "Replaced by v2");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_STATUS, "STABLE");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_TEAM, "Platform Team");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_DOMAIN, "payments");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_SUPPORT_CONTACT, "support@example.com");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_CLASSIFICATION, "CONFIDENTIAL");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_STAGE, "PROD");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_STABLE_DATE, "2024-01-15");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_DEPRECATED_DATE, "2024-06-01");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_DEPRECATION_REASON, "Replaced by v2");
 
         ContractMetadataDto result = mapper.fromLabels(labels);
 
@@ -73,8 +73,8 @@ public class ContractMetadataMapperTest {
     @Test
     public void testFromLabels_Partial() {
         Map<String, String> labels = new HashMap<>();
-        labels.put(ContractLabels.STATUS, "DRAFT");
-        labels.put(ContractLabels.OWNER_TEAM, "API Team");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_STATUS, "DRAFT");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_TEAM, "API Team");
 
         ContractMetadataDto result = mapper.fromLabels(labels);
 
@@ -120,10 +120,10 @@ public class ContractMetadataMapperTest {
     @Test
     public void testFromLabels_InvalidEnumValues() {
         Map<String, String> labels = new HashMap<>();
-        labels.put(ContractLabels.STATUS, "INVALID_STATUS");
-        labels.put(ContractLabels.CLASSIFICATION, "NOT_A_CLASSIFICATION");
-        labels.put(ContractLabels.STAGE, "UNKNOWN_STAGE");
-        labels.put(ContractLabels.OWNER_TEAM, "Team A");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_STATUS, "INVALID_STATUS");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_CLASSIFICATION, "NOT_A_CLASSIFICATION");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_STAGE, "UNKNOWN_STAGE");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_TEAM, "Team A");
 
         ContractMetadataDto result = mapper.fromLabels(labels);
 
@@ -139,8 +139,8 @@ public class ContractMetadataMapperTest {
     @Test
     public void testFromLabels_BlankEnumValues() {
         Map<String, String> labels = new HashMap<>();
-        labels.put(ContractLabels.STATUS, "   ");
-        labels.put(ContractLabels.OWNER_TEAM, "Team B");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_STATUS, "   ");
+        labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_TEAM, "Team B");
 
         ContractMetadataDto result = mapper.fromLabels(labels);
 
@@ -170,15 +170,15 @@ public class ContractMetadataMapperTest {
 
         Map<String, String> labels = mapper.toLabels(metadata);
 
-        Assertions.assertEquals("DEPRECATED", labels.get(ContractLabels.STATUS));
-        Assertions.assertEquals("Data Team", labels.get(ContractLabels.OWNER_TEAM));
-        Assertions.assertEquals("analytics", labels.get(ContractLabels.OWNER_DOMAIN));
-        Assertions.assertEquals("data@example.com", labels.get(ContractLabels.SUPPORT_CONTACT));
-        Assertions.assertEquals("INTERNAL", labels.get(ContractLabels.CLASSIFICATION));
-        Assertions.assertEquals("STAGE", labels.get(ContractLabels.STAGE));
-        Assertions.assertEquals("2023-06-15", labels.get(ContractLabels.STABLE_DATE));
-        Assertions.assertEquals("2024-03-01", labels.get(ContractLabels.DEPRECATED_DATE));
-        Assertions.assertEquals("Migrating to new schema", labels.get(ContractLabels.DEPRECATION_REASON));
+        Assertions.assertEquals("DEPRECATED", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_STATUS));
+        Assertions.assertEquals("Data Team", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_TEAM));
+        Assertions.assertEquals("analytics", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_DOMAIN));
+        Assertions.assertEquals("data@example.com", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_SUPPORT_CONTACT));
+        Assertions.assertEquals("INTERNAL", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_CLASSIFICATION));
+        Assertions.assertEquals("STAGE", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_STAGE));
+        Assertions.assertEquals("2023-06-15", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_STABLE_DATE));
+        Assertions.assertEquals("2024-03-01", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_DEPRECATED_DATE));
+        Assertions.assertEquals("Migrating to new schema", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_DEPRECATION_REASON));
     }
 
     /**
@@ -194,12 +194,12 @@ public class ContractMetadataMapperTest {
 
         Map<String, String> labels = mapper.toLabels(metadata);
 
-        Assertions.assertEquals("DRAFT", labels.get(ContractLabels.STATUS));
-        Assertions.assertEquals("API Team", labels.get(ContractLabels.OWNER_TEAM));
-        Assertions.assertFalse(labels.containsKey(ContractLabels.OWNER_DOMAIN));
-        Assertions.assertFalse(labels.containsKey(ContractLabels.SUPPORT_CONTACT));
-        Assertions.assertFalse(labels.containsKey(ContractLabels.CLASSIFICATION));
-        Assertions.assertFalse(labels.containsKey(ContractLabels.STAGE));
+        Assertions.assertEquals("DRAFT", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_STATUS));
+        Assertions.assertEquals("API Team", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_TEAM));
+        Assertions.assertFalse(labels.containsKey(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_DOMAIN));
+        Assertions.assertFalse(labels.containsKey(ContractLabels.PREFIX + ContractLabels.SUFFIX_SUPPORT_CONTACT));
+        Assertions.assertFalse(labels.containsKey(ContractLabels.PREFIX + ContractLabels.SUFFIX_CLASSIFICATION));
+        Assertions.assertFalse(labels.containsKey(ContractLabels.PREFIX + ContractLabels.SUFFIX_STAGE));
     }
 
     /**
@@ -227,9 +227,9 @@ public class ContractMetadataMapperTest {
 
         Map<String, String> labels = mapper.toLabels(metadata);
 
-        Assertions.assertEquals("STABLE", labels.get(ContractLabels.STATUS));
-        Assertions.assertFalse(labels.containsKey(ContractLabels.OWNER_TEAM));
-        Assertions.assertFalse(labels.containsKey(ContractLabels.OWNER_DOMAIN));
+        Assertions.assertEquals("STABLE", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_STATUS));
+        Assertions.assertFalse(labels.containsKey(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_TEAM));
+        Assertions.assertFalse(labels.containsKey(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_DOMAIN));
     }
 
     // ===== toLabels(EditableContractMetadataDto) tests =====
@@ -252,13 +252,13 @@ public class ContractMetadataMapperTest {
 
         Map<String, String> labels = mapper.toLabels(metadata);
 
-        Assertions.assertEquals("STABLE", labels.get(ContractLabels.STATUS));
-        Assertions.assertEquals("Integration Team", labels.get(ContractLabels.OWNER_TEAM));
-        Assertions.assertEquals("integrations", labels.get(ContractLabels.OWNER_DOMAIN));
-        Assertions.assertEquals("integrations@example.com", labels.get(ContractLabels.SUPPORT_CONTACT));
-        Assertions.assertEquals("PUBLIC", labels.get(ContractLabels.CLASSIFICATION));
-        Assertions.assertEquals("DEV", labels.get(ContractLabels.STAGE));
-        Assertions.assertEquals("2024-02-01", labels.get(ContractLabels.STABLE_DATE));
+        Assertions.assertEquals("STABLE", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_STATUS));
+        Assertions.assertEquals("Integration Team", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_TEAM));
+        Assertions.assertEquals("integrations", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_OWNER_DOMAIN));
+        Assertions.assertEquals("integrations@example.com", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_SUPPORT_CONTACT));
+        Assertions.assertEquals("PUBLIC", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_CLASSIFICATION));
+        Assertions.assertEquals("DEV", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_STAGE));
+        Assertions.assertEquals("2024-02-01", labels.get(ContractLabels.PREFIX + ContractLabels.SUFFIX_STABLE_DATE));
     }
 
     /**
@@ -303,7 +303,7 @@ public class ContractMetadataMapperTest {
     public void testAllStatusValues() {
         for (ContractStatus status : ContractStatus.values()) {
             Map<String, String> labels = new HashMap<>();
-            labels.put(ContractLabels.STATUS, status.name());
+            labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_STATUS, status.name());
 
             ContractMetadataDto result = mapper.fromLabels(labels);
             Assertions.assertEquals(status, result.getStatus());
@@ -317,7 +317,7 @@ public class ContractMetadataMapperTest {
     public void testAllClassificationValues() {
         for (DataClassification classification : DataClassification.values()) {
             Map<String, String> labels = new HashMap<>();
-            labels.put(ContractLabels.CLASSIFICATION, classification.name());
+            labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_CLASSIFICATION, classification.name());
 
             ContractMetadataDto result = mapper.fromLabels(labels);
             Assertions.assertEquals(classification, result.getClassification());
@@ -331,7 +331,7 @@ public class ContractMetadataMapperTest {
     public void testAllStageValues() {
         for (PromotionStage stage : PromotionStage.values()) {
             Map<String, String> labels = new HashMap<>();
-            labels.put(ContractLabels.STAGE, stage.name());
+            labels.put(ContractLabels.PREFIX + ContractLabels.SUFFIX_STAGE, stage.name());
 
             ContractMetadataDto result = mapper.fromLabels(labels);
             Assertions.assertEquals(stage, result.getStage());

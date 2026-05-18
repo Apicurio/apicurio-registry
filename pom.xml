@@ -86,6 +86,7 @@
     <module>config-index/deployment</module>
     <module>config-index/runtime</module>
     <module>java-sdk</module>
+    <module>contracts-rules</module>
     <module>schema-resolver</module>
     <module>schema-validation</module>
     <module>utils/importexport</module>
@@ -303,6 +304,9 @@
 
     <!-- Iceberg -->
     <iceberg.version>1.10.1</iceberg.version>
+
+    <!-- CEL (Common Expression Language) -->
+    <cel-standalone.version>0.6.0</cel-standalone.version>
   </properties>
 
   <dependencyManagement>
@@ -518,6 +522,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-openrpc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-contracts-rules</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

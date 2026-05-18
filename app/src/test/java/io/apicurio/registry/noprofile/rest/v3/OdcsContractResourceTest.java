@@ -4,7 +4,6 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -16,7 +15,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
-@TestProfile(DataContractsEnabledProfile.class)
 public class OdcsContractResourceTest extends AbstractResourceTestBase {
 
     private static final String GROUP = "OdcsContractResourceTest";
@@ -150,5 +148,77 @@ public class OdcsContractResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/export")
                 .then()
                 .statusCode(200);
+    }
+
+    @Test
+    public void testGetContractQuality() throws Exception {
+        String artifactId = "testQuality-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO, AVRO_SCHEMA,
+                ContentTypes.APPLICATION_JSON);
+
+        String contract = odcsContract(GROUP, artifactId);
+        given()
+                .when()
+                .header("Content-Type", "application/x-yaml")
+                .pathParam("groupId", GROUP)
+                .body(contract.getBytes())
+                .post("/registry/v3/groups/{groupId}/contracts")
+                .then()
+                .statusCode(200);
+
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .queryParam("contractId", "test-contract-quality")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/quality")
+                .then()
+                .statusCode(200)
+                .body("overall", notNullValue());
+    }
+
+    @Test
+    public void testPromoteContract() throws Exception {
+        String artifactId = "testPromote-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO, AVRO_SCHEMA,
+                ContentTypes.APPLICATION_JSON);
+
+        String contract = odcsContract(GROUP, artifactId);
+        given()
+                .when()
+                .header("Content-Type", "application/x-yaml")
+                .pathParam("groupId", GROUP)
+                .body(contract.getBytes())
+                .post("/registry/v3/groups/{groupId}/contracts")
+                .then()
+                .statusCode(200);
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .body("{\"contractId\":\"test-promote\",\"targetStage\":\"DEV\"}")
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/promote")
+                .then()
+                .statusCode(200)
+                .body("stage", equalTo("DEV"));
+    }
+
+    @Test
+    public void testPromoteInvalidStage() throws Exception {
+        String artifactId = "testPromoteInvalid-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO, AVRO_SCHEMA,
+                ContentTypes.APPLICATION_JSON);
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .body("{\"contractId\":\"test\",\"targetStage\":\"INVALID\"}")
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/promote")
+                .then()
+                .statusCode(400);
     }
 }

@@ -158,6 +158,19 @@ public class RegistryClientRequestAdapterFactory {
      * Retries on transient network exceptions (connection reset, timeout, etc.) for both Vert.x and JDK adapters.
      */
     static class RetryInvocationHandler implements InvocationHandler {
+        private static final Class<?> VERTX_HTTP_CLOSED_EXCEPTION;
+
+        static {
+            Class<?> cls = null;
+            try {
+                cls = Class.forName("io.vertx.core.http.HttpClosedException", false,
+                        RetryInvocationHandler.class.getClassLoader());
+            } catch (ClassNotFoundException e) {
+                // Vert.x not on classpath
+            }
+            VERTX_HTTP_CLOSED_EXCEPTION = cls;
+        }
+
         private final RequestAdapter delegate;
         private final int maxRetryAttempts;
         private final long initialRetryDelayMs;
@@ -210,7 +223,7 @@ public class RegistryClientRequestAdapterFactory {
         private boolean isRetryable(Throwable cause) {
             Throwable current = cause;
             while (current != null) {
-                if ("io.vertx.core.http.HttpClosedException".equals(current.getClass().getName())) {
+                if (VERTX_HTTP_CLOSED_EXCEPTION != null && VERTX_HTTP_CLOSED_EXCEPTION.isInstance(current)) {
                     return true;
                 }
                 if (current instanceof java.net.ConnectException) {

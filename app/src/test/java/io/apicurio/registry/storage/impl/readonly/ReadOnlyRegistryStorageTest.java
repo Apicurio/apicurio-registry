@@ -247,7 +247,11 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getConsumerVersionHeatmap2",
                         new State(false, s -> s.getConsumerVersionHeatmap(null, null))),
                 entry("getDeprecationReadiness3",
-                        new State(false, s -> s.getDeprecationReadiness(null, null, null))));
+                        new State(false, s -> s.getDeprecationReadiness(null, null, null))),
+                entry("mergeArtifactLabels4",
+                        new State(true, s -> s.mergeArtifactLabels(null, null, null, null))),
+                entry("mergeVersionLabels5",
+                        new State(true, s -> s.mergeVersionLabels(null, null, null, null, null))));
 
         CURRENT_METHODS = Arrays.stream(RegistryStorage.class.getMethods())
                 .map(m -> m.getName() + m.getParameterCount()).collect(Collectors.toSet());

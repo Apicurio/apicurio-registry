@@ -5185,6 +5185,280 @@
           }
         }
       }
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/promote": {
+      "summary": "Promote a contract to the next deployment stage.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contractId": {
+                    "type": "string"
+                  },
+                  "targetStage": {
+                    "type": "string",
+                    "enum": [
+                      "DEV",
+                      "STAGE",
+                      "PROD"
+                    ]
+                  }
+                },
+                "required": [
+                  "contractId",
+                  "targetStage"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stage": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The contract was promoted."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "promoteContract",
+        "summary": "Promote contract stage",
+        "description": "Promotes a contract to the next deployment stage (DEV -> STAGE -> PROD)."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/quality": {
+      "summary": "Get quality score for a contract.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "overall": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "completeness": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "compliance": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "stability": {
+                      "type": "number",
+                      "format": "float"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The quality score."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getContractQuality",
+        "summary": "Get quality score",
+        "description": "Returns the quality score for a contract, with breakdown by completeness, compliance, and stability.",
+        "parameters": [
+          {
+            "name": "contractId",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": true
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute": {
+      "summary": "Execute contract rules against a data record.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "WRITE",
+                      "READ"
+                    ]
+                  },
+                  "record": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                },
+                "required": [
+                  "mode",
+                  "record"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "passed": {
+                      "type": "boolean"
+                    },
+                    "transformedRecord": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "violations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ruleName": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "action": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "executedRules": {
+                      "type": "integer"
+                    },
+                    "failedRules": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The rule execution result."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "executeContractRules",
+        "summary": "Execute contract rules",
+        "description": "Executes contract rules against a data record and returns the result."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
     }
   },
   "components": {

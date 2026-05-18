@@ -39,7 +39,7 @@ public class OdcsExporter {
         ArtifactMetaDataDto meta = storage.getArtifactMetaData(groupId, artifactId);
         Map<String, String> labels = meta.getLabels() != null ? meta.getLabels() : Map.of();
 
-        String prefix = ContractLabels.PREFIX + contractId + ".";
+        String prefix = ContractLabels.contractPrefix(contractId);
 
         OdcsInfo info = buildInfo(labels, prefix, meta);
         OdcsTeam team = buildTeam(labels, prefix);
@@ -64,17 +64,18 @@ public class OdcsExporter {
             ArtifactMetaDataDto meta) {
         return OdcsInfo.builder()
                 .title(meta.getName())
-                .version(labels.get(prefix + "version"))
+                .version(labels.get(prefix + ContractLabels.SUFFIX_VERSION))
                 .description(meta.getDescription())
-                .status(reverseMapStatus(labels.get(prefix + "status")))
-                .dataClassification(lowerOrNull(labels.get(prefix + "classification")))
+                .status(reverseMapStatus(labels.get(prefix + ContractLabels.SUFFIX_STATUS)))
+                .dataClassification(lowerOrNull(
+                        labels.get(prefix + ContractLabels.SUFFIX_CLASSIFICATION)))
                 .build();
     }
 
     private OdcsTeam buildTeam(Map<String, String> labels, String prefix) {
-        String name = labels.get(prefix + "owner.team");
-        String domain = labels.get(prefix + "owner.domain");
-        String contact = labels.get(prefix + "support.contact");
+        String name = labels.get(prefix + ContractLabels.SUFFIX_OWNER_TEAM);
+        String domain = labels.get(prefix + ContractLabels.SUFFIX_OWNER_DOMAIN);
+        String contact = labels.get(prefix + ContractLabels.SUFFIX_SUPPORT_CONTACT);
         if (name == null && domain == null && contact == null) {
             return null;
         }
@@ -83,9 +84,9 @@ public class OdcsExporter {
 
     private OdcsServiceLevel buildServiceLevel(Map<String, String> labels,
             String prefix) {
-        String avail = labels.get(prefix + "sla.availability");
-        String p50 = labels.get(prefix + "sla.latency.p50");
-        String p99 = labels.get(prefix + "sla.latency.p99");
+        String avail = labels.get(prefix + ContractLabels.SUFFIX_SLA_AVAILABILITY);
+        String p50 = labels.get(prefix + ContractLabels.SUFFIX_SLA_LATENCY_P50);
+        String p99 = labels.get(prefix + ContractLabels.SUFFIX_SLA_LATENCY_P99);
         if (avail == null && p50 == null && p99 == null) {
             return null;
         }
@@ -129,7 +130,8 @@ public class OdcsExporter {
             }
         }
 
-        String maxStaleness = labels.get(prefix + "quality.freshness.maxStaleness");
+        String maxStaleness = labels.get(
+                prefix + ContractLabels.SUFFIX_QUALITY_FRESHNESS_MAX_STALENESS);
         OdcsFreshness freshness = maxStaleness != null
                 ? OdcsFreshness.builder().maxStaleness(maxStaleness).build()
                 : null;

@@ -3,7 +3,6 @@ package io.apicurio.registry.contracts.odcs;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -20,60 +19,48 @@ public class OdcsLabelProjector {
 
     public int project(OdcsContract contract, String contractId, String groupId,
             String artifactId) {
-        String prefix = ContractLabels.PREFIX + contractId + ".";
-
-        var existing = storage.getArtifactMetaData(groupId, artifactId);
+        String prefix = ContractLabels.contractPrefix(contractId);
         var labels = new LinkedHashMap<String, String>();
-
-        if (existing.getLabels() != null) {
-            existing.getLabels().forEach((k, v) -> {
-                if (!k.startsWith(prefix)) {
-                    labels.put(k, v);
-                }
-            });
-        }
-
         collectLabels(contract, contractId, prefix, labels);
 
-        storage.updateArtifactMetaData(groupId, artifactId,
-                EditableArtifactMetaDataDto.builder().labels(labels).build());
-
-        return (int) labels.keySet().stream().filter(k -> k.startsWith(prefix)).count();
+        storage.mergeArtifactLabels(groupId, artifactId, prefix, labels);
+        return labels.size();
     }
 
     private void collectLabels(OdcsContract contract, String contractId, String prefix,
             Map<String, String> labels) {
         var info = contract.getInfo();
         if (info != null) {
-            put(labels, prefix + "status", mapStatus(info.getStatus()));
-            putUpper(labels, prefix + "classification", info.getDataClassification());
-            put(labels, prefix + "version", info.getVersion());
+            put(labels, prefix + ContractLabels.SUFFIX_STATUS, mapStatus(info.getStatus()));
+            putUpper(labels, prefix + ContractLabels.SUFFIX_CLASSIFICATION,
+                    info.getDataClassification());
+            put(labels, prefix + ContractLabels.SUFFIX_VERSION, info.getVersion());
         }
 
         var team = contract.getTeam();
         if (team != null) {
-            put(labels, prefix + "owner.team", team.getName());
-            put(labels, prefix + "owner.domain", team.getDomain());
-            put(labels, prefix + "support.contact", team.getContact());
+            put(labels, prefix + ContractLabels.SUFFIX_OWNER_TEAM, team.getName());
+            put(labels, prefix + ContractLabels.SUFFIX_OWNER_DOMAIN, team.getDomain());
+            put(labels, prefix + ContractLabels.SUFFIX_SUPPORT_CONTACT, team.getContact());
         }
 
         var sl = contract.getServiceLevel();
         if (sl != null) {
             if (sl.getAvailability() != null) {
-                labels.put(prefix + "sla.availability",
+                labels.put(prefix + ContractLabels.SUFFIX_SLA_AVAILABILITY,
                         String.valueOf(sl.getAvailability()));
             }
             var lat = sl.getLatency();
             if (lat != null) {
-                put(labels, prefix + "sla.latency.p50", lat.getP50());
-                put(labels, prefix + "sla.latency.p99", lat.getP99());
+                put(labels, prefix + ContractLabels.SUFFIX_SLA_LATENCY_P50, lat.getP50());
+                put(labels, prefix + ContractLabels.SUFFIX_SLA_LATENCY_P99, lat.getP99());
             }
         }
 
         var q = contract.getQuality();
         if (q != null) {
             if (q.getFreshness() != null) {
-                put(labels, prefix + "quality.freshness.maxStaleness",
+                put(labels, prefix + ContractLabels.SUFFIX_QUALITY_FRESHNESS_MAX_STALENESS,
                         q.getFreshness().getMaxStaleness());
             }
             if (q.getCompleteness() != null) {
@@ -86,7 +73,7 @@ public class OdcsLabelProjector {
             }
         }
 
-        labels.put(prefix + "id", contractId);
+        labels.put(prefix + ContractLabels.SUFFIX_ID, contractId);
     }
 
     static String mapStatus(String odcsStatus) {

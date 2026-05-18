@@ -36,6 +36,18 @@ func (m *ItemArtifactsItemContractRequestBuilder) Metadata() *ItemArtifactsItemC
 	return NewItemArtifactsItemContractMetadataRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
+// Promote promote a contract to the next deployment stage.
+// returns a *ItemArtifactsItemContractPromoteRequestBuilder when successful
+func (m *ItemArtifactsItemContractRequestBuilder) Promote() *ItemArtifactsItemContractPromoteRequestBuilder {
+	return NewItemArtifactsItemContractPromoteRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Quality get quality score for a contract.
+// returns a *ItemArtifactsItemContractQualityRequestBuilder when successful
+func (m *ItemArtifactsItemContractRequestBuilder) Quality() *ItemArtifactsItemContractQualityRequestBuilder {
+	return NewItemArtifactsItemContractQualityRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Ruleset manage contract ruleset for an artifact (artifact-level).
 // returns a *ItemArtifactsItemContractRulesetRequestBuilder when successful
 func (m *ItemArtifactsItemContractRequestBuilder) Ruleset() *ItemArtifactsItemContractRulesetRequestBuilder {

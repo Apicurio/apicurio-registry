@@ -68,6 +68,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -511,6 +512,27 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
             throws RegistryStorageException;
+
+    /**
+     * Atomically merges labels into an artifact: deletes all labels matching the prefix,
+     * then inserts the provided labels. Other labels are untouched. Safe for concurrent use
+     * across replicas because it never reads-then-writes the full label set.
+     */
+    default void mergeArtifactLabels(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "mergeArtifactLabels not supported by this storage implementation");
+    }
+
+    /**
+     * Atomically merges labels into an artifact version: deletes all labels matching the
+     * prefix, then inserts the provided labels.
+     */
+    default void mergeVersionLabels(String groupId, String artifactId, String version,
+            String prefix, Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "mergeVersionLabels not supported by this storage implementation");
+    }
 
     /**
      * Gets a sorted set of all artifact versions that exist for a given artifact.

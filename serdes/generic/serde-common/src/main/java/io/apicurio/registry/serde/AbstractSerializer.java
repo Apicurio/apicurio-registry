@@ -7,6 +7,7 @@ import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.serde.data.SerdeMetadata;
 import io.apicurio.registry.serde.data.SerdeRecord;
 import io.apicurio.registry.serde.utils.BoundedCacheFactory;
@@ -117,9 +118,14 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
 
             if (schema == null) {
                 // Slow path: full resolution
-                SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
-                schema = baseSerde.getSchemaResolver()
-                        .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
+                DefaultSchemaResolver.currentOperation.set("SERIALIZE");
+                try {
+                    SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
+                    schema = baseSerde.getSchemaResolver()
+                            .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
+                } finally {
+                    DefaultSchemaResolver.currentOperation.remove();
+                }
 
                 // Cache result if we have a valid cache key
                 if (cacheKey != null) {

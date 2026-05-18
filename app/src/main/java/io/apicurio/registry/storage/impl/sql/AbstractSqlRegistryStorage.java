@@ -167,6 +167,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     SqlEventRepository eventRepository;
     SqlCleanupRepository cleanupRepository;
     SqlContractRuleRepository contractRuleRepository;
+    SqlUsageRepository usageRepository;
 
     private volatile boolean isReady = false;
     private volatile Instant isAliveLastCheck = Instant.MIN;
@@ -267,6 +268,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         roleMappingRepository = new SqlRoleMappingRepository(handleFactory, sqlStatements, log);
         downloadRepository = new SqlDownloadRepository(handleFactory, sqlStatements, log);
         eventRepository = new SqlEventRepository(handleFactory, sqlStatements, log, eventsTopic);
+        usageRepository = new SqlUsageRepository(handleFactory, sqlStatements);
         exportRepository = new SqlExportRepository(handleFactory, sqlStatements, log, eventsTopic);
         searchRepository = new SqlSearchRepository(handleFactory, sqlStatements, log, restConfig);
 
@@ -868,6 +870,88 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
             throws RegistryStorageException {
         return contractRuleRepository.getContractRulesByTag(tag);
+    }
+
+    @Override
+    public void mergeArtifactLabels(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        String normalizedGroup = normalizeGroupId(groupId);
+        handles.withHandleNoException(
+                (io.apicurio.registry.storage.impl.sql.jdb.HandleAction<RegistryStorageException>) handle -> {
+                    handle.createUpdate(sqlStatements.deleteArtifactLabelsByPrefix())
+                            .bind(0, normalizedGroup).bind(1, artifactId)
+                            .bind(2, prefix + "%").execute();
+                    for (Map.Entry<String, String> entry : labels.entrySet()) {
+                        String key = entry.getKey().toLowerCase(java.util.Locale.ROOT);
+                        if (key.length() > 256) {
+                            throw new RegistryStorageException(
+                                    "Label key exceeds maximum length (256): " + key);
+                        }
+                        handle.createUpdate(sqlStatements.insertArtifactLabel())
+                                .bind(0, normalizedGroup).bind(1, artifactId)
+                                .bind(2, key)
+                                .bind(3, limitStr(entry.getValue(), 512)).execute();
+                    }
+                    handle.createUpdate(sqlStatements.updateArtifactLabels())
+                            .bind(0, RegistryContentUtils.serializeLabels(
+                                    rebuildLabels(handle, normalizedGroup, artifactId)))
+                            .bind(1, normalizedGroup).bind(2, artifactId).execute();
+                });
+    }
+
+    private Map<String, String> rebuildLabels(
+            io.apicurio.registry.storage.impl.sql.jdb.Handle handle,
+            String groupId, String artifactId) {
+        Map<String, String> result = new java.util.LinkedHashMap<>();
+        handle.createQuery(sqlStatements.selectArtifactLabels())
+                .bind(0, groupId).bind(1, artifactId)
+                .map(rs -> {
+                    result.put(rs.getString("labelKey"), rs.getString("labelValue"));
+                    return null;
+                }).list();
+        return result;
+    }
+
+    private Map<String, String> rebuildVersionLabels(
+            io.apicurio.registry.storage.impl.sql.jdb.Handle handle, long globalId) {
+        Map<String, String> result = new java.util.LinkedHashMap<>();
+        handle.createQuery(sqlStatements.selectVersionLabels())
+                .bind(0, globalId)
+                .map(rs -> {
+                    result.put(rs.getString("labelKey"), rs.getString("labelValue"));
+                    return null;
+                }).list();
+        return result;
+    }
+
+    @Override
+    public void mergeVersionLabels(String groupId, String artifactId, String version,
+            String prefix, Map<String, String> labels) throws RegistryStorageException {
+        String normalizedGroup = normalizeGroupId(groupId);
+        var versionMeta = versionRepository.getArtifactVersionMetaData(
+                normalizedGroup, artifactId, version);
+        long globalId = versionMeta.getGlobalId();
+        handles.withHandleNoException(
+                (io.apicurio.registry.storage.impl.sql.jdb.HandleAction<RegistryStorageException>) handle -> {
+                    handle.createUpdate(sqlStatements.deleteVersionLabelsByPrefix())
+                            .bind(0, globalId).bind(1, prefix + "%").execute();
+                    for (Map.Entry<String, String> entry : labels.entrySet()) {
+                        String key = entry.getKey().toLowerCase(java.util.Locale.ROOT);
+                        if (key.length() > 256) {
+                            throw new RegistryStorageException(
+                                    "Label key exceeds maximum length (256): " + key);
+                        }
+                        handle.createUpdate(sqlStatements.insertVersionLabel())
+                                .bind(0, globalId)
+                                .bind(1, key)
+                                .bind(2, limitStr(entry.getValue(), 512)).execute();
+                    }
+                    Map<String, String> rebuilt = rebuildVersionLabels(handle, globalId);
+                    handle.createUpdate(sqlStatements.updateArtifactVersionLabelsByGAV())
+                            .bind(0, RegistryContentUtils.serializeLabels(rebuilt))
+                            .bind(1, normalizedGroup).bind(2, artifactId)
+                            .bind(3, version).execute();
+                });
     }
 
     @Override
@@ -1614,6 +1698,37 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public boolean supportsDatabaseEvents() {
 
         return eventRepository.supportsDatabaseEvents();
+    }
+
+    @Override
+    public void deleteOldUsageEvents(long cutoffTimestamp) {
+        usageRepository.deleteOldUsageEvents(cutoffTimestamp);
+    }
+
+    @Override
+    public void recordUsageEvent(SchemaUsageEventDto event) {
+        usageRepository.recordUsageEvent(event);
+    }
+
+    @Override
+    public List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId) {
+        return usageRepository.getArtifactUsageMetrics(groupId, artifactId);
+    }
+
+    @Override
+    public UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs) {
+        return usageRepository.getUsageSummaryCounts(nowMs, activeMs, staleMs);
+    }
+
+    @Override
+    public List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId) {
+        return usageRepository.getConsumerVersionHeatmap(groupId, artifactId);
+    }
+
+    @Override
+    public List<DeprecationReadinessDto> getDeprecationReadiness(String groupId, String artifactId,
+                                                                  String version) {
+        return usageRepository.getDeprecationReadiness(groupId, artifactId, version);
     }
 
     private boolean isH2() {

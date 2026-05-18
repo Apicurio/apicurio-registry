@@ -4,7 +4,6 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -16,7 +15,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 
 @QuarkusTest
-@TestProfile(DataContractsEnabledProfile.class)
 public class DataContractsResourceTest extends AbstractResourceTestBase {
 
     private static final String GROUP = "DataContractsResourceTest";

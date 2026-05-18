@@ -1,8 +1,12 @@
 package io.apicurio.registry.contracts.odcs;
 
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -38,18 +42,7 @@ public class OdcsTagProjector {
 
             String tagPrefix = FIELD_TAG_PREFIX + contractId + ":";
 
-            var meta = storage.getArtifactVersionMetaData(groupId, artifactId,
-                    targetVersion);
-
             var labels = new LinkedHashMap<String, String>();
-            if (meta.getLabels() != null) {
-                meta.getLabels().forEach((k, v) -> {
-                    if (!k.startsWith(tagPrefix)) {
-                        labels.put(k, v);
-                    }
-                });
-            }
-
             int count = 0;
             for (OdcsSchema schema : contract.getSchemas()) {
                 if (schema.getFields() == null) {
@@ -62,9 +55,8 @@ public class OdcsTagProjector {
             }
 
             if (count > 0) {
-                storage.updateArtifactVersionMetaData(groupId, artifactId,
-                        targetVersion,
-                        EditableVersionMetaDataDto.builder().labels(labels).build());
+                storage.mergeVersionLabels(groupId, artifactId, targetVersion,
+                        tagPrefix, labels);
             }
             return count;
         } catch (Exception e) {
@@ -76,15 +68,35 @@ public class OdcsTagProjector {
 
     private String resolveTargetVersion(OdcsContract contract, String groupId,
             String artifactId) {
+        String versionExpression = null;
         if (contract.getSchemas() != null && !contract.getSchemas().isEmpty()) {
             String location = contract.getSchemas().get(0).getLocation();
             if (location != null && location.contains(":")) {
-                String version = location.substring(location.indexOf(':') + 1);
-                if (!version.isBlank()) {
-                    return version;
-                }
+                versionExpression = location.substring(location.indexOf(':') + 1);
             }
         }
+
+        if (versionExpression != null && !versionExpression.isBlank()) {
+            if (versionExpression.contains("=")) {
+                String branchName = versionExpression.split("=", 2)[1];
+                GAV gav = storage.getBranchTip(new GA(groupId, artifactId),
+                        new BranchId(branchName), RetrievalBehavior.SKIP_DISABLED_LATEST);
+                return gav.getRawVersionId();
+            }
+            if (VersionId.isValid(versionExpression)) {
+                try {
+                    storage.getArtifactVersionMetaData(groupId, artifactId,
+                            versionExpression);
+                    return versionExpression;
+                } catch (Exception e) {
+                    // Not a real version — try as branch name
+                }
+            }
+            GAV gav = storage.getBranchTip(new GA(groupId, artifactId),
+                    new BranchId(versionExpression), RetrievalBehavior.SKIP_DISABLED_LATEST);
+            return gav.getRawVersionId();
+        }
+
         var versions = storage.getArtifactVersions(groupId, artifactId);
         return (versions != null && !versions.isEmpty())
                 ? versions.get(versions.size() - 1)

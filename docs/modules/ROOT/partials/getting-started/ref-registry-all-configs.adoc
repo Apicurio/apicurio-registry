@@ -378,22 +378,6 @@ The following {registry} configuration options are available for each component 
 |Canonical hash mode (compatibility API)
 |===
 
-== contracts
-.contracts configuration options
-[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
-|===
-|Name
-|Type
-|Default
-|Available from
-|Description
-|`apicurio.contracts.enabled`
-|`boolean`
-|`false`
-|`3.2.0`
-|Enable data contracts support _(experimental)_
-|===
-
 == download
 .download configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -1666,5 +1650,56 @@ The following {registry} configuration options are available for each component 
 |`${apicurio.config.dynamic.allow-all}`
 |
 |
+|`apicurio.usage.flush.every`
+|`unknown`
+|`10s`
+|
+|
+|===
+
+== usage
+.usage configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.usage.active-threshold-days`
+|`int`
+|`7`
+|`3.3.0`
+|Number of days within which a schema is classified as ACTIVE
+|`apicurio.usage.aggregation.every`
+|`string`
+|`1h`
+|`3.3.0`
+|How often the usage metrics OTel gauges are updated (Quarkus scheduler expression)
+|`apicurio.usage.dead-threshold-days`
+|`int`
+|`90`
+|`3.3.0`
+|Number of days after which a schema is classified as DEAD
+|`apicurio.usage.drift-alert-threshold`
+|`int`
+|`2`
+|`3.3.0`
+|Number of versions behind latest before triggering a drift alert
+|`apicurio.usage.retention-days`
+|`int`
+|`180`
+|`3.3.0`
+|Number of days to retain raw usage events before cleanup
+|`apicurio.usage.stale-threshold-days`
+|`int`
+|`30`
+|`3.3.0`
+|Number of days after which a schema is classified as STALE
+|`apicurio.usage.telemetry.enabled`
+|`boolean`
+|`false`
+|`3.3.0`
+|Enable usage telemetry collection from SerDes clients _(experimental)_
 |===
 

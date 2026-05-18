@@ -32,6 +32,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private boolean canonicalize;
 
     private static final Logger logger = Logger.getLogger(DefaultSchemaResolver.class.getSimpleName());
+    public static final ThreadLocal<String> currentOperation = new ThreadLocal<>();
 
     public DefaultSchemaResolver() {
         super();
@@ -77,7 +78,6 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
         ParsedSchema<S> parsedSchema;
 
-        // Check if an explicit schema is provided in the metadata (e.g., from headers)
         Metadata metadata = data.metadata();
         String explicitSchemaContent = metadata != null ? metadata.explicitSchemaContent() : null;
         if (explicitSchemaContent != null && !explicitSchemaContent.isEmpty()) {
@@ -260,8 +260,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
 
             ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
 
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-            return result.contentId(contentIdKey).parsedSchema(ps).build();
+            return SchemaLookupResult.<S>builder().contentId(contentIdKey).parsedSchema(ps).build();
         });
     }
 
@@ -282,9 +281,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
             S parsed = schemaParser.parseSchema(schema, resolvedReferences);
 
             ps = new ParsedSchemaImpl<S>().setParsedSchema(parsed).setRawSchema(schema);
-            SchemaLookupResult.SchemaLookupResultBuilder<S> result = SchemaLookupResult.builder();
-
-            return result.contentHash(contentHashKey).parsedSchema(ps).build();
+            return SchemaLookupResult.<S>builder().contentHash(contentHashKey).parsedSchema(ps).build();
         });
     }
 

@@ -186,6 +186,19 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
         delegate.deleteVersionContractRuleset(groupId, artifactId, version);
     }
 
+    public void mergeArtifactLabels(String groupId, String artifactId, String prefix,
+            java.util.Map<String, String> labels) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.mergeArtifactLabels(groupId, artifactId, prefix, labels);
+    }
+
+    public void mergeVersionLabels(String groupId, String artifactId, String version,
+            String prefix, java.util.Map<String, String> labels)
+            throws RegistryStorageException {
+        checkReadOnly();
+        delegate.mergeVersionLabels(groupId, artifactId, version, prefix, labels);
+    }
+
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, RegistryStorageException {
         checkReadOnly();

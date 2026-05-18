@@ -21,7 +21,8 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
                     new IcebergViewArtifactTypeUtilProvider(),
                     new OpenRpcArtifactTypeUtilProvider(),
                     new ModelSchemaArtifactTypeUtilProvider(),
-                    new PromptTemplateArtifactTypeUtilProvider()));
+                    new PromptTemplateArtifactTypeUtilProvider(),
+                    new OdcsContractArtifactTypeUtilProvider()));
 
     protected List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
 

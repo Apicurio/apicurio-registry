@@ -1,0 +1,58 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: orders-contract
+info:
+  title: Orders Contract
+  version: 1.0.0
+  description: Data contract for order events
+  status: active
+  dataClassification: confidential
+team:
+  name: orders-team
+  domain: commerce
+  contact: orders@company.com
+schemas:
+  - name: OrderEvent
+    type: avro
+    location: orders/OrderEvent:3
+    fields:
+      orderId:
+        description: Unique order identifier
+        pii: false
+        classification: internal
+      customerEmail:
+        description: Customer email address
+        pii: true
+        classification: confidential
+        tags:
+          - PII
+          - EMAIL
+      totalAmount:
+        description: Total order amount in cents
+        pii: false
+quality:
+  freshness:
+    maxStaleness: PT5M
+    checkInterval: PT1M
+    source: kafka
+    topic: orders
+  completeness:
+    - field: orderId
+      threshold: 1.0
+    - field: customerEmail
+      threshold: 0.99
+  accuracy:
+    - name: positive-amount
+      expression: totalAmount > 0
+      threshold: 1.0
+    - name: valid-email
+      expression: "customerEmail.matches('.*@.*\\\\..*')"
+      threshold: 0.99
+serviceLevel:
+  availability: 0.999
+  latency:
+    p50: PT0.1S
+    p99: PT1S
+  throughput:
+    minEventsPerMinute: 100
+    maxEventsPerMinute: 100000

@@ -554,6 +554,22 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     @Override
+    public void mergeArtifactLabels(String groupId, String artifactId,
+            String prefix, java.util.Map<String, String> labels) throws RegistryStorageException {
+        var message = new MergeArtifactLabels4Message(groupId, artifactId, prefix, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void mergeVersionLabels(String groupId, String artifactId, String version,
+            String prefix, java.util.Map<String, String> labels) throws RegistryStorageException {
+        var message = new MergeVersionLabels5Message(groupId, artifactId, version, prefix, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
     public void createArtifactRule(String groupId, String artifactId, RuleType rule,
             RuleConfigurationDto config) throws RegistryStorageException {
         var message = new CreateArtifactRule4Message(groupId, artifactId, rule, config);
@@ -1226,6 +1242,17 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     public String createEvent(OutboxEvent event) {
         // No op, the event is created by the event processor.
         return event.getId();
+    }
+
+    @Override
+    public void recordUsageEvent(SchemaUsageEventDto event) {
+        submitter.submitMessage(new RecordUsageEvent1Message(
+                event.getGlobalId(), event.getContentId(), event.getClientId(), event.getOperation(), event.getEventTimestamp()));
+    }
+
+    @Override
+    public void deleteOldUsageEvents(long cutoffTimestamp) {
+        submitter.submitMessage(new DeleteOldUsageEvents1Message(cutoffTimestamp));
     }
 
 }

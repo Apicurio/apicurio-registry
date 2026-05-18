@@ -325,8 +325,8 @@ async function performMerge(api, config, pr, core) {
     core.info(`PR #${pr.number} merged using ${strategy}`);
     return true;
   } catch (e) {
-    const workflowHint = e.message?.includes('workflow')
-      ? ' This PR modifies workflow files and requires manual merge via the GitHub UI (the `workflow` token scope is not available to GitHub Actions).'
+    const workflowHint = e.message?.includes('Resource not accessible')
+      ? ' This may be because the PR modifies workflow files, which requires manual merge via the GitHub UI (the `workflow` token scope is not available to GitHub Actions).'
       : '';
     await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
     await api.removeLabel(pr.number, LABELS.TESTED);
@@ -377,6 +377,54 @@ async function checkAndTransitionToReady(api, pr, core) {
     return 'ready-to-merge';
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Reconciler
+// ---------------------------------------------------------------------------
+
+async function reconcile(github, api, pr, core) {
+  const config = loadConfig();
+  const state = getLifecycleState(pr);
+
+  // 1. No lifecycle label at all → initialize as new PR
+  if (!state) {
+    if (hasLabel(pr, LABELS.DISABLED)) return;
+
+    if (isAutoAccepted(config, pr.user.login)) {
+      const initialState = pr.draft ? LABELS.WIP : LABELS.READY_FOR_REVIEW;
+      await api.addLabel(pr.number, initialState);
+      if (!pr.draft) {
+        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      }
+      await retriggerVerify(api, pr, core);
+      core.warning(`PR #${pr.number} had no lifecycle label — initialized as ${initialState} (auto-accepted)`);
+    } else {
+      await api.addLabel(pr.number, LABELS.NEW);
+      if (!pr.draft) {
+        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      }
+      core.warning(`PR #${pr.number} had no lifecycle label — initialized as lifecycle/new`);
+    }
+
+    await api.postComment(pr.number,
+      `**Warning:** This PR was missing a lifecycle label, which indicates the ` +
+      `PR lifecycle orchestrator may have failed during initial processing. ` +
+      `The label has been restored automatically. If this PR was already accepted, ` +
+      `a maintainer may need to re-run the appropriate command (e.g. \`/accept\`).`
+    );
+    return;
+  }
+
+  // 2. Ready-for-review with all conditions met but not transitioned
+  if (state === LABELS.READY_FOR_REVIEW) {
+    const result = await checkAndTransitionToReady(api, pr, core);
+    if (result === 'auto-merge') {
+      await performMerge(api, config, pr, core);
+    } else if (result === 'ready-to-merge') {
+      core.info(`PR #${pr.number} reconciler transitioned to ready-to-merge`);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -468,6 +516,9 @@ async function handlePrSynchronize({ github, context, core }) {
       rerunHints.map(h => `- ${h}`).join('\n')
     );
   }
+
+  const freshPr = await api.getPr(pr.number);
+  await reconcile(github, api, freshPr, core);
 }
 
 async function handlePrReadyForReview({ github, context, core }) {
@@ -499,6 +550,9 @@ async function handlePrReadyForReview({ github, context, core }) {
   );
   core.info(`PR #${pr.number} transitioned to ready-for-review (draft->ready)`);
   await retriggerVerify(api, pr, core);
+
+  const reconPr = await api.getPr(pr.number);
+  await reconcile(github, api, reconPr, core);
 }
 
 async function handleComment({ github, context, core }) {
@@ -528,6 +582,7 @@ async function handleComment({ github, context, core }) {
     'disable-tests': () => cmdDisableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
     'enable-tests': () => cmdEnableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
     'unstale': () => cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, comment.id),
+    'retry': () => cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comment.id),
   };
 
   const handler = handlers[parsed.command];
@@ -791,6 +846,43 @@ async function cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, co
   core.info(`PR #${pr.number} unstaled by ${actor}`);
 }
 
+async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, commentId) {
+  if (!isAuthor && !maintainer) {
+    await api.addReaction(commentId, '-1');
+    await api.postComment(pr.number,
+      `@${actor} Only the PR author or a maintainer can retry.`
+    );
+    return;
+  }
+
+  await api.addReaction(commentId, '+1');
+
+  // Run the reconciler to fix any label inconsistencies
+  const freshPr = await api.getPr(pr.number);
+  await reconcile(github, api, freshPr, core);
+
+  // Check if the latest Verify run failed or was cancelled, and rerun if so
+  const latestRun = await api.findLatestVerifyRun(freshPr.head.sha);
+  if (latestRun && (latestRun.conclusion === 'failure' || latestRun.conclusion === 'cancelled')) {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state and re-triggering the Verify workflow ` +
+      `(previous run [${latestRun.conclusion}](${latestRun.html_url})).`
+    );
+    await retriggerVerify(api, freshPr, core);
+    core.info(`PR #${pr.number} retry: reconciled + re-triggered Verify by ${actor}`);
+  } else if (latestRun && latestRun.status !== 'completed') {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state. The Verify workflow is already running.`
+    );
+    core.info(`PR #${pr.number} retry: reconciled (Verify already running) by ${actor}`);
+  } else {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state. No failed Verify run to re-trigger.`
+    );
+    core.info(`PR #${pr.number} retry: reconciled (no failed run) by ${actor}`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Review Handler
 // ---------------------------------------------------------------------------
@@ -825,6 +917,9 @@ async function handleReview({ github, context, core }) {
       await performMerge(api, config, freshPr, core);
     }
   }
+
+  const freshPr = await api.getPr(pr.number);
+  await reconcile(github, api, freshPr, core);
 }
 
 // ---------------------------------------------------------------------------
@@ -962,6 +1057,9 @@ async function handleTestResult({ github, context, core }) {
 
     // Post or update the decision summary comment
     await postDecisionSummary(github, owner, repo, workflowRun, pr.number, core);
+
+    const reconPr = await api.getPr(pr.number);
+    await reconcile(github, api, reconPr, core);
   }
 }
 
@@ -1137,6 +1235,15 @@ async function handleStale({ github, context, core }) {
   for (const pr of prs) {
     if (hasLabel(pr, LABELS.DISABLED)) continue;
 
+    // Reconcile all PRs targeting main
+    if (pr.base?.ref === 'main') {
+      try {
+        await reconcile(github, api, pr, core);
+      } catch (err) {
+        core.warning(`PR #${pr.number} reconcile failed: ${err.message}`);
+      }
+    }
+
     const state = getLifecycleState(pr);
     if (!state) continue;
     if (state === LABELS.READY_TO_MERGE) continue;
@@ -1183,6 +1290,7 @@ async function handleStale({ github, context, core }) {
       core.info(`PR #${pr.number} marked as stale`);
     }
   }
+
 }
 
 // ---------------------------------------------------------------------------
@@ -1198,5 +1306,6 @@ module.exports = {
   handleLabelChange,
   handleTestResult,
   handleStale,
+  reconcile,
   LABELS,
 };

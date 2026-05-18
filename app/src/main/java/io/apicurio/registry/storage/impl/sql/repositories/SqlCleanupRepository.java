@@ -49,6 +49,8 @@ public class SqlCleanupRepository {
 
             handle.createUpdate(sqlStatements.deleteAllArtifactRules()).execute();
 
+            handle.createUpdate(sqlStatements.deleteAllContractRules()).execute();
+
             handle.createUpdate(sqlStatements.deleteAllArtifacts()).execute();
 
             // Delete all groups

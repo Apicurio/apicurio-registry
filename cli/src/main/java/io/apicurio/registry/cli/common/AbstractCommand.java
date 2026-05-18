@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.common;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
+import io.apicurio.registry.cli.services.UpdateNotifier;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -29,11 +30,15 @@ public abstract class AbstractCommand implements Callable<Integer> {
     @Inject
     protected Client client;
 
+    @Inject
+    UpdateNotifier updateNotifier;
+
     @Override
     public Integer call() {
-        configureVerboseLogging();
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
         try {
+            configureVerboseLogging();
+            updateNotifier.checkAndNotify(getTopLevelCommandName());
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {
@@ -50,7 +55,8 @@ public abstract class AbstractCommand implements Callable<Integer> {
             }
             return ex.getCode();
         } catch (Exception ex) {
-            log.error("Unexpected error", ex); // Force printing of stack trace.
+            log.error("Unexpected error", ex);
+            output.writeStdErrChunk(out -> out.append("Unexpected error: ").append(ex.getMessage()).append("\n"));
             return APPLICATION_ERROR_RETURN_CODE;
         } finally {
             output.print();
@@ -59,6 +65,14 @@ public abstract class AbstractCommand implements Callable<Integer> {
     }
 
     public abstract void run(OutputBuffer output) throws Exception;
+
+    private String getTopLevelCommandName() {
+        var current = spec;
+        while (current.parent() != null && current.parent().parent() != null) {
+            current = current.parent();
+        }
+        return current.name();
+    }
 
     private void configureVerboseLogging() {
         var root = spec.root().userObject();

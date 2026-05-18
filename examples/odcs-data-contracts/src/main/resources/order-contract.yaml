@@ -1,0 +1,47 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: orders-contract
+info:
+  title: Orders Data Contract
+  version: 1.0.0
+  description: |
+    Data contract for order events published to the orders Kafka topic.
+    This contract governs the OrderEvent schema, defining quality rules,
+    field-level PII tags, and service-level objectives.
+  status: active
+  dataClassification: confidential
+team:
+  name: orders-team
+  domain: commerce
+  contact: orders-team@example.com
+schemas:
+  - name: OrderEvent
+    type: avro
+    location: ${GROUP_ID}/${ARTIFACT_ID}:latest
+    fields:
+      orderId:
+        description: Unique order identifier
+        pii: false
+        classification: internal
+      customerEmail:
+        description: Customer email address
+        pii: true
+        classification: confidential
+        tags:
+          - PII
+          - EMAIL
+      totalAmount:
+        description: Total order amount in cents
+        pii: false
+quality:
+  accuracy:
+    - name: positive-amount
+      expression: totalAmount > 0
+      threshold: 1.0
+  freshness:
+    maxStaleness: PT5M
+serviceLevel:
+  availability: 0.999
+  latency:
+    p50: PT0.1S
+    p99: PT1S

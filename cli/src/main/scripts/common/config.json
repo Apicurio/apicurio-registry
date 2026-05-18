@@ -1,7 +1,9 @@
 {
+  "installation-version": 1,
   "config": {
-    "acr.update.check.enabled": "true",
-    "acr.update.repo.url": "https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli"
+    "update.check-enabled": "true",
+    "internal.update.repo-url": "${update.repo.url}",
+    "internal.branding.product-name": "${branding.product-name}"
   },
   "context": {}
 }

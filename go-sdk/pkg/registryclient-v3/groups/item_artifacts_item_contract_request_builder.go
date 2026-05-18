@@ -24,10 +24,28 @@ func NewItemArtifactsItemContractRequestBuilder(rawUrl string, requestAdapter i2
 	return NewItemArtifactsItemContractRequestBuilderInternal(urlParams, requestAdapter)
 }
 
+// Export export contract metadata, rules, and field tags as ODCS YAML.
+// returns a *ItemArtifactsItemContractExportRequestBuilder when successful
+func (m *ItemArtifactsItemContractRequestBuilder) Export() *ItemArtifactsItemContractExportRequestBuilder {
+	return NewItemArtifactsItemContractExportRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Metadata manage contract metadata for an artifact.
 // returns a *ItemArtifactsItemContractMetadataRequestBuilder when successful
 func (m *ItemArtifactsItemContractRequestBuilder) Metadata() *ItemArtifactsItemContractMetadataRequestBuilder {
 	return NewItemArtifactsItemContractMetadataRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Promote promote a contract to the next deployment stage.
+// returns a *ItemArtifactsItemContractPromoteRequestBuilder when successful
+func (m *ItemArtifactsItemContractRequestBuilder) Promote() *ItemArtifactsItemContractPromoteRequestBuilder {
+	return NewItemArtifactsItemContractPromoteRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Quality get quality score for a contract.
+// returns a *ItemArtifactsItemContractQualityRequestBuilder when successful
+func (m *ItemArtifactsItemContractRequestBuilder) Quality() *ItemArtifactsItemContractQualityRequestBuilder {
+	return NewItemArtifactsItemContractQualityRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Ruleset manage contract ruleset for an artifact (artifact-level).

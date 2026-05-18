@@ -161,7 +161,7 @@ and tags starting with `3.`.
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `pr-lifecycle.yml` | PR events, comments, reviews, workflow_run, daily schedule | Label-driven PR state machine. States: `new` -> `wip` -> `ready-for-review` -> `ready-to-merge`. Comment commands: `/accept`, `/reject`, `/ready`, `/merge`, `/auto-merge`. Auto-accepts maintainers. Stale detection (7-day warning, 14-day auto-close). Label protection (reverts unauthorized changes). 838 lines of JS logic in `.github/scripts/pr-lifecycle.js` | 2-5 min per event |
+| `pr-lifecycle.yml` | PR events, comments, reviews, workflow_run, every 6 hours | Label-driven PR state machine. States: `new` -> `wip` -> `ready-for-review` -> `ready-to-merge`. Comment commands: `/accept`, `/reject`, `/ready`, `/merge`, `/auto-merge`, `/retry`. Auto-accepts maintainers. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close). Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
 | `publish-docs.yaml` | Push to main (docs/**), workflow_dispatch | Builds documentation via Antora playbook and publishes to apicurio.github.io | 15-30 min |

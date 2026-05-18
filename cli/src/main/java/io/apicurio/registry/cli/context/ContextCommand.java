@@ -19,6 +19,7 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
                 ContextCreateCommand.class,
                 ContextUpdateCommand.class,
                 ContextDeleteCommand.class,
+                ContextUseCommand.class,
         }
 )
 public class ContextCommand extends AbstractCommand {

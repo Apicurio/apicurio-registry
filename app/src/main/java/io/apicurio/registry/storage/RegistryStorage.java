@@ -30,7 +30,12 @@ import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
+import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
+import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
@@ -1157,6 +1162,36 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     boolean supportsDatabaseEvents();
+
+    /**
+     * Records a single schema usage event.
+     */
+    void recordUsageEvent(SchemaUsageEventDto event);
+
+    /**
+     * Deletes usage events older than the given cutoff timestamp.
+     */
+    void deleteOldUsageEvents(long cutoffTimestamp);
+
+    /**
+     * Returns per-version usage metrics for the given artifact.
+     */
+    List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId);
+
+    /**
+     * Returns global Active/Stale/Dead counts across all tracked schema versions.
+     */
+    UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs);
+
+    /**
+     * Returns per-consumer, per-version usage data for building a heatmap.
+     */
+    List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId);
+
+    /**
+     * Returns list of consumers actively using a specific version, for deprecation readiness.
+     */
+    List<DeprecationReadinessDto> getDeprecationReadiness(String groupId, String artifactId, String version);
 
     /**
      * Get all versions modified (created or updated) since the given timestamp. Used by

@@ -31,6 +31,11 @@ import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
+import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
+import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
+import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
@@ -883,6 +888,37 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     @Override
     public boolean supportsDatabaseEvents() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deleteOldUsageEvents(long cutoffTimestamp) {
+        // no-op for in-memory test storage
+    }
+
+    @Override
+    public void recordUsageEvent(SchemaUsageEventDto event) {
+        // no-op for in-memory test storage
+    }
+
+    @Override
+    public List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId) {
+        return List.of();
+    }
+
+    @Override
+    public UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs) {
+        return UsageSummaryCountsDto.builder().active(0).stale(0).dead(0).build();
+    }
+
+    @Override
+    public List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId) {
+        return List.of();
+    }
+
+    @Override
+    public List<DeprecationReadinessDto> getDeprecationReadiness(String groupId, String artifactId,
+                                                                  String version) {
+        return List.of();
     }
 
     @Override

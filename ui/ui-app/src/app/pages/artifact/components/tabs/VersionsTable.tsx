@@ -6,6 +6,7 @@ import { FromNow, If, ObjectDropdown, ResponsiveTable } from "@apicurio/common-u
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { shash } from "@utils/string.utils.ts";
 import { ArtifactDescription, VersionStateBadge } from "@app/components";
+import { UsageClassificationBadge } from "@app/components/common/UsageClassificationBadge.tsx";
 import {
     ArtifactMetaData,
     SearchedVersion,
@@ -24,6 +25,7 @@ export type VersionsTableProps = {
     sortBy: VersionSortBy;
     sortOrder: SortOrder;
     selectedVersions: SearchedVersion[];
+    usageClassifications?: Map<number, string>;
     onSort: (by: VersionSortBy, order: SortOrder) => void;
     onView: (version: SearchedVersion) => void;
     onAddToBranch: (version: SearchedVersion) => void;
@@ -97,6 +99,11 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                             <FlexItem>
                                 <VersionStateBadge version={column} />
                             </FlexItem>
+                            {props.usageClassifications?.has(column.globalId!) && (
+                                <FlexItem>
+                                    <UsageClassificationBadge classification={props.usageClassifications.get(column.globalId!)} />
+                                </FlexItem>
+                            )}
                         </Flex>
                         <ArtifactDescription className="version-description" style={{ overflow: "hidden", textOverflow: "hidden", whiteSpace: "nowrap", fontSize: "14px" }}
                             description={column.description}

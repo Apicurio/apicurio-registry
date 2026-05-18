@@ -137,7 +137,7 @@ public class KeycloakTestContainerManager implements QuarkusTestResourceLifecycl
             Integer httpsPort = server.getMappedPort(8443);
             LOGGER.info("Mapped HTTPS port 8443 -> {}", httpsPort);
             authUrl = "https://" + host + ":" + httpsPort + "/realms/registry";
-            tokenUrl = authUrl + "/protocol/openid-connect/token/";
+            tokenUrl = authUrl + "/protocol/openid-connect/token";
             LOGGER.info("Keycloak HTTPS Auth URL: {}", authUrl);
             LOGGER.info("Keycloak HTTPS Token URL: {}", tokenUrl);
 
@@ -149,7 +149,7 @@ public class KeycloakTestContainerManager implements QuarkusTestResourceLifecycl
             LOGGER.info("Registry TLS trust store path: {}", trustStorePath);
         } else {
             authUrl = server.getAuthServerUrl() + "/realms/registry";
-            tokenUrl = authUrl + "/protocol/openid-connect/token/";
+            tokenUrl = authUrl + "/protocol/openid-connect/token";
         }
 
         props.put("quarkus.oidc.auth-server-url", authUrl);

@@ -87,11 +87,16 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         this.cachedAccessTokens = new ConcurrentHashMap<>();
         this.cachedAuthFailures = new ConcurrentHashMap<>();
 
+        String tokenUrl;
         if (authConfig.oidcTokenPath.startsWith("http")) {
-            this.oidcTokenUrl = authConfig.oidcTokenPath;
+            tokenUrl = authConfig.oidcTokenPath;
         } else {
-            this.oidcTokenUrl = authConfig.authServerUrl + authConfig.oidcTokenPath;
+            tokenUrl = authConfig.authServerUrl + authConfig.oidcTokenPath;
         }
+        while (tokenUrl.endsWith("/")) {
+            tokenUrl = tokenUrl.substring(0, tokenUrl.length() - 1);
+        }
+        this.oidcTokenUrl = tokenUrl;
     }
 
     @Override

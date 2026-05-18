@@ -281,7 +281,7 @@ The following {registry} configuration options are available for each component 
 |Enable auth
 |`quarkus.oidc.token-path`
 |`string`
-|`/protocol/openid-connect/token/`
+|`/protocol/openid-connect/token`
 |`2.1.0.Final`
 |Authentication server token endpoint.
 |===

@@ -1840,7 +1840,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .when().contentType(CT_JSON)
                 .body(createGroup)
                 .post("/registry/v3/groups")
-                .then().statusCode(204);
+                .then().statusCode(200);
 
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.INTEGRITY);

@@ -300,7 +300,7 @@
     <strimzi-test-container.version>0.115.0</strimzi-test-container.version>
 
     <!-- Iceberg -->
-    <iceberg.version>1.10.1</iceberg.version>
+    <iceberg.version>1.10.2</iceberg.version>
   </properties>
 
   <dependencyManagement>

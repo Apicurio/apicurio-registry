@@ -61,4 +61,13 @@ public interface RegistryClientFacade {
      * example, this might return an instance of {@link io.apicurio.registry.rest.client.RegistryClient}.
      */
     Object getClient();
+
+    /**
+     * Executes contract rules against a data record on the server side.
+     * Returns null if contract rules are not supported by this facade implementation.
+     */
+    default ContractRuleExecutionResult executeContractRules(String groupId, String artifactId,
+            String version, String mode, java.util.Map<String, Object> record) {
+        return null;
+    }
 }

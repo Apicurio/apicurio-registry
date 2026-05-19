@@ -44,6 +44,7 @@ public class ContractMetadataMapper {
                 .stableDate(labels.get(p + ContractLabels.SUFFIX_STABLE_DATE))
                 .deprecatedDate(labels.get(p + ContractLabels.SUFFIX_DEPRECATED_DATE))
                 .deprecationReason(labels.get(p + ContractLabels.SUFFIX_DEPRECATION_REASON))
+                .compatibilityGroup(labels.get(p + ContractLabels.SUFFIX_COMPATIBILITY_GROUP))
                 .build();
     }
 
@@ -67,6 +68,8 @@ public class ContractMetadataMapper {
         addIfNotNull(labels, prefix + ContractLabels.SUFFIX_DEPRECATED_DATE, metadata.getDeprecatedDate());
         addIfNotNull(labels, prefix + ContractLabels.SUFFIX_DEPRECATION_REASON,
                 metadata.getDeprecationReason());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_COMPATIBILITY_GROUP,
+                metadata.getCompatibilityGroup());
         return labels;
     }
 
@@ -90,6 +93,8 @@ public class ContractMetadataMapper {
         addIfNotNull(labels, prefix + ContractLabels.SUFFIX_DEPRECATED_DATE, metadata.getDeprecatedDate());
         addIfNotNull(labels, prefix + ContractLabels.SUFFIX_DEPRECATION_REASON,
                 metadata.getDeprecationReason());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_COMPATIBILITY_GROUP,
+                metadata.getCompatibilityGroup());
         return labels;
     }
 

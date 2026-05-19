@@ -985,4 +985,30 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public ContractRuleSetDto getGlobalContractRuleset() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setGlobalContractRuleset(ContractRuleSetDto ruleset) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deleteGlobalContractRuleset() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void insertContractAuditEntry(io.apicurio.registry.storage.dto.ContractAuditEntryDto entry) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public java.util.List<io.apicurio.registry.storage.dto.ContractAuditEntryDto> getContractAuditLog(
+            String groupId, String artifactId, int offset, int limit) {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -165,6 +165,18 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     io.apicurio.registry.contracts.rules.RuleExecutionService ruleExecutionService;
 
+    @Inject
+    io.apicurio.registry.contracts.compatibility.CompatibilityGroupService compatibilityGroupService;
+
+    @Inject
+    io.apicurio.registry.contracts.migration.MigrationRuleService migrationRuleService;
+
+    @Inject
+    jakarta.enterprise.event.Event<io.apicurio.registry.storage.impl.sql.SqlOutboxEvent> contractOutboxEvent;
+
+    @Inject
+    io.apicurio.registry.contracts.audit.ContractAuditService contractAuditService;
+
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceType)
@@ -1941,6 +1953,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         ? DataClassification.valueOf(data.getClassification().value()) : null)
                 .stage(data.getStage() != null
                         ? PromotionStage.valueOf(data.getStage().value()) : null)
+                .compatibilityGroup(data.getCompatibilityGroup())
                 .build();
 
         // Detect existing contractId from labels
@@ -1954,6 +1967,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Atomic merge scoped to the contract prefix
         storage.mergeArtifactLabels(rawGroupId, artifactId, prefix, contractLabels);
+
+        // Fire metadata updated event
+        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
+                io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId)));
+
+        // Audit log
+        contractAuditService.recordAction(rawGroupId, artifactId, null,
+                "METADATA_UPDATED", securityIdentity.getPrincipal().getName(), null);
 
         // Return the updated contract metadata
         ArtifactMetaDataDto updated = storage.getArtifactMetaData(rawGroupId, artifactId);
@@ -2079,23 +2100,34 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
 
         // Update status label
-        storage.mergeArtifactLabels(rawGroupId, artifactId,
-                prefix + ContractLabels.SUFFIX_STATUS,
-                Map.of(prefix + ContractLabels.SUFFIX_STATUS, targetStatus.name()));
+        String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
+        storage.mergeArtifactLabels(rawGroupId, artifactId, statusKey,
+                Map.of(statusKey, targetStatus.name()));
 
-        // Set lifecycle date if transitioning to STABLE or DEPRECATED
+        // Update lifecycle date labels
         if (targetStatus == ContractStatus.STABLE) {
-            storage.mergeArtifactLabels(rawGroupId, artifactId,
-                    prefix + ContractLabels.SUFFIX_STABLE_DATE,
-                    Map.of(prefix + ContractLabels.SUFFIX_STABLE_DATE,
-                            java.time.LocalDate.now().toString()));
+            String key = prefix + ContractLabels.SUFFIX_STABLE_DATE;
+            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
+                    Map.of(key, java.time.LocalDate.now().toString()));
         }
         if (targetStatus == ContractStatus.DEPRECATED) {
-            storage.mergeArtifactLabels(rawGroupId, artifactId,
-                    prefix + ContractLabels.SUFFIX_DEPRECATED_DATE,
-                    Map.of(prefix + ContractLabels.SUFFIX_DEPRECATED_DATE,
-                            java.time.LocalDate.now().toString()));
+            String key = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
+            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
+                    Map.of(key, java.time.LocalDate.now().toString()));
         }
+
+        // Fire status changed event
+        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
+                io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
+                        currentMetadata.getStatus() != null
+                                ? currentMetadata.getStatus().name() : null,
+                        targetStatus.name())));
+
+        // Audit log
+        contractAuditService.recordAction(rawGroupId, artifactId, null,
+                "STATUS_CHANGED", securityIdentity.getPrincipal().getName(),
+                (currentMetadata.getStatus() != null ? currentMetadata.getStatus().name() : "null")
+                        + " -> " + targetStatus.name());
 
         ArtifactMetaDataDto updated = storage.getArtifactMetaData(rawGroupId, artifactId);
         ContractMetadataDto result = contractMetadataMapper.fromLabels(
@@ -2123,6 +2155,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         bean.setStableDate(dto.getStableDate());
         bean.setDeprecatedDate(dto.getDeprecatedDate());
         bean.setDeprecationReason(dto.getDeprecationReason());
+        bean.setCompatibilityGroup(dto.getCompatibilityGroup());
         return bean;
     }
 
@@ -2569,5 +2602,131 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         responseMap.put("executedRules", result.getExecutedRules());
         responseMap.put("failedRules", result.getFailedRules());
         return Response.ok(responseMap).build();
+    }
+
+    // ========== Contract Audit Log Endpoint ==========
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public Response getContractAuditLog(String groupId, String artifactId,
+            BigInteger offset, BigInteger limit) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        int off = offset != null ? offset.intValue() : 0;
+        int lim = limit != null ? Math.min(limit.intValue(), 500) : 20;
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        var entries = contractAuditService.getAuditLog(rawGroupId, artifactId, off, lim);
+
+        var result = entries.stream().map(e -> {
+            var map = new LinkedHashMap<String, Object>();
+            map.put("auditId", e.getAuditId());
+            map.put("groupId", e.getGroupId());
+            map.put("artifactId", e.getArtifactId());
+            map.put("version", e.getVersion());
+            map.put("action", e.getAction());
+            map.put("principal", e.getPrincipal());
+            map.put("details", e.getDetails());
+            map.put("createdOn", e.getCreatedOn() != null ? e.getCreatedOn().toInstant().toString() : null);
+            return map;
+        }).toList();
+
+        return Response.ok(result).build();
+    }
+
+    // ========== Migration Endpoint ==========
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    @SuppressWarnings("unchecked")
+    public Response migrateContractRecord(String groupId, String artifactId,
+            InputStream data) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        JsonNode json;
+        try {
+            json = JSON_MAPPER.readTree(data);
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid JSON: " + e.getMessage());
+        }
+        if (json == null || !json.has("fromVersion") || !json.has("toVersion")
+                || !json.has("record")) {
+            throw new BadRequestException(
+                    "Request must include fromVersion, toVersion, and record");
+        }
+
+        String fromVersion = json.get("fromVersion").asText();
+        String toVersion = json.get("toVersion").asText();
+        Map<String, Object> record = JSON_MAPPER.convertValue(
+                json.get("record"), Map.class);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+
+        var result = migrationRuleService.executeMigration(
+                rawGroupId, artifactId, fromVersion, toVersion, record);
+
+        var responseMap = new LinkedHashMap<String, Object>();
+        responseMap.put("passed", result.isPassed());
+        if (result.getTransformedRecord() != null) {
+            responseMap.put("transformedRecord", result.getTransformedRecord());
+        }
+        responseMap.put("violations", result.getViolations());
+        responseMap.put("executedRules", result.getExecutedRules());
+        responseMap.put("failedRules", result.getFailedRules());
+        return Response.ok(responseMap).build();
+    }
+
+    // ========== Compatibility Group Endpoints ==========
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public Response getCompatibilityGroup(String groupId, String artifactId,
+            String contractId) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("contractId", contractId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        String group = compatibilityGroupService.getCompatibilityGroup(
+                rawGroupId, artifactId, contractId);
+
+        var responseMap = new LinkedHashMap<String, Object>();
+        responseMap.put("compatibilityGroup", group);
+        return Response.ok(responseMap).build();
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @SuppressWarnings("unchecked")
+    public void setCompatibilityGroup(String groupId, String artifactId,
+            InputStream data) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        JsonNode json;
+        try {
+            json = JSON_MAPPER.readTree(data);
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid JSON: " + e.getMessage());
+        }
+        if (json == null || !json.has("contractId") || !json.has("compatibilityGroup")) {
+            throw new BadRequestException(
+                    "Request must include contractId and compatibilityGroup");
+        }
+
+        String contractId = json.get("contractId").asText();
+        String compatGroup = json.get("compatibilityGroup").asText();
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+
+        compatibilityGroupService.setCompatibilityGroup(
+                rawGroupId, artifactId, contractId, compatGroup);
     }
 }

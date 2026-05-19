@@ -37,20 +37,29 @@ public class RuleExecutionService {
 
     private ContractRuleSetDto loadMergedRuleset(String groupId, String artifactId,
             String version) {
+        ContractRuleSetDto globalRules = storage.getGlobalContractRuleset();
         ContractRuleSetDto artifactRules = storage.getArtifactContractRuleset(
                 groupId, artifactId);
+
+        ContractRuleSetDto merged = globalRules;
+        if (merged == null) {
+            merged = artifactRules;
+        } else if (artifactRules != null) {
+            merged = mergeRulesets(merged, artifactRules);
+        }
+
         if (version == null) {
-            return artifactRules;
+            return merged;
         }
         ContractRuleSetDto versionRules = storage.getVersionContractRuleset(
                 groupId, artifactId, version);
-        if (artifactRules == null) {
+        if (merged == null) {
             return versionRules;
         }
         if (versionRules == null) {
-            return artifactRules;
+            return merged;
         }
-        return mergeRulesets(artifactRules, versionRules);
+        return mergeRulesets(merged, versionRules);
     }
 
     private ContractRuleSetDto mergeRulesets(ContractRuleSetDto artifact,
@@ -73,7 +82,7 @@ public class RuleExecutionService {
                 .build();
     }
 
-    static RuleDefinition toRuleDefinition(ContractRuleDto dto) {
+    public static RuleDefinition toRuleDefinition(ContractRuleDto dto) {
         RuleDefinition def = new RuleDefinition();
         def.setName(dto.getName());
         def.setKind(dto.getKind() != null ? dto.getKind().name() : null);

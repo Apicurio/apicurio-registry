@@ -251,7 +251,17 @@ public class ReadOnlyRegistryStorageTest {
                 entry("mergeArtifactLabels4",
                         new State(true, s -> s.mergeArtifactLabels(null, null, null, null))),
                 entry("mergeVersionLabels5",
-                        new State(true, s -> s.mergeVersionLabels(null, null, null, null, null))));
+                        new State(true, s -> s.mergeVersionLabels(null, null, null, null, null))),
+                entry("insertContractAuditEntry1",
+                        new State(true, s -> s.insertContractAuditEntry(null))),
+                entry("getContractAuditLog4",
+                        new State(false, s -> s.getContractAuditLog(null, null, 0, 0))),
+                entry("getGlobalContractRuleset0",
+                        new State(false, s -> s.getGlobalContractRuleset())),
+                entry("setGlobalContractRuleset1",
+                        new State(true, s -> s.setGlobalContractRuleset(null))),
+                entry("deleteGlobalContractRuleset0",
+                        new State(true, s -> s.deleteGlobalContractRuleset())));
 
         CURRENT_METHODS = Arrays.stream(RegistryStorage.class.getMethods())
                 .map(m -> m.getName() + m.getParameterCount()).collect(Collectors.toSet());

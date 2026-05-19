@@ -43,6 +43,12 @@
     </dependency>
 
     <dependency>
+      <groupId>com.dashjoin</groupId>
+      <artifactId>jsonata</artifactId>
+      <version>0.9.9</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>

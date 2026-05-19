@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 105);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 106);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -112,6 +112,11 @@ ALTER TABLE contract_rules ADD PRIMARY KEY (ruleId);
 ALTER TABLE contract_rules ADD CONSTRAINT FK_contract_rules_1 FOREIGN KEY (globalId) REFERENCES versions(globalId) ON DELETE CASCADE;
 CREATE INDEX IDX_contract_rules_1 ON contract_rules(groupId, artifactId);
 CREATE INDEX IDX_contract_rules_2 ON contract_rules(globalId);
+
+CREATE TABLE contract_audit_log (auditId BIGSERIAL NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), action VARCHAR(64) NOT NULL, principal VARCHAR(256), details TEXT, createdOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
+ALTER TABLE contract_audit_log ADD PRIMARY KEY (auditId);
+CREATE INDEX IDX_contract_audit_1 ON contract_audit_log(groupId, artifactId);
+CREATE INDEX IDX_contract_audit_2 ON contract_audit_log(createdOn);
 
 CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload JSONB NOT NULL);
 ALTER TABLE outbox ADD PRIMARY KEY (id);

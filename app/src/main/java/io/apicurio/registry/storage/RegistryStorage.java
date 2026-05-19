@@ -28,6 +28,7 @@ import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.ContractAuditEntryDto;
 import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
@@ -512,6 +513,33 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
             throws RegistryStorageException;
+
+    /**
+     * Gets the global contract ruleset (applies to all artifacts).
+     */
+    ContractRuleSetDto getGlobalContractRuleset() throws RegistryStorageException;
+
+    /**
+     * Sets the global contract ruleset.
+     */
+    void setGlobalContractRuleset(ContractRuleSetDto ruleset) throws RegistryStorageException;
+
+    /**
+     * Deletes the global contract ruleset.
+     */
+    void deleteGlobalContractRuleset() throws RegistryStorageException;
+
+    /**
+     * Inserts a contract audit log entry.
+     */
+    void insertContractAuditEntry(ContractAuditEntryDto entry)
+            throws RegistryStorageException;
+
+    /**
+     * Gets a paginated contract audit log for a specific artifact.
+     */
+    List<ContractAuditEntryDto> getContractAuditLog(String groupId, String artifactId,
+            int offset, int limit) throws RegistryStorageException;
 
     /**
      * Atomically merges labels into an artifact: deletes all labels matching the prefix,

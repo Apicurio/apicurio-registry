@@ -221,4 +221,124 @@ public class OdcsContractResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(400);
     }
+
+    // -- #7977 ODCS Contract Update and Delete --
+
+    @Test
+    public void testUpdateContract_ReProjects() throws Exception {
+        String artifactId = "testUpdateContract-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"T\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        String contractYaml = "apiVersion: v3.1.0\nkind: DataContract\nid: update-test\n"
+                + "info:\n  title: Test\n  version: 1.0.0\n  status: active\n"
+                + "team:\n  name: team-1\n  domain: test\n  contact: t@t.com\n"
+                + "schemas:\n  - name: T\n    type: avro\n    location: " + GROUP + "/" + artifactId + ":latest\n";
+
+        given().when().contentType("application/x-yaml")
+                .pathParam("groupId", GROUP)
+                .body(contractYaml.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .post("/registry/v3/groups/{groupId}/contracts")
+                .then().statusCode(200);
+
+        String updatedYaml = contractYaml.replace("team-1", "team-2")
+                .replace("1.0.0", "2.0.0");
+
+        given().when().contentType("application/x-yaml")
+                .pathParam("groupId", GROUP)
+                .pathParam("contractId", "update-test")
+                .body(updatedYaml.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .put("/registry/v3/groups/{groupId}/contracts/{contractId}")
+                .then().statusCode(200);
+
+        given().when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then().statusCode(200)
+                .body("ownerTeam", equalTo("team-2"));
+    }
+
+    @Test
+    public void testDeleteContract_RemovesArtifact() throws Exception {
+        String artifactId = "testDeleteContract-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"T\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        String contractYaml = "apiVersion: v3.1.0\nkind: DataContract\nid: delete-test\n"
+                + "info:\n  title: Test\n  version: 1.0.0\n  status: active\n"
+                + "schemas:\n  - name: T\n    type: avro\n    location: " + GROUP + "/" + artifactId + ":latest\n";
+
+        given().when().contentType("application/x-yaml")
+                .pathParam("groupId", GROUP)
+                .body(contractYaml.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .post("/registry/v3/groups/{groupId}/contracts")
+                .then().statusCode(200);
+
+        given().when()
+                .pathParam("groupId", GROUP)
+                .pathParam("contractId", "delete-test")
+                .delete("/registry/v3/groups/{groupId}/contracts/{contractId}")
+                .then().statusCode(204);
+
+        given().when()
+                .pathParam("groupId", GROUP)
+                .pathParam("contractId", "delete-test")
+                .get("/registry/v3/groups/{groupId}/contracts/{contractId}")
+                .then().statusCode(404);
+    }
+
+    // -- #7976 ODCS Projection Preservation --
+
+    @Test
+    public void testOdcsProjection_ManualRulesPreserved() throws Exception {
+        String artifactId = "testManualPreserved-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"T\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        String contractId = "preserve-" + UUID.randomUUID();
+        String contractYaml = "apiVersion: v3.1.0\nkind: DataContract\nid: " + contractId + "\n"
+                + "info:\n  title: Test\n  version: 1.0.0\n  status: active\n"
+                + "schemas:\n  - name: T\n    type: avro\n    location: " + GROUP + "/" + artifactId + ":latest\n"
+                + "quality:\n  accuracy:\n    - name: odcs-rule\n      expression: x > 0\n      threshold: 1.0\n";
+
+        given().when().contentType("application/x-yaml")
+                .pathParam("groupId", GROUP)
+                .body(contractYaml.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .post("/registry/v3/groups/{groupId}/contracts")
+                .then().statusCode(200);
+
+        // Add a manual rule alongside the ODCS-projected one
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"domainRules\":[" +
+                        "{\"name\":\"odcs:" + contractId + ":odcs-rule\",\"kind\":\"CONDITION\"," +
+                        "\"type\":\"CEL\",\"mode\":\"WRITE\",\"expr\":\"x > 0\"," +
+                        "\"onFailure\":\"ERROR\",\"disabled\":false}," +
+                        "{\"name\":\"manual-rule\",\"kind\":\"CONDITION\"," +
+                        "\"type\":\"CEL\",\"mode\":\"WRITE\",\"expr\":\"x < 999\"," +
+                        "\"onFailure\":\"ERROR\",\"disabled\":false}" +
+                        "],\"migrationRules\":[]}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then().statusCode(200);
+
+        // Re-submit the contract with a new version to trigger re-projection
+        String updatedYaml = contractYaml.replace("1.0.0", "2.0.0");
+        given().when().contentType("application/x-yaml")
+                .pathParam("groupId", GROUP)
+                .pathParam("contractId", contractId)
+                .body(updatedYaml.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                .put("/registry/v3/groups/{groupId}/contracts/{contractId}")
+                .then().statusCode(200);
+
+        // Verify manual rule survived the re-projection
+        given().when()
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then().statusCode(200)
+                .body("domainRules.findAll { it.name == 'manual-rule' }", hasSize(1));
+    }
 }

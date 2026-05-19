@@ -1,0 +1,23 @@
+.artifact-contract-tab-content {
+    padding: 15px;
+}
+
+.artifact-contract-tab-content .contract-section {
+    margin-bottom: 20px;
+}
+
+.artifact-contract-tab-content .quality-scores {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.artifact-contract-tab-content .quality-score-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.artifact-contract-tab-content .audit-table {
+    margin-top: 10px;
+}

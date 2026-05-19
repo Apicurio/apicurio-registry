@@ -6,14 +6,13 @@ import io.apicurio.registry.cli.config.ConfigModel;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import org.jboss.logging.Logger;
-import picocli.CommandLine.Command;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import org.jboss.logging.Logger;
+import picocli.CommandLine.Command;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;

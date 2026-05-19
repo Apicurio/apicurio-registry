@@ -1,10 +1,9 @@
 package io.apicurio.registry.cli.utils;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;

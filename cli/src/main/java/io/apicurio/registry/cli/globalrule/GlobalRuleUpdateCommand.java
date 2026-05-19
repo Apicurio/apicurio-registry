@@ -3,13 +3,11 @@ package io.apicurio.registry.cli.globalrule;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.common.RuleUtil.printRule;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleConfig;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
@@ -45,26 +43,15 @@ public class GlobalRuleUpdateCommand extends AbstractCommand {
     public void run(final OutputBuffer output) throws Exception {
         validateRuleType(ruleType);
         validateRuleConfig(ruleType, ruleConfig);
-        try {
-            final var rule = new io.apicurio.registry.rest.client.models.Rule();
-            rule.setConfig(ruleConfig);
-            //noinspection ConstantConditions
-            final var updatedRule = convert(client.getRegistryClient().admin().rules().byRuleType(ruleType).put(rule));
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType));
-            }
-            printRule(output, updatedRule, outputType);
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error updating global rule '")
-                        .append(ruleType)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        final var rule = new io.apicurio.registry.rest.client.models.Rule();
+        rule.setConfig(ruleConfig);
+        //noinspection ConstantConditions
+        final var updatedRule = convert(client.getRegistryClient().admin().rules().byRuleType(ruleType).put(rule));
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType));
+            case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType));
         }
+        printRule(output, updatedRule, outputType);
     }
 
     private static void successMessage(final StringBuilder out, final String ruleType) {

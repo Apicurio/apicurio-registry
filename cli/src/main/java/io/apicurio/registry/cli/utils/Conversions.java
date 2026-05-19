@@ -2,18 +2,17 @@ package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.rest.client.models.Labels;
-import io.apicurio.registry.rest.v3.beans.Comment;
-import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
 import io.apicurio.registry.rest.v3.beans.SearchedVersion;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
-
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;

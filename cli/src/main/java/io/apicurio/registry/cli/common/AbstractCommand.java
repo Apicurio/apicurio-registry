@@ -5,21 +5,26 @@ import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.services.UpdateNotifier;
 import io.apicurio.registry.cli.utils.OutputBuffer;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import jakarta.inject.Inject;
+import java.util.Optional;
+import java.util.concurrent.Callable;
 import org.jboss.logging.Logger;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Spec;
 
-import java.util.concurrent.Callable;
-
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.OK_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.SERVER_ERROR_RETURN_CODE;
 
 @Command
 public abstract class AbstractCommand implements Callable<Integer> {
 
     private static final Logger log = Logger.getLogger(AbstractCommand.class);
+
+    private static final String ERROR_PREFIX = "Error: ";
 
     @Spec
     protected CommandSpec spec;
@@ -42,18 +47,14 @@ public abstract class AbstractCommand implements Callable<Integer> {
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {
-            if (!ex.isQuiet()) {
-                if (log.isDebugEnabled()) {
-                    log.error("Error", ex); // Force printing of stack trace.
-                } else {
-                    output.writeStdErrChunk(out -> {
-                        out.append("Error: ")
-                                .append(ex.getMessage())
-                                .append("\n");
-                    });
-                }
-            }
+            handleCliException(output, ex);
             return ex.getCode();
+        } catch (RuleViolationProblemDetails ex) {
+            handleRuleViolation(output, ex);
+            return SERVER_ERROR_RETURN_CODE;
+        } catch (ProblemDetails ex) {
+            handleProblemDetails(output, ex);
+            return SERVER_ERROR_RETURN_CODE;
         } catch (Exception ex) {
             log.error("Unexpected error", ex);
             output.writeStdErrChunk(out -> out.append("Unexpected error: ").append(ex.getMessage()).append("\n"));
@@ -61,10 +62,31 @@ public abstract class AbstractCommand implements Callable<Integer> {
         } finally {
             output.print();
         }
-        // TODO: Move handling of `ProblemDetails` exceptions here.
     }
 
     public abstract void run(OutputBuffer output) throws Exception;
+
+    private static void handleCliException(final OutputBuffer output, final CliException ex) {
+        if (!ex.isQuiet()) {
+            output.writeStdErrChunk(out -> out.append(ERROR_PREFIX).append(ex.getMessage()).append("\n"));
+        }
+    }
+
+    private static void handleRuleViolation(final OutputBuffer output, final RuleViolationProblemDetails ex) {
+        output.writeStdErrChunk(err -> {
+            err.append(ERROR_PREFIX).append(Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage())).append('\n');
+            Optional.ofNullable(ex.getCauses()).ifPresent(causes ->
+                    causes.forEach(cause ->
+                            err.append("  -> ").append(Optional.ofNullable(cause.getContext()).orElse(""))
+                                    .append(": ").append(Optional.ofNullable(cause.getDescription()).orElse("")).append('\n')));
+        });
+    }
+
+    protected static void handleProblemDetails(final OutputBuffer output, final ProblemDetails ex) {
+        output.writeStdErrChunk(err -> {
+            err.append(ERROR_PREFIX).append(Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage())).append('\n');
+        });
+    }
 
     private String getTopLevelCommandName() {
         var current = spec;

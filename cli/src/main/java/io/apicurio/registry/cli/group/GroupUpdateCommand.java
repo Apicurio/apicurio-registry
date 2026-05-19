@@ -5,13 +5,10 @@ import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
-import java.util.List;
-
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static picocli.CommandLine.Option;
 
@@ -47,38 +44,27 @@ public class GroupUpdateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        try {
-            var group = client.getRegistryClient().groups().byGroupId(groupId).get();
-            var updatedGroup = new EditableGroupMetaData();
-            updatedGroup.setDescription(group.getDescription());
-            updatedGroup.setLabels(group.getLabels());
-            if (!isBlank(description)) {
-                updatedGroup.setDescription(description);
-            }
-            if (setLabels != null) {
-                if (updatedGroup.getLabels() == null) {
-                    updatedGroup.setLabels(new Labels());
-                }
-                updatedGroup.getLabels().getAdditionalData().putAll(Conversions.parseLabels(setLabels));
-            }
-            if (deleteLabels != null && updatedGroup.getLabels() != null) {
-                deleteLabels.forEach(key -> {
-                    updatedGroup.getLabels().getAdditionalData().remove(key);
-                });
-            }
-            client.getRegistryClient().groups().byGroupId(groupId).put(updatedGroup);
-            output.writeStdOutChunk(out -> {
-                out.append("Group '").append(group.getGroupId()).append("' updated successfully.\n");
-            });
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error updating group '")
-                        .append(groupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        var group = client.getRegistryClient().groups().byGroupId(groupId).get();
+        var updatedGroup = new EditableGroupMetaData();
+        updatedGroup.setDescription(group.getDescription());
+        updatedGroup.setLabels(group.getLabels());
+        if (!isBlank(description)) {
+            updatedGroup.setDescription(description);
         }
+        if (setLabels != null) {
+            if (updatedGroup.getLabels() == null) {
+                updatedGroup.setLabels(new Labels());
+            }
+            updatedGroup.getLabels().getAdditionalData().putAll(Conversions.parseLabels(setLabels));
+        }
+        if (deleteLabels != null && updatedGroup.getLabels() != null) {
+            deleteLabels.forEach(key -> {
+                updatedGroup.getLabels().getAdditionalData().remove(key);
+            });
+        }
+        client.getRegistryClient().groups().byGroupId(groupId).put(updatedGroup);
+        output.writeStdOutChunk(out -> {
+            out.append("Group '").append(group.getGroupId()).append("' updated successfully.\n");
+        });
     }
 }

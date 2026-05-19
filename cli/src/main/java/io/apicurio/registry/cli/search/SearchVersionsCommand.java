@@ -8,17 +8,14 @@ import io.apicurio.registry.cli.common.VersionOrderMixin;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.search.versions.VersionsRequestBuilder;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
+import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
-import java.util.List;
-
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPE;
 import static io.apicurio.registry.cli.utils.Columns.CONTENT_ID;
@@ -111,22 +108,13 @@ public class SearchVersionsCommand extends AbstractCommand {
     private OutputTypeMixin outputType;
 
     @Override
-    public void run(final OutputBuffer output) throws JsonProcessingException {
-        try {
+    public void run(final OutputBuffer output) throws Exception {
+        //noinspection ConstantConditions
+        final var results = convert(client.getRegistryClient().search().versions().get(r -> {
             //noinspection ConstantConditions
-            final var results = convert(client.getRegistryClient().search().versions().get(r -> {
-                //noinspection ConstantConditions
-                applyFilters(r.queryParameters);
-            }));
-            printResults(output, results);
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error searching for versions: ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
-        }
+            applyFilters(r.queryParameters);
+        }));
+        printResults(output, results);
     }
 
     private void applyFilters(final VersionsRequestBuilder.GetQueryParameters params) {

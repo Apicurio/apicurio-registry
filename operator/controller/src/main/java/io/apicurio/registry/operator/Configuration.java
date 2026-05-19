@@ -3,6 +3,8 @@ package io.apicurio.registry.operator;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 
+import java.util.Optional;
+
 public class Configuration {
 
     private static final Config config = ConfigProvider.getConfig();
@@ -34,8 +36,7 @@ public class Configuration {
     }
 
     public static boolean isLeaderElectionEnabled() {
-        // we are not running in k8s if the POD_NAMESPACE is not set, so leader election is not possible in that case
-        if (!isControllerNamespaceAvailable()) {
+        if (getLeaderElectionLeaseNamespace().isEmpty()) {
             return false;
         }
         return config.getOptionalValue("apicurio.operator.leader-election.enabled", Boolean.class)
@@ -47,17 +48,14 @@ public class Configuration {
                 .orElse("apicurio-registry-operator-lease");
     }
 
-    public static String getLeaderElectionLeaseNamespace() {
+    public static Optional<String> getLeaderElectionLeaseNamespace() {
         return config.getOptionalValue("apicurio.operator.leader-election.lease-namespace", String.class)
                 .filter(namespace -> !namespace.isBlank())
-                .or(() -> java.util.Optional.ofNullable(System.getenv("POD_NAMESPACE"))
-                        .filter(namespace -> !namespace.isBlank()))
-                .orElse("");
+                .or(Configuration::getControllerNamespace);
     }
 
-    public static boolean isControllerNamespaceAvailable() {
-        return java.util.Optional.ofNullable(System.getenv("POD_NAMESPACE"))
-                .filter(namespace -> !namespace.isBlank())
-                .isPresent();
+    public static Optional<String> getControllerNamespace() {
+        return Optional.ofNullable(System.getenv("POD_NAMESPACE"))
+                .filter(namespace -> !namespace.isBlank());
     }
 }

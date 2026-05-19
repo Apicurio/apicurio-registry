@@ -2,14 +2,13 @@ package io.apicurio.registry.cli.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @SuperBuilder
 @NoArgsConstructor

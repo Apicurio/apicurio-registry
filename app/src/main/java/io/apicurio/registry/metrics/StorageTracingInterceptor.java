@@ -6,6 +6,7 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
+import jakarta.annotation.Priority;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
@@ -22,13 +23,15 @@ import java.lang.reflect.Method;
  */
 @Interceptor
 @StorageMetricsApply
+@Priority(Interceptor.Priority.PLATFORM_BEFORE + 10)
 public class StorageTracingInterceptor {
 
     private static final String INSTRUMENTATION_NAME = "io.apicurio.registry.storage";
+    private static final String INSTRUMENTATION_VERSION = "3.x";
 
     @AroundInvoke
     public Object intercept(InvocationContext context) throws Exception {
-        Tracer tracer = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
+        Tracer tracer = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION);
         String spanName = "storage." + context.getMethod().getName();
 
         Span span = tracer.spanBuilder(spanName)

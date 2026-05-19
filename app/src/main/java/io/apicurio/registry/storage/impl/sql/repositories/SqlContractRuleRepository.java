@@ -194,6 +194,36 @@ public class SqlContractRuleRepository {
         }
     }
 
+    private static final String GLOBAL_GROUP = "__GLOBAL__";
+    private static final String GLOBAL_ARTIFACT = "__GLOBAL__";
+
+    public ContractRuleSetDto getGlobalContractRuleset() throws RegistryStorageException {
+        log.debug("Getting global contract ruleset");
+        return handles.withHandle(handle -> {
+            List<Pair<String, ContractRuleDto>> rows = handle
+                    .createQuery(sqlStatements.selectGlobalContractRules())
+                    .map(rs -> Pair.of(rs.getString("ruleCategory"),
+                            ContractRuleDtoMapper.instance.map(rs)))
+                    .list();
+            return buildRuleSet(rows);
+        });
+    }
+
+    public void setGlobalContractRuleset(ContractRuleSetDto ruleset) throws RegistryStorageException {
+        log.debug("Setting global contract ruleset");
+        handles.withHandleNoException(handle -> {
+            handle.createUpdate(sqlStatements.deleteGlobalContractRules()).execute();
+            insertRules(handle, GLOBAL_GROUP, GLOBAL_ARTIFACT, null, ruleset);
+        });
+    }
+
+    public void deleteGlobalContractRuleset() throws RegistryStorageException {
+        log.debug("Deleting global contract ruleset");
+        handles.withHandleNoException(handle -> {
+            handle.createUpdate(sqlStatements.deleteGlobalContractRules()).execute();
+        });
+    }
+
     public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
             throws RegistryStorageException {
         log.debug("Getting contract rules by tag: {}", tag);

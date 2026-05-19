@@ -5,6 +5,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.storage.dto.PromotionStage;
 import io.apicurio.registry.contracts.odcs.OdcsContract;
 import io.apicurio.registry.contracts.odcs.OdcsParser;
 import io.apicurio.registry.contracts.odcs.OdcsExporter;
@@ -69,12 +70,17 @@ import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.math.BigInteger;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,6 +110,7 @@ import static java.util.stream.Collectors.toList;
 // TODO: Split this into multiple implementation classes, similar to the storage repositories.
 public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsResource {
 
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     @SuppressWarnings("unused")
     private static final Integer GET_GROUPS_LIMIT = 1000;
@@ -132,8 +139,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     ProtobufExporter protobufExporter;
 
-    @Inject
-    io.apicurio.registry.contracts.DataContractsConfig dataContractsConfig;
+
 
     @Inject
     io.apicurio.registry.contracts.ContractMetadataMapper contractMetadataMapper;
@@ -149,6 +155,27 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     OdcsExporter odcsExporter;
+
+    @Inject
+    io.apicurio.registry.contracts.promotion.PromotionService promotionService;
+
+    @Inject
+    io.apicurio.registry.contracts.quality.QualityScoreCalculator qualityScoreCalculator;
+
+    @Inject
+    io.apicurio.registry.contracts.rules.RuleExecutionService ruleExecutionService;
+
+    @Inject
+    io.apicurio.registry.contracts.compatibility.CompatibilityGroupService compatibilityGroupService;
+
+    @Inject
+    io.apicurio.registry.contracts.migration.MigrationRuleService migrationRuleService;
+
+    @Inject
+    jakarta.enterprise.event.Event<io.apicurio.registry.storage.impl.sql.SqlOutboxEvent> contractOutboxEvent;
+
+    @Inject
+    io.apicurio.registry.contracts.audit.ContractAuditService contractAuditService;
 
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
@@ -1889,17 +1916,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
     }
 
-    private void checkContractsEnabled() {
-        if (!dataContractsConfig.isEnabled()) {
-            throw new NotAllowedException("Data contracts feature is not enabled.", HttpMethod.GET,
-                    (String[]) null);
-        }
-    }
+
 
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ContractMetadata getContractMetadata(String groupId, String artifactId) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
@@ -1914,7 +1936,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public ContractMetadata updateContractMetadata(String groupId, String artifactId,
             EditableContractMetadata data) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
@@ -1931,37 +1953,40 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         ? DataClassification.valueOf(data.getClassification().value()) : null)
                 .stage(data.getStage() != null
                         ? PromotionStage.valueOf(data.getStage().value()) : null)
+                .compatibilityGroup(data.getCompatibilityGroup())
                 .build();
 
-        // Convert to labels and merge with existing artifact labels
-        Map<String, String> contractLabels = contractMetadataMapper.toLabels(editableDto);
-
+        // Detect existing contractId from labels
         ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
-        Map<String, String> mergedLabels = new java.util.HashMap<>(
-                existing.getLabels() != null ? existing.getLabels() : Collections.emptyMap());
+        String contractId = findContractId(existing.getLabels());
+        String prefix = contractId != null
+                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
 
-        // Remove existing contract labels first
-        mergedLabels.entrySet().removeIf(
-                e -> e.getKey().startsWith(io.apicurio.registry.contracts.ContractLabels.PREFIX));
-        // Add new contract labels
-        mergedLabels.putAll(contractLabels);
+        // Convert editable metadata to namespaced labels
+        Map<String, String> contractLabels = contractMetadataMapper.toLabels(editableDto, prefix);
 
-        EditableArtifactMetaDataDto metaDto = new EditableArtifactMetaDataDto();
-        metaDto.setName(existing.getName());
-        metaDto.setDescription(existing.getDescription());
-        metaDto.setOwner(existing.getOwner());
-        metaDto.setLabels(mergedLabels);
-        storage.updateArtifactMetaData(rawGroupId, artifactId, metaDto);
+        // Atomic merge scoped to the contract prefix
+        storage.mergeArtifactLabels(rawGroupId, artifactId, prefix, contractLabels);
+
+        // Fire metadata updated event
+        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
+                io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId)));
+
+        // Audit log
+        contractAuditService.recordAction(rawGroupId, artifactId, null,
+                "METADATA_UPDATED", securityIdentity.getPrincipal().getName(), null);
 
         // Return the updated contract metadata
-        ContractMetadataDto result = contractMetadataMapper.fromLabels(mergedLabels);
+        ArtifactMetaDataDto updated = storage.getArtifactMetaData(rawGroupId, artifactId);
+        ContractMetadataDto result = contractMetadataMapper.fromLabels(
+                updated.getLabels(), contractId);
         return toContractMetadataBean(result);
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ContractRuleSet getArtifactContractRuleset(String groupId, String artifactId) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
@@ -1975,7 +2000,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public ContractRuleSet setArtifactContractRuleset(String groupId, String artifactId,
             ContractRuleSet data) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
@@ -1989,7 +2014,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactContractRuleset(String groupId, String artifactId) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
@@ -2001,7 +2026,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ContractRuleSet getVersionContractRuleset(String groupId, String artifactId,
             String versionExpression) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
@@ -2019,7 +2044,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public ContractRuleSet setVersionContractRuleset(String groupId, String artifactId,
             String versionExpression, ContractRuleSet data) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
@@ -2038,7 +2063,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteVersionContractRuleset(String groupId, String artifactId,
             String versionExpression) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
@@ -2055,7 +2080,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public ContractMetadata transitionContractStatus(String groupId, String artifactId,
             ContractStatusTransition data) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
@@ -2064,44 +2089,49 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Get current metadata to check current status
         ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
-        ContractMetadataDto currentMetadata = contractMetadataMapper.fromLabels(existing.getLabels());
+        String contractId = findContractId(existing.getLabels());
+        ContractMetadataDto currentMetadata = contractMetadataMapper.fromLabels(
+                existing.getLabels(), contractId);
 
         // Validate transition
         contractMetadataValidator.validateStatusTransition(currentMetadata.getStatus(), targetStatus);
 
-        // Build updated labels
-        Map<String, String> mergedLabels = new java.util.HashMap<>(
-                existing.getLabels() != null ? existing.getLabels() : Collections.emptyMap());
+        String prefix = contractId != null
+                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
 
-        // Update the status label
-        mergedLabels.put(io.apicurio.registry.contracts.ContractLabels.PREFIX + "status",
-                targetStatus.name());
+        // Update status label
+        String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
+        storage.mergeArtifactLabels(rawGroupId, artifactId, statusKey,
+                Map.of(statusKey, targetStatus.name()));
 
-        // If transitioning to STABLE, set the stableDate if not already set
-        if (targetStatus == ContractStatus.STABLE
-                && !mergedLabels.containsKey(
-                        io.apicurio.registry.contracts.ContractLabels.PREFIX + "stableDate")) {
-            mergedLabels.put(io.apicurio.registry.contracts.ContractLabels.PREFIX + "stableDate",
-                    java.time.LocalDate.now().toString());
+        // Update lifecycle date labels
+        if (targetStatus == ContractStatus.STABLE) {
+            String key = prefix + ContractLabels.SUFFIX_STABLE_DATE;
+            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
+                    Map.of(key, java.time.LocalDate.now().toString()));
+        }
+        if (targetStatus == ContractStatus.DEPRECATED) {
+            String key = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
+            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
+                    Map.of(key, java.time.LocalDate.now().toString()));
         }
 
-        // If transitioning to DEPRECATED, set the deprecatedDate if not already set
-        if (targetStatus == ContractStatus.DEPRECATED
-                && !mergedLabels.containsKey(
-                        io.apicurio.registry.contracts.ContractLabels.PREFIX + "deprecatedDate")) {
-            mergedLabels.put(
-                    io.apicurio.registry.contracts.ContractLabels.PREFIX + "deprecatedDate",
-                    java.time.LocalDate.now().toString());
-        }
+        // Fire status changed event
+        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
+                io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
+                        currentMetadata.getStatus() != null
+                                ? currentMetadata.getStatus().name() : null,
+                        targetStatus.name())));
 
-        EditableArtifactMetaDataDto metaDto = new EditableArtifactMetaDataDto();
-        metaDto.setName(existing.getName());
-        metaDto.setDescription(existing.getDescription());
-        metaDto.setOwner(existing.getOwner());
-        metaDto.setLabels(mergedLabels);
-        storage.updateArtifactMetaData(rawGroupId, artifactId, metaDto);
+        // Audit log
+        contractAuditService.recordAction(rawGroupId, artifactId, null,
+                "STATUS_CHANGED", securityIdentity.getPrincipal().getName(),
+                (currentMetadata.getStatus() != null ? currentMetadata.getStatus().name() : "null")
+                        + " -> " + targetStatus.name());
 
-        ContractMetadataDto result = contractMetadataMapper.fromLabels(mergedLabels);
+        ArtifactMetaDataDto updated = storage.getArtifactMetaData(rawGroupId, artifactId);
+        ContractMetadataDto result = contractMetadataMapper.fromLabels(
+                updated.getLabels(), contractId);
         return toContractMetadataBean(result);
     }
 
@@ -2125,6 +2155,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         bean.setStableDate(dto.getStableDate());
         bean.setDeprecatedDate(dto.getDeprecatedDate());
         bean.setDeprecationReason(dto.getDeprecationReason());
+        bean.setCompatibilityGroup(dto.getCompatibilityGroup());
         return bean;
     }
 
@@ -2208,7 +2239,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public OdcsContractResult submitContract(String groupId, String data) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("data", data);
 
@@ -2268,7 +2299,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public List<OdcsContractSummary> listContracts(String groupId, Integer limit,
             Integer offset) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
         int effectiveLimit = limit != null ? Math.min(limit, 500) : 20;
@@ -2296,12 +2327,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public String getContract(String groupId, String contractId) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("contractId", contractId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-        var content = storage.getArtifactVersionContent(rawGroupId, contractId, "latest");
+        var gav = VersionExpressionParser.parse(new GA(rawGroupId, contractId), "branch=latest",
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
+        var content = storage.getArtifactVersionContent(
+                gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
         return content.getContent().content();
     }
 
@@ -2309,7 +2343,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public OdcsContractResult updateContract(String groupId, String contractId, String data) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("contractId", contractId);
         ParameterValidationUtils.requireParameter("data", data);
@@ -2340,7 +2374,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteContract(String groupId, String contractId) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("contractId", contractId);
 
@@ -2436,7 +2470,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public String exportContractAsOdcs(String groupId, String artifactId) {
-        checkContractsEnabled();
+
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
@@ -2454,7 +2488,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (labels == null) {
             return null;
         }
-        String suffix = ".id";
+        String suffix = "." + ContractLabels.SUFFIX_ID;
         for (Map.Entry<String, String> entry : labels.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
@@ -2466,5 +2500,233 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
         }
         return null;
+    }
+
+    // ========== Phase 4-5 Endpoints ==========
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public Response promoteContract(String groupId, String artifactId,
+            InputStream data) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        JsonNode json;
+        try {
+            json = JSON_MAPPER.readTree(data);
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid JSON: " + e.getMessage());
+        }
+        if (json == null || !json.has("contractId") || !json.has("targetStage")) {
+            throw new BadRequestException(
+                    "Request must include contractId and targetStage");
+        }
+
+        String contractId = json.get("contractId").asText();
+        String targetStageStr = json.get("targetStage").asText();
+        PromotionStage targetStage;
+        try {
+            targetStage = PromotionStage.valueOf(targetStageStr);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(
+                    "Invalid targetStage: " + targetStageStr
+                            + ". Must be DEV, STAGE, or PROD.");
+        }
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        var result = promotionService.promote(rawGroupId, artifactId,
+                contractId, targetStage);
+        return Response.ok(Map.of("stage", result.name())).build();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public Response getContractQuality(String groupId, String artifactId,
+            String contractId) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("contractId", contractId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        var score = qualityScoreCalculator.calculate(rawGroupId, artifactId,
+                contractId);
+        return Response.ok(Map.of(
+                "overall", score.getOverall(),
+                "completeness", score.getCompleteness(),
+                "compliance", score.getCompliance(),
+                "stability", score.getStability())).build();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    @SuppressWarnings("unchecked")
+    public Response executeContractRules(String groupId, String artifactId,
+            String versionExpression, InputStream data) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        JsonNode json;
+        try {
+            json = JSON_MAPPER.readTree(data);
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid JSON: " + e.getMessage());
+        }
+        if (json == null || !json.has("mode") || !json.has("record")) {
+            throw new BadRequestException(
+                    "Request must include mode and record");
+        }
+
+        String mode = json.get("mode").asText();
+        Map<String, Object> record = JSON_MAPPER.convertValue(
+                json.get("record"), Map.class);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        var gav = VersionExpressionParser.parse(
+                new GA(rawGroupId, artifactId), versionExpression,
+                (ga, branchId) -> storage.getBranchTip(ga, branchId,
+                        RetrievalBehavior.ALL_STATES));
+
+        var result = ruleExecutionService.execute(rawGroupId, artifactId,
+                gav.getRawVersionId(), mode, record);
+
+        var responseMap = new LinkedHashMap<String, Object>();
+        responseMap.put("passed", result.isPassed());
+        if (result.getTransformedRecord() != null) {
+            responseMap.put("transformedRecord", result.getTransformedRecord());
+        }
+        responseMap.put("violations", result.getViolations());
+        responseMap.put("executedRules", result.getExecutedRules());
+        responseMap.put("failedRules", result.getFailedRules());
+        return Response.ok(responseMap).build();
+    }
+
+    // ========== Contract Audit Log Endpoint ==========
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public Response getContractAuditLog(String groupId, String artifactId,
+            BigInteger offset, BigInteger limit) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        int off = offset != null ? offset.intValue() : 0;
+        int lim = limit != null ? Math.min(limit.intValue(), 500) : 20;
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        var entries = contractAuditService.getAuditLog(rawGroupId, artifactId, off, lim);
+
+        var result = entries.stream().map(e -> {
+            var map = new LinkedHashMap<String, Object>();
+            map.put("auditId", e.getAuditId());
+            map.put("groupId", e.getGroupId());
+            map.put("artifactId", e.getArtifactId());
+            map.put("version", e.getVersion());
+            map.put("action", e.getAction());
+            map.put("principal", e.getPrincipal());
+            map.put("details", e.getDetails());
+            map.put("createdOn", e.getCreatedOn() != null ? e.getCreatedOn().toInstant().toString() : null);
+            return map;
+        }).toList();
+
+        return Response.ok(result).build();
+    }
+
+    // ========== Migration Endpoint ==========
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    @SuppressWarnings("unchecked")
+    public Response migrateContractRecord(String groupId, String artifactId,
+            InputStream data) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        JsonNode json;
+        try {
+            json = JSON_MAPPER.readTree(data);
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid JSON: " + e.getMessage());
+        }
+        if (json == null || !json.has("fromVersion") || !json.has("toVersion")
+                || !json.has("record")) {
+            throw new BadRequestException(
+                    "Request must include fromVersion, toVersion, and record");
+        }
+
+        String fromVersion = json.get("fromVersion").asText();
+        String toVersion = json.get("toVersion").asText();
+        Map<String, Object> record = JSON_MAPPER.convertValue(
+                json.get("record"), Map.class);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+
+        var result = migrationRuleService.executeMigration(
+                rawGroupId, artifactId, fromVersion, toVersion, record);
+
+        var responseMap = new LinkedHashMap<String, Object>();
+        responseMap.put("passed", result.isPassed());
+        if (result.getTransformedRecord() != null) {
+            responseMap.put("transformedRecord", result.getTransformedRecord());
+        }
+        responseMap.put("violations", result.getViolations());
+        responseMap.put("executedRules", result.getExecutedRules());
+        responseMap.put("failedRules", result.getFailedRules());
+        return Response.ok(responseMap).build();
+    }
+
+    // ========== Compatibility Group Endpoints ==========
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public Response getCompatibilityGroup(String groupId, String artifactId,
+            String contractId) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("contractId", contractId);
+
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        String group = compatibilityGroupService.getCompatibilityGroup(
+                rawGroupId, artifactId, contractId);
+
+        var responseMap = new LinkedHashMap<String, Object>();
+        responseMap.put("compatibilityGroup", group);
+        return Response.ok(responseMap).build();
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    @SuppressWarnings("unchecked")
+    public void setCompatibilityGroup(String groupId, String artifactId,
+            InputStream data) {
+
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+
+        JsonNode json;
+        try {
+            json = JSON_MAPPER.readTree(data);
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid JSON: " + e.getMessage());
+        }
+        if (json == null || !json.has("contractId") || !json.has("compatibilityGroup")) {
+            throw new BadRequestException(
+                    "Request must include contractId and compatibilityGroup");
+        }
+
+        String contractId = json.get("contractId").asText();
+        String compatGroup = json.get("compatibilityGroup").asText();
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+
+        compatibilityGroupService.setCompatibilityGroup(
+                rawGroupId, artifactId, contractId, compatGroup);
     }
 }

@@ -1,16 +1,15 @@
 package io.apicurio.registry.cli.version;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
+import io.apicurio.registry.cli.common.VersionOrderMixin;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
-import io.apicurio.registry.rest.client.models.SortOrder;
-import io.apicurio.registry.rest.client.models.VersionSortBy;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -57,6 +56,9 @@ public class VersionCommand extends AbstractCommand {
     private String artifactId;
 
     @Mixin
+    private VersionOrderMixin ordering;
+
+    @Mixin
     private PaginationMixin pagination;
 
     @Mixin
@@ -76,8 +78,8 @@ public class VersionCommand extends AbstractCommand {
                         //noinspection ConstantConditions
                         r.queryParameters.offset = (pagination.getPage() - 1) * pagination.getSize();
                         r.queryParameters.limit = pagination.getSize();
-                        r.queryParameters.orderby = VersionSortBy.Version;
-                        r.queryParameters.order = SortOrder.Asc;
+                        r.queryParameters.orderby = ordering.getOrderBy();
+                        r.queryParameters.order = ordering.getOrder();
                     }));
             output.writeStdOutChunkWithException(out -> {
                 switch (outputType.getOutputType()) {

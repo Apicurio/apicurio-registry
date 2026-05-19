@@ -102,6 +102,11 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         this.clientFacade = clientFacade;
     }
 
+    @Override
+    public RegistryClientFacade getClientFacade() {
+        return this.clientFacade;
+    }
+
     /**
      * @param artifactResolverStrategy the artifactResolverStrategy to set
      */

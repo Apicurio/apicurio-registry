@@ -1,8 +1,9 @@
 package io.apicurio.registry.cli.version;
 
-import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
+import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -15,7 +16,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
@@ -70,10 +71,9 @@ public class VersionCreateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--label"},
-            description = "Provide a list of version labels.",
-            mapFallbackValue = ""
+            description = "Provide a list of version labels (format: key=value or key). Use \\= to include = in a key."
     )
-    private Map<String, String> labels;
+    private List<String> labels;
 
     @Option(
             names = {"--content-type"},
@@ -109,7 +109,7 @@ public class VersionCreateCommand extends AbstractCommand {
         }
         if (labels != null) {
             final var newLabels = new Labels();
-            newLabels.setAdditionalData(new HashMap<>(labels));
+            newLabels.setAdditionalData(new HashMap<>(Conversions.parseLabels(labels)));
             newVersion.setLabels(newLabels);
         }
         if (draft) {

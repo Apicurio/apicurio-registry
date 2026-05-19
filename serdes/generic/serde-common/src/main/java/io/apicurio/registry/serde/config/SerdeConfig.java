@@ -159,6 +159,21 @@ public class SerdeConfig extends SchemaResolverConfig {
      */
     public static final String DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS = "apicurio.registry.deserializer.value.return-class";
 
+    /**
+     * Boolean used to enable or disable contract rule execution during serialization/deserialization.
+     * When enabled, the serializer executes WRITE-mode rules and the deserializer executes READ-mode rules
+     * against the registry's rule execution endpoint.
+     */
+    public static final String CONTRACT_RULES_ENABLED = "apicurio.registry.serde.contract-rules.enabled";
+    public static final boolean CONTRACT_RULES_ENABLED_DEFAULT = false;
+
+    /**
+     * Boolean used to control whether contract rule failures cause serialization/deserialization to fail.
+     * When true (default), a rule failure throws an exception. When false, failures are logged as warnings.
+     */
+    public static final String CONTRACT_RULES_FAIL_ON_ERROR = "apicurio.registry.serde.contract-rules.fail-on-error";
+    public static final boolean CONTRACT_RULES_FAIL_ON_ERROR_DEFAULT = true;
+
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(entry(ID_HANDLER, ID_HANDLER_DEFAULT),
             entry(USE_ID, USE_ID_DEFAULT));
 

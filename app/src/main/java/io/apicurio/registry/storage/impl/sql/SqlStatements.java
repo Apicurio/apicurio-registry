@@ -291,6 +291,18 @@ public interface SqlStatements {
     public String deleteArtifactLabels();
 
     /**
+     * A statement to delete artifact labels matching a key prefix.
+     */
+    public String selectArtifactLabels();
+
+    public String deleteArtifactLabelsByPrefix();
+
+    /**
+     * A statement to delete version labels matching a key prefix.
+     */
+    public String deleteVersionLabelsByPrefix();
+
+    /**
      * A statement to delete the labels for a single artifact version.
      */
     public String deleteVersionLabelsByGAV();
@@ -720,6 +732,20 @@ public interface SqlStatements {
 
     public String deleteOutboxEvent();
 
+    // ========== Usage Telemetry ==========
+
+    public String insertSchemaUsage();
+
+    public String selectArtifactUsageMetrics();
+
+    public String selectUsageSummaryCounts();
+
+    public String deleteOldSchemaUsageEvents();
+
+    public String selectConsumerVersionHeatmap();
+
+    public String selectDeprecationReadiness();
+
     String selectCountTableTemplate(String countBy, String tableName, String alias, String whereClause);
 
     String selectTableTemplate(String columns, String tableName, String alias, String whereClause,
@@ -799,6 +825,8 @@ public interface SqlStatements {
 
     String deleteContractRulesByGlobalId();
 
+    String deleteAllContractRules();
+
     String exportContractRules();
 
     String exportContractRulesByGroupId();
@@ -806,4 +834,20 @@ public interface SqlStatements {
     String importContractRule();
 
     String selectContractRulesByTag();
+
+    String updateVersionLabels();
+
+    String selectVersionLabels();
+
+    String selectGlobalContractRules();
+
+    String deleteGlobalContractRules();
+
+    String insertContractAuditEntry();
+
+    String selectContractAuditLog();
+
+    String selectContractAuditLogCount();
+
+    String deleteAllContractAuditEntries();
 }

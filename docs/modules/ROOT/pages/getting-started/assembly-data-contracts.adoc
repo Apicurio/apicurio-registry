@@ -11,6 +11,11 @@ This chapter introduces the Data Contracts framework in {registry}, which uses t
 * xref:data-contracts-field-tags_{context}[]
 * xref:data-contracts-rules_{context}[]
 * xref:data-contracts-lifecycle_{context}[]
+* xref:data-contracts-migration_{context}[]
+* xref:data-contracts-serdes_{context}[]
+* xref:data-contracts-audit_{context}[]
+* xref:data-contracts-search_{context}[]
+* xref:data-contracts-global-rules_{context}[]
 * xref:data-contracts-api_{context}[]
 * xref:data-contracts-configuration_{context}[]
 
@@ -29,7 +34,7 @@ A data contract in {registry} combines:
 * *Field tags* - PII and classification annotations stored as version labels, with automatic extraction from Avro, JSON Schema, and Protobuf schemas
 * *Multi-contract support* - Multiple contracts can reference the same schema artifact without overwriting each other
 
-NOTE: Data contracts is an experimental feature. You must set `apicurio.features.experimental.enabled=true` and `apicurio.contracts.enabled=true` to use contract endpoints.
+NOTE: Data contracts are always available. No special configuration is required — submitting a contract is an explicit opt-in action.
 
 [id="data-contracts-odcs_{context}"]
 == ODCS native format
@@ -259,7 +264,7 @@ Contract rules define validation and transformation logic associated with artifa
 
 When you submit an ODCS contract, its `quality.accuracy` rules are automatically projected as CEL domain rules on the referenced schema artifact.
 
-NOTE: Contract rules are currently stored and managed through the REST API. Runtime execution in SerDes (serializers/deserializers) is planned for a future release.
+Contract rules are enforced both server-side (via the rule execution REST endpoint) and client-side (via Java Kafka SerDes integration). See xref:data-contracts-serdes_{context}[] for SerDes configuration.
 
 === Rule kinds
 
@@ -272,6 +277,11 @@ NOTE: Contract rules are currently stored and managed through the REST API. Runt
 * *READ* - Execute on deserialize (consumer-side)
 * *WRITEREAD* - Execute on both
 * *UPGRADE* / *DOWNGRADE* - Execute during schema migration
+
+=== Rule types
+
+* *CEL* - Common Expression Language for validation conditions and simple transforms. Supports full CEL spec including `has()`, `size()`, `contains()`, `startsWith()`, parenthesized grouping, and ternary expressions.
+* *JSONATA* - JSONata expressions for data transformation. Supports both CONDITION (truthy check) and TRANSFORM (returns transformed data) kinds. Useful for schema migration transforms.
 
 === Rule actions
 
@@ -308,13 +318,247 @@ NOTE: Reverse transitions are not allowed.
 DEV ──────► STAGE ──────► PROD
 ----
 
-NOTE: Automated promotion workflow enforcement is planned for a future release. The promotion stage can be set via the contract metadata API.
+Promotion is enforced via the `POST /groups/{g}/artifacts/{a}/contract/promote` endpoint, which validates that the target stage follows the allowed progression. The promotion stage can also be set directly via the contract metadata API.
+
+[id="data-contracts-migration_{context}"]
+== Schema migration
+
+[role="_abstract"]
+Schema migration allows you to transform data records between different schema versions using migration rules.
+
+=== Migration rules
+
+Migration rules use the UPGRADE or DOWNGRADE mode and are typically JSONata TRANSFORM rules that reshape data from one version to another:
+
+.Migration rule example
+[source,json]
+----
+{
+  "domainRules": [],
+  "migrationRules": [
+    {
+      "name": "v1-to-v2-upgrade",
+      "kind": "TRANSFORM",
+      "type": "JSONATA",
+      "mode": "UPGRADE",
+      "expr": "$ ~> |$|{'fullName': firstName & ' ' & lastName}|",
+      "onFailure": "ERROR",
+      "disabled": false
+    }
+  ]
+}
+----
+
+=== Migration endpoint
+
+The migration endpoint chains transforms across multiple versions:
+
+[source,bash]
+----
+curl -X POST \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/migrate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "sourceVersion": "1",
+    "targetVersion": "3",
+    "record": {"firstName": "John", "lastName": "Doe", "amount": 100}
+  }'
+----
+
+The service determines the direction (upgrade or downgrade), loads migration rules for each intermediate version, and chains the transforms sequentially.
+
+=== Compatibility groups
+
+Compatibility groups partition the version history for compatibility checking. Versions in different groups are not compared against each other during compatibility validation.
+
+[source,bash]
+----
+# Set compatibility group
+curl -X PUT \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/compatibility-group \
+  -H 'Content-Type: application/json' \
+  -d '{"group": "v2-family"}'
+
+# Get compatibility group
+curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/compatibility-group
+----
+
+[id="data-contracts-serdes_{context}"]
+== Kafka SerDes integration
+
+[role="_abstract"]
+Contract rules can be enforced during normal Kafka serialization and deserialization using the Apicurio Registry SerDes libraries. Rules are executed transparently — no code changes are required beyond configuration.
+
+=== Configuration
+
+Enable contract rule enforcement by setting these properties on your Kafka producer or consumer:
+
+.SerDes contract rule properties
+[cols="3,1,3", options="header"]
+|===
+|Property |Default |Description
+
+|`apicurio.registry.contract-rules.enabled`
+|`false`
+|Enable contract rule execution during serialize/deserialize
+
+|`apicurio.registry.contract-rules.fail-on-error`
+|`true`
+|When `true`, rule violations throw a `RuntimeException`. When `false`, violations are logged but serialization proceeds (for DLQ routing by the application)
+|===
+
+=== How it works
+
+* *Producer (serializer):* After schema resolution and before serialization, the serializer calls the server-side rule execution endpoint with mode `WRITE`. If any CONDITION rule with `onFailure=ERROR` fails, serialization is rejected.
+* *Consumer (deserializer):* After deserialization, the deserializer calls the rule execution endpoint with mode `READ`. This enables read-side validation rules.
+* *DLQ pattern:* Set `fail-on-error=false` to allow serialization to proceed even when rules fail. Your application can inspect the violations and route the message to a dead letter queue.
+
+=== Example: Producer with contract rules
+
+[source,java]
+----
+Properties props = new Properties();
+props.put(SerdeConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+props.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, "my-group");
+props.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+props.put(SerdeConfig.CONTRACT_RULES_ENABLED, "true");
+props.put(SerdeConfig.CONTRACT_RULES_FAIL_ON_ERROR, "true");
+props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
+// ... other Kafka producer properties
+
+KafkaProducer<String, GenericRecord> producer = new KafkaProducer<>(props);
+----
+
+[id="data-contracts-audit_{context}"]
+== Audit log
+
+[role="_abstract"]
+The contract audit log records all contract operations for compliance and debugging.
+
+=== Audited operations
+
+* Metadata updates (owner, classification, status changes)
+* Ruleset configuration (create, update, delete)
+* Status transitions (DRAFT → STABLE → DEPRECATED)
+* Contract submission and re-projection
+
+=== Querying the audit log
+
+[source,bash]
+----
+curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/audit
+----
+
+.Response
+[source,json]
+----
+[
+  {
+    "action": "STATUS_TRANSITION",
+    "detail": "Status changed from DRAFT to STABLE",
+    "userId": "admin",
+    "createdOn": "2026-05-19T10:30:00Z"
+  },
+  {
+    "action": "RULESET_CONFIGURED",
+    "detail": "Contract ruleset updated",
+    "userId": "admin",
+    "createdOn": "2026-05-19T10:25:00Z"
+  }
+]
+----
+
+[id="data-contracts-search_{context}"]
+== Contract search
+
+[role="_abstract"]
+Search for contracts across the registry using metadata filters.
+
+=== Search parameters
+
+.Contract search query parameters
+[cols="2,3", options="header"]
+|===
+|Parameter |Description
+
+|`status`
+|Filter by lifecycle status (DRAFT, STABLE, DEPRECATED)
+
+|`ownerTeam`
+|Filter by owner team name
+
+|`classification`
+|Filter by data classification (e.g., CONFIDENTIAL, PUBLIC)
+
+|`groupId`
+|Filter by group
+
+|`artifactId`
+|Filter by artifact
+
+|`limit` / `offset`
+|Pagination (default limit: 20, max: 500)
+
+|`orderby` / `order`
+|Sort by field and direction
+|===
+
+=== Example
+
+[source,bash]
+----
+curl "http://localhost:8080/apis/registry/v3/search/contracts?status=STABLE&ownerTeam=orders-team&limit=10"
+----
+
+[id="data-contracts-global-rules_{context}"]
+== Global contract rules
+
+[role="_abstract"]
+Global contract rulesets provide a baseline set of rules applied to all artifacts. Artifact-level and version-level rules override global rules by name.
+
+=== Rule precedence
+
+When rules are executed, they are merged from three scopes:
+
+1. *Global rules* — apply to all artifacts (set via `/admin/contracts/ruleset`)
+2. *Artifact rules* — apply to a specific artifact (set via `/groups/{g}/artifacts/{a}/contract/ruleset`)
+3. *Version rules* — apply to a specific version (set via `.../versions/{v}/contract/ruleset`)
+
+If a rule with the same name exists at multiple levels, the most specific scope wins.
+
+=== Managing global rules
+
+[source,bash]
+----
+# Set global ruleset
+curl -X PUT \
+  http://localhost:8080/apis/registry/v3/admin/contracts/ruleset \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "domainRules": [{
+      "name": "require-non-empty",
+      "kind": "CONDITION",
+      "type": "CEL",
+      "mode": "WRITE",
+      "expr": "size(record) > 0",
+      "onFailure": "ERROR",
+      "disabled": false
+    }],
+    "migrationRules": []
+  }'
+
+# Get global ruleset
+curl http://localhost:8080/apis/registry/v3/admin/contracts/ruleset
+
+# Delete global ruleset
+curl -X DELETE http://localhost:8080/apis/registry/v3/admin/contracts/ruleset
+----
 
 [id="data-contracts-api_{context}"]
 == REST API
 
 [role="_abstract"]
-The Data Contracts REST API provides endpoints for managing ODCS contracts, contract metadata, and contract rulesets. All endpoints require the data contracts feature to be enabled.
+The Data Contracts REST API provides endpoints for managing ODCS contracts, contract metadata, and contract rulesets.
 
 === ODCS contract endpoints
 
@@ -398,21 +642,99 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Change lifecycle status with transition validation
 |===
 
-=== Planned endpoints
+=== Governance and quality endpoints
 
-.Planned REST API endpoints
+.Governance REST API endpoints
 [cols="1,4,3", options="header"]
 |===
 |Method |Endpoint |Description
 
 |POST
 |`/groups/{groupId}/artifacts/{artifactId}/contract/promote`
-|Promote to next stage (DEV -> STAGE -> PROD)
+|Promote contract stage (DEV -> STAGE -> PROD). Body: `{"contractId": "...", "targetStage": "STAGE"}`
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/quality`
-|Get quality score
+|`/groups/{groupId}/artifacts/{artifactId}/contract/quality?contractId=`
+|Get quality score (overall, completeness, compliance, stability)
 |===
+
+=== Rule execution and migration endpoints
+
+.Rule execution REST API endpoints
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|POST
+|`/groups/{groupId}/artifacts/{artifactId}/versions/{version}/contract/execute`
+|Execute contract rules against a data record. Body: `{"mode": "WRITE", "record": {...}}`
+
+|POST
+|`/groups/{groupId}/artifacts/{artifactId}/contract/migrate`
+|Migrate a record between versions. Body: `{"sourceVersion": "1", "targetVersion": "3", "record": {...}}`
+|===
+
+=== Audit log endpoint
+
+.Contract audit log REST API endpoint
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract/audit`
+|Get contract audit log entries for an artifact
+|===
+
+=== Compatibility group endpoints
+
+.Compatibility group REST API endpoints
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|GET
+|`/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group`
+|Get the compatibility group for an artifact
+
+|PUT
+|`/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group`
+|Set the compatibility group for an artifact
+|===
+
+=== Contract search endpoint
+
+.Contract search REST API endpoint
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|GET
+|`/search/contracts?status=&ownerTeam=&classification=&limit=&offset=`
+|Search contracts across the registry
+|===
+
+=== Global contract ruleset endpoints
+
+.Global contract ruleset REST API endpoints
+[cols="1,4,3", options="header"]
+|===
+|Method |Endpoint |Description
+
+|GET
+|`/admin/contracts/ruleset`
+|Get the global contract ruleset
+
+|PUT
+|`/admin/contracts/ruleset`
+|Set the global contract ruleset
+
+|DELETE
+|`/admin/contracts/ruleset`
+|Delete the global contract ruleset
+|===
+
+Uses real CEL (Common Expression Language) via the `cel-standalone` library. Full CEL spec support including parenthesized grouping, ternary expressions, string functions, `has()`, `size()`. JSONata is also supported for data transformation rules.
 
 === Example: Submitting an ODCS contract
 
@@ -455,6 +777,45 @@ curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifac
 
 Returns the reconstructed ODCS v3.1 YAML from the artifact's current contract labels, rules, and field tags.
 
+=== Example: Promoting a contract
+
+[source,bash]
+----
+curl -X POST \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/promote \
+  -H 'Content-Type: application/json' \
+  -d '{"contractId": "orders-contract", "targetStage": "STAGE"}'
+----
+
+=== Example: Getting quality score
+
+[source,bash]
+----
+curl "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/quality?contractId=orders-contract"
+----
+
+.Response
+[source,json]
+----
+{"overall": 0.85, "completeness": 0.83, "compliance": 1.0, "stability": 0.67}
+----
+
+=== Example: Executing contract rules
+
+[source,bash]
+----
+curl -X POST \
+  http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/versions/1/contract/execute \
+  -H 'Content-Type: application/json' \
+  -d '{"mode": "WRITE", "record": {"message": {"totalAmount": 100, "status": "active"}}}'
+----
+
+.Response
+[source,json]
+----
+{"passed": true, "violations": [], "executedRules": 2, "failedRules": 0}
+----
+
 === Example: Setting contract metadata directly
 
 [source,bash]
@@ -486,32 +847,31 @@ curl -X POST \
 == Configuration
 
 [role="_abstract"]
-Configure the Data Contracts framework using {registry} application properties.
+Data contracts are always available — no special configuration is required. Submitting a contract is an explicit opt-in action that does not affect existing registry functionality.
 
-=== Enabling data contracts
+=== SerDes configuration
 
-.Required configuration properties
-[cols="2,1,2", options="header"]
+.SerDes contract rule properties
+[cols="3,1,3", options="header"]
 |===
 |Property |Default |Description
 
-|`apicurio.features.experimental.enabled`
+|`apicurio.registry.contract-rules.enabled`
 |`false`
-|Enable experimental features gate (required for data contracts)
+|Enable contract rule execution during serialize/deserialize
 
-|`apicurio.contracts.enabled`
-|`false`
-|Enable the data contracts feature
+|`apicurio.registry.contract-rules.fail-on-error`
+|`true`
+|When `true`, rule violations throw `RuntimeException`. When `false`, violations are logged but serialization proceeds
 |===
 
-Both properties must be set to `true` for data contracts endpoints to be accessible.
+=== Storage compatibility
 
-.Example: Enabling data contracts with environment variables
-[source,bash]
-----
-export APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
-export APICURIO_CONTRACTS_ENABLED=true
-----
+Data contracts work across all storage variants:
+
+* *SQL (PostgreSQL)* — Full support with immediate consistency. The `contract_audit_log` table is created automatically (DB upgrade 106).
+* *KafkaSQL* — Full support; label writes go through the Kafka journal for multi-node consistency
+* *GitOps / KubernetesOps* — Read-only safe; write operations are rejected by the read-only decorator
 
 [role="_additional-resources"]
 .Additional resources

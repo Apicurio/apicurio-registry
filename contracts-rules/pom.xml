@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry</artifactId>
+    <version>3.3.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-contracts-rules</artifactId>
+  <packaging>jar</packaging>
+  <name>Registry :: Contracts :: Rules</name>
+  <description>Contract rule execution engine (CEL evaluator, rule SPI). Reusable by app and SerDes modules.</description>
+
+  <properties>
+    <projectRoot>${project.basedir}/..</projectRoot>
+  </properties>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>jakarta.enterprise</groupId>
+      <artifactId>jakarta.enterprise.cdi-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>jakarta.inject</groupId>
+      <artifactId>jakarta.inject-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.projectnessie.cel</groupId>
+      <artifactId>cel-standalone</artifactId>
+      <version>0.6.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.dashjoin</groupId>
+      <artifactId>jsonata</artifactId>
+      <version>0.9.9</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+</project>

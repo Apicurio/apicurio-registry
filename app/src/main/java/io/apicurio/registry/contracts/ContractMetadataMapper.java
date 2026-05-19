@@ -12,89 +12,105 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Mapper for converting between contract metadata DTOs and label maps.
- * Handles bidirectional conversion for storing and retrieving contract metadata from labels.
- */
 @ApplicationScoped
 public class ContractMetadataMapper {
 
     private static final Logger log = LoggerFactory.getLogger(ContractMetadataMapper.class);
 
-    /**
-     * Extracts contract metadata from a labels map.
-     *
-     * @param labels the labels map to extract from (may be null or empty)
-     * @return the extracted contract metadata DTO
-     */
     public ContractMetadataDto fromLabels(Map<String, String> labels) {
+        return fromLabels(labels, null);
+    }
+
+    public ContractMetadataDto fromLabels(Map<String, String> labels, String contractId) {
         if (labels == null || labels.isEmpty()) {
             return ContractMetadataDto.builder().build();
         }
 
+        if (contractId == null) {
+            contractId = detectContractId(labels);
+        }
+
+        String p = contractId != null
+                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
+
         return ContractMetadataDto.builder()
-                .status(parseEnum(labels.get(ContractLabels.STATUS), ContractStatus.class))
-                .ownerTeam(labels.get(ContractLabels.OWNER_TEAM))
-                .ownerDomain(labels.get(ContractLabels.OWNER_DOMAIN))
-                .supportContact(labels.get(ContractLabels.SUPPORT_CONTACT))
-                .classification(parseEnum(labels.get(ContractLabels.CLASSIFICATION), DataClassification.class))
-                .stage(parseEnum(labels.get(ContractLabels.STAGE), PromotionStage.class))
-                .stableDate(labels.get(ContractLabels.STABLE_DATE))
-                .deprecatedDate(labels.get(ContractLabels.DEPRECATED_DATE))
-                .deprecationReason(labels.get(ContractLabels.DEPRECATION_REASON))
+                .status(parseEnum(labels.get(p + ContractLabels.SUFFIX_STATUS), ContractStatus.class))
+                .ownerTeam(labels.get(p + ContractLabels.SUFFIX_OWNER_TEAM))
+                .ownerDomain(labels.get(p + ContractLabels.SUFFIX_OWNER_DOMAIN))
+                .supportContact(labels.get(p + ContractLabels.SUFFIX_SUPPORT_CONTACT))
+                .classification(parseEnum(labels.get(p + ContractLabels.SUFFIX_CLASSIFICATION),
+                        DataClassification.class))
+                .stage(parseEnum(labels.get(p + ContractLabels.SUFFIX_STAGE), PromotionStage.class))
+                .stableDate(labels.get(p + ContractLabels.SUFFIX_STABLE_DATE))
+                .deprecatedDate(labels.get(p + ContractLabels.SUFFIX_DEPRECATED_DATE))
+                .deprecationReason(labels.get(p + ContractLabels.SUFFIX_DEPRECATION_REASON))
+                .compatibilityGroup(labels.get(p + ContractLabels.SUFFIX_COMPATIBILITY_GROUP))
                 .build();
     }
 
-    /**
-     * Converts contract metadata to a labels map.
-     *
-     * @param metadata the contract metadata to convert
-     * @return a map of labels
-     */
     public Map<String, String> toLabels(ContractMetadataDto metadata) {
-        Map<String, String> labels = new HashMap<>();
+        return toLabels(metadata, ContractLabels.PREFIX);
+    }
 
+    public Map<String, String> toLabels(ContractMetadataDto metadata, String prefix) {
+        Map<String, String> labels = new HashMap<>();
         if (metadata == null) {
             return labels;
         }
-
-        addIfNotNull(labels, ContractLabels.STATUS, enumToString(metadata.getStatus()));
-        addIfNotNull(labels, ContractLabels.OWNER_TEAM, metadata.getOwnerTeam());
-        addIfNotNull(labels, ContractLabels.OWNER_DOMAIN, metadata.getOwnerDomain());
-        addIfNotNull(labels, ContractLabels.SUPPORT_CONTACT, metadata.getSupportContact());
-        addIfNotNull(labels, ContractLabels.CLASSIFICATION, enumToString(metadata.getClassification()));
-        addIfNotNull(labels, ContractLabels.STAGE, enumToString(metadata.getStage()));
-        addIfNotNull(labels, ContractLabels.STABLE_DATE, metadata.getStableDate());
-        addIfNotNull(labels, ContractLabels.DEPRECATED_DATE, metadata.getDeprecatedDate());
-        addIfNotNull(labels, ContractLabels.DEPRECATION_REASON, metadata.getDeprecationReason());
-
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_STATUS, enumToString(metadata.getStatus()));
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_OWNER_TEAM, metadata.getOwnerTeam());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_OWNER_DOMAIN, metadata.getOwnerDomain());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_SUPPORT_CONTACT, metadata.getSupportContact());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_CLASSIFICATION,
+                enumToString(metadata.getClassification()));
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_STAGE, enumToString(metadata.getStage()));
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_STABLE_DATE, metadata.getStableDate());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_DEPRECATED_DATE, metadata.getDeprecatedDate());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_DEPRECATION_REASON,
+                metadata.getDeprecationReason());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_COMPATIBILITY_GROUP,
+                metadata.getCompatibilityGroup());
         return labels;
     }
 
-    /**
-     * Converts editable contract metadata to a labels map.
-     *
-     * @param metadata the editable contract metadata to convert
-     * @return a map of labels
-     */
     public Map<String, String> toLabels(EditableContractMetadataDto metadata) {
-        Map<String, String> labels = new HashMap<>();
+        return toLabels(metadata, ContractLabels.PREFIX);
+    }
 
+    public Map<String, String> toLabels(EditableContractMetadataDto metadata, String prefix) {
+        Map<String, String> labels = new HashMap<>();
         if (metadata == null) {
             return labels;
         }
-
-        addIfNotNull(labels, ContractLabels.STATUS, enumToString(metadata.getStatus()));
-        addIfNotNull(labels, ContractLabels.OWNER_TEAM, metadata.getOwnerTeam());
-        addIfNotNull(labels, ContractLabels.OWNER_DOMAIN, metadata.getOwnerDomain());
-        addIfNotNull(labels, ContractLabels.SUPPORT_CONTACT, metadata.getSupportContact());
-        addIfNotNull(labels, ContractLabels.CLASSIFICATION, enumToString(metadata.getClassification()));
-        addIfNotNull(labels, ContractLabels.STAGE, enumToString(metadata.getStage()));
-        addIfNotNull(labels, ContractLabels.STABLE_DATE, metadata.getStableDate());
-        addIfNotNull(labels, ContractLabels.DEPRECATED_DATE, metadata.getDeprecatedDate());
-        addIfNotNull(labels, ContractLabels.DEPRECATION_REASON, metadata.getDeprecationReason());
-
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_STATUS, enumToString(metadata.getStatus()));
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_OWNER_TEAM, metadata.getOwnerTeam());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_OWNER_DOMAIN, metadata.getOwnerDomain());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_SUPPORT_CONTACT, metadata.getSupportContact());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_CLASSIFICATION,
+                enumToString(metadata.getClassification()));
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_STAGE, enumToString(metadata.getStage()));
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_STABLE_DATE, metadata.getStableDate());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_DEPRECATED_DATE, metadata.getDeprecatedDate());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_DEPRECATION_REASON,
+                metadata.getDeprecationReason());
+        addIfNotNull(labels, prefix + ContractLabels.SUFFIX_COMPATIBILITY_GROUP,
+                metadata.getCompatibilityGroup());
         return labels;
+    }
+
+    private String detectContractId(Map<String, String> labels) {
+        String suffix = "." + ContractLabels.SUFFIX_ID;
+        for (var entry : labels.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
+                String middle = key.substring(ContractLabels.PREFIX.length(),
+                        key.length() - suffix.length());
+                if (!middle.isEmpty() && !middle.contains(".")) {
+                    return entry.getValue();
+                }
+            }
+        }
+        return null;
     }
 
     private <T extends Enum<T>> T parseEnum(String value, Class<T> enumClass) {

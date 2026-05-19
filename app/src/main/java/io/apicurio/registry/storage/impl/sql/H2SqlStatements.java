@@ -86,6 +86,17 @@ public class H2SqlStatements extends CommonSqlStatements {
         return "RUNSCRIPT FROM ?";
     }
 
+    @Override
+    public String selectArtifactUsageMetrics() {
+        return "SELECT v.version, su.globalId, COUNT(*) AS totalFetches, "
+                + "COUNT(DISTINCT su.clientId) AS uniqueClients, "
+                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn, "
+                + "LISTAGG(DISTINCT su.clientId, ',') AS clientList "
+                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "GROUP BY v.globalId, v.version, v.versionOrder ORDER BY v.versionOrder";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
      */

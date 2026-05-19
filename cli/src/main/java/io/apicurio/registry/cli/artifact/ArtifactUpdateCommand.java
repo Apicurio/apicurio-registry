@@ -1,7 +1,8 @@
 package io.apicurio.registry.cli.artifact;
 
-import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
+import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
@@ -11,7 +12,6 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.util.List;
-import java.util.Map;
 
 import io.apicurio.registry.cli.common.CliException;
 
@@ -53,10 +53,9 @@ public class ArtifactUpdateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--sl", "--set-label"},
-            description = "Add or update an artifact label.",
-            mapFallbackValue = ""
+            description = "Add or update an artifact label (format: key=value or key). Use \\= to include = in a key."
     )
-    private Map<String, String> setLabels;
+    private List<String> setLabels;
 
     @Option(
             names = {"--dl", "--delete-label"},
@@ -91,7 +90,7 @@ public class ArtifactUpdateCommand extends AbstractCommand {
                 if (updatedArtifact.getLabels() == null) {
                     updatedArtifact.setLabels(new Labels());
                 }
-                updatedArtifact.getLabels().getAdditionalData().putAll(setLabels);
+                updatedArtifact.getLabels().getAdditionalData().putAll(Conversions.parseLabels(setLabels));
             }
             if (deleteLabels != null) {
                 if (updatedArtifact.getLabels() != null) {

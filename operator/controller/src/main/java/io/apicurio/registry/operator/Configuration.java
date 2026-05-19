@@ -3,6 +3,8 @@ package io.apicurio.registry.operator;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 
+import java.util.Optional;
+
 public class Configuration {
 
     private static final Config config = ConfigProvider.getConfig();
@@ -31,5 +33,29 @@ public class Configuration {
         return config.getOptionalValue("apicurio.operator.default-base-host", String.class)
                 .map(v -> "." + v)
                 .orElse("");
+    }
+
+    public static boolean isLeaderElectionEnabled() {
+        if (getLeaderElectionLeaseNamespace().isEmpty()) {
+            return false;
+        }
+        return config.getOptionalValue("apicurio.operator.leader-election.enabled", Boolean.class)
+                .orElse(true);
+    }
+
+    public static String getLeaderElectionLeaseName() {
+        return config.getOptionalValue("apicurio.operator.leader-election.lease-name", String.class)
+                .orElse("apicurio-registry-operator-lease");
+    }
+
+    public static Optional<String> getLeaderElectionLeaseNamespace() {
+        return config.getOptionalValue("apicurio.operator.leader-election.lease-namespace", String.class)
+                .filter(namespace -> !namespace.isBlank())
+                .or(Configuration::getControllerNamespace);
+    }
+
+    public static Optional<String> getControllerNamespace() {
+        return Optional.ofNullable(System.getenv("POD_NAMESPACE"))
+                .filter(namespace -> !namespace.isBlank());
     }
 }

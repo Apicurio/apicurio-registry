@@ -10,6 +10,8 @@ type ContractMetadata struct {
 	additionalData map[string]any
 	// Data classification level.
 	classification *ContractMetadata_classification
+	// Compatibility group for schema evolution scoping.
+	compatibilityGroup *string
 	// ISO-8601 date when contract was deprecated.
 	deprecatedDate *string
 	// Reason for deprecation.
@@ -53,6 +55,12 @@ func (m *ContractMetadata) GetClassification() *ContractMetadata_classification 
 	return m.classification
 }
 
+// GetCompatibilityGroup gets the compatibilityGroup property value. Compatibility group for schema evolution scoping.
+// returns a *string when successful
+func (m *ContractMetadata) GetCompatibilityGroup() *string {
+	return m.compatibilityGroup
+}
+
 // GetDeprecatedDate gets the deprecatedDate property value. ISO-8601 date when contract was deprecated.
 // returns a *string when successful
 func (m *ContractMetadata) GetDeprecatedDate() *string {
@@ -76,6 +84,16 @@ func (m *ContractMetadata) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		if val != nil {
 			m.SetClassification(val.(*ContractMetadata_classification))
+		}
+		return nil
+	}
+	res["compatibilityGroup"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetCompatibilityGroup(val)
 		}
 		return nil
 	}
@@ -208,6 +226,12 @@ func (m *ContractMetadata) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 		}
 	}
 	{
+		err := writer.WriteStringValue("compatibilityGroup", m.GetCompatibilityGroup())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteStringValue("deprecatedDate", m.GetDeprecatedDate())
 		if err != nil {
 			return err
@@ -276,6 +300,11 @@ func (m *ContractMetadata) SetClassification(value *ContractMetadata_classificat
 	m.classification = value
 }
 
+// SetCompatibilityGroup sets the compatibilityGroup property value. Compatibility group for schema evolution scoping.
+func (m *ContractMetadata) SetCompatibilityGroup(value *string) {
+	m.compatibilityGroup = value
+}
+
 // SetDeprecatedDate sets the deprecatedDate property value. ISO-8601 date when contract was deprecated.
 func (m *ContractMetadata) SetDeprecatedDate(value *string) {
 	m.deprecatedDate = value
@@ -320,6 +349,7 @@ type ContractMetadataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetClassification() *ContractMetadata_classification
+	GetCompatibilityGroup() *string
 	GetDeprecatedDate() *string
 	GetDeprecationReason() *string
 	GetOwnerDomain() *string
@@ -329,6 +359,7 @@ type ContractMetadataable interface {
 	GetStatus() *ContractMetadata_status
 	GetSupportContact() *string
 	SetClassification(value *ContractMetadata_classification)
+	SetCompatibilityGroup(value *string)
 	SetDeprecatedDate(value *string)
 	SetDeprecationReason(value *string)
 	SetOwnerDomain(value *string)

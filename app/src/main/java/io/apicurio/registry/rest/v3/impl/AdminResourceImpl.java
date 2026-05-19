@@ -832,5 +832,31 @@ public class AdminResourceImpl implements AdminResource {
         return result;
     }
 
+    // ========== Global Contract Ruleset ==========
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public io.apicurio.registry.rest.v3.beans.ContractRuleSet getGlobalContractRuleset() {
+        io.apicurio.registry.storage.dto.ContractRuleSetDto dto = storage.getGlobalContractRuleset();
+        return ContractRuleSetMapper.toBean(dto);
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public io.apicurio.registry.rest.v3.beans.ContractRuleSet setGlobalContractRuleset(
+            io.apicurio.registry.rest.v3.beans.ContractRuleSet data) {
+        io.apicurio.registry.storage.dto.ContractRuleSetDto dto = ContractRuleSetMapper.toDto(data);
+        storage.setGlobalContractRuleset(dto);
+        return data;
+    }
+
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void deleteGlobalContractRuleset() {
+        storage.deleteGlobalContractRuleset();
+    }
+
 }
 

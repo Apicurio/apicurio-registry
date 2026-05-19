@@ -18,8 +18,14 @@ import io.apicurio.registry.utils.IoUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
@@ -34,14 +40,17 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     private static final String OPERATION_HEADER = "X-Registry-Operation";
 
     private final RegistryClient client;
+    private final String baseUrl;
+    private static final HttpClient HTTP = HttpClient.newHttpClient();
     private final String clientId;
 
     public RegistryClientFacadeImpl(RegistryClient client) {
-        this(client, null);
+        this(client, null, null);
     }
 
-    public RegistryClientFacadeImpl(RegistryClient client, String clientId) {
+    public RegistryClientFacadeImpl(RegistryClient client, String baseUrl, String clientId) {
         this.client = client;
+        this.baseUrl = baseUrl;
         this.clientId = clientId;
     }
 
@@ -182,6 +191,52 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ContractRuleExecutionResult executeContractRules(String groupId, String artifactId,
+            String version, String mode, Map<String, Object> record) {
+        if (baseUrl == null) {
+            return null;
+        }
+        try {
+            String g = groupId != null ? groupId : "default";
+            String ver = version != null ? version : "branch=latest";
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            var body = new java.util.LinkedHashMap<String, Object>();
+            body.put("mode", mode);
+            body.put("record", record != null ? record : Map.of());
+            String json = mapper.writeValueAsString(body);
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/groups/" + g + "/artifacts/" + artifactId
+                            + "/versions/" + java.net.URLEncoder.encode(ver, StandardCharsets.UTF_8)
+                            + "/contract/execute"))
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json)).build();
+            HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() >= 400) {
+                return new ContractRuleExecutionResult(false, null,
+                        List.of("Server returned " + resp.statusCode() + ": " + resp.body()));
+            }
+            Map<String, Object> result = mapper.readValue(resp.body(), Map.class);
+            boolean passed = Boolean.TRUE.equals(result.get("passed"));
+            List<String> violations = new ArrayList<>();
+            if (result.get("violations") instanceof List) {
+                for (Object v : (List<?>) result.get("violations")) {
+                    violations.add(v.toString());
+                }
+            }
+            return new ContractRuleExecutionResult(passed, null, violations);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new ContractRuleExecutionResult(false, null,
+                    List.of("Contract rule execution interrupted: " + e.getMessage()));
+        } catch (Exception e) {
+            return new ContractRuleExecutionResult(false, null,
+                    List.of("Contract rule execution failed: " + e.getMessage()));
+        }
     }
 
     private static List<ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {

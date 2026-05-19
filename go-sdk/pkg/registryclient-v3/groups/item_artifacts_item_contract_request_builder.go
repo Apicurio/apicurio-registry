@@ -9,6 +9,18 @@ type ItemArtifactsItemContractRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
+// Audit get the contract audit log for an artifact.
+// returns a *ItemArtifactsItemContractAuditRequestBuilder when successful
+func (m *ItemArtifactsItemContractRequestBuilder) Audit() *ItemArtifactsItemContractAuditRequestBuilder {
+	return NewItemArtifactsItemContractAuditRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// CompatibilityGroup manage the compatibility group for an artifact's contract.
+// returns a *ItemArtifactsItemContractCompatibilityGroupRequestBuilder when successful
+func (m *ItemArtifactsItemContractRequestBuilder) CompatibilityGroup() *ItemArtifactsItemContractCompatibilityGroupRequestBuilder {
+	return NewItemArtifactsItemContractCompatibilityGroupRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // NewItemArtifactsItemContractRequestBuilderInternal instantiates a new ItemArtifactsItemContractRequestBuilder and sets the default values.
 func NewItemArtifactsItemContractRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemContractRequestBuilder {
 	m := &ItemArtifactsItemContractRequestBuilder{
@@ -34,6 +46,12 @@ func (m *ItemArtifactsItemContractRequestBuilder) Export() *ItemArtifactsItemCon
 // returns a *ItemArtifactsItemContractMetadataRequestBuilder when successful
 func (m *ItemArtifactsItemContractRequestBuilder) Metadata() *ItemArtifactsItemContractMetadataRequestBuilder {
 	return NewItemArtifactsItemContractMetadataRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Migrate execute migration rules to transform a record between versions.
+// returns a *ItemArtifactsItemContractMigrateRequestBuilder when successful
+func (m *ItemArtifactsItemContractRequestBuilder) Migrate() *ItemArtifactsItemContractMigrateRequestBuilder {
+	return NewItemArtifactsItemContractMigrateRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // Promote promote a contract to the next deployment stage.

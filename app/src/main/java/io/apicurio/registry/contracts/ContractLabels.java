@@ -31,6 +31,9 @@ public final class ContractLabels {
     // Quality suffixes (stored, not enforced by registry)
     public static final String SUFFIX_QUALITY_FRESHNESS_MAX_STALENESS = "quality.freshness.maxStaleness";
 
+    // Compatibility group suffix
+    public static final String SUFFIX_COMPATIBILITY_GROUP = "compatibility.group";
+
     // ODCS source tracking suffixes
     public static final String SUFFIX_ID = "id";
     public static final String SUFFIX_VERSION = "version";

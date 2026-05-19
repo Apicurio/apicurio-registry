@@ -22,6 +22,9 @@ import static io.apicurio.registry.serde.BaseSerde.MAGIC_BYTE;
 
 public abstract class AbstractSerializer<T, U> implements AutoCloseable {
 
+    private static final java.util.logging.Logger LOG = java.util.logging.Logger.getLogger(
+            AbstractSerializer.class.getName());
+
     /**
      * Default initial buffer size for ByteArrayOutputStream.
      * Pre-sized to avoid array resizing for typical message sizes.
@@ -49,6 +52,8 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
     private final Map<SchemaCacheKey, SchemaLookupResult<T>> fastPathCache = BoundedCacheFactory.createLRU(MAX_CACHE_SIZE);
 
     private final BaseSerde<T, U> baseSerde;
+    private boolean contractRulesEnabled = false;
+    private boolean contractRulesFailOnError = true;
 
     public AbstractSerializer() {
         this.baseSerde = new BaseSerde<>();
@@ -98,6 +103,14 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
 
     public void configure(SerdeConfig config, boolean isKey) {
         baseSerde.configure(config, isKey, schemaParser());
+        Object enabled = config.originals().get(SerdeConfig.CONTRACT_RULES_ENABLED);
+        if (enabled != null) {
+            contractRulesEnabled = Boolean.parseBoolean(enabled.toString());
+        }
+        Object failOnError = config.originals().get(SerdeConfig.CONTRACT_RULES_FAIL_ON_ERROR);
+        if (failOnError != null) {
+            contractRulesFailOnError = Boolean.parseBoolean(failOnError.toString());
+        }
     }
 
     public byte[] serializeData(String topic, U data) {
@@ -133,6 +146,10 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
                 }
             }
 
+            if (contractRulesEnabled) {
+                executeContractRulesForWrite(schema, data);
+            }
+
             // Pre-size buffer to avoid array resizing for typical messages
             ByteArrayOutputStream out = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
             out.write(MAGIC_BYTE);
@@ -147,6 +164,53 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
 
     public BaseSerde<T, U> getSerdeConfigurer() {
         return baseSerde;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void executeContractRulesForWrite(SchemaLookupResult<T> schema, U data) {
+        try {
+            var ref = schema.toArtifactReference();
+            var facade = baseSerde.getClientFacade();
+            if (facade == null) {
+                return;
+            }
+            if (ref.getArtifactId() == null || ref.getArtifactId().isEmpty()) {
+                return;
+            }
+            Map<String, Object> recordMap = dataToMap(data);
+            var result = facade.executeContractRules(
+                    ref.getGroupId(), ref.getArtifactId(), ref.getVersion(),
+                    "WRITE", recordMap);
+            if (result != null && !result.isPassed()) {
+                String msg = "Contract rule validation failed (WRITE): " + result.getViolations();
+                if (contractRulesFailOnError) {
+                    throw new RuntimeException(msg);
+                }
+                LOG.warning(msg);
+            }
+        } catch (RuntimeException e) {
+            if (contractRulesFailOnError) {
+                throw e;
+            }
+            LOG.warning("Contract rule execution failed: " + e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> dataToMap(U data) {
+        if (data == null) {
+            return Map.of();
+        }
+        if (data instanceof Map) {
+            return (Map<String, Object>) data;
+        }
+        try {
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String json = data.toString();
+            return mapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            return Map.of();
+        }
     }
 
     @Override

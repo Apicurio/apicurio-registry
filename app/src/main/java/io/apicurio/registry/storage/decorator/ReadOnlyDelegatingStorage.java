@@ -173,6 +173,36 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     }
 
     @Override
+    public io.apicurio.registry.storage.dto.ContractRuleSetDto getGlobalContractRuleset()
+            throws RegistryStorageException {
+        return delegate.getGlobalContractRuleset();
+    }
+
+    @Override
+    public void setGlobalContractRuleset(io.apicurio.registry.storage.dto.ContractRuleSetDto ruleset)
+            throws RegistryStorageException {
+        delegate.setGlobalContractRuleset(ruleset);
+    }
+
+    @Override
+    public void deleteGlobalContractRuleset() throws RegistryStorageException {
+        delegate.deleteGlobalContractRuleset();
+    }
+
+    @Override
+    public void insertContractAuditEntry(io.apicurio.registry.storage.dto.ContractAuditEntryDto entry)
+            throws RegistryStorageException {
+        delegate.insertContractAuditEntry(entry);
+    }
+
+    @Override
+    public java.util.List<io.apicurio.registry.storage.dto.ContractAuditEntryDto> getContractAuditLog(
+            String groupId, String artifactId, int offset, int limit)
+            throws RegistryStorageException {
+        return delegate.getContractAuditLog(groupId, artifactId, offset, limit);
+    }
+
+    @Override
     public List<String> getArtifactVersions(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         return delegate.getArtifactVersions(groupId, artifactId);

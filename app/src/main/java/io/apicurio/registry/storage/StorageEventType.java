@@ -46,5 +46,14 @@ public enum StorageEventType {
     ARTIFACT_RULE_CONFIGURED,
 
     /** An artifact version's lifecycle state was changed (e.g. ENABLED to DEPRECATED). */
-    ARTIFACT_VERSION_STATE_CHANGED
+    ARTIFACT_VERSION_STATE_CHANGED,
+
+    /** A contract ruleset was created, updated, or deleted. */
+    CONTRACT_RULESET_CONFIGURED,
+
+    /** Contract metadata labels were updated. */
+    CONTRACT_METADATA_UPDATED,
+
+    /** Contract lifecycle status was changed (e.g. DRAFT to STABLE). */
+    CONTRACT_STATUS_CHANGED
 }

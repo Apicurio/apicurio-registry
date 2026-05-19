@@ -10,6 +10,8 @@ type EditableContractMetadata struct {
 	additionalData map[string]any
 	// Data classification level.
 	classification *EditableContractMetadata_classification
+	// Compatibility group for schema evolution scoping.
+	compatibilityGroup *string
 	// The domain the contract belongs to.
 	ownerDomain *string
 	// The team that owns the contract.
@@ -47,6 +49,12 @@ func (m *EditableContractMetadata) GetClassification() *EditableContractMetadata
 	return m.classification
 }
 
+// GetCompatibilityGroup gets the compatibilityGroup property value. Compatibility group for schema evolution scoping.
+// returns a *string when successful
+func (m *EditableContractMetadata) GetCompatibilityGroup() *string {
+	return m.compatibilityGroup
+}
+
 // GetFieldDeserializers the deserialization information for the current model
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
 func (m *EditableContractMetadata) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
@@ -58,6 +66,16 @@ func (m *EditableContractMetadata) GetFieldDeserializers() map[string]func(i878a
 		}
 		if val != nil {
 			m.SetClassification(val.(*EditableContractMetadata_classification))
+		}
+		return nil
+	}
+	res["compatibilityGroup"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetStringValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetCompatibilityGroup(val)
 		}
 		return nil
 	}
@@ -154,6 +172,12 @@ func (m *EditableContractMetadata) Serialize(writer i878a80d2330e89d26896388a3f4
 		}
 	}
 	{
+		err := writer.WriteStringValue("compatibilityGroup", m.GetCompatibilityGroup())
+		if err != nil {
+			return err
+		}
+	}
+	{
 		err := writer.WriteStringValue("ownerDomain", m.GetOwnerDomain())
 		if err != nil {
 			return err
@@ -204,6 +228,11 @@ func (m *EditableContractMetadata) SetClassification(value *EditableContractMeta
 	m.classification = value
 }
 
+// SetCompatibilityGroup sets the compatibilityGroup property value. Compatibility group for schema evolution scoping.
+func (m *EditableContractMetadata) SetCompatibilityGroup(value *string) {
+	m.compatibilityGroup = value
+}
+
 // SetOwnerDomain sets the ownerDomain property value. The domain the contract belongs to.
 func (m *EditableContractMetadata) SetOwnerDomain(value *string) {
 	m.ownerDomain = value
@@ -233,12 +262,14 @@ type EditableContractMetadataable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetClassification() *EditableContractMetadata_classification
+	GetCompatibilityGroup() *string
 	GetOwnerDomain() *string
 	GetOwnerTeam() *string
 	GetStage() *EditableContractMetadata_stage
 	GetStatus() *EditableContractMetadata_status
 	GetSupportContact() *string
 	SetClassification(value *EditableContractMetadata_classification)
+	SetCompatibilityGroup(value *string)
 	SetOwnerDomain(value *string)
 	SetOwnerTeam(value *string)
 	SetStage(value *EditableContractMetadata_stage)

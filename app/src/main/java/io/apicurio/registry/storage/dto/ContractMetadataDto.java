@@ -32,4 +32,5 @@ public class ContractMetadataDto {
     private String stableDate;
     private String deprecatedDate;
     private String deprecationReason;
+    private String compatibilityGroup;
 }

@@ -52,15 +52,13 @@ public class App {
             configOverride.withUseSSAToPatchPrimaryResource(false);
             if (Configuration.isLeaderElectionEnabled()) {
                 var leaseName = Configuration.getLeaderElectionLeaseName();
-                var leaseNamespace = Configuration.getLeaderElectionLeaseNamespace();
-                var leaseBuilder = LeaderElectionConfigurationBuilder.aLeaderElectionConfiguration(leaseName);
-                if (isBlank(leaseNamespace)) {
-                     log.info("Leader election enabled with lease name '{}'", leaseName);
-                } else {
-                    log.info("Leader election enabled with lease name '{}' in namespace '{}'", leaseName, leaseNamespace);
-                    leaseBuilder.withLeaseNamespace(leaseNamespace);
-                }
-                 configOverride.withLeaderElectionConfiguration(leaseBuilder.build());
+                // Namespace is always present here because isLeaderElectionEnabled() checks it
+                var leaseNamespace = Configuration.getLeaderElectionLeaseNamespace().orElseThrow();
+                log.info("Leader election enabled with lease name '{}' in namespace '{}'", leaseName, leaseNamespace);
+                var leaseConfig = LeaderElectionConfigurationBuilder.aLeaderElectionConfiguration(leaseName)
+                        .withLeaseNamespace(leaseNamespace)
+                        .build();
+                configOverride.withLeaderElectionConfiguration(leaseConfig);
             } else {
                 log.warn("Leader election is disabled.");
             }

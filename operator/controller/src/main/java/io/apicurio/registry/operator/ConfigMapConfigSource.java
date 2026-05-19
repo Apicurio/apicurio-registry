@@ -14,9 +14,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static io.apicurio.registry.operator.resource.Labels.getMinimalOperatorSelectorLabels;
-import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static io.fabric8.kubernetes.client.Config.autoConfigure;
-import static java.lang.System.getenv;
 
 public class ConfigMapConfigSource implements ConfigSource {
 
@@ -29,8 +27,9 @@ public class ConfigMapConfigSource implements ConfigSource {
     private void init() {
         if (!initExecuted) {
             initExecuted = true;
-            var namespace = getenv("POD_NAMESPACE");
-            if (!isBlank(namespace)) {
+            var namespaceOpt = Configuration.getControllerNamespace();
+            if (namespaceOpt.isPresent()) {
+                var namespace = namespaceOpt.get();
                 try (KubernetesClient client = new KubernetesClientBuilder()
                         .withConfig(new ConfigBuilder(autoConfigure(null)).withNamespace(namespace).build())
                         .build()) {

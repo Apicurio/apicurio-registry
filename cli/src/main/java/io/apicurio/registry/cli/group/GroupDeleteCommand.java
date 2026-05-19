@@ -4,7 +4,7 @@ import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+
 import io.apicurio.registry.rest.client.models.SortOrder;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -12,7 +12,7 @@ import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
+
 import static java.util.Optional.ofNullable;
 
 @Command(
@@ -37,52 +37,41 @@ public class GroupDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        try {
-            // Check if the group exists
-            client.getRegistryClient().groups().byGroupId(groupId).get();
+        // Check if the group exists
+        client.getRegistryClient().groups().byGroupId(groupId).get();
 
-            // Check if the group has artifacts
-            var artifacts = client.getRegistryClient().groups().byGroupId(groupId).artifacts().get(r -> {
-                //noinspection ConstantConditions
-                r.queryParameters.offset = 0;
-                r.queryParameters.limit = 1;
-                r.queryParameters.orderby = ArtifactSortBy.ArtifactId;
-                r.queryParameters.order = SortOrder.Asc;
-            });
+        // Check if the group has artifacts
+        var artifacts = client.getRegistryClient().groups().byGroupId(groupId).artifacts().get(r -> {
             //noinspection ConstantConditions
-            var artifactCount = ofNullable(artifacts.getCount()).orElseThrow(
-                    () -> new CliException(
-                            "Invalid response from server. Unable to determine artifact count for group '" + groupId + "'.",
-                            APPLICATION_ERROR_RETURN_CODE
-                    )
+            r.queryParameters.offset = 0;
+            r.queryParameters.limit = 1;
+            r.queryParameters.orderby = ArtifactSortBy.ArtifactId;
+            r.queryParameters.order = SortOrder.Asc;
+        });
+        //noinspection ConstantConditions
+        var artifactCount = ofNullable(artifacts.getCount()).orElseThrow(
+                () -> new CliException(
+                        "Invalid response from server. Unable to determine artifact count for group '" + groupId + "'.",
+                        APPLICATION_ERROR_RETURN_CODE
+                )
+        );
+        if (artifactCount > 0 && !force) {
+            throw new CliException(
+                    "Group '" + groupId + "' is not empty (contains " + artifactCount + " artifact(s)). " +
+                            "Use --force to delete the group and all its artifacts.",
+                    VALIDATION_ERROR_RETURN_CODE
             );
-            if (artifactCount > 0 && !force) {
-                throw new CliException(
-                        "Group '" + groupId + "' is not empty (contains " + artifactCount + " artifact(s)). " +
-                                "Use --force to delete the group and all its artifacts.",
-                        VALIDATION_ERROR_RETURN_CODE
-                );
-            }
-
-            // Delete the group
-            client.getRegistryClient().groups().byGroupId(groupId).delete();
-
-            output.writeStdOutChunk(out -> {
-                out.append("Group '").append(groupId).append("' deleted successfully");
-                if (artifactCount > 0) {
-                    out.append(" (including ").append(artifactCount).append(" artifact(s))");
-                }
-                out.append(".\n");
-            });
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err ->
-                    err.append("Error deleting group '")
-                            .append(groupId)
-                            .append("': ")
-                            .append(ex.getDetail())
-                            .append('\n')
-            );
-            exitQuietServerError();
         }
+
+        // Delete the group
+        client.getRegistryClient().groups().byGroupId(groupId).delete();
+
+        output.writeStdOutChunk(out -> {
+            out.append("Group '").append(groupId).append("' deleted successfully");
+            if (artifactCount > 0) {
+                out.append(" (including ").append(artifactCount).append(" artifact(s))");
+            }
+            out.append(".\n");
+        });
     }
 }

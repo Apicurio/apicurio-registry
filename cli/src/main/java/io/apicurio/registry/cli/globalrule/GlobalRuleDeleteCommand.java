@@ -3,13 +3,13 @@ package io.apicurio.registry.cli.globalrule;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
+
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
 
 @Command(
@@ -56,36 +56,16 @@ public class GlobalRuleDeleteCommand extends AbstractCommand {
     }
 
     private void deleteAllRules(final OutputBuffer output) {
-        try {
-            client.getRegistryClient().admin().rules().delete();
-            output.writeStdOutChunk(out -> {
-                out.append("All global rules deleted successfully.\n");
-            });
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error deleting all global rules: ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
-        }
+        client.getRegistryClient().admin().rules().delete();
+        output.writeStdOutChunk(out -> {
+            out.append("All global rules deleted successfully.\n");
+        });
     }
 
     private void deleteSingleRule(final OutputBuffer output) {
-        try {
-            client.getRegistryClient().admin().rules().byRuleType(ruleType).delete();
-            output.writeStdOutChunk(out -> {
-                out.append("Global rule '").append(ruleType).append("' deleted successfully.\n");
-            });
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error deleting global rule '")
-                        .append(ruleType)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
-        }
+        client.getRegistryClient().admin().rules().byRuleType(ruleType).delete();
+        output.writeStdOutChunk(out -> {
+            out.append("Global rule '").append(ruleType).append("' deleted successfully.\n");
+        });
     }
 }

@@ -5,14 +5,13 @@ import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateRule;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+
 import io.apicurio.registry.rest.client.models.RuleType;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.common.RuleUtil.printRule;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleConfig;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
@@ -63,44 +62,21 @@ public class ArtifactRuleCreateCommand extends AbstractCommand {
         final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
         validateRuleType(ruleType);
         validateRuleConfig(ruleType, ruleConfig);
-        try {
-            final var registryClient = client.getRegistryClient();
-            IdUtil.validateGroup(registryClient, resolvedGroupId);
-            final var newRule = new CreateRule();
-            newRule.setRuleType(RuleType.forValue(ruleType));
-            newRule.setConfig(ruleConfig);
-            registryClient.groups().byGroupId(resolvedGroupId)
-                    .artifacts().byArtifactId(resolvedArtifactId).rules().post(newRule);
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType, resolvedArtifactId, resolvedGroupId));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType, resolvedArtifactId, resolvedGroupId));
-            }
-            try {
-                //noinspection ConstantConditions
-                final var rule = convert(registryClient.groups().byGroupId(resolvedGroupId)
-                        .artifacts().byArtifactId(resolvedArtifactId).rules().byRuleType(ruleType).get());
-                printRule(output, rule, outputType);
-            } catch (final ProblemDetails ex) {
-                output.writeStdErrChunk(err -> {
-                    err.append("Warning: Artifact rule was created but failed to retrieve details: ")
-                            .append(ex.getDetail())
-                            .append('\n');
-                });
-            }
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error creating rule '")
-                        .append(ruleType)
-                        .append("' for artifact '")
-                        .append(resolvedArtifactId)
-                        .append("' in group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        final var registryClient = client.getRegistryClient();
+        IdUtil.validateGroup(registryClient, resolvedGroupId);
+        final var newRule = new CreateRule();
+        newRule.setRuleType(RuleType.forValue(ruleType));
+        newRule.setConfig(ruleConfig);
+        registryClient.groups().byGroupId(resolvedGroupId)
+                .artifacts().byArtifactId(resolvedArtifactId).rules().post(newRule);
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType, resolvedArtifactId, resolvedGroupId));
+            case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType, resolvedArtifactId, resolvedGroupId));
         }
+        //noinspection ConstantConditions
+        final var rule = convert(registryClient.groups().byGroupId(resolvedGroupId)
+                .artifacts().byArtifactId(resolvedArtifactId).rules().byRuleType(ruleType).get());
+        printRule(output, rule, outputType);
     }
 
     private static void successMessage(final StringBuilder out, final String ruleType,

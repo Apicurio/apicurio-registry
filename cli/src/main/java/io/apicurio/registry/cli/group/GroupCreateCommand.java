@@ -6,7 +6,7 @@ import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.Labels;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Parameters;
@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static io.apicurio.registry.cli.group.GroupGetCommand.printGroup;
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
+
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static picocli.CommandLine.Option;
@@ -60,23 +60,12 @@ public class GroupCreateCommand extends AbstractCommand {
             newLabels.setAdditionalData(new HashMap<>(Conversions.parseLabels(labels)));
             newGroup.setLabels(newLabels);
         }
-        try {
-            var group = convert(client.getRegistryClient().groups().post(newGroup));
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, group.getGroupId()));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, group.getGroupId()));
-            }
-            printGroup(output, group, outputType);
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error creating a new group '")
-                        .append(groupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        var group = convert(client.getRegistryClient().groups().post(newGroup));
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> successMessage(out, group.getGroupId()));
+            case table -> output.writeStdOutChunk(out -> successMessage(out, group.getGroupId()));
         }
+        printGroup(output, group, outputType);
     }
 
     private static void successMessage(StringBuilder out, String groupId) {

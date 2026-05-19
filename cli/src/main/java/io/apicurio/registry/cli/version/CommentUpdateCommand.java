@@ -4,12 +4,12 @@ import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.NewComment;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
+
 
 @Command(
         name = "update",
@@ -53,38 +53,21 @@ public class CommentUpdateCommand extends AbstractCommand {
     public void run(final OutputBuffer output) throws Exception {
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
-        try {
-            final var registryClient = client.getRegistryClient();
-            IdUtil.validateGroup(registryClient, resolvedGroupId);
-            IdUtil.validateArtifact(registryClient, resolvedGroupId, resolvedArtifactId);
-            final var resolvedText = "-".equals(commentText)
-                    ? new String(System.in.readAllBytes()).trim()
-                    : commentText;
-            final var updatedComment = new NewComment();
-            updatedComment.setValue(resolvedText);
-            registryClient.groups().byGroupId(resolvedGroupId)
-                    .artifacts().byArtifactId(resolvedArtifactId)
-                    .versions().byVersionExpression(versionExpression)
-                    .comments().byCommentId(commentId)
-                    .put(updatedComment);
-            output.writeStdOutChunk(out -> {
-                out.append("Comment '").append(commentId).append("' updated successfully.\n");
-            });
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error updating comment '")
-                        .append(commentId)
-                        .append("' on version '")
-                        .append(versionExpression)
-                        .append("' of artifact '")
-                        .append(resolvedArtifactId)
-                        .append("' in group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
-        }
+        final var registryClient = client.getRegistryClient();
+        IdUtil.validateGroup(registryClient, resolvedGroupId);
+        IdUtil.validateArtifact(registryClient, resolvedGroupId, resolvedArtifactId);
+        final var resolvedText = "-".equals(commentText)
+                ? new String(System.in.readAllBytes()).trim()
+                : commentText;
+        final var updatedComment = new NewComment();
+        updatedComment.setValue(resolvedText);
+        registryClient.groups().byGroupId(resolvedGroupId)
+                .artifacts().byArtifactId(resolvedArtifactId)
+                .versions().byVersionExpression(versionExpression)
+                .comments().byCommentId(commentId)
+                .put(updatedComment);
+        output.writeStdOutChunk(out -> {
+            out.append("Comment '").append(commentId).append("' updated successfully.\n");
+        });
     }
 }

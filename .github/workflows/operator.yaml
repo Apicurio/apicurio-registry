@@ -1,19 +1,11 @@
 name: Operator Test Workflow
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - operator/**
-  pull_request:
-    branches:
-      - main
-    paths:
-      - operator/**
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_call:
+    inputs:
+      publish:
+        description: Whether to publish operator images (only on push to main)
+        type: boolean
+        default: false
 
 env:
   REGISTRY_APP_IMAGE: ttl.sh/apicurio-registry-${{ github.sha }}:8h
@@ -86,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: operator-build
     # Only run local tests on push to main
-    if: github.event_name == 'push'
+    if: inputs.publish
     steps:
 
       - name: Checkout ${{ github.ref }}
@@ -240,7 +232,7 @@ jobs:
     name: Publish Operator
     runs-on: ubuntu-latest
     needs: [operator-test, operator-check-install]
-    if: github.event_name == 'push'
+    if: inputs.publish
     steps:
 
       - name: Configure env. variables
@@ -289,7 +281,7 @@ jobs:
   notify-slack:
     name: Slack Notification
     needs: operator-publish
-    if: always() && github.event_name == 'push'
+    if: always() && inputs.publish
     uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}

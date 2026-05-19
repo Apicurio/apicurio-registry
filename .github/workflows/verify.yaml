@@ -31,6 +31,7 @@ jobs:
       run-sdk: ${{ steps.decide.outputs.run-sdk }}
       run-cli: ${{ steps.decide.outputs.run-cli }}
       run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
+      run-operator: ${{ steps.decide.outputs.run-operator }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -77,6 +78,8 @@ jobs:
               - 'cli/**'
               - 'java-sdk/**'
               - '.github/workflows/verify-cli.yaml'
+            operator:
+              - 'operator/**'
             ci:
               - '.github/workflows/**'
 
@@ -105,7 +108,7 @@ jobs:
               LABEL='${{ github.event.label.name }}'
               if [[ "$LABEL" != lifecycle/* ]]; then
                 echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli; do
+                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator; do
                   echo "$out=false" >> "$GITHUB_OUTPUT"
                 done
                 exit 0
@@ -145,6 +148,7 @@ jobs:
           INTEGRATION='${{ steps.filter.outputs.integration }}'
           SDK='${{ steps.filter.outputs.sdk }}'
           CLI='${{ steps.filter.outputs.cli }}'
+          OPERATOR='${{ steps.filter.outputs.operator }}'
           GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
           CI='${{ steps.filter.outputs.ci }}'
 
@@ -173,6 +177,7 @@ jobs:
           decide run-extras      "$run_full"  "$IS_PUSH" "$JAVA" "$UI" "$CI"
           decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_full"  "$CLI"
+          decide run-operator   "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI"
           decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
 
       - name: Save decision summary
@@ -187,6 +192,7 @@ jobs:
             "run-extras": "${{ steps.decide.outputs.run-extras }}",
             "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
             "run-cli": "${{ steps.decide.outputs.run-cli }}",
+            "run-operator": "${{ steps.decide.outputs.run-operator }}",
             "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}"
           }
           ARTIFACT_EOF
@@ -198,6 +204,7 @@ jobs:
             "sdk": "${{ steps.filter.outputs.sdk }}",
             "cli": "${{ steps.filter.outputs.cli }}",
             "go-sdk-gen": "${{ steps.filter.outputs.go-sdk-gen }}",
+            "operator": "${{ steps.filter.outputs.operator }}",
             "ci": "${{ steps.filter.outputs.ci }}"
           }
           ARTIFACT_EOF
@@ -329,6 +336,18 @@ jobs:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
+  # Operator Tests
+  # ============================================================================
+  operator:
+    name: Operator Tests
+    needs: [decide]
+    if: needs.decide.outputs.run-operator == 'true'
+    uses: ./.github/workflows/operator.yaml
+    with:
+      publish: ${{ github.event_name == 'push' }}
+    secrets: inherit
+
+  # ============================================================================
   # VERIFICATION GATE: Single required check for branch protection
   #
   # Aggregates results from all test phases.  Passes when every upstream job
@@ -340,7 +359,7 @@ jobs:
     name: Verification Gate
     if: always()
     needs: [decide, lint-and-validate, build, unit-tests, cli-verify,
-            integration-tests, extras, sdk, go-sdk-freshness]
+            integration-tests, extras, sdk, go-sdk-freshness, operator]
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate gate
@@ -389,13 +408,13 @@ jobs:
   # ============================================================================
   notify-slack:
     name: Slack Notification
-    needs: [unit-tests, integration-tests, publish]
+    needs: [unit-tests, integration-tests, publish, operator]
     if: github.event_name == 'push' && always()
     uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'verification'
-      job-status: ${{ (needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.publish.result == 'failure') && 'failure' || 'success' }}
+      job-status: ${{ (needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure') && 'failure' || 'success' }}
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

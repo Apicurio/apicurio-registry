@@ -30,6 +30,7 @@ jobs:
       run-extras: ${{ steps.decide.outputs.run-extras }}
       run-sdk: ${{ steps.decide.outputs.run-sdk }}
       run-cli: ${{ steps.decide.outputs.run-cli }}
+      run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -68,6 +69,10 @@ jobs:
               - 'go-sdk/**'
               - 'python-sdk/**'
               - 'typescript-sdk/**'
+            go-sdk-gen:
+              - 'common/src/main/resources/META-INF/openapi.json'
+              - 'common/src/main/resources/META-INF/openapi-v2.json'
+              - 'go-sdk/**'
             cli:
               - 'cli/**'
               - 'java-sdk/**'
@@ -140,6 +145,7 @@ jobs:
           INTEGRATION='${{ steps.filter.outputs.integration }}'
           SDK='${{ steps.filter.outputs.sdk }}'
           CLI='${{ steps.filter.outputs.cli }}'
+          GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
           CI='${{ steps.filter.outputs.ci }}'
 
           # ── Phase 3: Combine scope + changes into per-phase decisions ─
@@ -167,6 +173,7 @@ jobs:
           decide run-extras      "$run_full"  "$IS_PUSH" "$JAVA" "$UI" "$CI"
           decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_full"  "$CLI"
+          decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
 
       - name: Save decision summary
         if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
@@ -179,7 +186,8 @@ jobs:
             "run-integration": "${{ steps.decide.outputs.run-integration }}",
             "run-extras": "${{ steps.decide.outputs.run-extras }}",
             "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
-            "run-cli": "${{ steps.decide.outputs.run-cli }}"
+            "run-cli": "${{ steps.decide.outputs.run-cli }}",
+            "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}"
           }
           ARTIFACT_EOF
           cat > /tmp/verify-changes.json << 'ARTIFACT_EOF'
@@ -189,6 +197,7 @@ jobs:
             "integration": "${{ steps.filter.outputs.integration }}",
             "sdk": "${{ steps.filter.outputs.sdk }}",
             "cli": "${{ steps.filter.outputs.cli }}",
+            "go-sdk-gen": "${{ steps.filter.outputs.go-sdk-gen }}",
             "ci": "${{ steps.filter.outputs.ci }}"
           }
           ARTIFACT_EOF
@@ -280,6 +289,35 @@ jobs:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
+  # Go SDK Freshness Check (no build dependency — runs early)
+  # ============================================================================
+  go-sdk-freshness:
+    name: Go SDK Freshness
+    runs-on: ubuntu-latest
+    needs: [decide]
+    if: needs.decide.outputs.run-go-sdk-freshness == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Regenerate Go SDK
+        run: |
+          cd go-sdk
+          make generate format
+
+      - name: Check for drift
+        run: |
+          if ! git diff --exit-code go-sdk/pkg/; then
+            echo "::error::Go SDK is out of date. Run 'cd go-sdk && make generate format' and commit the changes."
+            exit 1
+          fi
+
+  # ============================================================================
   # PHASE 6: SDK Verification (parallel)
   # ============================================================================
   sdk:
@@ -302,7 +340,7 @@ jobs:
     name: Verification Gate
     if: always()
     needs: [decide, lint-and-validate, build, unit-tests, cli-verify,
-            integration-tests, extras, sdk]
+            integration-tests, extras, sdk, go-sdk-freshness]
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate gate

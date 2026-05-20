@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.operator.Tags.FEATURE_SETUP;
+import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
@@ -197,17 +198,26 @@ public class MultitenancyPatternBITTest extends ITBase {
             checkDeploymentExists(registryAlpha, COMPONENT_APP, 1);
             checkDeploymentExists(registryBeta, COMPONENT_APP, 2);
 
+            var registryAlphaCell = k8sCell(client, () ->
+                    client.resources(ApicurioRegistry3.class)
+                            .inNamespace(tenantAlphaNs)
+                            .withName(registryAlpha.getMetadata().getName())
+                            .get());
+            var registryBetaCell = k8sCell(client, () ->
+                    client.resources(ApicurioRegistry3.class)
+                            .inNamespace(tenantBetaNs)
+                            .withName(registryBeta.getMetadata().getName())
+                            .get());
+
             // Scale up tenant Alpha to 3 replicas
-            registryAlpha.getSpec().getApp().setReplicas(3);
-            client.resource(registryAlpha).update();
+            registryAlphaCell.update(r -> r.getSpec().getApp().setReplicas(3));
 
             // Verify Alpha scaled up while Beta remains unchanged
             checkDeploymentExists(registryAlpha, COMPONENT_APP, 3);
             checkDeploymentExists(registryBeta, COMPONENT_APP, 2);
 
             // Scale down tenant Beta to 1 replica
-            registryBeta.getSpec().getApp().setReplicas(1);
-            client.resource(registryBeta).update();
+            registryBetaCell.update(r -> r.getSpec().getApp().setReplicas(1));
 
             // Verify Beta scaled down while Alpha remains unchanged
             checkDeploymentExists(registryAlpha, COMPONENT_APP, 3);

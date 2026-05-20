@@ -405,8 +405,11 @@ public abstract class ITBase {
         if (cleanup) {
             log.info("Deleting CRs");
             client.resources(ApicurioRegistry3.class).delete();
-            await().untilAsserted(() -> {
-                // TODO: Check if this is even used?
+            await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
+                assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                        .list().getItems()).isEmpty();
+            });
+            await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
                         .withLabels(getOperatorManagedLabels()).list().getItems();
                 assertThat(registryDeployments.size()).isZero();

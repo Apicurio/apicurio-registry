@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "1.0.0",
-    "@types/react": "19.2.14",
+    "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react-swc": "4.3.1",
     "eslint": "9.39.4",
@@ -32,7 +32,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "redoc": "2.5.2",
-    "styled-components": "6.4.1",
+    "styled-components": "6.4.2",
     "yaml": "2.9.0"
   }
 }

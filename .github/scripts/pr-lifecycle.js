@@ -431,7 +431,7 @@ async function reconcile(github, api, pr, core) {
     const approved = isApproved(reviews);
     const hasChangesRequested = !approved && hasLatestChangesRequested(reviews);
 
-    if (hasChangesRequested && !hasLabel(pr, LABELS.WAITING_ON_AUTHOR)) {
+    if (hasChangesRequested) {
       await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
       await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
       await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
@@ -939,6 +939,8 @@ async function handleReview({ github, context, core }) {
         await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
       }
       core.info(`PR #${pr.number} review dismissed, removed review-approved`);
+      const freshPr = await api.getPr(pr.number);
+      await reconcile(github, api, freshPr, core);
       return;
     }
 
@@ -951,7 +953,9 @@ async function handleReview({ github, context, core }) {
     }
 
     if (review.state === 'approved') {
-      await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+      if (hasLabel(pr, LABELS.TESTED)) {
+        await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+      }
       await api.addLabel(pr.number, LABELS.REVIEW_APPROVED);
       const freshPr = await api.getPr(pr.number);
       const result = await checkAndTransitionToReady(api, freshPr, core);

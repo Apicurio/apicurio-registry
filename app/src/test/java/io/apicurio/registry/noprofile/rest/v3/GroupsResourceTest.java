@@ -1829,6 +1829,43 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testCreateArtifactWithoutReferencesFieldWithIntegrityRule() throws Exception {
+        String groupId = "testCreateArtifactWithoutReferencesFieldWithIntegrityRule";
+        String artifactId = "my-schema";
+        String artifactContent = resourceToString("jsonschema-valid.json");
+
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        given()
+                .when().contentType(CT_JSON)
+                .body(createGroup)
+                .post("/registry/v3/groups")
+                .then().statusCode(200);
+
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.INTEGRITY);
+        createRule.setConfig(IntegrityLevel.ALL_REFS_MAPPED.name());
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .body(createRule)
+                .post("/registry/v3/groups/{groupId}/rules")
+                .then().statusCode(204);
+
+        io.apicurio.registry.rest.v3.beans.CreateArtifact createArtifact = TestUtils.serverCreateArtifact(
+                artifactId, ArtifactType.JSON, artifactContent, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .body(createArtifact)
+                .post("/registry/v3/groups/{groupId}/artifacts")
+                .then().statusCode(200)
+                .body("artifact.groupId", equalTo(groupId))
+                .body("artifact.artifactId", equalTo(artifactId))
+                .body("artifact.artifactType", equalTo(ArtifactType.JSON))
+                .body("version.version", equalTo("1"));
+    }
+
+    @Test
     public void testGetArtifactVersionWithReferences() throws Exception {
         String referencedTypesContent = resourceToString("referenced-types.json");
         String withExternalRefContent = resourceToString("openapi-with-external-ref.json");

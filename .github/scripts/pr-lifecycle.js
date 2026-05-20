@@ -1067,8 +1067,9 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
   const DECISION_KEYS = new Set([
     'lifecycle-ready', 'run-build', 'run-unit-tests',
     'run-integration', 'run-extras', 'run-sdk', 'run-cli',
+    'run-operator', 'run-go-sdk-freshness',
   ]);
-  const CHANGES_KEYS = new Set(['java', 'ui', 'integration', 'sdk', 'cli', 'ci']);
+  const CHANGES_KEYS = new Set(['java', 'ui', 'integration', 'sdk', 'cli', 'operator', 'go-sdk-gen', 'ci']);
   const ALLOWED_VALUES = new Set(['true', 'false', 'skip']);
   const EXPECTED_FILES = new Set(['verify-decisions.json', 'verify-changes.json']);
   const MAX_ARTIFACT_BYTES = 10240;
@@ -1170,6 +1171,7 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
       ['Extra Tests', 'run-extras', 'Extra Tests /'],
       ['SDK Verification', 'run-sdk', 'SDK Verification /'],
       ['CLI Verification', 'run-cli', 'CLI Verification'],
+      ['Operator Tests', 'run-operator', 'Operator Tests /'],
     ];
 
     const rows = phases.map(([label, key, jobPrefix]) =>

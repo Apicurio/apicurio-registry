@@ -4,14 +4,14 @@ import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateRule;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+
 import io.apicurio.registry.rest.client.models.RuleType;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
+
 import static io.apicurio.registry.cli.common.RuleUtil.printRule;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleConfig;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
@@ -48,36 +48,17 @@ public class GlobalRuleCreateCommand extends AbstractCommand {
     public void run(final OutputBuffer output) throws Exception {
         validateRuleType(ruleType);
         validateRuleConfig(ruleType, ruleConfig);
-        try {
-            final var newRule = new CreateRule();
-            newRule.setRuleType(RuleType.forValue(ruleType));
-            newRule.setConfig(ruleConfig);
-            client.getRegistryClient().admin().rules().post(newRule);
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType));
-            }
-            try {
-                //noinspection ConstantConditions
-                final var rule = convert(client.getRegistryClient().admin().rules().byRuleType(ruleType).get());
-                printRule(output, rule, outputType);
-            } catch (final ProblemDetails ex) {
-                output.writeStdErrChunk(err -> {
-                    err.append("Warning: Global rule was created but failed to retrieve details: ")
-                            .append(ex.getDetail())
-                            .append('\n');
-                });
-            }
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error creating global rule '")
-                        .append(ruleType)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        final var newRule = new CreateRule();
+        newRule.setRuleType(RuleType.forValue(ruleType));
+        newRule.setConfig(ruleConfig);
+        client.getRegistryClient().admin().rules().post(newRule);
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType));
+            case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType));
         }
+        //noinspection ConstantConditions
+        final var rule = convert(client.getRegistryClient().admin().rules().byRuleType(ruleType).get());
+        printRule(output, rule, outputType);
     }
 
     private static void successMessage(final StringBuilder out, final String ruleType) {

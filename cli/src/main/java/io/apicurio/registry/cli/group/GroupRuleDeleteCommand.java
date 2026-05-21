@@ -4,13 +4,13 @@ import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
+
 import static io.apicurio.registry.cli.common.RuleUtil.rejectDefaultGroup;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleType;
 
@@ -60,31 +60,18 @@ public class GroupRuleDeleteCommand extends AbstractCommand {
         if (!all) {
             validateRuleType(ruleType);
         }
-        try {
-            final var registryClient = client.getRegistryClient();
-            if (all) {
-                registryClient.groups().byGroupId(resolvedGroupId).rules().delete();
-                output.writeStdOutChunk(out -> {
-                    out.append("All rules deleted successfully for group '").append(resolvedGroupId).append("'.\n");
-                });
-            } else {
-                registryClient.groups().byGroupId(resolvedGroupId).rules().byRuleType(ruleType).delete();
-                output.writeStdOutChunk(out -> {
-                    out.append("Rule '").append(ruleType).append("' deleted successfully for group '")
-                            .append(resolvedGroupId).append("'.\n");
-                });
-            }
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error deleting rule")
-                        .append(ruleType != null ? " '" + ruleType + "'" : "s")
-                        .append(" for group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
+        final var registryClient = client.getRegistryClient();
+        if (all) {
+            registryClient.groups().byGroupId(resolvedGroupId).rules().delete();
+            output.writeStdOutChunk(out -> {
+                out.append("All rules deleted successfully for group '").append(resolvedGroupId).append("'.\n");
             });
-            exitQuietServerError();
+        } else {
+            registryClient.groups().byGroupId(resolvedGroupId).rules().byRuleType(ruleType).delete();
+            output.writeStdOutChunk(out -> {
+                out.append("Rule '").append(ruleType).append("' deleted successfully for group '")
+                        .append(resolvedGroupId).append("'.\n");
+            });
         }
     }
 }

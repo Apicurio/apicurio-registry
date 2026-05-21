@@ -20,6 +20,9 @@ public class AgentCapabilities {
     @JsonProperty("extendedAgentCard")
     private Boolean extendedAgentCard;
 
+    @JsonProperty("stateTransitionHistory")
+    private Boolean stateTransitionHistory;
+
     @JsonProperty("extensions")
     private List<AgentExtension> extensions;
 
@@ -49,6 +52,14 @@ public class AgentCapabilities {
 
     public Boolean getExtendedAgentCard() {
         return extendedAgentCard;
+    }
+
+    public Boolean getStateTransitionHistory() {
+        return stateTransitionHistory;
+    }
+
+    public void setStateTransitionHistory(Boolean stateTransitionHistory) {
+        this.stateTransitionHistory = stateTransitionHistory;
     }
 
     public void setExtendedAgentCard(Boolean extendedAgentCard) {
@@ -82,6 +93,11 @@ public class AgentCapabilities {
 
         public Builder extendedAgentCard(Boolean extendedAgentCard) {
             capabilities.setExtendedAgentCard(extendedAgentCard);
+            return this;
+        }
+
+        public Builder stateTransitionHistory(Boolean stateTransitionHistory) {
+            capabilities.setStateTransitionHistory(stateTransitionHistory);
             return this;
         }
 

@@ -1,6 +1,6 @@
 import "./App.css";
-import "@patternfly/patternfly/patternfly.css";
-import "@patternfly/patternfly/patternfly-addons.css";
+import "@patternfly/patternfly/dist/patternfly.css";
+import "@patternfly/patternfly/dist/patternfly-addons.css";
 
 import { FunctionComponent } from "react";
 import { BrowserRouter as Router } from "react-router";

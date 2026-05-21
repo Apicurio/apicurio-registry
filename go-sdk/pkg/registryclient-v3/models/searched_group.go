@@ -23,6 +23,8 @@ type SearchedGroup struct {
 	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	// The owner property
 	owner *string
+	// List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.
+	permissions []string
 }
 
 // NewSearchedGroup instantiates a new SearchedGroup and sets the default values.
@@ -130,6 +132,22 @@ func (m *SearchedGroup) GetFieldDeserializers() map[string]func(i878a80d2330e89d
 		}
 		return nil
 	}
+	res["permissions"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetCollectionOfPrimitiveValues("string")
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			res := make([]string, len(val))
+			for i, v := range val {
+				if v != nil {
+					res[i] = *(v.(*string))
+				}
+			}
+			m.SetPermissions(res)
+		}
+		return nil
+	}
 	return res
 }
 
@@ -161,6 +179,12 @@ func (m *SearchedGroup) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f307
 // returns a *string when successful
 func (m *SearchedGroup) GetOwner() *string {
 	return m.owner
+}
+
+// GetPermissions gets the permissions property value. List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.
+// returns a []string when successful
+func (m *SearchedGroup) GetPermissions() []string {
+	return m.permissions
 }
 
 // Serialize serializes information the current object
@@ -203,6 +227,12 @@ func (m *SearchedGroup) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0
 	}
 	{
 		err := writer.WriteStringValue("owner", m.GetOwner())
+		if err != nil {
+			return err
+		}
+	}
+	if m.GetPermissions() != nil {
+		err := writer.WriteCollectionOfStringValues("permissions", m.GetPermissions())
 		if err != nil {
 			return err
 		}
@@ -256,6 +286,11 @@ func (m *SearchedGroup) SetOwner(value *string) {
 	m.owner = value
 }
 
+// SetPermissions sets the permissions property value. List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.
+func (m *SearchedGroup) SetPermissions(value []string) {
+	m.permissions = value
+}
+
 type SearchedGroupable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
@@ -266,6 +301,7 @@ type SearchedGroupable interface {
 	GetModifiedBy() *string
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetOwner() *string
+	GetPermissions() []string
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetDescription(value *string)
 	SetGroupId(value *string)
@@ -273,4 +309,5 @@ type SearchedGroupable interface {
 	SetModifiedBy(value *string)
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetOwner(value *string)
+	SetPermissions(value []string)
 }

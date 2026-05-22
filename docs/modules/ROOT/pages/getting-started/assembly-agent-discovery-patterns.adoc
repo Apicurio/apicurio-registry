@@ -1,0 +1,305 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+:_mod-docs-content-type: ASSEMBLY
+[id="agent-discovery-patterns_{context}"]
+= Agent discovery and multi-agent orchestration
+
+[role="_abstract"]
+You can use {registry} well-known endpoints to discover AI agents by skill, capability, and input or output mode. You can also orchestrate multi-agent workflows by chaining agent outputs as context for subsequent agents.
+
+* xref:well-known-endpoint-architecture_{context}[]
+* xref:agent-discovery-patterns-overview_{context}[]
+* xref:multi-agent-orchestration-patterns_{context}[]
+* xref:agent-error-handling-and-resilience_{context}[]
+* xref:agent-catalog-design_{context}[]
+
+// ref-well-known-endpoint-architecture
+:_mod-docs-content-type: REFERENCE
+[id="well-known-endpoint-architecture_{context}"]
+== Well-known endpoint architecture
+
+[role="_abstract"]
+{registry} exposes well-known endpoints for agent discovery and JSON schema retrieval. Each endpoint serves a specific role in the A2A ecosystem.
+
+The following table lists all available well-known endpoints.
+
+[cols="3,1,4",options="header"]
+|===
+|Path |Method |Description
+
+|`/.well-known/agent.json`
+|GET
+|Returns the agent card for this {registry} instance. Use this endpoint for standard A2A protocol discovery.
+
+|`/.well-known/agents`
+|GET
+|Searches for registered agent cards by name, skill, capability, input mode, or output mode. Supports pagination with `offset` and `limit` parameters.
+
+|`/.well-known/agents/\{groupId}/\{artifactId}`
+|GET
+|Returns a specific registered agent card by group ID and artifact ID. Accepts an optional `version` query parameter that defaults to the latest version.
+
+|`/.well-known/schemas/\{type}/\{version}`
+|GET
+|Returns the JSON schema for a specific LLM artifact type. Supported types are `prompt-template` and `model-schema`, each with version `v1`.
+|===
+
+The `/.well-known/agent.json` endpoint returns the {registry} instance agent card, which represents the registry itself as an A2A agent. This endpoint requires no authentication.
+
+The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. These endpoints require read-level authorization.
+
+The `/.well-known/schemas/\{type}/\{version}` endpoint serves built-in JSON schemas that you can use for IDE autocompletion and validation of `PROMPT_TEMPLATE` and `MODEL_SCHEMA` artifacts. This endpoint requires no authentication.
+
+For detailed endpoint reference and Agent Card JSON structure, see xref:assembly-a2a-features_{context}[].
+
+// con-agent-discovery-patterns-overview
+:_mod-docs-content-type: CONCEPT
+[id="agent-discovery-patterns-overview_{context}"]
+== Discovery patterns
+
+[role="_abstract"]
+{registry} indexes agent card content as structured data when you store an `AGENT_CARD` artifact. You can query agents by skill, capability, input mode, output mode, or name by using the `/.well-known/agents` endpoint.
+
+.Capability-based discovery
+
+You can find agents that have specific skills by using the `skill` query parameter. {registry} indexes each skill ID from the agent card `skills` array as structured content with the key `agent_card:skill:<id>`.
+
+To find agents that have a specific skill, send a request with one `skill` parameter:
+
+[source,bash]
+----
+$ curl "http://localhost:8080/.well-known/agents?skill=translation"
+----
+
+To find agents that have multiple skills, repeat the `skill` parameter. {registry} returns only agents that match all specified skills:
+
+[source,bash]
+----
+$ curl "http://localhost:8080/.well-known/agents?skill=translation&skill=sentiment-analysis"
+----
+
+.Filtering by capabilities
+
+You can filter agents by capabilities such as streaming or push notification support. {registry} indexes each enabled capability from the agent card `capabilities` object as structured content with the key `agent_card:capability:<name>`.
+
+Specify capabilities in `name:value` format. For example, to find agents that support streaming:
+
+[source,bash]
+----
+$ curl "http://localhost:8080/.well-known/agents?capability=streaming:true"
+----
+
+To exclude agents that support streaming, set the value to `false`. {registry} negates the filter and returns only agents that do not have streaming enabled:
+
+[source,bash]
+----
+$ curl "http://localhost:8080/.well-known/agents?capability=streaming:false"
+----
+
+.Input and output mode filtering
+
+You can match agents by the data modalities they accept or produce. {registry} indexes each mode from the agent card `defaultInputModes` and `defaultOutputModes` arrays as structured content with the keys `agent_card:inputmode:<mode>` and `agent_card:outputmode:<mode>`.
+
+To find agents that accept image input and produce text output:
+
+[source,bash]
+----
+$ curl "http://localhost:8080/.well-known/agents?inputMode=image&outputMode=text"
+----
+
+.Name-based search
+
+You can filter agents by name by using partial matching. {registry} matches the `name` parameter against the artifact name:
+
+[source,bash]
+----
+$ curl "http://localhost:8080/.well-known/agents?name=sentiment"
+----
+
+.Combined filtering
+
+You can combine any of the previous filters in a single request. {registry} applies all filters together and returns only agents that match all specified criteria:
+
+[source,bash]
+----
+$ curl "http://localhost:8080/.well-known/agents?skill=translation&inputMode=text&outputMode=text&capability=streaming:true&limit=10"
+----
+
+// con-multi-agent-orchestration-patterns
+:_mod-docs-content-type: CONCEPT
+[id="multi-agent-orchestration-patterns_{context}"]
+== Multi-agent orchestration patterns
+
+[role="_abstract"]
+You can orchestrate multi-agent workflows by combining {registry} discovery endpoints with A2A task execution. {registry} provides the discovery layer, and your orchestrator code coordinates the agent interactions.
+
+.Sequential pipeline with context chaining
+
+In a sequential pipeline, each agent receives the original message and the accumulated outputs from all previous agents. Each agent builds on the work of the agents that ran before it.
+
+Use a sequential pipeline when:
+
+* Each processing step depends on results from previous steps
+* You need to accumulate context across a multi-step workflow
+* Agent outputs serve as inputs to subsequent agents
+
+The `examples/a2a-real-world-integration` example in the {registry} repository shows context chaining with four agents that process a customer complaint:
+
+. **Sentiment agent**: analyzes the original message and produces a sentiment score
+. **Issue analyzer**: receives the original message and the sentiment output, then identifies specific issues
+. **Response generator**: receives the original message, sentiment, and analysis, then generates a response
+. **Translation agent**: receives the generated response and translates it
+
+Each step stores its output under a context key. Subsequent steps reference previous outputs by using `\{{variable}}` template placeholders. A `WorkflowContext` object tracks the original message and all agent outputs:
+
+[source,java]
+----
+WorkflowContext context = new WorkflowContext();
+context.originalMessage = customerMessage;
+
+// After each step completes:
+context.agentOutputs.put("sentiment", sentimentResult);
+context.agentOutputs.put("analysis", analysisResult);
+
+// Build prompt for the next step:
+String prompt = context.buildPrompt("Original: {{original}}\nSentiment: {{sentiment}}");
+----
+
+.Parallel fan-out
+
+In a parallel fan-out, you send the same input to multiple agents simultaneously and aggregate the results. You discover the agents by using `/.well-known/agents` with appropriate filters.
+
+Use parallel fan-out when:
+
+* Multiple independent agents can process the same input
+* You want to reduce total processing time
+* You need to compare or merge results from different agents
+
+In a typical parallel fan-out, the orchestrator discovers agents with a specific skill by querying `/.well-known/agents?skill=<skill-id>`, sends the same A2A task to each discovered agent in parallel, and then collects the responses to merge or compare them.
+
+.Conditional routing
+
+In conditional routing, you use agent capabilities and skills to decide which agent handles a request. You inspect agent cards to select the best match.
+
+Use conditional routing when:
+
+* Different request types require different agents
+* You want to select agents based on their reported capabilities
+* You need to match input and output modalities
+
+In a typical conditional routing flow, the orchestrator determines the required capability from the incoming request (for example, `streaming:true` for real-time processing), queries `/.well-known/agents` with the appropriate filters, selects an agent from the results based on additional criteria such as version or provider, and sends the A2A task to the selected agent.
+
+// ref-agent-error-handling-and-resilience
+:_mod-docs-content-type: REFERENCE
+[id="agent-error-handling-and-resilience_{context}"]
+== Error handling and resilience
+
+[role="_abstract"]
+When you build multi-agent workflows, you must handle agent unavailability, version changes, and unexpected errors. The following table lists common error scenarios and recommended handling strategies.
+
+[cols="2,1,3",options="header"]
+|===
+|Scenario |HTTP status |Recommended handling
+
+|A2A support is disabled
+|404
+|Verify that `apicurio.a2a.enabled` is set to `true` in the {registry} configuration.
+
+|Agent card not found
+|404
+|Check that the agent card exists in the specified group and artifact ID. Verify that the artifact type is `AGENT_CARD`.
+
+|Artifact type mismatch
+|404
+|The artifact exists but is not an `AGENT_CARD`. Store the artifact with the correct artifact type.
+
+|Schema not found
+|404
+|The requested schema type or version is not supported. Use one of the supported types: `prompt-template` or `model-schema` with version `v1`.
+
+|Agent task execution fails
+|Varies
+|Store the error in the workflow context so that subsequent steps can detect and handle the failure. Implement fallback agent selection.
+
+|Search returns no results
+|200 (empty)
+|Verify that agent cards are stored with artifact type `AGENT_CARD`, check that your filter values match stored values, and confirm that structured content was indexed correctly.
+|===
+
+.Resilience strategies
+
+Agent health checks:: Before you send a task to a discovered agent, verify that the agent is reachable. Fetch the agent card from `/.well-known/agents/\{groupId}/\{artifactId}` and check the `supportedInterfaces` array for the agent URL. Send a health check request to the agent URL before dispatching the full task.
+
+Fallback agent selection:: When your primary agent is unavailable, query `/.well-known/agents` with the same skill filter to find alternative agents. Select the next available agent from the results and retry the task.
+
+Version pinning:: By default, the `/.well-known/agents/\{groupId}/\{artifactId}` endpoint returns the latest version of an agent card. To pin a specific version, include the `version` query parameter:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/.well-known/agents/ai-agents/my-agent?version=1.0.0"
+----
++
+Use version pinning in production environments to prevent unexpected behavior when you update agent cards.
+
+// con-agent-catalog-design
+:_mod-docs-content-type: CONCEPT
+[id="agent-catalog-design_{context}"]
+== Agent catalog design
+
+[role="_abstract"]
+You can organize your agent cards in {registry} by using groups, naming conventions, and versioning strategies that support efficient discovery and lifecycle management.
+
+.Group structure
+
+Organize agent cards into groups based on your organizational needs:
+
+* **By team**: `team-alpha`, `team-beta`. Use this approach when teams own distinct sets of agents and you want clear ownership boundaries.
+* **By capability**: `nlp-agents`, `vision-agents`, `data-agents`. Use this approach when you want to browse agents by functional area.
+* **By environment**: `dev-agents`, `staging-agents`, `prod-agents`. Use this approach when you run separate agent registries per environment, or when you need to distinguish agent versions by deployment target.
+
+.Agent card naming and versioning
+
+Use descriptive artifact IDs that indicate the agent purpose, such as `sentiment-analyzer` or `document-translator`. Include the version in the agent card content to distinguish between released versions.
+
+Follow semantic versioning for agent cards:
+
+* Increment the major version when you remove skills or change the agent URL.
+* Increment the minor version when you add skills or capabilities.
+* Increment the patch version for description or metadata updates.
+
+.Agent lifecycle
+
+Manage agent cards through a defined lifecycle:
+
+* **Draft**: an initial agent card in a development group (for example, `dev-agents/my-agent`), validated against {registry} validation rules.
+* **Published**: a production-ready agent card in a production group (for example, `prod-agents/my-agent`). Other agents and orchestrators discover the agent through well-known endpoints.
+* **Deprecated**: a disabled agent card version. Disabled versions are excluded from the `latest` branch and do not appear in search results that use default version resolution.
+
+.Structured content taxonomy
+
+{registry} automatically extracts structured content from agent cards for search indexing. The following table lists the structured content key prefixes and their sources.
+
+[cols="2,3",options="header"]
+|===
+|Structured content key |Source in agent card
+
+|`agent_card:skill:<id>`
+|Each `id` value in the `skills` array
+
+|`agent_card:capability:<name>`
+|Each property name in the `capabilities` object where the value is `true`
+
+|`agent_card:inputmode:<mode>`
+|Each value in the `defaultInputModes` array
+
+|`agent_card:outputmode:<mode>`
+|Each value in the `defaultOutputModes` array
+|===
+
+Design your agent cards with consistent skill IDs and capability names across your organization. With consistent naming, discovery queries return accurate results. For example, use `translation` rather than `translate` or `translator` as the skill ID across all translation agents.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-a2a-features.adoc[A2A agent features]
+* xref:getting-started/assembly-agent-registry-quickstart.adoc[Agent registry quick start]
+* xref:getting-started/assembly-mcp-server-integration.adoc[MCP server integration]

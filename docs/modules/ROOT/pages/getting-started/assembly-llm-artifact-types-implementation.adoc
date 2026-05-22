@@ -7,6 +7,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 {registry} includes built-in AI/ML artifact types (MODEL_SCHEMA and PROMPT_TEMPLATE). You can learn about the architecture, JSON Schema backing, MCP integration, and implementation details for these types.
 
+ifdef::service-registry-downstream[]
+WARNING: The AI agent integration features described in this section are available as a Technology Preview. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[Technology Preview Features Support Scope].
+endif::[]
+
 * xref:llm-artifact-types-architecture_{context}[]
 * xref:llm-artifact-types-json-schema-backing_{context}[]
 * xref:llm-artifact-types-mcp-integration_{context}[]

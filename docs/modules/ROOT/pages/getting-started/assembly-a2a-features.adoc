@@ -7,6 +7,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 {registry} implements the A2A (Agent-to-Agent) protocol for AI agent discovery, orchestration, and lifecycle management.
 
+ifdef::service-registry-downstream[]
+WARNING: The AI agent integration features described in this section are available as a Technology Preview. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[Technology Preview Features Support Scope].
+endif::[]
+
 * xref:a2a-overview_{context}[]
 * xref:a2a-configuration_{context}[]
 * xref:a2a-well-known-endpoints_{context}[]
@@ -76,7 +80,7 @@ You can control A2A features by using the following configuration properties.
 |Property |Default |Description
 
 |`apicurio.a2a.enabled`
-|`true`
+|`false`
 |Enable or disable A2A protocol support
 
 |`apicurio.a2a.agent.name`
@@ -325,18 +329,23 @@ Agent Cards have three validation levels that control how much validation occurs
 |Level |Description
 
 |`NONE`
-|No validation performed
+|No validation.
 
 |`SYNTAX_ONLY`
-|Validates JSON syntax only
+|Validates that the content is syntactically valid JSON and is a JSON object.
 
 |`FULL`
-|Complete schema validation including:
-- Required `name` field
-- Valid JSON structure
-- Skill objects with `id` and `name`
-- Boolean capability values
-- Array types for modes
+a|Complete schema validation including:
+
+* Required `name` field (non-empty string)
+* `description` and `version` fields
+* `supportedInterfaces` array, where each interface has `url`, `protocolBinding`, and `protocolVersion`
+* `provider` object with `organization` and `url`
+* `skills` array, where each skill has `id` and `name`
+* `capabilities` object with boolean values
+* `defaultInputModes` and `defaultOutputModes` arrays
+* Authentication and security scheme validation
+* Valid JSON structure
 |===
 
 // ref-a2a-compatibility-checking
@@ -372,23 +381,17 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 |===
 |Label pattern |Source
 
-|`a2a.skill.<id>`
-|Each skill ID in the skills array
+|`agent_card:skill:<id>`
+|Each skill ID in the `skills` array
 
-|`a2a.capability.<name>`
-|Enabled capabilities (streaming, pushNotifications)
+|`agent_card:capability:<name>`
+|Each enabled capability in the `capabilities` object (where value is `true`)
 
-|`a2a.inputMode.<mode>`
-|Each input mode
+|`agent_card:inputmode:<mode>`
+|Each value in the `defaultInputModes` array
 
-|`a2a.outputMode.<mode>`
-|Each output mode
-
-|`a2a.name`
-|Agent name
-
-|`a2a.url`
-|Agent URL
+|`agent_card:outputmode:<mode>`
+|Each value in the `defaultOutputModes` array
 |===
 
 // ref-a2a-registry-built-in-skills

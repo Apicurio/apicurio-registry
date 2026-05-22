@@ -7,6 +7,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 You can connect Large Language Model (LLM) clients such as Claude Desktop to {registry} by using the Model Context Protocol (MCP) server. The MCP server acts as a bridge between LLM clients and {registry}, so you can manage groups, artifacts, versions, and configuration properties through natural language.
 
+ifdef::service-registry-downstream[]
+WARNING: The AI agent integration features described in this section are available as a Technology Preview. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[Technology Preview Features Support Scope].
+endif::[]
+
 NOTE: The {registry} MCP server connects LLM clients to a running {registry} instance. For information about storing MCP tool definitions as artifacts in {registry}, see xref:getting-started/assembly-mcp-tool-features.adoc[].
 
 * xref:mcp-server-overview_{context}[]

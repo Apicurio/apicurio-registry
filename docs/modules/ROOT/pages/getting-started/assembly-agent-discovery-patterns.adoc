@@ -7,6 +7,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 You can use {registry} well-known endpoints to discover AI agents by skill, capability, and input or output mode. You can also orchestrate multi-agent workflows by chaining agent outputs as context for subsequent agents.
 
+ifdef::service-registry-downstream[]
+WARNING: The AI agent integration features described in this section are available as a Technology Preview. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[Technology Preview Features Support Scope].
+endif::[]
+
 * xref:well-known-endpoint-architecture_{context}[]
 * xref:agent-discovery-patterns-overview_{context}[]
 * xref:multi-agent-orchestration-patterns_{context}[]

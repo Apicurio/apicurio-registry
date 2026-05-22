@@ -7,6 +7,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 You can store and manage MCP (Model Context Protocol) tool definitions as first-class artifacts in {registry}. You can use MCP tool features for central governance, version management, and discovery of MCP tools across your organization.
 
+ifdef::service-registry-downstream[]
+WARNING: The AI agent integration features described in this section are available as a Technology Preview. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[Technology Preview Features Support Scope].
+endif::[]
+
 * xref:mcp-tool-features-overview_{context}[]
 * xref:mcp-tool-configuration_{context}[]
 * xref:mcp-tool-definition-schema_{context}[]

@@ -5,6 +5,8 @@ import io.smallrye.config.ConfigSourceInterceptorContext;
 import io.smallrye.config.ConfigValue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -173,26 +175,22 @@ public class DatabaseConfigInterceptorTest {
 
     // ---- All database kinds covered for telemetry ----
 
-    @Test
-    void testAllDatabaseKindsHaveCorrectTelemetry() {
-        for (RegistryDatabaseKind kind : RegistryDatabaseKind.values()) {
-            setUp();
-            setupStorageKind(kind.name());
+    @ParameterizedTest
+    @EnumSource(RegistryDatabaseKind.class)
+    void testAllDatabaseKindsHaveCorrectTelemetry(RegistryDatabaseKind kind) {
+        setupStorageKind(kind.name());
 
-            String dsName = kind.name();
-            // H2 is named "h2" in both the enum and datasource config
-            // Others: postgresql, mssql, mysql
-            String telemetryProp = "quarkus.datasource." + dsName + ".jdbc.telemetry";
-            String activeProp = "quarkus.datasource." + dsName + ".active";
+        String dsName = kind.name();
+        String telemetryProp = "quarkus.datasource." + dsName + ".jdbc.telemetry";
+        String activeProp = "quarkus.datasource." + dsName + ".active";
 
-            ConfigValue telemetry = interceptor.getValue(context, telemetryProp);
-            ConfigValue active = interceptor.getValue(context, activeProp);
+        ConfigValue telemetry = interceptor.getValue(context, telemetryProp);
+        ConfigValue active = interceptor.getValue(context, activeProp);
 
-            assertEquals("true", telemetry.getValue(),
-                    "Telemetry should be enabled for " + dsName + " when it is the active kind");
-            assertEquals("true", active.getValue(),
-                    "Active should be true for " + dsName + " when it is the selected kind");
-        }
+        assertEquals("true", telemetry.getValue(),
+                "Telemetry should be enabled for " + dsName + " when it is the active kind");
+        assertEquals("true", active.getValue(),
+                "Active should be true for " + dsName + " when it is the selected kind");
     }
 
     // ---- Helpers ----

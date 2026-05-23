@@ -49,11 +49,14 @@ public final class OTelAttributes {
     /** Request path. */
     public static final AttributeKey<String> ATTR_REQUEST_PATH = AttributeKey.stringKey("apicurio.registry.request.path");
 
-    /**
-     * Prefix for path-parameter attributes. Append the parameter name to form the
-     * full attribute key, e.g. {@code apicurio.registry.path.groupId}.
-     */
-    public static final String ATTR_PATH_PARAM_PREFIX = "apicurio.registry.path.";
+    /** Group ID extracted from path parameters. */
+    public static final AttributeKey<String> ATTR_PATH_GROUP_ID = AttributeKey.stringKey("apicurio.registry.path.groupId");
+
+    /** Artifact ID extracted from path parameters. */
+    public static final AttributeKey<String> ATTR_PATH_ARTIFACT_ID = AttributeKey.stringKey("apicurio.registry.path.artifactId");
+
+    /** Version extracted from path parameters. */
+    public static final AttributeKey<String> ATTR_PATH_VERSION = AttributeKey.stringKey("apicurio.registry.path.version");
 
     // -- Storage / StorageTracingInterceptor attributes --
 

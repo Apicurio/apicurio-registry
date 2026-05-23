@@ -45,13 +45,13 @@ public class TracingFilter implements ContainerRequestFilter {
             String version = extractPathParam(requestContext, "version");
 
             if (groupId != null) {
-                currentSpan.setAttribute(OTelAttributes.ATTR_PATH_PARAM_PREFIX + "groupId", groupId);
+                currentSpan.setAttribute(OTelAttributes.ATTR_PATH_GROUP_ID, groupId);
             }
             if (artifactId != null) {
-                currentSpan.setAttribute(OTelAttributes.ATTR_PATH_PARAM_PREFIX + "artifactId", artifactId);
+                currentSpan.setAttribute(OTelAttributes.ATTR_PATH_ARTIFACT_ID, artifactId);
             }
             if (version != null) {
-                currentSpan.setAttribute(OTelAttributes.ATTR_PATH_PARAM_PREFIX + "version", version);
+                currentSpan.setAttribute(OTelAttributes.ATTR_PATH_VERSION, version);
             }
         }
     }

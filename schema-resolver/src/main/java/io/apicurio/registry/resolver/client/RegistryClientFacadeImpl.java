@@ -13,12 +13,19 @@ import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.rest.client.models.VersionSortBy;
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.utils.IoUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
@@ -29,11 +36,24 @@ import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
  */
 public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
+    private static final String CLIENT_ID_HEADER = "X-Registry-Client-Id";
+    private static final String OPERATION_HEADER = "X-Registry-Operation";
+
     private final RegistryClient client;
+    private final String baseUrl;
+    private static final HttpClient HTTP = HttpClient.newHttpClient();
+    private final String clientId;
 
     public RegistryClientFacadeImpl(RegistryClient client) {
-        this.client = client;
+        this(client, null, null);
     }
+
+    public RegistryClientFacadeImpl(RegistryClient client, String baseUrl, String clientId) {
+        this.client = client;
+        this.baseUrl = baseUrl;
+        this.clientId = clientId;
+    }
+
 
     @Override
     public RegistryClient getClient() {
@@ -56,6 +76,13 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     public String getSchemaByGlobalId(long globalId, boolean dereferenced) {
         InputStream rawSchema = client.ids().globalIds().byGlobalId(globalId).get(config -> {
             config.headers.add("CANONICAL", "false");
+            if (clientId != null && !clientId.isEmpty()) {
+                config.headers.add(CLIENT_ID_HEADER, clientId);
+                String op = DefaultSchemaResolver.currentOperation.get();
+                if (op != null) {
+                    config.headers.add(OPERATION_HEADER, op);
+                }
+            }
             assert config.queryParameters != null;
             if (dereferenced) {
                 config.queryParameters.references = HandleReferencesType.DEREFERENCE;
@@ -126,31 +153,34 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     @Override
     public RegistryVersionCoordinates createSchema(String artifactType, String groupId, String artifactId, String version,
-                                                   String autoCreateBehavior, boolean canonical, String schemaString, Set<RegistryArtifactReference> references) {
-        CreateArtifact createArtifact = new CreateArtifact();
-        createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(artifactType);
-
+                                    String autoCreateBehavior, boolean canonical, String schemaString,
+                                    Set<RegistryArtifactReference> references) {
         CreateVersion createVersion = new CreateVersion();
         createVersion.setVersion(version);
+        VersionContent content = new VersionContent();
+        content.setContentType(ArtifactTypeToContentType.toContentType(artifactType));
+        content.setContent(schemaString);
+        content.setReferences(toClientReferences(references));
+        createVersion.setContent(content);
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactType(artifactType);
+        createArtifact.setArtifactId(artifactId);
         createArtifact.setFirstVersion(createVersion);
 
-        VersionContent versionContent = new VersionContent();
-        versionContent.setContent(schemaString);
-        versionContent.setContentType(ArtifactTypeToContentType.toContentType(artifactType));
-        if (references != null && !references.isEmpty()) {
-            versionContent.setReferences(toClientReferences(references));
-        }
-        createVersion.setContent(versionContent);
-
-        CreateArtifactResponse car = client.groups().byGroupId(groupId)
+        IfArtifactExists ifExists = IfArtifactExists.forValue(autoCreateBehavior);
+        CreateArtifactResponse response = client.groups()
+                .byGroupId(groupId)
                 .artifacts().post(createArtifact, config -> {
-                    config.queryParameters.ifExists = IfArtifactExists.forValue(autoCreateBehavior);
+                    config.queryParameters.ifExists = ifExists;
                     config.queryParameters.canonical = canonical;
                 });
-
-        return RegistryVersionCoordinates.create(car.getVersion().getGlobalId(), car.getVersion().getContentId(),
-                car.getVersion().getGroupId(), car.getVersion().getArtifactId(), car.getVersion().getVersion());
+        return RegistryVersionCoordinates.create(
+                response.getVersion().getGlobalId(),
+                response.getVersion().getContentId(),
+                response.getVersion().getGroupId(),
+                response.getVersion().getArtifactId(),
+                response.getVersion().getVersion()
+        );
     }
 
     @Override
@@ -161,6 +191,52 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ContractRuleExecutionResult executeContractRules(String groupId, String artifactId,
+            String version, String mode, Map<String, Object> record) {
+        if (baseUrl == null) {
+            return null;
+        }
+        try {
+            String g = groupId != null ? groupId : "default";
+            String ver = version != null ? version : "branch=latest";
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            var body = new java.util.LinkedHashMap<String, Object>();
+            body.put("mode", mode);
+            body.put("record", record != null ? record : Map.of());
+            String json = mapper.writeValueAsString(body);
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/groups/" + g + "/artifacts/" + artifactId
+                            + "/versions/" + java.net.URLEncoder.encode(ver, StandardCharsets.UTF_8)
+                            + "/contract/execute"))
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json)).build();
+            HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() >= 400) {
+                return new ContractRuleExecutionResult(false, null,
+                        List.of("Server returned " + resp.statusCode() + ": " + resp.body()));
+            }
+            Map<String, Object> result = mapper.readValue(resp.body(), Map.class);
+            boolean passed = Boolean.TRUE.equals(result.get("passed"));
+            List<String> violations = new ArrayList<>();
+            if (result.get("violations") instanceof List) {
+                for (Object v : (List<?>) result.get("violations")) {
+                    violations.add(v.toString());
+                }
+            }
+            return new ContractRuleExecutionResult(passed, null, violations);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new ContractRuleExecutionResult(false, null,
+                    List.of("Contract rule execution interrupted: " + e.getMessage()));
+        } catch (Exception e) {
+            return new ContractRuleExecutionResult(false, null,
+                    List.of("Contract rule execution failed: " + e.getMessage()));
+        }
     }
 
     private static List<ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {

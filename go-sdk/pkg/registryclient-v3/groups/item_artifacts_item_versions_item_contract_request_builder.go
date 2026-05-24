@@ -24,6 +24,12 @@ func NewItemArtifactsItemVersionsItemContractRequestBuilder(rawUrl string, reque
 	return NewItemArtifactsItemVersionsItemContractRequestBuilderInternal(urlParams, requestAdapter)
 }
 
+// Execute execute contract rules against a data record.
+// returns a *ItemArtifactsItemVersionsItemContractExecuteRequestBuilder when successful
+func (m *ItemArtifactsItemVersionsItemContractRequestBuilder) Execute() *ItemArtifactsItemVersionsItemContractExecuteRequestBuilder {
+	return NewItemArtifactsItemVersionsItemContractExecuteRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Ruleset manage contract ruleset for a specific artifact version.
 // returns a *ItemArtifactsItemVersionsItemContractRulesetRequestBuilder when successful
 func (m *ItemArtifactsItemVersionsItemContractRequestBuilder) Ruleset() *ItemArtifactsItemVersionsItemContractRulesetRequestBuilder {

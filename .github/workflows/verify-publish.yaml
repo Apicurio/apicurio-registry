@@ -85,7 +85,7 @@ jobs:
 
   publish-support-chat-image:
     name: Publish Support Chat Docker Image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - name: Checkout Code

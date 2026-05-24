@@ -2910,6 +2910,84 @@
         "description": "Gets a list of all the configured artifact types.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
       }
     },
+    "/admin/contracts/ruleset": {
+      "summary": "Manage the global contract ruleset.",
+      "get": {
+        "tags": [
+          "Admin",
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The global contract ruleset."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getGlobalContractRuleset",
+        "summary": "Get global contract ruleset",
+        "description": "Returns the global contract ruleset that applies to all artifacts."
+      },
+      "put": {
+        "tags": [
+          "Admin",
+          "Contracts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractRuleSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractRuleSet"
+                }
+              }
+            },
+            "description": "The global contract ruleset was set."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "setGlobalContractRuleset",
+        "summary": "Set global contract ruleset",
+        "description": "Sets the global contract ruleset that applies to all artifacts."
+      },
+      "delete": {
+        "tags": [
+          "Admin",
+          "Contracts"
+        ],
+        "responses": {
+          "204": {
+            "description": "The global contract ruleset was deleted."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteGlobalContractRuleset",
+        "summary": "Delete global contract ruleset",
+        "description": "Deletes the global contract ruleset."
+      }
+    },
     "/admin/snapshots": {
       "summary": "Triggers a snapshot of the Registry storage. Only supported in KafkaSQL storage",
       "post": {
@@ -3006,7 +3084,7 @@
         },
         "operationId": "triggerGitOpsSync",
         "summary": "Trigger GitOps synchronization",
-        "description": "**Experimental.** Requests an immediate synchronization of the GitOps storage. This resets the poll timer so the next scheduler cycle will poll the Git repository without waiting for the configured poll period.\n\nThe synchronization happens asynchronously — this endpoint returns immediately and the actual sync occurs on the next scheduler cycle.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "**Experimental.** Requests an immediate synchronization of the GitOps storage. This resets the poll timer so the next scheduler cycle will poll the Git repository without waiting for the configured poll period.\n\nThe synchronization happens asynchronously \u2014 this endpoint returns immediately and the actual sync occurs on the next scheduler cycle.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
     "/groups/{groupId}/artifacts/{artifactId}": {
@@ -3735,6 +3813,109 @@
         "operationId": "searchContractRulesByTag",
         "summary": "Search contract rules by tag",
         "description": "Returns all contract rules across all artifacts that contain the specified tag."
+      }
+    },
+    "/search/contracts": {
+      "summary": "Search for contracts.",
+      "get": {
+        "tags": [
+          "Search",
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "description": "Filter by contract status (DRAFT, STABLE, DEPRECATED).",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "ownerTeam",
+            "description": "Filter by owner team.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "compatibilityGroup",
+            "description": "Filter by compatibility group.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "offset",
+            "description": "Number of results to skip.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "description": "Maximum number of results to return.",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "order",
+            "description": "Sort order (asc or desc).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "orderby",
+            "description": "Field to sort by.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "createdOn",
+                "modifiedOn"
+              ]
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactSearchResults"
+                }
+              }
+            },
+            "description": "A paginated list of artifacts that have contract metadata."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "searchContracts",
+        "summary": "Search contracts",
+        "description": "Searches for artifacts that have contract metadata labels. Filters by status, owner team, and compatibility group."
       }
     },
     "/groups/{groupId}/artifacts/{artifactId}/branches/{branchId}/versions": {
@@ -4756,7 +4937,1022 @@
         }
       ]
     },
-    "x-codegen-contextRoot": "/apis/registry/v3"
+    "/groups/{groupId}/contracts": {
+      "summary": "Manage ODCS data contracts within a group.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/x-yaml": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OdcsContractResult"
+                }
+              }
+            },
+            "description": "The contract was created (or updated if it already exists) and projected onto the referenced schema artifact."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "submitContract",
+        "summary": "Submit an ODCS contract",
+        "description": "Submits an ODCS v3.1 YAML contract. The contract is parsed, stored as an ODCS_CONTRACT artifact, and its contents are projected onto the referenced schema artifact (labels, rules, field tags)."
+      },
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OdcsContractSummary"
+                  }
+                }
+              }
+            },
+            "description": "List of ODCS contracts in the group."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "listContracts",
+        "summary": "List ODCS contracts",
+        "description": "Returns ODCS contracts in the specified group with pagination.",
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "Maximum number of contracts to return (default 20, max 500).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "Number of contracts to skip (for pagination).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "in": "query"
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/contracts/{contractId}": {
+      "summary": "Manage a specific ODCS contract.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-yaml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The ODCS contract YAML."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getContract",
+        "summary": "Get an ODCS contract",
+        "description": "Returns the ODCS contract YAML for the specified contract."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/x-yaml": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OdcsContractResult"
+                }
+              }
+            },
+            "description": "The contract was updated and re-projected."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updateContract",
+        "summary": "Update an ODCS contract",
+        "description": "Updates an ODCS contract (creates a new version) and re-projects onto the referenced schema artifact."
+      },
+      "delete": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "204": {
+            "description": "The contract was deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deleteContract",
+        "summary": "Delete an ODCS contract",
+        "description": "Deletes the ODCS contract artifact."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "contractId",
+          "description": "The contract ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/export": {
+      "summary": "Export contract metadata, rules, and field tags as ODCS YAML.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-yaml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The reconstructed ODCS contract YAML."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "exportContractAsOdcs",
+        "summary": "Export as ODCS",
+        "description": "Reconstructs an ODCS v3.1 YAML contract from the artifact's current contract.* labels, contract rules, and field-tag.* version labels."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/promote": {
+      "summary": "Promote a contract to the next deployment stage.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contractId": {
+                    "type": "string"
+                  },
+                  "targetStage": {
+                    "type": "string",
+                    "enum": [
+                      "DEV",
+                      "STAGE",
+                      "PROD"
+                    ]
+                  }
+                },
+                "required": [
+                  "contractId",
+                  "targetStage"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stage": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The contract was promoted."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "promoteContract",
+        "summary": "Promote contract stage",
+        "description": "Promotes a contract to the next deployment stage (DEV -> STAGE -> PROD)."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/quality": {
+      "summary": "Get quality score for a contract.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "overall": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "completeness": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "compliance": {
+                      "type": "number",
+                      "format": "float"
+                    },
+                    "stability": {
+                      "type": "number",
+                      "format": "float"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The quality score."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getContractQuality",
+        "summary": "Get quality score",
+        "description": "Returns the quality score for a contract, with breakdown by completeness, compliance, and stability.",
+        "parameters": [
+          {
+            "name": "contractId",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": true
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/audit": {
+      "summary": "Get the contract audit log for an artifact.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "auditId": {
+                        "type": "integer"
+                      },
+                      "groupId": {
+                        "type": "string"
+                      },
+                      "artifactId": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      },
+                      "action": {
+                        "type": "string"
+                      },
+                      "principal": {
+                        "type": "string"
+                      },
+                      "details": {
+                        "type": "string"
+                      },
+                      "createdOn": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The audit log entries."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getContractAuditLog",
+        "summary": "Get contract audit log",
+        "description": "Returns a paginated audit log of contract operations for the specified artifact."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group": {
+      "summary": "Manage the compatibility group for an artifact's contract.",
+      "get": {
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "compatibilityGroup": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The compatibility group."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getCompatibilityGroup",
+        "summary": "Get compatibility group",
+        "description": "Returns the compatibility group for the artifact's contract.",
+        "parameters": [
+          {
+            "name": "contractId",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "required": true
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Contracts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contractId": {
+                    "type": "string"
+                  },
+                  "compatibilityGroup": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "contractId",
+                  "compatibilityGroup"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Compatibility group updated."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "setCompatibilityGroup",
+        "summary": "Set compatibility group",
+        "description": "Sets the compatibility group for the artifact's contract."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/contract/migrate": {
+      "summary": "Execute migration rules to transform a record between versions.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fromVersion": {
+                    "type": "string"
+                  },
+                  "toVersion": {
+                    "type": "string"
+                  },
+                  "record": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                },
+                "required": [
+                  "fromVersion",
+                  "toVersion",
+                  "record"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "passed": {
+                      "type": "boolean"
+                    },
+                    "transformedRecord": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "violations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ruleName": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "action": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "executedRules": {
+                      "type": "integer"
+                    },
+                    "failedRules": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The migration result."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "migrateContractRecord",
+        "summary": "Migrate record between versions",
+        "description": "Executes migration rules to transform a record from one schema version to another, chaining transforms across version hops."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute": {
+      "summary": "Execute contract rules against a data record.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "WRITE",
+                      "READ"
+                    ]
+                  },
+                  "record": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                },
+                "required": [
+                  "mode",
+                  "record"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Contracts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "passed": {
+                      "type": "boolean"
+                    },
+                    "transformedRecord": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "violations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ruleName": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "action": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "executedRules": {
+                      "type": "integer"
+                    },
+                    "failedRules": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "The rule execution result."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "executeContractRules",
+        "summary": "Execute contract rules",
+        "description": "Executes contract rules against a data record and returns the result."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "versionExpression",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "x-codegen-contextRoot": "/apis/registry/v3",
+    "/admin/usage/summary": {
+      "summary": "Get global usage summary counts.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "getUsageSummary",
+        "summary": "Get usage summary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSummary"
+                }
+              }
+            },
+            "description": "The global usage summary."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/admin/usage/artifacts/{groupId}/{artifactId}": {
+      "summary": "Get usage metrics for an artifact.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "getArtifactUsageMetrics",
+        "summary": "Get artifact usage metrics",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactUsageMetrics"
+                }
+              }
+            },
+            "description": "The artifact usage metrics."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/admin/usage/artifacts/{groupId}/{artifactId}/heatmap": {
+      "summary": "Get consumer version heatmap.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "getConsumerVersionHeatmap",
+        "summary": "Get consumer version heatmap",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsumerVersionHeatmap"
+                }
+              }
+            },
+            "description": "The consumer version heatmap."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/admin/usage/artifacts/{groupId}/{artifactId}/versions/{version}/deprecation-readiness": {
+      "summary": "Get deprecation readiness.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "getDeprecationReadiness",
+        "summary": "Get deprecation readiness report",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeprecationReadiness"
+                }
+              }
+            },
+            "description": "The deprecation readiness report."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    }
   },
   "components": {
     "schemas": {
@@ -5006,7 +6202,9 @@
             "type": "string"
           }
         },
-        "required": ["detail"]
+        "required": [
+          "detail"
+        ]
       },
       "SystemInfo": {
         "title": "Root Type for SystemInfo",
@@ -5762,7 +6960,9 @@
           "encoding": {
             "description": "Optional encoding for the content property. When set to 'base64', the content value will be base64-decoded by the server before processing.",
             "type": "string",
-            "enum": ["base64"]
+            "enum": [
+              "base64"
+            ]
           }
         }
       },
@@ -6255,12 +7455,13 @@
         }
       },
       "VersionState": {
-        "description": "Describes the state of an artifact or artifact version.  The following states\nare possible:\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n",
+        "description": "Describes the state of an artifact or artifact version.\n\n* ENABLED\n* DISABLED\n* DEPRECATED\n* DRAFT\n* SUNSET \u2014 Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.\n",
         "enum": [
           "ENABLED",
           "DISABLED",
           "DEPRECATED",
-          "DRAFT"
+          "DRAFT",
+          "SUNSET"
         ],
         "type": "string",
         "x-codegen-package": "io.apicurio.registry.types"
@@ -6909,6 +8110,68 @@
           }
         }
       },
+      "OdcsContractResult": {
+        "title": "OdcsContractResult",
+        "description": "Result of submitting or updating an ODCS contract.",
+        "type": "object",
+        "properties": {
+          "contractId": {
+            "description": "The contract artifact ID.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The ODCS contract version.",
+            "type": "string"
+          },
+          "projection": {
+            "$ref": "#/components/schemas/OdcsProjectionSummary"
+          }
+        }
+      },
+      "OdcsProjectionSummary": {
+        "title": "OdcsProjectionSummary",
+        "description": "Summary of the projection performed when an ODCS contract is applied.",
+        "type": "object",
+        "properties": {
+          "rulesApplied": {
+            "description": "Number of CEL quality rules projected onto the schema artifact.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "labelsApplied": {
+            "description": "Number of contract.* labels set on the schema artifact.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "tagsApplied": {
+            "description": "Number of field-tag.* labels set on the schema artifact version.",
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "description": "Any warnings encountered during projection.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "OdcsContractSummary": {
+        "title": "OdcsContractSummary",
+        "description": "Summary of an ODCS contract.",
+        "type": "object",
+        "properties": {
+          "contractId": {
+            "description": "The contract artifact ID.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The contract display name.",
+            "type": "string"
+          }
+        }
+      },
       "ContractMetadata": {
         "title": "ContractMetadata",
         "description": "Contract metadata for an artifact.",
@@ -6965,6 +8228,10 @@
           "deprecationReason": {
             "description": "Reason for deprecation.",
             "type": "string"
+          },
+          "compatibilityGroup": {
+            "description": "Compatibility group for schema evolution scoping.",
+            "type": "string"
           }
         }
       },
@@ -7012,6 +8279,10 @@
               "STAGE",
               "PROD"
             ]
+          },
+          "compatibilityGroup": {
+            "description": "Compatibility group for schema evolution scoping.",
+            "type": "string"
           }
         }
       },
@@ -7163,6 +8434,212 @@
               "STABLE",
               "DEPRECATED"
             ]
+          }
+        }
+      },
+      "UsageClassification": {
+        "description": "Classification of schema usage based on last fetch time.",
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "STALE",
+          "DEAD"
+        ]
+      },
+      "VersionUsageMetrics": {
+        "title": "VersionUsageMetrics",
+        "description": "Usage metrics for a specific artifact version.",
+        "required": [
+          "version",
+          "globalId",
+          "totalFetches",
+          "uniqueClients",
+          "firstFetchedOn",
+          "lastFetchedOn",
+          "classification"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "globalId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalFetches": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uniqueClients": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstFetchedOn": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lastFetchedOn": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "clients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "classification": {
+            "$ref": "#/components/schemas/UsageClassification"
+          }
+        }
+      },
+      "ArtifactUsageMetrics": {
+        "title": "ArtifactUsageMetrics",
+        "required": [
+          "groupId",
+          "artifactId",
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionUsageMetrics"
+            }
+          }
+        }
+      },
+      "UsageSummary": {
+        "title": "UsageSummary",
+        "required": [
+          "active",
+          "stale",
+          "dead"
+        ],
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stale": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dead": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ConsumerVersionEntry": {
+        "title": "ConsumerVersionEntry",
+        "required": [
+          "clientId"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "versions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "versionsBehind": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "driftAlert": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConsumerVersionHeatmap": {
+        "title": "ConsumerVersionHeatmap",
+        "required": [
+          "groupId",
+          "artifactId",
+          "versions",
+          "consumers"
+        ],
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsumerVersionEntry"
+            }
+          }
+        }
+      },
+      "DeprecationReadiness": {
+        "title": "DeprecationReadiness",
+        "required": [
+          "groupId",
+          "artifactId",
+          "version",
+          "safeToDeprecate"
+        ],
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "globalId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "activeConsumers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "clientId": {
+                  "type": "string"
+                },
+                "lastFetched": {
+                  "type": "integer",
+                  "format": "int64"
+                },
+                "fetchCount": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "safeToDeprecate": {
+            "type": "boolean"
           }
         }
       }

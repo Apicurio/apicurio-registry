@@ -590,6 +590,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         int numRegisteredSchemas = 0;
         int numSchemas = 10;
 
+        confluentClient.updateCompatibility(CompatibilityLevel.NONE.name, subject);
+
         List<String> allSchemas = ConfluentTestUtils.getRandomCanonicalAvroString(numSchemas);
 
         confluentClient.registerSchema(allSchemas.get(0), subject);

@@ -14,16 +14,32 @@ on:
 jobs:
   unit-tests:
     name: Unit Tests (${{ matrix.shard.name }})
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         shard:
-          - name: app-shard1
+          - name: app-rest
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,io.apicurio.registry.noprofile.ccompat.**,io.apicurio.registry.storage.**,io.apicurio.registry.event.**"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,io.apicurio.registry.noprofile.ccompat.**"
             maven-opts: "-Xmx4g"
-          - name: app-shard2
+          - name: app-sql
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.storage.impl.sql.**,io.apicurio.registry.storage.impl.search.**,io.apicurio.registry.storage.impl.polling.**,io.apicurio.registry.storage.impl.readonly.**,io.apicurio.registry.storage.decorator.**,io.apicurio.registry.storage.dto.**,io.apicurio.registry.event.sql.**"
+            maven-opts: "-Xmx4g"
+          - name: app-kafkasql
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.storage.impl.kafkasql.**,io.apicurio.registry.event.kafkasql.**"
+            maven-opts: "-Xmx4g"
+          - name: app-gitops
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.storage.impl.gitops.**"
+            maven-opts: "-Xmx2g"
+          - name: app-kubernetesops
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
+            maven-opts: "-Xmx2g"
+          - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**"
             maven-opts: "-Xmx4g"

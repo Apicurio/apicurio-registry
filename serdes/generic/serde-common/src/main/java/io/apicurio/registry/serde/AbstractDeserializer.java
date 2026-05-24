@@ -5,6 +5,7 @@ import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
@@ -20,6 +21,9 @@ import static io.apicurio.registry.serde.BaseSerde.getByteBuffer;
 
 public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
+    private static final java.util.logging.Logger LOG = java.util.logging.Logger.getLogger(
+            AbstractDeserializer.class.getName());
+
     /**
      * Cache key that distinguishes between contentId and globalId to avoid collisions.
      * contentId=5 and globalId=5 could refer to different schemas, so we need to differentiate.
@@ -34,6 +38,8 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     private FallbackArtifactProvider fallbackArtifactProvider;
     private final BaseSerde<T, U> baseSerde;
+    private boolean contractRulesEnabled = false;
+    private boolean contractRulesFailOnError = true;
 
     public AbstractDeserializer() {
         this.baseSerde = new BaseSerde<>();
@@ -62,8 +68,16 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     public void configure(SerdeConfig config, boolean isKey) {
         baseSerde.configure(config, isKey, schemaParser());
-
         configureDeserialization(config, isKey);
+
+        Object enabled = config.originals().get(SerdeConfig.CONTRACT_RULES_ENABLED);
+        if (enabled != null) {
+            contractRulesEnabled = Boolean.parseBoolean(enabled.toString());
+        }
+        Object failOnError = config.originals().get(SerdeConfig.CONTRACT_RULES_FAIL_ON_ERROR);
+        if (failOnError != null) {
+            contractRulesFailOnError = Boolean.parseBoolean(failOnError.toString());
+        }
     }
 
     private void configureDeserialization(SerdeConfig config, boolean isKey) {
@@ -98,7 +112,13 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize(artifactReference, buffer);
         int start = buffer.position() + buffer.arrayOffset();
 
-        return readData(schema.getParsedSchema(), buffer, start, length);
+        U result = readData(schema.getParsedSchema(), buffer, start, length);
+
+        if (contractRulesEnabled) {
+            executeContractRulesForRead(schema, result);
+        }
+
+        return result;
     }
 
     protected abstract U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);
@@ -114,6 +134,15 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     }
 
     protected SchemaLookupResult<T> resolve(String topic, byte[] data, ArtifactReference artifactReference) {
+        DefaultSchemaResolver.currentOperation.set("DESERIALIZE");
+        try {
+            return doResolve(topic, data, artifactReference);
+        } finally {
+            DefaultSchemaResolver.currentOperation.remove();
+        }
+    }
+
+    private SchemaLookupResult<T> doResolve(String topic, byte[] data, ArtifactReference artifactReference) {
         // Fast path: check cache using contentId or globalId
         SchemaCacheKey cacheKey = getCacheKey(artifactReference);
         if (cacheKey != null) {
@@ -176,6 +205,47 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     public void setFallbackArtifactProvider(FallbackArtifactProvider fallbackArtifactProvider) {
         this.fallbackArtifactProvider = fallbackArtifactProvider;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void executeContractRulesForRead(SchemaLookupResult<T> schema, U data) {
+        try {
+            var ref = schema.toArtifactReference();
+            var facade = baseSerde.getClientFacade();
+            if (facade == null) {
+                return;
+            }
+            if (ref.getArtifactId() == null || ref.getArtifactId().isEmpty()) {
+                return;
+            }
+            java.util.Map<String, Object> recordMap = java.util.Map.of();
+            if (data != null) {
+                if (data instanceof java.util.Map) {
+                    recordMap = (java.util.Map<String, Object>) data;
+                } else {
+                    try {
+                        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                        recordMap = mapper.readValue(data.toString(), java.util.Map.class);
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            var result = facade.executeContractRules(
+                    ref.getGroupId(), ref.getArtifactId(), ref.getVersion(),
+                    "READ", recordMap);
+            if (result != null && !result.isPassed()) {
+                String msg = "Contract rule validation failed (READ): " + result.getViolations();
+                if (contractRulesFailOnError) {
+                    throw new RuntimeException(msg);
+                }
+                LOG.warning(msg);
+            }
+        } catch (RuntimeException e) {
+            if (contractRulesFailOnError) {
+                throw e;
+            }
+            LOG.warning("Contract rule execution failed: " + e.getMessage());
+        }
     }
 
     @Override

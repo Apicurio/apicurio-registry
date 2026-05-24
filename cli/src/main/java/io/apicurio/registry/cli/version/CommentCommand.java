@@ -1,8 +1,8 @@
 package io.apicurio.registry.cli.version;
 
+import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.utils.OutputBuffer;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Spec;
 
 @Command(
         name = "comment",
@@ -15,13 +15,10 @@ import picocli.CommandLine.Spec;
                 CommentUpdateCommand.class
         }
 )
-public class CommentCommand implements Runnable {
-
-    @Spec
-    CommandSpec spec;
+public class CommentCommand extends AbstractCommand {
 
     @Override
-    public void run() {
+    public void run(final OutputBuffer output) {
         spec.commandLine().usage(spec.commandLine().getOut());
     }
 }

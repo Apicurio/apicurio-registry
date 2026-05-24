@@ -32,8 +32,8 @@ public class Client {
         var currentContext = config.read();
         if (isBlank(currentContext.getCurrentContext())) {
             throw new CliException("No current context is set. " +
-                    "Run `acr context set <context>` " +
-                    "or `acr context add example http://localhost:8080`.", APPLICATION_ERROR_RETURN_CODE);
+                    "Run `acr context use <context>` " +
+                    "or `acr context create <name> <url>`.", APPLICATION_ERROR_RETURN_CODE);
         } else {
             if (registryClient == null) {
                 try {

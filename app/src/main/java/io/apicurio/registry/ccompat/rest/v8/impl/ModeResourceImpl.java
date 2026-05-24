@@ -60,10 +60,7 @@ public class ModeResourceImpl implements ModeResource {
     private io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateRequest convertToV7Request(ModeUpdateRequest data) {
         io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateRequest v7Request =
                 new io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateRequest();
-        if (data.getMode() != null) {
-            v7Request.setMode(io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateRequest.Mode.valueOf(
-                    data.getMode().name()));
-        }
+        v7Request.setMode(data.getMode());
         return v7Request;
     }
 

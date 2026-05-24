@@ -422,6 +422,35 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     }
 
     @Override
+    public io.apicurio.registry.storage.dto.ContractRuleSetDto getGlobalContractRuleset() {
+        return proxy(storage -> storage.getGlobalContractRuleset());
+    }
+
+    @Override
+    public void setGlobalContractRuleset(io.apicurio.registry.storage.dto.ContractRuleSetDto ruleset) {
+        throw new io.apicurio.registry.storage.error.RegistryStorageException(
+                "Global contract ruleset writes are not supported in read-only storage");
+    }
+
+    @Override
+    public void deleteGlobalContractRuleset() {
+        throw new io.apicurio.registry.storage.error.RegistryStorageException(
+                "Global contract ruleset writes are not supported in read-only storage");
+    }
+
+    @Override
+    public void insertContractAuditEntry(io.apicurio.registry.storage.dto.ContractAuditEntryDto entry) {
+        throw new io.apicurio.registry.storage.error.RegistryStorageException(
+                "Contract audit log writes are not supported in read-only storage");
+    }
+
+    @Override
+    public java.util.List<io.apicurio.registry.storage.dto.ContractAuditEntryDto> getContractAuditLog(
+            String groupId, String artifactId, int offset, int limit) {
+        return proxy(storage -> storage.getContractAuditLog(groupId, artifactId, offset, limit));
+    }
+
+    @Override
     public List<String> getArtifactVersions(String groupId, String artifactId) {
         return proxy(storage -> storage.getArtifactVersions(groupId, artifactId));
     }
@@ -452,6 +481,14 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
             throws VersionNotFoundException, RegistryStorageException {
         return proxy(storage -> storage.getArtifactVersionMetaData(globalId));
+    }
+
+    @Override
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
+            String artifactId, int versionOrder)
+            throws VersionNotFoundException, RegistryStorageException {
+        return proxy(storage -> storage.getArtifactVersionMetaDataByVersionOrder(groupId, artifactId,
+                versionOrder));
     }
 
     @Override

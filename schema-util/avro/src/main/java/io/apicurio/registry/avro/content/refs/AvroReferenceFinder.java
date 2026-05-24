@@ -132,8 +132,10 @@ public class AvroReferenceFinder implements ReferenceFinder {
                     findExternalTypesIn(values, internalTypes, externalTypes, namespace);
                 }
                 case "enum", "fixed" -> {
-                    String enumName = schema.get("name").asText();
-                    String qualifiedType = qualifyTypeName(enumName, namespace);
+                    String typeNamespace = extractNamespace(schema);
+                    String effectiveNamespace = typeNamespace != null ? typeNamespace : namespace;
+                    String typeName = schema.get("name").asText();
+                    String qualifiedType = qualifyTypeName(typeName, effectiveNamespace);
                     internalTypes.add(qualifiedType);
                     externalTypes.remove(qualifiedType);
                 }

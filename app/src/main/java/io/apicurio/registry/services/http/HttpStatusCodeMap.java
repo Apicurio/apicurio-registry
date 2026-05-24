@@ -1,6 +1,7 @@
 package io.apicurio.registry.services.http;
 
 import io.apicurio.registry.ccompat.rest.error.ConflictException;
+import io.apicurio.registry.ccompat.rest.error.InvalidCompatibilityLevelException;
 import io.apicurio.registry.ccompat.rest.error.ReferenceExistsException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotFoundException;
 import io.apicurio.registry.ccompat.rest.error.SchemaNotSoftDeletedException;
@@ -91,6 +92,7 @@ public class HttpStatusCodeMap {
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);
         map.put(GroupAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(InvalidArtifactIdException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidCompatibilityLevelException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(InvalidArtifactStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidVersionStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);

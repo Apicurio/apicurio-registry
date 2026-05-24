@@ -19,6 +19,10 @@ public interface SchemaResolver<SCHEMA, DATA> extends Closeable {
 
     public void setClientFacade(RegistryClientFacade clientFacade);
 
+    default RegistryClientFacade getClientFacade() {
+        return null;
+    }
+
     public void setArtifactResolverStrategy(
             ArtifactReferenceResolverStrategy<SCHEMA, DATA> artifactResolverStrategy);
 

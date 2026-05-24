@@ -11,7 +11,7 @@ import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import lombok.Builder;
 import lombok.Getter;
-import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 
@@ -43,10 +43,13 @@ public class VersionCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @ConfigProperty(name = "version")
+    String cliVersion;
+
     @Override
     public void run(final OutputBuffer output) throws JsonProcessingException {
         final var builder = VersionOutput.builder()
-                .cliVersion(ConfigProvider.getConfig().getValue("version", String.class));
+                .cliVersion(cliVersion);
 
         try {
             final var registryClient = client.getRegistryClient();
@@ -107,7 +110,9 @@ public class VersionCommand extends AbstractCommand {
         });
     }
 
-    /** Output model for the version command, serialized as JSON or rendered as a table. */
+    /**
+     * Output model for the version command, serialized as JSON or rendered as a table.
+     */
     @Builder
     @Getter
     public static class VersionOutput {

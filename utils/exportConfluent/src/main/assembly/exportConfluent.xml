@@ -19,7 +19,7 @@
     <!-- Quarkus fast-jar layout -->
     <fileSet>
       <directory>${project.basedir}/target/quarkus-app</directory>
-      <outputDirectory>/quarkus-app</outputDirectory>
+      <outputDirectory>/</outputDirectory>
       <filtered>false</filtered>
       <includes>
         <include>**/*</include>

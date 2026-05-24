@@ -365,8 +365,9 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 .Incompatible changes (can break clients)
 * Removing skills
 * Removing or disabling capabilities
-* Changing the agent URL
-* Removing authentication schemes
+* Removing supported interfaces (matched by URL and protocol binding)
+* Changing the protocol version on an existing interface
+* Removing security schemes
 * Removing input or output modes
 
 // ref-a2a-automatic-label-extraction
@@ -392,6 +393,15 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 
 |`agent_card:outputmode:<mode>`
 |Each value in the `defaultOutputModes` array
+
+|`agent_card:protocolbinding:<binding>`
+|Each `protocolBinding` value in the `supportedInterfaces` array
+
+|`agent_card:securityscheme:<name>`
+|Each key in the `securitySchemes` object
+
+|`agent_card:tag:<value>`
+|Each value in the `tags` array within each skill (deduplicated across skills)
 |===
 
 // ref-a2a-registry-built-in-skills

@@ -403,7 +403,7 @@ a|Communicates with the MCP server by using the MCP protocol:
 == PROMPT_TEMPLATE implementation details
 
 [role="_abstract"]
-The PROMPT_TEMPLATE artifact type implementation resides in `app/llm-artifact-types-src/src/PromptTemplateArtifactType.ts`.
+The PROMPT_TEMPLATE artifact type implementation resides in `schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/PromptTemplateArtifactTypeUtilProvider.java`, with validators, extractors, and compatibility checkers in `schema-util/common/`.
 
 .Schema structure
 
@@ -563,7 +563,7 @@ The canonicalization process converts PROMPT_TEMPLATE content to YAML format wit
 == MODEL_SCHEMA implementation details
 
 [role="_abstract"]
-The MODEL_SCHEMA artifact type implementation resides in `app/llm-artifact-types-src/src/ModelSchemaArtifactType.ts`.
+The MODEL_SCHEMA artifact type implementation resides in `schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/ModelSchemaArtifactTypeUtilProvider.java`, with validators, extractors, and compatibility checkers in `schema-util/common/`.
 
 .Schema structure
 

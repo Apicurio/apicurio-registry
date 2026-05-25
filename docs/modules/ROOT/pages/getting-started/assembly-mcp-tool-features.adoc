@@ -30,6 +30,8 @@ The https://modelcontextprotocol.io/[Model Context Protocol (MCP)] defines a sta
 
 {registry} provides a Tool Registry that stores MCP tool definitions with the following capabilities:
 
+NOTE: Storing an `MCP_TOOL` definition in {registry} provides governance, versioning, and searchability for tool definitions. To make stored tools available to LLM clients such as Claude Desktop, you must also deploy the {registry} MCP server. For more information, see xref:getting-started/assembly-mcp-server-integration.adoc[MCP server integration].
+
 Version management:: Track tool evolution with full version history.
 Validation:: Ensure that tool definitions conform to the MCP specification.
 Compatibility checking:: Detect breaking changes in tool input schemas.

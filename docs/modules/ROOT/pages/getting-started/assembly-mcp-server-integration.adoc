@@ -5,7 +5,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = MCP server integration
 
 [role="_abstract"]
-You can connect Large Language Model (LLM) clients such as Claude Desktop to {registry} by using the Model Context Protocol (MCP) server. The MCP server acts as a bridge between LLM clients and {registry}, so you can manage groups, artifacts, versions, and configuration properties through natural language.
+You can connect Large Language Model (LLM) clients such as Claude Desktop to {registry} by using the {registry} MCP server container. The MCP server acts as an adapter between LLM clients and {registry}. On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
 
 ifdef::service-registry-downstream[]
 WARNING: The AI agent integration features described in this section are available as a Technology Preview. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[Technology Preview Features Support Scope].
@@ -28,7 +28,7 @@ NOTE: The {registry} MCP server connects LLM clients to a running {registry} ins
 == MCP server overview
 
 [role="_abstract"]
-You can use the {registry} MCP server to interact with {registry} through the Model Context Protocol (MCP) from any LLM client. The MCP server uses stdio transport with LLM clients and connects to {registry} by using the REST API.
+The {registry} MCP server container acts as an adapter between LLM clients and {registry}. On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
 
 When an LLM client sends a request, the MCP server converts that request into {registry} REST API calls, runs the operation, and returns the results to the LLM client. The LLM client prompts you for confirmation before each tool call.
 
@@ -49,19 +49,23 @@ The MCP server has a safe mode that is enabled by default. Safe mode restricts o
 == Installing the MCP server
 
 [role="_abstract"]
-You can run the {registry} MCP server as a Docker container or build it from source. Both methods produce a server binary that LLM clients start on demand.
+You can run the {registry} MCP server as a Docker or Podman container, or build it from source. Both methods produce a server binary that LLM clients start on demand.
 
 .Prerequisites
-* Docker is installed, or Java 21 and Maven are installed for building from source.
-* A running {registry} instance is accessible at `localhost:8080`, or you set a custom URL by using the `registry.url` property.
+* Docker or Podman is installed, or Java 21 and Maven are installed for building from source.
+* A running {registry} instance is accessible at `localhost:8080`, or you set a custom URL by using the `REGISTRY_URL` environment variable.
+
+NOTE: You can substitute `podman` for `docker` in all commands.
 
 .Procedure
 . Pull the MCP server Docker image:
 +
 [source,bash]
 ----
-docker pull quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot
+docker pull quay.io/apicurio/apicurio-registry-mcp-server:latest
 ----
++
+NOTE: The `latest` tag refers to the most recent stable release. For development builds, use the `latest-snapshot` tag. For a specific version, use the version number as the tag, for example `3.2.4`.
 +
 Alternatively, to build the MCP server from source, clone the {registry} repository and run the following Maven command:
 +
@@ -79,16 +83,16 @@ mvn clean install -pl mcp -am -DskipTests
 You can configure Claude Desktop to use the {registry} MCP server. After configuration, you interact with {registry} artifacts, groups, and versions by using natural language in Claude Desktop.
 
 .Prerequisites
-* Claude Desktop is installed.
-* A running {registry} instance is accessible at `localhost:8080`.
-* The {registry} MCP server Docker image is available, or you have built the MCP server JAR from source.
+* Claude Desktop is installed (macOS or Windows).
+* A running {registry} instance is accessible.
+* The {registry} MCP server Docker or Podman image is available, or you have built the MCP server JAR from source.
 
 .Procedure
 . In Claude Desktop, navigate to *File* > *Settings* > *Developer* > *Edit Config* to open the MCP configuration file.
 
 . Add the {registry} MCP server entry to the configuration file.
 +
-If you are using the Docker image, add the following configuration:
+If you are using the Docker or Podman image, add the following configuration:
 +
 [source,json]
 ----
@@ -100,13 +104,15 @@ If you are using the Docker image, add the following configuration:
         "run",
         "-i",
         "--rm",
-        "--network=host",
-        "quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot"
+        "-e", "REGISTRY_URL=<registry-url>",
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest"
       ]
     }
   }
 }
 ----
++
+Replace `<registry-url>` with the URL of your {registry} instance. For local development, use `\http://localhost:8080`. For OpenShift deployments, use the route URL of your {registry} instance.
 +
 If you built the MCP server from source, add the following configuration:
 +
@@ -295,9 +301,9 @@ For the Docker method, pass environment variables by using separate `-e` element
 [source,json]
 ----
 "args": [
-  "run", "-i", "--rm", "--network=host",
+  "run", "-i", "--rm",
   "-e", "REGISTRY_URL=myhost:8080",
-  "quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot"
+  "quay.io/apicurio/apicurio-registry-mcp-server:latest"
 ]
 ----
 
@@ -432,7 +438,7 @@ You can configure the {registry} MCP server to authenticate with {registry} by u
 .Procedure
 . Update the Claude Desktop MCP configuration to include OAuth2 credentials.
 +
-If you are using the Docker image, add environment variables to the `args` array:
+If you are using the Docker or Podman image, add environment variables to the `args` array:
 +
 [source,json]
 ----
@@ -441,12 +447,13 @@ If you are using the Docker image, add environment variables to the `args` array
     "Apicurio Registry (docker)": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm", "--network=host",
+        "run", "-i", "--rm",
+        "-e", "REGISTRY_URL=<registry-url>",
         "-e", "APICURIO_MCP_AUTH_ENABLED=true",
         "-e", "APICURIO_MCP_AUTH_TOKEN_ENDPOINT=http://localhost:8090/realms/registry/protocol/openid-connect/token",
         "-e", "APICURIO_MCP_AUTH_CLIENT_ID=registry-api",
         "-e", "APICURIO_MCP_AUTH_CLIENT_SECRET=<your-client-secret>",
-        "quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot"
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest"
       ]
     }
   }
@@ -501,7 +508,7 @@ You can configure the {registry} MCP server to connect to {registry} over TLS. Y
 .Procedure
 . Update the Claude Desktop MCP configuration to include TLS settings.
 +
-If you are using the Docker image, add environment variables and mount the certificate files:
+If you are using the Docker or Podman image, add environment variables and mount the certificate files:
 +
 [source,json]
 ----
@@ -510,13 +517,13 @@ If you are using the Docker image, add environment variables and mount the certi
     "Apicurio Registry (docker)": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm", "--network=host",
+        "run", "-i", "--rm",
         "-v", "/path/to/certs:/certs:ro",
         "-e", "REGISTRY_URL=https://registry.example.com:8443",
         "-e", "APICURIO_MCP_TLS_TRUSTSTORE_TYPE=PKCS12",
         "-e", "APICURIO_MCP_TLS_TRUSTSTORE_PATH=/certs/truststore.p12",
         "-e", "APICURIO_MCP_TLS_TRUSTSTORE_PASSWORD=<truststore-password>",
-        "quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot"
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest"
       ]
     }
   }
@@ -595,7 +602,7 @@ Replace `<path-to-log-dir>` with the directory where you want to store the log f
 |Verify that the MCP configuration file is valid JSON. Restart Claude Desktop completely by selecting *File* > *Exit* and reopening the application.
 
 |The MCP server cannot connect to {registry}.
-|Verify that {registry} is running and accessible at the configured URL. Check the `registry.url` property. If you use Docker, ensure that `--network=host` is set so the container can reach `localhost`.
+|Verify that {registry} is running and accessible at the configured URL. Check the `REGISTRY_URL` environment variable. If you use Docker or Podman, ensure that the URL is reachable from the container.
 
 |The paging limit error occurs when listing objects.
 |{registry} contains more objects than the configured paging limit. Increase the `apicurio.mcp.paging.limit` property, or set `apicurio.mcp.paging.limit-error` to `false` to allow partial results.

@@ -511,7 +511,7 @@ Agent Cards can reference their schemas and prompts by using URN references:
 == Multi-agent workflow example
 
 [role="_abstract"]
-The `examples/a2a-real-world-integration` directory contains an example of context chaining across multiple agents.
+You can chain context across multiple agents in a pipeline. The link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/a2a-real-world-integration[a2a-real-world-integration example] in the {registry} repository demonstrates this pattern.
 
 .Context chaining pipeline
 [cols="1,3,3",options="header"]
@@ -537,8 +537,9 @@ The `examples/a2a-real-world-integration` directory contains an example of conte
 |`{"translated": "Estimado cliente, le pido disculpas..."}`
 |===
 
+ifndef::service-registry-downstream[]
 .Example commands
-The following commands start the example application:
+To run the example application locally, clone the {registry} repository and run the following commands:
 
 [source,bash]
 ----
@@ -548,6 +549,7 @@ mvn clean compile exec:java
 ----
 
 The Web UI is available at http://localhost:9000.
+endif::[]
 
 // ref-a2a-java-sdk-usage
 :_mod-docs-content-type: REFERENCE

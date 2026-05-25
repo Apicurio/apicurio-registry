@@ -12,7 +12,9 @@ WARNING: The AI agent integration features described in this section are availab
 endif::[]
 
 * xref:agent-registry-overview_{context}[]
+ifndef::service-registry-downstream[]
 * xref:starting-registry-with-agent-features_{context}[]
+endif::[]
 * xref:registering-an-agent-card_{context}[]
 * xref:discovering-agents_{context}[]
 * xref:connecting-claude-desktop-via-mcp_{context}[]
@@ -34,6 +36,7 @@ The A2A protocol is a standard that AI agents use to discover and communicate wi
 * `MODEL_SCHEMA`: input and output schema definition for an AI or ML model
 * `MCP_TOOL`: MCP tool definition that describes a tool, its input parameters, and its output schema
 
+ifndef::service-registry-downstream[]
 // proc-starting-registry-with-agent-features
 :_mod-docs-content-type: PROCEDURE
 [id="starting-registry-with-agent-features_{context}"]
@@ -55,7 +58,7 @@ version: '3.8'
 
 services:
   apicurio-registry:
-    image: quay.io/apicurio/apicurio-registry:latest-snapshot
+    image: quay.io/apicurio/apicurio-registry:latest
     container_name: agent-registry
     ports:
       - "8080:8080"
@@ -70,7 +73,7 @@ services:
       start_period: 20s
 
   apicurio-registry-ui:
-    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    image: quay.io/apicurio/apicurio-registry-ui:latest
     container_name: agent-registry-ui
     ports:
       - "8888:8080"
@@ -80,6 +83,8 @@ services:
       apicurio-registry:
         condition: service_healthy
 ----
++
+NOTE: The `latest` tag refers to the most recent stable release. For development builds, use the `latest-snapshot` tag. For a specific version, use the version number as the tag, for example `3.2.4`.
 +
 . Start the services:
 +
@@ -106,6 +111,8 @@ curl http://localhost:8080/.well-known/agent.json
 ----
 +
 The response contains the agent card for the {registry} instance, including its built-in skills such as `schema-validation`, `schema-search`, `artifact-management`, `compatibility-check`, and `agent-discovery`.
+
+endif::[]
 
 // proc-registering-an-agent-card
 :_mod-docs-content-type: PROCEDURE
@@ -213,7 +220,9 @@ You can connect Claude Desktop to {registry} by using the MCP server. After you 
 
 .Prerequisites
 * {registry} is running (on `localhost:8080`)
-* Claude Desktop is installed
+* Claude Desktop is installed (macOS or Windows)
++
+NOTE: Claude Desktop is officially supported on macOS and Windows. Linux support is available through community builds. For installation details, see the link:https://claude.ai/download[Claude Desktop download page].
 
 .Procedure
 . In Claude Desktop, open the MCP configuration file by navigating to *File* > *Settings* > *Developer* > *Edit Config*.
@@ -230,13 +239,15 @@ You can connect Claude Desktop to {registry} by using the MCP server. After you 
         "run",
         "-i",
         "--rm",
-        "--network=host",
-        "quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot"
+        "-e", "REGISTRY_URL=<registry-url>",
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest"
       ]
     }
   }
 }
 ----
++
+Replace `<registry-url>` with the URL of your {registry} instance. For local development with Docker Compose, use `\http://localhost:8080`. For OpenShift deployments, use the route URL of your {registry} instance.
 +
 . Restart Claude Desktop by selecting *File* > *Exit* and reopening the application.
 

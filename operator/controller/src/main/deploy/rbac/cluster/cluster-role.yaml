@@ -72,6 +72,13 @@ rules:
       - '*'
 
   - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - '*'
+
+  - apiGroups:
       - ''
     resources:
       - secrets

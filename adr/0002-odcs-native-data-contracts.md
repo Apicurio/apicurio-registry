@@ -71,6 +71,12 @@ All endpoints are defined in the OpenAPI spec and generated into the `GroupsReso
 | GET | `/groups/{g}/contracts/{id}` | Retrieve ODCS YAML |
 | PUT | `/groups/{g}/contracts/{id}` | Update contract, re-project |
 | DELETE | `/groups/{g}/contracts/{id}` | Delete contract |
+| GET | `/groups/{g}/artifacts/{a}/contract/metadata` | Get contract metadata (from labels) |
+| PUT | `/groups/{g}/artifacts/{a}/contract/metadata` | Update contract metadata (stored as labels) |
+| POST | `/groups/{g}/artifacts/{a}/contract/status` | Transition lifecycle status (DRAFT→STABLE→DEPRECATED) |
+| GET | `/groups/{g}/artifacts/{a}/contract/ruleset` | Get artifact-level contract ruleset |
+| PUT | `/groups/{g}/artifacts/{a}/contract/ruleset` | Set artifact-level contract ruleset |
+| DELETE | `/groups/{g}/artifacts/{a}/contract/ruleset` | Delete artifact-level contract ruleset |
 | GET | `/groups/{g}/artifacts/{a}/contract/export` | Export artifact state as ODCS YAML |
 | POST | `/groups/{g}/artifacts/{a}/contract/promote` | Promote contract stage (DEV→STAGE→PROD) |
 | GET | `/groups/{g}/artifacts/{a}/contract/quality?contractId=` | Get quality score |
@@ -79,7 +85,7 @@ All endpoints are defined in the OpenAPI spec and generated into the `GroupsReso
 | GET | `/groups/{g}/artifacts/{a}/contract/audit` | Get contract audit log entries |
 | GET | `/groups/{g}/artifacts/{a}/contract/compatibility-group` | Get compatibility group |
 | PUT | `/groups/{g}/artifacts/{a}/contract/compatibility-group` | Set compatibility group |
-| GET | `/search/contracts` | Search contracts by status, owner, classification |
+| GET | `/search/contracts` | Search contracts by status, ownerTeam, compatibilityGroup |
 | GET | `/admin/contracts/ruleset` | Get global contract ruleset |
 | PUT | `/admin/contracts/ruleset` | Set global contract ruleset |
 | DELETE | `/admin/contracts/ruleset` | Delete global contract ruleset |
@@ -101,7 +107,7 @@ The `contracts-rules` module includes a JSONata rule executor (`JsonataRuleExecu
 - **CONDITION:** evaluates the expression and checks for a truthy result
 - **TRANSFORM:** evaluates the expression and returns the transformed data as the new record
 
-`JsonataExpressionEvaluator` provides LRU caching (capacity 256) of parsed JSONata expressions. Expressions are compiled once and reused.
+`JsonataExpressionEvaluator` provides LRU caching (capacity 1000) of parsed JSONata expressions. Expressions are compiled once and reused.
 
 ### Migration rule orchestration (Phase 6)
 
@@ -130,26 +136,26 @@ Events are published via the existing `OutboxEvent` infrastructure (Debezium out
 
 ### Contract audit log (Phase 7)
 
-`ContractAuditService` records contract operations in a `contract_audit_log` SQL table (DB upgrade 106). Each entry includes: `tenantId`, `groupId`, `artifactId`, `action` (e.g., `METADATA_UPDATED`, `RULESET_CONFIGURED`, `STATUS_TRANSITION`), `detail` (human-readable description), `userId`, and `createdOn` timestamp.
+`ContractAuditService` records contract operations in a `contract_audit_log` SQL table (DB upgrade 106). Each entry includes: `groupId`, `artifactId`, `version` (nullable), `action` (e.g., `METADATA_UPDATED`, `RULESET_CONFIGURED`, `STATUS_TRANSITION`), `principal`, `details` (human-readable description), and `createdOn` timestamp. Indexed on `(groupId, artifactId)` and `(createdOn)`.
 
 `SqlContractAuditRepository` provides JDBC persistence. The REST endpoint `GET /groups/{g}/artifacts/{a}/contract/audit` returns audit entries as a JSON array.
 
 ### Contract search (Phase 7)
 
-`SearchResource` exposes `GET /search/contracts` with query parameters: `status`, `ownerTeam`, `classification`, `groupId`, `artifactId`, `limit`, `offset`, `orderby`, `order`. Searches across artifact labels matching the `contract.*` namespace.
+`SearchResource` exposes `GET /search/contracts` with query parameters: `status`, `ownerTeam`, `compatibilityGroup`, `limit`, `offset`, `orderby`, `order`. Searches across artifact labels matching the `contract.*` namespace using prefix-based label filters.
 
 ### Java SerDes rule integration (Phase 7)
 
 `AbstractSerializer` and `AbstractDeserializer` integrate contract rule execution into the normal Kafka serialize/deserialize path:
 
-- **Serializer:** after schema resolution and before serialization, calls `executeContractRules` with mode `WRITE` if `apicurio.registry.contract-rules.enabled=true`
+- **Serializer:** after schema resolution and before serialization, calls `executeContractRules` with mode `WRITE` if `apicurio.registry.serde.contract-rules.enabled=true`
 - **Deserializer:** after deserialization, calls `executeContractRules` with mode `READ`
-- **Failure handling:** controlled by `apicurio.registry.contract-rules.fail-on-error` (default `true`). When `false`, violations are logged but serialization proceeds (for DLQ routing by the application)
+- **Failure handling:** controlled by `apicurio.registry.serde.contract-rules.fail-on-error` (default `true`). When `false`, violations are logged but serialization proceeds (for DLQ routing by the application)
 - **Record conversion:** `dataToMap()` converts GenericRecord/SpecificRecord to `Map<String, Object>` via JSON parsing of `toString()` output
 
 `RegistryClientFacadeImpl.executeContractRules` calls the server-side rule execution endpoint via `java.net.http.HttpClient` (not the Kiota SDK, which doesn't support the execute endpoint's dynamic request/response shape). The `baseUrl` is extracted from the `SerdeConfig.REGISTRY_URL` property.
 
-Contract rules are disabled by default (`apicurio.registry.contract-rules.enabled` defaults to `false`). Users opt in explicitly.
+Contract rules are disabled by default (`apicurio.registry.serde.contract-rules.enabled` defaults to `false`). Users opt in explicitly.
 
 ### Global contract rules (Phase 8)
 
@@ -258,7 +264,7 @@ The ODCS YAML exists as an artifact AND its contents are projected as labels/rul
 
 ~~Field tag labels can produce long keys. No validation is currently applied.~~
 
-**Resolution:** `OdcsTagProjector` now validates label key length against a `MAX_LABEL_KEY_LENGTH` (512 chars). Tags that would exceed this limit are skipped with a warning in the projection result instead of causing storage errors.
+**Resolution:** `OdcsTagProjector` validates label key length against `MAX_LABEL_KEY_LENGTH` (512 chars). Tags that would exceed this limit are skipped with a warning in the projection result. The SQL storage layer enforces a 256-char limit on label keys via `VARCHAR(512)` columns (the index prefix limit is more restrictive on MySQL). Both layers reject instead of truncating.
 
 ### L6: CEL library ABI incompatibility with Confluent SerDes — OPEN
 

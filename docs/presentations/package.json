@@ -1,0 +1,11 @@
+{
+  "name": "odcs-presentation-server",
+  "private": true,
+  "scripts": {
+    "start": "node terminal-server.js"
+  },
+  "dependencies": {
+    "node-pty": "^1.0.0",
+    "ws": "^8.18.0"
+  }
+}

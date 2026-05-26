@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODCS-Native Data Contracts — Apicurio Registry</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a2e; color: #eee; }
+.slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; padding: 50px 70px; overflow-y: auto; }
+.slide.active { display: flex; }
+h1 { font-size: 2.8em; color: #4cc9f0; margin-bottom: 20px; }
+h2 { font-size: 2.2em; color: #7209b7; margin-bottom: 20px; }
+h3 { font-size: 1.4em; color: #f72585; margin-bottom: 12px; }
+p, li { font-size: 1.15em; line-height: 1.6; margin-bottom: 8px; }
+ul { padding-left: 30px; }
+code { background: #2d2d44; padding: 2px 8px; border-radius: 4px; font-size: 0.9em; color: #4cc9f0; }
+pre { background: #16213e; padding: 15px; border-radius: 10px; overflow-x: auto; margin: 12px 0; font-size: 0.85em; line-height: 1.4; }
+pre code { background: none; padding: 0; color: #eee; }
+.highlight { color: #f72585; font-weight: bold; }
+.tag { display: inline-block; background: #7209b7; padding: 4px 12px; border-radius: 20px; font-size: 0.85em; margin: 3px; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+th, td { border: 1px solid #444; padding: 8px 12px; text-align: left; font-size: 1em; }
+th { background: #16213e; color: #4cc9f0; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+.box { background: #16213e; padding: 20px; border-radius: 10px; border-left: 4px solid #4cc9f0; }
+.box.warn { border-left-color: #f72585; }
+.box.green { border-left-color: #2ecc71; }
+.speaker-notes { display: none; }
+.speaker-notes.visible { display: block; background: #0d1117; border: 1px dashed #555; padding: 15px; margin-top: 20px; border-radius: 8px; font-size: 0.85em; color: #aaa; }
+.speaker-notes strong { color: #f72585; }
+.flow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 15px 0; }
+.flow-item { background: #16213e; padding: 12px 20px; border-radius: 8px; border: 1px solid #4cc9f0; font-size: 0.95em; }
+.flow-arrow { color: #4cc9f0; font-size: 1.5em; }
+.subtitle { font-size: 1.5em; color: #aaa; margin-bottom: 40px; }
+.big-number { font-size: 4em; color: #4cc9f0; font-weight: bold; }
+.metric-label { font-size: 1.2em; color: #aaa; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; text-align: center; margin: 30px 0; }
+.demo-badge { display: inline-block; background: #2ecc71; color: #000; padding: 4px 14px; border-radius: 6px; font-weight: bold; font-size: 0.9em; margin-bottom: 10px; }
+.terminal { background: #0d1117; border: 1px solid #333; border-radius: 8px; padding: 15px; font-family: 'Menlo', 'Consolas', monospace; font-size: 0.85em; line-height: 1.5; }
+.terminal .green { color: #2ecc71; }
+.terminal .cyan { color: #4cc9f0; }
+.terminal .yellow { color: #f1c40f; }
+.terminal .red { color: #e74c3c; }
+.terminal .bold { font-weight: bold; }
+.mermaid { display: flex; justify-content: center; margin: 10px 0; }
+.mermaid svg { max-height: 65vh; }
+#slide-counter { position: fixed; bottom: 20px; right: 30px; font-size: 1em; color: #555; z-index: 100; }
+#nav-hint { position: fixed; bottom: 20px; left: 30px; font-size: 0.85em; color: #444; z-index: 100; }
+#term-panel { display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 45%; background: #0d1117; border-top: 2px solid #4cc9f0; z-index: 200; padding: 8px; }
+#term-panel.open { display: block; }
+#term-panel.fullscreen { height: 100%; }
+#term-toggle { position: fixed; bottom: 20px; right: 120px; background: #2ecc71; color: #000; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 0.85em; cursor: pointer; z-index: 300; }
+#term-toggle:hover { background: #27ae60; }
+#term-status { position: fixed; bottom: 22px; right: 210px; font-size: 0.8em; z-index: 300; }
+.slide.term-active { height: 55%; overflow-y: auto; }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11.0/lib/addon-web-links.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    mermaid.initialize({ startOnLoad: true, theme: 'dark',
+      themeVariables: { primaryColor: '#16213e', primaryTextColor: '#eee', primaryBorderColor: '#4cc9f0', lineColor: '#4cc9f0', secondaryColor: '#1a1a3e', tertiaryColor: '#0d1117', fontSize: '14px' }
+    });
+  });
+</script>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 1: Title -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h1>ODCS-Native Data Contracts</h1>
+<p class="subtitle">Apicurio Registry 3.3.0</p>
+<p>The first schema registry to natively support the Open Data Contract Standard (ODCS v3.1)</p>
+<div class="metrics">
+<div><div class="big-number">8</div><div class="metric-label">Phases</div></div>
+<div><div class="big-number">148</div><div class="metric-label">Criteria</div></div>
+<div><div class="big-number">3</div><div class="metric-label">PRs</div></div>
+<div><div class="big-number">1</div><div class="metric-label">New Module</div></div>
+</div>
+<table>
+<tr><th>Technology</th><th>Role</th></tr>
+<tr><td><span class="tag" style="background:#4cc9f0">ODCS v3.1</span></td><td>Native contract format (Linux Foundation / Bitol)</td></tr>
+<tr><td><span class="tag" style="background:#2ecc71">CEL</span></td><td>Rule validation (cel-standalone 0.6.0, same as Kubernetes)</td></tr>
+<tr><td><span class="tag" style="background:#f72585">JSONata</span></td><td>Data transformation for schema migration (dashjoin 0.9.9)</td></tr>
+<tr><td><span class="tag" style="background:#f39c12">Kiota</span></td><td>SDK generation (Java, Go, Python, TypeScript)</td></tr>
+<tr><td><span class="tag" style="background:#7209b7">PatternFly</span></td><td>UI components (React)</td></tr>
+</table>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> This makes Apicurio the only schema registry that natively speaks ODCS — the Linux Foundation standard. Confluent has a proprietary format. We differentiate by adopting the industry standard. CEL is the same expression language Kubernetes uses. JSONata is pure Java, no GraalJS. The feature spans 8 phases across 3 PRs. Today I'll walk through the whole thing live.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 2: Projection Model -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2>How It Works: The Projection Model</h2>
+<p>ODCS contracts are stored as <code>ODCS_CONTRACT</code> artifacts <strong>and</strong> their contents are <span class="highlight">projected</span> onto schema artifacts for enforcement.</p>
+<div class="flow">
+<div class="flow-item">ODCS YAML<br><small>submitted by developer</small></div>
+<div class="flow-arrow">→</div>
+<div class="flow-item">Parser<br><small>validates structure</small></div>
+<div class="flow-arrow">→</div>
+<div class="flow-item">Projection Engine<br><small>maps to labels/rules/tags</small></div>
+<div class="flow-arrow">→</div>
+<div class="flow-item">Schema Artifact<br><small>enforcement happens here</small></div>
+</div>
+<table>
+<tr><th>ODCS Section</th><th>Projected To</th></tr>
+<tr><td><code>info.status</code>, <code>team.*</code></td><td><code>contract.{contractId}.*</code> artifact labels</td></tr>
+<tr><td><code>quality.accuracy</code> rules</td><td>CEL contract rules (<code>odcs:{contractId}:*</code>)</td></tr>
+<tr><td><code>schemas[].fields[].pii</code></td><td><code>field-tag.{contractId}:path|tag</code> version labels</td></tr>
+<tr><td><code>serviceLevel.*</code></td><td><code>contract.{contractId}.sla.*</code> labels (stored, not enforced)</td></tr>
+</table>
+<div class="box" style="margin-top:10px">
+<p><strong>Zero new storage tables</strong> for core contracts — reuses existing label and rule infrastructure. Works across SQL, KafkaSQL, GitOps, KubernetesOps.</p>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> The key insight: we don't create a new storage model. We project the contract onto the schema artifact it governs. Quality rules become CEL rules. Metadata becomes labels. PII markers become version tags. Enforcement happens through the existing rule engine. Everything is namespaced by contractId so multiple contracts can coexist. The ODCS YAML is also stored as its own artifact for versioning and export. Let me show you this in action.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 3: Demo — Register Schema -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2><span class="demo-badge">▶ DEMO</span> Step 1: Register Schema</h2>
+<div class="two-col">
+<div>
+<h3>Avro schema with inline PII tags</h3>
+<pre><code>{
+  "type": "record",
+  "name": "OrderEvent",
+  "fields": [
+    {"name": "orderId", "type": "string"},
+    {"name": "customerEmail", "type": "string",
+     <span style="color:#f72585">"tags": ["PII", "EMAIL"]</span>},
+    {"name": "totalAmount", "type": "double"}
+  ]
+}</code></pre>
+<p style="margin-top:15px">Tag extractors automatically detect <code>tags</code> and <code>confluent:tags</code> for Avro, <code>x-tags</code> for JSON Schema, <code>@tag:</code> comments for Protobuf.</p>
+</div>
+<div>
+<h3>Expected output</h3>
+<div class="terminal">
+<span class="bold cyan">▶ Step 1: Register Avro Schema (v1)</span><br>
+<span class="green">✓ Schema registered: odcs-example/OrderEvent</span><br>
+<span class="cyan">  Fields: orderId, customerEmail (PII), totalAmount</span>
+</div>
+<div class="box green" style="margin-top:15px">
+<p><strong>Key point:</strong> The <code>tags</code> field in the Avro schema is extracted by <code>AvroTagExtractor</code> during registration and stored as version labels.</p>
+</div>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Switch to terminal and press Enter. The schema has inline PII tags on customerEmail. When we submit the ODCS contract in the next step, these tags will be verified against the contract's field declarations.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 4: Demo — Submit Contract -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2><span class="demo-badge">▶ DEMO</span> Step 2: Submit ODCS Contract</h2>
+<div class="two-col">
+<div>
+<h3>ODCS v3.1 contract</h3>
+<pre><code>apiVersion: v3.1.0
+kind: DataContract
+id: orders-contract
+info:
+  title: Orders Data Contract
+  version: 1.0.0
+  status: active
+  dataClassification: confidential
+team:
+  name: orders-team
+  domain: commerce
+schemas:
+  - name: OrderEvent
+    type: avro
+    location: odcs-example/OrderEvent:latest
+    fields:
+      customerEmail:
+        pii: true
+        tags: [PII, EMAIL]
+quality:
+  accuracy:
+    - name: positive-amount
+      expression: totalAmount > 0
+      threshold: 1.0</code></pre>
+</div>
+<div>
+<h3>Expected output</h3>
+<div class="terminal">
+<span class="bold cyan">▶ Step 2: Submit ODCS Contract</span><br>
+<span class="green">✓ Contract submitted: orders-contract</span><br>
+<span class="cyan">  Rules applied:  1  (CEL from quality.accuracy)</span><br>
+<span class="cyan">  Labels applied: 8  (owner, status, classification, SLA)</span><br>
+<span class="cyan">  Tags applied:   2  (PII, EMAIL on customerEmail)</span>
+</div>
+<h3 style="margin-top:15px">What just happened</h3>
+<ul>
+<li>ODCS YAML stored as <code>ODCS_CONTRACT</code> artifact</li>
+<li><code>totalAmount > 0</code> → CEL rule on OrderEvent</li>
+<li><code>confidential</code> → <code>contract.orders-contract.classification</code> label</li>
+<li><code>customerEmail.pii: true</code> → version tag labels</li>
+</ul>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Switch to terminal and press Enter. Watch the projection result — it shows exactly how many rules, labels, and tags were applied. The threshold 1.0 means zero tolerance → onFailure=ERROR. This contract will reject any record with totalAmount ≤ 0.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 5: Demo — Inspect -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2><span class="demo-badge">▶ DEMO</span> Step 3: Inspect Contract</h2>
+<div class="two-col">
+<div>
+<h3>What the projection created</h3>
+<ul>
+<li><strong>List contracts</strong> — paginated query of all contracts in a group</li>
+<li><strong>Get metadata</strong> — reads <code>contract.*</code> labels back as structured data</li>
+<li><strong>Export as ODCS</strong> — reconstructs the ODCS YAML from labels, rules, and tags</li>
+</ul>
+<h3 style="margin-top:15px">Multi-contract support</h3>
+<div class="box green">
+<p>Multiple teams can govern the same schema independently. Each contract's projections are namespaced:</p>
+<pre><code>contract.orders-contract.owner.team = orders-team
+contract.billing-contract.owner.team = billing-team</code></pre>
+</div>
+</div>
+<div>
+<h3>Expected output</h3>
+<div class="terminal">
+<span class="bold cyan">▶ Step 3: Inspect: List, Metadata, Export</span><br>
+<span class="cyan">  Contract: orders-contract (Orders Data Contract)</span><br>
+<span class="cyan">  Status:         STABLE</span><br>
+<span class="cyan">  Owner:          orders-team</span><br>
+<span class="cyan">  Classification: CONFIDENTIAL</span><br>
+<span class="green">✓ ODCS export: 450 chars</span>
+</div>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Press Enter. The metadata comes from reading labels, not a separate table. Export reconstructs the ODCS YAML from what's stored — demonstrating round-trip fidelity.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 6: Demo — Quality & Governance -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2><span class="demo-badge">▶ DEMO</span> Steps 4-5: Quality &amp; Governance</h2>
+<div class="two-col">
+<div>
+<h3>Quality score formula</h3>
+<div class="box">
+<p><strong>Completeness (30%):</strong> description, owner, contact, classification, SLA, domain</p>
+<p><strong>Compliance (40%):</strong> rules defined, status set</p>
+<p><strong>Stability (30%):</strong> STABLE status, version history, ODCS contract linked</p>
+</div>
+<h3 style="margin-top:15px">Promotion pipeline</h3>
+<div class="flow">
+<div class="flow-item">DEV</div>
+<div class="flow-arrow">→</div>
+<div class="flow-item">STAGE</div>
+<div class="flow-arrow">→</div>
+<div class="flow-item">PROD</div>
+</div>
+<h3 style="margin-top:15px">Lifecycle statuses</h3>
+<div class="flow">
+<div class="flow-item"><span class="tag" style="background:#3498db">DRAFT</span></div>
+<div class="flow-arrow">→</div>
+<div class="flow-item"><span class="tag" style="background:#2ecc71">STABLE</span></div>
+<div class="flow-arrow">→</div>
+<div class="flow-item"><span class="tag" style="background:#e67e22">DEPRECATED</span></div>
+</div>
+</div>
+<div>
+<h3>Expected output</h3>
+<div class="terminal">
+<span class="bold cyan">▶ Step 4: Quality Score</span><br>
+<span class="cyan">  Overall:      0.85</span><br>
+<span class="cyan">  Completeness: 0.83  (30% weight)</span><br>
+<span class="cyan">  Compliance:   1.0   (40% weight)</span><br>
+<span class="cyan">  Stability:    0.67  (30% weight)</span><br><br>
+<span class="bold cyan">▶ Step 5: Promote DEV → STAGE</span><br>
+<span class="green">✓ Promoted to DEV</span><br>
+<span class="green">✓ Promoted to STAGE</span>
+</div>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Press Enter twice (steps 4 and 5). Quality gives teams a single number to track maturity. Promotion enforces the pipeline — you can't skip to PROD. PROD requires STABLE status.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 7: Demo — CEL Rules -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2><span class="demo-badge">▶ DEMO</span> Steps 6-7: CEL Rule Engine</h2>
+<div class="two-col">
+<div>
+<h3>How ODCS accuracy rules become CEL</h3>
+<pre><code># ODCS YAML:
+quality:
+  accuracy:
+    - name: positive-amount
+      expression: totalAmount > 0
+      threshold: 1.0     # → onFailure: ERROR
+
+# Projected as:
+odcs:orders-contract:positive-amount
+  type: CEL
+  expr: totalAmount > 0
+  onFailure: ERROR</code></pre>
+<h3 style="margin-top:10px">Threshold mapping</h3>
+<ul>
+<li><code>1.0</code> → <strong>ERROR</strong> (reject)</li>
+<li><code>0.95-0.99</code> → <strong>DLQ</strong> (dead letter queue)</li>
+<li><code>&lt;0.95</code> → <strong>NONE</strong> (log only)</li>
+</ul>
+</div>
+<div>
+<h3>Expected output</h3>
+<div class="terminal">
+<span class="bold cyan">▶ Step 6: Verify ODCS-Projected Rules</span><br>
+<span class="cyan">  ODCS rule: odcs:orders-contract:positive-amount</span><br>
+<span class="cyan">    [CEL] → totalAmount > 0</span><br>
+<span class="green">✓ Added JSONata migration rule</span><br><br>
+<span class="bold cyan">▶ Step 7: Execute CEL Rules</span><br>
+<span class="green">✓ Valid (totalAmount=99.99): {"passed":true}</span><br>
+<span class="red">✗ Invalid (totalAmount=-5.0): {"passed":false,<br>   "violations":["positive-amount"]}</span>
+</div>
+<div class="box" style="margin-top:10px">
+<p>Full CEL spec: <code>has()</code>, <code>size()</code>, <code>contains()</code>, <code>matches()</code>, ternary, parenthesized grouping.</p>
+</div>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Press Enter for step 6 (verify rules + add migration rule), then step 7 (execute). The demo sends a valid record (passes) then an invalid one (totalAmount=-5, rejected). This is the same engine that runs in SerDes later.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 8: Demo — Migration -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2><span class="demo-badge">▶ DEMO</span> Step 8: Schema Migration</h2>
+<div class="two-col">
+<div>
+<h3>JSONata transform: v1 → v2</h3>
+<pre><code># v1 schema: orderId, customerEmail, totalAmount
+# v2 schema: + currency (default "USD")
+
+# Migration rule (JSONata):
+$ ~> |$|{"currency": "USD"}|
+
+# Input (v1):
+{"orderId":"ORD-456","totalAmount":50.0}
+
+# Output (v2):
+{"orderId":"ORD-456","totalAmount":50.0,
+ "currency":"USD"}</code></pre>
+<h3 style="margin-top:10px">Compatibility groups</h3>
+<p>Partition version history so v1-family and v2-family schemas aren't compared against each other during compatibility checks.</p>
+</div>
+<div>
+<h3>Expected output</h3>
+<div class="terminal">
+<span class="bold cyan">▶ Step 8: Compatibility Group + Schema v2</span><br>
+<span class="green">✓ Compatibility group set: orders-v1</span><br>
+<span class="green">✓ Schema v2 registered (adds 'currency')</span><br>
+<span class="green">✓ Migration v1→v2: {"transformedRecord":<br>   {"orderId":"ORD-456","totalAmount":50.0,<br>    "currency":"USD"}}</span>
+</div>
+<div class="box" style="margin-top:10px">
+<p><strong>Multi-hop:</strong> The migration service chains transforms automatically. v1→v2→v3 applies each version's UPGRADE rules in sequence.</p>
+</div>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Press Enter. The JSONata expression adds the currency field. The migration endpoint handles the chaining — you just specify fromVersion and toVersion. Compatibility groups let you scope which versions are compatible.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 9: Demo — Search & Audit -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2><span class="demo-badge">▶ DEMO</span> Step 9: Search &amp; Audit</h2>
+<div class="two-col">
+<div>
+<h3>Contract search</h3>
+<p>Search across all artifacts by status, owner team, classification, group.</p>
+<pre><code>GET /search/contracts?status=STABLE
+                     &ownerTeam=orders-team
+                     &limit=10</code></pre>
+<h3 style="margin-top:15px">Audit log</h3>
+<p>Compliance trail — who changed what, when. Stored in <code>contract_audit_log</code> table (the only new table).</p>
+<pre><code>GET /groups/{g}/artifacts/{a}/contract/audit
+
+[{"action":"RULESET_CONFIGURED",
+  "principal":"admin",
+  "createdOn":"2026-05-19T10:30:00Z"},
+ {"action":"STATUS_TRANSITION", ...}]</code></pre>
+</div>
+<div>
+<h3>Expected output</h3>
+<div class="terminal">
+<span class="bold cyan">▶ Step 9: Search Contracts + Audit Log</span><br>
+<span class="green">✓ Found 1 contract(s)</span><br>
+<span class="green">✓ Audit log (3 entries):</span><br>
+<span class="cyan">  METADATA_UPDATED by admin at ...</span><br>
+<span class="cyan">  RULESET_CONFIGURED by admin at ...</span><br>
+<span class="cyan">  STATUS_TRANSITION by admin at ...</span>
+</div>
+<h3 style="margin-top:15px">Contract events</h3>
+<ul>
+<li><code>ContractRulesetConfigured</code></li>
+<li><code>ContractMetadataUpdated</code></li>
+<li><code>ContractStatusChanged</code></li>
+</ul>
+<p>Published via the existing OutboxEvent infrastructure.</p>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Press Enter. Search uses label-based queries. The audit log is the only new SQL table in the whole feature — everything else reuses labels and rules.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 10: Demo — Global Rules -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2><span class="demo-badge">▶ DEMO</span> Step 10: Global Rules</h2>
+<div class="two-col">
+<div>
+<h3>Rule precedence</h3>
+<div class="flow">
+<div class="flow-item" style="border-color:#f39c12">Global<br><small>org-wide baseline</small></div>
+<div class="flow-arrow">→</div>
+<div class="flow-item" style="border-color:#f72585">Artifact<br><small>per-schema</small></div>
+<div class="flow-arrow">→</div>
+<div class="flow-item" style="border-color:#2ecc71">Version<br><small>most specific wins</small></div>
+</div>
+<p style="margin-top:15px">Rules with the same name at a more specific scope <strong>override</strong> the global rule.</p>
+<pre><code># Global rule (applies to ALL artifacts):
+PUT /admin/contracts/ruleset
+
+{"domainRules": [{
+  "name": "global-non-empty-id",
+  "kind": "CONDITION",
+  "type": "CEL",
+  "mode": "WRITE",
+  "expr": "size(orderId) > 0",
+  "onFailure": "ERROR"
+}]}</code></pre>
+</div>
+<div>
+<h3>Expected output</h3>
+<div class="terminal">
+<span class="bold cyan">▶ Step 10: Set Global Contract Rules</span><br>
+<span class="green">✓ Global rule set: non-empty orderId (CEL)</span><br>
+<span class="cyan">  Global rules: 1 domain rule(s)</span>
+</div>
+<div class="box green" style="margin-top:15px">
+<p><strong>Use case:</strong> Platform team sets org-wide policies (e.g., "every schema must have a non-empty identifier"). Individual teams can override with artifact-level rules.</p>
+</div>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Press Enter. Global rules are the last piece of the governance puzzle — org-wide policies that apply unless overridden. Next we'll see these rules enforced in real Kafka SerDes.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 11: Demo — Kafka SerDes -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2><span class="demo-badge">▶ DEMO</span> Steps 11-14: Kafka SerDes Integration</h2>
+<div class="two-col">
+<div>
+<h3>Config-only integration</h3>
+<pre><code># Just two properties — that's it:
+apicurio.registry.serde
+  .contract-rules.enabled=true
+apicurio.registry.serde
+  .contract-rules.fail-on-error=true</code></pre>
+<h3 style="margin-top:10px">What happens</h3>
+<ul>
+<li><strong>Step 11:</strong> Start embedded Kafka (Testcontainers)</li>
+<li><strong>Step 12:</strong> Produce valid message → rules pass → sent</li>
+<li><strong>Step 13:</strong> Produce invalid message → rules reject → blocked</li>
+<li><strong>Step 14:</strong> Consume valid message → read-side rules pass</li>
+</ul>
+<h3 style="margin-top:10px">DLQ pattern</h3>
+<p>Set <code>fail-on-error=false</code> → violations logged but message serialized. App routes to DLQ.</p>
+</div>
+<div>
+<h3>Expected output</h3>
+<div class="terminal">
+<span class="bold cyan">▶ Step 11: Start Embedded Kafka</span><br>
+<span class="green">✓ Kafka running at: localhost:32789</span><br><br>
+<span class="bold cyan">▶ Step 12: Produce Valid Message</span><br>
+<span class="green">✓ Message sent: totalAmount=99.99</span><br><br>
+<span class="bold cyan">▶ Step 13: Produce Invalid Message</span><br>
+<span class="green">✓ Message correctly REJECTED!</span><br>
+<span class="red">✗ Violation: Contract rule validation<br>   failed: totalAmount > 0</span><br><br>
+<span class="bold cyan">▶ Step 14: Consume Valid Message</span><br>
+<span class="green">✓ Consumed: key=key1 value={...}</span>
+</div>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Press Enter 4 times (steps 11-14). This is the highlight — contract rules enforced transparently in the normal Kafka pipeline with just a config property. Step 13 is the money shot: the invalid message (totalAmount=-5) is rejected before it even reaches Kafka. No code changes needed.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 12: UI Tour -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2>UI Tour</h2>
+<p>Open the registry UI and navigate to <strong>Explore → odcs-example → OrderEvent → Contract tab</strong></p>
+<div class="two-col">
+<div>
+<h3>Contract Tab Features</h3>
+<ul>
+<li><strong>Metadata panel</strong> — owner, domain, classification, status badge, contact</li>
+<li><strong>Quality scores</strong> — color-coded progress bars (overall, completeness, compliance, stability)</li>
+<li><strong>Rules table</strong> — domain + migration rules with name, kind, type, mode, expression, failure action</li>
+<li><strong>ODCS editor</strong> — view/edit YAML source, re-submit to re-project</li>
+<li><strong>Audit log</strong> — chronological list of all contract operations</li>
+<li><strong>Status modal</strong> — DRAFT → STABLE → DEPRECATED transitions</li>
+<li><strong>Promotion modal</strong> — DEV → STAGE → PROD</li>
+</ul>
+</div>
+<div>
+<div class="box green">
+<p><strong>How to start the UI:</strong></p>
+<pre><code>cd ui/ui-app && npm run dev
+# Open http://localhost:8888</code></pre>
+</div>
+<div class="box" style="margin-top:15px">
+<p><strong>Status badges:</strong></p>
+<p><span class="tag" style="background:#3498db">DRAFT</span> <span class="tag" style="background:#2ecc71">STABLE</span> <span class="tag" style="background:#e67e22">DEPRECATED</span></p>
+<p style="margin-top:10px"><strong>Score colors:</strong></p>
+<p>Red (&lt;50%) → Orange (50-80%) → Green (&gt;80%)</p>
+</div>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Switch to browser. The demo left data in the registry (cleanup is skipped). Walk through each section of the Contract tab: metadata, quality gauges, rules table, ODCS editor, audit log. Try changing status or promoting. All PatternFly components.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 13: Architecture -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2>Architecture</h2>
+<div class="mermaid">
+graph TB
+  subgraph app["app module (depends on storage)"]
+    subgraph odcs["contracts/odcs"]
+      OdcsParser
+      OdcsProjectionEngine
+      OdcsExporter
+    end
+    subgraph tags["contracts/tags"]
+      AvroTagExtractor
+      JsonSchemaTagExtractor
+      ProtobufTagExtractor
+    end
+    subgraph gov["governance + quality"]
+      PromotionService
+      QualityScoreCalculator
+      GovernanceRuleExecutor
+    end
+    subgraph integration["integration"]
+      ContractAuditService
+      MigrationRuleService
+      CompatibilityGroupService
+    end
+  end
+
+  subgraph crmod["contracts-rules module (no storage)"]
+    RuleExecutionEngine
+    CelRuleExecutor["CelRuleExecutor (cel-standalone)"]
+    JsonataRuleExecutor["JsonataRuleExecutor (dashjoin)"]
+  end
+
+  subgraph consumers["Consumers"]
+    AppModule["app"]
+    SerDes["Kafka SerDes"]
+  end
+
+  AppModule --> crmod
+  SerDes --> crmod
+
+  style app fill:#16213e,stroke:#7209b7,color:#eee
+  style crmod fill:#16213e,stroke:#4cc9f0,color:#eee
+  style consumers fill:#0d1117,stroke:#2ecc71,color:#eee
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Two modules. The app module has everything that needs storage: ODCS parser/projectors, tag extractors, governance, audit. The contracts-rules module is storage-free — it contains the rule execution engine, CEL, and JSONata. This module is reused by Kafka SerDes without pulling in the entire app.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 14: Storage Deep Dive -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2>Storage: Atomic Label Merge</h2>
+<div class="two-col">
+<div>
+<h3>SQL Storage</h3>
+<div class="box green">
+<pre><code>-- In one database transaction:
+DELETE FROM artifact_labels
+  WHERE groupId=? AND artifactId=?
+  AND labelKey LIKE 'contract.orders.%';
+
+INSERT INTO artifact_labels ...
+  ('contract.orders.status', 'STABLE'),
+  ('contract.orders.owner.team', 'orders');
+
+-- Rebuild JSON column
+SELECT → UPDATE artifacts SET labels=?</code></pre>
+</div>
+</div>
+<div>
+<h3>KafkaSQL Storage</h3>
+<div class="box green">
+<pre><code>MergeArtifactLabels5Message {
+  groupId, artifactId,
+  prefix: "contract.orders.",
+  labels: {"status":"STABLE", ...}
+}
+  │ published to Kafka journal
+  ▼ consumed by ALL replicas
+  ▼ each applies atomic merge
+  → strong consistency via ordering</code></pre>
+</div>
+</div>
+</div>
+<div class="box" style="margin-top:15px">
+<ul>
+<li>Different contracts → different prefixes → <strong>no conflict</strong></li>
+<li>Same contract → <strong>idempotent overwrite</strong></li>
+<li>ReadOnly decorator guards all write methods</li>
+<li>Only 1 new table: <code>contract_audit_log</code> (everything else is labels + rules)</li>
+</ul>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Two storage variants, same consistency. SQL: ACID transaction. KafkaSQL: merge instruction goes through the Kafka journal, all replicas apply in order. Same pattern as every other KafkaSQL write.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 15: What's Next + Q&A -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h2>What's Next &amp; Questions</h2>
+<div class="two-col">
+<div>
+<h3>Phase 9 (planned)</h3>
+<table>
+<tr><th>Feature</th><th>Status</th></tr>
+<tr><td>CEL_FIELD — field-level validation by tag</td><td>Not started</td></tr>
+<tr><td>Encryption/Decryption — KMS-backed field encrypt</td><td>Not started</td></tr>
+<tr><td>Confluent ccompat — metadata + ruleSet translation</td><td>WIP (branch)</td></tr>
+</table>
+<div class="box" style="margin-top:15px">
+<p><strong>Confluent blocker:</strong> <code>cel-standalone:0.6.0</code> relocates protobuf types, incompatible with Confluent's <code>kafka-schema-rules</code>. Options: migrate to non-relocated CEL modules or use Confluent's evaluator.</p>
+</div>
+</div>
+<div>
+<h3>Common questions</h3>
+<table>
+<tr><th>Q</th><th>A</th></tr>
+<tr><td>Why not a <code>contracts</code> table?</td><td>Labels give us 4 storage variants for free</td></tr>
+<tr><td>Why CEL not OPA?</td><td>In-process, sub-ms, same as K8s</td></tr>
+<tr><td>Why JSONata not JQ?</td><td>Pure Java, no GraalJS, Quarkus-native</td></tr>
+<tr><td>SerDes perf impact?</td><td>1 HTTP call per ser/deser, CEL < 1ms</td></tr>
+<tr><td>Registry down?</td><td>fail-on-error=true → retry; false → DLQ</td></tr>
+<tr><td>Can I skip ODCS?</td><td>Yes, Phase 1 APIs work independently</td></tr>
+</table>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Phase 9 is a separate PR. The Confluent ccompat work is in branch issue-6192-confluent-backup. The CEL ABI conflict is the main blocker. For questions: emphasize the labels-vs-table trade-off (4 storage variants for free) and the config-only SerDes integration.
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- Slide 16: Summary -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+<h1>Summary</h1>
+<div class="metrics">
+<div><div class="big-number">8</div><div class="metric-label">Phases shipped</div></div>
+<div><div class="big-number">1</div><div class="metric-label">New table</div></div>
+<div><div class="big-number">0</div><div class="metric-label">Config required</div></div>
+<div><div class="big-number">2</div><div class="metric-label">Properties for SerDes</div></div>
+</div>
+<div class="two-col">
+<div>
+<h3>What we built</h3>
+<ul>
+<li>First ODCS-native schema registry</li>
+<li>Projection model — zero new storage tables for core</li>
+<li>CEL + JSONata rule engine (reusable module)</li>
+<li>Kafka SerDes with config-only contract enforcement</li>
+<li>Full lifecycle: governance, quality, promotion, migration</li>
+<li>UI management with PatternFly</li>
+<li>4 SDKs updated (Java, Go, Python, TypeScript)</li>
+</ul>
+</div>
+<div>
+<h3>Links</h3>
+<ul>
+<li>Epic: <code>#6192</code></li>
+<li>PRs: <code>#7982</code>, <code>#7983</code>, <code>#8036</code></li>
+<li>Phase 9: <code>#8037</code></li>
+<li>ADR: <code>adr/0002-odcs-native-data-contracts.md</code></li>
+<li>Demo: <code>examples/odcs-data-contracts/</code></li>
+<li>Docs: <code>assembly-data-contracts.adoc</code></li>
+<li>ODCS spec: <code>bitol.io</code></li>
+</ul>
+</div>
+</div>
+<div class="speaker-notes">
+<strong>Speaker notes:</strong> Wrap up. Key takeaway: contracts are opt-in, zero config for operators, two properties for Kafka producers/consumers. The projection model means we reuse all existing infrastructure. Questions?
+</div>
+</div>
+
+<div id="term-panel"><div id="term-container" style="width:100%;height:100%"></div></div>
+<button id="term-toggle">Terminal (T)</button>
+<span id="term-status"></span>
+<div id="slide-counter"></div>
+<div id="nav-hint">← → navigate · T = terminal · F = fullscreen term · S = speaker notes</div>
+
+<script>
+(function() {
+  var slides = document.querySelectorAll('.slide');
+  var current = 0;
+  var counter = document.getElementById('slide-counter');
+  var termPanel = document.getElementById('term-panel');
+  var termBtn = document.getElementById('term-toggle');
+  var termStatus = document.getElementById('term-status');
+  var term = null;
+  var fitAddon = null;
+  var ws = null;
+  var termOpen = false;
+
+  function show(n) {
+    if (n < 0 || n >= slides.length) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.remove('term-active');
+    current = n;
+    slides[current].classList.add('active');
+    if (termOpen) slides[current].classList.add('term-active');
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    window.location.hash = current + 1;
+  }
+
+  function initTerminal() {
+    if (term) return;
+    term = new Terminal({
+      theme: { background: '#0d1117', foreground: '#e6edf3', cursor: '#4cc9f0',
+               selectionBackground: '#264f78', black: '#0d1117', red: '#ff7b72',
+               green: '#3fb950', yellow: '#d29922', blue: '#58a6ff',
+               magenta: '#bc8cff', cyan: '#39c5cf', white: '#e6edf3' },
+      fontFamily: "'Menlo', 'Consolas', 'Courier New', monospace",
+      fontSize: 14,
+      cursorBlink: true,
+      scrollback: 5000,
+    });
+    fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    term.loadAddon(new WebLinksAddon.WebLinksAddon());
+    term.open(document.getElementById('term-container'));
+    fitAddon.fit();
+    connectWs();
+  }
+
+  function connectWs() {
+    var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var url = protocol + '//' + location.host;
+    ws = new WebSocket(url);
+    ws.onopen = function() {
+      termStatus.style.color = '#2ecc71';
+      termStatus.textContent = '● connected';
+      ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
+    };
+    ws.onmessage = function(e) { term.write(e.data); };
+    ws.onclose = function() {
+      termStatus.style.color = '#e74c3c';
+      termStatus.textContent = '● disconnected';
+      term.write('\r\n\x1b[31mDisconnected. Start terminal-server.js and reload.\x1b[0m\r\n');
+    };
+    term.onData(function(data) { if (ws && ws.readyState === 1) ws.send(data); });
+    term.onResize(function(size) {
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'resize', cols: size.cols, rows: size.rows }));
+    });
+  }
+
+  function toggleTerm() {
+    termOpen = !termOpen;
+    termPanel.classList.toggle('open');
+    termPanel.classList.remove('fullscreen');
+    slides[current].classList.toggle('term-active');
+    if (termOpen) {
+      initTerminal();
+      setTimeout(function() { fitAddon.fit(); term.focus(); }, 50);
+    }
+    termBtn.textContent = termOpen ? 'Hide (T)' : 'Terminal (T)';
+  }
+
+  function toggleFullscreen() {
+    if (!termOpen) return;
+    termPanel.classList.toggle('fullscreen');
+    setTimeout(function() { fitAddon.fit(); term.focus(); }, 50);
+  }
+
+  slides[0].classList.add('active');
+  counter.textContent = '1 / ' + slides.length;
+
+  var hash = parseInt(window.location.hash.slice(1));
+  if (hash > 0 && hash <= slides.length) show(hash - 1);
+
+  termBtn.addEventListener('click', toggleTerm);
+
+  document.addEventListener('keydown', function(e) {
+    if (termOpen && e.target !== document.body) return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); show(current + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); show(current - 1); }
+    else if (e.key === ' ' && !termOpen) { e.preventDefault(); show(current + 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+    else if (e.key === 's' || e.key === 'S') {
+      var notes = slides[current].querySelector('.speaker-notes');
+      if (notes) notes.classList.toggle('visible');
+    } else if (e.key === 't' || e.key === 'T') {
+      e.preventDefault(); toggleTerm();
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault(); toggleFullscreen();
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    if (termOpen && termPanel.contains(e.target)) return;
+    if (e.target === termBtn) return;
+    if (e.clientX > window.innerWidth / 2) show(current + 1);
+    else show(current - 1);
+  });
+
+  window.addEventListener('resize', function() {
+    if (term && fitAddon && termOpen) fitAddon.fit();
+  });
+})();
+</script>
+</body>
+</html>

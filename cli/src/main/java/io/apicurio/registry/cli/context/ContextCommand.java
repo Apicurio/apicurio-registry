@@ -3,9 +3,8 @@ package io.apicurio.registry.cli.context;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
-import picocli.CommandLine.Command;
-
 import java.util.Objects;
+import picocli.CommandLine.Command;
 
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.GROUP_ID;

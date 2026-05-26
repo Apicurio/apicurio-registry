@@ -1,11 +1,10 @@
 package io.apicurio.registry.cli.config;
 
 import io.apicurio.registry.cli.common.CliException;
-import org.eclipse.microprofile.config.spi.ConfigSource;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import org.eclipse.microprofile.config.spi.ConfigSource;
 
 /**
  * Custom ConfigSource that loads properties from "$ACR_HOME/config.json".

@@ -3,11 +3,10 @@ package io.apicurio.registry.cli.services;
 import io.apicurio.registry.cli.config.Config;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.jboss.logging.Logger;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 public class UpdateNotifier {

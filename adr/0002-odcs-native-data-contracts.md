@@ -102,7 +102,7 @@ The `contracts-rules` Maven module (`apicurio-registry-contracts-rules`) provide
 
 ### JSONata transform engine (Phase 6)
 
-The `contracts-rules` module includes a JSONata rule executor (`JsonataRuleExecutor`) using `com.dashjoin:jsonata:0.9.9`. JSONata expressions support both CONDITION and TRANSFORM kinds:
+The `contracts-rules` module includes a JSONata rule executor (`JsonataRuleExecutor`) using `com.dashjoin:jsonata:0.9.10`. JSONata expressions support both CONDITION and TRANSFORM kinds:
 
 - **CONDITION:** evaluates the expression and checks for a truthy result
 - **TRANSFORM:** evaluates the expression and returns the transformed data as the new record

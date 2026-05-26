@@ -88,7 +88,7 @@ th { background: #16213e; color: #4cc9f0; }
 <tr><th>Technology</th><th>Role</th></tr>
 <tr><td><span class="tag" style="background:#4cc9f0">ODCS v3.1</span></td><td>Native contract format (Linux Foundation / Bitol)</td></tr>
 <tr><td><span class="tag" style="background:#2ecc71">CEL</span></td><td>Rule validation (cel-standalone 0.6.0, same as Kubernetes)</td></tr>
-<tr><td><span class="tag" style="background:#f72585">JSONata</span></td><td>Data transformation for schema migration (dashjoin 0.9.9)</td></tr>
+<tr><td><span class="tag" style="background:#f72585">JSONata</span></td><td>Data transformation for schema migration (dashjoin 0.9.10)</td></tr>
 <tr><td><span class="tag" style="background:#f39c12">Kiota</span></td><td>SDK generation (Java, Go, Python, TypeScript)</td></tr>
 <tr><td><span class="tag" style="background:#7209b7">PatternFly</span></td><td>UI components (React)</td></tr>
 </table>
@@ -587,7 +587,7 @@ graph TB
     subgraph gov["governance + quality"]
       PromotionService
       QualityScoreCalculator
-      GovernanceRuleExecutor
+      RuleExecutionService
     end
     subgraph integration["integration"]
       ContractAuditService

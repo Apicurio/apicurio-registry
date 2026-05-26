@@ -53,6 +53,7 @@ public class Auth {
                     Long.toString(authSpec.getBasicAuth().getCacheExpiration().getDuration().toMinutes()));
         }
 
+        KubernetesAuth.configureKubernetesAuth(authSpec.getKubernetesAuth(), env);
         AuthTLS.configureAuthTLS(authSpec, deployment, env);
         Authz.configureAuthz(authSpec.getAuthz(), env);
     }

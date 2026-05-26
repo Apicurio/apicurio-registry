@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.auth;
 
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.vertx.http.runtime.security.BasicAuthenticationMechanism;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -35,6 +36,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import io.apicurio.registry.logging.audit.AuditLogService;
 import org.apache.commons.lang3.tuple.Pair;
@@ -84,6 +86,9 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Inject
     DefaultJWTParser jwtParser;
 
+    @Inject
+    Instance<KubernetesClient> kubernetesClient;
+
     private List<AuthenticationStrategy> authChain;
 
     @PostConstruct
@@ -123,13 +128,25 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             return new OidcAuthenticationStrategy(oidcAuthenticationMechanism, authConfig,
                     auditLog, webClient, log, this);
         });
+        strategyFactories.put("kubernetes", () -> {
+            if (!authConfig.kubernetesAuthEnabled) {
+                return null;
+            }
+            if (!kubernetesClient.isResolvable()) {
+                log.warn("Kubernetes auth enabled but no KubernetesClient available. "
+                        + "The quarkus-kubernetes-client extension must be on the classpath "
+                        + "and the application must be running in a Kubernetes cluster.");
+                return null;
+            }
+            return new KubernetesAuthenticationStrategy(kubernetesClient.get(), authConfig, log);
+        });
 
         List<AuthenticationStrategy> chain = new ArrayList<>();
         for (String name : authConfig.getMechanismPriorityList()) {
             Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
             if (factory == null) {
                 log.warn("Unknown authentication mechanism name in priority list: '{}'. "
-                        + "Valid values are: basic, proxy-header, oidc", name);
+                        + "Valid values are: basic, proxy-header, oidc, kubernetes", name);
                 continue;
             }
             AuthenticationStrategy strategy = factory.get();

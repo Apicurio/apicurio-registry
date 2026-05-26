@@ -137,8 +137,8 @@ class TracingFilterTest {
 
         List<SpanData> spans = spanExporter.getFinishedSpanItems();
         SpanData spanData = spans.get(0);
-        assertEquals("path-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.groupId")));
-        assertEquals("path-artifact", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.artifactId")));
+        assertEquals("path-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.group_id")));
+        assertEquals("path-artifact", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.artifact_id")));
         assertEquals("2.0", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.version")));
     }
 
@@ -240,7 +240,7 @@ class TracingFilterTest {
 
         // Both header and path attributes should be set
         assertEquals("header-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.group_id")));
-        assertEquals("path-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.groupId")));
+        assertEquals("path-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.group_id")));
     }
 
     private ContainerRequestContext createMockContext(String groupId, String artifactId,

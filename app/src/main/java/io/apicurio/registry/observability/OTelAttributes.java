@@ -50,10 +50,10 @@ public final class OTelAttributes {
     public static final AttributeKey<String> ATTR_REQUEST_PATH = AttributeKey.stringKey("apicurio.registry.request.path");
 
     /** Group ID extracted from path parameters. */
-    public static final AttributeKey<String> ATTR_PATH_GROUP_ID = AttributeKey.stringKey("apicurio.registry.path.groupId");
+    public static final AttributeKey<String> ATTR_PATH_GROUP_ID = AttributeKey.stringKey("apicurio.registry.path.group_id");
 
     /** Artifact ID extracted from path parameters. */
-    public static final AttributeKey<String> ATTR_PATH_ARTIFACT_ID = AttributeKey.stringKey("apicurio.registry.path.artifactId");
+    public static final AttributeKey<String> ATTR_PATH_ARTIFACT_ID = AttributeKey.stringKey("apicurio.registry.path.artifact_id");
 
     /** Version extracted from path parameters. */
     public static final AttributeKey<String> ATTR_PATH_VERSION = AttributeKey.stringKey("apicurio.registry.path.version");

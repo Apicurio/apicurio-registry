@@ -51,6 +51,11 @@ entries:
       - name: apicurio-registry-3.v3.2.1
         replaces: apicurio-registry-3.v3.2.0
       - name: apicurio-registry-3.v3.2.0
+  - schema: olm.channel
+    package: ${PLACEHOLDER_PACKAGE_NAME}
+    name: 3.3.x
+    entries:
+      - name: ${PLACEHOLDER_PACKAGE}
   - schema: olm.bundle
     image: ${PLACEHOLDER_BUNDLE_IMAGE}
   - schema: olm.bundle

@@ -277,11 +277,15 @@ The ODCS YAML exists as an artifact AND its contents are projected as labels/rul
 - Use Confluent's CEL evaluator for ccompat rule execution paths
 - Keep CEL implementations separate: Apicurio's CEL for native contracts, Confluent's for ccompat (Phase 9)
 
-### L7: SerDes contract rule execution uses raw HTTP — RESOLVED
+### L7: SerDes contract rule execution uses raw HTTP — OPEN
 
-~~`RegistryClientFacadeImpl.executeContractRules` uses `java.net.http.HttpClient` directly instead of the Kiota-generated SDK client.~~
+`RegistryClientFacadeImpl.executeContractRules` uses `java.net.http.HttpClient` directly instead of the Kiota-generated SDK client. Although the SDK has generated types (`ExecutePostRequestBody`, `ExecutePostResponse`), Kiota's serialization layer cannot handle arbitrary nested `Object` values in `AdditionalDataHolder` maps (e.g., `{"orderId": "ORD-001", "totalAmount": 99.99}`). Attempting to use the SDK results in `"could not serialize value"` errors at runtime.
 
-**Resolution:** Replaced raw HTTP with Kiota SDK calls. The SDK's `ExecutePostRequestBody`/`ExecutePostResponse` types use `AdditionalDataHolder` for the dynamic `record` and `violations` fields, which maps directly to `Map<String, Object>`. SerDes contract rule execution now benefits from the SDK's authentication, retry, and serialization infrastructure.
+**Impact:** SerDes contract rule execution doesn't benefit from the SDK's authentication, retry, or serialization infrastructure.
+
+**Root cause:** Kiota's `writeAdditionalData` only handles primitive types and `Parsable` objects, not arbitrary `Map<String, Object>` with mixed value types (String, Double, nested Maps).
+
+**Mitigation:** Keep raw HTTP. The approach is simple, tested, and works. Alternatively, contribute a Kiota serialization enhancement for arbitrary map values upstream.
 
 ## Consequences
 
@@ -300,6 +304,7 @@ The ODCS YAML exists as an artifact AND its contents are projected as labels/rul
 ### Negative
 
 - Dual storage (ODCS artifact + projected labels) adds complexity — justified for versioning, export, and re-projection
+- SerDes rule execution uses raw HTTP — Kiota's serializer can't handle arbitrary `Map<String, Object>` values
 - CEL library conflict prevents coexistence with Confluent's `kafka-schema-rules`
 
 ### Neutral

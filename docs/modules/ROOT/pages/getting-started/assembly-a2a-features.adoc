@@ -76,7 +76,7 @@ You can control A2A features by using the following configuration properties.
 |Property |Default |Description
 
 |`apicurio.a2a.enabled`
-|`true`
+|`false`
 |Enable or disable A2A protocol support
 
 |`apicurio.a2a.agent.name`
@@ -325,18 +325,22 @@ Agent Cards have three validation levels that control how much validation occurs
 |Level |Description
 
 |`NONE`
-|No validation performed
+|No validation.
 
 |`SYNTAX_ONLY`
-|Validates JSON syntax only
+|Validates that the content is syntactically valid JSON and is a JSON object.
 
 |`FULL`
-|Complete schema validation including:
-- Required `name` field
-- Valid JSON structure
-- Skill objects with `id` and `name`
-- Boolean capability values
-- Array types for modes
+a|Complete schema validation including:
+
+* Required `name` field
+* Valid JSON structure
+* Skill objects with `id` and `name`
+* Boolean capability values
+* Array types for `defaultInputModes` and `defaultOutputModes`
+* Valid `supportedInterfaces` entries with `url` and `protocolBinding`
+* Valid `provider` object with `organization` field
+* Authentication and security scheme validation
 |===
 
 // ref-a2a-compatibility-checking
@@ -356,7 +360,8 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 .Incompatible changes (can break clients)
 * Removing skills
 * Removing or disabling capabilities
-* Changing the agent URL
+* Removing supported interfaces (matched by URL and protocol binding)
+* Changing the protocol version on an existing interface
 * Removing authentication schemes
 * Removing input or output modes
 
@@ -372,23 +377,26 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 |===
 |Label pattern |Source
 
-|`a2a.skill.<id>`
+|`agent_card:skill:<id>`
 |Each skill ID in the skills array
 
-|`a2a.capability.<name>`
+|`agent_card:capability:<name>`
 |Enabled capabilities (streaming, pushNotifications)
 
-|`a2a.inputMode.<mode>`
+|`agent_card:inputmode:<mode>`
 |Each input mode
 
-|`a2a.outputMode.<mode>`
+|`agent_card:outputmode:<mode>`
 |Each output mode
 
-|`a2a.name`
-|Agent name
+|`agent_card:protocolbinding:<binding>`
+|Each protocol binding from the supported interfaces
 
-|`a2a.url`
-|Agent URL
+|`agent_card:securityscheme:<name>`
+|Each security scheme from the authentication configuration
+
+|`agent_card:tag:<value>`
+|Each tag value from skills
 |===
 
 // ref-a2a-registry-built-in-skills
@@ -498,7 +506,7 @@ Agent Cards can reference their schemas and prompts by using URN references:
 == Multi-agent workflow example
 
 [role="_abstract"]
-The `examples/a2a-real-world-integration` directory contains an example of context chaining across multiple agents.
+The link:https://github.com/Apicurio/apicurio-registry/tree/3.2.x/examples/a2a-real-world-integration[examples/a2a-real-world-integration] directory contains an example of context chaining across multiple agents.
 
 .Context chaining pipeline
 [cols="1,3,3",options="header"]
@@ -524,6 +532,7 @@ The `examples/a2a-real-world-integration` directory contains an example of conte
 |`{"translated": "Estimado cliente, le pido disculpas..."}`
 |===
 
+ifndef::service-registry-downstream[]
 .Example commands
 The following commands start the example application:
 
@@ -535,6 +544,7 @@ mvn clean compile exec:java
 ----
 
 The Web UI is available at http://localhost:9000.
+endif::[]
 
 // ref-a2a-java-sdk-usage
 :_mod-docs-content-type: REFERENCE

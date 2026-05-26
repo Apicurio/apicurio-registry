@@ -294,6 +294,15 @@ Manage agent cards through a defined lifecycle:
 
 |`agent_card:outputmode:<mode>`
 |Each value in the `defaultOutputModes` array
+
+|`agent_card:protocolbinding:<binding>`
+|Each protocol binding from the `supportedInterfaces` array
+
+|`agent_card:securityscheme:<name>`
+|Each security scheme from the `authentication` configuration
+
+|`agent_card:tag:<value>`
+|Each tag value from skills
 |===
 
 Design your agent cards with consistent skill IDs and capability names across your organization. With consistent naming, discovery queries return accurate results. For example, use `translation` rather than `translate` or `translator` as the skill ID across all translation agents.

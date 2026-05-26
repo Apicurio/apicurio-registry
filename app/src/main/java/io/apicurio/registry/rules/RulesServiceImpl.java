@@ -122,9 +122,7 @@ public class RulesServiceImpl implements RulesService {
                         ruleType, allRules.get(ruleType).getConfiguration(), references,
                         resolvedReferences);
             }
-            if (!allRules.isEmpty()) {
-                otelMetrics.recordRuleEvaluation(ruleOperation, true);
-            }
+            otelMetrics.recordRuleEvaluation(ruleOperation, true);
         } catch (RuleViolationException ex) {
             otelMetrics.recordRuleEvaluation(ruleOperation, false);
             throw ex;

@@ -1,7 +1,7 @@
 package io.apicurio.registry.metrics;
 
+import io.apicurio.registry.observability.OTelAttributes;
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.LongUpDownCounter;
@@ -24,14 +24,6 @@ public class OTelMetricsProvider {
     private static final String METRIC_PREFIX = "apicurio.";
 
     private static final String ICEBERG_PREFIX = METRIC_PREFIX + "iceberg.";
-
-    private static final AttributeKey<String> GROUP_ID_KEY = AttributeKey.stringKey("groupId");
-    private static final AttributeKey<String> ARTIFACT_TYPE_KEY = AttributeKey.stringKey("artifactType");
-    private static final AttributeKey<String> OPERATION_KEY = AttributeKey.stringKey("operation");
-    private static final AttributeKey<String> CLIENT_ID_KEY = AttributeKey.stringKey("clientId");
-    private static final AttributeKey<String> RESULT_KEY = AttributeKey.stringKey("result");
-    private static final AttributeKey<String> ENTITY_TYPE_KEY = AttributeKey.stringKey("entity_type");
-    private static final AttributeKey<String> ERROR_TYPE_KEY = AttributeKey.stringKey("error_type");
 
     private LongCounter artifactCreatedCounter;
     private LongCounter artifactDeletedCounter;
@@ -140,8 +132,8 @@ public class OTelMetricsProvider {
      */
     public void recordArtifactCreated(String groupId, String artifactType) {
         artifactCreatedCounter.add(1, Attributes.of(
-                GROUP_ID_KEY, groupId != null ? groupId : "default",
-                ARTIFACT_TYPE_KEY, artifactType != null ? artifactType : "unknown"
+                OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : "default",
+                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : "unknown"
         ));
     }
 
@@ -153,8 +145,8 @@ public class OTelMetricsProvider {
      */
     public void recordArtifactDeleted(String groupId, String artifactType) {
         artifactDeletedCounter.add(1, Attributes.of(
-                GROUP_ID_KEY, groupId != null ? groupId : "default",
-                ARTIFACT_TYPE_KEY, artifactType != null ? artifactType : "unknown"
+                OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : "default",
+                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : "unknown"
         ));
     }
 
@@ -166,8 +158,8 @@ public class OTelMetricsProvider {
      */
     public void recordVersionCreated(String groupId, String artifactType) {
         versionCreatedCounter.add(1, Attributes.of(
-                GROUP_ID_KEY, groupId != null ? groupId : "default",
-                ARTIFACT_TYPE_KEY, artifactType != null ? artifactType : "unknown"
+                OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : "default",
+                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : "unknown"
         ));
     }
 
@@ -179,8 +171,8 @@ public class OTelMetricsProvider {
      */
     public void recordSchemaValidation(String artifactType, boolean success) {
         schemaValidationCounter.add(1, Attributes.of(
-                ARTIFACT_TYPE_KEY, artifactType != null ? artifactType : "unknown",
-                RESULT_KEY, success ? "success" : "failure"
+                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : "unknown",
+                OTelAttributes.ATTR_RESULT, success ? "success" : "failure"
         ));
     }
 
@@ -192,8 +184,8 @@ public class OTelMetricsProvider {
      */
     public void recordRuleEvaluation(String operation, boolean success) {
         ruleEvaluationCounter.add(1, Attributes.of(
-                OPERATION_KEY, operation != null ? operation : "unknown",
-                RESULT_KEY, success ? "success" : "failure"
+                OTelAttributes.ATTR_OPERATION, operation != null ? operation : "unknown",
+                OTelAttributes.ATTR_RESULT, success ? "success" : "failure"
         ));
     }
 
@@ -204,7 +196,7 @@ public class OTelMetricsProvider {
      */
     public void recordSearchRequest(String searchType) {
         searchRequestCounter.add(1, Attributes.of(
-                OPERATION_KEY, searchType != null ? searchType : "unknown"
+                OTelAttributes.ATTR_OPERATION, searchType != null ? searchType : "unknown"
         ));
     }
 
@@ -215,8 +207,8 @@ public class OTelMetricsProvider {
      */
     public void recordIcebergNamespaceOperation(String operation) {
         icebergNamespaceOpsCounter.add(1, Attributes.of(
-                OPERATION_KEY, operation,
-                RESULT_KEY, "success"
+                OTelAttributes.ATTR_OPERATION, operation,
+                OTelAttributes.ATTR_RESULT, "success"
         ));
     }
 
@@ -227,8 +219,8 @@ public class OTelMetricsProvider {
      */
     public void recordIcebergTableOperation(String operation) {
         icebergTableOpsCounter.add(1, Attributes.of(
-                OPERATION_KEY, operation,
-                RESULT_KEY, "success"
+                OTelAttributes.ATTR_OPERATION, operation,
+                OTelAttributes.ATTR_RESULT, "success"
         ));
     }
 
@@ -239,8 +231,8 @@ public class OTelMetricsProvider {
      */
     public void recordIcebergViewOperation(String operation) {
         icebergViewOpsCounter.add(1, Attributes.of(
-                OPERATION_KEY, operation,
-                RESULT_KEY, "success"
+                OTelAttributes.ATTR_OPERATION, operation,
+                OTelAttributes.ATTR_RESULT, "success"
         ));
     }
 
@@ -251,7 +243,7 @@ public class OTelMetricsProvider {
      */
     public void recordIcebergCommitConflict(String entityType) {
         icebergCommitConflictsCounter.add(1, Attributes.of(
-                ENTITY_TYPE_KEY, entityType
+                OTelAttributes.ATTR_ENTITY_TYPE, entityType
         ));
     }
 
@@ -262,7 +254,7 @@ public class OTelMetricsProvider {
      */
     public void recordIcebergError(String errorType) {
         icebergErrorsCounter.add(1, Attributes.of(
-                ERROR_TYPE_KEY, errorType
+                OTelAttributes.ATTR_ERROR_TYPE, errorType
         ));
     }
 

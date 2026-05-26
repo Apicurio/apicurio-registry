@@ -1,6 +1,7 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.LazyContentList;
@@ -39,6 +40,9 @@ public class RulesServiceImpl implements RulesService {
     @Inject
     ArtifactTypeUtilProviderFactory providerFactory;
 
+    @Inject
+    OTelMetricsProvider otelMetrics;
+
     /**
      * @see io.apicurio.registry.rules.RulesService#applyRules(String, String, String, TypedContent,
      *      RuleApplicationType, List, Map)
@@ -70,7 +74,7 @@ public class RulesServiceImpl implements RulesService {
         }
 
         applyAllRules(storageToUse, groupId, artifactId, artifactType, currentContent, content,
-                artifactRules, references, resolvedReferences);
+                artifactRules, references, resolvedReferences, ruleApplicationType.name());
     }
 
     @Override
@@ -80,13 +84,13 @@ public class RulesServiceImpl implements RulesService {
             throws RuleViolationException {
         Set<RuleType> artifactRules = new HashSet<>(storageToUse.getArtifactRules(groupId, artifactId));
         applyAllRules(storageToUse, groupId, artifactId, artifactType, existingContent, content,
-                artifactRules, references, resolvedReferences);
+                artifactRules, references, resolvedReferences, RuleApplicationType.UPDATE.name());
     }
 
     private void applyAllRules(RegistryStorage storageToUse, String groupId, String artifactId,
             String artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
             Set<RuleType> artifactRules, List<ArtifactReference> references,
-            Map<String, TypedContent> resolvedReferences) {
+            Map<String, TypedContent> resolvedReferences, String ruleOperation) {
 
         Map<RuleType, RuleConfigurationDto> allRules = new HashMap<>();
 
@@ -112,9 +116,18 @@ public class RulesServiceImpl implements RulesService {
         });
 
         // Apply rules
-        for (RuleType ruleType : allRules.keySet()) {
-            applyRule(storageToUse, groupId, artifactId, artifactType, currentContent, updatedContent,
-                    ruleType, allRules.get(ruleType).getConfiguration(), references, resolvedReferences);
+        try {
+            for (RuleType ruleType : allRules.keySet()) {
+                applyRule(storageToUse, groupId, artifactId, artifactType, currentContent, updatedContent,
+                        ruleType, allRules.get(ruleType).getConfiguration(), references,
+                        resolvedReferences);
+            }
+            if (!allRules.isEmpty()) {
+                otelMetrics.recordRuleEvaluation(ruleOperation, true);
+            }
+        } catch (RuleViolationException ex) {
+            otelMetrics.recordRuleEvaluation(ruleOperation, false);
+            throw ex;
         }
     }
 
@@ -155,6 +168,6 @@ public class RulesServiceImpl implements RulesService {
         Set<RuleType> artifactRules = new HashSet<>(storage.getArtifactRules(groupId, artifactId));
         applyAllRules(storage, groupId, artifactId, artifactType,
                 Collections.singletonList(typedVersionContent), updatedContent, artifactRules,
-                references, resolvedReferences);
+                references, resolvedReferences, RuleApplicationType.UPDATE.name());
     }
 }

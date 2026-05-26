@@ -19,6 +19,7 @@ import io.apicurio.registry.rest.v3.beans.OdcsProjectionSummary;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
@@ -117,6 +118,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     RulesService rulesService;
+
+    @Inject
+    OTelMetricsProvider otelMetrics;
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
@@ -538,7 +542,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
-        storage.deleteArtifact(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        String artifactType = storage.getArtifactMetaData(rawGroupId, artifactId).getArtifactType();
+        storage.deleteArtifact(rawGroupId, artifactId);
+        otelMetrics.recordArtifactDeleted(rawGroupId, artifactType);
     }
 
     /**
@@ -1424,6 +1431,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     firstVersion, firstVersionContent, firstVersionMetaData, firstVersionBranches,
                     firstVersionIsDraft, dryRun != null && dryRun, owner);
 
+            if (dryRun == null || !dryRun) {
+                String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+                otelMetrics.recordArtifactCreated(rawGroupId, artifactType);
+                if (storageResult.getRight() != null) {
+                    otelMetrics.recordVersionCreated(rawGroupId, artifactType);
+                }
+            }
+
             // Now return both the artifact metadata and (if available) the version metadata
             CreateArtifactResponse rval = CreateArtifactResponse.builder()
                     .artifact(V3ApiUtil.dtoToArtifactMetaData(storageResult.getLeft())).build();
@@ -1552,6 +1567,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(
                 new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getVersion(), artifactType,
                 contentDto, metaDataDto, data.getBranches(), isDraft, dryRun != null && dryRun, owner);
+
+        if (dryRun == null || !dryRun) {
+            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
+        }
 
         return V3ApiUtil.dtoToVersionMetaData(vmd);
     }
@@ -1825,6 +1844,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(groupId, artifactId, version,
                 artifactType, contentDto, metaData, branches, isDraftVersion, dryRun != null && dryRun, owner);
+
+        if (dryRun == null || !dryRun) {
+            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
+        }
+
         VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
 
         // Need to also return the artifact metadata

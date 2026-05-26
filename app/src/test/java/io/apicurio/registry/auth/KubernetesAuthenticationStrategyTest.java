@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -72,7 +73,7 @@ class KubernetesAuthenticationStrategyTest {
     void setUp() {
         authConfig = new AuthConfig();
         authConfig.kubernetesAuthEnabled = true;
-        authConfig.kubernetesApiAudiences = "";
+        authConfig.kubernetesApiAudiences = Optional.empty();
         authConfig.kubernetesTokenCacheExpiration = 5;
         strategy = new KubernetesAuthenticationStrategy(kubernetesClient, authConfig,
                 LoggerFactory.getLogger(KubernetesAuthenticationStrategyTest.class));
@@ -182,7 +183,7 @@ class KubernetesAuthenticationStrategyTest {
     @SuppressWarnings("unchecked")
     @Test
     void testTokenReviewIncludesAudiencesWhenConfigured() {
-        authConfig.kubernetesApiAudiences = "api,https://registry.example.com";
+        authConfig.kubernetesApiAudiences = Optional.of("api,https://registry.example.com");
         strategy = new KubernetesAuthenticationStrategy(kubernetesClient, authConfig,
                 LoggerFactory.getLogger(KubernetesAuthenticationStrategyTest.class));
 

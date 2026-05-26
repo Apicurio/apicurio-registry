@@ -190,17 +190,17 @@ The following {registry} configuration options are available for each component 
 |`2.4.3.Final`
 |Header authorization name
 |`apicurio.auth.role-source.kubernetes.group-mapping.admin`
-|`string`
+|`optional<string>`
 |
 |`3.1.0`
 |Comma-separated Kubernetes groups that map to sr-admin role
 |`apicurio.auth.role-source.kubernetes.group-mapping.developer`
-|`string`
+|`optional<string>`
 |
 |`3.1.0`
 |Comma-separated Kubernetes groups that map to sr-developer role
 |`apicurio.auth.role-source.kubernetes.group-mapping.readonly`
-|`string`
+|`optional<string>`
 |
 |`3.1.0`
 |Comma-separated Kubernetes groups that map to sr-readonly role
@@ -245,7 +245,7 @@ The following {registry} configuration options are available for each component 
 |`2.5.0.Final`
 |Client credentials scope.
 |`apicurio.authn.kubernetes.api-audiences`
-|`string`
+|`optional<string>`
 |
 |`3.1.0`
 |Comma-separated list of API audiences for TokenReview validation. If empty, audience is not validated.

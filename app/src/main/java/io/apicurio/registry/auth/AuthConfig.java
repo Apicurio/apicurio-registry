@@ -174,25 +174,25 @@ public class AuthConfig {
     @Info(category = CATEGORY_AUTH, description = "Enable Kubernetes TokenReview authentication", availableSince = "3.1.0")
     boolean kubernetesAuthEnabled;
 
-    @ConfigProperty(name = "apicurio.authn.kubernetes.api-audiences", defaultValue = "")
+    @ConfigProperty(name = "apicurio.authn.kubernetes.api-audiences")
     @Info(category = CATEGORY_AUTH, description = "Comma-separated list of API audiences for TokenReview validation. If empty, audience is not validated.", availableSince = "3.1.0")
-    String kubernetesApiAudiences;
+    Optional<String> kubernetesApiAudiences;
 
     @ConfigProperty(name = "apicurio.authn.kubernetes.cache-expiration", defaultValue = "5")
     @Info(category = CATEGORY_AUTH, description = "TokenReview result cache expiration in minutes", availableSince = "3.1.0")
     int kubernetesTokenCacheExpiration;
 
-    @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.admin", defaultValue = "")
+    @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.admin")
     @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-admin role", availableSince = "3.1.0")
-    String kubernetesAdminGroups;
+    Optional<String> kubernetesAdminGroups;
 
-    @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.developer", defaultValue = "")
+    @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.developer")
     @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-developer role", availableSince = "3.1.0")
-    String kubernetesDeveloperGroups;
+    Optional<String> kubernetesDeveloperGroups;
 
-    @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.readonly", defaultValue = "")
+    @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.readonly")
     @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-readonly role", availableSince = "3.1.0")
-    String kubernetesReadOnlyGroups;
+    Optional<String> kubernetesReadOnlyGroups;
 
     @ConfigProperty(name = "apicurio.authn.mechanism.priority", defaultValue = "basic,proxy-header,oidc")
     @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc, kubernetes.", availableSince = "3.2.3")
@@ -328,25 +328,24 @@ public class AuthConfig {
     }
 
     public Set<String> getKubernetesAdminGroups() {
-        return parseRoles(kubernetesAdminGroups);
+        return kubernetesAdminGroups.map(this::parseRoles).orElse(Collections.emptySet());
     }
 
     public Set<String> getKubernetesDeveloperGroups() {
-        return parseRoles(kubernetesDeveloperGroups);
+        return kubernetesDeveloperGroups.map(this::parseRoles).orElse(Collections.emptySet());
     }
 
     public Set<String> getKubernetesReadOnlyGroups() {
-        return parseRoles(kubernetesReadOnlyGroups);
+        return kubernetesReadOnlyGroups.map(this::parseRoles).orElse(Collections.emptySet());
     }
 
     public List<String> getKubernetesApiAudiences() {
-        if (kubernetesApiAudiences == null || kubernetesApiAudiences.trim().isEmpty()) {
-            return Collections.emptyList();
-        }
-        return Arrays.stream(kubernetesApiAudiences.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+        return kubernetesApiAudiences.map(audiences ->
+                Arrays.stream(audiences.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toList())
+        ).orElse(Collections.emptyList());
     }
 
     /**

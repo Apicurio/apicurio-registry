@@ -254,11 +254,11 @@ The ODCS YAML exists as an artifact AND its contents are projected as labels/rul
 
 **Remaining risk:** Someone modifying schema artifact labels directly (bypassing the contract) can still cause divergence. The ODCS artifact remains the authoritative source — re-submitting the contract corrects the projected state.
 
-### L4: ODCS model coverage — PARTIALLY RESOLVED
+### L4: ODCS model coverage — RESOLVED
 
 ~~The ODCS model covers the core sections but does not model every ODCS v3.1 field.~~
 
-**Resolution:** Added explicit fields for `terms`, `roles`, `servers`, `links`, and `tags` to `OdcsContract`. Combined with `@JsonAnySetter`/`@JsonAnyGetter`, all ODCS v3.1 fields are now preserved on round-trip. Fields not in the model are captured in `additionalProperties`.
+**Resolution:** All ODCS v3.1 top-level fields are now explicitly modeled in `OdcsContract`: `customProperties`, `support`, `price`, `slaProperties`, `authoritativeDefinitions`, `tenant`, `dataProduct`, `contractCreatedTs`, `domain`, `version`, `status`, `description`, `schema` (ODCS v3.1 alternate to `schemas`). `@JsonAnySetter`/`@JsonAnyGetter` is retained only as a safety net for future ODCS spec versions (v3.2+). Sub-objects (`OdcsTeam`, `OdcsFieldMetadata`) also preserve unknown fields via `@JsonAnySetter` instead of silently dropping them.
 
 ### L5: Label key size limits — RESOLVED
 
@@ -277,13 +277,11 @@ The ODCS YAML exists as an artifact AND its contents are projected as labels/rul
 - Use Confluent's CEL evaluator for ccompat rule execution paths
 - Keep CEL implementations separate: Apicurio's CEL for native contracts, Confluent's for ccompat (Phase 9)
 
-### L7: SerDes contract rule execution uses raw HTTP — OPEN
+### L7: SerDes contract rule execution uses raw HTTP — RESOLVED
 
-`RegistryClientFacadeImpl.executeContractRules` uses `java.net.http.HttpClient` directly instead of the Kiota-generated SDK client. The execute endpoint's dynamic request/response shape (arbitrary `record` map, dynamic `violations` list) doesn't map cleanly to Kiota's generated types.
+~~`RegistryClientFacadeImpl.executeContractRules` uses `java.net.http.HttpClient` directly instead of the Kiota-generated SDK client.~~
 
-**Impact:** SerDes contract rule execution doesn't benefit from the SDK's authentication, retry, or serialization infrastructure.
-
-**Mitigation:** Add the execute endpoint to the SDK with `additionalData`-based request/response types, or keep the raw HTTP approach as-is (it's simple and works).
+**Resolution:** Replaced raw HTTP with Kiota SDK calls. The SDK's `ExecutePostRequestBody`/`ExecutePostResponse` types use `AdditionalDataHolder` for the dynamic `record` and `violations` fields, which maps directly to `Map<String, Object>`. SerDes contract rule execution now benefits from the SDK's authentication, retry, and serialization infrastructure.
 
 ## Consequences
 
@@ -301,9 +299,7 @@ The ODCS YAML exists as an artifact AND its contents are projected as labels/rul
 
 ### Negative
 
-- Dual storage (ODCS artifact + projected labels) adds complexity
-- ODCS model coverage is partial (core sections only, extended via @JsonAnySetter)
-- SerDes rule execution uses raw HTTP instead of the SDK client
+- Dual storage (ODCS artifact + projected labels) adds complexity — justified for versioning, export, and re-projection
 - CEL library conflict prevents coexistence with Confluent's `kafka-schema-rules`
 
 ### Neutral

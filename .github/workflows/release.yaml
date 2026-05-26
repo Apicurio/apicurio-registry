@@ -6,7 +6,7 @@ on:
         description: Version being released
         required: true
       branch:
-        description: Branch to release from
+        description: Branch to release from (main for minor releases, release/X.Y.x for patches)
         required: true
         default: main
       no-more-minor-releases:

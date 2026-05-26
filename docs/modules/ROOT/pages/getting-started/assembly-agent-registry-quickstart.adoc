@@ -1,0 +1,254 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+:_mod-docs-content-type: ASSEMBLY
+[id="agent-registry-quickstart_{context}"]
+= Agent registry quick start
+
+[role="_abstract"]
+You can use {registry} as a central registry for AI agents, prompt templates, and model schemas. You start {registry} with agent features enabled, register an agent card, discover agents by skill, and connect Claude Desktop to {registry} by using the Model Context Protocol (MCP).
+
+* xref:agent-registry-overview_{context}[]
+* xref:starting-registry-with-agent-features_{context}[]
+* xref:registering-an-agent-card_{context}[]
+* xref:discovering-agents_{context}[]
+* xref:connecting-claude-desktop-via-mcp_{context}[]
+
+// con-agent-registry-overview
+:_mod-docs-content-type: CONCEPT
+[id="agent-registry-overview_{context}"]
+== Agent registry overview
+
+[role="_abstract"]
+{registry} functions as both an A2A (Agent-to-Agent) agent and an agent registry. As an A2A agent, {registry} exposes its own capabilities, such as schema validation, artifact management, and agent discovery. As an agent registry, {registry} stores and serves agent cards that other AI agents publish for discovery.
+
+The A2A protocol is a standard that AI agents use to discover and communicate with each other through well-known endpoints. MCP (Model Context Protocol) is a standard that LLM-powered tools such as Claude Desktop use to interact with external services and data sources.
+
+{registry} supports the following AI and ML artifact types:
+
+* `AGENT_CARD`: A2A agent card that describes an agent, its skills, and its capabilities
+* `PROMPT_TEMPLATE`: versioned prompt template with variable substitution for LLM interactions
+* `MODEL_SCHEMA`: input and output schema definition for an AI or ML model
+ifndef::service-registry-downstream[]
+// proc-starting-registry-with-agent-features
+:_mod-docs-content-type: PROCEDURE
+[id="starting-registry-with-agent-features_{context}"]
+== Starting {registry} with agent features
+
+[role="_abstract"]
+You can start {registry} with agent features enabled by using Docker Compose. Because A2A support is an experimental feature, you must enable the experimental features flag and the A2A flag.
+
+.Prerequisites
+* Docker and Docker Compose are installed
+* `curl` is installed
+
+.Procedure
+. Create a `docker-compose.yml` file with the following content:
++
+[source,yaml]
+----
+version: '3.8'
+
+services:
+  apicurio-registry:
+    image: quay.io/apicurio/apicurio-registry:latest
+    container_name: agent-registry
+    ports:
+      - "8080:8080"
+    environment:
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_A2A_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  apicurio-registry-ui:
+    image: quay.io/apicurio/apicurio-registry-ui:latest
+    container_name: agent-registry-ui
+    ports:
+      - "8888:8080"
+    environment:
+      REGISTRY_API_URL: "http://localhost:8080/apis/registry/v3"
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy
+----
++
+NOTE: The `latest` tag refers to the most recent stable release. For development builds, use the `latest-snapshot` tag. For a specific version, use the version number as the tag, for example `3.2.4`.
++
+. Start the services:
++
+[source,bash]
+----
+docker compose up -d
+----
++
+. Wait for the services to start.
+
+.Verification
+. Verify that {registry} is running:
++
+[source,bash]
+----
+curl http://localhost:8080/apis/registry/v3/system/info
+----
++
+. Verify that the A2A endpoint is active by retrieving the {registry} agent card:
++
+[source,bash]
+----
+curl http://localhost:8080/.well-known/agent.json
+----
++
+The response contains the agent card for the {registry} instance, including its built-in skills such as `schema-validation`, `schema-search`, `artifact-management`, `compatibility-check`, and `agent-discovery`.
+
+endif::[]
+
+// proc-registering-an-agent-card
+:_mod-docs-content-type: PROCEDURE
+[id="registering-an-agent-card_{context}"]
+== Registering an agent card
+
+[role="_abstract"]
+You can register an agent card as an `AGENT_CARD` artifact in {registry}. After registration, other AI agents and orchestrators can discover the agent by using the well-known endpoints.
+
+.Prerequisites
+* {registry} is running with agent features enabled
+
+.Procedure
+. Create a group to organize your agent cards:
++
+[source,bash]
+----
+curl -X POST "http://localhost:8080/apis/registry/v3/groups" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "groupId": "ai-agents",
+    "description": "AI agent cards"
+  }'
+----
++
+. Register an agent card artifact in the group:
++
+[source,bash]
+----
+curl -X POST "http://localhost:8080/apis/registry/v3/groups/ai-agents/artifacts" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "artifactId": "customer-support-agent",
+    "artifactType": "AGENT_CARD",
+    "firstVersion": {
+      "version": "1.0.0",
+      "content": {
+        "contentType": "application/json",
+        "content": "{\"name\": \"Customer Support Agent\", \"description\": \"Handles customer inquiries, analyzes sentiment, and generates responses\", \"version\": \"1.0.0\", \"supportedInterfaces\": [{\"url\": \"http://support-agent:9001\", \"protocolBinding\": \"http+json\", \"protocolVersion\": \"1.0\"}], \"provider\": {\"organization\": \"Acme Corp\", \"url\": \"https://acme.example.com\"}, \"skills\": [{\"id\": \"sentiment-analysis\", \"name\": \"Sentiment Analysis\", \"description\": \"Analyzes customer message sentiment\"}, {\"id\": \"response-generation\", \"name\": \"Response Generation\", \"description\": \"Generates context-aware customer responses\"}], \"capabilities\": {\"streaming\": false, \"pushNotifications\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"]}"
+      }
+    }
+  }'
+----
+
+.Verification
+. Verify that the agent card is available through the well-known agents endpoint:
++
+[source,bash]
+----
+curl http://localhost:8080/.well-known/agents
+----
++
+The response includes the registered agent card with its skills and capabilities.
+
+// proc-discovering-agents
+:_mod-docs-content-type: PROCEDURE
+[id="discovering-agents_{context}"]
+== Discovering agents
+
+[role="_abstract"]
+You can discover registered agents by searching with query parameters such as agent name, skill ID, or capability. {registry} also exposes its own agent card at a dedicated well-known endpoint.
+
+.Prerequisites
+* {registry} is running with agent features enabled
+* At least one agent card is registered
+
+.Procedure
+. Search for agents by name:
++
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/agents?name=Customer"
+----
++
+. Search for agents by skill ID:
++
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/agents?skill=sentiment-analysis"
+----
++
+. Retrieve a specific agent card by group and artifact ID:
++
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/agents/ai-agents/customer-support-agent"
+----
++
+. View the {registry} built-in agent card:
++
+[source,bash]
+----
+curl http://localhost:8080/.well-known/agent.json
+----
++
+You can also browse registered agent cards by using the {registry} web console at `http://localhost:8888`.
+
+// proc-connecting-claude-desktop-by-using-mcp
+:_mod-docs-content-type: PROCEDURE
+[id="connecting-claude-desktop-via-mcp_{context}"]
+== Connecting Claude Desktop by using MCP
+
+[role="_abstract"]
+You can connect Claude Desktop to {registry} by using the MCP server. After you configure Claude Desktop, you can interact with {registry} artifacts, search for schemas, and manage agent cards by using natural language.
+
+.Prerequisites
+* {registry} is running (on `localhost:8080`)
+* Claude Desktop is installed (macOS or Windows)
+
+NOTE: Claude Desktop is officially supported on macOS and Windows. Linux support is available through community builds. For installation details, see the link:https://claude.ai/download[Claude Desktop download page].
+
+.Procedure
+. In Claude Desktop, open the MCP configuration file by navigating to *File* > *Settings* > *Developer* > *Edit Config*.
++
+. Add the {registry} MCP server to the configuration file:
++
+[source,json]
+----
+{
+  "mcpServers": {
+    "Apicurio Registry (docker)": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e", "REGISTRY_URL=<registry-url>",
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest"
+      ]
+    }
+  }
+}
+----
++
+Replace `<registry-url>` with the URL of your {registry} instance. For local development with Docker Compose, use `http://localhost:8080`. For OpenShift deployments, use the route URL of your {registry} instance.
++
+. Restart Claude Desktop by selecting *File* > *Exit* and reopening the application.
+
+.Verification
+. Verify the connection by asking Claude a question about {registry}, for example: "What groups are present in {registry}?"
++
+The MCP server provides tools for working with groups, artifacts, versions, and configuration properties in {registry}.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-a2a-features.adoc[A2A agent features]
+* xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM artifact types]

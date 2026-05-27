@@ -1,11 +1,13 @@
 package io.apicurio.registry.metrics;
 
+import io.apicurio.registry.observability.OTelAttributes;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
+import jakarta.annotation.Priority;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
@@ -22,20 +24,22 @@ import java.lang.reflect.Method;
  */
 @Interceptor
 @StorageMetricsApply
+@Priority(Interceptor.Priority.PLATFORM_BEFORE + 10)
 public class StorageTracingInterceptor {
 
     private static final String INSTRUMENTATION_NAME = "io.apicurio.registry.storage";
+    private static final String INSTRUMENTATION_VERSION = "3.x";
 
     @AroundInvoke
     public Object intercept(InvocationContext context) throws Exception {
-        Tracer tracer = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
+        Tracer tracer = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION);
         String spanName = "storage." + context.getMethod().getName();
 
         Span span = tracer.spanBuilder(spanName)
                 .setSpanKind(SpanKind.INTERNAL)
-                .setAttribute("storage.method", context.getMethod().getName())
-                .setAttribute("storage.class", context.getTarget().getClass().getSimpleName())
-                .setAttribute("storage.method.signature", getMethodString(context.getMethod()))
+                .setAttribute(OTelAttributes.ATTR_STORAGE_METHOD, context.getMethod().getName())
+                .setAttribute(OTelAttributes.ATTR_STORAGE_CLASS, context.getTarget().getClass().getSimpleName())
+                .setAttribute(OTelAttributes.ATTR_STORAGE_METHOD_SIGNATURE, getMethodString(context.getMethod()))
                 .startSpan();
 
         try (Scope scope = span.makeCurrent()) {

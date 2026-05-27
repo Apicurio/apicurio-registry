@@ -28,9 +28,15 @@ import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.ContractAuditEntryDto;
 import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
+import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
+import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
@@ -63,6 +69,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -508,6 +515,54 @@ public interface RegistryStorage extends DynamicConfigStorage {
             throws RegistryStorageException;
 
     /**
+     * Gets the global contract ruleset (applies to all artifacts).
+     */
+    ContractRuleSetDto getGlobalContractRuleset() throws RegistryStorageException;
+
+    /**
+     * Sets the global contract ruleset.
+     */
+    void setGlobalContractRuleset(ContractRuleSetDto ruleset) throws RegistryStorageException;
+
+    /**
+     * Deletes the global contract ruleset.
+     */
+    void deleteGlobalContractRuleset() throws RegistryStorageException;
+
+    /**
+     * Inserts a contract audit log entry.
+     */
+    void insertContractAuditEntry(ContractAuditEntryDto entry)
+            throws RegistryStorageException;
+
+    /**
+     * Gets a paginated contract audit log for a specific artifact.
+     */
+    List<ContractAuditEntryDto> getContractAuditLog(String groupId, String artifactId,
+            int offset, int limit) throws RegistryStorageException;
+
+    /**
+     * Atomically merges labels into an artifact: deletes all labels matching the prefix,
+     * then inserts the provided labels. Other labels are untouched. Safe for concurrent use
+     * across replicas because it never reads-then-writes the full label set.
+     */
+    default void mergeArtifactLabels(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "mergeArtifactLabels not supported by this storage implementation");
+    }
+
+    /**
+     * Atomically merges labels into an artifact version: deletes all labels matching the
+     * prefix, then inserts the provided labels.
+     */
+    default void mergeVersionLabels(String groupId, String artifactId, String version,
+            String prefix, Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "mergeVersionLabels not supported by this storage implementation");
+    }
+
+    /**
      * Gets a sorted set of all artifact versions that exist for a given artifact.
      *
      * @param groupId (optional)
@@ -620,6 +675,19 @@ public interface RegistryStorage extends DynamicConfigStorage {
      */
     ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
             throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the stored meta-data for a single version of an artifact, looked up by its versionOrder (the
+     * ccompat integer sequence number) rather than the version string.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param versionOrder
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId, String artifactId,
+            int versionOrder) throws VersionNotFoundException, RegistryStorageException;
 
     /**
      * Updates the user-editable meta-data for a single version of a given artifact. Only the client-editable
@@ -1144,6 +1212,36 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     boolean supportsDatabaseEvents();
+
+    /**
+     * Records a single schema usage event.
+     */
+    void recordUsageEvent(SchemaUsageEventDto event);
+
+    /**
+     * Deletes usage events older than the given cutoff timestamp.
+     */
+    void deleteOldUsageEvents(long cutoffTimestamp);
+
+    /**
+     * Returns per-version usage metrics for the given artifact.
+     */
+    List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId);
+
+    /**
+     * Returns global Active/Stale/Dead counts across all tracked schema versions.
+     */
+    UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs);
+
+    /**
+     * Returns per-consumer, per-version usage data for building a heatmap.
+     */
+    List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId);
+
+    /**
+     * Returns list of consumers actively using a specific version, for deprecation readiness.
+     */
+    List<DeprecationReadinessDto> getDeprecationReadiness(String groupId, String artifactId, String version);
 
     /**
      * Get all versions modified (created or updated) since the given timestamp. Used by

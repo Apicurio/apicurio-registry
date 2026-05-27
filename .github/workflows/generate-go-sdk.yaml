@@ -1,0 +1,47 @@
+name: Generate Go SDK
+on:
+  push:
+    paths:
+      - common/src/main/resources/META-INF/openapi.json
+      - common/src/main/resources/META-INF/openapi-v2.json
+    branches: [main]
+
+jobs:
+  generate-go-sdk:
+    name: Generate Go SDK
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    steps:
+      - name: Apicurio Registry Checkout
+        run: |
+          mkdir registry
+          cd registry
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
+          git fetch
+          git checkout main
+          git branch --set-upstream-to=origin/main
+          git pull
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Generate Go SDK
+        run: |
+          cd registry/go-sdk
+          make generate format
+
+      - name: Commit changes
+        run: |
+          cd registry
+          git add go-sdk/pkg/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore(go-sdk): regenerate from updated OpenAPI spec"
+            git push
+          fi

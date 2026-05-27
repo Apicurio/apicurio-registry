@@ -1,25 +1,23 @@
 package io.apicurio.registry.cli.artifact;
 
-import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
+import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Labels;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import java.util.HashMap;
+import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import static io.apicurio.registry.cli.artifact.ArtifactGetCommand.printArtifact;
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
@@ -73,10 +71,9 @@ public class ArtifactCreateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--label"},
-            description = "Provide a list of artifact labels.",
-            mapFallbackValue = ""
+            description = "Provide a list of artifact labels (format: key=value or key). Use \\= to include = in a key."
     )
-    private Map<String, String> labels;
+    private List<String> labels;
 
     @Option(
             names = {"--version"},
@@ -111,7 +108,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
         }
         if (labels != null) {
             final var newLabels = new Labels();
-            newLabels.setAdditionalData(new HashMap<>(labels));
+            newLabels.setAdditionalData(new HashMap<>(Conversions.parseLabels(labels)));
             newArtifact.setLabels(newLabels);
         }
 
@@ -128,28 +125,15 @@ public class ArtifactCreateCommand extends AbstractCommand {
             newArtifact.setFirstVersion(firstVersion);
         }
 
-        try {
-            final var result = client.getRegistryClient()
-                    .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);
-            //noinspection ConstantConditions
-            final var artifact = convert(result.getArtifact());
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
-            }
-            printArtifact(output, artifact, outputType.getOutputType());
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error creating artifact '")
-                        .append(artifactId)
-                        .append("' in group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        final var result = client.getRegistryClient()
+                .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);
+        //noinspection ConstantConditions
+        final var artifact = convert(result.getArtifact());
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
+            case table -> output.writeStdOutChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
         }
+        printArtifact(output, artifact, outputType.getOutputType());
     }
 
     private static void successMessage(final StringBuilder out, final String groupId, final String artifactId) {

@@ -121,4 +121,17 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
             validator.validateReferences(content, references);
         });
     }
+
+    @Test
+    public void testValidateReferencesWithNullReferenceList() throws Exception {
+        TypedContent contentWithoutRefs = resourceToTypedContentHandle("jsonschema-valid.json");
+        TypedContent contentWithRefs = resourceToTypedContentHandle("jsonschema-valid-with-refs.json");
+        JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
+
+        validator.validateReferences(contentWithoutRefs, null);
+
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validateReferences(contentWithRefs, null);
+        });
+    }
 }

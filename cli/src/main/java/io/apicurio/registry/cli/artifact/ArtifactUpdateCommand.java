@@ -1,21 +1,16 @@
 package io.apicurio.registry.cli.artifact;
 
-import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.common.IdUtil;
+import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-
-import java.util.List;
-import java.util.Map;
-
-import io.apicurio.registry.cli.common.CliException;
-
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 
 /**
  * Updates an existing artifact's metadata (name, description, labels).
@@ -53,10 +48,9 @@ public class ArtifactUpdateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--sl", "--set-label"},
-            description = "Add or update an artifact label.",
-            mapFallbackValue = ""
+            description = "Add or update an artifact label (format: key=value or key). Use \\= to include = in a key."
     )
-    private Map<String, String> setLabels;
+    private List<String> setLabels;
 
     @Option(
             names = {"--dl", "--delete-label"},
@@ -71,51 +65,38 @@ public class ArtifactUpdateCommand extends AbstractCommand {
                     CliException.VALIDATION_ERROR_RETURN_CODE);
         }
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
-        try {
-            final var registryClient = client.getRegistryClient();
-            IdUtil.validateGroup(registryClient, resolvedGroupId);
-            final var existing = registryClient
-                    .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).get();
-            final var updatedArtifact = new EditableArtifactMetaData();
-            //noinspection ConstantConditions
-            updatedArtifact.setName(existing.getName());
-            updatedArtifact.setDescription(existing.getDescription());
-            updatedArtifact.setLabels(existing.getLabels());
-            if (name != null) {
-                updatedArtifact.setName(name);
-            }
-            if (description != null) {
-                updatedArtifact.setDescription(description);
-            }
-            if (setLabels != null) {
-                if (updatedArtifact.getLabels() == null) {
-                    updatedArtifact.setLabels(new Labels());
-                }
-                updatedArtifact.getLabels().getAdditionalData().putAll(setLabels);
-            }
-            if (deleteLabels != null) {
-                if (updatedArtifact.getLabels() != null) {
-                    deleteLabels.forEach(key -> {
-                        updatedArtifact.getLabels().getAdditionalData().remove(key);
-                    });
-                }
-            }
-            registryClient.groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).put(updatedArtifact);
-            output.writeStdOutChunk(out -> {
-                out.append("Artifact '").append(artifactId).append("' in group '")
-                        .append(resolvedGroupId).append("' updated successfully.\n");
-            });
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error updating artifact '")
-                        .append(artifactId)
-                        .append("' in group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        final var registryClient = client.getRegistryClient();
+        IdUtil.validateGroup(registryClient, resolvedGroupId);
+        final var existing = registryClient
+                .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).get();
+        final var updatedArtifact = new EditableArtifactMetaData();
+        //noinspection ConstantConditions
+        updatedArtifact.setName(existing.getName());
+        updatedArtifact.setDescription(existing.getDescription());
+        updatedArtifact.setLabels(existing.getLabels());
+        if (name != null) {
+            updatedArtifact.setName(name);
         }
+        if (description != null) {
+            updatedArtifact.setDescription(description);
+        }
+        if (setLabels != null) {
+            if (updatedArtifact.getLabels() == null) {
+                updatedArtifact.setLabels(new Labels());
+            }
+            updatedArtifact.getLabels().getAdditionalData().putAll(Conversions.parseLabels(setLabels));
+        }
+        if (deleteLabels != null) {
+            if (updatedArtifact.getLabels() != null) {
+                deleteLabels.forEach(key -> {
+                    updatedArtifact.getLabels().getAdditionalData().remove(key);
+                });
+            }
+        }
+        registryClient.groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId).put(updatedArtifact);
+        output.writeStdOutChunk(out -> {
+            out.append("Artifact '").append(artifactId).append("' in group '")
+                    .append(resolvedGroupId).append("' updated successfully.\n");
+        });
     }
 }

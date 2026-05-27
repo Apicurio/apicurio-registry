@@ -1,11 +1,11 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="configuring-registry-security_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Configuring {registry} security options
 
 [role="_abstract"]
-This chapter explains how to set configuration options for {registry} security. For example, this includes authentication in {keycloak}, Microsoft Azure Active Directory, or Dex, and role-based authorization in {registry}.
+You can configure security options for {registry}, including authentication in {keycloak}, Microsoft Azure Active Directory, or Dex, and role-based authorization.
 
 * xref:registry-security-keycloak_{context}[]
 * xref:registry-security-azure_{context}[]
@@ -15,17 +15,14 @@ This chapter explains how to set configuration options for {registry} security. 
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
-//INCLUDES
-
 
 // proc-registry-security-keycloak
-:_mod-docs-content-type: PROCEDURE
 [id="registry-security-keycloak_{context}"]
-
+:_mod-docs-content-type: PROCEDURE
 == Configuring {registry} authentication and authorization with {keycloak}
 
 [role="_abstract"]
-This section explains how to manually configure authentication and authorization options for {registry} and {keycloak}.
+You can manually configure authentication and authorization options for {registry} and {keycloak}.
 
 [NOTE]
 ====
@@ -38,7 +35,7 @@ see xref:registry-security-keycloak[].
 endif::[]
 ====
 
-The {registry} web console and core REST API support authentication in {keycloak} based on OAuth and OpenID Connect (OIDC). The same {keycloak} realm and users are federated across the {registry} web console and core REST API using OpenID Connect so that you only require one set of credentials.
+The {registry} web console and core REST API support authentication in {keycloak} based on OAuth and OpenID Connect (OIDC). The same {keycloak} realm and users are federated across the {registry} web console and core REST API by using OpenID Connect so that you only require one set of credentials.
 
 {registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} provides content-based authorization at the schema or API level, where only the creator of the registry artifact can update or delete it. {registry} authentication and authorization settings are disabled by default.
 
@@ -69,7 +66,7 @@ endif::[]
 +
 You can use the defaults for the other client settings.
 +
-NOTE: If you are using {keycloak} service accounts, the client *Access Type* must be `confidential` instead of `bearer-only`.
+NOTE: If you use {keycloak} service accounts, the client *Access Type* must be `confidential` instead of `bearer-only`.
 
 . Create a {keycloak} client for the {registry} web console. By default, {registry} expects the following settings:
 ** *Client ID*: `apicurio-registry`
@@ -80,7 +77,7 @@ NOTE: If you are using {keycloak} service accounts, the client *Access Type* mus
 +
 You can use the defaults for the other client settings.
 
-. In your {registry} deployment on OpenShift, set the following {registry} environment variables to configure authentication using {keycloak}:
+. In your {registry} deployment on OpenShift, set the following {registry} environment variables to configure authentication by using {keycloak}:
 +
 .Configuration for {registry} authentication with {keycloak}
 [.table-expandable,width="100%",cols="5,6,2,4",options="header"]
@@ -90,7 +87,7 @@ You can use the defaults for the other client settings.
 |Type
 |Default
 |`QUARKUS_OIDC_TENANT_ENABLED`
-|Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
+|Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication by using {keycloak}.
 |String
 |`false`
 |`QUARKUS_OIDC_AUTH_SERVER_URL`
@@ -124,7 +121,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 |`false`
 |===
 
-. When {registry} user roles are enabled, you must assign {registry} users to at least one of the following default user roles in your {keycloak} realm:
+. Assign {registry} users to at least one of the following default user roles in your {keycloak} realm:
 +
 .Default user roles for registry authentication and authorization
 [.table-expandable,width="100%",cols="2,2,2,2,4",options="header"]
@@ -169,30 +166,28 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 
 [role="_additional-resources"]
 .Additional resources
-* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].
-* For an open source example application and Keycloak realm, see https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/distro/docker-compose[Docker Compose example of Apicurio Registry with Keycloak].
-* For details on how to use {keycloak} in a production environment, see
+* xref:registry-security-settings_{context}[]
+* https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/distro/docker-compose[Docker Compose example of Apicurio Registry with Keycloak]
 ifdef::apicurio-registry[]
-the link:https://www.keycloak.org/documentation[Keycloak documentation].
+* link:https://www.keycloak.org/documentation[Keycloak documentation]
 endif::[]
 ifdef::rh-service-registry[]
-the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[{keycloak} documentation].
+* link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}/[{keycloak} documentation]
 endif::[]
 
 
 
 // proc-registry-security-azure
-:_mod-docs-content-type: PROCEDURE
 [id="registry-security-azure_{context}"]
-
+:_mod-docs-content-type: PROCEDURE
 == Configuring {registry} authentication and authorization with Microsoft Azure Active Directory
 
 [role="_abstract"]
-This section explains how to manually configure authentication and authorization options for {registry} and Microsoft Azure Active Directory (Azure AD).
+You can manually configure authentication and authorization options for {registry} and Microsoft Azure Active Directory (Azure AD).
 
 The {registry} web console and core REST API support authentication in Azure AD based on OpenID Connect (OIDC) and the OAuth Authorization Code Flow. {registry} provides role-based authorization for default admin, write, and read-only user roles. {registry} authentication and authorization settings are disabled by default.
 
-To secure {registry} with Azure AD, you require a valid directory in Azure AD with specific configuration. This involves registering the {registry} application in the Azure AD portal with recommended settings and configuring environment variables in {registry}.
+To secure {registry} with Azure AD, you require a valid directory in Azure AD with specific configuration. You must register the {registry} application in the Azure AD portal with recommended settings and configure environment variables in {registry}.
 
 .Prerequisites
 * Azure AD is installed and running. For more details, see the link:https://learn.microsoft.com/en-us/azure[Microsoft Azure AD user documentation].
@@ -200,7 +195,7 @@ To secure {registry} with Azure AD, you require a valid directory in Azure AD wi
 
 .Procedure
 
-. Log in to the Azure AD portal using your email address or GitHub account.
+. Log in to the Azure AD portal by using your email address or GitHub account.
 
 . In the navigation menu, select *Manage > App registrations > New registration*, and complete the following settings:
 +
@@ -208,11 +203,11 @@ To secure {registry} with Azure AD, you require a valid directory in Azure AD wi
 ** *Supported account types*: Click *Accounts in any organizational directory*.
 ** *Redirect URI*: Select *Single-page application* from the list, and enter your {registry} web console application host. For example: `https://test-registry.com/ui/`
 +
-IMPORTANT: You must register your {registry} application host as a *Redirect URI*. When logging in, users are redirected from {registry} to Azure AD for authentication, and you want to send them back to your application afterwards. Azure AD does not allow any redirect URLs that are not registered.
+IMPORTANT: You must register your {registry} application host as a *Redirect URI*. When logging in, users are redirected from {registry} to Azure AD for authentication, and you want to send them back to your application afterward. Azure AD does not allow any redirect URLs that are not registered.
 
 . Click *Register*. You can view your app registration details by selecting *Manage > App registrations* > *apicurio-registry-example*.
 
-. Select *Manage > Authentication* and ensure that the application is configured with your redirect URLs and tokens as follows:
+. Select *Manage > Authentication* and verify that the application has your redirect URLs and tokens configured as follows:
 ** *Redirect URIs*: For example: `https://test-registry.com/ui/`
 ** *Implicit grant and hybrid flows*: Click *ID tokens (used for implicit and hybrid flows)*
 
@@ -278,17 +273,28 @@ NOTE: When you enable roles in {registry}, you must also create the same roles i
 |
 |`oidc`
 |`REGISTRY_AUTH_TOKEN_TYPE`
-|Which token to use. Azure AD has non-standard access tokens, so we need to use id tokens.
+|The token type to use. Azure AD has non-standard access tokens, so you must use ID tokens.
 |`id`
 |===
 
-=== Multiple role mappings for Azure Entra ID
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-security-settings_{context}[]
+* link:https://learn.microsoft.com/en-us/azure[Microsoft Azure AD user documentation]
 
-When using Azure Entra ID (formerly Azure AD), you may need to map multiple Azure AD groups or app roles to a single {registry} role. This is useful when:
 
-* Interactive users authenticate via Azure AD groups
-* Service principals authenticate via app roles
-* Both should grant the same {registry} permissions
+
+// ref-registry-security-azure-role-mappings
+[id="registry-security-azure-role-mappings_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Multiple role mappings for Azure Entra ID
+
+[role="_abstract"]
+When you use Azure Entra ID (formerly Azure AD), you might need to map multiple Azure AD groups or app roles to a single {registry} role. Use multiple role mappings when:
+
+* Interactive users authenticate by using Azure AD groups
+* Service principals authenticate by using app roles
+* Both must grant the same {registry} permissions
 
 To configure multiple role mappings, use comma-separated values:
 
@@ -300,10 +306,17 @@ APICURIO_AUTH_ROLES_DEVELOPER=sr-developer,87654321-aaaa-bbbb-cccc-ddddeeeefffff
 APICURIO_AUTH_ROLES_READONLY=sr-readonly,abcd1234-aaaa-bbbb-cccc-ddddeeeefffff,AppRole.Reader
 ----
 
-With this configuration, a user with any of the listed roles or group memberships will be granted the corresponding {registry} authorization level.
+With this configuration, a user with any of the listed roles or group memberships receives the corresponding {registry} authorization level.
 
-=== Client-specific OAuth scopes for Azure Entra ID
 
+// ref-registry-security-azure-oauth-scopes
+[id="registry-security-azure-oauth-scopes_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Client-specific OAuth scopes for Azure Entra ID
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 Azure Entra ID requires that each app registration uses a unique scope. When you have multiple app registrations (for example, one for developers and one for read-only access), you can configure client-specific scopes:
 
 [source,properties]
@@ -317,29 +330,25 @@ APICURIO_AUTHN_BASIC_SCOPE_SR_DEVELOPER_CLIENT=api://developer-app-id/.default
 APICURIO_AUTHN_BASIC_SCOPE_SR_READONLY_CLIENT=api://readonly-app-id/.default
 ----
 
-When a client authenticates, {registry} will:
+When a client authenticates, {registry} does the following:
 
 1. Check for a client-specific scope configuration matching the client ID
 2. If not found, use the default scope
 3. If no scope is configured, proceed without a scope parameter
 
-NOTE: Multiple scopes can be specified using comma separation. They will be converted to space-separated format per the OAuth2 specification.
-
-[role="_additional-resources"]
-.Additional resources
-* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].
-* For more details on using Azure AD, see the link:https://learn.microsoft.com/en-us/azure[Microsoft Azure AD user documentation].
+NOTE: You can specify multiple scopes by using comma separation. The scopes are converted to space-separated format per the OAuth2 specification.
 
 
 
+// proc-registry-security-dex
 [id="registry-security-dex_{context}"]
-
+:_mod-docs-content-type: PROCEDURE
 == Configuring {registry} authentication and authorization with Dex
 
 [role="_abstract"]
-This section explains how to configure authentication and authorization for {registry} by using link:https://dexidp.io/[Dex] as a federated OpenID Connect (OIDC) identity provider.
+You can configure authentication and authorization for {registry} by using link:https://dexidp.io/[Dex] as a federated OpenID Connect (OIDC) identity provider.
 
-Dex acts as an OIDC-compliant bridge in front of identity providers that do not fully implement the OIDC specification. This is useful when your platform uses an OAuth server that does not expose standard OIDC endpoints, such as OpenShift's built-in OAuth server, LDAP directories, or SAML-based providers. Dex has link:https://dexidp.io/docs/connectors/[connectors] for 15+ identity providers including OpenShift, LDAP, SAML, GitHub, GitLab, Google, and Microsoft.
+Dex acts as an OIDC-compliant bridge in front of identity providers that do not fully implement the OIDC specification. Use Dex when your platform uses an OAuth server that does not expose standard OIDC endpoints, such as OpenShift's built-in OAuth server, LDAP directories, or SAML-based providers. Dex has link:https://dexidp.io/docs/connectors/[connectors] for 15+ identity providers including OpenShift, LDAP, SAML, GitHub, GitLab, Google, and Microsoft.
 
 Without an OIDC-compliant provider, the following {registry} features do not work:
 
@@ -356,7 +365,7 @@ Without an OIDC-compliant provider, the following {registry} features do not wor
 
 |Principal identity
 |Not available
-|The username cannot be extracted because it may be nested in a non-standard location in the token. {registry} expects flat top-level claims.
+|The username cannot be extracted because it might be nested in a non-standard location in the token. {registry} expects flat top-level claims.
 
 |Owner-based authorization
 |Not available
@@ -383,7 +392,7 @@ helm repo update
 
 . Create a Helm values file named `dex-values.yaml` with the following content. Replace the placeholder values with your actual configuration.
 +
-{registry} needs two OAuth clients: a public client for the browser-based UI (which cannot hold a secret) and a confidential client for the backend and CLI. You must also configure `allowedOrigins` so the UI can fetch the Dex OIDC discovery endpoint via CORS.
+{registry} needs two OAuth clients: a public client for the browser-based UI (which cannot hold a secret) and a confidential client for the backend and CLI. You must also configure `allowedOrigins` so the UI can fetch the Dex OIDC discovery endpoint by using CORS.
 +
 [source,yaml]
 ----
@@ -434,12 +443,12 @@ ingress:
           pathType: Prefix
 ----
 +
-IMPORTANT: The UI client must be `public: true` because the browser-based authorization code flow with PKCE cannot securely store a client secret. If you use a single confidential client for both UI and backend, the UI login will fail with `invalid_client` errors. The `/dashboard` redirect URI is needed because the {registry} UI redirects there after login.
+IMPORTANT: The UI client must be `public: true` because the browser-based authorization code flow with PKCE cannot securely store a client secret. If you use a single confidential client for both UI and backend, the UI login fails with `invalid_client` errors. The `/dashboard` redirect URI is needed because the {registry} UI redirects there after login.
 +
-NOTE: When generating the client secret, avoid special characters such as `+`, `/`, or `=` that may cause URL encoding mismatches. Use `openssl rand -base64 32 | tr -d '+/=' | head -c 32` to generate a safe secret.
+NOTE: When generating the client secret, avoid special characters such as `+`, `/`, or `=` that can cause URL encoding mismatches. Use `openssl rand -base64 32 | tr -d '+/=' | head -c 32` to generate a safe secret.
 +
 ifdef::apicurio-registry[]
-On OpenShift, create a Route instead of using Ingress:
+On OpenShift, create a Route instead of an Ingress:
 +
 [source,bash]
 ----
@@ -462,16 +471,16 @@ curl -sk https://dex.<cluster-domain>/.well-known/openid-configuration | jq .iss
 # Expected: "https://dex.<cluster-domain>"
 ----
 
-. Configure a connector for your upstream identity provider. Add the connector configuration to the `connectors` section in your `dex-values.yaml` file. See xref:registry-security-dex-connectors[Dex connector examples] for configuration examples.
+. Configure a connector for your upstream identity provider. Add the connector configuration to the `connectors` section in your `dex-values.yaml` file. See xref:registry-security-dex-connectors_{context}[Dex connector examples] for configuration examples.
 
-. After updating the connector configuration, upgrade the Dex Helm release:
+. Upgrade the Dex Helm release after updating the connector configuration:
 +
 [source,bash]
 ----
 helm upgrade dex dex/dex -n dex -f dex-values.yaml
 ----
 
-. In your {registry} deployment, set the following environment variables to configure authentication using Dex:
+. In your {registry} deployment, set the following environment variables to configure authentication by using Dex:
 +
 .Configuration for {registry} authentication with Dex
 [.table-expandable,width="100%",cols="5,6,2,4",options="header"]
@@ -522,7 +531,7 @@ helm upgrade dex dex/dex -n dex -f dex-values.yaml
 |`openid profile email`
 |===
 +
-For example, when using Dex, set these values:
+For example, when you use Dex, set these values:
 +
 [source,properties]
 ----
@@ -536,7 +545,7 @@ QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM=email
 APICURIO_UI_AUTH_OIDC_SCOPE=openid profile email groups
 ----
 +
-IMPORTANT: Both `QUARKUS_OIDC_CLIENT_ID` and `APICURIO_UI_AUTH_OIDC_CLIENT_ID` must be set to the public client ID (`apicurio-registry-ui`). If they do not match, the backend will reject tokens issued for a different audience with `InvalidJwtSignatureException` errors.
+IMPORTANT: Both `QUARKUS_OIDC_CLIENT_ID` and `APICURIO_UI_AUTH_OIDC_CLIENT_ID` must be set to the public client ID (`apicurio-registry-ui`). If they do not match, the backend rejects tokens issued for a different audience with `InvalidJwtSignatureException` errors.
 
 . Configure role-based authorization. Dex passes upstream group membership in the `groups` claim. Map your upstream groups to {registry} roles:
 +
@@ -607,9 +616,9 @@ The mapping between upstream provider groups and {registry} roles works as follo
 APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION=true
 ----
 +
-With this setting, only the user who created an artifact can modify or delete it. For more details on owner-only authorization, see xref:registry-security-obac-enabled[].
+With this setting, only the user who created an artifact can modify or delete it. For more details on owner-only authorization, see xref:registry-security-obac-enabled_{context}[].
 
-. If you are using the {registry} Operator on {kubernetes}, you can configure all of the above in the `ApicurioRegistry3` custom resource. The `spec.app.auth` section covers the standard OIDC settings, and Dex-specific properties must be set using `spec.app.env`. Use `spec.app.ingress` with TLS annotations instead of the bare `host` field:
+. If you use the {registry} Operator on {kubernetes}, configure all of the preceding settings in the `ApicurioRegistry3` custom resource. The `spec.app.auth` section covers the standard OIDC settings, and you must set Dex-specific properties by using `spec.app.env`. Use `spec.app.ingress` with TLS annotations instead of the bare `host` field:
 +
 [source,yaml]
 ----
@@ -679,13 +688,13 @@ spec:
         value: "https://apicurio-registry-app-apicurio-registry.apps.<cluster-domain>/apis/registry/v3"
 ----
 +
-There are a few important details in this CR:
+Note the following important details in this CR:
 +
-*Two-client architecture* — Both `appClientId` and `uiClientId` are set to `apicurio-registry-ui` (the public Dex client). The browser-based UI uses `oidc-client-ts`, which cannot securely hold a client secret. If you use a confidential client for the UI, the token exchange will fail with `Invalid client credentials`. The backend validates JWT signatures via the JWKS endpoint and does not need a client secret. The separate confidential client (`apicurio-registry`) is kept for CLI/API token exchange via curl or scripts.
+*Two-client architecture* — Both `appClientId` and `uiClientId` are set to `apicurio-registry-ui` (the public Dex client). The browser-based UI uses `oidc-client-ts`, which cannot securely hold a client secret. If you use a confidential client for the UI, the token exchange fails with `Invalid client credentials`. The backend validates JWT signatures by using the JWKS endpoint and does not need a client secret. The separate confidential client (`apicurio-registry`) is kept for CLI/API token exchange by using curl or scripts.
 +
-*UI scope with `groups`* — The `APICURIO_UI_AUTH_OIDC_SCOPE` env var adds `groups` to the scope the UI requests from Dex. Without this, the default scope (`openid profile email`) does not include groups, and Dex will not put group membership in the token. RBAC then denies all write operations because it cannot determine the user's role. This has been verified on a live cluster with Dex v2.45.1 and the OpenShift connector: tokens include the `groups` claim with the user's OpenShift group memberships, and {registry} successfully resolves roles for RBAC authorization.
+*UI scope with `groups`* — The `APICURIO_UI_AUTH_OIDC_SCOPE` env var adds `groups` to the scope the UI requests from Dex. Without this, the default scope (`openid profile email`) does not include groups, and Dex does not put group membership in the token. RBAC then denies all write operations because it cannot determine the user's role. Verified on a live cluster with Dex v2.45.1 and the OpenShift connector: tokens include the `groups` claim with the user's OpenShift group memberships, and {registry} successfully resolves roles for RBAC authorization.
 +
-*Explicit `redirectUri`* — Without this, `oidc-client-ts` uses `window.location.href` as the redirect URI for silent token refresh. After the initial login, the URL may still contain `?code=...&state=...` query parameters, which do not match any registered redirect URI in Dex, causing a 400 error.
+*Explicit `redirectUri`* — Without this, `oidc-client-ts` uses `window.location.href` as the redirect URI for silent token refresh. After the initial login, the URL might still contain `?code=...&state=...` query parameters, which do not match any registered redirect URI in Dex, causing a 400 error.
 +
 NOTE: A complete example CR is available in the link:{attachmentsdir}/apicurio-registry-dex-cr.yaml[Dex example CR].
 
@@ -708,15 +717,16 @@ curl -sk https://<registry-app-route>/apis/registry/v3/groups/my-group \
 # Expected: the user's email address, NOT empty
 ----
 
-[discrete]
-[id="registry-security-dex-connectors"]
-=== Dex connector examples
+// ref-registry-security-dex-connectors
+[id="registry-security-dex-connectors_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Dex connector examples
 
-Dex supports many upstream identity providers via pluggable connectors. The following examples show how to configure the most common connectors.
+[role="_abstract"]
+Dex supports many upstream identity providers by using pluggable connectors. The following examples show how to configure the most common connectors.
 
 ifdef::apicurio-registry[]
-[discrete]
-==== OpenShift connector
+.OpenShift connector
 
 First, create an OAuthClient for Dex on your OpenShift cluster:
 
@@ -757,8 +767,7 @@ connectors:
 ----
 endif::[]
 
-[discrete]
-==== LDAP connector
+.LDAP connector
 
 [source,yaml]
 ----
@@ -786,8 +795,7 @@ connectors:
         nameAttr: cn
 ----
 
-[discrete]
-==== GitHub connector
+.GitHub connector
 
 [source,yaml]
 ----
@@ -806,8 +814,7 @@ connectors:
             - registry-developers
 ----
 
-[discrete]
-==== Microsoft Azure AD connector
+.Microsoft Azure AD connector
 
 [source,yaml]
 ----
@@ -825,8 +832,7 @@ connectors:
         - <registry-developers-group-uuid>
 ----
 
-[discrete]
-==== SAML 2.0 connector
+.SAML 2.0 connector
 
 [source,yaml]
 ----
@@ -843,18 +849,19 @@ connectors:
       groupsAttr: groups
 ----
 
-NOTE: Dex supports using multiple connectors simultaneously. This enables federation across multiple identity providers, allowing users from different organizations or systems to authenticate to {registry} through a single Dex instance.
+NOTE: Dex supports multiple connectors simultaneously. You can federate across multiple identity providers so that users from different organizations or systems authenticate to {registry} through a single Dex instance.
 
-[discrete]
-[id="registry-security-dex-m2m"]
-=== Machine-to-machine (M2M) access and Kafka SerDes
+// ref-registry-security-dex-m2m
+[id="registry-security-dex-m2m_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Machine-to-machine access and Kafka SerDes with Dex
 
-The configuration above covers the browser-based UI flow. For CI/CD pipelines, Kafka SerDes, and services that need to interact with the {registry} API without a browser, additional considerations apply.
+[role="_abstract"]
+The preceding configuration covers the browser-based UI flow. For CI/CD pipelines, Kafka SerDes, and services that need to interact with the {registry} API without a browser, additional considerations apply.
 
-[discrete]
-==== Dex `client_credentials` support (unreleased as of v2.45.1)
+.Dex client_credentials support
 
-Dex added `client_credentials` support via link:https://github.com/dexidp/dex/pull/4583[PR #4583] (merged March 3, 2026), but this feature is *not included in Dex v2.45.1* — the latest stable release at time of writing. It will ship in v2.46.0 or later.
+Dex added `client_credentials` support in link:https://github.com/dexidp/dex/pull/4583[PR #4583] (merged March 3, 2026), but this feature is *not included in Dex v2.45.1* — the latest stable release at time of writing. Expect it to ship in v2.46.0 or later.
 
 NOTE: To test before a stable release, use the `dexidp/dex:master` image from Docker Hub (rebuilt daily by Dex CI). For production, wait for v2.46.0+.
 
@@ -881,7 +888,7 @@ TOKEN_RESPONSE=$(curl -s -X POST "https://dex.<cluster-domain>/token" \
 ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r .access_token)
 ----
 
-IMPORTANT: Even with `client_credentials` working, the tokens *do not include the `groups` claim*. The `groups` scope is accepted but no groups are populated because there is no upstream connector or user in the `client_credentials` flow — the token is built solely from the static client definition, which has no group membership. Since {registry} uses `groups` for RBAC, M2M clients authenticating via `client_credentials` will have no assigned role.
+IMPORTANT: Even with `client_credentials` working, the tokens *do not include the `groups` claim*. The `groups` scope is accepted but no groups are populated because there is no upstream connector or user in the `client_credentials` flow — the token is built solely from the static client definition, which has no group membership. Because {registry} uses `groups` for RBAC, M2M clients authenticating with `client_credentials` have no assigned role.
 
 .M2M access with Dex `client_credentials`
 [.table-expandable,width="100%",cols="4,2,6",options="header"]
@@ -903,17 +910,15 @@ IMPORTANT: Even with `client_credentials` working, the tokens *do not include th
 |No role in token means write access is denied.
 |===
 
-[discrete]
-==== Recommended approach for Kafka SerDes
+.Recommended approach for Kafka SerDes
 
-For the most common Kafka use case — *consumers fetching schemas* — you do not need `client_credentials` at all. Set `anonymousReadsEnabled: true` in the {registry} CR and the SerDes can read schemas without any token. This is the recommended approach for read-heavy workloads.
+For the most common Kafka use case — *consumers fetching schemas* — you do not need `client_credentials` at all. Set `anonymousReadsEnabled: true` in the {registry} CR and the SerDes can read schemas without any token. Anonymous reads are the recommended approach for read-heavy workloads.
 
 For *schema registration* (typically done by developers or CI/CD, not by Kafka producers at runtime), use the authorization code flow with the confidential client and a service user that has the right groups.
 
-[discrete]
-==== Upcoming fix: groups on static clients
+.Upcoming fix: groups on static clients
 
-The lack of groups in `client_credentials` tokens has been reported in link:https://github.com/dexidp/dex/issues/4690[dexidp/dex#4690], and a fix has been submitted in link:https://github.com/dexidp/dex/pull/4691[dexidp/dex#4691]. The fix adds a `clientCredentialsClaims` sub-struct to static client definitions, keeping identity attributes separate from core client fields:
+The Dex project tracks the lack of groups in `client_credentials` tokens in link:https://github.com/dexidp/dex/issues/4690[dexidp/dex#4690], and a proposed fix exists in link:https://github.com/dexidp/dex/pull/4691[dexidp/dex#4691]. The fix adds a `clientCredentialsClaims` sub-struct to static client definitions, keeping identity attributes separate from core client fields:
 
 [source,yaml]
 ----
@@ -926,8 +931,7 @@ staticClients:
 
 Track the PR for when this lands in a stable Dex release.
 
-[discrete]
-==== When to use {keycloak} instead
+.When to use {keycloak} instead
 
 If your deployment requires M2M *write access* with proper RBAC — for example, if Kafka producers register schemas at runtime, or if you have many CI/CD pipelines that need different permission levels — use {keycloak} (or Auth0, Azure AD) instead of Dex. These providers support service account roles natively, so `client_credentials` tokens include all the claims {registry} needs.
 
@@ -937,48 +941,55 @@ Dex is the right choice when:
 * You primarily need user-facing auth (UI login, principal identity, owner-based authz)
 * M2M workloads are read-only (SerDes consumers with anonymous reads)
 
-[discrete]
-=== Dex production considerations
+// ref-registry-security-dex-production
+[id="registry-security-dex-production_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Dex production considerations
 
+[role="_abstract"]
 When running Dex in production, consider the following:
 
-* *TLS*: Configure Dex with proper TLS via Ingress termination or its own certificate. In the {registry} CR, set `spec.app.auth.tls.tlsVerificationType` to `certificate` and provide a truststore if using a private CA.
+* *TLS*: Configure Dex with proper TLS by using Ingress termination or its own certificate. In the {registry} CR, set `spec.app.auth.tls.tlsVerificationType` to `certificate` and provide a truststore if using a private CA.
 * *High availability*: Run multiple Dex replicas. For better HA, switch Dex's storage backend from Kubernetes CRDs to PostgreSQL.
 * *Network policies*: Restrict access so that only {registry} pods and the ingress controller can reach Dex. Ensure Dex can reach your upstream identity providers.
-* *Secret management*: Store the Dex client secret securely using {kubernetes} Secrets or a secrets manager such as HashiCorp Vault.
+* *Secret management*: Store the Dex client secret securely by using {kubernetes} Secrets or a secrets manager such as HashiCorp Vault.
 
-[discrete]
-=== Dex troubleshooting
+// ref-registry-security-dex-troubleshooting
+[id="registry-security-dex-troubleshooting_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Dex troubleshooting
 
-* *"Invalid client credentials" on UI login*: The UI (`oidc-client-ts`) runs in the browser and cannot send a client secret. Use a *public* Dex client (`public: true`, no secret) for the UI. A confidential client will always fail.
+[role="_abstract"]
+* *"Invalid client credentials" on UI login*: The UI (`oidc-client-ts`) runs in the browser and cannot send a client secret. Use a *public* Dex client (`public: true`, no secret) for the UI. A confidential client always fails.
 * *403 Forbidden on API calls after UI login*: Two common causes: (1) *Audience mismatch* — the UI gets tokens with `aud: "apicurio-registry-ui"` but the backend expects `aud: "apicurio-registry"`. Fix: set both `appClientId` and `uiClientId` to the same public client ID. (2) *Missing `groups` scope* — the default UI scope does not include `groups`. Fix: set `APICURIO_UI_AUTH_OIDC_SCOPE` to `openid profile email groups`.
 * *Groups not appearing in the token*: Verify that both `QUARKUS_OIDC_AUTHENTICATION_SCOPES` (backend) and `APICURIO_UI_AUTH_OIDC_SCOPE` (UI) include `groups`. Decode the JWT to inspect: `echo $TOKEN | cut -d. -f2 | base64 -d | jq .`
 * *"Unregistered redirect_uri" on page refresh*: The UI redirects to `/dashboard` after login. Add `\https://<registry-ui-route>/dashboard` to the Dex client's redirect URIs.
 * *Silent token refresh returns 400*: `oidc-client-ts` uses the current page URL (with stale `?code=...&state=...` params) as the redirect URI. Fix: set `redirectUri` explicitly in the {registry} CR auth config.
-* *"No end session endpoint" on logout*: Dex does not implement OIDC RP-Initiated Logout. The local session is still cleared, but `signoutRedirect` fails. This is a known Dex limitation — the error is non-blocking.
+* *"No end session endpoint" on logout*: Dex does not implement OIDC RP-Initiated Logout. The local session is still cleared, but `signoutRedirect` fails. The error is a known Dex limitation and is non-blocking.
 * *CORS errors in browser console*: The UI cannot fetch `/.well-known/openid-configuration` from Dex. Add the UI route origin to `web.allowedOrigins` in the Dex config.
 * *`InvalidJwtSignatureException` after Dex restart*: Dex generates new signing keys on restart. Old tokens become invalid. Users must re-authenticate. For production, configure persistent signing keys.
 * *`invalid_client` when exchanging authorization code*: If the client secret contains special characters (`+`, `/`, `=`), use `--data-urlencode` instead of `-d` in curl.
 * *Owner field is empty*: Check that `QUARKUS_OIDC_TOKEN_PRINCIPAL_CLAIM` is set to a claim that Dex populates, such as `email`, `name`, or `sub`.
-* *UI redirects to Dex but gets an error*: Check Dex logs (`{kubernetes-client} logs -n dex deploy/dex`). This is usually a redirect URI mismatch or connector misconfiguration.
-* *`client_credentials` returns `unsupported_grant_type`*: This grant type was added in link:https://github.com/dexidp/dex/pull/4583[Dex PR #4583] (merged March 3, 2026) but is not included in v2.45.1 or earlier. You need Dex >= v2.46.0 or a build from `master`.
+* *UI redirects to Dex but gets an error*: Check Dex logs (`{kubernetes-client} logs -n dex deploy/dex`). The cause is usually a redirect URI mismatch or connector misconfiguration.
+* *`client_credentials` returns `unsupported_grant_type`*: Dex added this grant type in link:https://github.com/dexidp/dex/pull/4583[Dex PR #4583] (merged March 3, 2026) but did not include it in v2.45.1 or earlier. You need Dex >= v2.46.0 or a build from `master`.
 * *"OIDC Server is not available"*: The {registry} pod cannot reach Dex. Check DNS resolution, network policies, and TLS trust configuration.
 
 [role="_additional-resources"]
 .Additional resources
-* For details on configuring non-default user role names, see xref:registry-security-settings_{context}[].
-* For a complete list of supported connectors, see the link:https://dexidp.io/docs/connectors/[Dex connectors documentation].
-* For details on Dex deployment and configuration, see the link:https://dexidp.io/docs/[Dex documentation].
+* xref:registry-security-settings_{context}[]
+* link:https://dexidp.io/docs/connectors/[Dex connectors documentation]
+* link:https://dexidp.io/docs/[Dex documentation]
 
 
 
 
 
 // ref-registry-security-settings
-:_mod-docs-content-type: REFERENCE
 [id="registry-security-settings_{context}"]
-
+:_mod-docs-content-type: REFERENCE
 == {registry} authentication and authorization configuration options
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} provides authentication options for OpenID Connect with {keycloak} and HTTP basic authentication.
@@ -990,18 +1001,21 @@ When running Dex in production, consider the following:
 
 IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling any of these options, you must first set the `QUARKUS_OIDC_TENANT_ENABLED` option to `true`.
 
-This chapter provides details on the following configuration options:
+You can configure the following options:
 
-* xref:registry-security-authn-keycloak[{registry} authentication by using OpenID Connect with {keycloak}]
-* xref:registry-security-authn-http[{registry} authentication by using HTTP basic]
-* xref:registry-security-rbac-enabled[{registry} role-based authorization]
-* xref:registry-security-obac-enabled[{registry} owner-only authorization]
-* xref:registry-security-auth-read[{registry} authenticated read access]
-* xref:registry-security-anon-read[{registry} anonymous read-only access]
+* xref:registry-security-authn-keycloak_{context}[{registry} authentication by using OpenID Connect with {keycloak}]
+* xref:registry-security-authn-http_{context}[{registry} authentication by using HTTP basic]
+* xref:registry-security-rbac-enabled_{context}[{registry} role-based authorization]
+* xref:registry-security-obac-enabled_{context}[{registry} owner-only authorization]
+* xref:registry-security-auth-read_{context}[{registry} authenticated read access]
+* xref:registry-security-anon-read_{context}[{registry} anonymous read-only access]
 
-[id="registry-security-authn-keycloak"]
+[id="registry-security-authn-keycloak_{context}"]
 === {registry} authentication by using OpenID Connect with {keycloak}
 
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 You can set the following environment variables to configure authentication for the {registry} web console and API with {keycloak}:
 
 .Configuration for {registry} authentication with {keycloak}
@@ -1012,7 +1026,7 @@ You can set the following environment variables to configure authentication for 
 |Type
 |Default
 |`QUARKUS_OIDC_TENANT_ENABLED`
-|Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication using {keycloak}.
+|Enables authentication for {registry}. When set to `true`, the environment variables that follow are required for authentication by using {keycloak}.
 |String
 |`false`
 |`QUARKUS_OIDC_AUTH_SERVER_URL`
@@ -1029,7 +1043,7 @@ You can set the following environment variables to configure authentication for 
 |`apicurio-registry`
 
 |`QUARKUS_OIDC_TLS_TRUST_STORE_FILE`
-| Specifies the file path to the TLS trust store used by Quarkus for securing OpenID Connect (OIDC) communications. The trust store can be populated with the trusted certificates needed to establish secure TLS connections with the OIDC provider.
+| The file path to the TLS trust store that Quarkus uses to secure OpenID Connect (OIDC) communications. Populate the trust store with the trusted certificates that are needed to establish secure TLS connections with the OIDC provider.
 |String
 |-
 
@@ -1045,10 +1059,13 @@ You can set the following environment variables to configure authentication for 
 
 |===
 
-[id="registry-security-authn-http"]
+[id="registry-security-authn-http_{context}"]
 === {registry} authentication by using HTTP basic
 
-By default, {registry} supports authentication by using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API.  However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration options to `true`:
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+By default, {registry} supports authentication by using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API. However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration options to `true`:
 
 .Configuration for {registry} HTTP basic authentication
 [%header,cols="4,4,1,1"]
@@ -1069,9 +1086,9 @@ By default, {registry} supports authentication by using OpenID Connect. Users or
 
 .{registry} HTTP basic client credentials cache expiry
 
-You can also configure the HTTP basic client credentials cache expiry time. By default, when using HTTP basic authentication, {registry} caches JWT tokens, and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default.
+You can also configure the HTTP basic client credentials cache expiry time. By default, when you use HTTP basic authentication, {registry} caches JWT tokens and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default.
 
-When using {keycloak}, it is best to set this configuration to your {keycloak} JWT expiry time minus one minute. For example, if you have the expiry time set to `5` mins in {keycloak}, you should set the following configuration option to `4` mins:
+When you use {keycloak}, set this configuration to your {keycloak} JWT expiry time minus one minute. For example, if you have the expiry time set to `5` mins in {keycloak}, set the following configuration option to `4` mins:
 
 .Configuration for HTTP basic client credentials cache expiry
 [%header,cols="4,4,1,1"]
@@ -1087,9 +1104,12 @@ When using {keycloak}, it is best to set this configuration to your {keycloak} J
 |===
 
 
-[id=registry-security-rbac-enabled]
-===  {registry} role-based authorization
+[id="registry-security-rbac-enabled_{context}"]
+=== {registry} role-based authorization
 
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 You can set the following options to `true` to enable role-based authorization in {registry}:
 
 .Configuration for {registry} role-based authorization
@@ -1113,11 +1133,10 @@ You can then configure role-based authorization to use roles included in the use
 
 .Using roles assigned in {keycloak}
 
-To enable using roles assigned by {keycloak}, set the following environment variables:
+To use roles assigned in {keycloak}, set the following environment variables:
 
 .Configuration for {registry} role-based authorization by using {keycloak}
-[id="registry-security-rbac-keycloak-settings"]
-[.table-expandable,width="100%",cols="6,6,2,3",options="header"]
+[id="registry-security-rbac-keycloak-settings_{context}",.table-expandable,width="100%",cols="6,6,2,3",options="header"]
 |===
 |Environment variable
 |Description
@@ -1141,8 +1160,8 @@ To enable using roles assigned by {keycloak}, set the following environment vari
 |`sr-readonly`
 |===
 
-When {registry} is configured to use roles from {keycloak}, you must assign {registry} users to at least one
-of the following user roles in {keycloak}. However, you can configure different user role names by using the environment variables in xref:registry-security-rbac-keycloak-settings[].
+When you configure {registry} to use roles from {keycloak}, you must assign {registry} users to at least one
+of the following user roles in {keycloak}. However, you can configure different user role names by using the environment variables in xref:registry-security-rbac-keycloak-settings_{context}[].
 
 .{registry} roles for authentication and authorization
 [.table-expandable,width="100%",cols="2,2,2,2,4",options="header"]
@@ -1171,7 +1190,7 @@ of the following user roles in {keycloak}. However, you can configure different 
 
 .Managing roles directly in {registry}
 
-To enable using roles managed internally by {registry}, set the following environment variable:
+To use roles managed internally by {registry}, set the following environment variable:
 
 .Configuration for {registry} role-based authorization by using internal role mappings
 [.table-expandable,width="100%",cols="6,6,2,3",options="header"]
@@ -1186,16 +1205,16 @@ To enable using roles managed internally by {registry}, set the following enviro
 |`token`
 |===
 
-When using internally managed role mappings, users can be assigned a role by using the `/admin/roleMappings`
-endpoint in the {registry} REST API.  For more details, see {registry-rest-api}.
+When you use internally managed role mappings, you can assign a role to users by using the `/admin/roleMappings`
+endpoint in the {registry} REST API. For more details, see {registry-rest-api}.
 
-Users can be granted exactly one role: `ADMIN`, `DEVELOPER`, or `READ_ONLY`. Only users with admin
-privileges can grant access to other users.
+You can grant each user exactly one role: `ADMIN`, `DEVELOPER`, or `READ_ONLY`. Only admin
+users can grant access to other users.
 
 
 .{registry} admin-override configuration
 
-Because there are no default admin users in {registry}, it is usually helpful to configure another way for users to be identified as admins. You can configure this admin-override feature by using the following environment variables:
+Because {registry} has no default admin users, you can configure an alternative way to identify admins. Configure the admin-override feature by using the following environment variables:
 
 .Configuration for {registry} admin-override
 [.table-expandable,width="100%",cols="6,6,2,3",options="header"]
@@ -1209,11 +1228,11 @@ Because there are no default admin users in {registry}, it is usually helpful to
 |String
 |`false`
 |`APICURIO_AUTH_ADMIN_OVERRIDE_FROM`
-|Where to look for admin-override information.  Only `token` is currently supported.
+|Where to look for admin-override information. Only `token` is currently supported.
 |String
 |`token`
 |`APICURIO_AUTH_ADMIN_OVERRIDE_TYPE`
-|The type of information used to determine if a user is an admin.  Values depend on the value of the FROM variable, for example, `role` or `claim` when FROM is `token`.
+|The type of information used to determine whether a user is an admin. Values depend on the value of the FROM variable, for example, `role` or `claim` when FROM is `token`.
 |String
 |`role`
 |`APICURIO_AUTH_ADMIN_OVERRIDE_ROLE`
@@ -1231,12 +1250,15 @@ Because there are no default admin users in {registry}, it is usually helpful to
 |===
 
 For example, you can use this admin-override feature to assign the `sr-admin` role to a single user
-in {keycloak}, which grants that user the admin role.  That user can then use the `/admin/roleMappings`
+in {keycloak}, which grants that user the admin role. That user can then use the `/admin/roleMappings`
 REST API (or associated UI) to grant roles to additional users (including additional admins).
 
-[id=registry-security-obac-enabled]
+[id="registry-security-obac-enabled_{context}"]
 === {registry} owner-only authorization
 
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 You can set the following options to `true` to enable owner-only authorization for updates to artifacts or artifact groups in {registry}:
 
 .Configuration for owner-only authorization
@@ -1267,9 +1289,12 @@ When owner-only authorization is enabled, only the user who created an artifact 
 
 When owner-only authorization and group owner-only authorization are both enabled, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group.
 
-[id=registry-security-auth-read]
+[id="registry-security-auth-read_{context}"]
 === {registry} authenticated read access
 
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 When the authenticated read access option is enabled, {registry} grants at least read-only access to requests from any authenticated user in the same organization, regardless of their user role.
 
 To enable authenticated read access, you must first enable role-based authorization, and then ensure that the following options are set to `true`:
@@ -1291,11 +1316,14 @@ To enable authenticated read access, you must first enable role-based authorizat
 |`false`
 |===
 
-For more details, see xref:registry-security-rbac-enabled[].
+For more details, see xref:registry-security-rbac-enabled_{context}[].
 
-[id=registry-security-anon-read]
+[id="registry-security-anon-read_{context}"]
 === {registry} anonymous read-only access
 
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 In addition to the two main types of authorization (role-based and owner-based authorization), {registry}
 supports an anonymous read-only access option.
 
@@ -1322,15 +1350,14 @@ calls to the REST API, set the following options to `true`:
 
 [role="_additional-resources"]
 .Additional resources
-* For an example of how to set environment variables in your {registry} deployment on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[]
-* For details on configuring custom authentication for {registry}, the see https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]
+* xref:configuring-liveness-readiness-probes_{context}[]
+* https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]
 
 
 
-// proc-registry-cors-configuration
-:_mod-docs-content-type: PROCEDURE
+// con-registry-cors-configuration
 [id="registry-cors-configuration_{context}"]
-
+:_mod-docs-content-type: CONCEPT
 == Configuring {registry} Cross-Origin Resource Sharing (CORS)
 
 [role="_abstract"]
@@ -1346,12 +1373,13 @@ Without the correct CORS configuration on the {registry} server, the browser blo
 * xref:registry-cors-authentication_{context}[]
 * xref:registry-cors-operator_{context}[]
 * xref:registry-cors-troubleshooting_{context}[]
+* xref:registry-cors-diagnosing_{context}[]
 
 
 // con-registry-cors-understanding
-:_mod-docs-content-type: CONCEPT
 [id="registry-cors-understanding_{context}"]
-=== Understanding CORS
+:_mod-docs-content-type: CONCEPT
+== Understanding CORS
 
 [role="_abstract"]
 Browsers enforce a same-origin policy that prevents a web page served from one origin (for example, `https://my-app.example.com`) from making HTTP requests to a different origin (for example, `https://registry.example.com`).
@@ -1382,9 +1410,9 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
 
 
 // ref-registry-cors-defaults
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-defaults_{context}"]
-=== {registry} CORS defaults
+:_mod-docs-content-type: REFERENCE
+== {registry} CORS defaults
 
 [role="_abstract"]
 {registry} ships with CORS enabled by default, configured for the bundled {registry} web console.
@@ -1415,9 +1443,9 @@ You must add your application's origin to the allowed list.
 
 
 // ref-registry-cors-env-vars
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-env-vars_{context}"]
-=== Configuring CORS environment variables
+:_mod-docs-content-type: REFERENCE
+== CORS environment variables
 
 [role="_abstract"]
 You can override the default CORS settings by using environment variables.
@@ -1453,10 +1481,10 @@ For the full set of Quarkus CORS options, see the link:https://quarkus.io/guides
 
 
 ifndef::service-registry-downstream[]
-// proc-registry-cors-local-dev
-:_mod-docs-content-type: PROCEDURE
+// ref-registry-cors-local-dev
 [id="registry-cors-local-dev_{context}"]
-=== Configuring CORS for local development
+:_mod-docs-content-type: REFERENCE
+== CORS configuration for local development
 
 [role="_abstract"]
 During local development, you can allow all origins by using `*` as the value for `QUARKUS_HTTP_CORS_ORIGINS`.
@@ -1501,14 +1529,14 @@ const data = await response.json();
 console.log(data);
 ----
 
-WARNING: Using `QUARKUS_HTTP_CORS_ORIGINS: "*"` is acceptable for local development but should not be used in production. A wildcard origin allows any website to make requests to your {registry} instance.
+WARNING: Using `QUARKUS_HTTP_CORS_ORIGINS: "*"` is acceptable for local development but must not be used in production. A wildcard origin means any website can make requests to your {registry} instance.
 endif::[]
 
 
-// proc-registry-cors-production
-:_mod-docs-content-type: PROCEDURE
+// ref-registry-cors-production
 [id="registry-cors-production_{context}"]
-=== Configuring CORS for production
+:_mod-docs-content-type: REFERENCE
+== CORS configuration for production
 
 [role="_abstract"]
 In production, explicitly list the origins that are allowed to access the {registry} REST API.
@@ -1543,10 +1571,10 @@ services:
 
 
 
-// proc-registry-cors-authentication
-:_mod-docs-content-type: PROCEDURE
+// ref-registry-cors-authentication
 [id="registry-cors-authentication_{context}"]
-=== Configuring CORS with authentication
+:_mod-docs-content-type: REFERENCE
+== CORS configuration with authentication
 
 [role="_abstract"]
 When you use OIDC authentication (for example, {keycloak}), CORS and authentication work together.
@@ -1554,7 +1582,7 @@ Your browser application must send an `Authorization` header with a bearer token
 
 The `authorization` header is already included in the default allowed headers, so you typically only need to configure the allowed origins.
 
-Use a Docker Compose configuration like this example to run {registry} with {keycloak} and CORS configured for browser-based applications:
+Use a Docker Compose configuration such as this example to run {registry} with {keycloak} and CORS configured for browser-based applications:
 
 [source,yaml]
 ----
@@ -1615,10 +1643,10 @@ When you configure CORS with authentication, keep these points in mind:
 NOTE: Authentication is a complex topic with many possible configurations ({keycloak}, Microsoft Entra ID, and other OIDC providers). For a complete guide to configuring authentication, see xref:registry-security-settings_{context}[].
 
 
-// proc-registry-cors-operator
-:_mod-docs-content-type: PROCEDURE
+// ref-registry-cors-operator
 [id="registry-cors-operator_{context}"]
-=== Configuring CORS with the {kubernetes} Operator
+:_mod-docs-content-type: REFERENCE
+== CORS configuration with the {kubernetes} Operator
 
 [role="_abstract"]
 When you deploy {registry} by using the {kubernetes} Operator, you can set CORS environment variables in the `ApicurioRegistry3` custom resource.
@@ -1650,9 +1678,11 @@ NOTE: This automatic CORS detection works whether your networking layer uses {ku
 
 
 // ref-registry-cors-troubleshooting
-:_mod-docs-content-type: REFERENCE
 [id="registry-cors-troubleshooting_{context}"]
-=== Troubleshooting CORS errors
+:_mod-docs-content-type: REFERENCE
+== Troubleshooting CORS errors
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 .Common CORS errors and fixes
@@ -1680,9 +1710,11 @@ NOTE: This automatic CORS detection works whether your networking layer uses {ku
 |===
 
 // proc-registry-cors-diagnosing
-:_mod-docs-content-type: PROCEDURE
 [id="registry-cors-diagnosing_{context}"]
-==== Diagnosing CORS errors with browser developer tools
+:_mod-docs-content-type: PROCEDURE
+== Diagnosing CORS errors with browser developer tools
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can use your browser developer tools to identify the cause of CORS errors.

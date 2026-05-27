@@ -6,3 +6,4 @@ export * from "./errorPage";
 export * from "./header";
 export * from "./modals";
 export * from "./ruleList";
+export * from "./contracts";

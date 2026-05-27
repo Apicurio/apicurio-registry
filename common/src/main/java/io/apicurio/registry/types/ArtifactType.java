@@ -65,4 +65,7 @@ public class ArtifactType {
     /** Version-controlled prompt template with variable schemas. */
     public static final String PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
 
+    /** Open Data Contract Standard (ODCS) v3.1 contract definition. */
+    public static final String ODCS_CONTRACT = "ODCS_CONTRACT";
+
 }

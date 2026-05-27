@@ -4,6 +4,7 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.ccompat.rest.v7.ModeResource;
 import io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateRequest;
 import io.apicurio.registry.ccompat.rest.v7.beans.ModeUpdateResponse;
@@ -56,18 +57,13 @@ public class ModeResourceImpl extends AbstractResource implements ModeResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public ModeUpdateResponse updateMode(Boolean force, ModeUpdateRequest data) {
-        // Validate the mode
-        ModeUpdateRequest.Mode newMode = data.getMode();
-        if (newMode == null) {
-            throw new IllegalArgumentException("Mode is required");
-        }
+        String validatedMode = validateMode(data.getMode());
 
-        // Store the mode as a dynamic config property
-        DynamicConfigPropertyDto property = new DynamicConfigPropertyDto(MODE_PROPERTY_NAME, newMode.name());
+        DynamicConfigPropertyDto property = new DynamicConfigPropertyDto(MODE_PROPERTY_NAME, validatedMode);
         storage.setConfigProperty(property);
 
         ModeUpdateResponse response = new ModeUpdateResponse();
-        response.setMode(ModeUpdateResponse.Mode.valueOf(newMode.name()));
+        response.setMode(ModeUpdateResponse.Mode.valueOf(validatedMode));
         return response;
     }
 
@@ -98,20 +94,14 @@ public class ModeResourceImpl extends AbstractResource implements ModeResource {
     public ModeUpdateResponse updateSubjectMode(String subject, Boolean force, String groupId,
             ModeUpdateRequest data) {
         final GA ga = getGA(groupId, subject);
+        String validatedMode = validateMode(data.getMode());
 
-        // Validate the mode
-        ModeUpdateRequest.Mode newMode = data.getMode();
-        if (newMode == null) {
-            throw new IllegalArgumentException("Mode is required");
-        }
-
-        // Store mode as a subject-specific config property
         String propertyName = getSubjectModePropertyName(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
-        DynamicConfigPropertyDto property = new DynamicConfigPropertyDto(propertyName, newMode.name());
+        DynamicConfigPropertyDto property = new DynamicConfigPropertyDto(propertyName, validatedMode);
         storage.setConfigProperty(property);
 
         ModeUpdateResponse response = new ModeUpdateResponse();
-        response.setMode(ModeUpdateResponse.Mode.valueOf(newMode.name()));
+        response.setMode(ModeUpdateResponse.Mode.valueOf(validatedMode));
         return response;
     }
 
@@ -139,5 +129,18 @@ public class ModeResourceImpl extends AbstractResource implements ModeResource {
         ModeUpdateResponse response = new ModeUpdateResponse();
         response.setMode(currentMode);
         return response;
+    }
+
+    private String validateMode(String mode) {
+        if (mode == null || mode.isEmpty()) {
+            throw new UnprocessableEntityException(
+                    "Invalid mode: " + (mode == null ? "null" : "empty"));
+        }
+        try {
+            ModeUpdateResponse.Mode.valueOf(mode);
+        } catch (IllegalArgumentException ex) {
+            throw new UnprocessableEntityException("Invalid mode: " + mode);
+        }
+        return mode;
     }
 }

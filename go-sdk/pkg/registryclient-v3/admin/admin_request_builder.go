@@ -30,6 +30,12 @@ func NewAdminRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb
 	return NewAdminRequestBuilderInternal(urlParams, requestAdapter)
 }
 
+// Contracts the contracts property
+// returns a *ContractsRequestBuilder when successful
+func (m *AdminRequestBuilder) Contracts() *ContractsRequestBuilder {
+	return NewContractsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Export provides a way to export registry data.
 // returns a *ExportRequestBuilder when successful
 func (m *AdminRequestBuilder) Export() *ExportRequestBuilder {
@@ -64,4 +70,10 @@ func (m *AdminRequestBuilder) Rules() *RulesRequestBuilder {
 // returns a *SnapshotsRequestBuilder when successful
 func (m *AdminRequestBuilder) Snapshots() *SnapshotsRequestBuilder {
 	return NewSnapshotsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Usage the usage property
+// returns a *UsageRequestBuilder when successful
+func (m *AdminRequestBuilder) Usage() *UsageRequestBuilder {
+	return NewUsageRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

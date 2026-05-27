@@ -6,6 +6,8 @@ import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.AutoscalingSpec;
+import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
 import io.apicurio.registry.operator.api.v1.spec.TLSSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.status.StatusManager;
@@ -14,6 +16,9 @@ import io.apicurio.registry.operator.utils.SecretKeyRefTool;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec;
+import io.fabric8.kubernetes.api.model.autoscaling.v2.HorizontalPodAutoscaler;
+import io.fabric8.kubernetes.api.model.autoscaling.v2.MetricSpec;
+import io.fabric8.kubernetes.api.model.autoscaling.v2.MetricSpecBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
@@ -59,13 +64,32 @@ public class ResourceFactory {
     public static final String RESOURCE_TYPE_INGRESS = "ingress";
     public static final String RESOURCE_TYPE_POD_DISRUPTION_BUDGET = "poddisruptionbudget";
     public static final String RESOURCE_TYPE_NETWORK_POLICY = "networkpolicy";
+    public static final String RESOURCE_TYPE_HORIZONTAL_POD_AUTOSCALER = "horizontalpodautoscaler";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
-        var r = initDefaultDeployment(primary, COMPONENT_APP,
-                Optional.ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
-                        .map(AppSpec::getReplicas).orElse(DEFAULT_REPLICAS),
+        var autoscaling = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                .map(ComponentSpec::getAutoscaling).orElse(null);
+        boolean autoscalingEnabled = ofNullable(autoscaling).map(AutoscalingSpec::getEnabled)
+                .orElse(Boolean.FALSE);
+
+        int replicas;
+        if (autoscalingEnabled) {
+            replicas = ofNullable(autoscaling).map(AutoscalingSpec::getMinReplicas).orElse(DEFAULT_REPLICAS);
+            var explicitReplicas = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(AppSpec::getReplicas).orElse(null);
+            if (explicitReplicas != null) {
+                StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
+                        .recordError("Both spec.app.replicas and spec.app.autoscaling are configured. "
+                                + "The replicas field will be ignored when autoscaling is enabled.");
+            }
+        } else {
+            replicas = Optional.ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(AppSpec::getReplicas).orElse(DEFAULT_REPLICAS);
+        }
+
+        var r = initDefaultDeployment(primary, COMPONENT_APP, replicas,
                 ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
-                        .map(AppSpec::getPodTemplateSpec).orElse(null)); // TODO:
+                        .map(AppSpec::getPodTemplateSpec).orElse(null));
 
         var readinessProbe = DEFAULT_READINESS_PROBE;
         var livenessProbe = DEFAULT_LIVENESS_PROBE;
@@ -116,11 +140,30 @@ public class ResourceFactory {
     }
 
     public Deployment getDefaultUIDeployment(ApicurioRegistry3 primary) {
-        var r = initDefaultDeployment(primary, COMPONENT_UI,
-                Optional.ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
-                        .map(UiSpec::getReplicas).orElse(DEFAULT_REPLICAS),
+        var uiAutoscaling = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                .map(ComponentSpec::getAutoscaling).orElse(null);
+        boolean uiAutoscalingEnabled = ofNullable(uiAutoscaling).map(AutoscalingSpec::getEnabled)
+                .orElse(Boolean.FALSE);
+
+        int uiReplicas;
+        if (uiAutoscalingEnabled) {
+            uiReplicas = ofNullable(uiAutoscaling).map(AutoscalingSpec::getMinReplicas)
+                    .orElse(DEFAULT_REPLICAS);
+            var explicitReplicas = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(UiSpec::getReplicas).orElse(null);
+            if (explicitReplicas != null) {
+                StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
+                        .recordError("Both spec.ui.replicas and spec.ui.autoscaling are configured. "
+                                + "The replicas field will be ignored when autoscaling is enabled.");
+            }
+        } else {
+            uiReplicas = Optional.ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(UiSpec::getReplicas).orElse(DEFAULT_REPLICAS);
+        }
+
+        var r = initDefaultDeployment(primary, COMPONENT_UI, uiReplicas,
                 ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
-                        .map(UiSpec::getPodTemplateSpec).orElse(null)); // TODO:
+                        .map(UiSpec::getPodTemplateSpec).orElse(null));
         // Replicas
         mergeDeploymentPodTemplateSpec(
                 COMPONENT_UI_SPEC_FIELD_NAME,
@@ -283,6 +326,62 @@ public class ResourceFactory {
                 COMPONENT_UI);
         addSelectorLabels(pdb.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
         return pdb;
+    }
+
+    public HorizontalPodAutoscaler getDefaultAppHorizontalPodAutoscaler(ApicurioRegistry3 primary) {
+        return buildHorizontalPodAutoscaler(primary, COMPONENT_APP,
+                ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                        .map(ComponentSpec::getAutoscaling).orElse(null));
+    }
+
+    public HorizontalPodAutoscaler getDefaultUIHorizontalPodAutoscaler(ApicurioRegistry3 primary) {
+        return buildHorizontalPodAutoscaler(primary, COMPONENT_UI,
+                ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                        .map(ComponentSpec::getAutoscaling).orElse(null));
+    }
+
+    private HorizontalPodAutoscaler buildHorizontalPodAutoscaler(ApicurioRegistry3 primary,
+            String component, AutoscalingSpec autoscaling) {
+        var hpa = getDefaultResource(primary, HorizontalPodAutoscaler.class,
+                RESOURCE_TYPE_HORIZONTAL_POD_AUTOSCALER, component);
+
+        var deploymentName = primary.getMetadata().getName() + "-" + component + "-"
+                + RESOURCE_TYPE_DEPLOYMENT;
+        hpa.getSpec().getScaleTargetRef().setName(deploymentName);
+
+        int minReplicas = ofNullable(autoscaling).map(AutoscalingSpec::getMinReplicas).orElse(1);
+        int maxReplicas = ofNullable(autoscaling).map(AutoscalingSpec::getMaxReplicas).orElse(minReplicas);
+        hpa.getSpec().setMinReplicas(minReplicas);
+        hpa.getSpec().setMaxReplicas(maxReplicas);
+
+        var metrics = new ArrayList<MetricSpec>();
+        int cpuTarget = ofNullable(autoscaling).map(AutoscalingSpec::getTargetCPUUtilizationPercentage)
+                .orElse(80);
+        metrics.add(new MetricSpecBuilder()
+                .withType("Resource")
+                .withNewResource()
+                .withName("cpu")
+                .withNewTarget()
+                .withType("Utilization")
+                .withAverageUtilization(cpuTarget)
+                .endTarget()
+                .endResource()
+                .build());
+
+        ofNullable(autoscaling).map(AutoscalingSpec::getTargetMemoryUtilizationPercentage)
+                .ifPresent(memTarget -> metrics.add(new MetricSpecBuilder()
+                        .withType("Resource")
+                        .withNewResource()
+                        .withName("memory")
+                        .withNewTarget()
+                        .withType("Utilization")
+                        .withAverageUtilization(memTarget)
+                        .endTarget()
+                        .endResource()
+                        .build()));
+
+        hpa.getSpec().setMetrics(metrics);
+        return hpa;
     }
 
     private <T extends HasMetadata> T getDefaultResource(ApicurioRegistry3 primary, Class<T> klass,

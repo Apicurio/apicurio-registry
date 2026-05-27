@@ -1,23 +1,21 @@
 package io.apicurio.registry.cli.version;
 
-import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
+import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Labels;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import java.util.HashMap;
+import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static io.apicurio.registry.cli.version.VersionGetCommand.printVersion;
@@ -70,10 +68,9 @@ public class VersionCreateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--label"},
-            description = "Provide a list of version labels.",
-            mapFallbackValue = ""
+            description = "Provide a list of version labels (format: key=value or key). Use \\= to include = in a key."
     )
-    private Map<String, String> labels;
+    private List<String> labels;
 
     @Option(
             names = {"--content-type"},
@@ -109,7 +106,7 @@ public class VersionCreateCommand extends AbstractCommand {
         }
         if (labels != null) {
             final var newLabels = new Labels();
-            newLabels.setAdditionalData(new HashMap<>(labels));
+            newLabels.setAdditionalData(new HashMap<>(Conversions.parseLabels(labels)));
             newVersion.setLabels(newLabels);
         }
         if (draft) {
@@ -122,30 +119,17 @@ public class VersionCreateCommand extends AbstractCommand {
         versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
         newVersion.setContent(versionContent);
 
-        try {
-            final var registryClient = client.getRegistryClient();
-            IdUtil.validateGroup(registryClient, resolvedGroupId);
-            //noinspection ConstantConditions
-            final var result = convert(registryClient
-                    .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)
-                    .versions().post(newVersion));
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, resolvedGroupId, resolvedArtifactId, result.getVersion()));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, resolvedGroupId, resolvedArtifactId, result.getVersion()));
-            }
-            printVersion(output, result, outputType.getOutputType());
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error creating version for artifact '")
-                        .append(resolvedArtifactId)
-                        .append("' in group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        final var registryClient = client.getRegistryClient();
+        IdUtil.validateGroup(registryClient, resolvedGroupId);
+        //noinspection ConstantConditions
+        final var result = convert(registryClient
+                .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)
+                .versions().post(newVersion));
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> successMessage(out, resolvedGroupId, resolvedArtifactId, result.getVersion()));
+            case table -> output.writeStdOutChunk(out -> successMessage(out, resolvedGroupId, resolvedArtifactId, result.getVersion()));
         }
+        printVersion(output, result, outputType.getOutputType());
     }
 
     private static void successMessage(final StringBuilder out, final String groupId,

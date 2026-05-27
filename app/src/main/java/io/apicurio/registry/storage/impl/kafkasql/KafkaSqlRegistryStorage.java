@@ -554,6 +554,24 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     @Override
+    public void mergeArtifactLabels(String groupId, String artifactId,
+            String prefix, java.util.Map<String, String> labels) throws RegistryStorageException {
+        var message = new io.apicurio.registry.storage.impl.kafkasql.messages
+                .MergeArtifactLabels4Message(groupId, artifactId, prefix, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void mergeVersionLabels(String groupId, String artifactId, String version,
+            String prefix, java.util.Map<String, String> labels) throws RegistryStorageException {
+        var message = new io.apicurio.registry.storage.impl.kafkasql.messages
+                .MergeVersionLabels5Message(groupId, artifactId, version, prefix, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    @Override
     public void createArtifactRule(String groupId, String artifactId, RuleType rule,
             RuleConfigurationDto config) throws RegistryStorageException {
         var message = new CreateArtifactRule4Message(groupId, artifactId, rule, config);
@@ -704,6 +722,36 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
             throws RegistryStorageException {
         return sqlStore.getContractRulesByTag(tag);
+    }
+
+    @Override
+    public io.apicurio.registry.storage.dto.ContractRuleSetDto getGlobalContractRuleset()
+            throws RegistryStorageException {
+        return sqlStore.getGlobalContractRuleset();
+    }
+
+    @Override
+    public void setGlobalContractRuleset(io.apicurio.registry.storage.dto.ContractRuleSetDto ruleset)
+            throws RegistryStorageException {
+        sqlStore.setGlobalContractRuleset(ruleset);
+    }
+
+    @Override
+    public void deleteGlobalContractRuleset() throws RegistryStorageException {
+        sqlStore.deleteGlobalContractRuleset();
+    }
+
+    @Override
+    public void insertContractAuditEntry(io.apicurio.registry.storage.dto.ContractAuditEntryDto entry)
+            throws RegistryStorageException {
+        sqlStore.insertContractAuditEntry(entry);
+    }
+
+    @Override
+    public java.util.List<io.apicurio.registry.storage.dto.ContractAuditEntryDto> getContractAuditLog(
+            String groupId, String artifactId, int offset, int limit)
+            throws RegistryStorageException {
+        return sqlStore.getContractAuditLog(groupId, artifactId, offset, limit);
     }
 
     /**
@@ -1226,6 +1274,17 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     public String createEvent(OutboxEvent event) {
         // No op, the event is created by the event processor.
         return event.getId();
+    }
+
+    @Override
+    public void recordUsageEvent(SchemaUsageEventDto event) {
+        submitter.submitMessage(new RecordUsageEvent1Message(
+                event.getGlobalId(), event.getContentId(), event.getClientId(), event.getOperation(), event.getEventTimestamp()));
+    }
+
+    @Override
+    public void deleteOldUsageEvents(long cutoffTimestamp) {
+        submitter.submitMessage(new DeleteOldUsageEvents1Message(cutoffTimestamp));
     }
 
 }

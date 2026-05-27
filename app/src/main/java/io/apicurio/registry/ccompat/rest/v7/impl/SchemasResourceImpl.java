@@ -205,7 +205,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
         return versions.stream()
                 .filter(v -> fdeleted || v.getState() != VersionState.DISABLED)
-                .map(ArtifactVersionMetaDataDto::getArtifactId).distinct().collect(Collectors.toList());
+                .map(ArtifactVersionMetaDataDto::getArtifactId).distinct().sorted()
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -219,6 +220,10 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         }
         return storage.getArtifactVersionsByContentId(id.longValue()).stream()
                 .filter(versionMetaData -> deleted || versionMetaData.getState() != VersionState.DISABLED)
+                .sorted((a, b) -> {
+                    int cmp = a.getArtifactId().compareTo(b.getArtifactId());
+                    return cmp != 0 ? cmp : Integer.compare(a.getVersionOrder(), b.getVersionOrder());
+                })
                 .map(versionMetaData -> converter.convert(versionMetaData.getArtifactId(),
                         versionMetaData.getVersionOrder()))
                 .collect(Collectors.toList());

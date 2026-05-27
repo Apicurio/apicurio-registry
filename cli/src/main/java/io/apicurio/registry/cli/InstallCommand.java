@@ -2,16 +2,17 @@ package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.config.ConfigModel;
 import io.apicurio.registry.cli.utils.FileUtils;
+import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
-import org.jboss.logging.Logger;
-import picocli.CommandLine.Command;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import org.jboss.logging.Logger;
+import picocli.CommandLine.Command;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
@@ -95,6 +96,7 @@ public class InstallCommand extends AbstractCommand {
         if (!isBlank(cliHome)) {
             cliHomePath = Path.of(cliHome).normalize().toAbsolutePath();
             if (!Files.exists(cliHomePath)) {
+                log.debugf("ACR_HOME path does not exist, falling back to install dir: %s", cliHomePath);
                 cliHomePath = null;
             }
         }
@@ -150,8 +152,24 @@ public class InstallCommand extends AbstractCommand {
         FileUtils.replaceInFile(cliHomePath.resolve(ACR_ENV), ACR_HOME_PLACEHOLDER, cliHomePath.toAbsolutePath().toString());
 
         // Copy config.json only if it doesn't exist (preserve user settings)
-        if (!Files.exists(cliHomePath.resolve(CONFIG_JSON))) {
-            Files.copy(currentPath.resolve(CONFIG_JSON), cliHomePath.resolve(CONFIG_JSON));
+        var targetConfig = cliHomePath.resolve(CONFIG_JSON);
+        if (!Files.exists(targetConfig)) {
+            Files.copy(currentPath.resolve(CONFIG_JSON), targetConfig);
+        } else {
+            var existing = Mapper.MAPPER.readValue(targetConfig.toFile(), ConfigModel.class);
+            log.debugf("Existing installation version: %d, current: %d",
+                    existing.getInstallationVersion(), ConfigModel.CURRENT_INSTALLATION_VERSION);
+            if (existing.getInstallationVersion() > ConfigModel.CURRENT_INSTALLATION_VERSION) {
+                throw new CliException(
+                        "Existing installation (version %d) is newer than this CLI supports (version %d). Cannot downgrade."
+                                .formatted(existing.getInstallationVersion(), ConfigModel.CURRENT_INSTALLATION_VERSION),
+                        VALIDATION_ERROR_RETURN_CODE);
+            }
+            if (existing.getInstallationVersion() < ConfigModel.CURRENT_INSTALLATION_VERSION) {
+                existing.setInstallationVersion(ConfigModel.CURRENT_INSTALLATION_VERSION);
+                Mapper.MAPPER.writeValue(targetConfig.toFile(), existing);
+                log.debugf("Updated installation version to %d", ConfigModel.CURRENT_INSTALLATION_VERSION);
+            }
         }
     }
 

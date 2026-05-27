@@ -1,18 +1,19 @@
 package io.apicurio.registry.cli.config;
 
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.services.CliVersion;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.Output;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Getter;
+import lombok.Setter;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.copy;
@@ -42,10 +43,21 @@ public class Config {
     @Setter
     private Path acrCurrentHomePath;
 
+    @ConfigProperty(name = "version")
+    String cliVersion;
+
     private final Map<String, String> envOverrides = new HashMap<>();
 
     void onStart(@Observes StartupEvent ev) {
         instance = this;
+    }
+
+    public CliVersion getCliVersion() {
+        var version = CliVersion.parse(cliVersion);
+        if (version == null || !version.isParsed()) {
+            throw new CliException("Could not parse CLI version: " + cliVersion, APPLICATION_ERROR_RETURN_CODE);
+        }
+        return version;
     }
 
     /**
@@ -79,6 +91,19 @@ public class Config {
      */
     public void clearEnvOverrides() {
         envOverrides.clear();
+    }
+
+    public Path getAcrHomePath() {
+        var home = getEnv("ACR_HOME");
+        if (isBlank(home)) {
+            throw new CliException("ACR_HOME is not set. Please run the 'install' command first.", APPLICATION_ERROR_RETURN_CODE);
+        }
+        var homePath = Path.of(home).normalize().toAbsolutePath();
+        if (!java.nio.file.Files.exists(homePath)) {
+            throw new CliException("ACR_HOME directory does not exist: " + homePath + ". Please run the 'install' command first.",
+                    APPLICATION_ERROR_RETURN_CODE);
+        }
+        return homePath;
     }
 
     public Path getAcrCurrentHomePath() {

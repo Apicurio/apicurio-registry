@@ -9,14 +9,13 @@ import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
-import lombok.Builder;
-import lombok.Getter;
-import org.eclipse.microprofile.config.ConfigProvider;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Mixin;
-
 import java.util.Date;
 import java.util.List;
+import lombok.Builder;
+import lombok.Getter;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Mixin;
 
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPES;
 import static io.apicurio.registry.cli.utils.Columns.CLI_VERSION;
@@ -43,15 +42,20 @@ public class VersionCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @ConfigProperty(name = "version")
+    String cliVersion;
+
     @Override
     public void run(final OutputBuffer output) throws JsonProcessingException {
         final var builder = VersionOutput.builder()
-                .cliVersion(ConfigProvider.getConfig().getValue("version", String.class));
+                .cliVersion(cliVersion);
 
         try {
             final var registryClient = client.getRegistryClient();
-            fetchSystemInfo(registryClient, builder, output);
-            fetchArtifactTypes(registryClient, builder, output);
+            fetchSystemInfo(registryClient, builder);
+            fetchArtifactTypes(registryClient, builder);
+        } catch (ProblemDetails ex) {
+            handleProblemDetails(output, ex);
         } catch (Exception ex) {
             output.writeStdErrChunk(err ->
                     err.append("Could not connect to server: ").append(ex.getMessage()).append('\n'));
@@ -61,29 +65,19 @@ public class VersionCommand extends AbstractCommand {
     }
 
     // Fetches server name, version, and build timestamp from /system/info.
-    private void fetchSystemInfo(final RegistryClient client, final VersionOutput.VersionOutputBuilder builder, final OutputBuffer output) {
-        try {
-            final var systemInfo = client.system().info().get();
-            builder.serverName(systemInfo.getName());
-            builder.serverVersion(systemInfo.getVersion());
-            builder.serverBuiltOn(systemInfo.getBuiltOn() != null ? convert(systemInfo.getBuiltOn()) : null);
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err ->
-                    err.append("Error retrieving system info: ").append(ex.getDetail()).append('\n'));
-        }
+    private void fetchSystemInfo(final RegistryClient client, final VersionOutput.VersionOutputBuilder builder) {
+        final var systemInfo = client.system().info().get();
+        builder.serverName(systemInfo.getName());
+        builder.serverVersion(systemInfo.getVersion());
+        builder.serverBuiltOn(systemInfo.getBuiltOn() != null ? convert(systemInfo.getBuiltOn()) : null);
     }
 
     // Fetches supported artifact types from /admin/config/artifactTypes.
-    private void fetchArtifactTypes(final RegistryClient client, final VersionOutput.VersionOutputBuilder builder, final OutputBuffer output) {
-        try {
-            final var artifactTypes = client.admin().config().artifactTypes().get();
-            builder.artifactTypes(artifactTypes != null ? artifactTypes.stream()
-                    .map(ArtifactTypeInfo::getName)
-                    .toList() : null);
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err ->
-                    err.append("Error retrieving artifact types: ").append(ex.getDetail()).append('\n'));
-        }
+    private void fetchArtifactTypes(final RegistryClient client, final VersionOutput.VersionOutputBuilder builder) {
+        final var artifactTypes = client.admin().config().artifactTypes().get();
+        builder.artifactTypes(artifactTypes != null ? artifactTypes.stream()
+                .map(ArtifactTypeInfo::getName)
+                .toList() : null);
     }
 
     private static void printVersion(final OutputBuffer output, final VersionOutput versionOutput, final OutputTypeMixin outputType) throws JsonProcessingException {
@@ -107,7 +101,9 @@ public class VersionCommand extends AbstractCommand {
         });
     }
 
-    /** Output model for the version command, serialized as JSON or rendered as a table. */
+    /**
+     * Output model for the version command, serialized as JSON or rendered as a table.
+     */
     @Builder
     @Getter
     public static class VersionOutput {

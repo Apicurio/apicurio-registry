@@ -7,12 +7,18 @@ on:
   issue_comment:
     types: [created]
   pull_request_review:
-    types: [submitted]
+    types: [submitted, dismissed]
   workflow_run:
     workflows: ["Verify"]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to reconcile
+        required: true
+        type: number
   schedule:
-    - cron: '17 8 * * *'
+    - cron: '17 */6 * * *'
 
 permissions:
   actions: write
@@ -131,7 +137,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'pull_request_review' &&
-      github.event.action == 'submitted' &&
+      (github.event.action == 'submitted' || github.event.action == 'dismissed') &&
       !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
@@ -179,8 +185,7 @@ jobs:
     name: Test Result
     runs-on: ubuntu-latest
     if: |
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion != 'cancelled'
+      github.event_name == 'workflow_run'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -196,7 +201,69 @@ jobs:
             await handler.handleTestResult({ github, context, core });
 
   # ==========================================================================
-  # Stale Detection (daily cron)
+  # Failure Notification
+  # ==========================================================================
+  failure-notify:
+    name: Failure Notification
+    runs-on: ubuntu-latest
+    if: >-
+      failure() &&
+      github.event_name != 'schedule'
+    needs: [pr-opened, pr-synchronize, pr-ready-for-review, command, review, label-guard, test-result, reconcile]
+    steps:
+      - name: Post warning comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            let prNumber = context.payload.pull_request?.number || context.payload.issue?.number;
+
+            // For workflow_run events, resolve PR from the triggering run
+            if (!prNumber && context.payload.workflow_run) {
+              const run = context.payload.workflow_run;
+              let prs = run.pull_requests || [];
+              if (!prs.length) {
+                const headOwner = run.head_repository?.owner?.login || owner;
+                const { data: found } = await github.rest.pulls.list({
+                  owner, repo, state: 'open',
+                  head: `${headOwner}:${run.head_branch}`, per_page: 5,
+                });
+                prs = found.filter(p => p.head.sha === run.head_sha);
+              }
+              if (prs.length) prNumber = prs[0].number;
+            }
+
+            if (!prNumber) return;
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: prNumber,
+              body: `**Warning:** The PR lifecycle orchestrator encountered an error while processing ` +
+                `an event for this PR. Some labels or state transitions may be incorrect.\n\n` +
+                `A maintainer or the PR author can use \`/retry\` to re-run the orchestrator.`
+            });
+
+  # ==========================================================================
+  # Manual Reconciliation (workflow_dispatch)
+  # ==========================================================================
+  reconcile:
+    name: Reconcile
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Reconcile PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handleReconcile({ github, context, core, prNumber: ${{ inputs.pr_number }} });
+
+  # ==========================================================================
+  # Stale Detection and Reconciliation (every 6 hours)
   # ==========================================================================
   stale:
     name: Stale Detection

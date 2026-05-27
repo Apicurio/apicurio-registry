@@ -17,7 +17,7 @@ env:
 
 jobs:
   manage-milestones:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Fetch Release Details

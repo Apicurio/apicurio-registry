@@ -14,6 +14,7 @@ public class ContextCommandTest extends AbstractCLITest {
         testHelpCommand("context", "create");
         testHelpCommand("context", "update");
         testHelpCommand("context", "delete");
+        testHelpCommand("context", "use");
     }
 
     @Test
@@ -81,5 +82,40 @@ public class ContextCommandTest extends AbstractCLITest {
         assertThat(out.toString())
                 .as(withCliOutput("Named context should show updated group"))
                 .contains("named-group");
+    }
+
+    @Test
+    public void testContextUse() {
+        // Create a second context
+        executeAndAssertSuccess("context", "create", "--no-switch-current", "second", registryUrl);
+
+        // Switch to the second context
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("context", "use", "second");
+        assertThat(out.toString())
+                .as(withCliOutput("Should confirm context switch with previous context"))
+                .contains("Switched to context 'second'")
+                .contains("from 'test'");
+
+        // Verify it is now the active context
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("context");
+        assertThat(out.toString())
+                .as(withCliOutput("Second context should be active"))
+                .contains("second*");
+    }
+
+    @Test
+    public void testContextUseAlreadyCurrent() {
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("context", "use", "test");
+        assertThat(out.toString())
+                .as(withCliOutput("Should indicate context is already active"))
+                .contains("already the current context");
+    }
+
+    @Test
+    public void testContextUseNonExistent() {
+        executeAndAssertFailure("context", "use", "non-existent");
     }
 }

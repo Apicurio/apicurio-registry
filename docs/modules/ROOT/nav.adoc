@@ -10,6 +10,7 @@
 ** xref:getting-started/assembly-installing-registry-storage-openshift.adoc[]
 ** xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[]
 ** xref:getting-started/assembly-deploying-registry-operator.adoc[]
+** xref:getting-started/assembly-deploying-registry-secured-kafka.adoc[]
 ** xref:getting-started/assembly-implementing-multitenancy.adoc[]
 ** xref:getting-started/assembly-registry-high-availability.adoc[]
 * Migration
@@ -17,6 +18,7 @@
 * Configuration
 ** xref:getting-started/assembly-configuring-registry-security.adoc[]
 ** xref:getting-started/assembly-configuring-the-registry.adoc[]
+** xref:getting-started/assembly-registry-events.adoc[]
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]
@@ -30,16 +32,23 @@
 * Kafka client serializers/deserialisers
 ** xref:getting-started/assembly-using-kafka-client-serdes.adoc[]
 ** xref:getting-started/assembly-configuring-kafka-client-serdes.adoc[]
+* Usage Telemetry and Lifecycle Governance
+** xref:getting-started/assembly-usage-telemetry.adoc[]
 ifndef::service-registry-downstream[]
 * Troubleshooting
 ** xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[]
 endif::[]
 * AI Agent Integration
+** xref:getting-started/assembly-agent-registry-quickstart.adoc[]
 ** xref:getting-started/assembly-a2a-features.adoc[]
 ** xref:getting-started/assembly-mcp-tool-features.adoc[]
+** xref:getting-started/assembly-mcp-server-integration.adoc[]
+** xref:getting-started/assembly-agent-discovery-patterns.adoc[]
 ** xref:getting-started/assembly-llm-artifact-types-implementation.adoc[]
 * Confluent Schema Registry Compatibility
 ** xref:getting-started/assembly-confluent-schema-registry-compatibility.adoc[]
+* Best Practices Guide
+** xref:getting-started/assembly-schema-lifecycle-best-practices.adoc[]
 * Reference
 ** xref:getting-started/assembly-artifact-reference.adoc[]
 ** xref:getting-started/assembly-rule-reference.adoc[]

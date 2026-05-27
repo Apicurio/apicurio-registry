@@ -7,7 +7,7 @@ import (
 type WrappedVersionState struct {
 	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 	additionalData map[string]any
-	// Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
+	// Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
 	state *VersionState
 }
 
@@ -47,7 +47,7 @@ func (m *WrappedVersionState) GetFieldDeserializers() map[string]func(i878a80d23
 	return res
 }
 
-// GetState gets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
+// GetState gets the state property value. Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
 // returns a *VersionState when successful
 func (m *WrappedVersionState) GetState() *VersionState {
 	return m.state
@@ -76,7 +76,7 @@ func (m *WrappedVersionState) SetAdditionalData(value map[string]any) {
 	m.additionalData = value
 }
 
-// SetState sets the state property value. Describes the state of an artifact or artifact version.  The following statesare possible:* ENABLED* DISABLED* DEPRECATED
+// SetState sets the state property value. Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
 func (m *WrappedVersionState) SetState(value *VersionState) {
 	m.state = value
 }

@@ -533,7 +533,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         .bind(5, owner) // modifiedBy
                         .bind(6, createdOn) // modifiedOn
                         .bind(7, limitStr(amd.getName(), 512))
-                        .bind(8, limitStr(amd.getDescription(), 1024, true)).bind(9, labelsStr).execute();
+                        .bind(8, limitStr(amd.getDescription(), 1024, true)).bind(9, labelsStr)
+                        .execute();
 
                 // Insert labels into the "artifact_labels" table
                 if (labels != null && !labels.isEmpty()) {

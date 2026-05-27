@@ -236,6 +236,10 @@ public class SqlGroupRepository {
                     throw new GroupNotFoundException(groupId);
                 }
 
+                handle.createUpdate(sqlStatements.updateGroupEpoch())
+                        .bind(0, groupId)
+                        .execute();
+
                 outboxEvent.fire(SqlOutboxEvent.of(GroupMetadataUpdated.of(groupId, dto)));
             }
 

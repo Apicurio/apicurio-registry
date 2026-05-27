@@ -1,0 +1,625 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+:_mod-docs-content-type: ASSEMBLY
+[id="mcp-server-integration_{context}"]
+= MCP server integration
+
+[role="_abstract"]
+You can connect Large Language Model (LLM) clients such as Claude Desktop to {registry} by using the {registry} MCP server container. The MCP server acts as an adapter between LLM clients and {registry}. On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
+
+ifdef::service-registry-downstream[]
+WARNING: The AI agent integration features described in this section are available as a Technology Preview. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[Technology Preview Features Support Scope].
+endif::[]
+
+NOTE: The {registry} MCP server connects LLM clients to a running {registry} instance. For information about storing MCP tool definitions as artifacts in {registry}, see xref:getting-started/assembly-mcp-tool-features.adoc[].
+
+* xref:mcp-server-overview_{context}[]
+* xref:installing-the-mcp-server_{context}[]
+* xref:configuring-claude-desktop-for-mcp_{context}[]
+* xref:mcp-server-available-tools_{context}[]
+* xref:mcp-server-configuration-properties_{context}[]
+* xref:configuring-mcp-server-authentication_{context}[]
+* xref:configuring-mcp-server-tls_{context}[]
+* xref:mcp-server-troubleshooting_{context}[]
+
+// con-mcp-server-overview
+:_mod-docs-content-type: CONCEPT
+[id="mcp-server-overview_{context}"]
+== MCP server overview
+
+[role="_abstract"]
+The {registry} MCP server container acts as an adapter between LLM clients and {registry}. On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
+
+When an LLM client sends a request, the MCP server converts that request into {registry} REST API calls, runs the operation, and returns the results to the LLM client. The LLM client prompts you for confirmation before each tool call.
+
+The MCP server supports operations in the following categories:
+
+* **System**: Retrieve server information such as version and status
+* **Groups**: Create, list, search, and update artifact groups
+* **Artifacts**: Create, list, search, and update artifacts and metadata
+* **Versions**: Create, list, search, update content, and manage version state
+* **Configuration**: List, get, and update dynamic configuration properties
+* **Prompt templates**: List, get, and render prompt templates stored in {registry}
+
+The MCP server has a safe mode that is enabled by default. Safe mode restricts operations that could cause unintended changes, such as limiting which configuration properties you can update.
+
+// proc-installing-the-mcp-server
+:_mod-docs-content-type: PROCEDURE
+[id="installing-the-mcp-server_{context}"]
+== Installing the MCP server
+
+[role="_abstract"]
+You can run the {registry} MCP server as a Docker or Podman container, or build it from source. Both methods produce a server binary that LLM clients start on demand.
+
+.Prerequisites
+* Docker or Podman is installed, or Java 21 and Maven are installed for building from source.
+* A running {registry} instance is accessible at `localhost:8080`, or you set a custom URL by using the `REGISTRY_URL` environment variable.
+
+NOTE: You can substitute `podman` for `docker` in all commands.
+
+.Procedure
+. Pull the MCP server Docker image:
++
+[source,bash]
+----
+docker pull quay.io/apicurio/apicurio-registry-mcp-server:latest
+----
++
+NOTE: The `latest` tag refers to the most recent stable release. For development builds, use the `latest-snapshot` tag. For a specific version, use the version number as the tag, for example `3.2.4`.
++
+Alternatively, to build the MCP server from source, clone the {registry} repository and run the following Maven command:
++
+[source,bash]
+----
+mvn clean install -pl mcp -am -DskipTests
+----
+
+// proc-configuring-claude-desktop-for-mcp
+:_mod-docs-content-type: PROCEDURE
+[id="configuring-claude-desktop-for-mcp_{context}"]
+== Configuring Claude Desktop for MCP
+
+[role="_abstract"]
+You can configure Claude Desktop to use the {registry} MCP server. After configuration, you interact with {registry} artifacts, groups, and versions by using natural language in Claude Desktop.
+
+.Prerequisites
+* Claude Desktop is installed (macOS or Windows).
+* A running {registry} instance is accessible.
+* The {registry} MCP server Docker or Podman image is available, or you have built the MCP server JAR from source.
+
+.Procedure
+. In Claude Desktop, navigate to *File* > *Settings* > *Developer* > *Edit Config* to open the MCP configuration file.
+
+. Add the {registry} MCP server entry to the configuration file.
++
+If you are using the Docker or Podman image, add the following configuration:
++
+[source,json]
+----
+{
+  "mcpServers": {
+    "Apicurio Registry (docker)": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e", "REGISTRY_URL=<registry-url>",
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest"
+      ]
+    }
+  }
+}
+----
++
+Replace `<registry-url>` with the URL of your {registry} instance. For local development, use `\http://localhost:8080`. For OpenShift deployments, use the route URL of your {registry} instance.
++
+If you built the MCP server from source, add the following configuration:
++
+[source,json]
+----
+{
+  "mcpServers": {
+    "Apicurio Registry (jar)": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "<path-to-repo>/apicurio-registry/mcp/target/apicurio-registry-mcp-server-<version>-runner.jar"
+      ]
+    }
+  }
+}
+----
++
+Replace `<path-to-repo>` with the absolute path to your local clone of the {registry} repository, and replace `<version>` with the version you built.
+
+. Save the configuration file and restart Claude Desktop by selecting *File* > *Exit* and reopening the application.
+
+.Verification
+* Verify the connection by asking Claude a question about {registry}, for example:
++
+** "What is the version of the Registry server?"
+** "What groups are present in the Registry?"
+** "Create 10 example artifacts."
+
+// ref-mcp-server-available-tools
+:_mod-docs-content-type: REFERENCE
+[id="mcp-server-available-tools_{context}"]
+== Available MCP tools
+
+[role="_abstract"]
+The {registry} MCP server provides the following tools for LLM clients to call. Claude Desktop prompts you for confirmation before each tool call.
+
+.System tools
+
+[cols="2,4",options="header"]
+|===
+|Tool name
+|Description
+
+|`get_server_info`
+|Returns information about the {registry} server, including the version number.
+|===
+
+.Group tools
+
+[cols="2,4",options="header"]
+|===
+|Tool name
+|Description
+
+|`list_groups`
+|Returns a list of artifact groups from {registry}. The result always contains the default group named `default`.
+
+|`create_group`
+|Creates a group in {registry} with an optional description and labels.
+
+|`get_group_metadata`
+|Returns metadata for a specific group.
+
+|`update_group_metadata`
+|Updates the description and labels for a group.
+
+|`search_groups`
+|Searches for groups by group ID, description, or labels.
+|===
+
+.Artifact tools
+
+[cols="2,4",options="header"]
+|===
+|Tool name
+|Description
+
+|`list_artifacts`
+|Returns a list of artifacts within a group.
+
+|`get_artifact_metadata`
+|Returns metadata for a specific artifact within a group.
+
+|`update_artifact_metadata`
+|Updates the name, description, and labels for an artifact.
+
+|`create_artifact`
+|Creates an empty artifact in {registry} with optional name, description, type, and labels. Add content later by creating a version.
+
+|`search_artifacts`
+|Searches for artifacts by group ID, artifact ID, type, name, description, or labels.
+|===
+
+.Version tools
+
+[cols="2,4",options="header"]
+|===
+|Tool name
+|Description
+
+|`list_versions`
+|Returns a list of versions within an artifact.
+
+|`get_version_content`
+|Returns the content of a specific artifact version, identified by a version expression.
+
+|`get_version_metadata`
+|Returns metadata for a specific artifact version.
+
+|`create_version`
+|Creates an artifact version with content. Supports draft mode for mutable versions.
+
+|`update_version_state`
+|Updates the state of an artifact version to ENABLED, DEPRECATED, DISABLED, or DRAFT.
+
+|`update_version_metadata`
+|Updates the name, description, and labels for an artifact version.
+
+|`update_version_content`
+|Updates the content of an artifact version that is in the DRAFT state.
+
+|`search_versions`
+|Searches for versions by group ID, artifact ID, type, name, description, or labels.
+|===
+
+.Configuration tools
+
+[cols="2,4",options="header"]
+|===
+|Tool name
+|Description
+
+|`get_artifact_types`
+|Returns a list of artifact types supported by {registry}.
+
+|`list_configuration_properties`
+|Returns a list of all dynamic configuration properties that you can modify without restarting {registry}.
+
+|`get_configuration_property`
+|Returns information about a specific dynamic configuration property.
+
+|`update_configuration_property`
+|Updates a dynamic configuration property. In safe mode, you can update only the `apicurio.rest.mutability.artifact-version-content.enabled` property.
+|===
+
+.Prompt template tools
+
+[cols="2,4",options="header"]
+|===
+|Tool name
+|Description
+
+|`list_mcp_prompts`
+|Lists all `PROMPT_TEMPLATE` artifacts that are MCP-enabled in {registry}.
+
+|`get_mcp_prompt`
+|Retrieves an MCP-enabled prompt template from {registry} and renders it with arguments that you provide.
+
+|`render_prompt_template`
+|Renders any `PROMPT_TEMPLATE` artifact with variables that you provide, regardless of MCP enablement.
+|===
+
+You can also use the following MCP prompts in Claude Desktop by clicking the *+* icon and selecting *Add from {registry}*:
+
+* **create_new_artifact_version**: A guided workflow for creating artifact versions, including draft mode support and content iteration.
+* **render_registry_prompt**: Renders a prompt template from {registry} for interactive use.
+
+// ref-mcp-server-configuration-properties
+:_mod-docs-content-type: REFERENCE
+[id="mcp-server-configuration-properties_{context}"]
+== MCP server configuration properties
+
+[role="_abstract"]
+You can configure the {registry} MCP server by using the following properties. Pass properties as Java system properties when you use the JAR, or as environment variables when you use Docker.
+
+For the JAR method, place properties before the `-jar` argument:
+
+[source,bash]
+----
+java -Dregistry.url=myhost:8080 -jar apicurio-registry-mcp-server-*-runner.jar
+----
+
+For the Docker method, pass environment variables by using separate `-e` elements in the `args` array of the Claude Desktop configuration:
+
+[source,json]
+----
+"args": [
+  "run", "-i", "--rm",
+  "-e", "REGISTRY_URL=myhost:8080",
+  "quay.io/apicurio/apicurio-registry-mcp-server:latest"
+]
+----
+
+.General properties
+
+[cols="3,2,1,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`registry.url`
+|`REGISTRY_URL`
+|`localhost:8080`
+|URL of the {registry} server that the MCP server connects to.
+
+|`apicurio.mcp.safe-mode`
+|`APICURIO_MCP_SAFE_MODE`
+|`true`
+|Restricts certain operations for safety. When enabled, you can update only allowlisted configuration properties.
+
+|`apicurio.mcp.paging.limit`
+|`APICURIO_MCP_PAGING_LIMIT`
+|`200`
+|Maximum number of items to return in a single paged result. Increase this value if {registry} contains a large number of objects.
+
+|`apicurio.mcp.paging.limit-error`
+|`APICURIO_MCP_PAGING_LIMIT_ERROR`
+|`true`
+|When the result count exceeds the paging limit, the operation fails. This property helps prevent inaccurate results when you count or list large datasets.
+|===
+
+.Authentication properties
+
+[cols="3,2,1,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`apicurio.mcp.auth.enabled`
+|`APICURIO_MCP_AUTH_ENABLED`
+|`false`
+|When set to `true`, the MCP server uses OAuth2 client credentials authentication for connections to {registry}.
+
+|`apicurio.mcp.auth.token-endpoint`
+|`APICURIO_MCP_AUTH_TOKEN_ENDPOINT`
+|_none_
+|OAuth2 token endpoint URL. Required when authentication is enabled.
+
+|`apicurio.mcp.auth.client-id`
+|`APICURIO_MCP_AUTH_CLIENT_ID`
+|_none_
+|OAuth2 client ID. Required when authentication is enabled.
+
+|`apicurio.mcp.auth.client-secret`
+|`APICURIO_MCP_AUTH_CLIENT_SECRET`
+|_none_
+|OAuth2 client secret. Required when authentication is enabled.
+
+|`apicurio.mcp.auth.scope`
+|`APICURIO_MCP_AUTH_SCOPE`
+|_none_
+|OAuth2 scope. Optional.
+|===
+
+.TLS properties
+
+[cols="3,2,1,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`apicurio.mcp.tls.trust-all`
+|`APICURIO_MCP_TLS_TRUST_ALL`
+|`false`
+|When set to `true`, all certificates are trusted. Use only in development environments.
+
+|`apicurio.mcp.tls.verify-host`
+|`APICURIO_MCP_TLS_VERIFY_HOST`
+|`true`
+|When set to `true`, the MCP server verifies the hostname in the server certificate.
+
+|`apicurio.mcp.tls.truststore.type`
+|`APICURIO_MCP_TLS_TRUSTSTORE_TYPE`
+|_none_
+|Trust store type: `JKS`, `PKCS12`, or `PEM`.
+
+|`apicurio.mcp.tls.truststore.path`
+|`APICURIO_MCP_TLS_TRUSTSTORE_PATH`
+|_none_
+|Path to the trust store file.
+
+|`apicurio.mcp.tls.truststore.password`
+|`APICURIO_MCP_TLS_TRUSTSTORE_PASSWORD`
+|_none_
+|Trust store password. Not required for PEM type.
+
+|`apicurio.mcp.tls.keystore.type`
+|`APICURIO_MCP_TLS_KEYSTORE_TYPE`
+|_none_
+|Key store type for mTLS client certificates: `JKS` or `PKCS12`.
+
+|`apicurio.mcp.tls.keystore.path`
+|`APICURIO_MCP_TLS_KEYSTORE_PATH`
+|_none_
+|Path to the key store file for mTLS.
+
+|`apicurio.mcp.tls.keystore.password`
+|`APICURIO_MCP_TLS_KEYSTORE_PASSWORD`
+|_none_
+|Key store password for mTLS.
+|===
+
+// proc-configuring-mcp-server-authentication
+:_mod-docs-content-type: PROCEDURE
+[id="configuring-mcp-server-authentication_{context}"]
+== Configuring MCP server authentication
+
+[role="_abstract"]
+You can configure the {registry} MCP server to authenticate with {registry} by using OAuth2 client credentials. You must configure authentication when {registry} is secured with an OIDC provider such as {keycloak}.
+
+.Prerequisites
+* {registry} is configured with OIDC authentication.
+* An OAuth2 client is configured in your OIDC provider with client credentials grant type.
+* You know the token endpoint URL, client ID, and client secret.
+
+.Procedure
+. Update the Claude Desktop MCP configuration to include OAuth2 credentials.
++
+If you are using the Docker or Podman image, add environment variables to the `args` array:
++
+[source,json]
+----
+{
+  "mcpServers": {
+    "Apicurio Registry (docker)": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "REGISTRY_URL=<registry-url>",
+        "-e", "APICURIO_MCP_AUTH_ENABLED=true",
+        "-e", "APICURIO_MCP_AUTH_TOKEN_ENDPOINT=http://localhost:8090/realms/registry/protocol/openid-connect/token",
+        "-e", "APICURIO_MCP_AUTH_CLIENT_ID=registry-api",
+        "-e", "APICURIO_MCP_AUTH_CLIENT_SECRET=<your-client-secret>",
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest"
+      ]
+    }
+  }
+}
+----
++
+Replace `<your-client-secret>` with the client secret from your OIDC provider.
++
+If you built the MCP server from source, add system properties before the `-jar` argument:
++
+[source,json]
+----
+{
+  "mcpServers": {
+    "Apicurio Registry (jar)": {
+      "command": "java",
+      "args": [
+        "-Dapicurio.mcp.auth.enabled=true",
+        "-Dapicurio.mcp.auth.token-endpoint=http://localhost:8090/realms/registry/protocol/openid-connect/token",
+        "-Dapicurio.mcp.auth.client-id=registry-api",
+        "-Dapicurio.mcp.auth.client-secret=<your-client-secret>",
+        "-jar",
+        "<path-to-repo>/apicurio-registry/mcp/target/apicurio-registry-mcp-server-<version>-runner.jar"
+      ]
+    }
+  }
+}
+----
++
+Replace `<your-client-secret>` with the client secret from your OIDC provider.
+
+. Optional: Add the scope property if your OIDC provider requires a specific scope:
++
+* Docker: `"-e", "APICURIO_MCP_AUTH_SCOPE=openid"`
+* JAR: `"-Dapicurio.mcp.auth.scope=openid"`
+
+. Restart Claude Desktop to apply the changes.
+
+// proc-configuring-mcp-server-tls
+:_mod-docs-content-type: PROCEDURE
+[id="configuring-mcp-server-tls_{context}"]
+== Configuring MCP server TLS
+
+[role="_abstract"]
+You can configure the {registry} MCP server to connect to {registry} over TLS. You configure trust store settings to verify the server certificate, and optionally configure key store settings for mutual TLS (mTLS) client certificate authentication.
+
+.Prerequisites
+* {registry} is configured with TLS.
+* You have the trust store file containing the CA certificate or server certificate.
+* For mTLS, you have a key store file containing the client certificate and private key.
+
+.Procedure
+. Update the Claude Desktop MCP configuration to include TLS settings.
++
+If you are using the Docker or Podman image, add environment variables and mount the certificate files:
++
+[source,json]
+----
+{
+  "mcpServers": {
+    "Apicurio Registry (docker)": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "/path/to/certs:/certs:ro",
+        "-e", "REGISTRY_URL=https://registry.example.com:8443",
+        "-e", "APICURIO_MCP_TLS_TRUSTSTORE_TYPE=PKCS12",
+        "-e", "APICURIO_MCP_TLS_TRUSTSTORE_PATH=/certs/truststore.p12",
+        "-e", "APICURIO_MCP_TLS_TRUSTSTORE_PASSWORD=<truststore-password>",
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest"
+      ]
+    }
+  }
+}
+----
++
+If you built the MCP server from source, add system properties:
++
+[source,json]
+----
+{
+  "mcpServers": {
+    "Apicurio Registry (jar)": {
+      "command": "java",
+      "args": [
+        "-Dregistry.url=https://registry.example.com:8443",
+        "-Dapicurio.mcp.tls.truststore.type=PKCS12",
+        "-Dapicurio.mcp.tls.truststore.path=/path/to/truststore.p12",
+        "-Dapicurio.mcp.tls.truststore.password=<truststore-password>",
+        "-jar",
+        "<path-to-repo>/apicurio-registry/mcp/target/apicurio-registry-mcp-server-<version>-runner.jar"
+      ]
+    }
+  }
+}
+----
+
+. Optional: Add key store properties in addition to the trust store properties to configure mTLS with a client certificate:
++
+* Docker: add `"-e", "APICURIO_MCP_TLS_KEYSTORE_TYPE=PKCS12"`, `"-e", "APICURIO_MCP_TLS_KEYSTORE_PATH=/certs/keystore.p12"`, and `"-e", "APICURIO_MCP_TLS_KEYSTORE_PASSWORD=<keystore-password>"` to the `args` array.
+* JAR: add `-Dapicurio.mcp.tls.keystore.type=PKCS12`, `-Dapicurio.mcp.tls.keystore.path=/path/to/keystore.p12`, and `-Dapicurio.mcp.tls.keystore.password=<keystore-password>` before the `-jar` argument.
+
+. Optional: In development environments, skip certificate verification by setting `apicurio.mcp.tls.trust-all=true`. Do not use this setting in production.
+
+. Restart Claude Desktop to apply the changes.
+
+// ref-mcp-server-troubleshooting
+:_mod-docs-content-type: REFERENCE
+[id="mcp-server-troubleshooting_{context}"]
+== MCP server troubleshooting
+
+[role="_abstract"]
+Use the following information to diagnose common issues with the {registry} MCP server.
+
+.Enabling detailed logging
+
+By default, the MCP server does not write logs to a file. To enable file logging for troubleshooting, add logging properties to the Claude Desktop MCP configuration.
+
+For the Docker image, add the following to the `args` array before the image name:
+
+[source,json]
+----
+"-e", "QUARKUS_LOG_FILE_ENABLE=true",
+"-e", "QUARKUS_LOG_FILE_PATH=/mnt/log/mcp-server.log",
+"-v", "<path-to-log-dir>:/mnt/log",
+----
+
+For the JAR, add the following before the `-jar` argument:
+
+[source,json]
+----
+"-Dquarkus.log.file.enable=true",
+"-Dquarkus.log.file.path=<path-to-log-dir>/mcp-server.log",
+----
+
+Replace `<path-to-log-dir>` with the directory where you want to store the log file.
+
+.Common issues
+
+[cols="3,4",options="header"]
+|===
+|Issue
+|Resolution
+
+|Claude Desktop does not show the {registry} MCP server tools.
+|Verify that the MCP configuration file is valid JSON. Restart Claude Desktop completely by selecting *File* > *Exit* and reopening the application.
+
+|The MCP server cannot connect to {registry}.
+|Verify that {registry} is running and accessible at the configured URL. Check the `REGISTRY_URL` environment variable. If you use Docker or Podman, ensure that the URL is reachable from the container.
+
+|The paging limit error occurs when listing objects.
+|{registry} contains more objects than the configured paging limit. Increase the `apicurio.mcp.paging.limit` property, or set `apicurio.mcp.paging.limit-error` to `false` to allow partial results.
+
+|Authentication fails with OAuth2 credentials.
+|Verify that the token endpoint URL, client ID, and client secret are correct. Ensure that the OAuth2 client is configured for the client credentials grant type.
+
+|A configuration property update is rejected.
+|Safe mode restricts which configuration properties you can update. Set `apicurio.mcp.safe-mode` to `false` to allow all updates, or use the {registry} REST API directly.
+
+|Claude Desktop does not reflect changes to the MCP server code.
+|After you rebuild the MCP server, restart Claude Desktop completely by selecting *File* > *Exit* and reopening the application.
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features]
+* xref:getting-started/assembly-a2a-features.adoc[A2A agent features]
+* xref:getting-started/assembly-agent-registry-quickstart.adoc[Agent registry quick start]
+* link:https://modelcontextprotocol.io/introduction[Introduction to MCP]

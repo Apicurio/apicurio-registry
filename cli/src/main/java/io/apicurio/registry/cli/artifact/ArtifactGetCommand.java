@@ -1,25 +1,22 @@
 package io.apicurio.registry.cli.artifact;
 
-import io.apicurio.registry.cli.common.IdUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputType;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.RegistryClient;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPE;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
@@ -75,25 +72,12 @@ public class ArtifactGetCommand extends AbstractCommand {
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
-        try {
-            final var registryClient = client.getRegistryClient();
-            IdUtil.validateGroup(registryClient, resolvedGroupId);
-            if (outputOptions != null && outputOptions.content) {
-                fetchContent(registryClient, resolvedGroupId, output);
-            } else {
-                fetchMetadata(registryClient, resolvedGroupId, output);
-            }
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error retrieving artifact '")
-                        .append(artifactId)
-                        .append("' in group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        final var registryClient = client.getRegistryClient();
+        IdUtil.validateGroup(registryClient, resolvedGroupId);
+        if (outputOptions != null && outputOptions.content) {
+            fetchContent(registryClient, resolvedGroupId, output);
+        } else {
+            fetchMetadata(registryClient, resolvedGroupId, output);
         }
     }
 

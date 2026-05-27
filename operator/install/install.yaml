@@ -150,6 +150,44 @@ spec:
                           Enable Apicurio Registry Authentication.
                           In Identity providers like Keycloak, this is the client id used for the Quarkus backend application
                         type: boolean
+                      kubernetesAuth:
+                        description: |-
+                          Kubernetes-native authentication configuration. When enabled, Bearer tokens in
+                          incoming requests are validated via the Kubernetes TokenReview API.
+                        properties:
+                          apiAudiences:
+                            description: |-
+                              Comma-separated list of API audiences for TokenReview validation.
+                              If empty, audience is not validated.
+                            type: string
+                          cacheExpiration:
+                            description: TokenReview result cache expiration in minutes.
+                              Defaults to 5.
+                            type: integer
+                          enabled:
+                            description: |-
+                              Enable Kubernetes TokenReview authentication. When enabled, Bearer tokens in
+                              incoming requests are validated via the Kubernetes TokenReview API, eliminating
+                              the need for an external OIDC provider.
+                            type: boolean
+                          groupMapping:
+                            description: Mapping of Kubernetes groups to Apicurio
+                              Registry roles.
+                            properties:
+                              adminGroups:
+                                description: Comma-separated Kubernetes groups that
+                                  map to the sr-admin role.
+                                type: string
+                              developerGroups:
+                                description: Comma-separated Kubernetes groups that
+                                  map to the sr-developer role.
+                                type: string
+                              readOnlyGroups:
+                                description: Comma-separated Kubernetes groups that
+                                  map to the sr-readonly role.
+                                type: string
+                            type: object
+                        type: object
                       logoutUrl:
                         description: Apicurio Registry UI redirect URI used for redirection
                           after logout.

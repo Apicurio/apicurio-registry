@@ -33,6 +33,20 @@ public class OdcsContract {
     private List<Map<String, Object>> servers;
     private Map<String, Object> links;
     private List<String> tags;
+    private List<Map<String, Object>> customProperties;
+    private List<Map<String, Object>> support;
+    private Map<String, Object> price;
+    private List<Map<String, Object>> slaProperties;
+    private List<Map<String, Object>> authoritativeDefinitions;
+    private String tenant;
+    private String dataProduct;
+    private String contractCreatedTs;
+    private String domain;
+    private String version;
+    private String status;
+    private Object description;
+
+    private List<Map<String, Object>> schema;
 
     @Builder.Default
     private Map<String, Object> additionalProperties = new LinkedHashMap<>();

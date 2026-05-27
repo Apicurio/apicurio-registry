@@ -1,5 +1,6 @@
 package io.apicurio.registry.metrics;
 
+import io.apicurio.registry.observability.OTelAttributes;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -36,9 +37,9 @@ public class StorageTracingInterceptor {
 
         Span span = tracer.spanBuilder(spanName)
                 .setSpanKind(SpanKind.INTERNAL)
-                .setAttribute("storage.method", context.getMethod().getName())
-                .setAttribute("storage.class", context.getTarget().getClass().getSimpleName())
-                .setAttribute("storage.method.signature", getMethodString(context.getMethod()))
+                .setAttribute(OTelAttributes.ATTR_STORAGE_METHOD, context.getMethod().getName())
+                .setAttribute(OTelAttributes.ATTR_STORAGE_CLASS, context.getTarget().getClass().getSimpleName())
+                .setAttribute(OTelAttributes.ATTR_STORAGE_METHOD_SIGNATURE, getMethodString(context.getMethod()))
                 .startSpan();
 
         try (Scope scope = span.makeCurrent()) {

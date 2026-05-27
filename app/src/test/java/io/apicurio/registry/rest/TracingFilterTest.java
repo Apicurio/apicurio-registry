@@ -87,10 +87,10 @@ class TracingFilterTest {
         assertEquals(1, spans.size());
 
         SpanData spanData = spans.get(0);
-        assertEquals("test-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.groupId")));
-        assertEquals("test-artifact", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.artifactId")));
-        assertEquals("1.0", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.version")));
-        assertEquals("AVRO", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.artifactType")));
+        assertEquals("test-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.group_id")));
+        assertEquals("test-artifact", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.artifact_id")));
+        assertEquals("1.0", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.version")));
+        assertEquals("AVRO", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.artifact_type")));
     }
 
     @Test
@@ -111,7 +111,7 @@ class TracingFilterTest {
 
         List<SpanData> spans = spanExporter.getFinishedSpanItems();
         SpanData spanData = spans.get(0);
-        assertEquals("/apis/registry/v3/groups", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.request.path")));
+        assertEquals("/apis/registry/v3/groups", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.request.path")));
     }
 
     @Test
@@ -137,9 +137,9 @@ class TracingFilterTest {
 
         List<SpanData> spans = spanExporter.getFinishedSpanItems();
         SpanData spanData = spans.get(0);
-        assertEquals("path-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.path.groupId")));
-        assertEquals("path-artifact", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.path.artifactId")));
-        assertEquals("2.0", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.path.version")));
+        assertEquals("path-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.group_id")));
+        assertEquals("path-artifact", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.artifact_id")));
+        assertEquals("2.0", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.version")));
     }
 
     @Test
@@ -162,11 +162,11 @@ class TracingFilterTest {
         SpanData spanData = spans.get(0);
 
         // Header attributes should not be set
-        assertNull(spanData.getAttributes().get(AttributeKey.stringKey("apicurio.groupId")));
-        assertNull(spanData.getAttributes().get(AttributeKey.stringKey("apicurio.artifactId")));
+        assertNull(spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.group_id")));
+        assertNull(spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.artifact_id")));
 
         // Path should still be set
-        assertEquals("/apis/registry/v3/system/info", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.request.path")));
+        assertEquals("/apis/registry/v3/system/info", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.request.path")));
     }
 
     @Test
@@ -195,7 +195,7 @@ class TracingFilterTest {
         SpanData spanData = spans.get(0);
 
         // Empty headers should not create attributes
-        assertNull(spanData.getAttributes().get(AttributeKey.stringKey("apicurio.groupId")));
+        assertNull(spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.group_id")));
     }
 
     @Test
@@ -239,8 +239,8 @@ class TracingFilterTest {
         SpanData spanData = spans.get(0);
 
         // Both header and path attributes should be set
-        assertEquals("header-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.groupId")));
-        assertEquals("path-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.path.groupId")));
+        assertEquals("header-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.group_id")));
+        assertEquals("path-group", spanData.getAttributes().get(AttributeKey.stringKey("apicurio.registry.path.group_id")));
     }
 
     private ContainerRequestContext createMockContext(String groupId, String artifactId,

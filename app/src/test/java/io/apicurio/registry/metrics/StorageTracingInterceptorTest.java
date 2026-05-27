@@ -99,9 +99,9 @@ class StorageTracingInterceptorTest {
         SpanData span = spans.get(0);
 
         // Verify attributes
-        assertEquals("createArtifact", span.getAttributes().get(AttributeKey.stringKey("storage.method")));
-        assertEquals("TestStorageClass", span.getAttributes().get(AttributeKey.stringKey("storage.class")));
-        assertEquals("createArtifact(String)", span.getAttributes().get(AttributeKey.stringKey("storage.method.signature")));
+        assertEquals("createArtifact", span.getAttributes().get(AttributeKey.stringKey("apicurio.registry.storage.method")));
+        assertEquals("TestStorageClass", span.getAttributes().get(AttributeKey.stringKey("apicurio.registry.storage.class")));
+        assertEquals("createArtifact(String)", span.getAttributes().get(AttributeKey.stringKey("apicurio.registry.storage.method_signature")));
     }
 
     @Test
@@ -146,7 +146,7 @@ class StorageTracingInterceptorTest {
         List<SpanData> spans = spanExporter.getFinishedSpanItems();
         SpanData span = spans.get(0);
 
-        assertEquals("updateVersion(String,String,int)", span.getAttributes().get(AttributeKey.stringKey("storage.method.signature")));
+        assertEquals("updateVersion(String,String,int)", span.getAttributes().get(AttributeKey.stringKey("apicurio.registry.storage.method_signature")));
     }
 
     @Test
@@ -162,7 +162,7 @@ class StorageTracingInterceptorTest {
         List<SpanData> spans = spanExporter.getFinishedSpanItems();
         SpanData span = spans.get(0);
 
-        assertEquals("deleteArtifact()", span.getAttributes().get(AttributeKey.stringKey("storage.method.signature")));
+        assertEquals("deleteArtifact()", span.getAttributes().get(AttributeKey.stringKey("apicurio.registry.storage.method_signature")));
     }
 
     @Test

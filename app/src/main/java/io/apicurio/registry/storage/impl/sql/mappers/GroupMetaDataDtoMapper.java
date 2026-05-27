@@ -38,6 +38,7 @@ public class GroupMetaDataDtoMapper implements RowMapper<GroupMetaDataDto> {
         dto.setModifiedOn(modifiedOn == null ? 0 : modifiedOn.getTime());
 
         dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
+        dto.setEpoch(rs.getLong("epoch"));
 
         return dto;
     }

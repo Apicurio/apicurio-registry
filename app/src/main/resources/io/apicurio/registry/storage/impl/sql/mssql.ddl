@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 107);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 108);
 
 CREATE TABLE sequences (seqName NVARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -33,7 +33,7 @@ CREATE TABLE content_references (contentId BIGINT NOT NULL, groupId NVARCHAR(512
 ALTER TABLE content_references ADD PRIMARY KEY (contentId, name);
 ALTER TABLE content_references ADD CONSTRAINT FK_content_references_1 FOREIGN KEY (contentId) REFERENCES content(contentId) ON DELETE CASCADE;
 
-CREATE TABLE groups (groupId NVARCHAR(512) NOT NULL, description NVARCHAR(1024), artifactsType NVARCHAR(32), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6), labels TEXT);
+CREATE TABLE groups (groupId NVARCHAR(512) NOT NULL, description NVARCHAR(1024), artifactsType NVARCHAR(32), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6), labels TEXT, epoch BIGINT NOT NULL DEFAULT 0);
 ALTER TABLE groups ADD PRIMARY KEY (groupId);
 
 CREATE TABLE group_labels (groupId NVARCHAR(512) NOT NULL, labelKey NVARCHAR(256) NOT NULL, labelValue NVARCHAR(512));
@@ -46,7 +46,7 @@ CREATE TABLE group_rules (groupId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT 
 ALTER TABLE group_rules ADD PRIMARY KEY (groupId, type);
 ALTER TABLE group_rules ADD CONSTRAINT FK_grules_1 FOREIGN KEY (groupId) REFERENCES groups(groupId) ON DELETE CASCADE;
 
-CREATE TABLE artifacts (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT NULL, owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6), name NVARCHAR(512), description NVARCHAR(1024), labels TEXT);
+CREATE TABLE artifacts (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT NULL, owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6), name NVARCHAR(512), description NVARCHAR(1024), labels TEXT, epoch BIGINT NOT NULL DEFAULT 0);
 ALTER TABLE artifacts ADD PRIMARY KEY (groupId, artifactId);
 CREATE INDEX IDX_artifacts_0 ON artifacts(type);
 CREATE INDEX IDX_artifacts_1 ON artifacts(owner);
@@ -68,7 +68,7 @@ ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
 -- The "versionOrder" field is needed to generate "version" when it is not provided.
 -- It contains the same information as the "branchOrder" in the "latest" branch, but we cannot use it because of a chicken-and-egg problem.
 -- At least it is no longer confusingly called "versionId". The "versionOrder" field should not be used for any other purpose.
-CREATE TABLE versions (globalId BIGINT NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), versionOrder INT NOT NULL, state NVARCHAR(64) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6) NOT NULL, labels TEXT, contentId BIGINT NOT NULL);
+CREATE TABLE versions (globalId BIGINT NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), versionOrder INT NOT NULL, state NVARCHAR(64) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6) NOT NULL, labels TEXT, contentId BIGINT NOT NULL, epoch BIGINT NOT NULL DEFAULT 0);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_2 UNIQUE (globalId, versionOrder);

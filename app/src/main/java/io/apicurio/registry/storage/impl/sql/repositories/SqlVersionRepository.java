@@ -264,6 +264,14 @@ public class SqlVersionRepository {
                 }
             }
 
+            if (modified) {
+                handle.createUpdate(sqlStatements.updateVersionEpochByGAV())
+                        .bind(0, normalizeGroupId(groupId))
+                        .bind(1, artifactId)
+                        .bind(2, version)
+                        .execute();
+            }
+
             outboxEvent.fire(SqlOutboxEvent
                     .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, editableMetadata)));
 

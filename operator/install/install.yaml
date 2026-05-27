@@ -199,6 +199,35 @@ spec:
                           In Identity providers like Keycloak, this is the client id used for the frontend React application
                         type: string
                     type: object
+                  autoscaling:
+                    description: Configuration of a HorizontalPodAutoscaler for the
+                      component.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether a HorizontalPodAutoscaler should be managed by the operator. Defaults to 'false'.
+
+                          When enabled, the operator creates an HPA targeting the component's Deployment. The static 'replicas' field is ignored when autoscaling is enabled.
+                        type: boolean
+                      maxReplicas:
+                        description: Maximum number of replicas for the HorizontalPodAutoscaler.
+                          Required when autoscaling is enabled.
+                        type: integer
+                      minReplicas:
+                        description: Minimum number of replicas for the HorizontalPodAutoscaler.
+                          Defaults to 1.
+                        type: integer
+                      targetCPUUtilizationPercentage:
+                        description: Target average CPU utilization percentage across
+                          all pods. Defaults to 80. The HPA will scale the number
+                          of replicas to maintain this target.
+                        type: integer
+                      targetMemoryUtilizationPercentage:
+                        description: Target average memory utilization percentage
+                          across all pods. If not set, memory-based scaling is not
+                          configured.
+                        type: integer
+                    type: object
                   env:
                     description: Configure a list of environment variables that will
                       be passed to this components' container.
@@ -3817,6 +3846,35 @@ spec:
                 description: |
                   Configure Apicurio Registry UI component.
                 properties:
+                  autoscaling:
+                    description: Configuration of a HorizontalPodAutoscaler for the
+                      component.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether a HorizontalPodAutoscaler should be managed by the operator. Defaults to 'false'.
+
+                          When enabled, the operator creates an HPA targeting the component's Deployment. The static 'replicas' field is ignored when autoscaling is enabled.
+                        type: boolean
+                      maxReplicas:
+                        description: Maximum number of replicas for the HorizontalPodAutoscaler.
+                          Required when autoscaling is enabled.
+                        type: integer
+                      minReplicas:
+                        description: Minimum number of replicas for the HorizontalPodAutoscaler.
+                          Defaults to 1.
+                        type: integer
+                      targetCPUUtilizationPercentage:
+                        description: Target average CPU utilization percentage across
+                          all pods. Defaults to 80. The HPA will scale the number
+                          of replicas to maintain this target.
+                        type: integer
+                      targetMemoryUtilizationPercentage:
+                        description: Target average memory utilization percentage
+                          across all pods. If not set, memory-based scaling is not
+                          configured.
+                        type: integer
+                    type: object
                   enabled:
                     description: |
                       Indicates whether the operator should deploy the UI component.  Defaults to `true`.
@@ -7163,6 +7221,18 @@ rules:
   - poddisruptionbudgets
   verbs:
   - '*'
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:

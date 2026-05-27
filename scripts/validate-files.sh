@@ -4,7 +4,7 @@
 DB_VERSION_BUILD=$(cat app/src/main/resources/io/apicurio/registry/storage/impl/sql/db-version)
 echo "Build's DB version is $DB_VERSION_BUILD"
 
-DDLS="app/src/main/resources/io/apicurio/registry/storage/impl/sql/postgresql.ddl app/src/main/resources/io/apicurio/registry/storage/impl/sql/h2.ddl"
+DDLS="app/src/main/resources/io/apicurio/registry/storage/impl/sql/postgresql.ddl app/src/main/resources/io/apicurio/registry/storage/impl/sql/h2.ddl app/src/main/resources/io/apicurio/registry/storage/impl/sql/mysql.ddl app/src/main/resources/io/apicurio/registry/storage/impl/sql/mssql.ddl"
 for ddl in $DDLS 
 do
     echo "Processing DDL $ddl"

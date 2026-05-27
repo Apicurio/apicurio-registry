@@ -68,4 +68,9 @@ public final class OTelAttributes {
 
     /** Full method signature including parameter types. */
     public static final AttributeKey<String> ATTR_STORAGE_METHOD_SIGNATURE = AttributeKey.stringKey("apicurio.registry.storage.method_signature");
+
+    // -- HTTP response attributes (OTel semantic conventions) --
+
+    /** HTTP response status code. */
+    public static final AttributeKey<Long> ATTR_HTTP_RESPONSE_STATUS_CODE = AttributeKey.longKey("http.response.status_code");
 }

@@ -238,7 +238,7 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         String content1 = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Pet Store API\","
                 + "\"description\":\"An API for managing pets\"}}";
         String content2 = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Pet Clinic API\","
-                + "\"description\":\"An API for pet clinics\"}}";
+                + "\"description\":\"An API for pets at clinics\"}}";
         String content3 = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"User API\","
                 + "\"description\":\"An API for managing users\"}}";
 

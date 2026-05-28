@@ -49,7 +49,7 @@ CREATE TABLE content (
     canonicalHash VARCHAR(64) NOT NULL,
     contentHash   VARCHAR(64) NOT NULL,
     contentType   VARCHAR(64) NOT NULL,
-    content       BLOB        NOT NULL,
+    content       MEDIUMBLOB  NOT NULL,
     refs          TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     PRIMARY KEY (contentId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;

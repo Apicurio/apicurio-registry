@@ -1,0 +1,72 @@
+# GitOps Pull Mode (SSH)
+#
+# Pulls schemas from a private Git repository over SSH.
+# SSH keys are mounted from a Kubernetes Secret via podTemplateSpec.
+#
+# Steps:
+#   1. Generate an SSH key pair:
+#      ssh-keygen -t ed25519 -f id_ed25519 -N ""
+#
+#   2. Add the public key as a deploy key in your Git repository:
+#      - GitHub: Settings > Deploy keys > Add deploy key (read-only access)
+#      - GitLab: Settings > Repository > Deploy keys
+#
+#   3. Create the SSH key Secret:
+#      kubectl create secret generic gitops-ssh-keys --from-file=id_ed25519
+#
+#   4. (Optional) Pre-populate known_hosts to avoid TOFU:
+#      ssh-keyscan github.com > known_hosts
+#      kubectl create secret generic gitops-known-hosts --from-file=known_hosts
+#
+#   5. Update the repo URL below and deploy:
+#      kubectl apply -f example-pull-ssh.yaml
+#
+#   6. Verify:
+#      kubectl port-forward svc/gitops-pull-ssh-app-service 8080:8080
+#      curl http://localhost:8080/apis/registry/v3/groups
+#
+# For local Docker Compose deployment, see: examples/gitops/pull-ssh/
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: gitops-pull-ssh
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        repos:
+          - url: git@github.com:my-org/my-schemas.git
+        registryId: prod
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: apicurio-registry-gitops-sync
+            env:
+              - name: APICURIO_GITOPS_PULL_SSH_KEYS
+                value: /secrets/ssh/id_ed25519
+              # Uncomment after creating the known_hosts secret:
+              # - name: APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS
+              #   value: /secrets/known-hosts/known_hosts
+            volumeMounts:
+              - name: ssh-keys
+                mountPath: /secrets/ssh
+                readOnly: true
+              # Uncomment after creating the known_hosts secret:
+              # - name: known-hosts
+              #   mountPath: /secrets/known-hosts
+              #   readOnly: true
+        volumes:
+          - name: ssh-keys
+            secret:
+              secretName: gitops-ssh-keys
+              defaultMode: 0400
+          # Uncomment after creating the known_hosts secret:
+          # - name: known-hosts
+          #   secret:
+          #     secretName: gitops-known-hosts
+    ingress:
+      host: gitops-pull-ssh-app.apps.cluster.example
+  ui:
+    ingress:
+      host: gitops-pull-ssh-ui.apps.cluster.example

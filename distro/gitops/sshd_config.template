@@ -8,9 +8,18 @@ ListenAddress 0.0.0.0
 # Authentication hardening
 PermitRootLogin no
 PasswordAuthentication no
+# StrictModes checks that the user's home directory and .ssh directory are not
+# group/world-writable. On OpenShift, containers run with arbitrary UIDs in
+# group 0 (root), so the home directory must be group-writable for the UID to
+# create runtime files (SSH host keys, config). These two requirements conflict:
+# the arbitrary UID needs group-write access, but StrictModes rejects it.
+# This cannot be resolved without CAP_SETUID (unavailable on OCP).
+# Security is maintained by: git-shell restricting SSH to git operations only,
+# and authorized_keys read from a read-only Secret mount.
+StrictModes no
 KbdInteractiveAuthentication no
 PubkeyAuthentication yes
-AuthorizedKeysFile {{AUTH_KEYS_DIR}}/authorized_keys
+AuthorizedKeysFile {{AUTH_KEYS_FILE}}
 
 # Restrict to git operations only.
 # The git user's login shell is git-shell (set in Dockerfile), which only

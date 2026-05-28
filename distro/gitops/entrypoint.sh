@@ -49,6 +49,22 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
+# OCP arbitrary UID support
+# ---------------------------------------------------------------------------
+# OpenShift runs containers with arbitrary UIDs in group 0.
+# If the current UID doesn't have a passwd entry, create one so $HOME,
+# SSH, and git-shell work correctly.
+if ! whoami &>/dev/null 2>&1; then
+    if [ -w /etc/passwd ]; then
+        grep -v "^git:" /etc/passwd > /tmp/passwd.tmp
+        echo "git:x:$(id -u):0:git:/home/git:/usr/bin/git-shell" >> /tmp/passwd.tmp
+        cat /tmp/passwd.tmp > /etc/passwd
+        rm -f /tmp/passwd.tmp
+    fi
+fi
+export HOME=/home/git
+
+# ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
@@ -278,7 +294,7 @@ validate_ssh_key_permissions() {
 setup_ssh_client() {
     local ssh_dir="${HOME}/.ssh"
     mkdir -p "${ssh_dir}"
-    chmod 700 "${ssh_dir}"
+    chmod 700 "${ssh_dir}" 2>/dev/null || true
 
     # Collect SSH keys: global keys (PULL_SSH_KEYS) and per-repo keys (REPOS_N_SSH_KEYS).
     # All keys are added as IdentityFile entries — SSH tries each in order.
@@ -299,7 +315,7 @@ setup_ssh_client() {
             fi
             validate_ssh_key_permissions "${key_path}"
             cp "${key_path}" "${ssh_dir}/id_key_${key_index}"
-            chmod 600 "${ssh_dir}/id_key_${key_index}"
+            chmod 600 "${ssh_dir}/id_key_${key_index}" 2>/dev/null || true
             key_index=$((key_index + 1))
         done
         success "${key_index} SSH client key(s) configured"
@@ -330,7 +346,7 @@ setup_ssh_client() {
         [ -f "${key_file}" ] && echo "    IdentityFile ${key_file}" >> "${ssh_dir}/config"
     done
 
-    chmod 600 "${ssh_dir}/config"
+    chmod 600 "${ssh_dir}/config" 2>/dev/null || true
 
     # Set GIT_SSH_COMMAND so git uses our config
     export GIT_SSH_COMMAND="ssh -F ${ssh_dir}/config"
@@ -350,7 +366,7 @@ setup_ssh_host_keys() {
         fi
         validate_ssh_key_permissions "${PUSH_SSH_HOST_KEY}"
         cp "${PUSH_SSH_HOST_KEY}" "${sshd_dir}/ssh_host_key"
-        chmod 600 "${sshd_dir}/ssh_host_key"
+        chmod 600 "${sshd_dir}/ssh_host_key" 2>/dev/null || true
 
         # Also copy the public key if it exists alongside the private key
         if [ -f "${PUSH_SSH_HOST_KEY}.pub" ]; then
@@ -391,26 +407,29 @@ setup_ssh_server() {
 HostKey ${sshd_dir}/ssh_host_rsa_key"
     fi
 
-    # Set up authorized keys
-    local auth_keys_dir="/home/git/.ssh"
-    mkdir -p "${auth_keys_dir}"
-    chmod 700 "${auth_keys_dir}"
-
-    if [ -n "${PUSH_SSH_AUTHORIZED_KEYS}" ] && [ -f "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
-        cp "${PUSH_SSH_AUTHORIZED_KEYS}" "${auth_keys_dir}/authorized_keys"
-        chmod 600 "${auth_keys_dir}/authorized_keys"
-        success "Authorized keys configured for push access"
+    # Set up authorized keys — use the mounted path directly (avoids ownership issues with arbitrary UIDs)
+    local auth_keys_file=""
+    if [ -n "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
+        if [ -f "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
+            auth_keys_file="${PUSH_SSH_AUTHORIZED_KEYS}"
+            success "Authorized keys configured for push access"
+        elif [ -d "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
+            error "APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS must point to a file, not a directory: ${PUSH_SSH_AUTHORIZED_KEYS}"
+        else
+            error "Authorized keys file not found: ${PUSH_SSH_AUTHORIZED_KEYS}"
+        fi
     elif is_strict; then
         error "APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS is required in strict mode. Provide an authorized_keys file to control push access."
     else
         warning "Push mode enabled but no authorized keys configured (APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS)"
+        auth_keys_file="/dev/null"
     fi
 
     # Render sshd config from template
     render_template "${TEMPLATE_DIR}/sshd_config.template" "${sshd_dir}/sshd_config" \
         "PUSH_PORT=${PUSH_PORT}" \
         "HOST_KEY_DIRECTIVES=${host_key_directives}" \
-        "AUTH_KEYS_DIR=${auth_keys_dir}" \
+        "AUTH_KEYS_FILE=${auth_keys_file}" \
         "SSHD_DIR=${sshd_dir}"
 
     success "SSH server configured on port ${PUSH_PORT}"
@@ -529,11 +548,19 @@ main() {
 
     build_repo_list
 
-    log "  Workspace: ${WORKSPACE}"
-    log "  Repos:     ${#REPO_DIRS[@]}"
+    log "  Workspace:     ${WORKSPACE}"
+    log "  Security:      ${SECURITY}"
+    log "  Pull interval: ${PULL_INTERVAL}s"
+    log "  Repos:         ${#REPO_DIRS[@]}"
     for i in "${!REPO_DIRS[@]}"; do
         log "    [${REPO_DIRS[$i]}] mode=${REPO_MODES[$i]} branch=${REPO_BRANCHES[$i]} url=${REPO_URLS[$i]:-<local>}"
     done
+    if [ -n "${PULL_SSH_KEYS}" ]; then
+        log "  Pull SSH keys: ${PULL_SSH_KEYS}"
+    fi
+    if [ -n "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
+        log "  Push auth keys: ${PUSH_SSH_AUTHORIZED_KEYS}"
+    fi
 
     validate_mode
     validate_security_level

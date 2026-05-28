@@ -20,6 +20,16 @@ It manages a local Git repository on a shared volume that the registry reads fro
 See [`examples/gitops/`](../../examples/gitops/) for ready-to-run Docker Compose examples
 covering local volume, HTTPS pull, and SSH pull setups.
 
+### Kubernetes / OpenShift
+
+When using the Apicurio Registry operator, the sidecar container is **automatically injected**
+by the operator when `storage.type: gitops` is set in the CR. You don't need to configure the
+sidecar image, volume mounts, or most environment variables manually — the operator handles this
+based on the `gitops` spec fields.
+
+For operator-based deployment examples, see
+[`operator/controller/src/test/resources/k8s/examples/gitops/`](../../operator/controller/src/test/resources/k8s/examples/gitops/).
+
 ## Configuration Reference
 
 All environment variables use the `APICURIO_GITOPS_` prefix. Variables that correspond to

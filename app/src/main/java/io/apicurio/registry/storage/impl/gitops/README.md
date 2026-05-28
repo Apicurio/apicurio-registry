@@ -327,7 +327,39 @@ For the full design document and implementation plan, see the
 
 ## Getting Started
 
+### Docker Compose
+
 For complete working examples with Docker Compose, see [`examples/gitops/`](../../../../examples/gitops/).
+
+### Kubernetes / OpenShift (Operator)
+
+The Apicurio Registry operator can deploy GitOps storage via the `ApicurioRegistry3` custom resource.
+The operator automatically injects the GitOps sync sidecar container, creates a shared volume,
+and configures environment variables. For push mode, the operator also creates an SSH service on port 2222.
+
+Minimal CR example:
+
+```yaml
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: my-registry
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        repos:
+          - url: https://github.com/my-org/my-schemas.git
+        registryId: prod
+```
+
+**Important:** The `registryId` field must match the `registryId` value in your `registry.registry.yaml`
+data files. If they don't match, the registry will not load any data. The default value is `default`.
+
+Advanced configuration (SSH keys, push mode, multi-repo, custom volumes) is done via `podTemplateSpec`
+overrides on the CR. See the operator example CRs for all supported scenarios:
+[`operator/controller/src/test/resources/k8s/examples/gitops/`](../../../../operator/controller/src/test/resources/k8s/examples/gitops/).
 
 <!--
 

@@ -113,6 +113,8 @@ jobs:
           until docker manifest inspect "$REGISTRY_APP_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_APP_IMAGE"; sleep 10; done
           export REGISTRY_UI_IMAGE="$(make VAR=REGISTRY_UI_IMAGE variable-get)"
           until docker manifest inspect "$REGISTRY_UI_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_UI_IMAGE"; sleep 10; done
+          export REGISTRY_GITOPS_SYNC_IMAGE="$(make VAR=REGISTRY_GITOPS_SYNC_IMAGE variable-get)"
+          until docker manifest inspect "$REGISTRY_GITOPS_SYNC_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_GITOPS_SYNC_IMAGE"; sleep 10; done
 
       - name: Build operator bundle
         working-directory: registry/operator

@@ -83,7 +83,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
 
     const onFilterCriteriaChange = (newCriteria: ExplorePageToolbarFilterCriteria): void => {
         setCriteria(newCriteria);
-        search(newCriteria, paging);
+        const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
+        setPaging(resetPaging);
+        search(newCriteria, resetPaging);
     };
 
     const isFiltered = (): boolean => {

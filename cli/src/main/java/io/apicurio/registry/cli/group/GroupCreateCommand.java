@@ -1,6 +1,8 @@
 package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -47,6 +49,10 @@ public class GroupCreateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
+        if (IdUtil.DEFAULT_GROUP.equals(groupId)) {
+            throw new CliException("The 'default' group is implicit and cannot be created.",
+                    CliException.VALIDATION_ERROR_RETURN_CODE);
+        }
         var newGroup = new CreateGroup();
         newGroup.setGroupId(groupId);
         if (!isBlank(description)) {

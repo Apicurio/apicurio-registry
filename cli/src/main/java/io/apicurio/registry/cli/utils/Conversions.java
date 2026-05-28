@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
 
 // TODO: Move some of these to the Java SDK.
@@ -43,7 +45,7 @@ public final class Conversions {
 
     public static GroupMetaData convert(io.apicurio.registry.rest.client.models.GroupMetaData group) {
         return GroupMetaData.builder()
-                .groupId(group.getGroupId())
+                .groupId(normalizeGroupId(group.getGroupId()))
                 .description(group.getDescription())
                 .createdOn(convert(group.getCreatedOn()))
                 .owner(group.getOwner())
@@ -55,7 +57,7 @@ public final class Conversions {
 
     public static SearchedGroup convert(io.apicurio.registry.rest.client.models.SearchedGroup group) {
         return SearchedGroup.builder()
-                .groupId(group.getGroupId())
+                .groupId(normalizeGroupId(group.getGroupId()))
                 .description(group.getDescription())
                 .createdOn(convert(group.getCreatedOn()))
                 .owner(group.getOwner())
@@ -190,7 +192,7 @@ public final class Conversions {
     }
 
     public static Date convert(OffsetDateTime ts) {
-        return Date.from(ts.toInstant());
+        return ts != null ? Date.from(ts.toInstant()) : null;
     }
 
     public static String convertToString(Labels labels) {
@@ -219,6 +221,10 @@ public final class Conversions {
 
     public static String convertToString(Long value) {
         return ofNullable(value).map(String::valueOf).orElse("");
+    }
+
+    private static String normalizeGroupId(final String groupId) {
+        return isBlank(groupId) ? IdUtil.DEFAULT_GROUP : groupId;
     }
 
     public static Map<String, String> parseLabels(final List<String> labels) {

@@ -7,6 +7,11 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 You can use {registry} as a central registry for AI agents, prompt templates, and model schemas. You start {registry} with agent features enabled, register an agent card, discover agents by skill, and connect Claude Desktop to {registry} by using the Model Context Protocol (MCP).
 
+
+ifdef::service-registry-downstream[]
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope].
+endif::[]
+
 * xref:agent-registry-overview_{context}[]
 * xref:starting-registry-with-agent-features_{context}[]
 * xref:registering-an-agent-card_{context}[]

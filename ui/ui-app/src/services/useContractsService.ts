@@ -168,6 +168,28 @@ const exportContractAsOdcs = async (config: ConfigService, auth: AuthService,
         .then(response => response.data);
 };
 
+const getGlobalContractRuleset = async (config: ConfigService, auth: AuthService): Promise<ContractRuleSet> => {
+    const baseHref: string = config.artifactsUrl();
+    const endpoint: string = createEndpoint(baseHref, "/admin/contracts/ruleset");
+    const options = await createAuthOptions(auth);
+    return axios.get(endpoint, options).then(response => response.data);
+};
+
+const setGlobalContractRuleset = async (config: ConfigService, auth: AuthService,
+    ruleset: ContractRuleSet): Promise<ContractRuleSet> => {
+    const baseHref: string = config.artifactsUrl();
+    const endpoint: string = createEndpoint(baseHref, "/admin/contracts/ruleset");
+    const options = await createAuthOptions(auth);
+    return axios.put(endpoint, ruleset, options).then(response => response.data);
+};
+
+const deleteGlobalContractRuleset = async (config: ConfigService, auth: AuthService): Promise<void> => {
+    const baseHref: string = config.artifactsUrl();
+    const endpoint: string = createEndpoint(baseHref, "/admin/contracts/ruleset");
+    const options = await createAuthOptions(auth);
+    return axios.delete(endpoint, options).then(() => undefined);
+};
+
 export type ContractsService = {
     getContractMetadata(groupId: string | null, artifactId: string): Promise<ContractMetadata>;
     getContractQuality(groupId: string | null, artifactId: string, contractId: string): Promise<QualityScore>;
@@ -180,6 +202,9 @@ export type ContractsService = {
     submitContract(groupId: string | null, yaml: string): Promise<void>;
     updateContract(groupId: string | null, contractId: string, yaml: string): Promise<void>;
     exportContractAsOdcs(groupId: string | null, artifactId: string): Promise<string>;
+    getGlobalContractRuleset(): Promise<ContractRuleSet>;
+    setGlobalContractRuleset(ruleset: ContractRuleSet): Promise<ContractRuleSet>;
+    deleteGlobalContractRuleset(): Promise<void>;
 };
 
 export const useContractsService: () => ContractsService = (): ContractsService => {
@@ -209,5 +234,11 @@ export const useContractsService: () => ContractsService = (): ContractsService 
             updateContract(config, auth, groupId, contractId, yaml),
         exportContractAsOdcs: (groupId: string | null, artifactId: string) =>
             exportContractAsOdcs(config, auth, groupId, artifactId),
+        getGlobalContractRuleset: () =>
+            getGlobalContractRuleset(config, auth),
+        setGlobalContractRuleset: (ruleset: ContractRuleSet) =>
+            setGlobalContractRuleset(config, auth, ruleset),
+        deleteGlobalContractRuleset: () =>
+            deleteGlobalContractRuleset(config, auth),
     };
 };

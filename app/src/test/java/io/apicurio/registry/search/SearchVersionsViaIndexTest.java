@@ -230,4 +230,52 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(0, results.getCount());
     }
+
+    @Test
+    public void testSearchByContentWithArtifactIdWildcard() throws Exception {
+        String group = TestUtils.generateGroupId();
+
+        String content1 = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Pet Store API\","
+                + "\"description\":\"An API for managing pets\"}}";
+        String content2 = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"Pet Clinic API\","
+                + "\"description\":\"An API for pet clinics\"}}";
+        String content3 = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"User API\","
+                + "\"description\":\"An API for managing users\"}}";
+
+        createArtifact(group, "pet-store-api", ArtifactType.OPENAPI,
+                content1, ContentTypes.APPLICATION_JSON);
+        createArtifact(group, "pet-clinic-api", ArtifactType.OPENAPI,
+                content2, ContentTypes.APPLICATION_JSON);
+        createArtifact(group, "user-api", ArtifactType.OPENAPI,
+                content3, ContentTypes.APPLICATION_JSON);
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
+        // Content filter "pets" forces ES path; artifactId wildcard "pet*" narrows results
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.content = "pets";
+            config.queryParameters.artifactId = "pet*";
+        });
+        Assertions.assertEquals(2, results.getCount(),
+                "Content 'pets' + artifactId 'pet*' should return 2 results");
+
+        // Content filter "pets" + exact artifactId
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.content = "pets";
+            config.queryParameters.artifactId = "pet-store-api";
+        });
+        Assertions.assertEquals(1, results.getCount(),
+                "Content 'pets' + exact artifactId should return 1 result");
+
+        // Content filter "pets" + non-matching wildcard artifactId
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.content = "pets";
+            config.queryParameters.artifactId = "user*";
+        });
+        Assertions.assertEquals(0, results.getCount(),
+                "Content 'pets' + artifactId 'user*' should return 0 results");
+    }
 }

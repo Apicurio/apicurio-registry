@@ -303,4 +303,71 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                 results.getVersions().get(0).getLabels().getAdditionalData());
     }
 
+    @Test
+    public void testSearchVersionsByArtifactIdWildcard() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = TestUtils.generateGroupId();
+
+        createArtifact(group, "user-profile-cli", ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(group, "user-profile-web", ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(group, "admin-profile-cli", ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(group, "order-service", ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        // Prefix wildcard
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = "user*";
+        });
+        Assertions.assertEquals(2, results.getCount(), "Wildcard 'user*' should return 2 versions");
+
+        // Suffix wildcard
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = "*cli";
+        });
+        Assertions.assertEquals(2, results.getCount(), "Wildcard '*cli' should return 2 versions");
+
+        // Substring wildcard
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = "*profile*";
+        });
+        Assertions.assertEquals(3, results.getCount(), "Wildcard '*profile*' should return 3 versions");
+
+        // Exact match still works
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = "order-service";
+        });
+        Assertions.assertEquals(1, results.getCount(), "Exact match should return 1 version");
+    }
+
+    @Test
+    public void testSearchVersionsByGroupIdWildcard() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String prefix = "WildcardGroupVersionTest_" + TestUtils.generateGroupId().substring(0, 8);
+
+        createArtifact(prefix + "_alpha", "artifact-1", ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(prefix + "_beta", "artifact-2", ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        // Prefix wildcard on groupId
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = prefix + "*";
+        });
+        Assertions.assertEquals(2, results.getCount(),
+                "Wildcard groupId prefix should return 2 versions");
+
+        // Exact match
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = prefix + "_alpha";
+        });
+        Assertions.assertEquals(1, results.getCount(), "Exact groupId should return 1 version");
+    }
+
 }

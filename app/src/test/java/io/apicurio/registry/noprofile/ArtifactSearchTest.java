@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
 @QuarkusTest
@@ -321,5 +322,138 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount(),
                 "Wildcard '*test' should return 1 result (name-test)");
+    }
+
+    @Test
+    void testArtifactIdSearchWildcards() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createArtifact(groupId, "user-profile-cli", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, "user-profile-web", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, "admin-profile-cli", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, "order-service", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+
+        // Exact match
+        ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactId = "user-profile-cli";
+        });
+        Assertions.assertEquals(1, results.getCount(), "Exact match should return 1 result");
+
+        // Prefix wildcard
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactId = "user*";
+        });
+        Assertions.assertEquals(2, results.getCount(), "Wildcard 'user*' should return 2 results");
+
+        // Suffix wildcard
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactId = "*cli";
+        });
+        Assertions.assertEquals(2, results.getCount(), "Wildcard '*cli' should return 2 results");
+
+        // Substring wildcard
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactId = "*profile*";
+        });
+        Assertions.assertEquals(3, results.getCount(), "Wildcard '*profile*' should return 3 results");
+
+        // No match
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.artifactId = "nonexistent*";
+        });
+        Assertions.assertEquals(0, results.getCount(), "Wildcard 'nonexistent*' should return 0 results");
+    }
+
+    @Test
+    void testGroupIdSearchWildcards() throws Exception {
+        String prefix = "WildcardGroupTest_" + UUID.randomUUID().toString().substring(0, 8);
+
+        createArtifact(prefix + "_alpha", "artifact-1", ArtifactType.JSON, "{}",
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(prefix + "_beta", "artifact-2", ArtifactType.JSON, "{}",
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(prefix + "_gamma", "artifact-3", ArtifactType.JSON, "{}",
+                ContentTypes.APPLICATION_JSON);
+
+        // Prefix wildcard on groupId
+        ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = prefix + "*";
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Wildcard groupId prefix should return all 3 artifacts");
+
+        // Suffix wildcard
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = "*_alpha";
+        });
+        Assertions.assertTrue(results.getCount() >= 1,
+                "Wildcard '*_alpha' should return at least 1 result");
+
+        // Exact match
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = prefix + "_beta";
+        });
+        Assertions.assertEquals(1, results.getCount(), "Exact groupId match should return 1 result");
+    }
+
+    @Test
+    void testLabelSearchWildcards() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        String artifactId1 = "label-wildcard-1";
+        String artifactId2 = "label-wildcard-2";
+        String artifactId3 = "label-wildcard-3";
+
+        createArtifact(groupId, artifactId1, ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, artifactId2, ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+        createArtifact(groupId, artifactId3, ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+
+        // Set labels on each artifact
+        EditableArtifactMetaData meta1 = new EditableArtifactMetaData();
+        Labels labels1 = new Labels();
+        labels1.setAdditionalData(Map.of("contract.status", "active", "team", "platform"));
+        meta1.setLabels(labels1);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).put(meta1);
+
+        EditableArtifactMetaData meta2 = new EditableArtifactMetaData();
+        Labels labels2 = new Labels();
+        labels2.setAdditionalData(Map.of("contract.owner", "team-a", "team", "backend"));
+        meta2.setLabels(labels2);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId2).put(meta2);
+
+        EditableArtifactMetaData meta3 = new EditableArtifactMetaData();
+        Labels labels3 = new Labels();
+        labels3.setAdditionalData(Map.of("version", "v2", "team", "frontend"));
+        meta3.setLabels(labels3);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId3).put(meta3);
+
+        // Wildcard on label key: contract.* should match artifacts 1 and 2
+        ArtifactSearchResults results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.labels = new String[] { "contract.*" };
+        });
+        Assertions.assertEquals(2, results.getCount(),
+                "Wildcard label key 'contract.*' should match 2 artifacts");
+
+        // Wildcard on label value: team:*end* should match backend and frontend
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.labels = new String[] { "team:*end*" };
+        });
+        Assertions.assertEquals(2, results.getCount(),
+                "Wildcard label value 'team:*end*' should match 2 artifacts");
+
+        // Exact label key without wildcard
+        results = clientV3.search().artifacts().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.labels = new String[] { "team" };
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Exact label key 'team' should match all 3 artifacts");
     }
 }

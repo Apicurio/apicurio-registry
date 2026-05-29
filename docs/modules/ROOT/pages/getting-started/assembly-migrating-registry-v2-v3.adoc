@@ -677,12 +677,12 @@ Update SerDes library dependencies from v2 to v3:
 
 *Registry 3.x dependencies:*
 
-[source,xml]
+[source,xml,subs="+attributes"]
 ----
 <dependency>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
-    <version>3.1.2</version>
+    <version>{registry-release}</version>
 </dependency>
 ----
 
@@ -818,12 +818,12 @@ Update to v3 Kiota-generated SDKs:
 
 *Registry 3.x SDK:*
 
-[source,xml]
+[source,xml,subs="+attributes"]
 ----
 <dependency>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-java-sdk</artifactId>
-    <version>3.1.2</version>
+    <version>{registry-release}</version>
 </dependency>
 ----
 
@@ -1462,11 +1462,11 @@ You have flexibility in how you deploy the UI container in relation to the API c
 
 Deploy UI and API to separate subdomains:
 
-[source,yaml]
+[source,yaml,subs="+attributes"]
 ----
 # UI accessible at: https://registry-ui.example.com
 apicurio-registry-ui:
-  image: apicurio/apicurio-registry-ui:3.1.2
+  image: apicurio/apicurio-registry-ui:{registry-release}
   ports:
     - "443:8443"
   environment:
@@ -1474,7 +1474,7 @@ apicurio-registry-ui:
 
 # API accessible at: https://registry-api.example.com
 apicurio-registry:
-  image: apicurio/apicurio-registry:3.1.2
+  image: apicurio/apicurio-registry:{registry-release}
   ports:
     - "443:8443"
 ----
@@ -1488,7 +1488,7 @@ apicurio-registry:
 
 Use a reverse proxy (nginx, HAProxy) to serve both UI and API from the same domain:
 
-[source,yaml]
+[source,yaml,subs="+attributes"]
 ----
 # Example: nginx routing configuration
 # UI at: https://registry.example.com/ui/
@@ -1496,13 +1496,13 @@ Use a reverse proxy (nginx, HAProxy) to serve both UI and API from the same doma
 
 services:
   apicurio-registry:
-    image: apicurio/apicurio-registry:3.1.2
+    image: apicurio/apicurio-registry:{registry-release}
     environment:
       - apicurio.app.context-path=/app/
       - QUARKUS_HTTP_CORS_ORIGINS=*
 
   apicurio-registry-ui:
-    image: apicurio/apicurio-registry-ui:3.1.2
+    image: apicurio/apicurio-registry-ui:{registry-release}
     environment:
       - REGISTRY_CONTEXT_PATH=/ui/
       - REGISTRY_API_URL=/app/apis/registry/v3

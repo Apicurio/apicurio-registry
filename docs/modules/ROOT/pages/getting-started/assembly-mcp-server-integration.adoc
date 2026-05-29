@@ -65,7 +65,7 @@ NOTE: You can substitute `podman` for `docker` in all commands.
 docker pull quay.io/apicurio/apicurio-registry-mcp-server:latest
 ----
 +
-NOTE: The `latest` tag refers to the most recent stable release. For development builds, use the `latest-snapshot` tag. For a specific version, use the version number as the tag, for example `3.2.4`.
+NOTE: The `latest` tag refers to the most recent stable release. For development builds, use the `latest-snapshot` tag. For a specific version, use the version number as the tag, for example `{registry-release}`.
 +
 Alternatively, to build the MCP server from source, clone the {registry} repository and run the following Maven command:
 +

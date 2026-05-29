@@ -21,9 +21,9 @@ ifndef::service-registry-downstream[]
 :apicurio-registry:
 :registry: Apicurio Registry
 :registry-name-full: Apicurio Registry
-:registry-version: 3.1
-:registry-release: 3.1.0
-:registry-docker-version: latest-release 
+:registry-version: 3.2
+:registry-release: 3.2.0
+:registry-docker-version: latest-release
 :registry-v2: 2.6.3
 :operator-version: 1.1.0-v2.4.12.final
 :kafka-streams: Strimzi
@@ -43,8 +43,8 @@ ifdef::service-registry-downstream[]
 :prodnamefull: {org-name} Integration
 :registry-name-full: Red Hat build of Apicurio Registry
 :registry: Apicurio Registry
-:registry-version: 3.1
-:registry-release: 3.1.0-redhat-00001
+:registry-version: 3.2
+:registry-release: 3.2.0-redhat-00001
 :operator-version: 1.2.0.redhat.x
 :kafka-streams: AMQ Streams
 :registry-streams-version: 2.6
@@ -68,7 +68,7 @@ endif::[]
 :operator: {registry} Operator
 :operator-full: {registry-name-full} Operator
 // Both upstream version and the tag name that can be used in GitHub links.
-:upstream-version-tag: 3.1.0
+:upstream-version-tag: 3.2.0
 
 // Naming conventions for repeated phrases
 :registry-app: {registry} backend (REST API) component

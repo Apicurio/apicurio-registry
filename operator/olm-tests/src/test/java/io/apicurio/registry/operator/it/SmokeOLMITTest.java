@@ -1,9 +1,9 @@
 package io.apicurio.registry.operator.it;
 
+import io.apicurio.registry.operator.utils.RetryTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +17,7 @@ public class SmokeOLMITTest extends OLMITBase {
 
     private static final Logger log = LoggerFactory.getLogger(SmokeOLMITTest.class);
 
-    @Test
+    @RetryTest
     void smoke() {
         // Wait for the operator to deploy
         var projectVersion = ConfigProvider.getConfig().getValue(PROJECT_VERSION_PROP, String.class);

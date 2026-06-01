@@ -28,7 +28,9 @@ public class RuleExecutionEngine {
     public static RuleExecutionEngine createStandalone() {
         var celEvaluator = new io.apicurio.registry.contracts.rules.cel.CelExpressionEvaluator();
         var celExecutor = new io.apicurio.registry.contracts.rules.cel.CelRuleExecutor(celEvaluator);
-        var factory = ContractRuleExecutorFactory.createStandalone(java.util.List.of(celExecutor));
+        var jsonataEvaluator = new io.apicurio.registry.contracts.rules.jsonata.JsonataExpressionEvaluator();
+        var jsonataExecutor = new io.apicurio.registry.contracts.rules.jsonata.JsonataRuleExecutor(jsonataEvaluator);
+        var factory = ContractRuleExecutorFactory.createStandalone(java.util.List.of(celExecutor, jsonataExecutor));
         return new RuleExecutionEngine(factory);
     }
 

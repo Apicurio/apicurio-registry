@@ -240,24 +240,73 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             if (ref.getArtifactId() == null || ref.getArtifactId().isEmpty()) {
                 return;
             }
+
+            // Domain rule validation
             List<RuleDefinition> rules = loadRules(ref.getGroupId(), ref.getArtifactId());
-            if (rules.isEmpty()) {
-                return;
-            }
-            Map<String, Object> recordMap = dataToMap(data);
-            RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
-            if (!result.isPassed()) {
-                String msg = "Contract rule validation failed (READ): " + result.getViolations();
-                if (contractRulesFailOnError) {
-                    throw new RuntimeException(msg);
+            if (!rules.isEmpty()) {
+                Map<String, Object> recordMap = dataToMap(data);
+                RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
+                if (!result.isPassed()) {
+                    String msg = "Contract rule validation failed (READ): " + result.getViolations();
+                    if (contractRulesFailOnError) {
+                        throw new RuntimeException(msg);
+                    }
+                    LOG.warning(msg);
                 }
-                LOG.warning(msg);
+            }
+
+            // Migration transforms
+            if (migrationEnabled && migrationTargetVersion != null) {
+                String recordVersion = ref.getVersion();
+                if (recordVersion != null && !recordVersion.equals(migrationTargetVersion)) {
+                    executeMigration(ref.getGroupId(), ref.getArtifactId(),
+                            recordVersion, migrationTargetVersion, data);
+                }
             }
         } catch (RuntimeException e) {
             if (contractRulesFailOnError) {
                 throw e;
             }
             LOG.warning("Contract rule execution failed: " + e.getMessage());
+        }
+    }
+
+    private void executeMigration(String groupId, String artifactId,
+            String fromVersion, String toVersion, U data) {
+        var facade = baseSerde.getClientFacade();
+        if (facade == null) {
+            return;
+        }
+        String mode = "UPGRADE";
+
+        ContractRuleSet versionRules = rulesetCache.get(groupId, artifactId, toVersion);
+        if (versionRules == null) {
+            versionRules = facade.getVersionContractRuleset(groupId, artifactId, toVersion);
+            if (versionRules == null) {
+                return;
+            }
+            rulesetCache.put(groupId, artifactId, toVersion, versionRules);
+        }
+
+        List<RuleDefinition> migrationRules = new java.util.ArrayList<>();
+        if (versionRules.getMigrationRules() != null) {
+            for (var r : versionRules.getMigrationRules()) {
+                migrationRules.add(AbstractSerializer.toRuleDefinition(r));
+            }
+        }
+        if (migrationRules.isEmpty()) {
+            return;
+        }
+
+        Map<String, Object> recordMap = dataToMap(data);
+        RuleExecutionResult result = ruleEngine.execute(migrationRules, mode, recordMap);
+        if (!result.isPassed()) {
+            String msg = "Migration transform failed (" + fromVersion + " -> " + toVersion + "): "
+                    + result.getViolations();
+            if (contractRulesFailOnError) {
+                throw new RuntimeException(msg);
+            }
+            LOG.warning(msg);
         }
     }
 

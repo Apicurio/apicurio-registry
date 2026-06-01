@@ -79,4 +79,12 @@ public interface RegistryClientFacade {
             String groupId, String artifactId, String version) {
         return null;
     }
+
+    /**
+     * Gets the ordered list of version identifiers for an artifact.
+     * Returns an empty list if not supported.
+     */
+    default java.util.List<String> getArtifactVersions(String groupId, String artifactId) {
+        return java.util.List.of();
+    }
 }

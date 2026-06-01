@@ -220,6 +220,27 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
         }
     }
 
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId) {
+        try {
+            String g = groupId != null ? groupId : "default";
+            var result = client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
+                    .versions().get(config -> {
+                        config.queryParameters.limit = 500;
+                        config.queryParameters.offset = 0;
+                    });
+            if (result == null || result.getVersions() == null) {
+                return List.of();
+            }
+            return result.getVersions().stream()
+                    .map(v -> v.getVersion())
+                    .toList();
+        } catch (Exception e) {
+            LOG.warn("Failed to fetch versions for {}/{}: {}", groupId, artifactId, e.getMessage());
+            return List.of();
+        }
+    }
+
     private static List<ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {
         return references.stream().map(ref -> {
             ArtifactReference ar = new ArtifactReference();

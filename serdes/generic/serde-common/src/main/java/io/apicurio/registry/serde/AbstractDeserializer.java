@@ -1,5 +1,6 @@
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.contracts.rules.MigrationExecutor;
 import io.apicurio.registry.contracts.rules.RuleDefinition;
 import io.apicurio.registry.contracts.rules.RuleExecutionEngine;
 import io.apicurio.registry.contracts.rules.RuleExecutionResult;
@@ -277,29 +278,20 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         if (facade == null) {
             return;
         }
-        String mode = "UPGRADE";
 
-        ContractRuleSet versionRules = rulesetCache.get(groupId, artifactId, toVersion);
-        if (versionRules == null) {
-            versionRules = facade.getVersionContractRuleset(groupId, artifactId, toVersion);
-            if (versionRules == null) {
-                return;
-            }
-            rulesetCache.put(groupId, artifactId, toVersion, versionRules);
-        }
-
-        List<RuleDefinition> migrationRules = new java.util.ArrayList<>();
-        if (versionRules.getMigrationRules() != null) {
-            for (var r : versionRules.getMigrationRules()) {
-                migrationRules.add(AbstractSerializer.toRuleDefinition(r));
-            }
-        }
-        if (migrationRules.isEmpty()) {
+        List<String> allVersions = facade.getArtifactVersions(groupId, artifactId);
+        if (allVersions.isEmpty()) {
             return;
         }
 
         Map<String, Object> recordMap = dataToMap(data);
-        RuleExecutionResult result = ruleEngine.execute(migrationRules, mode, recordMap);
+        MigrationExecutor migrationExecutor = new MigrationExecutor(ruleEngine);
+
+        RuleExecutionResult result = migrationExecutor.execute(
+                allVersions, fromVersion, toVersion, recordMap,
+                (version, mode) -> loadMigrationRulesForVersion(
+                        groupId, artifactId, version));
+
         if (!result.isPassed()) {
             String msg = "Migration transform failed (" + fromVersion + " -> " + toVersion + "): "
                     + result.getViolations();
@@ -308,6 +300,30 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             }
             LOG.warning(msg);
         }
+    }
+
+    private List<RuleDefinition> loadMigrationRulesForVersion(String groupId,
+            String artifactId, String version) {
+        ContractRuleSet versionRules = rulesetCache.get(groupId, artifactId, version);
+        if (versionRules == null) {
+            var facade = baseSerde.getClientFacade();
+            if (facade == null) {
+                return List.of();
+            }
+            versionRules = facade.getVersionContractRuleset(groupId, artifactId, version);
+            if (versionRules == null) {
+                return List.of();
+            }
+            rulesetCache.put(groupId, artifactId, version, versionRules);
+        }
+
+        List<RuleDefinition> migrationRules = new java.util.ArrayList<>();
+        if (versionRules.getMigrationRules() != null) {
+            for (var r : versionRules.getMigrationRules()) {
+                migrationRules.add(AbstractSerializer.toRuleDefinition(r));
+            }
+        }
+        return migrationRules;
     }
 
     private List<RuleDefinition> loadRules(String groupId, String artifactId) {

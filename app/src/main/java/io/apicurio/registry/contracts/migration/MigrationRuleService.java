@@ -10,6 +10,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,14 @@ public class MigrationRuleService {
             String fromVersion, String toVersion, Map<String, Object> record) {
 
         List<String> allVersions = storage.getArtifactVersions(groupId, artifactId);
+
+        if (!allVersions.contains(fromVersion)) {
+            throw new BadRequestException("Version not found: " + fromVersion);
+        }
+        if (!allVersions.contains(toVersion)) {
+            throw new BadRequestException("Version not found: " + toVersion);
+        }
+
         MigrationExecutor executor = new MigrationExecutor(engine);
 
         return executor.execute(allVersions, fromVersion, toVersion, record,

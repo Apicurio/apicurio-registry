@@ -274,14 +274,17 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     private void executeMigration(String groupId, String artifactId,
             String fromVersion, String toVersion, U data) {
-        var facade = baseSerde.getClientFacade();
-        if (facade == null) {
-            return;
-        }
-
-        List<String> allVersions = facade.getArtifactVersions(groupId, artifactId);
-        if (allVersions.isEmpty()) {
-            return;
+        List<String> allVersions = rulesetCache.getVersionList(groupId, artifactId);
+        if (allVersions == null) {
+            var facade = baseSerde.getClientFacade();
+            if (facade == null) {
+                return;
+            }
+            allVersions = facade.getArtifactVersions(groupId, artifactId);
+            if (allVersions.isEmpty()) {
+                return;
+            }
+            rulesetCache.putVersionList(groupId, artifactId, allVersions);
         }
 
         Map<String, Object> recordMap = dataToMap(data);

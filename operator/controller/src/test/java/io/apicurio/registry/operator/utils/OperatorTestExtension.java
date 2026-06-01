@@ -54,6 +54,7 @@ public class OperatorTestExtension implements InvocationInterceptor, TestWatcher
                 if (attempt == 1) {
                     invocation.proceed();
                 } else {
+                    method.setAccessible(true);
                     method.invoke(invocationContext.getTarget().orElseThrow());
                 }
                 if (attempt > 1) {
@@ -111,7 +112,7 @@ public class OperatorTestExtension implements InvocationInterceptor, TestWatcher
                 afterEach.setAccessible(true);
                 afterEach.invoke(testInstance);
             } catch (Exception e) {
-                log.warn("Cleanup between retries failed: {}", e.getMessage());
+                log.warn("Cleanup between retries failed", e);
             }
         });
     }

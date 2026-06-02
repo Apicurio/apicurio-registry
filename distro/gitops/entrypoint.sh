@@ -110,6 +110,10 @@ success() {
     echo -e "${_CYAN}[$(_timestamp)]${_RESET} ${_GREEN}$*${_RESET}"
 }
 
+sanitize_url() {
+    echo "$1" | sed 's|://[^@]*@|://***@|'
+}
+
 warning() {
     echo -e "${_CYAN}[$(_timestamp)]${_RESET} ${_YELLOW}WARNING: $*${_RESET}"
 }
@@ -464,7 +468,7 @@ init_repo() {
             error "[${repo_dir}] Repository URL is required when pull mode is enabled"
         fi
 
-        log "[${repo_dir}] Cloning ${repo_url} (branch: ${repo_branch})..."
+        log "[${repo_dir}] Cloning $(sanitize_url "${repo_url}") (branch: ${repo_branch})..."
         local depth_args=""
         if [ "${PULL_DEPTH}" -gt 0 ] 2>/dev/null; then
             depth_args="--depth ${PULL_DEPTH}"
@@ -553,7 +557,7 @@ main() {
     log "  Pull interval: ${PULL_INTERVAL}s"
     log "  Repos:         ${#REPO_DIRS[@]}"
     for i in "${!REPO_DIRS[@]}"; do
-        log "    [${REPO_DIRS[$i]}] mode=${REPO_MODES[$i]} branch=${REPO_BRANCHES[$i]} url=${REPO_URLS[$i]:-<local>}"
+        log "    [${REPO_DIRS[$i]}] mode=${REPO_MODES[$i]} branch=${REPO_BRANCHES[$i]} url=$(sanitize_url "${REPO_URLS[$i]:-<local>}")"
     done
     if [ -n "${PULL_SSH_KEYS}" ]; then
         log "  Pull SSH keys: ${PULL_SSH_KEYS}"

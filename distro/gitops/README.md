@@ -180,6 +180,14 @@ the SSH port. Do not expose the SSH port outside the cluster unless necessary.
 | Force-push erasing history | Shallow clones (`--depth 1`) limit exposure. The registry reads from pinned commit SHAs, so concurrent force-pushes do not corrupt in-flight reads. |
 | Symlink attacks in repository | JGit (used by the registry) does not follow symlinks when reading Git objects. The registry reads from the Git object store, not the working tree. |
 
+### Log Sanitization
+
+HTTPS Git URLs may contain embedded credentials (e.g., `https://token@github.com/...`).
+The sidecar sanitizes all URLs before logging, replacing the userinfo portion with `***`
+(e.g., `https://***@github.com/...`). This applies to both the startup configuration log
+and clone operation logs. SSH key contents and secret file contents are never logged —
+only file paths are shown.
+
 ### Recommendations for Production Deployments
 
 1. **Use read-only volume mounts** — mount the shared volume as `:ro` in the registry container.

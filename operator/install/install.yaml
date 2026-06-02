@@ -3560,6 +3560,51 @@ spec:
                     description: |
                       Configure storage for Apicurio Registry backend (app).
                     properties:
+                      gitops:
+                        description: Configure GitOps storage type (read-only, experimental).
+                          Loads registry data from a Git repository via a sync sidecar
+                          container.
+                        properties:
+                          mode:
+                            description: GitOps sync mode. `pull` (default) periodically
+                              fetches from remote repositories. `push` starts an SSH
+                              server that accepts git push. In push mode, the operator
+                              creates an additional service for SSH access on port
+                              2222.
+                            enum:
+                            - pull
+                            - push
+                            type: string
+                          registryId:
+                            description: Registry instance identifier. Only data files
+                              with a matching registry ID will be loaded. Defaults
+                              to `default`.
+                            type: string
+                          repos:
+                            description: List of Git repositories to sync from. Each
+                              entry configures a repository URL, optional branch,
+                              and directory name. For single-repo setups, provide
+                              a list with one entry.
+                            items:
+                              properties:
+                                branch:
+                                  description: Branch to track in the remote Git repository.
+                                    Defaults to the repository's default branch.
+                                  type: string
+                                dir:
+                                  description: Directory name under the workspace
+                                    where this repository is cloned. Defaults to `default`
+                                    for single-repo setups. Required when configuring
+                                    multiple repos to distinguish their clones.
+                                  type: string
+                                url:
+                                  description: URL of the remote Git repository to
+                                    sync from. Supports HTTPS and SSH URLs (e.g.,
+                                    `https://github.com/my-org/my-schemas.git`).
+                                  type: string
+                              type: object
+                            type: array
+                        type: object
                       kafkasql:
                         description: Configure KafkaSQL storage type.
                         properties:
@@ -3767,9 +3812,11 @@ spec:
                             * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
                             * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
                             * `kubernetesops` - KubernetesOps storage type (read-only, experimental), must be further configured using the `app.storage.kubernetesops` field.
+                            * `gitops` - GitOps storage type (read-only, experimental), must be further configured using the `app.storage.gitops` field.
 
                           IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.
                         enum:
+                        - gitops
                         - kafkasql
                         - kubernetesops
                         - mysql
@@ -7324,6 +7371,8 @@ spec:
           value: quay.io/apicurio/apicurio-registry:latest-snapshot
         - name: REGISTRY_UI_IMAGE
           value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+        - name: REGISTRY_GITOPS_SYNC_IMAGE
+          value: quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot
         image: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
         imagePullPolicy: Always
         livenessProbe:

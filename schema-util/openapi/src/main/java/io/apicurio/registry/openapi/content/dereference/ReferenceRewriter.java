@@ -2,15 +2,15 @@ package io.apicurio.registry.openapi.content.dereference;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.apicurio.datamodels.models.Node;
-import io.apicurio.datamodels.models.Referenceable;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiMessage;
-import io.apicurio.datamodels.models.asyncapi.AsyncApiMultiFormatSchema;
-import io.apicurio.datamodels.models.asyncapi.v2x.AsyncApi2xMessage;
-import io.apicurio.datamodels.models.asyncapi.v3x.AsyncApi3xMessage;
-import io.apicurio.datamodels.models.union.MultiFormatSchemaSchemaUnion;
-import io.apicurio.datamodels.models.visitors.AllNodeVisitor;
-import io.apicurio.datamodels.util.ModelTypeUtil;
+import io.apitomy.datamodels.models.Node;
+import io.apitomy.datamodels.models.Referenceable;
+import io.apitomy.datamodels.models.asyncapi.AsyncApiMessage;
+import io.apitomy.datamodels.models.asyncapi.AsyncApiMultiFormatSchema;
+import io.apitomy.datamodels.models.asyncapi.v2x.AsyncApi2xMessage;
+import io.apitomy.datamodels.models.asyncapi.v3x.AsyncApi3xMessage;
+import io.apitomy.datamodels.models.union.MultiFormatSchemaSchemaUnion;
+import io.apitomy.datamodels.models.visitors.AllNodeVisitor;
+import io.apitomy.datamodels.util.ModelTypeUtil;
 
 import java.util.Map;
 
@@ -29,7 +29,7 @@ public class ReferenceRewriter extends AllNodeVisitor {
     }
 
     /**
-     * @see io.apicurio.datamodels.models.visitors.AllNodeVisitor#visitNode(io.apicurio.datamodels.models.Node)
+     * @see io.apitomy.datamodels.models.visitors.AllNodeVisitor#visitNode(io.apitomy.datamodels.models.Node)
      */
     @Override
     protected void visitNode(Node node) {
@@ -42,7 +42,7 @@ public class ReferenceRewriter extends AllNodeVisitor {
     }
 
     /**
-     * @see io.apicurio.datamodels.models.visitors.AllNodeVisitor#visitMessage(io.apicurio.datamodels.models.asyncapi.AsyncApiMessage)
+     * @see io.apitomy.datamodels.models.visitors.AllNodeVisitor#visitMessage(io.apitomy.datamodels.models.asyncapi.AsyncApiMessage)
      */
     @Override
     public void visitMessage(AsyncApiMessage node) {

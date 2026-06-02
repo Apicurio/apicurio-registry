@@ -203,7 +203,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apitomy Data Models (OpenAPI and AsyncAPI support) -->
-    <apitomy-data-models.version>3.1.0</apitomy-data-models.version>
+    <apitomy-data-models.version>3.1.1</apitomy-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>26.0</graphql.version>

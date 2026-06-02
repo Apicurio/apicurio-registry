@@ -1742,13 +1742,13 @@
             "description": "Artifact was successfully created."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/RuleViolationBadRequest"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "$ref": "#/components/responses/RuleViolationConflict"
+            "$ref": "#/components/responses/Conflict"
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
@@ -1765,7 +1765,7 @@
         },
         "operationId": "createArtifact",
         "summary": "Create artifact",
-        "description": "Creates a new artifact.  The body of the request should be a `CreateArtifact` \nobject, which includes the metadata of the new artifact and, optionally, the \nmetadata and content of the first version.\n\nIf the artifact type is not provided, the registry attempts to figure out what \nkind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAn artifact will be created using the unique artifact ID that can optionally be \nprovided in the request body.  If not provided in the request, the server will\ngenerate a unique ID for the artifact.  It is typically recommended that callers\nprovide the ID, because it is typically a meaningful identifier, and as such\nfor most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `CREATE_VERSION` - server creates a new version of the existing artifact and returns it\n* `FIND_OR_CREATE_VERSION` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An invalid version number was used for the optional included first version (HTTP error `400`)\n* The group does not exist and automatic-group-creation is not enabled (HTTP error `404`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n\nNote that if the `dryRun` query parameter is set to `true`, then this operation\nwill not actually make any changes.  Instead it will succeed or fail based on \nwhether it **would have worked**.  Use this option to, for example, check if an\nartifact is valid or if a new version passes configured compatibility checks."
+        "description": "Creates a new artifact.  The body of the request should be a `CreateArtifact` \nobject, which includes the metadata of the new artifact and, optionally, the \nmetadata and content of the first version.\n\nIf the artifact type is not provided, the registry attempts to figure out what \nkind of artifact is being added from the\nfollowing supported list:\n\n* Avro (`AVRO`)\n* Protobuf (`PROTOBUF`)\n* JSON Schema (`JSON`)\n* Kafka Connect (`KCONNECT`)\n* OpenAPI (`OPENAPI`)\n* AsyncAPI (`ASYNCAPI`)\n* GraphQL (`GRAPHQL`)\n* Web Services Description Language (`WSDL`)\n* XML Schema (`XSD`)\n\nAn artifact will be created using the unique artifact ID that can optionally be \nprovided in the request body.  If not provided in the request, the server will\ngenerate a unique ID for the artifact.  It is typically recommended that callers\nprovide the ID, because it is typically a meaningful identifier, and as such\nfor most use cases should be supplied by the caller.\n\nIf an artifact with the provided artifact ID already exists, the default behavior\nis for the server to reject the content with a 409 error.  However, the caller can\nsupply the `ifExists` query parameter to alter this default behavior. The `ifExists`\nquery parameter can have one of the following values:\n\n* `FAIL` (*default*) - server rejects the content with a 409 error\n* `CREATE_VERSION` - server creates a new version of the existing artifact and returns it\n* `FIND_OR_CREATE_VERSION` - server returns an existing **version** that matches the \nprovided content if such a version exists, otherwise a new version is created\n\nThis operation may fail for one of the following reasons:\n\n* An invalid `ArtifactType` was indicated (HTTP error `400`)\n* No `ArtifactType` was indicated and the server could not determine one from the content (HTTP error `400`)\n* Provided content (request body) was empty (HTTP error `400`)\n* An invalid version number was used for the optional included first version (HTTP error `400`)\n* The group does not exist and automatic-group-creation is not enabled (HTTP error `404`)\n* An artifact with the provided ID already exists (HTTP error `409`)\n* The content violates one of the configured global rules (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n\nNote that if the `dryRun` query parameter is set to `true`, then this operation\nwill not actually make any changes.  Instead it will succeed or fail based on \nwhether it **would have worked**.  Use this option to, for example, check if an\nartifact is valid or if a new version passes configured compatibility checks."
       },
       "delete": {
         "tags": [
@@ -2361,13 +2361,13 @@
             "description": "The artifact version was successfully created."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/RuleViolationBadRequest"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "$ref": "#/components/responses/RuleViolationConflict"
+            "$ref": "#/components/responses/Conflict"
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
@@ -2384,7 +2384,7 @@
         },
         "operationId": "createArtifactVersion",
         "summary": "Create artifact version",
-        "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact are applied, and if they all pass, the new content is added as the most recent \nversion of the artifact.  If any of the rules fail, an error is returned.\n\nThe body of the request can be the raw content of the new artifact version, or the raw content \nand a set of references pointing to other artifacts, and the type\nof that content should match the artifact's type (for example if the artifact type is `AVRO`\nthen the content of the request should be an Apache Avro document).\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* An invalid version number was provided (HTTP error `400`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "Creates a new version of the artifact by uploading new content.  The configured rules for\nthe artifact are applied, and if they all pass, the new content is added as the most recent \nversion of the artifact.  If any of the rules fail, an error is returned.\n\nThe body of the request can be the raw content of the new artifact version, or the raw content \nand a set of references pointing to other artifacts, and the type\nof that content should match the artifact's type (for example if the artifact type is `AVRO`\nthen the content of the request should be an Apache Avro document).\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* An invalid version number was provided (HTTP error `400`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The new content violates one of the rules configured for the artifact (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
       },
       "parameters": [
         {
@@ -8754,6 +8754,34 @@
           }
         },
         "description": "Common response used when an input conflicts with existing data."
+      },
+      "RuleViolationBadRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RuleViolationProblemDetails"
+            },
+            "examples": {
+              "RuleViolationBadRequestExample": {
+                "value": {
+                  "error_code": 400,
+                  "message": "The artifact content was invalid",
+                  "causes": [
+                    {
+                      "description": "API is missing a title",
+                      "context": "/info[title]"
+                    },
+                    {
+                      "description": "Operation IDs must be unique",
+                      "context": "/paths[/invoices]/put[operationId]"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response used when the content of the request violates one or more configured rules."
       },
       "ArtifactContent": {
         "headers": {
